@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizForce AI — Your 24/7 AI Business Empire</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+:root {
+  --bg: #030308;
+  --surface: #0d0d1a;
+  --card: #111122;
+  --border: #1e1e3a;
+  --border2: #2a2a50;
+  --cyan: #00e5ff;
+  --cyan2: #00b8cc;
+  --purple: #7c3aed;
+  --purple2: #9f6bff;
+  --pink: #ff2d78;
+  --text: #e2e2f0;
+  --muted: #5a5a80;
+  --white: #ffffff;
+}
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Outfit’, sans-serif;
+overflow-x: hidden;
+}
+
+.bg-orbs {
+position: fixed;
+inset: 0;
+pointer-events: none;
+z-index: 0;
+overflow: hidden;
+}
+
+.orb {
+position: absolute;
+border-radius: 50%;
+filter: blur(120px);
+opacity: 0.12;
+animation: float 8s ease-in-out infinite;
+}
+
+.orb1 { width: 600px; height: 600px; background: var(–cyan); top: -200px; left: -100px; animation-delay: 0s; }
+.orb2 { width: 500px; height: 500px; background: var(–purple); top: 30%; right: -150px; animation-delay: 3s; }
+.orb3 { width: 400px; height: 400px; background: var(–pink); bottom: -100px; left: 30%; animation-delay: 6s; }
+
+@keyframes float {
+0%, 100% { transform: translateY(0px) scale(1); }
+50% { transform: translateY(-30px) scale(1.05); }
+}
+
+/* NAV */
+nav {
+position: fixed;
+top: 0; left: 0; right: 0;
+z-index: 1000;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 0 50px;
+height: 72px;
+background: rgba(3,3,8,0.92);
+border-bottom: 1px solid var(–border);
+backdrop-filter: blur(20px);
+}
+
+.logo {
+font-size: 24px;
+font-weight: 900;
+letter-spacing: -1px;
+color: var(–white);
+cursor: pointer;
+}
+
+.logo span {
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.nav-links { display: flex; gap: 8px; align-items: center; }
+
+.nav-links a {
+font-size: 14px;
+font-weight: 500;
+color: var(–muted);
+text-decoration: none;
+cursor: pointer;
+padding: 8px 18px;
+border-radius: 8px;
+transition: all 0.2s;
+}
+
+.nav-links a:hover { color: var(–white); background: var(–surface); }
+
+.nav-cta {
+background: linear-gradient(135deg, var(–cyan), var(–purple)) !important;
+color: var(–white) !important;
+font-weight: 700 !important;
+padding: 10px 24px !important;
+border-radius: 10px !important;
+}
+
+.nav-cta:hover { opacity: 0.9 !important; transform: translateY(-1px) !important; }
+
+/* PAGES */
+.page { display: none; min-height: 100vh; padding-top: 72px; position: relative; z-index: 1; }
+.page.active { display: block; }
+
+/* ===== HERO ===== */
+.hero {
+min-height: calc(100vh - 72px);
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 80px 24px 60px;
+}
+
+.hero-chip {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+background: rgba(0,229,255,0.08);
+border: 1px solid rgba(0,229,255,0.2);
+border-radius: 100px;
+padding: 8px 20px;
+font-size: 13px;
+font-weight: 500;
+color: var(–cyan);
+margin-bottom: 40px;
+}
+
+.hero-chip::before {
+content: ‘’;
+width: 6px; height: 6px;
+background: var(–cyan);
+border-radius: 50%;
+box-shadow: 0 0 8px var(–cyan);
+animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+0%, 100% { opacity: 1; transform: scale(1); }
+50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.hero h1 {
+font-size: clamp(52px, 9vw, 110px);
+font-weight: 900;
+line-height: 1;
+letter-spacing: -3px;
+color: var(–white);
+margin-bottom: 24px;
+}
+
+.hero h1 .gradient {
+background: linear-gradient(135deg, var(–cyan) 0%, var(–purple2) 50%, var(–pink) 100%);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.hero-desc {
+font-size: 18px;
+font-weight: 300;
+color: var(–muted);
+max-width: 550px;
+line-height: 1.7;
+margin-bottom: 50px;
+}
+
+.hero-desc strong { color: var(–text); font-weight: 600; }
+
+.hero-btns {
+display: flex;
+gap: 16px;
+justify-content: center;
+flex-wrap: wrap;
+margin-bottom: 80px;
+}
+
+.btn-main {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: var(–white);
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+font-weight: 700;
+padding: 16px 36px;
+border: none;
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.btn-main:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,229,255,0.3); }
+
+.btn-secondary {
+background: transparent;
+color: var(–text);
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+font-weight: 600;
+padding: 16px 36px;
+border: 1px solid var(–border2);
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.btn-secondary:hover { border-color: var(–cyan); color: var(–cyan); }
+
+.hero-stats { display: flex; gap: 60px; justify-content: center; flex-wrap: wrap; }
+
+.hero-stat-num {
+font-size: 40px;
+font-weight: 900;
+letter-spacing: -2px;
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.hero-stat-label { font-size: 13px; color: var(–muted); font-weight: 500; margin-top: 4px; }
+
+/* TICKER */
+.ticker {
+overflow: hidden;
+padding: 18px 0;
+border-top: 1px solid var(–border);
+border-bottom: 1px solid var(–border);
+background: var(–surface);
+}
+
+.ticker-track {
+display: flex;
+animation: ticker 25s linear infinite;
+width: max-content;
+}
+
+@keyframes ticker {
+from { transform: translateX(0); }
+to { transform: translateX(-50%); }
+}
+
+.ticker-item {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 0 40px;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+letter-spacing: 2px;
+text-transform: uppercase;
+color: var(–muted);
+white-space: nowrap;
+border-right: 1px solid var(–border);
+}
+
+.ticker-item .dot {
+width: 5px; height: 5px;
+border-radius: 50%;
+background: var(–cyan);
+box-shadow: 0 0 6px var(–cyan);
+}
+
+/* STAFF */
+.staff-section { padding: 100px 50px; }
+
+.section-tag {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–cyan);
+margin-bottom: 16px;
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.section-tag::before { content: ‘’; width: 24px; height: 1px; background: var(–cyan); }
+
+.section-title {
+font-size: clamp(36px, 5vw, 60px);
+font-weight: 900;
+letter-spacing: -2px;
+color: var(–white);
+margin-bottom: 60px;
+line-height: 1.1;
+}
+
+.section-title span {
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.staff-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 1px;
+background: var(–border);
+border: 1px solid var(–border);
+border-radius: 16px;
+overflow: hidden;
+}
+
+.staff-card {
+background: var(–card);
+padding: 32px 28px;
+transition: all 0.3s;
+position: relative;
+overflow: hidden;
+}
+
+.staff-card::before {
+content: ‘’;
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, var(–cyan), var(–purple));
+opacity: 0;
+transition: opacity 0.3s;
+}
+
+.staff-card:hover { background: #161628; }
+.staff-card:hover::before { opacity: 1; }
+
+.staff-num { font-family: ‘Space Mono’, monospace; font-size: 10px; color: var(–border2); letter-spacing: 2px; margin-bottom: 16px; }
+
+.staff-avatar {
+width: 48px; height: 48px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 22px;
+margin-bottom: 16px;
+background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(124,58,237,0.1));
+border: 1px solid var(–border2);
+}
+
+.staff-name { font-size: 20px; font-weight: 800; color: var(–white); margin-bottom: 4px; }
+.staff-role { font-size: 12px; font-weight: 500; color: var(–cyan); margin-bottom: 12px; font-family: ‘Space Mono’, monospace; letter-spacing: 1px; }
+.staff-desc { font-size: 13px; color: var(–muted); line-height: 1.6; font-weight: 300; }
+
+/* ===== PRICING ===== */
+.pricing-section { padding: 100px 50px; }
+
+.pricing-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 24px;
+max-width: 1100px;
+margin: 0 auto;
+}
+
+.pricing-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 40px 36px;
+position: relative;
+transition: all 0.3s;
+display: flex;
+flex-direction: column;
+}
+
+.pricing-card:hover {
+border-color: var(–border2);
+transform: translateY(-4px);
+box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.pricing-card.featured {
+border-color: var(–cyan);
+background: linear-gradient(135deg, rgba(0,229,255,0.05), rgba(124,58,237,0.05));
+box-shadow: 0 0 40px rgba(0,229,255,0.1);
+}
+
+.featured-badge {
+position: absolute;
+top: -14px;
+left: 50%;
+transform: translateX(-50%);
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: var(–white);
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 2px;
+text-transform: uppercase;
+padding: 6px 20px;
+border-radius: 100px;
+white-space: nowrap;
+}
+
+.plan-name {
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+letter-spacing: 3px;
+text-transform: uppercase;
+color: var(–muted);
+margin-bottom: 16px;
+}
+
+.plan-price {
+font-size: 56px;
+font-weight: 900;
+letter-spacing: -3px;
+color: var(–white);
+line-height: 1;
+margin-bottom: 6px;
+}
+
+.plan-price span { font-size: 20px; font-weight: 400; color: var(–muted); letter-spacing: 0; }
+
+.plan-desc {
+font-size: 13px;
+color: var(–muted);
+margin-bottom: 32px;
+font-weight: 300;
+line-height: 1.5;
+}
+
+.plan-features {
+list-style: none;
+display: flex;
+flex-direction: column;
+gap: 12px;
+margin-bottom: 36px;
+flex: 1;
+}
+
+.plan-features li {
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 14px;
+color: var(–text);
+font-weight: 400;
+}
+
+.plan-features li::before {
+content: ‘✓’;
+width: 20px; height: 20px;
+border-radius: 50%;
+background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(124,58,237,0.15));
+border: 1px solid var(–border2);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 11px;
+color: var(–cyan);
+flex-shrink: 0;
+}
+
+.plan-btn {
+width: 100%;
+padding: 16px;
+border-radius: 12px;
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+font-weight: 700;
+cursor: pointer;
+transition: all 0.2s;
+border: none;
+}
+
+.plan-btn-outline {
+background: transparent;
+border: 1px solid var(–border2) !important;
+color: var(–text);
+}
+
+.plan-btn-outline:hover { border-color: var(–cyan) !important; color: var(–cyan); }
+
+.plan-btn-gradient {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: var(–white);
+}
+
+.plan-btn-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,229,255,0.3); }
+
+/* ===== REGISTER ===== */
+.register-page {
+display: grid;
+grid-template-columns: 420px 1fr;
+min-height: calc(100vh - 72px);
+}
+
+.reg-left {
+background: var(–surface);
+border-right: 1px solid var(–border);
+padding: 80px 50px;
+display: flex;
+flex-direction: column;
+justify-content: center;
+position: sticky;
+top: 72px;
+height: calc(100vh - 72px);
+}
+
+.reg-left h2 {
+font-size: 48px;
+font-weight: 900;
+letter-spacing: -2px;
+color: var(–white);
+line-height: 1.05;
+margin-bottom: 20px;
+}
+
+.reg-left h2 span {
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.reg-left p { font-size: 15px; color: var(–muted); line-height: 1.7; font-weight: 300; margin-bottom: 40px; }
+
+.feature-list { display: flex; flex-direction: column; gap: 14px; }
+
+.feature-item { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(–text); }
+
+.feature-icon {
+width: 28px; height: 28px;
+border-radius: 8px;
+background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(124,58,237,0.15));
+border: 1px solid var(–border2);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 13px;
+flex-shrink: 0;
+}
+
+.reg-right { padding: 80px 60px; overflow-y: auto; }
+
+.form-section-title { font-size: 22px; font-weight: 800; color: var(–white); margin-bottom: 30px; letter-spacing: -0.5px; }
+
+.form-group { margin-bottom: 20px; }
+
+.form-label { display: block; font-size: 13px; font-weight: 600; color: var(–text); margin-bottom: 8px; }
+
+.form-input {
+width: 100%;
+background: var(–card);
+border: 1px solid var(–border2);
+color: var(–text);
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+padding: 14px 18px;
+border-radius: 10px;
+outline: none;
+transition: all 0.2s;
+-webkit-appearance: none;
+}
+
+.form-input:focus { border-color: var(–cyan); box-shadow: 0 0 0 3px rgba(0,229,255,0.08); }
+.form-input::placeholder { color: var(–muted); }
+textarea.form-input { resize: vertical; min-height: 90px; }
+select.form-input { cursor: pointer; }
+select.form-input option { background: var(–card); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.submit-btn {
+width: 100%;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: var(–white);
+font-family: ‘Outfit’, sans-serif;
+font-size: 16px;
+font-weight: 800;
+padding: 18px;
+border: none;
+border-radius: 12px;
+cursor: pointer;
+margin-top: 10px;
+transition: all 0.2s;
+}
+
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,229,255,0.25); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.status-box {
+display: none;
+padding: 16px 20px;
+margin-top: 16px;
+border-radius: 10px;
+font-size: 14px;
+line-height: 1.6;
+font-weight: 500;
+}
+
+.status-box.success { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.25); color: var(–cyan); }
+.status-box.error { background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.25); color: var(–pink); }
+
+/* ===== DASHBOARD ===== */
+.dash-page { padding: 60px 50px; max-width: 1100px; margin: 0 auto; }
+
+.dash-title { font-size: 52px; font-weight: 900; letter-spacing: -2px; color: var(–white); margin-bottom: 8px; }
+
+.dash-title span {
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.dash-sub { font-size: 14px; color: var(–muted); font-family: ‘Space Mono’, monospace; margin-bottom: 50px; }
+
+.lookup-bar { display: flex; gap: 12px; margin-bottom: 50px; flex-wrap: wrap; }
+
+.lookup-bar input {
+flex: 1;
+min-width: 280px;
+background: var(–card);
+border: 1px solid var(–border2);
+color: var(–text);
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+padding: 16px 22px;
+border-radius: 12px;
+outline: none;
+transition: all 0.2s;
+}
+
+.lookup-bar input:focus { border-color: var(–cyan); box-shadow: 0 0 0 3px rgba(0,229,255,0.08); }
+.lookup-bar input::placeholder { color: var(–muted); }
+
+.lookup-bar button {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: var(–white);
+font-family: ‘Outfit’, sans-serif;
+font-size: 15px;
+font-weight: 700;
+padding: 16px 32px;
+border: none;
+border-radius: 12px;
+cursor: pointer;
+transition: all 0.2s;
+white-space: nowrap;
+}
+
+.lookup-bar button:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,229,255,0.25); }
+
+.dash-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; }
+
+.dash-stat-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 28px;
+transition: border-color 0.2s;
+}
+
+.dash-stat-card:hover { border-color: var(–border2); }
+
+.dash-stat-label { font-size: 12px; font-weight: 600; color: var(–muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+
+.dash-stat-val {
+font-size: 36px;
+font-weight: 900;
+letter-spacing: -1px;
+background: linear-gradient(135deg, var(–cyan), var(–purple2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+.task-section-title { font-size: 18px; font-weight: 700; color: var(–white); margin-bottom: 16px; }
+
+.task-list { display: flex; flex-direction: column; gap: 12px; }
+
+.task-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 20px 24px;
+display: flex;
+gap: 20px;
+align-items: flex-start;
+transition: border-color 0.2s;
+}
+
+.task-card:hover { border-color: var(–border2); }
+
+.task-agent-badge {
+background: linear-gradient(135deg, rgba(0,229,255,0.12), rgba(124,58,237,0.12));
+border: 1px solid var(–border2);
+border-radius: 8px;
+padding: 6px 14px;
+font-size: 13px;
+font-weight: 700;
+color: var(–cyan);
+white-space: nowrap;
+}
+
+.task-content { flex: 1; font-size: 14px; color: var(–muted); line-height: 1.6; font-weight: 300; }
+.task-date { font-family: ‘Space Mono’, monospace; font-size: 10px; color: var(–border2); white-space: nowrap; }
+
+.empty-state {
+text-align: center;
+padding: 80px 40px;
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+color: var(–muted);
+font-size: 14px;
+}
+
+.empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.3; }
+
+.loading-state {
+text-align: center;
+padding: 80px 40px;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+letter-spacing: 2px;
+}
+
+/* FOOTER */
+footer {
+margin-top: 100px;
+border-top: 1px solid var(–border);
+padding: 30px 50px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+background: var(–surface);
+}
+
+.footer-text { font-size: 13px; color: var(–muted); }
+
+@media (max-width: 900px) {
+nav { padding: 0 20px; }
+.hero { padding: 60px 20px; }
+.staff-section, .pricing-section { padding: 80px 20px; }
+.staff-grid { grid-template-columns: 1fr 1fr; }
+.pricing-grid { grid-template-columns: 1fr; }
+.register-page { grid-template-columns: 1fr; }
+.reg-left { position: static; height: auto; padding: 60px 24px; }
+.reg-right { padding: 40px 24px; }
+.form-row { grid-template-columns: 1fr; }
+.dash-page { padding: 40px 20px; }
+.dash-stats { grid-template-columns: 1fr; }
+footer { flex-direction: column; gap: 12px; text-align: center; padding: 24px 20px; }
+.hero-stats { gap: 30px; }
+}
+
+@media (max-width: 600px) {
+.staff-grid { grid-template-columns: 1fr; }
+.nav-links a:not(.nav-cta) { display: none; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<nav>
+  <div class="logo" onclick="showPage('home')">Biz<span>Force</span></div>
+  <div class="nav-links">
+    <a onclick="showPage('home')">Home</a>
+    <a onclick="showPage('pricing')">Pricing</a>
+    <a onclick="showPage('register')">Deploy Team</a>
+    <a onclick="showPage('dashboard')">Dashboard</a>
+    <a onclick="showPage('pricing')" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ===== HOME ===== -->
+
+<div id="home" class="page active">
+
+  <section class="hero">
+    <div class="hero-chip">⚡ AI-Powered Business Automation</div>
+    <h1>Your Business.<br><span class="gradient">Supercharged by AI.</span></h1>
+    <p class="hero-desc">Deploy <strong>9 specialized AI team members</strong> that work 24/7 on SEO, content, sales, email marketing, ads, and more — without hiring a single person.</p>
+    <div class="hero-btns">
+      <button class="btn-main" onclick="showPage('pricing')">🚀 See Pricing Plans</button>
+      <button class="btn-secondary" onclick="showPage('dashboard')">View Dashboard</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num">9</div>
+        <div class="hero-stat-label">AI Specialists</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">24/7</div>
+        <div class="hero-stat-label">Always On</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">∞</div>
+        <div class="hero-stat-label">Scale</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker">
+    <div class="ticker-track">
+      <div class="ticker-item"><span class="dot"></span>SEO OPTIMIZATION</div>
+      <div class="ticker-item"><span class="dot"></span>CONTENT CREATION</div>
+      <div class="ticker-item"><span class="dot"></span>EMAIL MARKETING</div>
+      <div class="ticker-item"><span class="dot"></span>SALES AUTOMATION</div>
+      <div class="ticker-item"><span class="dot"></span>REPUTATION MANAGEMENT</div>
+      <div class="ticker-item"><span class="dot"></span>AD CAMPAIGNS</div>
+      <div class="ticker-item"><span class="dot"></span>INFLUENCER OUTREACH</div>
+      <div class="ticker-item"><span class="dot"></span>ANALYTICS REPORTING</div>
+      <div class="ticker-item"><span class="dot"></span>COMMUNITY BUILDING</div>
+      <div class="ticker-item"><span class="dot"></span>SEO OPTIMIZATION</div>
+      <div class="ticker-item"><span class="dot"></span>CONTENT CREATION</div>
+      <div class="ticker-item"><span class="dot"></span>EMAIL MARKETING</div>
+      <div class="ticker-item"><span class="dot"></span>SALES AUTOMATION</div>
+      <div class="ticker-item"><span class="dot"></span>REPUTATION MANAGEMENT</div>
+      <div class="ticker-item"><span class="dot"></span>AD CAMPAIGNS</div>
+      <div class="ticker-item"><span class="dot"></span>INFLUENCER OUTREACH</div>
+      <div class="ticker-item"><span class="dot"></span>ANALYTICS REPORTING</div>
+      <div class="ticker-item"><span class="dot"></span>COMMUNITY BUILDING</div>
+    </div>
+  </div>
+
+  <section class="staff-section">
+    <div class="section-tag">Your AI Team</div>
+    <div class="section-title">Meet Your <span>9 Specialists</span></div>
+    <div class="staff-grid">
+      <div class="staff-card"><div class="staff-num">01</div><div class="staff-avatar">🔍</div><div class="staff-name">Alex</div><div class="staff-role">SEO Specialist</div><div class="staff-desc">Generates high-value keywords, meta descriptions, and search strategies to get you found on Google.</div></div>
+      <div class="staff-card"><div class="staff-num">02</div><div class="staff-avatar">💬</div><div class="staff-name">Jordan</div><div class="staff-role">Community Manager</div><div class="staff-desc">Writes authentic Reddit and Quora posts that build brand awareness in relevant communities.</div></div>
+      <div class="staff-card"><div class="staff-num">03</div><div class="staff-avatar">✍️</div><div class="staff-name">Morgan</div><div class="staff-role">Content Creator</div><div class="staff-desc">Creates complete SEO blog posts with titles, meta descriptions, and keyword-rich body content.</div></div>
+      <div class="staff-card"><div class="staff-num">04</div><div class="staff-avatar">📧</div><div class="staff-name">Casey</div><div class="staff-role">Email Marketing</div><div class="staff-desc">Builds complete 3-email sequences with subject lines, preview text, and full email copy.</div></div>
+      <div class="staff-card"><div class="staff-num">05</div><div class="staff-avatar">💰</div><div class="staff-name">Riley</div><div class="staff-role">Sales Rep</div><div class="staff-desc">Writes personalized sales follow-up templates targeting your ideal customer profile.</div></div>
+      <div class="staff-card"><div class="staff-num">06</div><div class="staff-avatar">⭐</div><div class="staff-name">Sam</div><div class="staff-role">Reputation Manager</div><div class="staff-desc">Crafts professional responses to customer reviews — turning feedback into brand strength.</div></div>
+      <div class="staff-card"><div class="staff-num">07</div><div class="staff-avatar">📊</div><div class="staff-name">Dana</div><div class="staff-role">Analytics Officer</div><div class="staff-desc">Produces detailed weekly performance reports with key metrics, insights, and action items.</div></div>
+      <div class="staff-card"><div class="staff-num">08</div><div class="staff-avatar">📱</div><div class="staff-name">Taylor</div><div class="staff-role">Ad Campaign Manager</div><div class="staff-desc">Creates complete Google Ad campaigns with headlines, copy, and precision targeting strategies.</div></div>
+      <div class="staff-card"><div class="staff-num">09</div><div class="staff-avatar">🤝</div><div class="staff-name">Blake</div><div class="staff-role">Influencer Outreach</div><div class="staff-desc">Writes personalized outreach emails for micro-influencers in your exact business niche.</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="logo">Biz<span>Force</span></div>
+    <div class="footer-text">© 2025 BizForce AI — Powered by Claude AI</div>
+  </footer>
+</div>
+
+<!-- ===== PRICING ===== -->
+
+<div id="pricing" class="page">
+  <section class="pricing-section">
+    <div style="text-align:center;margin-bottom:70px;">
+      <div class="section-tag" style="justify-content:center;">Plans & Pricing</div>
+      <div class="section-title" style="text-align:center;">Choose Your <span>AI Power Level</span></div>
+      <p style="color:var(--muted);font-size:16px;font-weight:300;max-width:500px;margin:0 auto;">Start small or go all in. Every plan includes real AI agents working for your business around the clock.</p>
+    </div>
+
+```
+<div class="pricing-grid">
+
+  <!-- STARTER -->
+  <div class="pricing-card">
+    <div class="plan-name">Starter</div>
+    <div class="plan-price">$29<span>/mo</span></div>
+    <div class="plan-desc">Perfect for solopreneurs getting started with AI automation.</div>
+    <ul class="plan-features">
+      <li>3 AI Agents (Alex, Morgan, Casey)</li>
+      <li>1 Website</li>
+      <li>50 Tasks per month</li>
+      <li>SEO + Content + Email</li>
+      <li>Basic dashboard</li>
+      <li>Email support</li>
+    </ul>
+    <button class="plan-btn plan-btn-outline" onclick="checkout('price_1TQXFo157b9rpvGCQ0YPsDXn')">Get Started →</button>
+  </div>
+
+  <!-- PRO -->
+  <div class="pricing-card featured">
+    <div class="featured-badge">⚡ Most Popular</div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">$99<span>/mo</span></div>
+    <div class="plan-desc">For growing businesses ready to scale with a full AI team.</div>
+    <ul class="plan-features">
+      <li>6 AI Agents</li>
+      <li>3 Websites</li>
+      <li>200 Tasks per month</li>
+      <li>SEO + Content + Email + Sales + Ads + Reputation</li>
+      <li>Full analytics dashboard</li>
+      <li>Priority support</li>
+    </ul>
+    <button class="plan-btn plan-btn-gradient" onclick="checkout('price_1TQXHP157b9rpvGCRw3hzvl2')">Get Started →</button>
+  </div>
+
+  <!-- ENTERPRISE -->
+  <div class="pricing-card">
+    <div class="plan-name">Enterprise</div>
+    <div class="plan-price">$199<span>/mo</span></div>
+    <div class="plan-desc">Unlimited power for businesses serious about domination.</div>
+    <ul class="plan-features">
+      <li>All 9 AI Agents</li>
+      <li>Unlimited Websites</li>
+      <li>Unlimited Tasks</li>
+      <li>All 9 business functions</li>
+      <li>Custom branding</li>
+      <li>24/7 dedicated support</li>
+    </ul>
+    <button class="plan-btn plan-btn-outline" onclick="checkout('price_1TQXJ3157b9rpvGCQBvDKye0')">Get Started →</button>
+  </div>
+
+</div>
+```
+
+  </section>
+
+  <footer>
+    <div class="logo">Biz<span>Force</span></div>
+    <div class="footer-text">© 2025 BizForce AI — Powered by Claude AI</div>
+  </footer>
+</div>
+
+<!-- ===== REGISTER ===== -->
+
+<div id="register" class="page">
+  <div class="register-page">
+    <div class="reg-left">
+      <div class="section-tag" style="margin-bottom:20px;">Deploy Now</div>
+      <h2>Activate Your<br><span>AI Team</span></h2>
+      <p>Fill in your business details and your AI specialists go live immediately — working around the clock to grow your business.</p>
+      <div class="feature-list">
+        <div class="feature-item"><div class="feature-icon">⚡</div>Instant AI team deployment</div>
+        <div class="feature-item"><div class="feature-icon">🎯</div>9 specialized business functions</div>
+        <div class="feature-item"><div class="feature-icon">🔄</div>24/7 automated operations</div>
+        <div class="feature-item"><div class="feature-icon">📈</div>Real-time dashboard tracking</div>
+        <div class="feature-item"><div class="feature-icon">💡</div>Powered by Claude AI</div>
+      </div>
+    </div>
+
+```
+<div class="reg-right">
+  <div class="form-section-title">Business Registration</div>
+
+  <div class="form-group">
+    <label class="form-label">Business Name *</label>
+    <input class="form-input" type="text" id="biz_name" placeholder="Your business name">
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">Website</label>
+      <input class="form-input" type="text" id="biz_website" placeholder="https://yourbiz.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email *</label>
+      <input class="form-input" type="email" id="biz_email" placeholder="you@email.com">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Products / Services *</label>
+    <textarea class="form-input" id="biz_products" placeholder="Describe what you sell or offer..."></textarea>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Target Customer</label>
+    <input class="form-input" type="text" id="biz_target" placeholder="Who is your ideal customer?">
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">Brand Tone</label>
+      <select class="form-input" id="biz_tone">
+        <option value="professional">Professional</option>
+        <option value="casual">Casual & Friendly</option>
+        <option value="bold">Bold & Aggressive</option>
+        <option value="luxury">Luxury & Premium</option>
+        <option value="educational">Educational</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Plan</label>
+      <select class="form-input" id="biz_plan">
+        <option value="starter">Starter — $29/mo</option>
+        <option value="pro">Pro — $99/mo</option>
+        <option value="enterprise">Enterprise — $199/mo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Business Goals</label>
+    <textarea class="form-input" id="biz_goals" placeholder="What are your main business goals?"></textarea>
+  </div>
+
+  <button class="submit-btn" id="deployBtn" onclick="deployTeam()">
+    🚀 Deploy My AI Team Now
+  </button>
+
+  <div class="status-box" id="deployStatus"></div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+
+<div id="dashboard" class="page">
+  <div class="dash-page">
+    <div class="dash-title">Your <span>Dashboard</span></div>
+    <div class="dash-sub">// Enter your Business ID to view your AI team activity</div>
+
+```
+<div class="lookup-bar">
+  <input type="text" id="bizLookupId" placeholder="Paste your Business ID here...">
+  <button onclick="fetchDashboard()">Load Dashboard →</button>
+</div>
+
+<div id="dashOutput"></div>
+```
+
+  </div>
+</div>
+
+<script>
+const API = 'https://dynamic-prosperity-production-5382.up.railway.app';
+const STRIPE_KEY = 'pk_live_51TQ8cV157b9rpvGCdwRnmBL3DCOEWOS3qzIbZVh6o5QEvwz8TVQBWcU7DjJnEqqDlphekJiWgVpANk9jYzAuUNJc00BsgEaq0A';
+const stripe = Stripe(STRIPE_KEY);
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function checkout(priceId) {
+  try {
+    const res = await fetch(`${API}/api/create-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priceId })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      showPage('register');
+    }
+  } catch (err) {
+    showPage('register');
+  }
+}
+
+async function deployTeam() {
+  const btn = document.getElementById('deployBtn');
+  const status = document.getElementById('deployStatus');
+
+  const payload = {
+    business_name: document.getElementById('biz_name').value.trim(),
+    website: document.getElementById('biz_website').value.trim(),
+    email: document.getElementById('biz_email').value.trim(),
+    products: document.getElementById('biz_products').value.trim(),
+    target_customer: document.getElementById('biz_target').value.trim(),
+    tone: document.getElementById('biz_tone').value,
+    plan: document.getElementById('biz_plan').value,
+    goals: document.getElementById('biz_goals').value.trim()
+  };
+
+  if (!payload.business_name || !payload.email || !payload.products) {
+    status.className = 'status-box error';
+    status.style.display = 'block';
+    status.textContent = '⚠️ Please fill in Business Name, Email, and Products to continue.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Deploying Your AI Team...';
+  status.style.display = 'none';
+
+  try {
+    const res = await fetch(`${API}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      status.className = 'status-box success';
+      status.style.display = 'block';
+      status.innerHTML = `✅ <strong>AI Team Deployed Successfully!</strong><br><br>Your Business ID:<br><strong style="font-size:13px;word-break:break-all;">${data.business_id}</strong><br><br>Save this ID — you'll use it to access your dashboard.`;
+      btn.textContent = '✅ Team Deployed!';
+    } else {
+      throw new Error(data.error || 'Deployment failed');
+    }
+  } catch (err) {
+    status.className = 'status-box error';
+    status.style.display = 'block';
+    status.textContent = `⚠️ Error: ${err.message}`;
+    btn.disabled = false;
+    btn.textContent = '🚀 Deploy My AI Team Now';
+  }
+}
+
+async function fetchDashboard() {
+  const id = document.getElementById('bizLookupId').value.trim();
+  const out = document.getElementById('dashOutput');
+
+  if (!id) {
+    out.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>Enter your Business ID above to load your dashboard.</div>';
+    return;
+  }
+
+  out.innerHTML = '<div class="loading-state">// LOADING YOUR DASHBOARD...</div>';
+
+  try {
+    const res = await fetch(`${API}/api/dashboard/${id}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const biz = data.business || {};
+    const tasks = data.tasks || [];
+
+    out.innerHTML = `
+      <div class="dash-stats">
+        <div class="dash-stat-card">
+          <div class="dash-stat-label">Business</div>
+          <div class="dash-stat-val" style="font-size:22px;">${biz.business_name || '—'}</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-label">Total Revenue</div>
+          <div class="dash-stat-val">$${(biz.total_revenue || 0).toLocaleString()}</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-label">Tasks Done</div>
+          <div class="dash-stat-val">${tasks.length}</div>
+        </div>
+      </div>
+      <div class="task-section-title">AI Team Activity</div>
+      <div class="task-list">
+        ${tasks.length === 0
+          ? '<div class="empty-state"><div class="empty-icon">⚡</div>Your AI team is standing by. Tasks will appear here once they run.</div>'
+          : tasks.map(t => `
+            <div class="task-card">
+              <div class="task-agent-badge">${(t.staff_member || 'AI').toUpperCase()}</div>
+              <div class="task-content">${(t.content || '').substring(0, 160)}${t.content && t.content.length > 160 ? '...' : ''}</div>
+              <div class="task-date">${new Date(t.created_at).toLocaleDateString()}</div>
+            </div>
+          `).join('')
+        }
+      </div>
+    `;
+  } catch (err) {
+    out.innerHTML = `<div class="empty-state" style="color:var(--pink);">⚠️ Error: ${err.message}</div>`;
+  }
+}
+</script>
+
+</body>
+</html>
