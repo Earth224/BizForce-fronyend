@@ -1,1 +1,72 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BizForce AI</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#030308;color:#e8e8ff;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}.box{background:#080812;border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:40px;width:90%;max-width:400px}h1{background:linear-gradient(135deg,#00e5ff,#9f6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;font-size:1.8rem;margin-bottom:6px}p{color:#8888aa;text-align:center;font-size:0.85rem;margin-bottom:24px}.tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;margin-bottom:20px}.tab{flex:1;padding:9px;border:none;background:transparent;color:#8888aa;cursor:pointer;border-radius:8px;font-size:0.9rem}.tab.active{background:linear-gradient(135deg,#00e5ff,#9f6bff);color:#000;font-weight:700}label{display:block;color:#8888aa;font-size:0.75rem;text-transform:uppercase;margin-bottom:5px;margin-top:14px}input,select{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:11px 13px;color:#e8e8ff;font-size:0.9rem;outline:none}input:focus,select:focus{border-color:#00e5ff}select option{background:#0d0d1a}button.go{width:100%;margin-top:18px;padding:13px;background:linear-gradient(135deg,#00e5ff,#9f6bff);border:none;border-radius:10px;color:#000;font-weight:800;font-size:1rem;cursor:pointer;transition:opacity 0.2s}button.go:disabled{opacity:0.5;cursor:not-allowed}.err{color:#ff2d78;font-size:0.82rem;text-align:center;margin-top:10px;min-height:20px}.success{color:#00e5ff;font-size:0.82rem;text-align:center;margin-top:10px}</style></head><body><div class="box"><h1>BizForce AI</h1><p>Your AI-powered business network</p><div class="tabs"><button class="tab active" onclick="show('login')">Sign In</button><button class="tab" onclick="show('register')">Create Account</button></div><div id="login"><label>Email</label><input id="le" type="email" placeholder="you@business.com"><label>Password</label><input id="lp" type="password" placeholder="••••••••"><button class="go" id="loginBtn" onclick="login()">Sign In</button></div><div id="register" style="display:none"><label>Business Name</label><input id="rb" placeholder="Your Business Name"><label>Industry</label><select id="ri"><option value="">Select Industry</option><option>Technology</option><option>E-Commerce</option><option>Health and Wellness</option><option>Finance</option><option>Real Estate</option><option>Marketing</option><option>Education</option><option>Entertainment</option><option>Other</option></select><label>Email</label><input id="re" type="email" placeholder="you@business.com"><label>Password</label><input id="rp" type="password" placeholder="Min 8 characters"><button class="go" id="regBtn" onclick="reg()">Create Account</button></div><div class="err" id="err"></div></div><script>const A='https://dynamic-prosperity-production-5382.up.railway.app';function show(t){document.querySelectorAll('.tab').forEach((x,i)=>x.classList.toggle('active',(i==0&&t=='login')||(i==1&&t=='register')));document.getElementById('login').style.display=t=='login'?'block':'none';document.getElementById('register').style.display=t=='register'?'block':'none';}async function login(){const btn=document.getElementById('loginBtn');const e=document.getElementById('le').value.trim(),p=document.getElementById('lp').value;if(!e||!p)return err('Fill all fields');btn.disabled=true;btn.textContent='Signing in...';try{const r=await fetch(A+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok){btn.disabled=false;btn.textContent='Sign In';return err(d.error||'Login failed');}save(d);window.location.href='/dashboard.html';}catch(x){btn.disabled=false;btn.textContent='Sign In';err('Connection error: '+x.message);}}async function reg(){const btn=document.getElementById('regBtn');const b=document.getElementById('rb').value.trim(),i=document.getElementById('ri').value,e=document.getElementById('re').value.trim(),p=document.getElementById('rp').value;if(!b||!e||!p)return err('Fill all fields');if(p.length<8)return err('Password must be at least 8 characters');btn.disabled=true;btn.textContent='Creating account...';try{const r=await fetch(A+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p,business_name:b,industry:i})});const d=await r.json();if(!r.ok){btn.disabled=false;btn.textContent='Create Account';return err(d.error||JSON.stringify(d));}save(d);window.location.href='/dashboard.html';}catch(x){btn.disabled=false;btn.textContent='Create Account';err('Connection error: '+x.message);}}function save(d){if(d.token)localStorage.setItem('bf_token',d.token);if(d.user)localStorage.setItem('bf_user',JSON.stringify(d.user));}function err(m){document.getElementById('err').textContent=m;setTimeout(()=>document.getElementById('err').textContent='',5000);}if(localStorage.getItem('bf_token')){window.location.href='/dashboard.html';}</script></body></html>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BizForce AI</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#030308;color:#e8e8ff;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}.box{background:#080812;border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:40px;width:90%;max-width:400px}h1{background:linear-gradient(135deg,#00e5ff,#9f6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;font-size:1.8rem;margin-bottom:6px}p{color:#8888aa;text-align:center;font-size:0.85rem;margin-bottom:24px}.tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;margin-bottom:20px}.tab{flex:1;padding:9px;border:none;background:transparent;color:#8888aa;cursor:pointer;border-radius:8px;font-size:0.9rem}.tab.active{background:linear-gradient(135deg,#00e5ff,#9f6bff);color:#000;font-weight:700}label{display:block;color:#8888aa;font-size:0.75rem;text-transform:uppercase;margin-bottom:5px;margin-top:14px}input,select{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:11px 13px;color:#e8e8ff;font-size:0.9rem;outline:none}input:focus,select:focus{border-color:#00e5ff}select option{background:#0d0d1a}button.go{width:100%;margin-top:18px;padding:13px;background:linear-gradient(135deg,#00e5ff,#9f6bff);border:none;border-radius:10px;color:#000;font-weight:800;font-size:1rem;cursor:pointer}.err{color:#ff2d78;font-size:0.82rem;text-align:center;margin-top:10px;min-height:20px}.status{color:#00e5ff;font-size:0.82rem;text-align:center;margin-top:8px;min-height:20px;font-weight:600}</style></head><body>
+
+<script>window.onerror=function(msg,src,line,col,err){document.body.insertAdjacentHTML("beforeend","<pre style='color:red;background:black;padding:12px;white-space:pre-wrap;position:fixed;bottom:0;left:0;right:0;z-index:9999'>JS ERROR: "+msg+" line:"+line+"</pre>");};</script>
+
+<div class="box"><h1>BizForce AI</h1><p>Your AI-powered business network</p><div class="tabs"><button class="tab active" onclick="show('login')">Sign In</button><button class="tab" onclick="show('register')">Create Account</button></div><div id="login"><label>Email</label><input id="le" type="email" placeholder="you@business.com"><label>Password</label><input id="lp" type="password" placeholder="••••••••"><button class="go" id="loginBtn" onclick="login()">Sign In</button></div><div id="register" style="display:none"><label>Business Name</label><input id="rb" placeholder="Your Business Name"><label>Industry</label><select id="ri"><option value="">Select Industry</option><option>Technology</option><option>E-Commerce</option><option>Health and Wellness</option><option>Finance</option><option>Real Estate</option><option>Marketing</option><option>Education</option><option>Entertainment</option><option>Other</option></select><label>Email</label><input id="re" type="email" placeholder="you@business.com"><label>Password</label><input id="rp" type="password" placeholder="Min 8 characters"><button class="go" id="regBtn" onclick="reg()">Create Account</button></div><div class="status" id="status">Ready</div><div class="err" id="err"></div></div>
+<script>
+const A='https://dynamic-prosperity-production-5382.up.railway.app';
+function setStatus(msg){document.getElementById('status').textContent=msg;}
+function setErr(msg){document.getElementById('err').textContent=msg;setTimeout(()=>document.getElementById('err').textContent='',6000);}
+function show(t){document.querySelectorAll('.tab').forEach((x,i)=>x.classList.toggle('active',(i==0&&t=='login')||(i==1&&t=='register')));document.getElementById('login').style.display=t=='login'?'block':'none';document.getElementById('register').style.display=t=='register'?'block':'none';}
+async function login(){
+  setStatus('Clicked');
+  const btn=document.getElementById('loginBtn');
+  const e=document.getElementById('le').value.trim();
+  const p=document.getElementById('lp').value;
+  if(!e||!p){setErr('Fill all fields');setStatus('Ready');return;}
+  btn.disabled=true;
+  setStatus('Sending request...');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+    const r=await fetch(A+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p}),signal:controller.signal});
+    clearTimeout(timeout);
+    setStatus('Response received');
+    const d=await r.json();
+    if(!r.ok){btn.disabled=false;setStatus('Ready');return setErr(d.error||'Login failed');}
+    if(d.token)localStorage.setItem('bf_token',d.token);
+    if(d.user)localStorage.setItem('bf_user',JSON.stringify(d.user));
+    setStatus('Redirecting...');
+    window.location.href='/dashboard.html';
+  }catch(x){
+    clearTimeout(timeout);
+    btn.disabled=false;
+    setStatus('Ready');
+    if(x.name==='AbortError'){setErr('Request timed out — check connection');}
+    else{setErr('Error: '+x.message);}
+  }
+}
+async function reg(){
+  setStatus('Clicked');
+  const btn=document.getElementById('regBtn');
+  const b=document.getElementById('rb').value.trim();
+  const i=document.getElementById('ri').value;
+  const e=document.getElementById('re').value.trim();
+  const p=document.getElementById('rp').value;
+  if(!b||!e||!p){setErr('Fill all fields');setStatus('Ready');return;}
+  if(p.length<8){setErr('Password min 8 characters');setStatus('Ready');return;}
+  btn.disabled=true;
+  setStatus('Sending request...');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+    const r=await fetch(A+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p,business_name:b,industry:i}),signal:controller.signal});
+    clearTimeout(timeout);
+    setStatus('Response received');
+    const d=await r.json();
+    if(!r.ok){btn.disabled=false;setStatus('Ready');return setErr(d.error||JSON.stringify(d));}
+    if(d.token)localStorage.setItem('bf_token',d.token);
+    if(d.user)localStorage.setItem('bf_user',JSON.stringify(d.user));
+    setStatus('Redirecting...');
+    window.location.href='/dashboard.html';
+  }catch(x){
+    clearTimeout(timeout);
+    btn.disabled=false;
+    setStatus('Ready');
+    if(x.name==='AbortError'){setErr('Request timed out — check connection');}
+    else{setErr('Error: '+x.message);}
+  }
+}
+if(localStorage.getItem('bf_token')){setStatus('Already logged in — redirecting...');window.location.href='/dashboard.html';}
+</script>
+</body></html>
