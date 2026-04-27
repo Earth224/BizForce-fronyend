@@ -3,589 +3,1429 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#030308">
-<title>BizForce AI — Your 24/7 AI Business Empire</title>
-<script src="https://js.stripe.com/v3/"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizForce AI</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #030308;
+    --bg2: #080812;
+    --bg3: #0d0d1a;
+    --cyan: #00e5ff;
+    --purple: #9f6bff;
+    --pink: #ff2d78;
+    --text: #e8e8ff;
+    --text2: #8888aa;
+    --border: rgba(0,229,255,0.15);
+    --card: rgba(255,255,255,0.03);
+  }
 
-html, body {
-background: #030308;
-color: #e2e2f0;
-font-family: -apple-system, BlinkMacSystemFont, ‘SF Pro Display’, ‘Segoe UI’, system-ui, sans-serif;
+- { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Segoe UI’, system-ui, sans-serif;
+min-height: 100vh;
 overflow-x: hidden;
--webkit-font-smoothing: antialiased;
-min-height: 100%;
 }
 
-:root {
-–bg: #030308;
-–surface: #0d0d1a;
-–card: #111122;
-–border: #1e1e3a;
-–border2: #2a2a50;
-–cyan: #00e5ff;
-–purple: #7c3aed;
-–purple2: #9f6bff;
-–pink: #ff2d78;
-–text: #e2e2f0;
-–muted: #5a5a80;
-–white: #ffffff;
+/* ANIMATED BACKGROUND ORBS */
+.orbs {
+position: fixed;
+top:0; left:0; width:100%; height:100%;
+pointer-events: none;
+z-index: 0;
+overflow: hidden;
+}
+.orb {
+position: absolute;
+border-radius: 50%;
+filter: blur(80px);
+opacity: 0.12;
+animation: float 20s infinite ease-in-out;
+}
+.orb1 { width:500px; height:500px; background:var(–cyan); top:-100px; left:-100px; animation-delay:0s; }
+.orb2 { width:400px; height:400px; background:var(–purple); top:30%; right:-100px; animation-delay:-7s; }
+.orb3 { width:300px; height:300px; background:var(–pink); bottom:-100px; left:30%; animation-delay:-14s; }
+
+@keyframes float {
+0%,100% { transform: translateY(0) scale(1); }
+33% { transform: translateY(-30px) scale(1.05); }
+66% { transform: translateY(20px) scale(0.95); }
 }
 
-/* ORBS */
-.orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.orb { position: absolute; border-radius: 50%; filter: blur(80px); animation: floatOrb 9s ease-in-out infinite; }
-.o1 { width: 500px; height: 500px; background: rgba(0,229,255,0.2); top: -200px; left: -100px; }
-.o2 { width: 450px; height: 450px; background: rgba(124,58,237,0.2); top: 30%; right: -100px; animation-delay: 3s; }
-.o3 { width: 400px; height: 400px; background: rgba(255,45,120,0.13); bottom: -100px; left: 30%; animation-delay: 6s; }
-@keyframes floatOrb { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+/* AUTH SCREEN */
+#auth-screen {
+position: fixed;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 100;
+background: var(–bg);
+}
 
-/* NAV */
-nav {
-position: fixed; top: 0; left: 0; right: 0; z-index: 999;
-height: 64px; display: flex; align-items: center; justify-content: space-between;
-padding: 0 24px;
-background: rgba(3,3,8,0.95);
-border-bottom: 1px solid #1e1e3a;
+.auth-box {
+background: rgba(8,8,18,0.95);
+border: 1px solid var(–border);
+border-radius: 24px;
+padding: 48px;
+width: 100%;
+max-width: 420px;
+position: relative;
+z-index: 1;
 backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
 }
 
-.logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; color: #fff; cursor: pointer; }
-.logo em { font-style: normal; background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.logo {
+text-align: center;
+margin-bottom: 32px;
+}
 
-.nav-r { display: flex; gap: 4px; align-items: center; }
-.nav-r button { background: none; border: none; font-family: inherit; font-size: 13px; font-weight: 500; color: #5a5a80; cursor: pointer; padding: 8px 14px; border-radius: 8px; transition: all .2s; }
-.nav-r button:hover { color: #fff; background: rgba(255,255,255,0.06); }
-.nav-cta { background: linear-gradient(135deg,#00e5ff,#7c3aed) !important; color: #fff !important; font-weight: 700 !important; border-radius: 10px !important; }
+.logo h1 {
+font-size: 2rem;
+font-weight: 800;
+background: linear-gradient(135deg, var(–cyan), var(–purple), var(–pink));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+letter-spacing: -0.5px;
+}
 
-/* BOTTOM NAV - shows on mobile */
-.bnav {
+.logo p {
+color: var(–text2);
+font-size: 0.85rem;
+margin-top: 6px;
+}
+
+.auth-tabs {
+display: flex;
+background: rgba(255,255,255,0.05);
+border-radius: 12px;
+padding: 4px;
+margin-bottom: 28px;
+}
+
+.auth-tab {
+flex: 1;
+padding: 10px;
+border: none;
+background: transparent;
+color: var(–text2);
+cursor: pointer;
+border-radius: 9px;
+font-size: 0.9rem;
+transition: all 0.2s;
+}
+
+.auth-tab.active {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: #000;
+font-weight: 700;
+}
+
+.form-group { margin-bottom: 16px; }
+
+.form-group label {
+display: block;
+color: var(–text2);
+font-size: 0.8rem;
+margin-bottom: 6px;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+
+.form-group input, .form-group select {
+width: 100%;
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 14px;
+color: var(–text);
+font-size: 0.95rem;
+outline: none;
+transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus {
+border-color: var(–cyan);
+}
+
+.form-group select option { background: #0d0d1a; }
+
+.btn-primary {
+width: 100%;
+padding: 14px;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+border: none;
+border-radius: 12px;
+color: #000;
+font-weight: 800;
+font-size: 1rem;
+cursor: pointer;
+transition: opacity 0.2s, transform 0.1s;
+margin-top: 8px;
+}
+
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+.error-msg {
+color: var(–pink);
+font-size: 0.85rem;
+text-align: center;
+margin-top: 12px;
 display: none;
-position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
-background: rgba(3,3,8,0.98);
-border-top: 1px solid #1e1e3a;
+}
+
+/* MAIN APP */
+#app {
+display: none;
+min-height: 100vh;
+}
+
+/* TOP NAV */
+.topnav {
+position: fixed;
+top: 0; left: 0; right: 0;
+height: 60px;
+background: rgba(3,3,8,0.9);
 backdrop-filter: blur(20px);
--webkit-backdrop-filter: blur(20px);
-padding: 8px 0;
-padding-bottom: max(8px, env(safe-area-inset-bottom));
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+padding: 0 20px;
+z-index: 50;
+gap: 16px;
 }
 
-.bnav-inner { display: flex; justify-content: space-around; }
-
-.bni {
-display: flex; flex-direction: column; align-items: center; gap: 3px;
-cursor: pointer; padding: 6px 20px; background: none; border: none; font-family: inherit;
+.topnav-logo {
+font-size: 1.2rem;
+font-weight: 800;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
 }
 
-.bni-icon { font-size: 22px; }
-.bni-lbl { font-size: 10px; font-weight: 600; color: #5a5a80; }
-.bni.on .bni-lbl { color: #00e5ff; }
+.topnav-search {
+flex: 1;
+max-width: 400px;
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 8px 16px;
+color: var(–text);
+font-size: 0.9rem;
+outline: none;
+}
+
+.topnav-user {
+margin-left: auto;
+display: flex;
+align-items: center;
+gap: 10px;
+cursor: pointer;
+}
+
+.avatar {
+width: 36px;
+height: 36px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 700;
+font-size: 0.85rem;
+color: #000;
+flex-shrink: 0;
+}
+
+/* BOTTOM NAV */
+.bottomnav {
+position: fixed;
+bottom: 0; left: 0; right: 0;
+height: 65px;
+background: rgba(3,3,8,0.95);
+backdrop-filter: blur(20px);
+border-top: 1px solid var(–border);
+display: flex;
+align-items: center;
+justify-content: space-around;
+z-index: 50;
+padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-btn {
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 4px;
+background: none;
+border: none;
+color: var(–text2);
+cursor: pointer;
+padding: 8px 16px;
+border-radius: 12px;
+transition: all 0.2s;
+font-size: 0.65rem;
+}
+
+.nav-btn.active { color: var(–cyan); }
+.nav-btn svg { width: 22px; height: 22px; }
+
+/* MAIN CONTENT */
+.main-content {
+padding-top: 70px;
+padding-bottom: 80px;
+max-width: 680px;
+margin: 0 auto;
+padding-left: 16px;
+padding-right: 16px;
+}
 
 /* PAGES */
-.pg { display: none; min-height: 100vh; padding-top: 64px; position: relative; z-index: 1; }
-.pg.on { display: block; }
+.page { display: none; }
+.page.active { display: block; }
 
-/* HERO */
-.hero {
-display: flex; flex-direction: column; align-items: center; justify-content: center;
-text-align: center; padding: 60px 20px 120px;
-min-height: calc(100vh - 64px);
+/* CARDS */
+.card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 20px;
+margin-bottom: 16px;
+backdrop-filter: blur(10px);
 }
 
-.chip {
-display: inline-flex; align-items: center; gap: 8px;
-background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.2);
-border-radius: 100px; padding: 9px 20px;
-font-size: 13px; font-weight: 500; color: #00e5ff;
-margin-bottom: 36px;
+/* FEED */
+.post-composer {
+display: flex;
+gap: 12px;
+align-items: flex-start;
+margin-bottom: 20px;
 }
 
-.dot { width: 7px; height: 7px; border-radius: 50%; background: #00e5ff; box-shadow: 0 0 10px #00e5ff; animation: blink 2s ease-in-out infinite; }
-@keyframes blink { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.3;transform:scale(.6);} }
-
-h1.big {
-font-size: clamp(46px, 10vw, 108px);
-font-weight: 900; letter-spacing: -3px; line-height: .95;
-color: #fff; margin-bottom: 20px;
+.post-composer textarea {
+flex: 1;
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 12px;
+color: var(–text);
+font-size: 0.95rem;
+resize: none;
+outline: none;
+min-height: 80px;
+font-family: inherit;
 }
 
-.grad { background: linear-gradient(135deg,#00e5ff 0%,#9f6bff 50%,#ff2d78 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.post-composer textarea:focus { border-color: var(–cyan); }
 
-.hero-p { font-size: clamp(15px,4vw,18px); font-weight: 300; color: #5a5a80; max-width: 520px; line-height: 1.7; margin-bottom: 44px; }
-.hero-p strong { color: #e2e2f0; font-weight: 600; }
-
-.btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 64px; }
-
-.btn-p {
-background: linear-gradient(135deg,#00e5ff,#7c3aed);
-color: #fff; font-family: inherit; font-size: 16px; font-weight: 700;
-padding: 16px 34px; border: none; border-radius: 14px; cursor: pointer;
-transition: all .25s; letter-spacing: .2px;
+.post {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 16px;
+margin-bottom: 12px;
 }
-.btn-p:hover { transform: translateY(-3px); box-shadow: 0 16px 45px rgba(0,229,255,.35); }
-.btn-p:active { transform: translateY(-1px); }
 
-.btn-s {
-background: transparent; color: #e2e2f0; font-family: inherit;
-font-size: 16px; font-weight: 600; padding: 16px 34px;
-border: 1.5px solid #2a2a50; border-radius: 14px; cursor: pointer; transition: all .25s;
+.post-header {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 10px;
 }
-.btn-s:hover { border-color: #00e5ff; color: #00e5ff; transform: translateY(-2px); }
 
-.stats { display: flex; gap: 60px; justify-content: center; flex-wrap: wrap; }
-.stat-n { font-size: 44px; font-weight: 900; letter-spacing: -2px; background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; }
-.stat-l { font-size: 13px; color: #5a5a80; font-weight: 500; margin-top: 3px; text-align: center; }
+.post-meta { flex: 1; }
+.post-meta strong { font-size: 0.9rem; }
+.post-meta span { color: var(–text2); font-size: 0.75rem; display: block; }
+.post-content { font-size: 0.9rem; line-height: 1.5; color: var(–text); }
 
-/* TICKER */
-.ticker { overflow: hidden; padding: 16px 0; border-top: 1px solid #1e1e3a; border-bottom: 1px solid #1e1e3a; background: #0d0d1a; }
-.t-track { display: flex; animation: slide 28s linear infinite; width: max-content; }
-@keyframes slide { from{transform:translateX(0);} to{transform:translateX(-50%);} }
-.t-item { display: flex; align-items: center; gap: 10px; padding: 0 32px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #5a5a80; white-space: nowrap; border-right: 1px solid #1e1e3a; font-weight: 500; }
-.tdot { width: 5px; height: 5px; border-radius: 50%; background: #00e5ff; box-shadow: 0 0 8px #00e5ff; }
+.post-actions {
+display: flex;
+gap: 16px;
+margin-top: 12px;
+padding-top: 12px;
+border-top: 1px solid var(–border);
+}
 
-/* STAFF */
-.section { padding: 80px 24px; }
-.sec-tag { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #00e5ff; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; }
-.sec-tag::before { content: ‘’; width: 24px; height: 1px; background: #00e5ff; }
-.sec-h { font-size: clamp(32px,6vw,60px); font-weight: 900; letter-spacing: -2px; color: #fff; margin-bottom: 48px; line-height: 1.05; }
-.sec-h span { background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.post-action-btn {
+background: none;
+border: none;
+color: var(–text2);
+cursor: pointer;
+font-size: 0.8rem;
+display: flex;
+align-items: center;
+gap: 4px;
+transition: color 0.2s;
+}
 
-.staff-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: #1e1e3a; border: 1px solid #1e1e3a; border-radius: 18px; overflow: hidden; }
+.post-action-btn:hover { color: var(–cyan); }
 
-.sc { background: #111122; padding: 28px 22px; transition: background .3s; position: relative; }
-.sc::before { content: ‘’; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,#00e5ff,#7c3aed); opacity: 0; transition: opacity .3s; }
-.sc:hover { background: #141428; }
-.sc:hover::before { opacity: 1; }
-.sc-n { font-size: 10px; letter-spacing: 2px; color: #2a2a50; margin-bottom: 12px; font-weight: 600; }
-.sc-av { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; background: linear-gradient(135deg,rgba(0,229,255,.1),rgba(124,58,237,.1)); border: 1px solid #2a2a50; }
-.sc-name { font-size: 19px; font-weight: 800; color: #fff; margin-bottom: 2px; }
-.sc-role { font-size: 11px; color: #00e5ff; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600; }
-.sc-desc { font-size: 13px; color: #5a5a80; line-height: 1.6; font-weight: 300; }
+/* AI STAFF */
+.staff-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 12px;
+margin-bottom: 20px;
+}
+
+.staff-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 14px;
+text-align: center;
+cursor: pointer;
+transition: all 0.2s;
+}
+
+.staff-card:hover, .staff-card.active {
+border-color: var(–cyan);
+background: rgba(0,229,255,0.05);
+}
+
+.staff-avatar {
+width: 44px;
+height: 44px;
+border-radius: 50%;
+margin: 0 auto 8px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.2rem;
+}
+
+.staff-name { font-size: 0.85rem; font-weight: 700; }
+.staff-role { font-size: 0.7rem; color: var(–text2); margin-top: 2px; }
+
+/* CHAT */
+.chat-box {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+overflow: hidden;
+}
+
+.chat-header {
+padding: 16px;
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+gap: 10px;
+background: rgba(0,229,255,0.03);
+}
+
+.chat-messages {
+height: 340px;
+overflow-y: auto;
+padding: 16px;
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(–border); border-radius: 2px; }
+
+.msg {
+max-width: 80%;
+padding: 10px 14px;
+border-radius: 14px;
+font-size: 0.88rem;
+line-height: 1.5;
+}
+
+.msg.user {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: #000;
+align-self: flex-end;
+border-bottom-right-radius: 4px;
+}
+
+.msg.ai {
+background: rgba(255,255,255,0.07);
+border: 1px solid var(–border);
+align-self: flex-start;
+border-bottom-left-radius: 4px;
+}
+
+.chat-input-area {
+padding: 12px;
+border-top: 1px solid var(–border);
+display: flex;
+gap: 8px;
+}
+
+.chat-input-area input {
+flex: 1;
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 10px 16px;
+color: var(–text);
+font-size: 0.9rem;
+outline: none;
+}
+
+.chat-input-area input:focus { border-color: var(–cyan); }
+
+.send-btn {
+width: 40px; height: 40px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+border: none;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+}
+
+/* DEAL BOARD */
+.deal-types {
+display: flex;
+gap: 8px;
+margin-bottom: 16px;
+flex-wrap: wrap;
+}
+
+.deal-type-btn {
+padding: 6px 14px;
+border-radius: 20px;
+border: 1px solid var(–border);
+background: transparent;
+color: var(–text2);
+cursor: pointer;
+font-size: 0.8rem;
+transition: all 0.2s;
+}
+
+.deal-type-btn.active {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+color: #000;
+border-color: transparent;
+font-weight: 700;
+}
+
+.deal-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px;
+margin-bottom: 12px;
+cursor: pointer;
+transition: border-color 0.2s;
+}
+
+.deal-card:hover { border-color: var(–cyan); }
+
+.deal-type-badge {
+display: inline-block;
+padding: 3px 10px;
+border-radius: 20px;
+font-size: 0.7rem;
+font-weight: 700;
+text-transform: uppercase;
+margin-bottom: 8px;
+}
+
+.badge-partnership { background: rgba(0,229,255,0.15); color: var(–cyan); }
+.badge-investment { background: rgba(159,107,255,0.15); color: var(–purple); }
+.badge-acquisition { background: rgba(255,45,120,0.15); color: var(–pink); }
+.badge-franchise { background: rgba(255,200,0,0.15); color: #ffc800; }
+.badge-joint { background: rgba(0,255,150,0.15); color: #00ff96; }
+
+/* NETWORK */
+.user-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px;
+margin-bottom: 12px;
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.user-info { flex: 1; }
+.user-info strong { font-size: 0.9rem; }
+.user-info span { color: var(–text2); font-size: 0.75rem; display: block; }
+
+.follow-btn {
+padding: 7px 16px;
+border-radius: 20px;
+border: 1px solid var(–cyan);
+background: transparent;
+color: var(–cyan);
+cursor: pointer;
+font-size: 0.8rem;
+font-weight: 700;
+transition: all 0.2s;
+}
+
+.follow-btn:hover, .follow-btn.following {
+background: var(–cyan);
+color: #000;
+}
+
+/* MESSAGES */
+.conversation-list { margin-bottom: 16px; }
+
+.conversation {
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 14px;
+border-radius: 14px;
+cursor: pointer;
+transition: background 0.2s;
+border-bottom: 1px solid var(–border);
+}
+
+.conversation:hover { background: rgba(255,255,255,0.03); }
+.conv-info { flex: 1; }
+.conv-info strong { font-size: 0.9rem; }
+.conv-info span { color: var(–text2); font-size: 0.8rem; }
+.conv-time { color: var(–text2); font-size: 0.75rem; }
+
+/* PROFILE */
+.profile-header {
+text-align: center;
+padding: 20px 0;
+}
+
+.profile-avatar {
+width: 80px;
+height: 80px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 2rem;
+font-weight: 700;
+color: #000;
+margin: 0 auto 12px;
+}
+
+.profile-stats {
+display: flex;
+justify-content: center;
+gap: 32px;
+margin: 16px 0;
+}
+
+.profile-stat { text-align: center; }
+.profile-stat strong { display: block; font-size: 1.2rem; }
+.profile-stat span { color: var(–text2); font-size: 0.75rem; }
 
 /* PRICING */
-.price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1060px; margin: 0 auto; }
-
-.pc { background: #111122; border: 1px solid #1e1e3a; border-radius: 20px; padding: 36px 30px; display: flex; flex-direction: column; position: relative; transition: all .3s; }
-.pc:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,.5); border-color: #2a2a50; }
-.pc.hot { border-color: #00e5ff; background: linear-gradient(160deg,rgba(0,229,255,.05),rgba(124,58,237,.05)); box-shadow: 0 0 50px rgba(0,229,255,.1); }
-
-.hot-b { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#00e5ff,#7c3aed); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 6px 20px; border-radius: 100px; white-space: nowrap; }
-
-.p-name { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #5a5a80; margin-bottom: 14px; font-weight: 600; }
-.p-price { font-size: 58px; font-weight: 900; letter-spacing: -3px; color: #fff; line-height: 1; margin-bottom: 4px; }
-.p-price sup { font-size: 20px; font-weight: 400; color: #5a5a80; letter-spacing: 0; vertical-align: super; }
-.p-price sub { font-size: 16px; font-weight: 400; color: #5a5a80; letter-spacing: 0; }
-.p-desc { font-size: 13px; color: #5a5a80; margin-bottom: 26px; font-weight: 300; line-height: 1.5; }
-.p-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; flex: 1; }
-.p-feats li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #e2e2f0; }
-.p-feats li::before { content: ‘✓’; width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg,rgba(0,229,255,.12),rgba(124,58,237,.12)); border: 1px solid #2a2a50; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #00e5ff; flex-shrink: 0; line-height: 1; text-align: center; padding-top: 1px; }
-
-.pbtn { width: 100%; padding: 15px; border-radius: 12px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: all .2s; border: none; }
-.pbtn-o { background: transparent; border: 1.5px solid #2a2a50 !important; color: #e2e2f0; }
-.pbtn-o:hover { border-color: #00e5ff !important; color: #00e5ff; }
-.pbtn-g { background: linear-gradient(135deg,#00e5ff,#7c3aed); color: #fff; }
-.pbtn-g:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(0,229,255,.3); }
-
-/* REGISTER */
-.reg-wrap { display: grid; grid-template-columns: 400px 1fr; min-height: calc(100vh - 64px); }
-.reg-l { background: #0d0d1a; border-right: 1px solid #1e1e3a; padding: 70px 44px; display: flex; flex-direction: column; justify-content: center; position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; }
-.reg-l h2 { font-size: clamp(36px,5vw,46px); font-weight: 900; letter-spacing: -2px; color: #fff; line-height: 1.05; margin-bottom: 16px; }
-.reg-l h2 span { background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.reg-l p { font-size: 15px; color: #5a5a80; line-height: 1.7; font-weight: 300; margin-bottom: 32px; }
-.feat-list { display: flex; flex-direction: column; gap: 12px; }
-.feat { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #e2e2f0; }
-.feat-ic { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,rgba(0,229,255,.12),rgba(124,58,237,.12)); border: 1px solid #2a2a50; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-.reg-r { padding: 70px 50px; overflow-y: auto; }
-.reg-r h3 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 26px; letter-spacing: -.5px; }
-
-.fg { margin-bottom: 16px; }
-.fl { display: block; font-size: 13px; font-weight: 600; color: #e2e2f0; margin-bottom: 6px; }
-.fi { width: 100%; background: #111122; border: 1.5px solid #2a2a50; color: #e2e2f0; font-family: inherit; font-size: 15px; padding: 13px 16px; border-radius: 10px; outline: none; transition: all .2s; -webkit-appearance: none; appearance: none; }
-.fi:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
-.fi::placeholder { color: #2a2a50; }
-textarea.fi { resize: vertical; min-height: 86px; font-family: inherit; }
-select.fi { cursor: pointer; }
-select.fi option { background: #111122; }
-
-.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-.dep-btn { width: 100%; background: linear-gradient(135deg,#00e5ff,#7c3aed); color: #fff; font-family: inherit; font-size: 16px; font-weight: 800; padding: 17px; border: none; border-radius: 12px; cursor: pointer; margin-top: 8px; transition: all .2s; letter-spacing: .2px; }
-.dep-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 45px rgba(0,229,255,.3); }
-.dep-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
-
-.msg { display: none; padding: 14px 17px; margin-top: 13px; border-radius: 10px; font-size: 14px; line-height: 1.6; font-weight: 500; }
-.msg.ok { background: rgba(0,229,255,.07); border: 1px solid rgba(0,229,255,.25); color: #00e5ff; }
-.msg.err { background: rgba(255,45,120,.07); border: 1px solid rgba(255,45,120,.25); color: #ff2d78; }
-
-/* DASHBOARD */
-.dash { padding: 50px 24px 120px; max-width: 1060px; margin: 0 auto; }
-.dash h1 { font-size: clamp(36px,7vw,54px); font-weight: 900; letter-spacing: -2px; color: #fff; margin-bottom: 6px; }
-.dash h1 span { background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.dash-sub { font-size: 13px; color: #5a5a80; letter-spacing: 1px; margin-bottom: 36px; }
-
-.lbar { display: flex; gap: 10px; margin-bottom: 40px; flex-wrap: wrap; }
-.lbar input { flex: 1; min-width: 220px; background: #111122; border: 1.5px solid #2a2a50; color: #e2e2f0; font-family: inherit; font-size: 15px; padding: 15px 18px; border-radius: 12px; outline: none; transition: all .2s; -webkit-appearance: none; }
-.lbar input:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px rgba(0,229,255,.1); }
-.lbar input::placeholder { color: #2a2a50; }
-.lbar button { background: linear-gradient(135deg,#00e5ff,#7c3aed); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; padding: 15px 26px; border: none; border-radius: 12px; cursor: pointer; transition: all .2s; white-space: nowrap; }
-.lbar button:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0,229,255,.3); }
-
-.d-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 32px; }
-.d-stat { background: #111122; border: 1px solid #1e1e3a; border-radius: 14px; padding: 24px; transition: border-color .2s; }
-.d-stat:hover { border-color: #2a2a50; }
-.d-lbl { font-size: 10px; font-weight: 700; color: #5a5a80; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; }
-.d-val { font-size: 34px; font-weight: 900; letter-spacing: -1px; background: linear-gradient(135deg,#00e5ff,#9f6bff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
-.t-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 14px; }
-.t-list { display: flex; flex-direction: column; gap: 10px; }
-.t-card { background: #111122; border: 1px solid #1e1e3a; border-radius: 13px; padding: 17px 20px; display: flex; gap: 14px; align-items: flex-start; transition: border-color .2s; }
-.t-card:hover { border-color: #2a2a50; }
-.t-badge { background: linear-gradient(135deg,rgba(0,229,255,.1),rgba(124,58,237,.1)); border: 1px solid #2a2a50; border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 700; color: #00e5ff; white-space: nowrap; }
-.t-text { flex: 1; font-size: 13px; color: #5a5a80; line-height: 1.6; font-weight: 300; }
-.t-date { font-size: 10px; color: #2a2a50; white-space: nowrap; letter-spacing: .5px; }
-
-.empty { text-align: center; padding: 60px 24px; background: #111122; border: 1px solid #1e1e3a; border-radius: 16px; color: #5a5a80; font-size: 14px; }
-.e-icon { font-size: 36px; margin-bottom: 12px; opacity: .2; }
-.loading { text-align: center; padding: 60px; color: #5a5a80; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
-
-footer { margin-top: 80px; border-top: 1px solid #1e1e3a; padding: 26px 24px; display: flex; justify-content: space-between; align-items: center; background: #0d0d1a; flex-wrap: wrap; gap: 12px; }
-.f-txt { font-size: 13px; color: #5a5a80; }
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-.bnav { display: block; }
-.nav-r button:not(.nav-cta) { display: none; }
-.staff-grid { grid-template-columns: 1fr 1fr; }
-.price-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
-.reg-wrap { grid-template-columns: 1fr; }
-.reg-l { position: static; height: auto; padding: 50px 24px 30px; top: auto; }
-.reg-r { padding: 30px 24px 100px; }
-.frow { grid-template-columns: 1fr; }
-.d-stats { grid-template-columns: 1fr 1fr; }
-.pg { padding-bottom: 80px; }
-.stats { gap: 36px; }
-.hero { padding: 40px 20px 100px; }
-.section { padding: 60px 20px; }
+.pricing-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 12px;
+margin: 20px 0;
 }
 
-@media (max-width: 480px) {
-.staff-grid { grid-template-columns: 1fr; }
-.d-stats { grid-template-columns: 1fr; }
-nav { padding: 0 16px; }
+.pricing-card {
+background: var(–card);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 20px 14px;
+text-align: center;
+transition: border-color 0.2s;
 }
+
+.pricing-card.featured {
+border-color: var(–cyan);
+background: rgba(0,229,255,0.05);
+}
+
+.pricing-card h3 { font-size: 0.9rem; color: var(–text2); margin-bottom: 8px; }
+.pricing-price { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+.pricing-price span { font-size: 0.8rem; font-weight: 400; color: var(–text2); }
+.pricing-features { font-size: 0.75rem; color: var(–text2); margin: 12px 0; line-height: 1.8; }
+
+.pricing-btn {
+width: 100%;
+padding: 10px;
+border-radius: 10px;
+border: 1px solid var(–cyan);
+background: transparent;
+color: var(–cyan);
+cursor: pointer;
+font-weight: 700;
+font-size: 0.8rem;
+transition: all 0.2s;
+}
+
+.pricing-btn:hover, .pricing-card.featured .pricing-btn {
+background: var(–cyan);
+color: #000;
+}
+
+/* LOADING */
+.loading {
+display: flex;
+align-items: center;
+gap: 8px;
+color: var(–text2);
+font-size: 0.85rem;
+padding: 12px;
+}
+
+.spinner {
+width: 16px; height: 16px;
+border: 2px solid var(–border);
+border-top-color: var(–cyan);
+border-radius: 50%;
+animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* SECTION HEADERS */
+.section-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 16px;
+padding-top: 8px;
+}
+
+.section-header h2 { font-size: 1.1rem; font-weight: 700; }
+
+.btn-small {
+padding: 7px 14px;
+border-radius: 20px;
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+border: none;
+color: #000;
+font-weight: 700;
+font-size: 0.8rem;
+cursor: pointer;
+}
+
+/* MODAL */
+.modal-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.8);
+z-index: 200;
+display: none;
+align-items: center;
+justify-content: center;
+padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+background: var(–bg2);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 28px;
+width: 100%;
+max-width: 480px;
+max-height: 90vh;
+overflow-y: auto;
+}
+
+.modal h3 { margin-bottom: 20px; font-size: 1.1rem; }
+
+.modal textarea {
+width: 100%;
+background: rgba(255,255,255,0.05);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px;
+color: var(–text);
+font-size: 0.9rem;
+resize: vertical;
+min-height: 100px;
+outline: none;
+font-family: inherit;
+margin-bottom: 12px;
+}
+
+.modal-actions {
+display: flex;
+gap: 10px;
+justify-content: flex-end;
+}
+
+.btn-cancel {
+padding: 10px 20px;
+border-radius: 10px;
+border: 1px solid var(–border);
+background: transparent;
+color: var(–text2);
+cursor: pointer;
+}
+
+/* TOAST */
+.toast {
+position: fixed;
+bottom: 80px;
+left: 50%;
+transform: translateX(-50%);
+background: rgba(0,229,255,0.15);
+border: 1px solid var(–cyan);
+color: var(–cyan);
+padding: 10px 20px;
+border-radius: 20px;
+font-size: 0.85rem;
+font-weight: 600;
+z-index: 300;
+opacity: 0;
+transition: opacity 0.3s;
+pointer-events: none;
+}
+
+.toast.show { opacity: 1; }
+
+/* GRADIENT TEXT */
+.gradient-text {
+background: linear-gradient(135deg, var(–cyan), var(–purple));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+
+/* EMPTY STATE */
+.empty-state {
+text-align: center;
+padding: 40px 20px;
+color: var(–text2);
+}
+
+.empty-state p { margin-top: 8px; font-size: 0.85rem; }
 </style>
 
 </head>
 <body>
 
+<!-- BACKGROUND ORBS -->
+
 <div class="orbs">
-  <div class="orb o1"></div>
-  <div class="orb o2"></div>
-  <div class="orb o3"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
 </div>
 
-<nav>
-  <div class="logo" onclick="go('home')">Biz<em>Force</em></div>
-  <div class="nav-r">
-    <button onclick="go('home')">Home</button>
-    <button onclick="go('pricing')">Pricing</button>
-    <button onclick="go('register')">Deploy</button>
-    <button onclick="go('dashboard')">Dashboard</button>
-    <button class="nav-cta" onclick="go('pricing')">Get Started</button>
+<!-- AUTH SCREEN -->
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="logo">
+      <h1>BizForce AI</h1>
+      <p>Your AI-powered business network</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
+    </div>
+
+```
+<!-- LOGIN -->
+<div id="login-form">
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="login-email" placeholder="you@business.com">
   </div>
-</nav>
-
-<div class="bnav">
-  <div class="bnav-inner">
-    <button class="bni on" id="bn-home" onclick="go('home')"><span class="bni-icon">🏠</span><span class="bni-lbl">Home</span></button>
-    <button class="bni" id="bn-pricing" onclick="go('pricing')"><span class="bni-icon">💎</span><span class="bni-lbl">Pricing</span></button>
-    <button class="bni" id="bn-register" onclick="go('register')"><span class="bni-icon">🚀</span><span class="bni-lbl">Deploy</span></button>
-    <button class="bni" id="bn-dashboard" onclick="go('dashboard')"><span class="bni-icon">📊</span><span class="bni-lbl">Dashboard</span></button>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="login-password" placeholder="••••••••">
   </div>
-</div>
-
-<!-- HOME -->
-
-<div id="home" class="pg on">
-  <section class="hero">
-    <div class="chip"><span class="dot"></span>⚡ AI-Powered Business Automation</div>
-    <h1 class="big">Your Business.<br><span class="grad">Supercharged by AI.</span></h1>
-    <p class="hero-p">Deploy <strong>9 specialized AI team members</strong> that work 24/7 on SEO, content, sales, email marketing, ads, and more — without hiring a single person.</p>
-    <div class="btns">
-      <button class="btn-p" onclick="go('pricing')">🚀 See Pricing Plans</button>
-      <button class="btn-s" onclick="go('dashboard')">View Dashboard</button>
-    </div>
-    <div class="stats">
-      <div><div class="stat-n">9</div><div class="stat-l">AI Specialists</div></div>
-      <div><div class="stat-n">24/7</div><div class="stat-l">Always On</div></div>
-      <div><div class="stat-n">∞</div><div class="stat-l">Scale</div></div>
-    </div>
-  </section>
-
-  <div class="ticker">
-    <div class="t-track">
-      <div class="t-item"><span class="tdot"></span>SEO OPTIMIZATION</div>
-      <div class="t-item"><span class="tdot"></span>CONTENT CREATION</div>
-      <div class="t-item"><span class="tdot"></span>EMAIL MARKETING</div>
-      <div class="t-item"><span class="tdot"></span>SALES AUTOMATION</div>
-      <div class="t-item"><span class="tdot"></span>REPUTATION MANAGEMENT</div>
-      <div class="t-item"><span class="tdot"></span>AD CAMPAIGNS</div>
-      <div class="t-item"><span class="tdot"></span>INFLUENCER OUTREACH</div>
-      <div class="t-item"><span class="tdot"></span>ANALYTICS REPORTING</div>
-      <div class="t-item"><span class="tdot"></span>SEO OPTIMIZATION</div>
-      <div class="t-item"><span class="tdot"></span>CONTENT CREATION</div>
-      <div class="t-item"><span class="tdot"></span>EMAIL MARKETING</div>
-      <div class="t-item"><span class="tdot"></span>SALES AUTOMATION</div>
-      <div class="t-item"><span class="tdot"></span>REPUTATION MANAGEMENT</div>
-      <div class="t-item"><span class="tdot"></span>AD CAMPAIGNS</div>
-      <div class="t-item"><span class="tdot"></span>INFLUENCER OUTREACH</div>
-      <div class="t-item"><span class="tdot"></span>ANALYTICS REPORTING</div>
-    </div>
-  </div>
-
-  <section class="section">
-    <div class="sec-tag">Your AI Team</div>
-    <div class="sec-h">Meet Your <span>9 Specialists</span></div>
-    <div class="staff-grid">
-      <div class="sc"><div class="sc-n">01</div><div class="sc-av">🔍</div><div class="sc-name">Alex</div><div class="sc-role">SEO Specialist</div><div class="sc-desc">High-value keywords, meta descriptions, and search strategies to dominate Google.</div></div>
-      <div class="sc"><div class="sc-n">02</div><div class="sc-av">💬</div><div class="sc-name">Jordan</div><div class="sc-role">Community Manager</div><div class="sc-desc">Authentic Reddit and Quora posts that build brand awareness in relevant communities.</div></div>
-      <div class="sc"><div class="sc-n">03</div><div class="sc-av">✍️</div><div class="sc-name">Morgan</div><div class="sc-role">Content Creator</div><div class="sc-desc">Complete SEO blog posts with titles, meta descriptions, and keyword-rich body content.</div></div>
-      <div class="sc"><div class="sc-n">04</div><div class="sc-av">📧</div><div class="sc-name">Casey</div><div class="sc-role">Email Marketing</div><div class="sc-desc">Complete 3-email sequences with subject lines, preview text, and full email copy.</div></div>
-      <div class="sc"><div class="sc-n">05</div><div class="sc-av">💰</div><div class="sc-name">Riley</div><div class="sc-role">Sales Rep</div><div class="sc-desc">Personalized sales follow-up templates targeting your ideal customer profile.</div></div>
-      <div class="sc"><div class="sc-n">06</div><div class="sc-av">⭐</div><div class="sc-name">Sam</div><div class="sc-role">Reputation Manager</div><div class="sc-desc">Professional responses to customer reviews — turning feedback into brand strength.</div></div>
-      <div class="sc"><div class="sc-n">07</div><div class="sc-av">📊</div><div class="sc-name">Dana</div><div class="sc-role">Analytics Officer</div><div class="sc-desc">Detailed weekly performance reports with key metrics, insights, and action items.</div></div>
-      <div class="sc"><div class="sc-n">08</div><div class="sc-av">📱</div><div class="sc-name">Taylor</div><div class="sc-role">Ad Campaign Manager</div><div class="sc-desc">Complete Google Ad campaigns with headlines, copy, and precision targeting.</div></div>
-      <div class="sc"><div class="sc-n">09</div><div class="sc-av">🤝</div><div class="sc-name">Blake</div><div class="sc-role">Influencer Outreach</div><div class="sc-desc">Personalized outreach emails for micro-influencers in your exact business niche.</div></div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="logo">Biz<em>Force</em></div>
-    <div class="f-txt">© 2025 BizForce AI — Powered by Claude AI</div>
-  </footer>
-</div>
-
-<!-- PRICING -->
-
-<div id="pricing" class="pg">
-  <section class="section" style="padding-top:60px;">
-    <div style="text-align:center;margin-bottom:56px;">
-      <div class="sec-tag" style="justify-content:center;">Plans & Pricing</div>
-      <div class="sec-h" style="text-align:center;">Choose Your <span>AI Power Level</span></div>
-      <p style="color:#5a5a80;font-size:16px;font-weight:300;max-width:460px;margin:0 auto;line-height:1.7;">Every plan includes real AI agents working for your business 24/7.</p>
-    </div>
-    <div class="price-grid">
-      <div class="pc">
-        <div class="p-name">Starter</div>
-        <div class="p-price"><sup>$</sup>29<sub>/mo</sub></div>
-        <div class="p-desc">Perfect for solopreneurs getting started with AI automation.</div>
-        <ul class="p-feats">
-          <li>3 AI Agents (Alex, Morgan, Casey)</li>
-          <li>1 Website</li>
-          <li>50 Tasks per month</li>
-          <li>SEO + Content + Email</li>
-          <li>Basic dashboard</li>
-          <li>Email support</li>
-        </ul>
-        <button class="pbtn pbtn-o" onclick="checkout('price_1TQXFo157b9rpvGCQ0YPsDXn')">Get Started →</button>
-      </div>
-      <div class="pc hot">
-        <div class="hot-b">⚡ Most Popular</div>
-        <div class="p-name">Pro</div>
-        <div class="p-price"><sup>$</sup>99<sub>/mo</sub></div>
-        <div class="p-desc">For growing businesses ready to scale with a full AI team.</div>
-        <ul class="p-feats">
-          <li>6 AI Agents</li>
-          <li>3 Websites</li>
-          <li>200 Tasks per month</li>
-          <li>SEO, Content, Email, Sales, Ads, Reputation</li>
-          <li>Full analytics dashboard</li>
-          <li>Priority support</li>
-        </ul>
-        <button class="pbtn pbtn-g" onclick="checkout('price_1TQXHP157b9rpvGCRw3hzvl2')">Get Started →</button>
-      </div>
-      <div class="pc">
-        <div class="p-name">Enterprise</div>
-        <div class="p-price"><sup>$</sup>199<sub>/mo</sub></div>
-        <div class="p-desc">Unlimited power for businesses serious about domination.</div>
-        <ul class="p-feats">
-          <li>All 9 AI Agents</li>
-          <li>Unlimited Websites</li>
-          <li>Unlimited Tasks</li>
-          <li>All 9 business functions</li>
-          <li>Custom branding</li>
-          <li>24/7 dedicated support</li>
-        </ul>
-        <button class="pbtn pbtn-o" onclick="checkout('price_1TQXJ3157b9rpvGCQBvDKye0')">Get Started →</button>
-      </div>
-    </div>
-  </section>
-  <footer>
-    <div class="logo">Biz<em>Force</em></div>
-    <div class="f-txt">© 2025 BizForce AI — Powered by Claude AI</div>
-  </footer>
+  <button class="btn-primary" onclick="login()">Sign In</button>
+  <p class="error-msg" id="login-error"></p>
 </div>
 
 <!-- REGISTER -->
+<div id="register-form" style="display:none">
+  <div class="form-group">
+    <label>Business Name</label>
+    <input type="text" id="reg-business" placeholder="Your Business Name">
+  </div>
+  <div class="form-group">
+    <label>Industry</label>
+    <select id="reg-industry">
+      <option value="">Select Industry</option>
+      <option>Technology</option>
+      <option>E-Commerce</option>
+      <option>Health & Wellness</option>
+      <option>Finance</option>
+      <option>Real Estate</option>
+      <option>Food & Beverage</option>
+      <option>Marketing</option>
+      <option>Education</option>
+      <option>Entertainment</option>
+      <option>Other</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="reg-email" placeholder="you@business.com">
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="reg-password" placeholder="Min 8 characters">
+  </div>
+  <button class="btn-primary" onclick="register()">Create Account</button>
+  <p class="error-msg" id="register-error"></p>
+</div>
+```
 
-<div id="register" class="pg">
-  <div class="reg-wrap">
-    <div class="reg-l">
-      <div class="sec-tag" style="margin-bottom:16px;">Deploy Now</div>
-      <h2>Activate Your<br><span>AI Team</span></h2>
-      <p>Fill in your business details and your AI specialists go live immediately — working around the clock to grow your business.</p>
-      <div class="feat-list">
-        <div class="feat"><div class="feat-ic">⚡</div>Instant AI team deployment</div>
-        <div class="feat"><div class="feat-ic">🎯</div>9 specialized business functions</div>
-        <div class="feat"><div class="feat-ic">🔄</div>24/7 automated operations</div>
-        <div class="feat"><div class="feat-ic">📈</div>Real-time dashboard tracking</div>
-        <div class="feat"><div class="feat-ic">💡</div>Powered by Claude AI</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+
+<div id="app">
+  <!-- TOP NAV -->
+  <nav class="topnav">
+    <span class="topnav-logo">BizForce AI</span>
+    <input class="topnav-search" type="text" placeholder="Search businesses..." id="search-input" oninput="searchUsers()">
+    <div class="topnav-user" onclick="showPage('profile')">
+      <div class="avatar" id="user-avatar">?</div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+
+  <div class="main-content">
+
+```
+<!-- FEED PAGE -->
+<div class="page active" id="page-feed">
+  <div class="section-header">
+    <h2>Network Feed</h2>
+  </div>
+
+  <div class="post-composer">
+    <div class="avatar" id="composer-avatar">?</div>
+    <div style="flex:1">
+      <textarea id="post-content" placeholder="Share an update with your network..."></textarea>
+      <div style="text-align:right; margin-top:6px">
+        <button class="btn-small" onclick="createPost()">Post</button>
       </div>
     </div>
-    <div class="reg-r">
-      <h3>Business Registration</h3>
-      <div class="fg"><label class="fl">Business Name *</label><input class="fi" type="text" id="bn" placeholder="Your business name"></div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Website</label><input class="fi" type="text" id="bw" placeholder="https://yourbiz.com"></div>
-        <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="be" placeholder="you@email.com"></div>
+  </div>
+
+  <div id="feed-posts">
+    <div class="loading"><div class="spinner"></div> Loading feed...</div>
+  </div>
+</div>
+
+<!-- AI STAFF PAGE -->
+<div class="page" id="page-ai">
+  <div class="section-header">
+    <h2>AI Staff</h2>
+    <span style="color:var(--text2); font-size:0.8rem">9 Agents</span>
+  </div>
+
+  <div class="staff-grid" id="staff-grid"></div>
+
+  <div class="chat-box" id="chat-box" style="display:none">
+    <div class="chat-header">
+      <div class="staff-avatar" id="chat-agent-avatar" style="width:36px;height:36px;font-size:1rem;border-radius:50%;display:flex;align-items:center;justify-content:center;"></div>
+      <div>
+        <strong id="chat-agent-name"></strong>
+        <div style="font-size:0.75rem;color:var(--text2)" id="chat-agent-role"></div>
       </div>
-      <div class="fg"><label class="fl">Products / Services *</label><textarea class="fi" id="bp" placeholder="Describe what you sell or offer..."></textarea></div>
-      <div class="fg"><label class="fl">Target Customer</label><input class="fi" type="text" id="bt" placeholder="Who is your ideal customer?"></div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Brand Tone</label>
-          <select class="fi" id="bto">
-            <option value="professional">Professional</option>
-            <option value="casual">Casual & Friendly</option>
-            <option value="bold">Bold & Aggressive</option>
-            <option value="luxury">Luxury & Premium</option>
-            <option value="educational">Educational</option>
-          </select>
-        </div>
-        <div class="fg"><label class="fl">Plan</label>
-          <select class="fi" id="bpl">
-            <option value="starter">Starter — $29/mo</option>
-            <option value="pro">Pro — $99/mo</option>
-            <option value="enterprise">Enterprise — $199/mo</option>
-          </select>
-        </div>
-      </div>
-      <div class="fg"><label class="fl">Business Goals</label><textarea class="fi" id="bg" placeholder="What are your main business goals?"></textarea></div>
-      <button class="dep-btn" id="db" onclick="deploy()">🚀 Deploy My AI Team Now</button>
-      <div class="msg" id="dm"></div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area">
+      <input type="text" id="chat-input" placeholder="Ask your agent anything..." onkeypress="if(event.key==='Enter')sendMessage()">
+      <button class="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- DASHBOARD -->
+<!-- DEALS PAGE -->
+<div class="page" id="page-deals">
+  <div class="section-header">
+    <h2>Deal Board</h2>
+    <button class="btn-small" onclick="openDealModal()">+ Post Deal</button>
+  </div>
 
-<div id="dashboard" class="pg">
-  <div class="dash">
-    <h1>Your <span>Dashboard</span></h1>
-    <div class="dash-sub">// Enter your Business ID to view AI team activity</div>
-    <div class="lbar">
-      <input type="text" id="lid" placeholder="Paste your Business ID here...">
-      <button onclick="loadDash()">Load Dashboard →</button>
-    </div>
-    <div id="dout"></div>
+  <div class="deal-types">
+    <button class="deal-type-btn active" onclick="filterDeals('')">All</button>
+    <button class="deal-type-btn" onclick="filterDeals('Partnership')">Partnership</button>
+    <button class="deal-type-btn" onclick="filterDeals('Investment')">Investment</button>
+    <button class="deal-type-btn" onclick="filterDeals('Acquisition')">Acquisition</button>
+    <button class="deal-type-btn" onclick="filterDeals('Franchise')">Franchise</button>
+  </div>
+
+  <div id="deals-list">
+    <div class="loading"><div class="spinner"></div> Loading deals...</div>
   </div>
 </div>
+
+<!-- NETWORK PAGE -->
+<div class="page" id="page-network">
+  <div class="section-header">
+    <h2>Network</h2>
+  </div>
+  <div id="network-list">
+    <div class="loading"><div class="spinner"></div> Finding businesses...</div>
+  </div>
+</div>
+
+<!-- MESSAGES PAGE -->
+<div class="page" id="page-messages">
+  <div class="section-header">
+    <h2>Messages</h2>
+  </div>
+  <div id="conversations-list">
+    <div class="empty-state">
+      <div style="font-size:2rem">💬</div>
+      <p>No conversations yet. Connect with businesses to start messaging.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE PAGE -->
+<div class="page" id="page-profile">
+  <div class="profile-header">
+    <div class="profile-avatar" id="profile-avatar">?</div>
+    <h2 id="profile-name">Your Business</h2>
+    <p style="color:var(--text2); font-size:0.85rem" id="profile-industry"></p>
+    <div class="profile-stats">
+      <div class="profile-stat"><strong id="profile-posts">0</strong><span>Posts</span></div>
+      <div class="profile-stat"><strong id="profile-followers">0</strong><span>Followers</span></div>
+      <div class="profile-stat"><strong id="profile-following">0</strong><span>Following</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:16px; font-size:0.95rem">Subscription</h3>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3>Starter</h3>
+        <div class="pricing-price">$29<span>/mo</span></div>
+        <div class="pricing-features">3 AI Agents<br>1 Website<br>50 Tasks/mo</div>
+        <button class="pricing-btn" onclick="subscribe('price_1TQXFo157b9rpvGCQ0YPsDXn')">Select</button>
+      </div>
+      <div class="pricing-card featured">
+        <h3>Pro</h3>
+        <div class="pricing-price gradient-text">$99<span>/mo</span></div>
+        <div class="pricing-features">6 AI Agents<br>3 Websites<br>200 Tasks/mo</div>
+        <button class="pricing-btn" onclick="subscribe('price_1TQXHP157b9rpvGCRw3hzvl2')">Select</button>
+      </div>
+      <div class="pricing-card">
+        <h3>Enterprise</h3>
+        <div class="pricing-price">$199<span>/mo</span></div>
+        <div class="pricing-features">All 9 Agents<br>Unlimited<br>Everything</div>
+        <button class="pricing-btn" onclick="subscribe('price_1TQXJ3157b9rpvGCQBvDKye0')">Select</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" style="background:rgba(255,45,120,0.2);color:var(--pink);border:1px solid var(--pink)" onclick="logout()">Sign Out</button>
+</div>
+```
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+
+  <nav class="bottomnav">
+    <button class="nav-btn active" onclick="showPage('feed')" id="nav-feed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+      Feed
+    </button>
+    <button class="nav-btn" onclick="showPage('network')" id="nav-network">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg>
+      Network
+    </button>
+    <button class="nav-btn" onclick="showPage('ai')" id="nav-ai">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 9h6M9 12h6M9 15h4"></path></svg>
+      AI Staff
+    </button>
+    <button class="nav-btn" onclick="showPage('deals')" id="nav-deals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      Deals
+    </button>
+    <button class="nav-btn" onclick="showPage('messages')" id="nav-messages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path></svg>
+      Messages
+    </button>
+  </nav>
+</div>
+
+<!-- DEAL MODAL -->
+
+<div class="modal-overlay" id="deal-modal">
+  <div class="modal">
+    <h3>Post a Deal</h3>
+    <div class="form-group">
+      <label>Deal Title</label>
+      <input type="text" id="deal-title" placeholder="e.g. Looking for distribution partner">
+    </div>
+    <div class="form-group">
+      <label>Deal Type</label>
+      <select id="deal-type">
+        <option value="Partnership">Partnership</option>
+        <option value="Investment">Investment</option>
+        <option value="Acquisition">Acquisition</option>
+        <option value="Joint Venture">Joint Venture</option>
+        <option value="Franchise">Franchise</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="deal-description" placeholder="Describe the opportunity..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDealModal()">Cancel</button>
+      <button class="btn-small" onclick="postDeal()">Post Deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toast"></div>
 
 <script>
 const API = 'https://dynamic-prosperity-production-5382.up.railway.app';
-const stripe = Stripe('pk_live_51TQ8cV157b9rpvGCdwRnmBL3DCOEWOS3qzIbZVh6o5QEvwz8TVQBWcU7DjJnEqqDlphekJiWgVpANk9jYzAuUNJc00BsgEaq0A');
+let token = localStorage.getItem('bf_token');
+let currentUser = JSON.parse(localStorage.getItem('bf_user') || 'null');
+let currentAgent = null;
+let chatHistory = [];
+let currentDealFilter = '';
 
-function go(id) {
-  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
-  document.getElementById(id).classList.add('on');
-  document.querySelectorAll('.bni').forEach(b => b.classList.remove('on'));
-  const bn = document.getElementById('bn-' + id);
-  if (bn) bn.classList.add('on');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+const STAFF = [
+  { id:'alex', name:'Alex', role:'SEO', emoji:'🔍', color:'#00e5ff' },
+  { id:'jordan', name:'Jordan', role:'Community', emoji:'👥', color:'#9f6bff' },
+  { id:'morgan', name:'Morgan', role:'Content', emoji:'✍️', color:'#ff2d78' },
+  { id:'casey', name:'Casey', role:'Email', emoji:'📧', color:'#ffc800' },
+  { id:'riley', name:'Riley', role:'Sales', emoji:'💰', color:'#00ff96' },
+  { id:'sam', name:'Sam', role:'Reputation', emoji:'⭐', color:'#ff6b35' },
+  { id:'dana', name:'Dana', role:'Analytics', emoji:'📊', color:'#00e5ff' },
+  { id:'taylor', name:'Taylor', role:'Ads', emoji:'📢', color:'#9f6bff' },
+  { id:'blake', name:'Blake', role:'Influencer', emoji:'🌟', color:'#ff2d78' }
+];
+
+// INIT
+if (token && currentUser) {
+  showApp();
+} 
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  updateUserUI();
+  loadFeed();
+  loadStaffGrid();
+  loadDeals();
+  loadNetwork();
 }
 
-async function checkout(priceId) {
-  try {
-    const res = await fetch(`${API}/api/create-checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId })
-    });
-    const data = await res.json();
-    if (data.url) { window.location.href = data.url; }
-    else { go('register'); }
-  } catch (e) { go('register'); }
+function updateUserUI() {
+  if (!currentUser) return;
+  const initial = (currentUser.business_name || currentUser.email || '?')[0].toUpperCase();
+  document.getElementById('user-avatar').textContent = initial;
+  document.getElementById('composer-avatar').textContent = initial;
+  document.getElementById('profile-avatar').textContent = initial;
+  document.getElementById('profile-name').textContent = currentUser.business_name || 'Your Business';
+  document.getElementById('profile-industry').textContent = currentUser.industry || '';
 }
 
-async function deploy() {
-  const btn = document.getElementById('db');
-  const msg = document.getElementById('dm');
-  const payload = {
-    business_name: document.getElementById('bn').value.trim(),
-    website: document.getElementById('bw').value.trim(),
-    email: document.getElementById('be').value.trim(),
-    products: document.getElementById('bp').value.trim(),
-    target_customer: document.getElementById('bt').value.trim(),
-    tone: document.getElementById('bto').value,
-    plan: document.getElementById('bpl').value,
-    goals: document.getElementById('bg').value.trim()
-  };
-  if (!payload.business_name || !payload.email || !payload.products) {
-    msg.className = 'msg err'; msg.style.display = 'block';
-    msg.textContent = '⚠️ Please fill in Business Name, Email, and Products.';
-    return;
-  }
-  btn.disabled = true; btn.textContent = '⏳ Deploying...'; msg.style.display = 'none';
-  try {
-    const res = await fetch(`${API}/api/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (data.success) {
-      msg.className = 'msg ok'; msg.style.display = 'block';
-      msg.innerHTML = '✅ <strong>AI Team Deployed!</strong><br><br>Your Business ID:<br><strong style="font-size:12px;word-break:break-all;">' + data.business_id + '</strong><br><br>Save this ID to access your dashboard.';
-      btn.textContent = '✅ Deployed!';
-    } else throw new Error(data.error || 'Failed');
-  } catch (e) {
-    msg.className = 'msg err'; msg.style.display = 'block';
-    msg.textContent = '⚠️ Error: ' + e.message;
-    btn.disabled = false; btn.textContent = '🚀 Deploy My AI Team Now';
-  }
+// AUTH
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register')));
+  document.getElementById('login-form').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab==='register' ? 'block' : 'none';
 }
 
-async function loadDash() {
-  const id = document.getElementById('lid').value.trim();
-  const out = document.getElementById('dout');
-  if (!id) { out.innerHTML = '<div class="empty"><div class="e-icon">🔍</div>Enter your Business ID above.</div>'; return; }
-  out.innerHTML = '<div class="loading">LOADING DASHBOARD...</div>';
+async function login() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return showError('login-error', 'Please fill all fields');
   try {
-    const res = await fetch(`${API}/api/dashboard/${id}`);
+    const res = await fetch(API+'/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    const biz = data.business || {};
-    const tasks = data.tasks || [];
-    out.innerHTML = `
-      <div class="d-stats">
-        <div class="d-stat"><div class="d-lbl">Business</div><div class="d-val" style="font-size:20px;">${biz.business_name||'—'}</div></div>
-        <div class="d-stat"><div class="d-lbl">Revenue</div><div class="d-val">$${(biz.total_revenue||0).toLocaleString()}</div></div>
-        <div class="d-stat"><div class="d-lbl">Tasks</div><div class="d-val">${tasks.length}</div></div>
+    if (!res.ok) return showError('login-error', data.error || 'Login failed');
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('bf_token', token);
+    localStorage.setItem('bf_user', JSON.stringify(currentUser));
+    showApp();
+  } catch(e) { showError('login-error', 'Connection error'); }
+}
+
+async function register() {
+  const business_name = document.getElementById('reg-business').value;
+  const industry = document.getElementById('reg-industry').value;
+  const email = document.getElementById('reg-email').value;
+  const password = document.getElementById('reg-password').value;
+  if (!business_name || !email || !password) return showError('register-error', 'Please fill all fields');
+  try {
+    const res = await fetch(API+'/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password,business_name,industry})});
+    const data = await res.json();
+    if (!res.ok) return showError('register-error', data.error || 'Registration failed');
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem('bf_token', token);
+    localStorage.setItem('bf_user', JSON.stringify(currentUser));
+    showApp();
+  } catch(e) { showError('register-error', 'Connection error'); }
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('bf_token');
+  localStorage.removeItem('bf_user');
+  location.reload();
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// NAVIGATION
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if (page==='profile') loadProfile();
+}
+
+// FEED
+async function loadFeed() {
+  try {
+    const res = await fetch(API+'/api/feed', {headers:{Authorization:'Bearer '+token}});
+    const posts = await res.json();
+    renderPosts(posts);
+  } catch(e) { document.getElementById('feed-posts').innerHTML = '<div class="empty-state"><div style="font-size:2rem">📡</div><p>Could not load feed</p></div>'; }
+}
+
+function renderPosts(posts) {
+  const el = document.getElementById('feed-posts');
+  if (!posts.length) { el.innerHTML = '<div class="empty-state"><div style="font-size:2rem">🌐</div><p>No posts yet. Be the first to share!</p></div>'; return; }
+  el.innerHTML = posts.map(p => `
+    <div class="post">
+      <div class="post-header">
+        <div class="avatar" style="width:36px;height:36px;font-size:0.85rem">${(p.users?.business_name || '?')[0].toUpperCase()}</div>
+        <div class="post-meta">
+          <strong>${p.users?.business_name || 'Business'}</strong>
+          <span>${p.users?.industry || ''} · ${timeAgo(p.created_at)}</span>
+        </div>
       </div>
-      <div class="t-title">AI Team Activity</div>
-      <div class="t-list">
-        ${tasks.length === 0
-          ? '<div class="empty"><div class="e-icon">⚡</div>Your AI team is standing by.</div>'
-          : tasks.map(t => `<div class="t-card"><div class="t-badge">${(t.staff_member||'AI').toUpperCase()}</div><div class="t-text">${(t.content||'').substring(0,150)}${t.content&&t.content.length>150?'...':''}</div><div class="t-date">${new Date(t.created_at).toLocaleDateString()}</div></div>`).join('')
-        }
-      </div>`;
-  } catch (e) {
-    out.innerHTML = `<div class="empty" style="color:#ff2d78;">⚠️ Error: ${e.message}</div>`;
+      <div class="post-content">${p.content}</div>
+      <div class="post-actions">
+        <button class="post-action-btn" onclick="showToast('Coming soon!')">👍 Like</button>
+        <button class="post-action-btn" onclick="showToast('Coming soon!')">💬 Comment</button>
+        <button class="post-action-btn" onclick="showToast('Coming soon!')">🔗 Share</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createPost() {
+  const content = document.getElementById('post-content').value.trim();
+  if (!content) return;
+  try {
+    const res = await fetch(API+'/api/posts', {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({content})});
+    if (res.ok) {
+      document.getElementById('post-content').value = '';
+      showToast('Posted!');
+      loadFeed();
+    }
+  } catch(e) { showToast('Error posting'); }
+}
+
+// AI STAFF
+function loadStaffGrid() {
+  document.getElementById('staff-grid').innerHTML = STAFF.map(s => `
+    <div class="staff-card" onclick="selectAgent('${s.id}')" id="staff-${s.id}">
+      <div class="staff-avatar" style="background:${s.color}22; color:${s.color}">${s.emoji}</div>
+      <div class="staff-name">${s.name}</div>
+      <div class="staff-role">${s.role}</div>
+    </div>
+  `).join('');
+}
+
+function selectAgent(agentId) {
+  currentAgent = STAFF.find(s => s.id === agentId);
+  chatHistory = [];
+  document.querySelectorAll('.staff-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('staff-'+agentId).classList.add('active');
+  document.getElementById('chat-box').style.display = 'block';
+  document.getElementById('chat-agent-avatar').textContent = currentAgent.emoji;
+  document.getElementById('chat-agent-avatar').style.background = currentAgent.color + '22';
+  document.getElementById('chat-agent-name').textContent = currentAgent.name;
+  document.getElementById('chat-agent-role').textContent = currentAgent.role;
+  document.getElementById('chat-messages').innerHTML = `<div class="msg ai">Hi! I'm ${currentAgent.name}, your ${currentAgent.role} specialist. How can I help your business today?</div>`;
+  document.getElementById('chat-box').scrollIntoView({behavior:'smooth'});
+}
+
+async function sendMessage() {
+  if (!currentAgent) return;
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  const messagesEl = document.getElementById('chat-messages');
+  messagesEl.innerHTML += `<div class="msg user">${message}</div>`;
+  messagesEl.innerHTML += `<div class="loading" id="ai-loading"><div class="spinner"></div> ${currentAgent.name} is thinking...</div>`;
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  try {
+    const res = await fetch(API+'/api/ai/'+currentAgent.id, {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({message, history:chatHistory})});
+    const data = await res.json();
+    document.getElementById('ai-loading')?.remove();
+    const reply = data.response || 'Sorry, I had trouble responding.';
+    chatHistory.push({role:'user',content:message}, {role:'assistant',content:reply});
+    messagesEl.innerHTML += `<div class="msg ai">${reply}</div>`;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  } catch(e) {
+    document.getElementById('ai-loading')?.remove();
+    messagesEl.innerHTML += `<div class="msg ai">Connection error. Please try again.</div>`;
   }
+}
+
+// DEALS
+async function loadDeals(filter='') {
+  try {
+    const url = API+'/api/deals'+(filter?'?type='+filter:'');
+    const res = await fetch(url, {headers:{Authorization:'Bearer '+token}});
+    const deals = await res.json();
+    renderDeals(deals);
+  } catch(e) {}
+}
+
+function renderDeals(deals) {
+  const el = document.getElementById('deals-list');
+  if (!deals.length) { el.innerHTML = '<div class="empty-state"><div style="font-size:2rem">🤝</div><p>No deals posted yet. Post the first opportunity!</p></div>'; return; }
+  el.innerHTML = deals.map(d => `
+    <div class="deal-card">
+      <span class="deal-type-badge badge-${(d.deal_type||'').toLowerCase().replace(' ','')}">${d.deal_type || 'Deal'}</span>
+      <div style="font-weight:700; margin-bottom:6px">${d.title}</div>
+      <div style="font-size:0.85rem; color:var(--text2); margin-bottom:8px">${d.description || ''}</div>
+      <div style="font-size:0.75rem; color:var(--text2)">By ${d.users?.business_name || 'Business'} · ${timeAgo(d.created_at)}</div>
+    </div>
+  `).join('');
+}
+
+function filterDeals(type) {
+  currentDealFilter = type;
+  document.querySelectorAll('.deal-type-btn').forEach(b => b.classList.toggle('active', b.textContent === (type||'All')));
+  loadDeals(type);
+}
+
+function openDealModal() { document.getElementById('deal-modal').classList.add('open'); }
+function closeDealModal() { document.getElementById('deal-modal').classList.remove('open'); }
+
+async function postDeal() {
+  const title = document.getElementById('deal-title').value.trim();
+  const deal_type = document.getElementById('deal-type').value;
+  const description = document.getElementById('deal-description').value.trim();
+  if (!title) return showToast('Enter a deal title');
+  try {
+    const res = await fetch(API+'/api/deals', {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({title,deal_type,description})});
+    if (res.ok) {
+      closeDealModal();
+      showToast('Deal posted!');
+      loadDeals(currentDealFilter);
+    }
+  } catch(e) { showToast('Error posting deal'); }
+}
+
+// NETWORK
+async function loadNetwork() {
+  try {
+    const res = await fetch(API+'/api/search', {headers:{Authorization:'Bearer '+token}});
+    const users = await res.json();
+    renderNetwork(users);
+  } catch(e) {}
+}
+
+function renderNetwork(users) {
+  const el = document.getElementById('network-list');
+  const filtered = users.filter(u => u.id !== currentUser?.id);
+  if (!filtered.length) { el.innerHTML = '<div class="empty-state"><div style="font-size:2rem">🌐</div><p>No businesses yet. Invite others to join!</p></div>'; return; }
+  el.innerHTML = filtered.map(u => `
+    <div class="user-card">
+      <div class="avatar">${(u.business_name||'?')[0].toUpperCase()}</div>
+      <div class="user-info">
+        <strong>${u.business_name || 'Business'}</strong>
+        <span>${u.industry || 'Industry'}</span>
+      </div>
+      <button class="follow-btn" onclick="followUser('${u.id}', this)">Follow</button>
+    </div>
+  `).join('');
+}
+
+async function followUser(userId, btn) {
+  try {
+    const following = btn.classList.contains('following');
+    const method = following ? 'DELETE' : 'POST';
+    await fetch(API+'/api/follow/'+userId, {method, headers:{Authorization:'Bearer '+token}});
+    btn.classList.toggle('following');
+    btn.textContent = following ? 'Follow' : 'Following';
+    showToast(following ? 'Unfollowed' : 'Following!');
+  } catch(e) {}
+}
+
+async function searchUsers() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) { loadNetwork(); return; }
+  try {
+    const res = await fetch(API+'/api/search?q='+encodeURIComponent(q), {headers:{Authorization:'Bearer '+token}});
+    const users = await res.json();
+    renderNetwork(users);
+    showPage('network');
+  } catch(e) {}
+}
+
+// PROFILE
+async function loadProfile() {
+  if (!currentUser) return;
+  try {
+    const res = await fetch(API+'/api/users/'+currentUser.id, {headers:{Authorization:'Bearer '+token}});
+    const data = await res.json();
+    document.getElementById('profile-posts').textContent = data.posts?.length || 0;
+    document.getElementById('profile-followers').textContent = data.followers || 0;
+    document.getElementById('profile-following').textContent = data.following || 0;
+  } catch(e) {}
+}
+
+// STRIPE
+async function subscribe(priceId) {
+  try {
+    const res = await fetch(API+'/api/stripe/checkout', {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}, body:JSON.stringify({priceId})});
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+  } catch(e) { showToast('Error starting checkout'); }
+}
+
+// UTILS
+function timeAgo(date) {
+  const s = Math.floor((Date.now() - new Date(date)) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s/60)+'m ago';
+  if (s < 86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
 }
 </script>
 
