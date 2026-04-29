@@ -6,28 +6,30 @@
   <title>BizForce AI</title>
   <style>
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#fff;background:radial-gradient(circle at top left,rgba(0,229,255,.18),transparent 35%),radial-gradient(circle at bottom right,rgba(168,85,247,.22),transparent 35%),#070b18}
-    .wrap{width:100%;max-width:460px}
-    .brand{text-align:center;margin-bottom:26px}
+    html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;color:#fff;background:#070b18}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at top left,rgba(0,229,255,.18),transparent 35%),radial-gradient(circle at bottom right,rgba(168,85,247,.22),transparent 35%),#070b18;z-index:0;pointer-events:none}
+    .wrap{width:100%;max-width:460px;position:relative;z-index:10;pointer-events:auto}
+    .brand{text-align:center;margin-bottom:26px;position:relative;z-index:10;pointer-events:none}
     .brand h1{margin:0;font-size:42px;line-height:1;letter-spacing:-1px;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
     .brand p{margin:12px 0 0;color:#aab4d4;font-size:15px;line-height:1.5}
-    .card{border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(12,18,38,.88);box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden}
-    .tabs{display:grid;grid-template-columns:1fr 1fr;padding:10px;gap:10px;background:rgba(255,255,255,.04)}
-    .tab{border:0;border-radius:16px;padding:13px 12px;cursor:pointer;color:#dbe7ff;background:transparent;font-size:15px;font-weight:700}
+    .card{position:relative;z-index:10;pointer-events:auto;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(12,18,38,.88);box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;padding:10px;gap:10px;background:rgba(255,255,255,.04);position:relative;z-index:20;pointer-events:auto}
+    .tab{position:relative;z-index:20;pointer-events:auto;border:0;border-radius:16px;padding:13px 12px;cursor:pointer;color:#dbe7ff;background:transparent;font-size:15px;font-weight:700}
     .tab.active{background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff}
-    .form{padding:26px;display:none}
+    .form{padding:26px;display:none;position:relative;z-index:15;pointer-events:auto}
     .form.active{display:block}
-    .field{margin-bottom:16px}
+    .field{margin-bottom:16px;position:relative;z-index:15;pointer-events:auto}
     label{display:block;margin-bottom:8px;color:#cbd5e1;font-size:13px;font-weight:700}
-    input{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:15px;outline:none;background:rgba(255,255,255,.07);color:#fff;font-size:16px}
+    input{width:100%;position:relative;z-index:20;pointer-events:auto;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:15px;outline:none;background:rgba(255,255,255,.07);color:#fff;font-size:16px}
     input::placeholder{color:#7f8aaa}
     input:focus{border-color:rgba(34,211,238,.75);box-shadow:0 0 0 4px rgba(34,211,238,.1)}
-    .btn{width:100%;border:0;border-radius:16px;padding:15px 18px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#06b6d4,#8b5cf6);font-size:16px;font-weight:800;box-shadow:0 14px 34px rgba(139,92,246,.22)}
+    .btn{width:100%;position:relative;z-index:20;pointer-events:auto;border:0;border-radius:16px;padding:15px 18px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#06b6d4,#8b5cf6);font-size:16px;font-weight:800;box-shadow:0 14px 34px rgba(139,92,246,.22)}
     .btn:disabled{cursor:not-allowed;opacity:.65}
-    .msg{min-height:22px;margin:16px 26px 0;text-align:center;font-size:14px;line-height:1.4}
+    .msg{min-height:22px;margin:16px 26px 0;text-align:center;font-size:14px;line-height:1.4;position:relative;z-index:10;pointer-events:none}
     .status{color:#67e8f9}
     .error{color:#fb7185}
-    .fine{padding:18px 26px 24px;text-align:center;color:#8792b0;font-size:12px;line-height:1.5}
+    .fine{padding:18px 26px 24px;text-align:center;color:#8792b0;font-size:12px;line-height:1.5;position:relative;z-index:10;pointer-events:none}
     @media(max-width:520px){body{padding:18px;align-items:flex-start;padding-top:58px}.brand h1{font-size:36px}.form{padding:22px}}
   </style>
 </head>
@@ -37,27 +39,52 @@
       <h1>BizForce AI</h1>
       <p>Business-owner AI network for growth, automation, leads, and revenue.</p>
     </section>
+
     <section class="card">
       <div class="tabs">
         <button id="loginTab" class="tab active" type="button" onclick="showLogin()">Sign In</button>
         <button id="registerTab" class="tab" type="button" onclick="showRegister()">Create Account</button>
       </div>
+
       <div id="loginForm" class="form active">
-        <div class="field"><label for="le">Email</label><input id="le" type="email" autocomplete="email" placeholder="you@business.com"></div>
-        <div class="field"><label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="Your password"></div>
+        <div class="field">
+          <label for="le">Email</label>
+          <input id="le" type="email" autocomplete="email" placeholder="you@business.com">
+        </div>
+
+        <div class="field">
+          <label for="lp">Password</label>
+          <input id="lp" type="password" autocomplete="current-password" placeholder="Your password">
+        </div>
+
         <button id="loginBtn" class="btn" type="button" onclick="doLogin()">Sign In</button>
       </div>
+
       <div id="registerForm" class="form">
-        <div class="field"><label for="rb">Business Name</label><input id="rb" type="text" autocomplete="organization" placeholder="Your business name"></div>
-        <div class="field"><label for="re">Email</label><input id="re" type="email" autocomplete="email" placeholder="you@business.com"></div>
-        <div class="field"><label for="rp">Password</label><input id="rp" type="password" autocomplete="new-password" placeholder="Create a password"></div>
+        <div class="field">
+          <label for="rb">Business Name</label>
+          <input id="rb" type="text" autocomplete="organization" placeholder="Your business name">
+        </div>
+
+        <div class="field">
+          <label for="re">Email</label>
+          <input id="re" type="email" autocomplete="email" placeholder="you@business.com">
+        </div>
+
+        <div class="field">
+          <label for="rp">Password</label>
+          <input id="rp" type="password" autocomplete="new-password" placeholder="Create a password">
+        </div>
+
         <button id="registerBtn" class="btn" type="button" onclick="doRegister()">Create Account</button>
       </div>
+
       <div id="status" class="msg status"></div>
       <div id="err" class="msg error"></div>
       <div class="fine">Starter $29 · Pro $99 · Enterprise $199</div>
     </section>
   </main>
+
   <script>
     const API = "https://dynamic-prosperity-production-5382.up.railway.app";
 
@@ -71,7 +98,9 @@
 
     function setBusy(id, busy) {
       const btn = document.getElementById(id);
-      if (btn) btn.disabled = busy;
+      if (btn) {
+        btn.disabled = busy;
+      }
     }
 
     function showLogin() {
@@ -94,8 +123,14 @@
 
     function saveAuth(data) {
       localStorage.setItem("bf_token", data.token || "");
-      if (data.user) localStorage.setItem("bf_user", JSON.stringify(data.user));
-      if (data.profile) localStorage.setItem("bf_profile", JSON.stringify(data.profile));
+
+      if (data.user) {
+        localStorage.setItem("bf_user", JSON.stringify(data.user));
+      }
+
+      if (data.profile) {
+        localStorage.setItem("bf_profile", JSON.stringify(data.profile));
+      }
     }
 
     async function readJsonSafe(response) {
@@ -124,8 +159,13 @@
       try {
         const response = await fetch(API + "/api/auth/login", {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({email: email, password: password})
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
         });
 
         const data = await readJsonSafe(response);
@@ -173,8 +213,14 @@
       try {
         const response = await fetch(API + "/api/auth/register", {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({business_name: businessName, email: email, password: password})
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            business_name: businessName,
+            email: email,
+            password: password
+          })
         });
 
         const data = await readJsonSafe(response);
