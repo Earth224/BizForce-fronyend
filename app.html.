@@ -1,134 +1,222 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>BizForce AI</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#030308;color:#e8e8ff;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;}.build{color:#00e5ff;text-align:center;font-size:18px;font-weight:bold;margin-bottom:20px;}.box{background:#080812;border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:40px;width:90%;max-width:400px}h1{background:linear-gradient(135deg,#00e5ff,#9f6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;font-size:1.8rem;margin-bottom:6px}p{color:#8888aa;text-align:center;font-size:0.85rem;margin-bottom:24px}.tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;margin-bottom:20px}.tab{flex:1;padding:9px;border:none;background:transparent;color:#8888aa;cursor:pointer;border-radius:8px;font-size:0.9rem}.tab.active{background:linear-gradient(135deg,#00e5ff,#9f6bff);color:#000;font-weight:700}label{display:block;color:#8888aa;font-size:0.75rem;text-transform:uppercase;margin-bottom:5px;margin-top:14px}input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:11px 13px;color:#e8e8ff;font-size:0.9rem;outline:none}button.go{width:100%;margin-top:18px;padding:13px;background:linear-gradient(135deg,#00e5ff,#9f6bff);border:none;border-radius:10px;color:#000;font-weight:800;font-size:1rem;cursor:pointer;}.status{color:#00e5ff;font-size:1rem;text-align:center;margin-top:12px;font-weight:600;min-height:24px;}.err{color:#ff2d78;font-size:0.9rem;text-align:center;margin-top:8px;min-height:20px;}</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BizForce AI</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Arial,Helvetica,sans-serif;color:#fff;background:radial-gradient(circle at top left,rgba(0,229,255,.18),transparent 35%),radial-gradient(circle at bottom right,rgba(168,85,247,.22),transparent 35%),#070b18}
+    .wrap{width:100%;max-width:460px}
+    .brand{text-align:center;margin-bottom:26px}
+    .brand h1{margin:0;font-size:42px;line-height:1;letter-spacing:-1px;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .brand p{margin:12px 0 0;color:#aab4d4;font-size:15px;line-height:1.5}
+    .card{border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(12,18,38,.88);box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;padding:10px;gap:10px;background:rgba(255,255,255,.04)}
+    .tab{border:0;border-radius:16px;padding:13px 12px;cursor:pointer;color:#dbe7ff;background:transparent;font-size:15px;font-weight:700}
+    .tab.active{background:linear-gradient(90deg,#06b6d4,#8b5cf6);color:#fff}
+    .form{padding:26px;display:none}
+    .form.active{display:block}
+    .field{margin-bottom:16px}
+    label{display:block;margin-bottom:8px;color:#cbd5e1;font-size:13px;font-weight:700}
+    input{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:15px;outline:none;background:rgba(255,255,255,.07);color:#fff;font-size:16px}
+    input::placeholder{color:#7f8aaa}
+    input:focus{border-color:rgba(34,211,238,.75);box-shadow:0 0 0 4px rgba(34,211,238,.1)}
+    .btn{width:100%;border:0;border-radius:16px;padding:15px 18px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#06b6d4,#8b5cf6);font-size:16px;font-weight:800;box-shadow:0 14px 34px rgba(139,92,246,.22)}
+    .btn:disabled{cursor:not-allowed;opacity:.65}
+    .msg{min-height:22px;margin:16px 26px 0;text-align:center;font-size:14px;line-height:1.4}
+    .status{color:#67e8f9}
+    .error{color:#fb7185}
+    .fine{padding:18px 26px 24px;text-align:center;color:#8792b0;font-size:12px;line-height:1.5}
+    @media(max-width:520px){body{padding:18px;align-items:flex-start;padding-top:58px}.brand h1{font-size:36px}.form{padding:22px}}
+  </style>
 </head>
 <body>
-<div class="build">BUILD 7 ACTIVE</div>
-<div class="box">
-<h1>BizForce AI</h1>
-<p>Your AI-powered business network</p>
-<div class="tabs">
-<button class="tab active" type="button" onclick="showLogin()">Sign In</button>
-<button class="tab" type="button" onclick="showRegister()">Create Account</button>
-</div>
-<div id="loginForm">
-<label>Email</label>
-<input id="le" type="email" placeholder="you@business.com">
-<label>Password</label>
-<input id="lp" type="password" placeholder="••••••••">
-<button class="go" type="button" onclick="alert('LOGIN BUTTON CLICKED');doLogin();">Sign In</button>
-</div>
-<div id="registerForm" style="display:none">
-<label>Business Name</label>
-<input id="rb" type="text" placeholder="Your Business Name">
-<label>Email</label>
-<input id="re" type="email" placeholder="you@business.com">
-<label>Password</label>
-<input id="rp" type="password" placeholder="Min 8 characters">
-<button class="go" type="button" onclick="alert('REGISTER BUTTON CLICKED');doRegister();">Create Account</button>
-</div>
-<div class="status" id="status">Ready</div>
-<div class="err" id="err"></div>
-</div>
-<script>
-var API='https://dynamic-prosperity-production-5382.up.railway.app';
-function setStatus(msg){document.getElementById('status').textContent=msg;}
-function setErr(msg){document.getElementById('err').textContent=msg;}
-function showLogin(){document.getElementById('loginForm').style.display='block';document.getElementById('registerForm').style.display='none';}
-function showRegister(){document.getElementById('loginForm').style.display='none';document.getElementById('registerForm').style.display='block';}
-async function doLogin() {
-  setErr("");
-  setStatus("Signing in...");
+  <main class="wrap">
+    <section class="brand">
+      <h1>BizForce AI</h1>
+      <p>Business-owner AI network for growth, automation, leads, and revenue.</p>
+    </section>
+    <section class="card">
+      <div class="tabs">
+        <button id="loginTab" class="tab active" type="button" onclick="showLogin()">Sign In</button>
+        <button id="registerTab" class="tab" type="button" onclick="showRegister()">Create Account</button>
+      </div>
+      <div id="loginForm" class="form active">
+        <div class="field"><label for="le">Email</label><input id="le" type="email" autocomplete="email" placeholder="you@business.com"></div>
+        <div class="field"><label for="lp">Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="Your password"></div>
+        <button id="loginBtn" class="btn" type="button" onclick="doLogin()">Sign In</button>
+      </div>
+      <div id="registerForm" class="form">
+        <div class="field"><label for="rb">Business Name</label><input id="rb" type="text" autocomplete="organization" placeholder="Your business name"></div>
+        <div class="field"><label for="re">Email</label><input id="re" type="email" autocomplete="email" placeholder="you@business.com"></div>
+        <div class="field"><label for="rp">Password</label><input id="rp" type="password" autocomplete="new-password" placeholder="Create a password"></div>
+        <button id="registerBtn" class="btn" type="button" onclick="doRegister()">Create Account</button>
+      </div>
+      <div id="status" class="msg status"></div>
+      <div id="err" class="msg error"></div>
+      <div class="fine">Starter $29 · Pro $99 · Enterprise $199</div>
+    </section>
+  </main>
+  <script>
+    const API = "https://dynamic-prosperity-production-5382.up.railway.app";
 
-  const email = document.getElementById("le").value.trim();
-  const password = document.getElementById("lp").value.trim();
-
-  if (!email || !password) {
-    setStatus("");
-    setErr("Enter email and password.");
-    return;
-  }
-
-  try {
-    const response = await fetch(API + "/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email: email,
-        password: password
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setStatus("");
-      setErr(data.error || "Login failed.");
-      return;
+    function setStatus(message) {
+      document.getElementById("status").textContent = message || "";
     }
 
-    localStorage.setItem("bf_token", data.token || "");
-
-    setStatus("Success...");
-    window.location.href = "/dashboard.html";
-  } catch (error) {
-    setStatus("");
-    setErr("Connection failed.");
-  }
-}
-
-async function doRegister() {
-  setErr("");
-  setStatus("Creating account...");
-
-  const business = document.getElementById("rb").value.trim();
-  const email = document.getElementById("re").value.trim();
-  const password = document.getElementById("rp").value.trim();
-
-  if (!business || !email || !password) {
-    setStatus("");
-    setErr("Complete all fields.");
-    return;
-  }
-
-  try {
-    const response = await fetch(API + "/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        business_name: business,
-        email: email,
-        password: password
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setStatus("");
-      setErr(data.error || "Registration failed.");
-      return;
+    function setErr(message) {
+      document.getElementById("err").textContent = message || "";
     }
 
-    localStorage.setItem("bf_token", data.token || "");
+    function setBusy(id, busy) {
+      const btn = document.getElementById(id);
+      if (btn) btn.disabled = busy;
+    }
 
-    setStatus("Success...");
-    window.location.href = "/dashboard.html";
-  } catch (error) {
-    setStatus("");
-    setErr("Connection failed.");
-  }
-}
-if(localStorage.getItem('bf_token')){window.location.href='/dashboard.html';}
-</script>
+    function showLogin() {
+      setStatus("");
+      setErr("");
+      document.getElementById("loginForm").classList.add("active");
+      document.getElementById("registerForm").classList.remove("active");
+      document.getElementById("loginTab").classList.add("active");
+      document.getElementById("registerTab").classList.remove("active");
+    }
+
+    function showRegister() {
+      setStatus("");
+      setErr("");
+      document.getElementById("registerForm").classList.add("active");
+      document.getElementById("loginForm").classList.remove("active");
+      document.getElementById("registerTab").classList.add("active");
+      document.getElementById("loginTab").classList.remove("active");
+    }
+
+    function saveAuth(data) {
+      localStorage.setItem("bf_token", data.token || "");
+      if (data.user) localStorage.setItem("bf_user", JSON.stringify(data.user));
+      if (data.profile) localStorage.setItem("bf_profile", JSON.stringify(data.profile));
+    }
+
+    async function readJsonSafe(response) {
+      try {
+        return await response.json();
+      } catch (error) {
+        return {};
+      }
+    }
+
+    async function doLogin() {
+      setErr("");
+      setStatus("Signing in...");
+      setBusy("loginBtn", true);
+
+      const email = document.getElementById("le").value.trim();
+      const password = document.getElementById("lp").value.trim();
+
+      if (!email || !password) {
+        setBusy("loginBtn", false);
+        setStatus("");
+        setErr("Enter email and password.");
+        return;
+      }
+
+      try {
+        const response = await fetch(API + "/api/auth/login", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({email: email, password: password})
+        });
+
+        const data = await readJsonSafe(response);
+
+        if (!response.ok) {
+          setBusy("loginBtn", false);
+          setStatus("");
+          setErr(data.error || "Login failed.");
+          return;
+        }
+
+        if (!data.token) {
+          setBusy("loginBtn", false);
+          setStatus("");
+          setErr("Login succeeded but no token was returned.");
+          return;
+        }
+
+        saveAuth(data);
+        setStatus("Success. Redirecting...");
+        window.location.href = "/dashboard.html";
+      } catch (error) {
+        setBusy("loginBtn", false);
+        setStatus("");
+        setErr("Connection failed. Try again.");
+      }
+    }
+
+    async function doRegister() {
+      setErr("");
+      setStatus("Creating account...");
+      setBusy("registerBtn", true);
+
+      const businessName = document.getElementById("rb").value.trim();
+      const email = document.getElementById("re").value.trim();
+      const password = document.getElementById("rp").value.trim();
+
+      if (!businessName || !email || !password) {
+        setBusy("registerBtn", false);
+        setStatus("");
+        setErr("Complete all fields.");
+        return;
+      }
+
+      try {
+        const response = await fetch(API + "/api/auth/register", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({business_name: businessName, email: email, password: password})
+        });
+
+        const data = await readJsonSafe(response);
+
+        if (!response.ok) {
+          setBusy("registerBtn", false);
+          setStatus("");
+          setErr(data.error || "Registration failed.");
+          return;
+        }
+
+        if (!data.token) {
+          setBusy("registerBtn", false);
+          setStatus("");
+          setErr("Account created but no token was returned.");
+          return;
+        }
+
+        saveAuth(data);
+        setStatus("Success. Redirecting...");
+        window.location.href = "/dashboard.html";
+      } catch (error) {
+        setBusy("registerBtn", false);
+        setStatus("");
+        setErr("Connection failed. Try again.");
+      }
+    }
+
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        if (document.getElementById("loginForm").classList.contains("active")) {
+          doLogin();
+        } else {
+          doRegister();
+        }
+      }
+    });
+
+    if (localStorage.getItem("bf_token")) {
+      setStatus("Already signed in. Redirecting...");
+      window.location.href = "/dashboard.html";
+    }
+  </script>
 </body>
 </html>
