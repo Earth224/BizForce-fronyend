@@ -41,26 +41,92 @@ function setStatus(msg){document.getElementById('status').textContent=msg;}
 function setErr(msg){document.getElementById('err').textContent=msg;}
 function showLogin(){document.getElementById('loginForm').style.display='block';document.getElementById('registerForm').style.display='none';}
 function showRegister(){document.getElementById('loginForm').style.display='none';document.getElementById('registerForm').style.display='block';}
-function doLogin(){
-var e=document.getElementById('le').value.trim();
-var p=document.getElementById('lp').value;
-if(!e||!p){setErr('Fill all fields');return;}
-setStatus('Sending request...');
-fetch(API+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})})
-.then(function(r){setStatus('Response received');return r.json().then(function(d){return{ok:r.ok,data:d};});})
-.then(function(res){if(!res.ok){setErr(res.data.error||'Login failed');setStatus('Ready');return;}localStorage.setItem('bf_token',res.data.token);localStorage.setItem('bf_user',JSON.stringify(res.data.user));setStatus('Redirecting...');window.location.href='/dashboard.html';})
-.catch(function(x){setErr('Error: '+x.message);setStatus('Ready');});
+async function doLogin() {
+  setErr("");
+  setStatus("Signing in...");
+
+  const email = document.getElementById("le").value.trim();
+  const password = document.getElementById("lp").value.trim();
+
+  if (!email || !password) {
+    setStatus("");
+    setErr("Enter email and password.");
+    return;
+  }
+
+  try {
+    const response = await fetch(API + "/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus("");
+      setErr(data.error || "Login failed.");
+      return;
+    }
+
+    localStorage.setItem("bf_token", data.token || "");
+
+    setStatus("Success...");
+    window.location.href = "/dashboard.html";
+  } catch (error) {
+    setStatus("");
+    setErr("Connection failed.");
+  }
 }
-function doRegister(){
-var b=document.getElementById('rb').value.trim();
-var e=document.getElementById('re').value.trim();
-var p=document.getElementById('rp').value;
-if(!b||!e||!p){setErr('Fill all fields');return;}
-setStatus('Sending request...');
-fetch(API+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p,business_name:b})})
-.then(function(r){setStatus('Response received');return r.json().then(function(d){return{ok:r.ok,data:d};});})
-.then(function(res){if(!res.ok){setErr(res.data.error||'Registration failed');setStatus('Ready');return;}localStorage.setItem('bf_token',res.data.token);localStorage.setItem('bf_user',JSON.stringify(res.data.user));setStatus('Redirecting...');window.location.href='/dashboard.html';})
-.catch(function(x){setErr('Error: '+x.message);setStatus('Ready');});
+
+async function doRegister() {
+  setErr("");
+  setStatus("Creating account...");
+
+  const business = document.getElementById("rb").value.trim();
+  const email = document.getElementById("re").value.trim();
+  const password = document.getElementById("rp").value.trim();
+
+  if (!business || !email || !password) {
+    setStatus("");
+    setErr("Complete all fields.");
+    return;
+  }
+
+  try {
+    const response = await fetch(API + "/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        business_name: business,
+        email: email,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setStatus("");
+      setErr(data.error || "Registration failed.");
+      return;
+    }
+
+    localStorage.setItem("bf_token", data.token || "");
+
+    setStatus("Success...");
+    window.location.href = "/dashboard.html";
+  } catch (error) {
+    setStatus("");
+    setErr("Connection failed.");
+  }
 }
 if(localStorage.getItem('bf_token')){window.location.href='/dashboard.html';}
 </script>
