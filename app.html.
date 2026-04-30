@@ -330,219 +330,266 @@
         <strong>BizForce AI Full Access — $29.99/month</strong>
         <span>One subscription unlocks all 10 AI business agents and all platform tools.</span>
       </div>
-
+<button id="subscribeBtn" class="btn">Start Subscription</button>
       <div class="fine">Deploy AI agents for SEO, sales, content, ads, reputation, analytics, email, community, influencer outreach, and operations.</div>
     </section>
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      console.log("app loaded");
+document.addEventListener("DOMContentLoaded", function () {
+  var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 
-      var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+  var loginTab = document.getElementById("loginTab");
+  var registerTab = document.getElementById("registerTab");
+  var loginForm = document.getElementById("loginForm");
+  var registerForm = document.getElementById("registerForm");
+  var loginBtn = document.getElementById("loginBtn");
+  var registerBtn = document.getElementById("registerBtn");
+  var subscribeBtn = document.getElementById("subscribeBtn");
 
-      var loginTab = document.getElementById("loginTab");
-      var registerTab = document.getElementById("registerTab");
-      var loginForm = document.getElementById("loginForm");
-      var registerForm = document.getElementById("registerForm");
-      var loginBtn = document.getElementById("loginBtn");
-      var registerBtn = document.getElementById("registerBtn");
-      var loginEmailInput = document.getElementById("le");
-      var loginPasswordInput = document.getElementById("lp");
-      var registerBusinessInput = document.getElementById("rb");
-      var registerEmailInput = document.getElementById("re");
-      var registerPasswordInput = document.getElementById("rp");
-      var statusBox = document.getElementById("status");
-      var errorBox = document.getElementById("err");
+  var statusBox = document.getElementById("status");
+  var errorBox = document.getElementById("err");
 
-      function setStatus(message) {
-        statusBox.textContent = message || "";
-      }
+  var loginEmailInput = document.getElementById("le");
+  var loginPasswordInput = document.getElementById("lp");
+  var registerBusinessInput = document.getElementById("rb");
+  var registerEmailInput = document.getElementById("re");
+  var registerPasswordInput = document.getElementById("rp");
 
-      function setError(message) {
-        errorBox.textContent = message || "";
-      }
+  function setStatus(message) {
+    if (statusBox) {
+      statusBox.textContent = message || "";
+    }
+  }
 
-      function setLoginBusy(isBusy) {
-        loginBtn.disabled = isBusy;
-        loginBtn.textContent = isBusy ? "Signing In..." : "Sign In";
-      }
+  function setError(message) {
+    if (errorBox) {
+      errorBox.textContent = message || "";
+    }
+  }
 
-      function setRegisterBusy(isBusy) {
-        registerBtn.disabled = isBusy;
-        registerBtn.textContent = isBusy ? "Creating Account..." : "Create Account";
-      }
+  function setLoginBusy(isBusy) {
+    if (loginBtn) {
+      loginBtn.disabled = isBusy;
+      loginBtn.textContent = isBusy ? "Signing in..." : "Sign In";
+    }
+  }
 
-      function showLogin(event) {
-        if (event) {
-          event.preventDefault();
-        }
+  function setRegisterBusy(isBusy) {
+    if (registerBtn) {
+      registerBtn.disabled = isBusy;
+      registerBtn.textContent = isBusy ? "Creating account..." : "Create Account";
+    }
+  }
 
+  function showLogin(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
+    setStatus("");
+    setError("");
+
+    if (loginForm) {
+      loginForm.classList.add("active");
+    }
+
+    if (registerForm) {
+      registerForm.classList.remove("active");
+    }
+
+    if (loginTab) {
+      loginTab.classList.add("active");
+    }
+
+    if (registerTab) {
+      registerTab.classList.remove("active");
+    }
+  }
+
+  function showRegister(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
+    setStatus("");
+    setError("");
+
+    if (registerForm) {
+      registerForm.classList.add("active");
+    }
+
+    if (loginForm) {
+      loginForm.classList.remove("active");
+    }
+
+    if (registerTab) {
+      registerTab.classList.add("active");
+    }
+
+    if (loginTab) {
+      loginTab.classList.remove("active");
+    }
+  }
+
+  async function parseJson(response) {
+    try {
+      return await response.json();
+    } catch (error) {
+      return {};
+    }
+  }
+
+  if (loginTab) {
+    loginTab.addEventListener("click", showLogin);
+  }
+
+  if (registerTab) {
+    registerTab.addEventListener("click", showRegister);
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      setStatus("Signing in...");
+      setError("");
+      setLoginBusy(true);
+
+      var email = loginEmailInput ? loginEmailInput.value.trim() : "";
+      var password = loginPasswordInput ? loginPasswordInput.value : "";
+
+      if (!email || !password) {
+        setLoginBusy(false);
         setStatus("");
-        setError("");
-
-        loginForm.classList.add("active");
-        registerForm.classList.remove("active");
-        loginTab.classList.add("active");
-        registerTab.classList.remove("active");
+        setError("Enter email and password.");
+        return;
       }
 
-      function showRegister(event) {
-        if (event) {
-          event.preventDefault();
+      try {
+        var response = await fetch(API_URL + "/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password
+          })
+        });
+
+        var data = await parseJson(response);
+
+        if (!response.ok || !data.token) {
+          throw new Error(data.error || "Login failed.");
         }
 
+        localStorage.setItem("bf_token", data.token);
+
+        setStatus("Login successful.");
+        setError("");
+      } catch (error) {
         setStatus("");
-        setError("");
-
-        registerForm.classList.add("active");
-        loginForm.classList.remove("active");
-        registerTab.classList.add("active");
-        loginTab.classList.remove("active");
+        setError(error.message || "Login failed.");
       }
 
-      async function parseJson(response) {
-        try {
-          return await response.json();
-        } catch (error) {
-          return {};
-        }
-      }
-
-      function extractUser(data) {
-        if (data && data.user) {
-          return data.user;
-        }
-
-        if (data && data.profile) {
-          return data.profile;
-        }
-
-        return {};
-      }
-
-      loginTab.addEventListener("click", showLogin);
-      registerTab.addEventListener("click", showRegister);
-
-      loginForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
-
-        console.log("login submitted");
-
-        setStatus("Signing in...");
-        setError("");
-        setLoginBusy(true);
-
-        var email = loginEmailInput.value.trim();
-        var password = loginPasswordInput.value;
-
-        if (!email || !password) {
-          setLoginBusy(false);
-          setStatus("");
-          setError("Enter email and password.");
-          console.log("login failed");
-          return;
-        }
-
-        try {
-          var response = await fetch(API_URL + "/api/auth/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              email: email,
-              password: password
-            })
-          });
-
-          console.log("login response status", response.status);
-
-          var data = await parseJson(response);
-
-          if (!response.ok) {
-            setLoginBusy(false);
-            setStatus("");
-            setError(data.error || data.message || "Login failed.");
-            console.log("login failed");
-            return;
-          }
-
-          if (!data || !data.token) {
-            setLoginBusy(false);
-            setStatus("");
-            setError("Login failed. No auth token returned.");
-            console.log("login failed");
-            return;
-          }
-
-          localStorage.setItem("bf_token", data.token);
-          localStorage.setItem("bf_user", JSON.stringify(extractUser(data)));
-
-          setStatus("Success. Redirecting...");
-          console.log("redirecting to dashboard");
-          window.location.href = "/dashboard.html";
-        } catch (error) {
-          setLoginBusy(false);
-          setStatus("");
-          setError("Connection failed. Try again.");
-          console.log("login failed");
-        }
-      });
-
-      registerForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
-
-        setStatus("Creating account...");
-        setError("");
-        setRegisterBusy(true);
-
-        var businessName = registerBusinessInput.value.trim();
-        var email = registerEmailInput.value.trim();
-        var password = registerPasswordInput.value;
-
-        if (!businessName || !email || !password) {
-          setRegisterBusy(false);
-          setStatus("");
-          setError("Complete all fields.");
-          return;
-        }
-
-        try {
-          var response = await fetch(API_URL + "/api/auth/register", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              business_name: businessName,
-              email: email,
-              password: password
-            })
-          });
-
-          var data = await parseJson(response);
-
-          if (!response.ok) {
-            setRegisterBusy(false);
-            setStatus("");
-            setError(data.error || data.message || "Registration failed.");
-            return;
-          }
-
-          setRegisterBusy(false);
-          registerPasswordInput.value = "";
-          loginEmailInput.value = email;
-          setStatus("Account created. Sign in to continue.");
-          setError("");
-          showLogin();
-        } catch (error) {
-          setRegisterBusy(false);
-          setStatus("");
-          setError("Connection failed. Try again.");
-        }
-      });
+      setLoginBusy(false);
     });
-  </script>
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      setStatus("Creating account...");
+      setError("");
+      setRegisterBusy(true);
+
+      var businessName = registerBusinessInput ? registerBusinessInput.value.trim() : "";
+      var email = registerEmailInput ? registerEmailInput.value.trim() : "";
+      var password = registerPasswordInput ? registerPasswordInput.value : "";
+
+      if (!businessName || !email || !password) {
+        setRegisterBusy(false);
+        setStatus("");
+        setError("All fields required.");
+        return;
+      }
+
+      try {
+        var response = await fetch(API_URL + "/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            business_name: businessName,
+            email: email,
+            password: password
+          })
+        });
+
+        var data = await parseJson(response);
+
+        if (!response.ok) {
+          throw new Error(data.error || "Registration failed.");
+        }
+
+        if (data.token) {
+          localStorage.setItem("bf_token", data.token);
+        }
+
+        setStatus("Account created.");
+        setError("");
+      } catch (error) {
+        setStatus("");
+        setError(error.message || "Registration failed.");
+      }
+
+      setRegisterBusy(false);
+    });
+  }
+
+  if (subscribeBtn) {
+    subscribeBtn.addEventListener("click", async function (event) {
+      event.preventDefault();
+
+      var token = localStorage.getItem("bf_token");
+
+      if (!token) {
+        setStatus("");
+        setError("You must be signed in to subscribe.");
+        return;
+      }
+
+      subscribeBtn.disabled = true;
+      setStatus("Opening checkout...");
+      setError("");
+
+      try {
+        var response = await fetch(API_URL + "/api/stripe/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          }
+        });
+
+        var data = await parseJson(response);
+
+        if (!response.ok || !data.url) {
+          throw new Error(data.error || "Checkout failed.");
+        }
+
+        window.location.href = data.url;
+      } catch (error) {
+        subscribeBtn.disabled = false;
+        setStatus("");
+        setError("Checkout failed. Try again.");
+      }
+    });
+  }
+});
+</script>
 </body>
-</html>
+</html>     
