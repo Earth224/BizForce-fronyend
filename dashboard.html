@@ -27,10 +27,45 @@ if (!token) {
  
 
 <script>
-...your new code...
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+var token = localStorage.getItem("bf_token");
+var planStatus = document.getElementById("planStatus");
+
+if (planStatus) {
+  if (!token) {
+    planStatus.innerHTML = "Not signed in. Please log in first.";
+  } else {
+    fetch(API_URL + "/api/auth/me", {
+      method: "GET",
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (data) {
+        var user = data.user || data;
+
+        if (
+          user.subscription_status === "active" ||
+          user.subscription_active === true ||
+          user.plan === "starter" ||
+          user.subscription_plan === "starter"
+        ) {
+          planStatus.innerHTML = "Subscription ACTIVE — Full Access";
+        } else {
+          planStatus.innerHTML = "Subscription not active yet.";
+        }
+      })
+      .catch(function () {
+        planStatus.innerHTML = "Could not verify subscription.";
+      });
+  }
+}
 </script>
 
 </body>
 </html>      
-</body>
-</html>
+
