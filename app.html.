@@ -588,49 +588,7 @@ if (loginForm) {
         setError("Checkout failed. Try again.");
       }
     });
-  }
-var loginForm = document.getElementById("loginForm");
-
-if (loginForm) {
-  loginForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    var emailInput = document.getElementById("le");
-    var passwordInput = document.getElementById("lp");
-
-    if (!emailInput || !passwordInput) return;
-
-    var email = emailInput.value.trim();
-    var password = passwordInput.value;
-
-    try {
-      var response = await fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password
-        })
-      });
-
-      var data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Login failed.");
-        return;
-      }
-
-      if (data.token) {
-        localStorage.setItem("bf_token", data.token);
-        window.location.href = "dashboard.html";
-      }
-
-    } catch (error) {
-      setError("Login failed. Try again.");
-    }
-  });
+  
 }
 });
 </script>
