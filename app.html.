@@ -300,9 +300,9 @@
           <label for="lp">Password</label>
           <input id="lp" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
         </div>
-
-        <button id="loginBtn" class="btn" type="submit">Sign In</button>
-      </form>
+<button id="loginBtn" class="btn" type="submit">Login</button>
+</form>
+      
 
       <form id="registerForm" class="form" novalidate>
         <div class="field">
@@ -448,10 +448,10 @@ document.addEventListener("DOMContentLoaded", function () {
     registerTab.addEventListener("click", showRegister);
   }
 
-  if (loginForm) {
+  
+if (loginForm) {
     loginForm.addEventListener("submit", async function (event) {
-      event.preventDefault();
-
+        event.preventDefault();
       setStatus("Signing in...");
       setError("");
       setLoginBusy(true);
@@ -589,6 +589,49 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+var loginForm = document.getElementById("loginForm");
+
+if (loginForm) {
+  loginForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    var emailInput = document.getElementById("le");
+    var passwordInput = document.getElementById("lp");
+
+    if (!emailInput || !passwordInput) return;
+
+    var email = emailInput.value.trim();
+    var password = passwordInput.value;
+
+    try {
+      var response = await fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      });
+
+      var data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed.");
+        return;
+      }
+
+      if (data.token) {
+        localStorage.setItem("bf_token", data.token);
+        window.location.href = "dashboard.html";
+      }
+
+    } catch (error) {
+      setError("Login failed. Try again.");
+    }
+  });
+}
 });
 </script>
 </body>
