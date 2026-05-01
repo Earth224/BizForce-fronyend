@@ -29,17 +29,17 @@ if (!token) {
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 
-var token = localStorage.getItem("bf_token");
+var dashboardToken = localStorage.getItem("bf_token");
 var planStatus = document.getElementById("planStatus");
 
 if (planStatus) {
-  if (!token) {
+  if (!dashboardToken) {
     planStatus.innerHTML = "Not signed in. Please log in first.";
   } else {
     fetch(API_URL + "/api/auth/me", {
       method: "GET",
       headers: {
-        "Authorization": "Bearer " + token
+        "Authorization": "Bearer " + dashboardToken
       }
     })
       .then(function (response) {
