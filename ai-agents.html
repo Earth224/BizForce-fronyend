@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI - AI Staff</title>
+</head>
+<body>
+  <h1>BizForce AI Staff</h1>
+
+  <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+
+  <hr />
+
+  <label>Choose Agent</label>
+  <select id="agentType">
+    <option value="seo">SEO Agent</option>
+    <option value="sales">Sales Agent</option>
+    <option value="content">Content Agent</option>
+    <option value="ads">Ads Agent</option>
+    <option value="reputation">Reputation Agent</option>
+    <option value="analytics">Analytics Agent</option>
+    <option value="email">Email Agent</option>
+    <option value="community">Community Agent</option>
+    <option value="influencer">Influencer Agent</option>
+    <option value="operations">Operations Agent</option>
+  </select>
+
+  <br /><br />
+
+  <label>Task Prompt</label>
+  <br />
+  <textarea id="prompt" rows="8" cols="60" placeholder="Tell your AI agent what to do..."></textarea>
+
+  <br /><br />
+
+  <button onclick="runAgent()">Run AI Agent</button>
+
+  <h2>Result</h2>
+  <pre id="result">Waiting for task...</pre>
+
+  <script>
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+    async function runAgent() {
+      var token = localStorage.getItem("bf_token");
+      var agentType = document.getElementById("agentType").value;
+      var prompt = document.getElementById("prompt").value;
+      var resultBox = document.getElementById("result");
+
+      if (!token) {
+        resultBox.textContent = "You are not logged in.";
+        return;
+      }
+
+      if (!prompt) {
+        resultBox.textContent = "Enter a task prompt first.";
+        return;
+      }
+
+      resultBox.textContent = "Running AI agent...";
+
+      try {
+        var response = await fetch(API_URL + "/api/ai/tasks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({
+            agent_type: agentType,
+            task_type: "general",
+            prompt: prompt
+          })
+        });
+
+        var data = await response.json();
+
+        if (!response.ok) {
+          resultBox.textContent = JSON.stringify(data, null, 2);
+          return;
+        }
+
+        resultBox.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultBox.textContent = "Request failed: " + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
