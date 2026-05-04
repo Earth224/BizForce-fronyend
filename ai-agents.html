@@ -37,7 +37,7 @@
   <button onclick="runAgent()">Run AI Agent</button>
 
   <h2>Result</h2>
-  <pre id="result">Waiting for task...</pre>
+  <div id="result">Waiting for task...</div>
 
   <script>
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -81,7 +81,7 @@
           return;
         }
 
-        resultBox.textContent = JSON.stringify(data, null, 2);
+        resultBox.innerHTML = (data.result || JSON.stringify(data, null, 2)).replace(/\\n/g, "<br>").replace(/\n/g, "<br>");
       } catch (error) {
         resultBox.textContent = "Request failed: " + error.message;
       }
