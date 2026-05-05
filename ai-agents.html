@@ -162,33 +162,29 @@ var response = await fetch(API_URL + "/api/ai/tasks", {
 clearTimeout(timeout);
 
         var data = await response.json();
-if (!data || (!data.result && !data.error)) {
-  resultBox.innerHTML = "⚠️ Unexpected empty response. Try again.";
-  return;
+
+if (!response.ok) {
+    resultBox.innerHTML = "❌ Request failed: " + (data.error || "Unknown error");
+    runButton.disabled = false;
+    runButton.textContent = "Run AI Agent";
+    return;
 }
 
-        if (!response.ok) {
-  resultBox.innerHTML = "❌ Request failed: " + (data.error || "Unknown error");
-  
-  runButton.disabled = false;
-  runButton.textContent = "Run AI Agent";
-  
-  return;
+var taskId = data.task && data.task.id;
+
+if (!taskId) {
+    resultBox.innerHTML = "⚠️ Task queued but no task ID returned.";
+    runButton.disabled = false;
+    runButton.textContent = "Run AI Agent";
+    return;
 }
 
-      
-resultBox.innerHTML = (data.result || JSON.stringify(data, null, 2))
-  .replace(/\\n\\n/g, "<br><br>")
-  .replace(/\\n/g, "<br>")
-  .replace(/\n\n/g, "<br><br>")
-  .replace(/\n/g, "<br>")
-  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+resultBox.innerHTML = "⏳ Task queued. Waiting for result...";
 
-resultBox.scrollIntoView({ behavior: "smooth" });
-loadTasks();
+await pollTaskResult(taskId, resultBox, runButton);
+return;
 
-runButton.disabled = false;
-runButton.textContent = "Run AI Agent";
+
      } catch (error) {
   if (error.name === "AbortError") {
     resultBox.innerHTML = "⏱️ Request timed out. Try again.";
@@ -200,7 +196,74 @@ runButton.textContent = "Run AI Agent";
   runButton.textContent = "Run AI Agent";
 }
       }
-    
+async function pollTaskResult(taskId, resultBox, runButton) {
+
+    var token = localStorage.getItem("bf_token");
+
+    for (var i = 0; i < 30; i++) {
+
+        await new Promise(function(resolve) {
+            setTimeout(resolve, 2000);
+        });
+
+        try {
+
+            var response = await fetch(API_URL + "/api/ai/tasks", {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            var data = await response.json();
+
+            if (!data.tasks || !Array.isArray(data.tasks)) {
+                continue;
+            }
+
+            var task = data.tasks.find(function(t) {
+                return t.id === taskId;
+            });
+
+            if (!task) {
+                continue;
+            }
+
+            if (task.status === "completed") {
+
+                resultBox.innerHTML = (task.result || "No result returned.")
+                    .replace(/\n\n/g, "<br><br>")
+                    .replace(/\n/g, "<br>")
+                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+                runButton.disabled = false;
+                runButton.textContent = "Run AI Agent";
+
+                loadTasks();
+
+                return;
+            }
+
+            if (task.status === "failed") {
+
+                resultBox.innerHTML = "❌ Task failed.";
+
+                runButton.disabled = false;
+                runButton.textContent = "Run AI Agent";
+
+                return;
+            }
+
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+
+    resultBox.innerHTML = "⚠️ Task timed out.";
+
+    runButton.disabled = false;
+    runButton.textContent = "Run AI Agent";
+}    
 async function loadTasks() {
   try {
     var token = localStorage.getItem("bf_token");
