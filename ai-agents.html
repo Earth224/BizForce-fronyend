@@ -114,7 +114,10 @@ strong {
 
   <h2>Result</h2>
   <div id="result">Waiting for task...</div>
-
+  <div id="taskHistory" style="margin-top:30px;">
+  <h3>Task History</h3>
+  <div id="taskList"></div>
+</div>
   <script>
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 
@@ -151,6 +154,7 @@ strong {
 
         var data = await response.json();
 
+
         if (!response.ok) {
           resultBox.textContent = JSON.stringify(data, null, 2);
           return;
@@ -162,11 +166,52 @@ strong {
 .replace(/\n\n/g, "<br><br>")
 .replace(/\n/g, "<br>")
 .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+ loadTasks();
       } catch (error) {
         resultBox.textContent = "Request failed: " + error.message;
       }
-    }
-  </script>
+    
+async function loadTasks() {
+  try {
+    var token = localStorage.getItem("bf_token");
+
+    var res = await fetch(API_URL + "/api/ai/tasks", {
+      headers: {
+        "Authorization": "Bearer " + token
+      }
+    });
+
+    var data = await res.json();
+
+    var container = document.getElementById("taskList");
+    container.innerHTML = "";
+
+    data.tasks.forEach(function(task) {
+      var div = document.createElement("div");
+
+      div.style.border = "1px solid #333";
+      div.style.padding = "10px";
+      div.style.marginBottom = "10px";
+
+      div.innerHTML = `
+        <strong>Agent:</strong> ${task.agent_type}<br/>
+        <strong>Status:</strong> ${task.status}<br/>
+        <strong>Prompt:</strong> ${task.prompt}<br/>
+        <strong>Result:</strong><br/>${task.result || "Processing..."}
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("LOAD TASKS ERROR:", err);
+  }
+}
+
+loadTasks();
+</script> 
+
 </div>
 </body>
 </html>
