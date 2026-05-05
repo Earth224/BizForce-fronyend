@@ -144,8 +144,7 @@ runButton.textContent = "Running...";
         var controller = new AbortController();
 var timeout = setTimeout(function() {
   controller.abort();
-}, 15000); // 15 sec timeout
-
+}, 45000); // 45 sec timeout
 var response = await fetch(API_URL + "/api/ai/tasks", {
   method: "POST",
   headers: {
@@ -154,7 +153,7 @@ var response = await fetch(API_URL + "/api/ai/tasks", {
   },
   body: JSON.stringify({
     agent_type: agentType,
-    task_type: "general",
+    task_type: agentType === "seo" ? "seo_audit" : agentType === "sales" ? "sales_funnel" : agentType === "content" ? "content_plan" : agentType === "ads" ? "ad_campaign" : "general",
     prompt: prompt
   }),
   signal: controller.signal
