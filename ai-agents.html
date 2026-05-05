@@ -137,7 +137,7 @@ strong {
         return;
       }
 
-      resultBox.innerHTML = "⏳ Running AI Agent...";
+      resultBox.innerHTML = "⏳ Running AI Agent... (this can take up to 30–45 seconds)";
 runButton.disabled = true;
 runButton.textContent = "Running...";
       try {
@@ -162,7 +162,10 @@ var response = await fetch(API_URL + "/api/ai/tasks", {
 clearTimeout(timeout);
 
         var data = await response.json();
-
+if (!data || (!data.result && !data.error)) {
+  resultBox.innerHTML = "⚠️ Unexpected empty response. Try again.";
+  return;
+}
 
         if (!response.ok) {
   resultBox.innerHTML = "❌ Request failed: " + (data.error || "Unknown error");
