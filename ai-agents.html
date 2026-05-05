@@ -141,39 +141,59 @@ strong {
 runButton.disabled = true;
 runButton.textContent = "Running...";
       try {
-        var response = await fetch(API_URL + "/api/ai/tasks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-          },
-          body: JSON.stringify({
-            agent_type: agentType,
-            task_type: "general",
-            prompt: prompt
-          })
-        });
+        var controller = new AbortController();
+var timeout = setTimeout(function() {
+  controller.abort();
+}, 15000); // 15 sec timeout
+
+var response = await fetch(API_URL + "/api/ai/tasks", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + token
+  },
+  body: JSON.stringify({
+    agent_type: agentType,
+    task_type: "general",
+    prompt: prompt
+  }),
+  signal: controller.signal
+});
+
+clearTimeout(timeout);
 
         var data = await response.json();
 
 
         if (!response.ok) {
-          resultBox.textContent = JSON.stringify(data, null, 2);
-          return;
-        }
+  resultBox.innerHTML = "❌ Request failed: " + (data.error || "Unknown error");
+  
+  runButton.disabled = false;
+  runButton.textContent = "Run AI Agent";
+  
+  return;
+}
 
-       resultBox.innerHTML = (data.result || JSON.stringify(data, null, 2))
-.replace(/\\n\\n/g, "<br><br>")
-.replace(/\\n/g, "<br>")
-.replace(/\n\n/g, "<br><br>")
-.replace(/\n/g, "<br>")
+      
+resultBox.innerHTML = (data.result || JSON.stringify(data, null, 2))
+  .replace(/\\n\\n/g, "<br><br>")
+  .replace(/\\n/g, "<br>")
+  .replace(/\n\n/g, "<br><br>")
+  .replace(/\n/g, "<br>")
+  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
+resultBox.scrollIntoView({ behavior: "smooth" });
 loadTasks();
 
 runButton.disabled = false;
 runButton.textContent = "Run AI Agent";
      } catch (error) {
-  resultBox.innerHTML = "❌ Error: " + error.message;
+  if (error.name === "AbortError") {
+    resultBox.innerHTML = "⏱️ Request timed out. Try again.";
+  } else {
+    resultBox.innerHTML = "❌ Error: " + error.message;
+  }
+
   runButton.disabled = false;
   runButton.textContent = "Run AI Agent";
 }
@@ -194,7 +214,12 @@ async function loadTasks() {
     var container = document.getElementById("taskList");
     container.innerHTML = "";
 
-    data.tasks.forEach(function(task) {
+    if (!data.tasks || data.tasks.length === 0) {
+  container.innerHTML = "<div>No tasks yet</div>";
+  return;
+}
+
+data.tasks.forEach(function(task) {
       var div = document.createElement("div");
 
       div.style.border = "1px solid #333";
