@@ -110,7 +110,7 @@ strong {
 
   <br /><br />
 
-  <button onclick="runAgent()">Run AI Agent</button>
+  <button id="runAgentBtn" onclick="runAgent()">Run AI Agent</button>
 
   <h2>Result</h2>
   <div id="result">Waiting for task...</div>
@@ -125,8 +125,8 @@ strong {
       var token = localStorage.getItem("bf_token");
       var agentType = document.getElementById("agentType").value;
       var prompt = document.getElementById("prompt").value;
+      var runButton = document.getElementById("runAgentBtn");
       var resultBox = document.getElementById("result");
-
       if (!token) {
         resultBox.textContent = "You are not logged in.";
         return;
@@ -137,7 +137,9 @@ strong {
         return;
       }
 
-      resultBox.innerHTML = "⏳ Thinking...";
+      resultBox.innerHTML = "⏳ Running AI Agent...";
+runButton.disabled = true;
+runButton.textContent = "Running...";
       try {
         var response = await fetch(API_URL + "/api/ai/tasks", {
           method: "POST",
@@ -165,12 +167,16 @@ strong {
 .replace(/\\n/g, "<br>")
 .replace(/\n\n/g, "<br><br>")
 .replace(/\n/g, "<br>")
-.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
- loadTasks();
-      } catch (error) {
-        resultBox.textContent = "Request failed: " + error.message;
-      }  
+loadTasks();
+
+runButton.disabled = false;
+runButton.textContent = "Run AI Agent";
+     } catch (error) {
+  resultBox.innerHTML = "❌ Error: " + error.message;
+  runButton.disabled = false;
+  runButton.textContent = "Run AI Agent";
+}
       }
     
 async function loadTasks() {
