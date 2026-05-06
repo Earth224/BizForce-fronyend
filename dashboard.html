@@ -71,7 +71,106 @@ if (loadingBadge) {
   }
 }
 </script>
+<section id="businessProfileSection" style="padding:40px;max-width:900px;margin:auto;">
+  <h2 style="font-size:32px;margin-bottom:25px;color:#00e5ff;">
+    Business Profile
+  </h2>
 
+  <div style="display:grid;gap:20px;">
+
+    <input id="business_name" type="text" placeholder="Business Name" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="niche" type="text" placeholder="Niche" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="target_audience" type="text" placeholder="Target Audience" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="website" type="text" placeholder="Website" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="revenue_goal" type="number" placeholder="Revenue Goal" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="monthly_budget" type="number" placeholder="Monthly Budget" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <input id="brand_voice" type="text" placeholder="Brand Voice" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+
+    <select id="automation_level" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+      <option value="">Select Automation Level</option>
+      <option value="Low">Low</option>
+      <option value="Medium">Medium</option>
+      <option value="High">High</option>
+    </select>
+
+    <button id="saveBusinessProfileBtn" style="padding:18px;font-size:18px;font-weight:bold;border:none;border-radius:12px;cursor:pointer;background:linear-gradient(90deg,#00e5ff,#7b2fff);color:white;">
+      Save Business Profile
+    </button>
+
+    <div id="businessProfileStatus" style="font-size:16px;"></div>
+
+  </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  var saveBtn = document.getElementById("saveBusinessProfileBtn");
+
+  if (!saveBtn) {
+    return;
+  }
+
+  saveBtn.addEventListener("click", async function () {
+
+    try {
+
+      var token = localStorage.getItem("bf_token");
+
+      if (!token) {
+        alert("Missing login token");
+        return;
+      }
+
+      var payload = {
+        business_name: document.getElementById("business_name").value,
+        niche: document.getElementById("niche").value,
+        target_audience: document.getElementById("target_audience").value,
+        website: document.getElementById("website").value,
+        revenue_goal: document.getElementById("revenue_goal").value,
+        monthly_budget: document.getElementById("monthly_budget").value,
+        brand_voice: document.getElementById("brand_voice").value,
+        automation_level: document.getElementById("automation_level").value
+      };
+
+      var response = await fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/business-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      var data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to save profile");
+      }
+
+      document.getElementById("businessProfileStatus").innerHTML =
+        "<span style='color:#00ff99;'>Business profile saved successfully.</span>";
+
+      console.log("BUSINESS PROFILE SAVED:", data);
+
+    } catch (err) {
+
+      console.error(err);
+
+      document.getElementById("businessProfileStatus").innerHTML =
+        "<span style='color:red;'>" + err.message + "</span>";
+    }
+
+  });
+
+});
+</script>
 </body>
 </html>      
 
