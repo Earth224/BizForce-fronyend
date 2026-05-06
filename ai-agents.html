@@ -82,7 +82,111 @@ button:hover {
     font-size: 14px;
     box-sizing: border-box;
 }
+.task-card {
+    margin-bottom: 16px;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
 
+.task-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.agent-pill {
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #00c6ff, #7b2ff7);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-pill {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-completed {
+    background: rgba(34, 197, 94, 0.16);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.status-processing,
+.status-running {
+    background: rgba(234, 179, 8, 0.16);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.status-failed {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.status-queued {
+    background: rgba(59, 130, 246, 0.16);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.task-label {
+    color: #22c55e;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+.task-text {
+    margin-top: 5px;
+    color: #e2e8f0;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.task-preview {
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.task-details {
+    margin-top: 12px;
+}
+
+.task-details summary {
+    cursor: pointer;
+    color: #00c6ff;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.task-full-report {
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    max-height: 420px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    font-size: 13px;
+    line-height: 1.5;
+}
 strong {
     color: #22c55e;
 }
@@ -297,21 +401,76 @@ async function loadTasks() {
 }
 
 data.tasks.forEach(function(task) {
+
+      var statusClass = "status-queued";
+
+      if (task.status === "completed") {
+            statusClass = "status-completed";
+      }
+
+      if (task.status === "running" || task.status === "processing") {
+            statusClass = "status-running";
+      }
+
+      if (task.status === "failed") {
+            statusClass = "status-failed";
+      }
+
+      var shortResult = task.result || "Processing...";
+
+      if (shortResult.length > 320) {
+            shortResult = shortResult.substring(0, 320) + "...";
+      }
+
       var div = document.createElement("div");
 
-      div.style.border = "1px solid #333";
-      div.style.padding = "10px";
-      div.style.marginBottom = "10px";
+      div.className = "task-card";
 
       div.innerHTML = `
-        <strong>Agent:</strong> ${task.agent_type}<br/>
-        <strong>Status:</strong> ${task.status}<br/>
-        <strong>Prompt:</strong> ${task.prompt}<br/>
-        <strong>Result:</strong><br/>${task.result || "Processing..."}
+            <div class="task-card-header">
+
+                  <div class="agent-pill">
+                        ${task.agent_type || "agent"}
+                  </div>
+
+                  <div class="status-pill ${statusClass}">
+                        ${task.status || "queued"}
+                  </div>
+
+            </div>
+
+            <div class="task-label">
+                  Prompt
+            </div>
+
+            <div class="task-text">
+                  ${task.prompt || "No prompt"}
+            </div>
+
+            <div class="task-label">
+                  Quick Result
+            </div>
+
+            <div class="task-text task-preview">
+                  ${shortResult}
+            </div>
+
+            <details class="task-details">
+
+                  <summary>
+                        View Full Report
+                  </summary>
+
+                  <div class="task-full-report">
+                        ${task.result || "Processing..."}
+                  </div>
+
+            </details>
       `;
 
       container.appendChild(div);
-    });
+
+});
 
   } catch (err) {
     console.error("LOAD TASKS ERROR:", err);
