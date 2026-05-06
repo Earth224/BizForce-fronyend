@@ -236,7 +236,15 @@ strong {
 </div>
   <script>
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
-
+function cleanAiText(value) {
+      return String(value || "")
+            .replace(/#{1,6}\s?/g, "")
+            .replace(/\*\*/g, "")
+            .replace(/\|/g, " · ")
+            .replace(/---/g, "")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+}
     async function runAgent() {
       var token = localStorage.getItem("bf_token");
       var agentType = document.getElementById("agentType").value;
@@ -462,7 +470,7 @@ data.tasks.forEach(function(task) {
                   </summary>
 
                   <div class="task-full-report">
-                        ${task.result || "Processing..."}
+                        ${cleanAiText(task.result || "Processing..."}
                   </div>
 
             </details>
