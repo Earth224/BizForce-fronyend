@@ -110,7 +110,38 @@ if (loadingBadge) {
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/business-profile", {
+  method: "GET",
+  headers: {
+    "Authorization": "Bearer " + token
+  }
+})
+.then(function (response) {
+  return response.json();
+})
+.then(function (data) {
 
+  console.log("LOADED BUSINESS PROFILE:", data);
+
+  if (!data.profile) {
+    return;
+  }
+
+  document.getElementById("business_name").value = data.profile.business_name || "";
+  document.getElementById("niche").value = data.profile.niche || "";
+  document.getElementById("target_audience").value = data.profile.target_audience || "";
+  document.getElementById("website").value = data.profile.website || "";
+  document.getElementById("revenue_goal").value = data.profile.revenue_goal || "";
+  document.getElementById("monthly_budget").value = data.profile.monthly_budget || "";
+  document.getElementById("brand_voice").value = data.profile.brand_voice || "";
+  document.getElementById("automation_level").value = data.profile.automation_level || "";
+
+})
+.catch(function (err) {
+
+  console.error("PROFILE LOAD ERROR:", err);
+
+});
   var saveBtn = document.getElementById("saveBusinessProfileBtn");
 
   if (!saveBtn) {
@@ -122,38 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
 
       
-fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/business-profile", {
-    method: "GET",
-    headers: {
-        "Authorization": "Bearer " + token
-    }
-})
-.then(function (response) {
-    return response.json();
-})
-.then(function (data) {
 
-    console.log("LOADED BUSINESS PROFILE:", data);
-
-    if (!data.profile) {
-        return;
-    }
-
-    document.getElementById("businessName").value = data.profile.business_name || "";
-    document.getElementById("businessNiche").value = data.profile.niche || "";
-    document.getElementById("targetAudience").value = data.profile.target_audience || "";
-    document.getElementById("businessWebsite").value = data.profile.website || "";
-    document.getElementById("revenueGoal").value = data.profile.revenue_goal || "";
-    document.getElementById("monthlyBudget").value = data.profile.monthly_budget || "";
-    document.getElementById("brandVoice").value = data.profile.brand_voice || "";
-    document.getElementById("automationLevel").value = data.profile.automation_level || "";
-
-})
-.catch(function (err) {
-
-    console.error("PROFILE LOAD ERROR:", err);
-
-});
      
 
       var payload = {
