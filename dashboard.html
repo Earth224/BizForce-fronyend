@@ -122,7 +122,38 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
 
       var token = localStorage.getItem("bf_token");
+fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/business-profile", {
+    method: "GET",
+    headers: {
+        "Authorization": "Bearer " + token
+    }
+})
+.then(function (response) {
+    return response.json();
+})
+.then(function (data) {
 
+    console.log("LOADED BUSINESS PROFILE:", data);
+
+    if (!data.profile) {
+        return;
+    }
+
+    document.getElementById("businessName").value = data.profile.business_name || "";
+    document.getElementById("businessNiche").value = data.profile.niche || "";
+    document.getElementById("targetAudience").value = data.profile.target_audience || "";
+    document.getElementById("businessWebsite").value = data.profile.website || "";
+    document.getElementById("revenueGoal").value = data.profile.revenue_goal || "";
+    document.getElementById("monthlyBudget").value = data.profile.monthly_budget || "";
+    document.getElementById("brandVoice").value = data.profile.brand_voice || "";
+    document.getElementById("automationLevel").value = data.profile.automation_level || "";
+
+})
+.catch(function (err) {
+
+    console.error("PROFILE LOAD ERROR:", err);
+
+});
       if (!token) {
         alert("Missing login token");
         return;
