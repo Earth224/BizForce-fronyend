@@ -425,47 +425,70 @@ business_description: document.getElementById("business_description").value
 
 document.addEventListener("DOMContentLoaded", function () {
 function formatAiOutput(rawText) {
-    if (!rawText) {
-        return "No result returned.";
+  if (!rawText) {
+    return "<div style='color:#94a3b8;'>No result returned yet.</div>";
+  }
+
+  var clean = String(rawText)
+    .replace(/```/g, "")
+    .replace(/\*\*/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/^\s*-{3,}\s*$/gm, "")
+    .trim();
+
+  var lines = clean.split("\n");
+  var html = "";
+  var inList = false;
+
+  lines.forEach(function (line) {
+    var text = line.trim();
+
+    if (!text) {
+      if (inList) {
+        html += "</ul>";
+        inList = false;
+      }
+      html += "<div style='height:14px;'></div>";
+      return;
     }
 
-    var clean = String(rawText)
-        .replace(/```/g, "")
-        .replace(/\*\*/g, "")
-        .replace(/^#{1,6}\s*/gm, "")
-        .replace(/^\s*---+\s*$/gm, "")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
+    if (text.indexOf("|") !== -1) {
+      text = text.replace(/\|/g, " • ");
+    }
 
-    clean = clean
-        .split("\n")
-        .map(function (line) {
-            var trimmed = line.trim();
+    if (text.match(/^[0-9]+\.?\s+[A-Z]/) || text === text.toUpperCase() && text.length > 8) {
+      if (inList) {
+        html += "</ul>";
+        inList = false;
+      }
 
-            if (!trimmed) {
-                return "<br>";
-            }
+      html += "<h3 style='margin:24px 0 12px;color:#00e5ff;font-size:20px;letter-spacing:.3px;'>" + text + "</h3>";
+      return;
+    }
 
-            if (
-                trimmed.toUpperCase() === trimmed &&
-                trimmed.length > 6
-            ) {
-                return "<div style='color:#00e5ff;font-size:18px;font-weight:800;margin:22px 0 10px;'>" + trimmed + "</div>";
-            }
+    if (text.startsWith("- ") || text.startsWith("• ")) {
+      if (!inList) {
+        html += "<ul style='margin:8px 0 18px 22px;padding:0;color:#e8f7ff;line-height:1.7;'>";
+        inList = true;
+      }
 
-            if (trimmed.match(/^\d+[\).\s]/)) {
-                return "<div style='margin:10px 0;padding-left:10px;color:#ffffff;'>" + trimmed + "</div>";
-            }
+      html += "<li style='margin-bottom:8px;'>" + text.replace(/^[-•]\s*/, "") + "</li>";
+      return;
+    }
 
-            if (trimmed.startsWith("- ")) {
-                return "<div style='margin:8px 0 8px 14px;color:#d8e6ff;'>• " + trimmed.substring(2) + "</div>";
-            }
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
 
-            return "<div style='margin:10px 0;color:#f4f7ff;line-height:1.65;'>" + trimmed + "</div>";
-        })
-        .join("");
+    html += "<p style='margin:10px 0;color:#f4f7ff;line-height:1.7;font-size:15px;'>" + text + "</p>";
+  });
 
-    return clean;
+  if (inList) {
+    html += "</ul>";
+  }
+
+  return html;
 }
     var aiTaskBtn = document.getElementById("submitAiTask");
 
