@@ -330,6 +330,102 @@ business_description: document.getElementById("business_description").value
   });
 
 });
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    var aiTaskBtn = document.getElementById("submitAiTask");
+
+    if (!aiTaskBtn) {
+        return;
+    }
+
+    aiTaskBtn.addEventListener("click", async function () {
+
+        var statusEl = document.getElementById("aiTaskStatus");
+        var resultsEl = document.getElementById("aiTaskResults");
+
+        var agentType = document.getElementById("agentType").value;
+        var taskType = document.getElementById("taskType").value;
+        var prompt = document.getElementById("taskPrompt").value.trim();
+
+        if (!prompt) {
+            statusEl.innerHTML = "Please enter a task.";
+            statusEl.style.color = "#ff6b6b";
+            return;
+        }
+
+        statusEl.innerHTML = "Launching AI task...";
+        statusEl.style.color = "#00e5ff";
+
+        try {
+
+            var response = await fetch(API_URL + "/api/ai/tasks", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + dashboardToken
+                },
+                body: JSON.stringify({
+                    agent_type: agentType,
+                    task_type: taskType,
+                    prompt: prompt
+                })
+            });
+
+            var data = await response.json();
+
+            console.log("AI TASK RESPONSE:", data);
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to launch AI task");
+            }
+
+            statusEl.innerHTML = "AI task launched successfully.";
+            statusEl.style.color = "#00ff99";
+
+            document.getElementById("taskPrompt").value = "";
+
+            var card = document.createElement("div");
+
+            card.style.background = "#111";
+            card.style.border = "1px solid #333";
+            card.style.borderRadius = "16px";
+            card.style.padding = "20px";
+
+            card.innerHTML = `
+                <div style="font-size:18px;font-weight:bold;color:#00e5ff;margin-bottom:10px;">
+                    ${agentType.toUpperCase()} AGENT
+                </div>
+
+                <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
+                    ${taskType}
+                </div>
+
+                <div style="font-size:16px;color:white;margin-bottom:15px;">
+                    ${prompt}
+                </div>
+
+                <div style="color:#7b2fff;font-weight:bold;">
+                    Status: PROCESSING
+                </div>
+            `;
+
+            resultsEl.prepend(card);
+
+        } catch (err) {
+
+            console.error("AI TASK UI ERROR:", err);
+
+            statusEl.innerHTML = err.message || "Task failed.";
+            statusEl.style.color = "#ff6b6b";
+        }
+
+    });
+
+});
+</script>
+    
 </script>
 </body>
 </html>      
