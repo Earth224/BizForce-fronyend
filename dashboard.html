@@ -32,6 +32,97 @@ var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var dashboardToken = localStorage.getItem("bf_token");
 var planStatus = document.getElementById("planStatus");
 
+async function loadSavedAiTasks() {
+
+    try {
+
+        var response = await fetch(
+            API_URL + "/api/ai/tasks",
+            {
+                headers: {
+                    "Authorization": "Bearer " + dashboardToken
+                }
+            }
+        );
+
+        var data = await response.json();
+
+        console.log("LOADED TASKS:", data);
+
+        if (!data.tasks || !Array.isArray(data.tasks)) {
+            return;
+        }
+
+        var resultsEl = document.getElementById("aiTaskResults");
+
+        if (!resultsEl) {
+            return;
+        }
+
+        resultsEl.innerHTML = "";
+
+        data.tasks.forEach(function(task) {
+
+            var card = document.createElement("div");
+
+            card.style.background = "#111";
+            card.style.border = "1px solid #333";
+            card.style.borderRadius = "16px";
+            card.style.padding = "20px";
+            card.style.marginTop = "20px";
+
+            var statusColor = "#7b2fff";
+
+            if (task.status === "completed") {
+                statusColor = "#00ff99";
+            }
+
+            if (task.status === "failed") {
+                statusColor = "#ff6b6b";
+            }
+
+            card.innerHTML = `
+                <div style="font-size:18px;font-weight:bold;color:#00e5ff;margin-bottom:10px;">
+                    ${(task.agent_type || "general").toUpperCase()} AGENT
+                </div>
+
+                <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
+                    ${task.task_type || "general"}
+                </div>
+
+                <div style="font-size:16px;color:white;margin-bottom:15px;">
+                    ${task.prompt || ""}
+                </div>
+
+                <div style="color:${statusColor};font-weight:bold;margin-bottom:15px;">
+                    Status: ${(task.status || "").toUpperCase()}
+                </div>
+
+                <div style="
+                    background:#0b0b0b;
+                    border:1px solid #333;
+                    border-radius:12px;
+                    padding:16px;
+                    color:#ffffff;
+                    white-space:pre-wrap;
+                    line-height:1.6;
+                ">
+                    ${formatAiOutput(task.result || "No result yet.")}
+                </div>
+            `;
+
+            resultsEl.appendChild(card);
+
+        });
+
+    } catch (err) {
+
+        console.error("LOAD TASKS ERROR:", err);
+
+    }
+
+}
+loadSavedAiTasks();    
 if (planStatus) {
   if (!dashboardToken) {
     planStatus.innerHTML = "Not signed in. Please log in first.";
