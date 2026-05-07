@@ -76,36 +76,76 @@ if (loadingBadge) {
     Business Profile
   </h2>
 
-  <div style="display:grid;gap:20px;">
+  <div style="display:grid;gap:18px;grid-template-columns:1fr 1fr;">
 
-    <input id="business_name" type="text" placeholder="Business Name" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="business_name" type="text" placeholder="Business Name" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <input id="niche" type="text" placeholder="Niche" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<select id="business_type" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<option value="">Business Type</option>
+<option>E-Commerce</option>
+<option>Service Business</option>
+<option>Agency</option>
+<option>Creator Brand</option>
+<option>Local Business</option>
+<option>Consulting</option>
+<option>Software / SaaS</option>
+<option>Health & Wellness</option>
+<option>Restaurant</option>
+<option>Retail Store</option>
+<option>Personal Brand</option>
+<option>Other</option>
+</select>
 
-    <input id="target_audience" type="text" placeholder="Target Audience" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="industry" type="text" placeholder="Industry" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <input id="website" type="text" placeholder="Website" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="niche" type="text" placeholder="Niche" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <input id="revenue_goal" type="number" placeholder="Revenue Goal" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="website" type="text" placeholder="Website" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <input id="monthly_budget" type="number" placeholder="Monthly Budget" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="location" type="text" placeholder="Business Location" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <input id="brand_voice" type="text" placeholder="Brand Voice" style="padding:15px;font-size:16px;border-radius:10px;border:none;" />
+<input id="target_audience" type="text" placeholder="Target Audience" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <select id="automation_level" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
-      <option value="">Select Automation Level</option>
-      <option value="Low">Low</option>
-      <option value="Medium">Medium</option>
-      <option value="High">High</option>
-    </select>
+<input id="offer" type="text" placeholder="Main Offer / Product" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <button id="saveBusinessProfileBtn" style="padding:18px;font-size:18px;font-weight:bold;border:none;border-radius:12px;cursor:pointer;background:linear-gradient(90deg,#00e5ff,#7b2fff);color:white;">
-      Save Business Profile
-    </button>
+<input id="monthly_revenue" type="number" placeholder="Monthly Revenue" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-    <div id="businessProfileStatus" style="font-size:16px;"></div>
+<input id="monthly_budget" type="number" placeholder="Monthly Marketing Budget" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
 
-  </div>
+<input id="primary_goal" type="text" placeholder="Primary Business Goal" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+
+<input id="top_keywords" type="text" placeholder="Top Keywords" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+
+<input id="top_competitors" type="text" placeholder="Top Competitors" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+
+<input id="social_platforms" type="text" placeholder="Social Platforms" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+
+<textarea id="products_services" placeholder="Products / Services" style="padding:15px;font-size:16px;border-radius:10px;border:none;min-height:120px;grid-column:1/3;"></textarea>
+
+<textarea id="brand_voice" placeholder="Brand Voice / Style" style="padding:15px;font-size:16px;border-radius:10px;border:none;min-height:120px;grid-column:1/3;"></textarea>
+
+<textarea id="business_description" placeholder="Business Description" style="padding:15px;font-size:16px;border-radius:10px;border:none;min-height:140px;grid-column:1/3;"></textarea>
+
+<button id="saveBusinessProfile" style="
+padding:18px;
+font-size:18px;
+font-weight:bold;
+border:none;
+border-radius:12px;
+cursor:pointer;
+background:linear-gradient(90deg,#00cfff,#7b2fff);
+color:white;
+grid-column:1/3;
+">
+Save Business Profile
+</button>
+
+<div id="businessProfileStatus" style="
+font-size:16px;
+grid-column:1/3;
+"></div>
+
+</div>
 </section>
 
 <script>
@@ -128,14 +168,22 @@ fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/business-pr
   }
 
   document.getElementById("business_name").value = data.profile.business_name || "";
-  document.getElementById("niche").value = data.profile.niche || "";
-  document.getElementById("target_audience").value = data.profile.target_audience || "";
-  document.getElementById("website").value = data.profile.website || "";
-  document.getElementById("revenue_goal").value = data.profile.revenue_goal || "";
-  document.getElementById("monthly_budget").value = data.profile.monthly_budget || "";
-  document.getElementById("brand_voice").value = data.profile.brand_voice || "";
-  document.getElementById("automation_level").value = data.profile.automation_level || "";
-
+document.getElementById("business_type").value = data.profile.business_type || "";
+document.getElementById("industry").value = data.profile.industry || "";
+document.getElementById("niche").value = data.profile.niche || "";
+document.getElementById("website").value = data.profile.website || "";
+document.getElementById("location").value = data.profile.location || "";
+document.getElementById("target_audience").value = data.profile.target_audience || "";
+document.getElementById("offer").value = data.profile.offer || "";
+document.getElementById("monthly_revenue").value = data.profile.monthly_revenue || "";
+document.getElementById("monthly_budget").value = data.profile.monthly_budget || "";
+document.getElementById("primary_goal").value = data.profile.primary_goal || "";
+document.getElementById("top_keywords").value = data.profile.top_keywords || "";
+document.getElementById("top_competitors").value = data.profile.top_competitors || "";
+document.getElementById("social_platforms").value = data.profile.social_platforms || "";
+document.getElementById("products_services").value = data.profile.products_services || "";
+document.getElementById("brand_voice").value = data.profile.brand_voice || "";
+document.getElementById("business_description").value = data.profile.business_description || "";
 })
 .catch(function (err) {
 
