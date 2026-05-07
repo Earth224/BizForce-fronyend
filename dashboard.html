@@ -147,7 +147,82 @@ grid-column:1/3;
 
 </div>
 </section>
+<section id="aiTaskSection" style="padding:40px;max-width:900px;margin:auto;">
 
+<h2 style="font-size:32px;margin-bottom:25px;color:#00e5ff;">
+AI Agent Tasks
+</h2>
+
+<div style="display:grid;gap:18px;grid-template-columns:1fr 1fr;">
+
+<select id="agentType" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<option value="general">General Agent</option>
+<option value="seo">SEO Agent</option>
+<option value="sales">Sales Agent</option>
+<option value="content">Content Agent</option>
+<option value="ads">Ads Agent</option>
+<option value="reputation">Reputation Agent</option>
+<option value="analytics">Analytics Agent</option>
+<option value="email">Email Agent</option>
+<option value="community">Community Agent</option>
+<option value="operations">Operations Agent</option>
+</select>
+
+<select id="taskType" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<option value="general">General Task</option>
+<option value="seo_audit">SEO Audit</option>
+<option value="sales_funnel">Sales Funnel</option>
+<option value="content_plan">Content Plan</option>
+<option value="ad_campaign">Ad Campaign</option>
+</select>
+
+<textarea
+id="taskPrompt"
+placeholder="Tell your AI agent what to do..."
+style="
+padding:18px;
+font-size:16px;
+border-radius:12px;
+border:none;
+min-height:180px;
+grid-column:1/3;
+"></textarea>
+
+<button
+id="submitAiTask"
+style="
+padding:18px;
+font-size:18px;
+font-weight:bold;
+border:none;
+border-radius:12px;
+cursor:pointer;
+background:linear-gradient(90deg,#00cfff,#7b2fff);
+color:white;
+grid-column:1/3;
+">
+Launch AI Task
+</button>
+
+<div
+id="aiTaskStatus"
+style="
+font-size:16px;
+grid-column:1/3;
+"></div>
+
+<div
+id="aiTaskResults"
+style="
+grid-column:1/3;
+display:flex;
+flex-direction:column;
+gap:18px;
+"></div>
+
+</div>
+
+</section>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 fetch(API_URL + "/api/business-profile", {
