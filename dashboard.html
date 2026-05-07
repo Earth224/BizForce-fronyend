@@ -595,35 +595,77 @@ var pollInterval = setInterval(async function () {
             clearInterval(pollInterval);
 
             card.innerHTML = `
-                <div style="font-size:18px;font-weight:bold;color:#00e5ff;margin-bottom:10px;">
-                    ${agentType.toUpperCase()} AGENT
-                </div>
+    <div style="font-size:18px;font-weight:800;color:#00e5ff;margin-bottom:8px;">
+        ${agentType.toUpperCase()} AGENT
+    </div>
 
-                <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
-                    ${taskType}
-                </div>
+    <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
+        ${taskType}
+    </div>
 
-                <div style="font-size:16px;color:white;margin-bottom:15px;">
-                    ${prompt}
-                </div>
+    <div style="font-size:16px;color:white;margin-bottom:15px;">
+        ${prompt}
+    </div>
 
-                <div style="color:#00ff99;font-weight:bold;margin-bottom:15px;">
-                    Status: COMPLETED
-                </div>
+    <div style="color:#00ff99;font-weight:bold;margin-bottom:18px;">
+        Status: COMPLETED
+    </div>
 
-                <div style="
-                    background:#0b0b0b;
-                    border:1px solid #333;
-                    border-radius:12px;
-                    padding:16px;
-                    color:#ffffff;
-                    white-space:pre-wrap;
-                    line-height:1.6;
-                ">
-                    ${formatAiOutput(pollData.task.result || "No result returned.")}
-                </div>
-            `;
+    <div
+        class="ai-result-box"
+        style="
+            background:#0b0b0b;
+            border:1px solid #333;
+            border-radius:16px;
+            padding:20px;
+            color:#ffffff;
+            line-height:1.7;
+            max-height:360px;
+            overflow:hidden;
+            position:relative;
+        "
+    >
+        ${formatAiOutput(pollData.task.result || "No result returned.")}
+    </div>
 
+    <button
+        type="button"
+        class="expandAiResultBtn"
+        style="
+            margin-top:16px;
+            padding:12px 18px;
+            border:none;
+            border-radius:999px;
+            cursor:pointer;
+            font-weight:800;
+            color:white;
+            background:linear-gradient(90deg,#00cfff,#7b2fff);
+        "
+    >
+        Expand Full Result
+    </button>
+`;
+var expandBtn = card.querySelector(".expandAiResultBtn");
+var resultBox = card.querySelector(".ai-result-box");
+
+if (expandBtn && resultBox) {
+
+    expandBtn.addEventListener("click", function () {
+
+        if (resultBox.style.maxHeight === "none") {
+
+            resultBox.style.maxHeight = "360px";
+            resultBox.style.overflow = "hidden";
+            expandBtn.innerHTML = "Expand Full Result";
+
+        } else {
+
+            resultBox.style.maxHeight = "none";
+            resultBox.style.overflow = "visible";
+            expandBtn.innerHTML = "Collapse Result";
+        }
+    });
+}
         }
 
     } catch (pollErr) {
