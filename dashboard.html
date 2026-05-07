@@ -333,7 +333,49 @@ business_description: document.getElementById("business_description").value
 
 
 document.addEventListener("DOMContentLoaded", function () {
+function formatAiOutput(rawText) {
+    if (!rawText) {
+        return "No result returned.";
+    }
 
+    var clean = String(rawText)
+        .replace(/```/g, "")
+        .replace(/\*\*/g, "")
+        .replace(/^#{1,6}\s*/gm, "")
+        .replace(/^\s*---+\s*$/gm, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    clean = clean
+        .split("\n")
+        .map(function (line) {
+            var trimmed = line.trim();
+
+            if (!trimmed) {
+                return "<br>";
+            }
+
+            if (
+                trimmed.toUpperCase() === trimmed &&
+                trimmed.length > 6
+            ) {
+                return "<div style='color:#00e5ff;font-size:18px;font-weight:800;margin:22px 0 10px;'>" + trimmed + "</div>";
+            }
+
+            if (trimmed.match(/^\d+[\).\s]/)) {
+                return "<div style='margin:10px 0;padding-left:10px;color:#ffffff;'>" + trimmed + "</div>";
+            }
+
+            if (trimmed.startsWith("- ")) {
+                return "<div style='margin:8px 0 8px 14px;color:#d8e6ff;'>• " + trimmed.substring(2) + "</div>";
+            }
+
+            return "<div style='margin:10px 0;color:#f4f7ff;line-height:1.65;'>" + trimmed + "</div>";
+        })
+        .join("");
+
+    return clean;
+}
     var aiTaskBtn = document.getElementById("submitAiTask");
 
     if (!aiTaskBtn) {
@@ -464,7 +506,7 @@ var pollInterval = setInterval(async function () {
                     white-space:pre-wrap;
                     line-height:1.6;
                 ">
-                    ${pollData.task.result || "No result returned."}
+                    ${formatAiOutput(pollData.task.result || "No result returned."}
                 </div>
             `;
 
