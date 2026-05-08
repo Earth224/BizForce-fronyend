@@ -49,6 +49,19 @@ async function loadSavedAiTasks() {
 
         console.log("LOADED TASKS:", data);
 
+function formatAiOutput(text) {
+
+    if (!text) {
+        return "No AI output yet.";
+    }
+
+    return String(text)
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>");
+}
+
+        
         if (!data.tasks || !Array.isArray(data.tasks)) {
             return;
         }
