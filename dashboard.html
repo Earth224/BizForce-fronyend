@@ -49,7 +49,7 @@ async function loadSavedAiTasks() {
 
         console.log("LOADED TASKS:", data);
 
-function formatAiOutput(rawText) {
+window.formatAiOutput = function formatAiOutput(rawText) {
     if (!rawText) {
         return "<p>No result returned.</p>";
     }
@@ -178,7 +178,7 @@ function formatAiOutput(rawText) {
     closeTable();
 
     return html;
-}
+};
 
         
         if (!data.tasks || !Array.isArray(data.tasks)) {
@@ -828,7 +828,7 @@ var pollInterval = setInterval(async function () {
             position:relative;
         "
     >
-        ${formatAiOutput(pollData.task.result || "No result returned.")}
+        window.formatAiOutput(
     </div>
 
     <button
