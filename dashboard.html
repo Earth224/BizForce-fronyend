@@ -57,16 +57,16 @@ function formatAiOutput(rawText) {
     var text = String(rawText)
         .replace(/\r/g, "")
         .replace(/\*\*/g, "")
-        .replace(/^#{1,6}\s*/gm, "")
-        .replace(/^\s*[-]{3,}\s*$/gm, "")
-        .replace(/^\s*\|[-|\s]+\|\s*$/gm, "")
-        .replace(/^\s*\|/gm, "")
-        .replace(/\|\s*$/gm, "")
+        .replace(/#{1,6}\s*/g, "")
+        .replace(/^\s*[-_]{3,}\s*$/gm, "")
+        .replace(/^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/gm, "")
+        .replace(/[ \t]+$/gm, "")
         .trim();
 
     var lines = text.split("\n");
     var html = "";
     var inList = false;
+    var inTable = false;
 
     function closeList() {
         if (inList) {
@@ -75,52 +75,107 @@ function formatAiOutput(rawText) {
         }
     }
 
+    function closeTable() {
+        if (inTable) {
+            html += "</tbody></table></div>";
+            inTable = false;
+        }
+    }
+
+    function cleanCell(value) {
+        return String(value || "")
+            .replace(/\*\*/g, "")
+            .replace(/#{1,6}\s*/g, "")
+            .replace(/^\s*[-•]\s*/, "")
+            .trim();
+    }
+
+    function isTableLine(value) {
+        return value.indexOf("|") !== -1 && value.split("|").filter(function(cell) {
+            return cleanCell(cell).length > 0;
+        }).length >= 2;
+    }
+
     lines.forEach(function(line) {
-        var clean = line.trim();
+        var clean = String(line || "").trim();
 
         if (!clean) {
             closeList();
+            closeTable();
             return;
         }
 
         clean = clean
-            .replace(/\|/g, " • ")
-            .replace(/\s{2,}/g, " ")
+            .replace(/\*\*/g, "")
+            .replace(/#{1,6}\s*/g, "")
+            .replace(/^\s*[-_]{3,}\s*$/, "")
             .trim();
 
-        if (/^#{1,6}\s*/.test(clean)) {
-            clean = clean.replace(/^#{1,6}\s*/, "");
-        }
-
-        if (/^[0-9]+\.\s+/.test(clean)) {
+        if (!clean) {
             closeList();
-            html += "<h3 style='color:#00e5ff;margin:26px 0 12px;font-size:22px;line-height:1.25;'>" + clean + "</h3>";
+            closeTable();
             return;
         }
 
-        if (/^[A-Z0-9\s&:()\-]{8,}$/.test(clean) && clean.length < 90) {
+        if (/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(clean)) {
+            return;
+        }
+
+        if (isTableLine(clean)) {
             closeList();
-            html += "<h3 style='color:#00e5ff;margin:26px 0 12px;font-size:22px;line-height:1.25;'>" + clean + "</h3>";
+
+            var cells = clean.split("|").map(cleanCell).filter(function(cell) {
+                return cell.length > 0;
+            });
+
+            if (!inTable) {
+                html += "<div style='overflow-x:auto;margin:16px 0;border:1px solid rgba(0,229,255,.22);border-radius:14px;'>";
+                html += "<table style='width:100%;border-collapse:collapse;font-size:14px;color:#f4f7ff;'>";
+                html += "<tbody>";
+                inTable = true;
+            }
+
+            html += "<tr>";
+            cells.forEach(function(cell) {
+                html += "<td style='padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:top;'>" + cell + "</td>";
+            });
+            html += "</tr>";
+            return;
+        }
+
+        closeTable();
+
+        if (/^[A-Z0-9][A-Z0-9\s&:()\/+-]{5,90}$/.test(clean)) {
+            closeList();
+            html += "<h3 style='color:#00e5ff;margin:26px 0 12px;font-size:18px;line-height:1.35;'>" + clean + "</h3>";
+            return;
+        }
+
+        if (/^\d+\.\s+/.test(clean)) {
+            closeList();
+            clean = clean.replace(/^\d+\.\s+/, "");
+            html += "<p style='margin:0 0 14px;color:#f4f7ff;line-height:1.7;font-size:15px;'><strong>" + clean + "</strong></p>";
             return;
         }
 
         if (clean.startsWith("- ") || clean.startsWith("• ")) {
             if (!inList) {
-                html += "<ul style='margin:12px 0 18px 22px;padding:0;line-height:1.65;'>";
+                html += "<ul style='margin:12px 0 18px 22px;padding:0;line-height:1.7;'>";
                 inList = true;
             }
 
             clean = clean.replace(/^[-•]\s*/, "");
-            html += "<li style='margin-bottom:8px;color:#f4f7ff;'>" + clean + "</li>";
+            html += "<li style='margin-bottom:8px;color:#f4f7ff;font-size:15px;'>" + clean + "</li>";
             return;
         }
 
         closeList();
 
-        html += "<p style='margin:0 0 16px;color:#f4f7ff;line-height:1.7;font-size:16px;'>" + clean + "</p>";
+        html += "<p style='margin:0 0 16px;color:#f4f7ff;line-height:1.7;font-size:15px;'>" + clean + "</p>";
     });
 
     closeList();
+    closeTable();
 
     return html;
 }
