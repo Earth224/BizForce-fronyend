@@ -49,16 +49,80 @@ async function loadSavedAiTasks() {
 
         console.log("LOADED TASKS:", data);
 
-function formatAiOutput(text) {
-
-    if (!text) {
-        return "No AI output yet.";
+function formatAiOutput(rawText) {
+    if (!rawText) {
+        return "<p>No result returned.</p>";
     }
 
-    return String(text)
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\n/g, "<br>");
+    var text = String(rawText)
+        .replace(/\r/g, "")
+        .replace(/\*\*/g, "")
+        .replace(/^#{1,6}\s*/gm, "")
+        .replace(/^\s*[-]{3,}\s*$/gm, "")
+        .replace(/^\s*\|[-|\s]+\|\s*$/gm, "")
+        .replace(/^\s*\|/gm, "")
+        .replace(/\|\s*$/gm, "")
+        .trim();
+
+    var lines = text.split("\n");
+    var html = "";
+    var inList = false;
+
+    function closeList() {
+        if (inList) {
+            html += "</ul>";
+            inList = false;
+        }
+    }
+
+    lines.forEach(function(line) {
+        var clean = line.trim();
+
+        if (!clean) {
+            closeList();
+            return;
+        }
+
+        clean = clean
+            .replace(/\|/g, " • ")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+
+        if (/^#{1,6}\s*/.test(clean)) {
+            clean = clean.replace(/^#{1,6}\s*/, "");
+        }
+
+        if (/^[0-9]+\.\s+/.test(clean)) {
+            closeList();
+            html += "<h3 style='color:#00e5ff;margin:26px 0 12px;font-size:22px;line-height:1.25;'>" + clean + "</h3>";
+            return;
+        }
+
+        if (/^[A-Z0-9\s&:()\-]{8,}$/.test(clean) && clean.length < 90) {
+            closeList();
+            html += "<h3 style='color:#00e5ff;margin:26px 0 12px;font-size:22px;line-height:1.25;'>" + clean + "</h3>";
+            return;
+        }
+
+        if (clean.startsWith("- ") || clean.startsWith("• ")) {
+            if (!inList) {
+                html += "<ul style='margin:12px 0 18px 22px;padding:0;line-height:1.65;'>";
+                inList = true;
+            }
+
+            clean = clean.replace(/^[-•]\s*/, "");
+            html += "<li style='margin-bottom:8px;color:#f4f7ff;'>" + clean + "</li>";
+            return;
+        }
+
+        closeList();
+
+        html += "<p style='margin:0 0 16px;color:#f4f7ff;line-height:1.7;font-size:16px;'>" + clean + "</p>";
+    });
+
+    closeList();
+
+    return html;
 }
 
         
@@ -573,72 +637,7 @@ business_description: document.getElementById("business_description").value
 
 
 document.addEventListener("DOMContentLoaded", function () {
-function formatAiOutput(rawText) {
-  if (!rawText) {
-    return "<div style='color:#94a3b8;'>No result returned yet.</div>";
-  }
 
-  var clean = String(rawText)
-    .replace(/```/g, "")
-    .replace(/\*\*/g, "")
-    .replace(/^#{1,6}\s*/gm, "")
-    .replace(/^\s*-{3,}\s*$/gm, "")
-    .trim();
-
-  var lines = clean.split("\n");
-  var html = "";
-  var inList = false;
-
-  lines.forEach(function (line) {
-    var text = line.trim();
-
-    if (!text) {
-      if (inList) {
-        html += "</ul>";
-        inList = false;
-      }
-      html += "<div style='height:14px;'></div>";
-      return;
-    }
-
-    if (text.indexOf("|") !== -1) {
-      text = text.replace(/\|/g, " • ");
-    }
-
-    if (text.match(/^[0-9]+\.?\s+[A-Z]/) || text === text.toUpperCase() && text.length > 8) {
-      if (inList) {
-        html += "</ul>";
-        inList = false;
-      }
-
-      html += "<h3 style='margin:24px 0 12px;color:#00e5ff;font-size:20px;letter-spacing:.3px;'>" + text + "</h3>";
-      return;
-    }
-
-    if (text.startsWith("- ") || text.startsWith("• ")) {
-      if (!inList) {
-        html += "<ul style='margin:8px 0 18px 22px;padding:0;color:#e8f7ff;line-height:1.7;'>";
-        inList = true;
-      }
-
-      html += "<li style='margin-bottom:8px;'>" + text.replace(/^[-•]\s*/, "") + "</li>";
-      return;
-    }
-
-    if (inList) {
-      html += "</ul>";
-      inList = false;
-    }
-
-    html += "<p style='margin:10px 0;color:#f4f7ff;line-height:1.7;font-size:15px;'>" + text + "</p>";
-  });
-
-  if (inList) {
-    html += "</ul>";
-  }
-
-  return html;
-}
     var aiTaskBtn = document.getElementById("submitAiTask");
 
     if (!aiTaskBtn) {
