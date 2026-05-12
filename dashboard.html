@@ -223,7 +223,7 @@ window.formatAiOutput = function formatAiOutput(rawText) {
                 </div>
 
                 <div style="font-size:16px;color:white;margin-bottom:15px;">
-                    ${task.prompt || ""}
+                    ${task.summary || "AI report ready for review."}
                 </div>
 
                 <div style="color:${statusColor};font-weight:bold;margin-bottom:15px;">
@@ -250,7 +250,24 @@ window.formatAiOutput = function formatAiOutput(rawText) {
             `;
 
             resultsEl.appendChild(card);
+if (
+    task.result &&
+    window.addAiResultToMailbox &&
+    !task.result_hidden
+) {
+    window.addAiResultToMailbox({
+        id: task.id,
+        agent: task.agent,
+        type: task.task_type,
+        summary:
+            task.summary ||
+            "Executive AI report ready.",
+        result: task.result,
+        created_at: task.created_at
+    });
 
+    task.result_hidden = true;
+}
         });
 
     } catch (err) {
