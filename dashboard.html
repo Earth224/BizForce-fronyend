@@ -28,6 +28,8 @@ if (!token) {
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var AI_MAILBOX_STORAGE_KEY = "bizforce_ai_mailbox";
+var AI_MAILBOX_HYDRATION_DISABLED_KEY = "bizforce_ai_mailbox_hydration_disabled";
 
 var dashboardToken = localStorage.getItem("bf_token");
 var planStatus = document.getElementById("planStatus");
@@ -185,24 +187,26 @@ window.formatAiOutput = function formatAiOutput(rawText) {
             return;
         }
 
-        data.tasks.forEach(function(task) {
-            if (
-                task.status === "completed" &&
-                task.result &&
-                window.addAiResultToMailbox
-            ) {
-                window.addAiResultToMailbox({
-                    id: task.id,
-                    agent: task.agent || task.agent_type,
-                    type: task.task_type,
-                    summary:
-                        task.summary ||
-                        "Executive AI report ready.",
-                    result: task.result,
-                    created_at: task.created_at
-                });
-            }
-        });
+        if (localStorage.getItem(AI_MAILBOX_HYDRATION_DISABLED_KEY) !== "1") {
+            data.tasks.forEach(function(task) {
+                if (
+                    task.status === "completed" &&
+                    task.result &&
+                    window.addAiResultToMailbox
+                ) {
+                    window.addAiResultToMailbox({
+                        id: task.id,
+                        agent: task.agent || task.agent_type,
+                        type: task.task_type,
+                        summary:
+                            task.summary ||
+                            "Executive AI report ready.",
+                        result: task.result,
+                        created_at: task.created_at
+                    });
+                }
+            });
+        }
 
         return;
 
@@ -424,8 +428,14 @@ gap:18px;
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-var AI_MAILBOX_STORAGE_KEY = "bizforce_ai_mailbox";
 var aiMailbox = loadAiMailbox();
+
+function clearAiMailboxPermanently() {
+    aiMailbox = [];
+    localStorage.setItem(AI_MAILBOX_STORAGE_KEY, "[]");
+    localStorage.setItem(AI_MAILBOX_HYDRATION_DISABLED_KEY, "1");
+    renderAiMailbox();
+}
 var aiMailboxPanel = document.getElementById("aiMailboxPanel");
 var aiMailboxResults = document.getElementById("aiMailboxResults");
 var toggleAiMailbox = document.getElementById("toggleAiMailbox");
@@ -719,10 +729,7 @@ if (clearAiMailbox) {
 
     clearAiMailbox.addEventListener("click", function() {
 
-        aiMailbox = [];
-
-        saveAiMailbox();
-        renderAiMailbox();
+        clearAiMailboxPermanently();
 
     });
 
