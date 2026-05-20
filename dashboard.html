@@ -185,91 +185,26 @@ window.formatAiOutput = function formatAiOutput(rawText) {
             return;
         }
 
-        var resultsEl = document.getElementById("aiTaskResults");
-
-        if (!resultsEl) {
-            return;
-        }
-
-        resultsEl.innerHTML = "";
-
         data.tasks.forEach(function(task) {
-
-            var card = document.createElement("div");
-
-            card.style.background = "#111";
-            card.style.border = "1px solid #333";
-            card.style.borderRadius = "16px";
-            card.style.padding = "20px";
-            card.style.marginTop = "20px";
-
-            var statusColor = "#7b2fff";
-
-            if (task.status === "completed") {
-                statusColor = "#00ff99";
+            if (
+                task.status === "completed" &&
+                task.result &&
+                window.addAiResultToMailbox
+            ) {
+                window.addAiResultToMailbox({
+                    id: task.id,
+                    agent: task.agent || task.agent_type,
+                    type: task.task_type,
+                    summary:
+                        task.summary ||
+                        "Executive AI report ready.",
+                    result: task.result,
+                    created_at: task.created_at
+                });
             }
-
-            if (task.status === "failed") {
-                statusColor = "#ff6b6b";
-            }
-
-            card.innerHTML = `
-                <div style="font-size:18px;font-weight:bold;color:#00e5ff;margin-bottom:10px;">
-                    ${(task.agent_type || "general").toUpperCase()} AGENT
-                </div>
-
-                <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
-                    ${task.task_type || "general"}
-                </div>
-
-                <div style="font-size:16px;color:white;margin-bottom:15px;">
-                    ${task.summary || "AI report ready for review."}
-                </div>
-
-                <div style="color:${statusColor};font-weight:bold;margin-bottom:15px;">
-                    Status: ${(task.status || "").toUpperCase()}
-                </div>
-
-                <div style="
-                    background:#0b0b0b;
-                    border:1px solid #333;
-                    border-radius:12px;
-                    padding:16px;
-                    color:#ffffff;
-                    white-space:pre-wrap;
-                    line-height:1.6;
-                ">
-                   <div style="display:flex;align-items:center;gap:12px;">
-    <div style="width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#00cfff,#7b2fff);box-shadow:0 0 18px rgba(0,207,255,.35);flex:0 0 auto;"></div>
-    <div>
-        <div style="color:#b9f7ff;font-weight:800;margin-bottom:4px;">AI Result Saved</div>
-        <div style="color:#f4f7ff;font-size:14px;line-height:1.5;">Open the AI Mailbox to view the full clean report.</div>
-    </div>
-</div>
-                </div>
-            `;
-
-            resultsEl.appendChild(card);
-if (
-    task.status === "completed" &&
-    task.result &&
-    window.addAiResultToMailbox &&
-    !task.result_hidden
-) {
-    window.addAiResultToMailbox({
-        id: task.id,
-        agent: task.agent || task.agent_type,
-        type: task.task_type,
-        summary:
-            task.summary ||
-            "Executive AI report ready.",
-        result: task.result,
-        created_at: task.created_at
-    });
-
-    task.result_hidden = true;
-}
         });
+
+        return;
 
     } catch (err) {
 
@@ -906,6 +841,26 @@ business_description: document.getElementById("business_description").value
 document.addEventListener("DOMContentLoaded", function () {
 
     var aiTaskBtn = document.getElementById("submitAiTask");
+    var activePollInterval = null;
+    var activeToastTimeout = null;
+
+    function clearTemporaryTaskFeed() {
+        var feed = document.getElementById("aiTaskResults");
+
+        if (activePollInterval) {
+            clearInterval(activePollInterval);
+            activePollInterval = null;
+        }
+
+        if (activeToastTimeout) {
+            clearTimeout(activeToastTimeout);
+            activeToastTimeout = null;
+        }
+
+        if (feed) {
+            feed.innerHTML = "";
+        }
+    }
 
     if (!aiTaskBtn) {
         return;
@@ -957,7 +912,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             document.getElementById("taskPrompt").value = "";
 
+            clearTemporaryTaskFeed();
+
             var card = document.createElement("div");
+            card.className = "ai-temp-task-card";
 
             card.style.background = "#111";
             card.style.border = "1px solid #333";
@@ -982,10 +940,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            resultsEl.prepend(card);
+            if (resultsEl) {
+                resultsEl.appendChild(card);
+            }
+
 var taskId = data.task.id;
 
-var pollInterval = setInterval(async function () {
+activePollInterval = setInterval(async function () {
 
     try {
 
@@ -1007,7 +968,10 @@ var pollInterval = setInterval(async function () {
             pollData.task.status === "completed"
         ) {
 
-            clearInterval(pollInterval);
+            if (activePollInterval) {
+                clearInterval(activePollInterval);
+                activePollInterval = null;
+            }
 
             if (window.addAiResultToMailbox && pollData.task.result) {
                 window.addAiResultToMailbox({
@@ -1020,79 +984,29 @@ var pollInterval = setInterval(async function () {
                 });
             }
 
+            card.style.padding = "14px 18px";
             card.innerHTML = `
-    <div style="font-size:18px;font-weight:800;color:#00e5ff;margin-bottom:8px;">
-        ${agentType.toUpperCase()} AGENT
-    </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:36px;height:36px;border-radius:999px;background:linear-gradient(135deg,#00cfff,#7b2fff);box-shadow:0 0 14px rgba(0,207,255,.35);flex:0 0 auto;"></div>
+                    <div style="color:#b9f7ff;font-weight:800;font-size:14px;">AI Result Saved</div>
+                </div>
+            `;
 
-    <div style="font-size:14px;color:#aaa;margin-bottom:15px;">
-        ${taskType}
-    </div>
+            if (activeToastTimeout) {
+                clearTimeout(activeToastTimeout);
+            }
 
-    <div style="font-size:16px;color:white;margin-bottom:15px;">
-        ${prompt}
-    </div>
+            activeToastTimeout = setTimeout(function() {
+                activeToastTimeout = null;
 
-    <div style="color:#00ff99;font-weight:bold;margin-bottom:18px;">
-        Status: COMPLETED
-    </div>
+                if (card.parentNode) {
+                    card.remove();
+                }
 
-    <div
-        class="ai-result-box"
-        style="
-            background:#0b0b0b;
-            border:1px solid #333;
-            border-radius:16px;
-            padding:20px;
-            color:#ffffff;
-            line-height:1.7;
-            max-height:360px;
-            overflow:hidden;
-            position:relative;
-        "
-    >
-        <p style="margin:0;color:#b9f7ff;font-size:14px;line-height:1.6;">Result saved to AI Mailbox. Open the mailbox to view the full report.</p>
-    </div>
-
-    <button
-        type="button"
-        class="expandAiResultBtn"
-        style="
-        display:none;
-            margin-top:16px;
-            padding:12px 18px;
-            border:none;
-            border-radius:999px;
-            cursor:pointer;
-            font-weight:800;
-            color:white;
-            background:linear-gradient(90deg,#00cfff,#7b2fff);
-        "
-    >
-        Expand Full Result
-    </button>
-`;
-var expandBtn = card.querySelector(".expandAiResultBtn");
-var resultBox = card.querySelector(".ai-result-box");
-
-if (expandBtn && resultBox) {
-
-    expandBtn.addEventListener("click", function () {
-
-        if (resultBox.style.maxHeight === "none") {
-
-            resultBox.style.maxHeight = "360px";
-            resultBox.style.overflow = "hidden";
-            expandBtn.innerHTML = "Expand Full Result";
-
-        } else {
-
-            resultBox.style.maxHeight = "none";
-            resultBox.style.overflow = "visible";
-            expandBtn.innerHTML = "Collapse Result";
-        }
-    });
-}
+                if (resultsEl) {
+                    resultsEl.innerHTML = "";
+                }
+            }, 4000);
         }
 
     } catch (pollErr) {
