@@ -351,7 +351,7 @@ grid-column:1/3;
       Clear Mailbox
     </button>
   </div>
-
+  <input id="aiMailboxSearch" placeholder="Search reports..." style="width:100%;box-sizing:border-box;margin:0 0 14px 0;padding:12px 14px;border-radius:12px;border:1px solid #00e5ff;background:#080b12;color:white;font-weight:700;" />
   <div id="aiMailboxResults" style="display:flex;flex-direction:column;gap:14px;"></div>
 </div>
 
@@ -440,7 +440,7 @@ var aiMailboxPanel = document.getElementById("aiMailboxPanel");
 var aiMailboxResults = document.getElementById("aiMailboxResults");
 var toggleAiMailbox = document.getElementById("toggleAiMailbox");
 var clearAiMailbox = document.getElementById("clearAiMailbox");
-
+var aiMailboxSearch = document.getElementById("aiMailboxSearch");
 function escapeHtml(value) {
     return String(value || "")
         .replace(/&/g, "&amp;")
@@ -550,7 +550,20 @@ function renderAiMailbox() {
         return;
     }
 
-    aiMailbox.forEach(function(item, index) {
+    var mailboxSearchValue = aiMailboxSearch ? aiMailboxSearch.value.toLowerCase().trim() : "";
+
+aiMailbox.filter(function(item) {
+    if (!mailboxSearchValue) {
+        return true;
+    }
+
+    return [
+        item.agent,
+        item.type,
+        item.summary,
+        item.result
+    ].join(" ").toLowerCase().indexOf(mailboxSearchValue) !== -1;
+}).forEach(function(item, index) {
 
         var mailboxCard = document.createElement("div");
         var isExpanded = item.expanded === true;
@@ -734,7 +747,11 @@ if (clearAiMailbox) {
     });
 
 }
-
+if (aiMailboxSearch) {
+    aiMailboxSearch.addEventListener("input", function() {
+        renderAiMailbox();
+    });
+}
 renderAiMailbox();
 loadSavedAiTasks();
     
