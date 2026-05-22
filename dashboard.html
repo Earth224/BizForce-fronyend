@@ -503,23 +503,30 @@ function getMailboxSummary(item) {
 }
 
 function formatMailboxReport(value) {
-    var clean = cleanAiMailboxText(value);
 
-    if (!clean) {
-        return "<p style='margin:0;color:#f4f7ff;line-height:1.7;font-size:15px;'>No result returned.</p>";
-    }
-
-    return clean.split(/\n{2,}/).map(function(block) {
-        return "<p style='margin:0 0 14px;color:#f4f7ff;line-height:1.7;font-size:15px;'>" +
-            escapeHtml(block).replace(/\n/g, "<br>") +
-            "</p>";
-    }).join("");
+if (!value) {
+    return "<p style='margin:0;color:#f4f7ff;line-height:1.7;font-size:15px;'>No result returned.</p>";
 }
 
-function loadAiMailbox() {
-    try {
-        var saved = JSON.parse(localStorage.getItem(AI_MAILBOX_STORAGE_KEY) || "[]");
-        return Array.isArray(saved) ? saved : [];
+var escaped = escapeHtml(String(value));
+
+escaped = escaped.replace(/\n\n+/g, "</p><p>");
+escaped = escaped.replace(/\n/g, "<br>");
+
+return `
+    <div style="
+        color:#f4f7ff;
+        line-height:1.75;
+        font-size:15px;
+        white-space:normal;
+        word-break:break-word;
+    ">
+        <p style="margin:0;">
+            ${escaped}
+        </p>
+    </div>
+`;
+}
     } catch (err) {
         console.error("AI MAILBOX LOAD ERROR:", err);
         return [];
