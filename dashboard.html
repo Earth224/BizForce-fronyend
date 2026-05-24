@@ -749,28 +749,32 @@ fetch(API_URL + "/api/business-profile", {
 
   console.log("LOADED BUSINESS PROFILE:", data);
 
-  if (!data.profile) {
-    return;
-  }
+  var profile = data.profile || data.user || data || {};
 
-  document.getElementById("business_name").value = data.profile.business_name || "";
-document.getElementById("business_type").value = data.profile.business_type || "";
-document.getElementById("industry").value = data.profile.industry || "";
-document.getElementById("niche").value = data.profile.niche || "";
-document.getElementById("website").value = data.profile.website || "";
-document.getElementById("location").value = data.profile.location || "";
-document.getElementById("target_audience").value = data.profile.target_audience || "";
-document.getElementById("offer").value = data.profile.offer || "";
-document.getElementById("monthly_revenue").value = data.profile.monthly_revenue || "";
-document.getElementById("monthly_budget").value = data.profile.monthly_budget || "";
-document.getElementById("primary_goal").value = data.profile.primary_goal || "";
-document.getElementById("top_keywords").value = data.profile.top_keywords || "";
-document.getElementById("top_competitors").value = data.profile.top_competitors || "";
-document.getElementById("social_platforms").value = data.profile.social_platforms || "";
-document.getElementById("products_services").value = data.profile.products_services || "";
-document.getElementById("brand_voice").value = data.profile.brand_voice || "";
-document.getElementById("business_description").value = data.profile.business_description || "";
-})
+function setProfileField(id, value) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.value = value || "";
+    }
+}
+
+setProfileField("business_name", profile.business_name);
+setProfileField("business_type", profile.business_type);
+setProfileField("industry", profile.industry);
+setProfileField("niche", profile.niche);
+setProfileField("website", profile.website);
+setProfileField("location", profile.location);
+setProfileField("target_audience", profile.target_audience);
+setProfileField("offer", profile.offer);
+setProfileField("monthly_revenue", profile.monthly_revenue);
+setProfileField("monthly_budget", profile.monthly_budget);
+setProfileField("primary_goal", profile.primary_goal);
+setProfileField("top_keywords", profile.top_keywords);
+setProfileField("top_competitors", profile.top_competitors);
+setProfileField("social_platforms", profile.social_platforms);
+setProfileField("products_services", profile.products_services);
+setProfileField("brand_voice", profile.brand_voice);
+setProfileField("business_description", profile.business_description);
 .catch(function (err) {
 
   console.error("PROFILE LOAD ERROR:", err);
