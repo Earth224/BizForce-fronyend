@@ -681,33 +681,44 @@ mailboxCard.style.transition = "all 0.2s ease";
 
 }
 
-window.addAiResultToMailbox = function addAiResultToMailbox(item) {
+window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     if (!item || !item.result) {
         return;
     }
 
-    var mailboxItem = {
-        id: getMailboxId(item),
+    var reportPayload = {
         agent: item.agent || item.agent_type || "AI Agent",
-        type: item.type || item.task_type || item.task || "general",
+        task_type: item.type || item.task_type || item.task || "general",
+        prompt: item.prompt || "",
         summary: getMailboxSummary(item),
         result: cleanAiMailboxText(item.result),
+        unread: true
+    };
+
+    try {
+        await fetch(API_URL + "/api/ai-reports", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(reportPayload)
+        });
+    } catch (err) {
+        console.error("AI REPORT SAVE ERROR:", err);
+    }
+
+    aiMailbox.unshift({
+        id: getMailboxId(item),
+        agent: reportPayload.agent,
+        type: reportPayload.task_type,
+        summary: reportPayload.summary,
+        result: reportPayload.result,
         created_at: item.created_at || new Date().toISOString(),
         unread: true,
         expanded: false
-    };
-
-    var exists = aiMailbox.some(function(existing) {
-        return getMailboxId(existing) === mailboxItem.id;
     });
 
-    if (exists) {
-        updateMailboxUnreadCount();
-        return;
-    }
-
-    aiMailbox.unshift(mailboxItem);
-    saveAiMailbox();
     renderAiMailbox();
 };
 
