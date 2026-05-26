@@ -650,9 +650,9 @@ mailboxCard.style.transition = "all 0.2s ease";
 
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             ${item.unread ? '<span style="padding:5px 9px;border-radius:999px;background:#ff4d6d;color:white;font-size:11px;font-weight:900;">Unread</span>' : ""}
-            <button class="deleteMailboxItem" data-index="${index}" style="padding:8px 12px;border:none;border-radius:999px;cursor:pointer;background:#ff4d6d;color:white;font-weight:800;">
-                Trash
-            </button>
+           <button class="hideMailboxItem" data-id="${escapeHtml(item.id)}" data-index="${index}" style="padding:8px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:#ff4d6d;">
+    Trash
+</button>
         </div>
     </div>
 
@@ -682,7 +682,7 @@ mailboxCard.style.transition = "all 0.2s ease";
 
     });
 
-    document.querySelectorAll(".deleteMailboxItem").forEach(function(btn) {
+    document.querySelectorAll(".hideMailboxItem").forEach(function(btn) {
 
         btn.addEventListener("click", function() {
 
