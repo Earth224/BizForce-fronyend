@@ -544,7 +544,47 @@ function updateMailboxUnreadCount() {
     toggleAiMailbox.innerHTML = unreadCount > 0 ?
         "AI Mailbox <span style='display:inline-flex;align-items:center;justify-content:center;margin-left:8px;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:#ff4d6d;color:white;font-size:12px;'>" + unreadCount + "</span>" :
         "AI Mailbox";
+    }
+    async function loadMailboxReports() {
+    try {
+        var response = await fetch(API_URL + "/api/ai/tasks?limit=25", {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to load mailbox");
+        }
+
+        var data = await response.json();
+
+        if (!data.tasks || !Array.isArray(data.tasks)) {
+            return;
+        }
+
+        aiMailbox = data.tasks.map(function(task) {
+            return {
+                id: task.id,
+                agent: task.agent_type || "general",
+                type: task.task_type || "general",
+                summary: task.prompt || "AI Report",
+                result: cleanAiMailboxText(task.result || ""),
+                created_at: task.created_at,
+                unread: false,
+                expanded: false
+            };
+        });
+
+        renderAiMailbox();
+        updateMailboxUnreadCount();
+
+    } catch (err) {
+        console.error("MAILBOX LOAD ERROR:", err);
+    }
 }
+
+loadMailboxReports();
 
 function renderAiMailbox() {
 
