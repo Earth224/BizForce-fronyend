@@ -563,19 +563,30 @@ function updateMailboxUnreadCount() {
             return;
         }
 
-        aiMailbox = data.tasks.map(function(task) {
-            return {
-                id: task.id,
-                agent: task.agent_type || "general",
-                type: task.task_type || "general",
-                summary: task.prompt || "AI Report",
-                result: cleanAiMailboxText(task.result || ""),
-                created_at: task.created_at,
-                unread: false,
-                expanded: false
-            };
-        });
+       var existingMailboxMap = {};
 
+aiMailbox.forEach(function(item) {
+  existingMailboxMap[String(item.id)] = item;
+});
+
+aiMailbox = data.tasks
+  .filter(function(task) {
+    return !!task.id;
+  })
+  .map(function(task) {
+    var existing = existingMailboxMap[String(task.id)];
+
+    return {
+      id: task.id,
+      agent: task.agent_type || "general",
+      type: task.task_type || "general",
+      summary: task.prompt || "AI Report",
+      result: cleanAiMailboxText(task.result || ""),
+      created_at: task.created_at,
+      unread: existing ? existing.unread : false,
+      expanded: existing ? existing.expanded : false
+    };
+  });
         renderAiMailbox();
         updateMailboxUnreadCount();
 
