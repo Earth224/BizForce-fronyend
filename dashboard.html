@@ -683,19 +683,38 @@ mailboxCard.style.transition = "all 0.2s ease";
     });
 
     document.querySelectorAll(".hideMailboxItem").forEach(function(btn) {
+  btn.addEventListener("click", async function() {
 
-        btn.addEventListener("click", function() {
+    var id = btn.dataset.id;
 
-            var index = parseInt(btn.dataset.index);
+    try {
 
-            aiMailbox.splice(index, 1);
+      if (id) {
 
-            saveAiMailbox();
-            renderAiMailbox();
-
+        await fetch(API_URL + "/api/ai/tasks/" + encodeURIComponent(id), {
+          method: "DELETE",
+          headers: {
+            "Authorization": "Bearer " + token
+          }
         });
 
+      }
+
+    } catch (err) {
+
+      console.error("MAILBOX DELETE ERROR:", err);
+
+    }
+
+    aiMailbox = aiMailbox.filter(function(item) {
+      return String(item.id) !== String(id);
     });
+
+    saveAiMailbox();
+    renderAiMailbox();
+
+  });
+});
 
     document.querySelectorAll(".toggleMailboxItem").forEach(function(btn) {
 
