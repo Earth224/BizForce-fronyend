@@ -456,26 +456,22 @@ document.addEventListener("DOMContentLoaded", function () {
 var aiMailbox = [];
 
 async function clearAiMailboxPermanently() {
-  var mailboxCopy = aiMailbox.slice();
+    var response = await fetch(API_URL + "/api/ai/tasks", {
+        method: "DELETE",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
 
-  for (var i = 0; i < mailboxCopy.length; i++) {
-    if (!mailboxCopy[i].id) {
-      continue;
+    if (!response.ok) {
+        throw new Error("Failed to clear mailbox");
     }
 
-    await fetch(API_URL + "/api/ai/tasks/" + encodeURIComponent(mailboxCopy[i].id), {
-      method: "DELETE",
-      headers: {
-        "Authorization": "Bearer " + token
-      }
-    });
-  }
-
-  aiMailbox = [];
-  localStorage.setItem(AI_MAILBOX_STORAGE_KEY, "[]");
-  localStorage.setItem(AI_MAILBOX_HYDRATION_DISABLED_KEY, "1");
-  renderAiMailbox();
-  updateMailboxUnreadCount();
+    aiMailbox = [];
+    localStorage.setItem(AI_MAILBOX_STORAGE_KEY, "[]");
+    localStorage.setItem(AI_MAILBOX_HYDRATION_DISABLED_KEY, "1");
+    renderAiMailbox();
+    updateMailboxUnreadCount();
 }
 var aiMailboxPanel = document.getElementById("aiMailboxPanel");
 var aiMailboxResults = document.getElementById("aiMailboxResults");
