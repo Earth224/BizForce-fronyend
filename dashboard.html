@@ -1103,29 +1103,12 @@ activePollInterval = setInterval(async function () {
                 });
             }
 
-            card.style.padding = "14px 18px";
-            card.innerHTML = `
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <div style="width:36px;height:36px;border-radius:999px;background:linear-gradient(135deg,#00cfff,#7b2fff);box-shadow:0 0 14px rgba(0,207,255,.35);flex:0 0 auto;"></div>
-                    <div style="color:#b9f7ff;font-weight:800;font-size:14px;">AI Result Saved</div>
-                </div>
-            `;
+           clearTemporaryTaskFeed();
 
-            if (activeToastTimeout) {
-                clearTimeout(activeToastTimeout);
-            }
-
-            activeToastTimeout = setTimeout(function() {
-                activeToastTimeout = null;
-
-                if (card.parentNode) {
-                    card.remove();
-                }
-
-                if (resultsEl) {
-                    resultsEl.innerHTML = "";
-                }
-            }, 4000);
+if (statusEl) {
+    statusEl.innerHTML = "AI result saved to Mailbox.";
+    statusEl.style.color = "#00ff99";
+}
         }
 
     } catch (pollErr) {
