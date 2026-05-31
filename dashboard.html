@@ -1106,9 +1106,12 @@ activePollInterval = setInterval(async function () {
            clearTemporaryTaskFeed();
 
            if (statusEl) {
-            var completedTitle = pollData.task.task_type
-  ? pollData.task.task_type.replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }) + " Generated"
-  : (pollData.task.agent || "AI") + " Report Ready"; 
+            var completedTitle =
+    (pollData.task.agent || agentType || "AI")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, function (c) {
+            return c.toUpperCase();
+        });           
 
   statusEl.innerHTML = `
     <div style="margin-top:16px;padding:16px;border:1px solid rgba(0,229,255,0.35);border-radius:14px;background:rgba(0,0,0,0.28);">
