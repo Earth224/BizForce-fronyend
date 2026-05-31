@@ -1106,23 +1106,29 @@ activePollInterval = setInterval(async function () {
            clearTemporaryTaskFeed();
 
            if (statusEl) {
-    statusEl.innerHTML = `
-        <div style="margin-top:16px;padding:16px;border:1px solid rgba(0,229,255,0.35);border-radius:16px;background:rgba(0,0,0,0.35);box-shadow:0 0 18px rgba(0,229,255,0.12);color:#ffffff;">
-            <div style="color:#00e5ff;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px;">
-                Task Complete
-            </div>
-            <div style="font-size:18px;font-weight:900;margin-bottom:6px;">
-                AI Report Generated
-            </div>
-            <div style="font-size:13px;color:#9aa4b2;margin-bottom:12px;">
-                Saved to Mailbox. Open the AI Result Mailbox to view, expand, search, or delete this report.
-            </div>
-            <button type="button" onclick="document.getElementById('aiMailboxPanel') && (document.getElementById('aiMailboxPanel').style.display = 'block');" style="border:0;border-radius:999px;padding:10px 14px;background:linear-gradient(90deg,#00e5ff,#7c3cff);color:#ffffff;font-weight:900;cursor:pointer;">
-                Open Mailbox Report
-            </button>
-        </div>
-    `;
-    statusEl.style.color = "#ffffff";
+  var completedTitle = taskType
+    ? taskType.replace(/_/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }) + " Generated"
+    : "AI Report Generated";
+
+  statusEl.innerHTML = `
+    <div style="margin-top:16px;padding:16px;border:1px solid rgba(0,229,255,0.35);border-radius:14px;background:rgba(0,0,0,0.28);">
+      <div style="color:#00e5ff;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px;">
+        Task Complete
+      </div>
+      <div style="font-size:18px;font-weight:900;margin-bottom:6px;">
+        ${completedTitle}
+      </div>
+      <div style="font-size:13px;color:#9aa4b2;margin-bottom:12px;">
+        Saved to Mailbox. Open the AI Result Mailbox to view, expand, search, or delete this report.
+      </div>
+      <button type="button" onclick="document.getElementById('aiMailboxPanel') && (document.getElementById('aiMailboxPanel').style.display='block')" style="border:0;border-radius:999px;padding:10px 16px;font-weight:900;color:white;background:linear-gradient(135deg,#00d5ff,#7c3cff);cursor:pointer;">
+        Open Mailbox Report
+      </button>
+    </div>
+  `;
+  statusEl.style.color = "#ffffff";
+}     
+    
 }
         }
 
