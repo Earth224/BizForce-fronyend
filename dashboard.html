@@ -451,6 +451,38 @@ gap:18px;
 </div>
 
 </section>
+
+<section id="agentAssignmentSection" style="padding:40px;max-width:1100px;margin:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
+    <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Work Queue</h2>
+    <select id="assignmentAgentFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
+      <option value="">All Agents</option>
+      <option value="seo">SEO</option>
+      <option value="sales">Sales</option>
+      <option value="content">Content</option>
+      <option value="ads">Ads</option>
+      <option value="email">Email</option>
+      <option value="analytics">Analytics</option>
+      <option value="community">Community</option>
+      <option value="influencer">Influencer</option>
+      <option value="operations">Operations</option>
+      <option value="reputation">Reputation</option>
+    </select>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
+    <button id="assignmentTabActive" type="button" style="padding:10px 18px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:linear-gradient(90deg,#00cfff,#7b2fff);">
+      Active Queue
+    </button>
+    <button id="assignmentTabHistory" type="button" style="padding:10px 18px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;">
+      History
+    </button>
+  </div>
+
+  <div id="assignmentActivePanel" style="display:flex;flex-direction:column;gap:14px;"></div>
+  <div id="assignmentHistoryPanel" style="display:none;flex-direction:column;gap:14px;"></div>
+</section>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -558,6 +590,7 @@ function updateMailboxUnreadCount() {
         "AI Mailbox <span style='display:inline-flex;align-items:center;justify-content:center;margin-left:8px;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:#ff4d6d;color:white;font-size:12px;'>" + unreadCount + "</span>" :
         "AI Mailbox";
     }
+
     async function loadMailboxReports() {
     try {
         var response = await fetch(API_URL + "/api/ai/tasks?limit=25", {
@@ -607,6 +640,8 @@ aiMailbox = data.tasks
         console.error("MAILBOX LOAD ERROR:", err);
     }
 }
+
+window.loadMailboxReports = loadMailboxReports;
 
 loadMailboxReports();
 
@@ -1156,7 +1191,221 @@ activePollInterval = setInterval(async function () {
 
 });
 
-    
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+var AGENT_ASSIGNMENTS_STORAGE_KEY = "bizforce_agent_assignments";
+var ASSIGNMENT_STATUSES = ["Pending", "In Progress", "Completed", "Blocked"];
+var agentAssignments = [];
+
+var assignmentActivePanel = document.getElementById("assignmentActivePanel");
+var assignmentHistoryPanel = document.getElementById("assignmentHistoryPanel");
+var assignmentAgentFilter = document.getElementById("assignmentAgentFilter");
+var assignmentTabActive = document.getElementById("assignmentTabActive");
+var assignmentTabHistory = document.getElementById("assignmentTabHistory");
+
+function assignmentEscapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function normalizeAssignmentStatus(value) {
+    var s = String(value || "Pending").trim();
+    if (/progress/i.test(s)) return "In Progress";
+    if (/complete/i.test(s)) return "Completed";
+    if (/block/i.test(s)) return "Blocked";
+    return "Pending";
+}
+
+function saveAssignmentsLocal() {
+    localStorage.setItem(AGENT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(agentAssignments));
+}
+
+function loadAssignmentsLocal() {
+    try {
+        var saved = JSON.parse(localStorage.getItem(AGENT_ASSIGNMENTS_STORAGE_KEY) || "[]");
+        agentAssignments = Array.isArray(saved) ? saved : [];
+    } catch (err) {
+        agentAssignments = [];
+    }
+}
+
+function getFilteredAssignments(includeCompleted) {
+    var filterAgent = assignmentAgentFilter ? assignmentAgentFilter.value : "";
+
+    return agentAssignments.filter(function(item) {
+        var isCompleted = item.status === "Completed";
+
+        if (includeCompleted !== isCompleted) {
+            return false;
+        }
+
+        if (filterAgent && item.assigned_agent !== filterAgent) {
+            return false;
+        }
+
+        return true;
+    });
+}
+
+function renderAssignmentCard(item, isHistory) {
+    var card = document.createElement("div");
+    card.style.background = "#111";
+    card.style.border = "1px solid #222";
+    card.style.borderRadius = "14px";
+    card.style.padding = "14px";
+    card.style.display = "grid";
+    card.style.gridTemplateColumns = "repeat(auto-fit,minmax(140px,1fr))";
+    card.style.gap = "12px";
+    card.style.alignItems = "center";
+
+    var createdLabel = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
+    var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
+    var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
+        var selected = item.status === status ? " selected" : "";
+        return '<option value="' + status + '"' + selected + '>' + status + '</option>';
+    }).join("");
+
+    card.innerHTML = `
+        <div>
+            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Assigned Agent</div>
+            <div style="color:#00e5ff;font-size:15px;font-weight:900;margin-top:4px;">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
+        </div>
+        <div>
+            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Priority</div>
+            <div style="color:#f4f7ff;font-size:14px;font-weight:800;margin-top:4px;">${assignmentEscapeHtml(item.priority || "Medium")}</div>
+        </div>
+        <div>
+            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Status</div>
+            ${isHistory ?
+                '<div style="color:#00ff99;font-size:14px;font-weight:800;margin-top:4px;">Completed</div>' :
+                '<select class="assignmentStatusSelect" data-id="' + assignmentEscapeHtml(item.id) + '" style="margin-top:4px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-weight:700;">' + statusOptions + '</select>'
+            }
+        </div>
+        <div style="grid-column:1/-1;">
+            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Task</div>
+            <div style="color:#f4f7ff;font-size:14px;font-weight:800;margin-top:4px;">${assignmentEscapeHtml(item.task_title)}</div>
+            ${item.task_description ? '<div style="color:#9aa4b2;font-size:13px;margin-top:6px;line-height:1.5;">' + assignmentEscapeHtml(item.task_description) + '</div>' : ""}
+        </div>
+        <div>
+            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Created</div>
+            <div style="color:#aaa;font-size:13px;margin-top:4px;">${assignmentEscapeHtml(createdLabel)}</div>
+        </div>
+        ${isHistory ? '<div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Completed</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(completedLabel) + '</div></div>' : ""}
+    `;
+
+    return card;
+}
+
+function renderAssignmentDashboard() {
+    if (!assignmentActivePanel || !assignmentHistoryPanel) {
+        return;
+    }
+
+    var activeItems = getFilteredAssignments(false);
+    var historyItems = getFilteredAssignments(true);
+
+    assignmentActivePanel.innerHTML = "";
+    assignmentHistoryPanel.innerHTML = "";
+
+    if (!activeItems.length) {
+        assignmentActivePanel.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active assignments in queue.</div>';
+    } else {
+        activeItems.forEach(function(item) {
+            assignmentActivePanel.appendChild(renderAssignmentCard(item, false));
+        });
+    }
+
+    if (!historyItems.length) {
+        assignmentHistoryPanel.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No completed assignment history yet.</div>';
+    } else {
+        historyItems.forEach(function(item) {
+            assignmentHistoryPanel.appendChild(renderAssignmentCard(item, true));
+        });
+    }
+
+    document.querySelectorAll(".assignmentStatusSelect").forEach(function(select) {
+        select.addEventListener("change", function() {
+            var id = select.dataset.id;
+            var nextStatus = normalizeAssignmentStatus(select.value);
+            var target = agentAssignments.find(function(item) {
+                return String(item.id) === String(id);
+            });
+
+            if (!target) {
+                return;
+            }
+
+            target.status = nextStatus;
+
+            if (nextStatus === "Completed") {
+                target.completed_at = new Date().toISOString();
+            } else {
+                target.completed_at = null;
+            }
+
+            saveAssignmentsLocal();
+            renderAssignmentDashboard();
+        });
+    });
+}
+
+function setAssignmentView(view) {
+    if (assignmentActivePanel) {
+        assignmentActivePanel.style.display = view === "active" ? "flex" : "none";
+    }
+
+    if (assignmentHistoryPanel) {
+        assignmentHistoryPanel.style.display = view === "history" ? "flex" : "none";
+    }
+
+    if (assignmentTabActive && assignmentTabHistory) {
+        if (view === "active") {
+            assignmentTabActive.style.background = "linear-gradient(90deg,#00cfff,#7b2fff)";
+            assignmentTabActive.style.color = "white";
+            assignmentTabActive.style.border = "none";
+            assignmentTabHistory.style.background = "#080812";
+            assignmentTabHistory.style.color = "#00e5ff";
+            assignmentTabHistory.style.border = "1px solid rgba(0,229,255,.3)";
+        } else {
+            assignmentTabHistory.style.background = "linear-gradient(90deg,#00cfff,#7b2fff)";
+            assignmentTabHistory.style.color = "white";
+            assignmentTabHistory.style.border = "none";
+            assignmentTabActive.style.background = "#080812";
+            assignmentTabActive.style.color = "#00e5ff";
+            assignmentTabActive.style.border = "1px solid rgba(0,229,255,.3)";
+        }
+    }
+}
+
+if (assignmentAgentFilter) {
+    assignmentAgentFilter.addEventListener("change", function() {
+        renderAssignmentDashboard();
+    });
+}
+
+if (assignmentTabActive) {
+    assignmentTabActive.addEventListener("click", function() {
+        setAssignmentView("active");
+    });
+}
+
+if (assignmentTabHistory) {
+    assignmentTabHistory.addEventListener("click", function() {
+        setAssignmentView("history");
+    });
+}
+
+loadAssignmentsLocal();
+setAssignmentView("active");
+renderAssignmentDashboard();
+
+});
 </script>
 </body>
 </html>      
