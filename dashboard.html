@@ -779,7 +779,7 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     };
 
     try {
-        await fetch(API_URL + "/api/ai-reports", {
+        await fetch(API_URL + "/api/ai/tasks", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -1021,18 +1021,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
             var data = await response.json();
 
-            console.log("AI TASK RESPONSE:", data);
+console.log("AI TASK RESPONSE:", data);
 
-            if (!response.ok) {
-                throw new Error(data.error || "Failed to launch AI task");
-            }
+if (!response.ok) {
+    throw new Error(data.error || "Failed to launch AI task");
+}
 
-            statusEl.innerHTML = "AI task launched successfully.";
-            statusEl.style.color = "#00ff99";
+statusEl.innerHTML = "AI task launched successfully.";
+statusEl.style.color = "#00ff99";
 
-            document.getElementById("taskPrompt").value = "";
+document.getElementById("taskPrompt").value = "";
 
-            clearTemporaryTaskFeed();
+// mailbox reload skipped here to prevent duplicate entries
+clearTemporaryTaskFeed();   
 
             var card = document.createElement("div");
             card.className = "ai-temp-task-card";
