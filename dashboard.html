@@ -1306,7 +1306,52 @@ function buildAssignmentRecord(fields) {
 }
 
 function isExecutiveAssignmentAgent(value) {
-    return String(value || "").trim().toLowerCase() === "executive";
+    var normalized = String(value || "").trim().toLowerCase().replace(/[^a-z]/g, "");
+    return normalized === "executive" || normalized.indexOf("executive") !== -1;
+}
+
+function getAssignmentRowsFromJsonPayload(raw) {
+    try {
+        var data = JSON.parse(String(raw || "").trim());
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (data && Array.isArray(data.assignments)) {
+            return data.assignments;
+        }
+        if (data && Array.isArray(data.tasks)) {
+            return data.tasks;
+        }
+    } catch (err) {
+        /* ignore invalid json */
+    }
+    return [];
+}
+
+function extractJsonArraySubstrings(text) {
+    var results = [];
+    var source = String(text || "");
+
+    for (var i = 0; i < source.length; i++) {
+        if (source.charAt(i) !== "[") {
+            continue;
+        }
+
+        var depth = 0;
+        for (var j = i; j < source.length; j++) {
+            if (source.charAt(j) === "[") {
+                depth++;
+            } else if (source.charAt(j) === "]") {
+                depth--;
+                if (depth === 0) {
+                    results.push(source.slice(i, j + 1));
+                    break;
+                }
+            }
+        }
+    }
+
+    return results;
 }
 
 function parseExecutiveAssignments(reportText, parentReportId) {
@@ -1315,15 +1360,16 @@ function parseExecutiveAssignments(reportText, parentReportId) {
     var seen = {};
 
     function pushAssignment(fields) {
-        if (!fields.task_title) {
+        var taskTitle = fields.task_title || fields.title || fields.task || fields.name;
+        if (!taskTitle) {
             return;
         }
 
         var record = buildAssignmentRecord({
             parent_report_id: parentReportId,
             assigned_agent: fields.assigned_agent,
-            task_title: fields.task_title,
-            task_description: fields.task_description,
+            task_title: taskTitle,
+            task_description: fields.task_description || fields.description || fields.details,
             priority: fields.priority,
             status: fields.status || "Pending"
         });
@@ -1341,27 +1387,33 @@ function parseExecutiveAssignments(reportText, parentReportId) {
         parsed.push(record);
     }
 
+    function ingestAssignmentRows(rows) {
+        if (!rows || !rows.length) {
+            return;
+        }
+
+        rows.forEach(function(row) {
+            pushAssignment({
+                assigned_agent: row.assigned_agent || row.agent || row.agent_type,
+                task_title: row.task_title || row.title || row.task || row.name,
+                task_description: row.task_description || row.description || row.details,
+                priority: row.priority,
+                status: row.status
+            });
+        });
+    }
+
     var jsonBlocks = text.match(/```(?:json|assignments)?\s*([\s\S]*?)```/gi) || [];
 
     jsonBlocks.forEach(function(block) {
         var inner = block.replace(/```(?:json|assignments)?/i, "").replace(/```$/, "").trim();
+        ingestAssignmentRows(getAssignmentRowsFromJsonPayload(inner));
+    });
 
-        try {
-            var data = JSON.parse(inner);
-            var rows = Array.isArray(data) ? data : (data.assignments || []);
+    ingestAssignmentRows(getAssignmentRowsFromJsonPayload(text));
 
-            rows.forEach(function(row) {
-                pushAssignment({
-                    assigned_agent: row.assigned_agent || row.agent,
-                    task_title: row.task_title || row.title,
-                    task_description: row.task_description || row.description,
-                    priority: row.priority,
-                    status: row.status
-                });
-            });
-        } catch (err) {
-            /* ignore invalid json block */
-        }
+    extractJsonArraySubstrings(text).forEach(function(arrayText) {
+        ingestAssignmentRows(getAssignmentRowsFromJsonPayload(arrayText));
     });
 
     var lines = text.split("\n");
@@ -1422,7 +1474,12 @@ function parseExecutiveAssignments(reportText, parentReportId) {
 }
 
 function processExecutiveAssignmentsFromReport(item) {
-    if (!isExecutiveAssignmentAgent(item.agent) && !isExecutiveAssignmentAgent(item.agent_type)) {
+    if (
+        !isExecutiveAssignmentAgent(item.agent) &&
+        !isExecutiveAssignmentAgent(item.agent_type) &&
+        !isExecutiveAssignmentAgent(item.type) &&
+        !isExecutiveAssignmentAgent(item.task_type)
+    ) {
         return [];
     }
 
