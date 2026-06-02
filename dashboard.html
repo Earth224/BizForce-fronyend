@@ -1332,9 +1332,9 @@ function normalizeAssignmentPriority(value, defaultPriority) {
     return fallback;
 }
 
-function extractAssignedAgentFromRow(row) {
+function extractAssignedAgentFromRow(row, inheritedAgent) {
     if (!row || typeof row !== "object") {
-        return null;
+        return inheritedAgent || null;
     }
 
     var keys = ["assigned_agent", "assignedAgent", "agent", "owner", "department"];
@@ -1346,7 +1346,11 @@ function extractAssignedAgentFromRow(row) {
         }
     }
 
-    return null;
+    if (row.__inherited_agent !== null && row.__inherited_agent !== undefined && String(row.__inherited_agent).trim()) {
+        return row.__inherited_agent;
+    }
+
+    return inheritedAgent || null;
 }
 
 function extractPriorityFromRow(row) {
@@ -1398,7 +1402,7 @@ function buildAssignmentRecord(fields) {
     };
 }
 
-function normalizeAssignmentRow(row, parentReportId) {
+function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     if (!row || typeof row !== "object") {
         return null;
     }
@@ -1412,7 +1416,7 @@ function normalizeAssignmentRow(row, parentReportId) {
 
     var assignment = buildAssignmentRecord({
         parent_report_id: parentReportId,
-        assigned_agent: extractAssignedAgentFromRow(row),
+        assigned_agent: extractAssignedAgentFromRow(row, inheritedAgent),
         task_title: taskTitle,
         task_description: extractTaskDescriptionFromRow(row),
         priority: extractPriorityFromRow(row),
@@ -1459,40 +1463,127 @@ function collectAssignmentReportSources(item) {
     return sources;
 }
 
-function getAssignmentRowsFromJsonPayload(raw) {
+function isExecutiveAgentContainerKey(key) {
+    if (!key || typeof key !== "string") {
+        return false;
+    }
+
+    if (/agent/i.test(key) || /assignments/i.test(key)) {
+        return true;
+    }
+
+    return ASSIGNMENT_QUEUE_AGENTS.indexOf(normalizeAssignedAgent(key)) !== -1;
+}
+
+function collectExecutiveAssignmentRows(raw, inheritedAgent) {
     var rows = [];
     var seen = {};
 
-    function addRows(data) {
-        var nextRows = [];
-
-        if (Array.isArray(data)) {
-            nextRows = data;
-        } else if (data && typeof data === "object") {
-            if (Array.isArray(data.assignments)) {
-                nextRows = data.assignments;
-            } else if (Array.isArray(data.tasks)) {
-                nextRows = data.tasks;
-            } else if (data.assigned_agent || data.assignedAgent || data.task_title || data.title || data.task || data.name) {
-                nextRows = [data];
-            }
+    function pushTaskRow(row, parentAgent) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) {
+            return;
         }
 
-        nextRows.forEach(function(row) {
-            if (!row || typeof row !== "object") {
+        if (!extractTaskTitleFromRow(row)) {
+            return;
+        }
+
+        var resolvedAgent = extractAssignedAgentFromRow(row, parentAgent);
+        var stampedRow = Object.assign({}, row);
+
+        if (resolvedAgent && !extractAssignedAgentFromRow(row)) {
+            stampedRow.__inherited_agent = resolvedAgent;
+        }
+
+        var key = JSON.stringify({
+            agent: resolvedAgent || parentAgent || "",
+            row: stampedRow
+        });
+
+        if (seen[key]) {
+            return;
+        }
+
+        seen[key] = true;
+        rows.push(stampedRow);
+    }
+
+    function walk(data, parentAgent) {
+        if (data === null || data === undefined) {
+            return;
+        }
+
+        if (Array.isArray(data)) {
+            data.forEach(function(item) {
+                if (!item || typeof item !== "object") {
+                    return;
+                }
+
+                var itemAgent = extractAssignedAgentFromRow(item, parentAgent);
+
+                if (extractTaskTitleFromRow(item)) {
+                    pushTaskRow(item, itemAgent || parentAgent);
+                    return;
+                }
+
+                walk(item, itemAgent || parentAgent);
+            });
+            return;
+        }
+
+        if (typeof data !== "object") {
+            return;
+        }
+
+        var containerAgent = extractAssignedAgentFromRow(data, parentAgent);
+
+        if (extractTaskTitleFromRow(data)) {
+            pushTaskRow(data, containerAgent || parentAgent);
+            return;
+        }
+
+        if (Array.isArray(data.assignments)) {
+            walk(data.assignments, containerAgent || parentAgent);
+        } else if (data.assignments && typeof data.assignments === "object") {
+            Object.keys(data.assignments).forEach(function(key) {
+                walk(data.assignments[key], key);
+            });
+        }
+
+        if (Array.isArray(data.tasks)) {
+            walk(data.tasks, containerAgent || parentAgent);
+        } else if (data.tasks && typeof data.tasks === "object" && !Array.isArray(data.tasks)) {
+            Object.keys(data.tasks).forEach(function(key) {
+                walk(data.tasks[key], key);
+            });
+        }
+
+        if (data.agent_assignments && typeof data.agent_assignments === "object") {
+            Object.keys(data.agent_assignments).forEach(function(key) {
+                walk(data.agent_assignments[key], key);
+            });
+        }
+
+        Object.keys(data).forEach(function(key) {
+            if (key === "assignments" || key === "tasks" || key === "agent_assignments") {
                 return;
             }
 
-            var key = JSON.stringify(row);
-            if (!seen[key]) {
-                seen[key] = true;
-                rows.push(row);
+            var val = data[key];
+
+            if (!val || (typeof val !== "object" && !Array.isArray(val))) {
+                return;
+            }
+
+            if (Array.isArray(val) || typeof val === "object") {
+                var keyAgent = isExecutiveAgentContainerKey(key) ? key : (containerAgent || parentAgent);
+                walk(val, keyAgent);
             }
         });
     }
 
     if (raw && typeof raw === "object") {
-        addRows(raw);
+        walk(raw, inheritedAgent || null);
         return rows;
     }
 
@@ -1514,7 +1605,7 @@ function getAssignmentRowsFromJsonPayload(raw) {
 
         attempts.forEach(function(candidate) {
             try {
-                addRows(JSON.parse(candidate));
+                walk(JSON.parse(candidate), inheritedAgent || null);
             } catch (err) {
                 /* ignore invalid json */
             }
@@ -1522,6 +1613,10 @@ function getAssignmentRowsFromJsonPayload(raw) {
     });
 
     return rows;
+}
+
+function getAssignmentRowsFromJsonPayload(raw, inheritedAgent) {
+    return collectExecutiveAssignmentRows(raw, inheritedAgent || null);
 }
 
 function extractJsonArraySubstrings(text) {
@@ -1737,10 +1832,11 @@ function extractAssignmentRecordsFromReportItem(item) {
     collectAssignmentReportSources(item).forEach(function(source) {
         if (typeof source === "object" && source !== null) {
             mergeRecords(assignmentRowsToRecords(getAssignmentRowsFromJsonPayload(source), parentReportId));
-            return;
         }
 
-        mergeRecords(parseExecutiveAssignments(String(source), parentReportId));
+        if (typeof source === "string") {
+            mergeRecords(parseExecutiveAssignments(source, parentReportId));
+        }
     });
 
     return extracted;
