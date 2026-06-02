@@ -1119,6 +1119,7 @@ clearTemporaryTaskFeed();
             }
 
 var taskId = data.task.id;
+var taskCompletionHandled = false;
 
 activePollInterval = setInterval(async function () {
 
@@ -1141,37 +1142,46 @@ activePollInterval = setInterval(async function () {
             pollData.task &&
             pollData.task.status === "completed"
         ) {
+            if (taskCompletionHandled) {
+                return;
+            }
+
+            taskCompletionHandled = true;
 
             if (activePollInterval) {
                 clearInterval(activePollInterval);
                 activePollInterval = null;
             }
 
-            if (window.addAiResultToMailbox && pollData.task.result) {
-                await window.addAiResultToMailbox({
-                    id: pollData.task.id || taskId,
-                    agent: pollData.task.agent || pollData.task.agent_type || agentType,
-                    agent_type: pollData.task.agent_type || agentType,
-                    launch_agent: agentType,
-                    type: pollData.task.task_type || taskType,
-                    task_type: pollData.task.task_type || taskType,
-                    summary: pollData.task.summary || prompt,
-                    result: pollData.task.result,
-                    created_at: pollData.task.created_at
-                });
+            try {
+                if (window.addAiResultToMailbox && pollData.task.result) {
+                    await window.addAiResultToMailbox({
+                        id: pollData.task.id || taskId,
+                        agent: pollData.task.agent || pollData.task.agent_type || agentType,
+                        agent_type: pollData.task.agent_type || agentType,
+                        launch_agent: agentType,
+                        type: pollData.task.task_type || taskType,
+                        task_type: pollData.task.task_type || taskType,
+                        summary: pollData.task.summary || prompt,
+                        result: pollData.task.result,
+                        created_at: pollData.task.created_at
+                    });
+                }
+            } catch (mailboxErr) {
+                console.error("MAILBOX SAVE ERROR:", mailboxErr);
             }
 
             clearTemporaryTaskFeed();
 
-           if (statusEl) {
-            var completedTitle =
-    (pollData.task.agent || agentType || "AI")
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, function (c) {
-            return c.toUpperCase();
-        }) + " REPORT";          
+            if (statusEl) {
+                var completedTitle =
+                    (pollData.task.agent || agentType || "AI")
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, function (c) {
+                            return c.toUpperCase();
+                        }) + " REPORT";
 
-  statusEl.innerHTML = `
+                statusEl.innerHTML = `
     <div style="margin-top:16px;padding:16px;border:1px solid rgba(0,229,255,0.35);border-radius:14px;background:rgba(0,0,0,0.28);">
       <div style="color:#00e5ff;font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px;">
       REPORT READY
@@ -1187,11 +1197,9 @@ activePollInterval = setInterval(async function () {
       </button>
     </div>
   `;
-  statusEl.style.color = "#ffffff";
-}     
-    
-}
-        
+                statusEl.style.color = "#ffffff";
+            }
+        }
 
     } catch (pollErr) {
 
