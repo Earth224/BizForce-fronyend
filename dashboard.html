@@ -844,6 +844,7 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
             id: item.id,
             agent: item.agent,
             agent_type: item.agent_type,
+            launch_agent: item.launch_agent,
             type: item.type || item.task_type,
             task_type: item.task_type || item.type,
             result: item.result,
@@ -1146,6 +1147,7 @@ activePollInterval = setInterval(async function () {
                     id: pollData.task.id || taskId,
                     agent: pollData.task.agent || pollData.task.agent_type || agentType,
                     agent_type: pollData.task.agent_type || agentType,
+                    launch_agent: agentType,
                     type: pollData.task.task_type || taskType,
                     task_type: pollData.task.task_type || taskType,
                     summary: pollData.task.summary || prompt,
@@ -1207,10 +1209,12 @@ activePollInterval = setInterval(async function () {
 
 </script>
 <script>
+window.__executiveAssignmentBridgeQueue = window.__executiveAssignmentBridgeQueue || [];
 window.processExecutiveAssignmentsFromReport = function(item) {
     if (typeof window.__processExecutiveAssignmentsImpl === "function") {
         return window.__processExecutiveAssignmentsImpl(item);
     }
+    window.__executiveAssignmentBridgeQueue.push(item);
     return [];
 };
 
@@ -1329,26 +1333,51 @@ function decodeAssignmentReportText(value) {
         .replace(/&amp;/g, "&");
 }
 
+function normalizeAssignmentJsonText(text) {
+    return String(text || "")
+        .replace(/\u201c|\u201d/g, "\"")
+        .replace(/\u2018|\u2019/g, "'")
+        .replace(/```(?:json|assignments)?/gi, "")
+        .replace(/```/g, "")
+        .trim();
+}
+
+function collectAssignmentReportSources(item) {
+    var sources = [];
+
+    [item.result, item.result_clean].forEach(function(value) {
+        if (value !== null && value !== undefined && value !== "") {
+            sources.push(value);
+        }
+    });
+
+    return sources;
+}
+
 function getAssignmentRowsFromJsonPayload(raw) {
-    var sources = [
-        String(raw || "").trim(),
-        decodeAssignmentReportText(raw).trim()
-    ];
-    var seen = {};
     var rows = [];
+    var seen = {};
 
     function addRows(data) {
         var nextRows = [];
 
         if (Array.isArray(data)) {
             nextRows = data;
-        } else if (data && Array.isArray(data.assignments)) {
-            nextRows = data.assignments;
-        } else if (data && Array.isArray(data.tasks)) {
-            nextRows = data.tasks;
+        } else if (data && typeof data === "object") {
+            if (Array.isArray(data.assignments)) {
+                nextRows = data.assignments;
+            } else if (Array.isArray(data.tasks)) {
+                nextRows = data.tasks;
+            } else if (data.task_title || data.title || data.task || data.name) {
+                nextRows = [data];
+            }
         }
 
         nextRows.forEach(function(row) {
+            if (!row || typeof row !== "object") {
+                return;
+            }
+
             var key = JSON.stringify(row);
             if (!seen[key]) {
                 seen[key] = true;
@@ -1356,6 +1385,17 @@ function getAssignmentRowsFromJsonPayload(raw) {
             }
         });
     }
+
+    if (raw && typeof raw === "object") {
+        addRows(raw);
+        return rows;
+    }
+
+    var sources = [
+        String(raw || "").trim(),
+        normalizeAssignmentJsonText(raw),
+        decodeAssignmentReportText(raw).trim()
+    ];
 
     sources.forEach(function(source) {
         if (!source) {
@@ -1525,10 +1565,79 @@ function parseExecutiveAssignments(reportText, parentReportId) {
 }
 
 function isExecutiveReportItem(item) {
-    return isExecutiveAssignmentAgent(item.agent) ||
+    return isExecutiveAssignmentAgent(item.launch_agent) ||
+        isExecutiveAssignmentAgent(item.agent) ||
         isExecutiveAssignmentAgent(item.agent_type) ||
         isExecutiveAssignmentAgent(item.type) ||
         isExecutiveAssignmentAgent(item.task_type);
+}
+
+function assignmentRowsToRecords(rows, parentReportId) {
+    var parsed = [];
+    var seen = {};
+
+    rows.forEach(function(row) {
+        var taskTitle = row.task_title || row.title || row.task || row.name;
+        if (!taskTitle) {
+            return;
+        }
+
+        var record = buildAssignmentRecord({
+            parent_report_id: parentReportId,
+            assigned_agent: row.assigned_agent || row.agent || row.agent_type,
+            task_title: taskTitle,
+            task_description: row.task_description || row.description || row.details,
+            priority: row.priority,
+            status: row.status || "Pending"
+        });
+
+        var key = [
+            record.assigned_agent,
+            record.task_title.toLowerCase()
+        ].join("|");
+
+        if (seen[key]) {
+            return;
+        }
+
+        seen[key] = true;
+        parsed.push(record);
+    });
+
+    return parsed;
+}
+
+function extractAssignmentRecordsFromReportItem(item) {
+    var parentReportId = item.id ? String(item.id) : null;
+    var extracted = [];
+    var seen = {};
+
+    function mergeRecords(records) {
+        records.forEach(function(record) {
+            var key = [
+                record.assigned_agent,
+                String(record.task_title || "").toLowerCase()
+            ].join("|");
+
+            if (seen[key]) {
+                return;
+            }
+
+            seen[key] = true;
+            extracted.push(record);
+        });
+    }
+
+    collectAssignmentReportSources(item).forEach(function(source) {
+        if (typeof source === "object" && source !== null) {
+            mergeRecords(assignmentRowsToRecords(getAssignmentRowsFromJsonPayload(source), parentReportId));
+            return;
+        }
+
+        mergeRecords(parseExecutiveAssignments(String(source), parentReportId));
+    });
+
+    return extracted;
 }
 
 function processExecutiveAssignmentsFromReport(item) {
@@ -1536,14 +1645,9 @@ function processExecutiveAssignmentsFromReport(item) {
         return [];
     }
 
-    var parentReportId = item.id ? String(item.id) : null;
-    var rawText = String(item.result || item.result_clean || "");
-    var cleanText = String(item.result_clean || item.result || "");
-    var extracted = parseExecutiveAssignments(rawText, parentReportId);
+    loadAssignmentsLocal();
 
-    if (!extracted.length && cleanText && cleanText !== rawText) {
-        extracted = parseExecutiveAssignments(cleanText, parentReportId);
-    }
+    var extracted = extractAssignmentRecordsFromReportItem(item);
 
     if (!extracted.length) {
         return [];
@@ -1743,6 +1847,12 @@ window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromRe
 loadAssignmentsLocal();
 setAssignmentView("active");
 renderAssignmentDashboard();
+
+if (window.__executiveAssignmentBridgeQueue && window.__executiveAssignmentBridgeQueue.length) {
+    window.__executiveAssignmentBridgeQueue.splice(0).forEach(function(queuedItem) {
+        processExecutiveAssignmentsFromReport(queuedItem);
+    });
+}
 
 });
 </script>
