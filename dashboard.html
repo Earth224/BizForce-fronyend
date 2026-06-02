@@ -840,9 +840,10 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     });
 
     renderAiMailbox();
+    updateMailboxUnreadCount();
 
     if (window.processExecutiveAssignmentsFromReport) {
-        await window.processExecutiveAssignmentsFromReport({
+        void window.processExecutiveAssignmentsFromReport({
             id: item.id,
             agent: item.agent,
             agent_type: item.agent_type,
@@ -851,6 +852,8 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
             task_type: item.task_type || item.type,
             result: item.result,
             result_clean: reportPayload.result
+        }).catch(function(err) {
+            console.error("EXECUTIVE ASSIGNMENT BRIDGE ERROR:", err);
         });
     }
 };
@@ -1145,7 +1148,7 @@ activePollInterval = setInterval(async function () {
             }
 
             if (window.addAiResultToMailbox && pollData.task.result) {
-                window.addAiResultToMailbox({
+                await window.addAiResultToMailbox({
                     id: pollData.task.id || taskId,
                     agent: pollData.task.agent || pollData.task.agent_type || agentType,
                     agent_type: pollData.task.agent_type || agentType,
@@ -1158,7 +1161,7 @@ activePollInterval = setInterval(async function () {
                 });
             }
 
-           clearTemporaryTaskFeed();
+            clearTemporaryTaskFeed();
 
            if (statusEl) {
             var completedTitle =
