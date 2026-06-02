@@ -813,17 +813,19 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
         unread: true
     };
 
-    try {
-        await fetch(API_URL + "/api/ai/tasks", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + token
-            },
-            body: JSON.stringify(reportPayload)
-        });
-    } catch (err) {
-        console.error("AI REPORT SAVE ERROR:", err);
+    if (reportPayload.prompt && reportPayload.prompt.trim()) {
+        try {
+            await fetch(API_URL + "/api/ai/tasks", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify(reportPayload)
+            });
+        } catch (err) {
+            console.error("AI REPORT SAVE ERROR:", err);
+        }
     }
 
     aiMailbox.unshift({
