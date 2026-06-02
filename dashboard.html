@@ -1282,7 +1282,12 @@ function generateAssignmentId() {
 }
 
 function normalizeAssignedAgent(value) {
-    var raw = String(value || "").toLowerCase().replace(/[^a-z]/g, "");
+    if (value === null || value === undefined || !String(value).trim()) {
+        return "operations";
+    }
+
+    var text = String(value).trim().replace(/\s+agent\s*$/i, "").trim();
+    var raw = text.toLowerCase().replace(/[^a-z]/g, "");
     var aliases = {
         seo: "seo",
         search: "seo",
@@ -1304,34 +1309,119 @@ function normalizeAssignedAgent(value) {
     }
 
     for (var i = 0; i < ASSIGNMENT_QUEUE_AGENTS.length; i++) {
-        if (raw.indexOf(ASSIGNMENT_QUEUE_AGENTS[i]) !== -1) {
+        if (raw === ASSIGNMENT_QUEUE_AGENTS[i] || raw.indexOf(ASSIGNMENT_QUEUE_AGENTS[i]) !== -1) {
             return ASSIGNMENT_QUEUE_AGENTS[i];
         }
     }
 
-    return "operations";
+    return raw || "operations";
 }
 
-function normalizeAssignmentPriority(value) {
-    var p = String(value || "Medium").trim();
+function normalizeAssignmentPriority(value, defaultPriority) {
+    var fallback = defaultPriority || "Medium";
+
+    if (value === null || value === undefined || !String(value).trim()) {
+        return fallback;
+    }
+
+    var p = String(value).trim();
     if (/critical/i.test(p)) return "Critical";
     if (/high/i.test(p)) return "High";
     if (/low/i.test(p)) return "Low";
-    return "Medium";
+    if (/medium/i.test(p)) return "Medium";
+    return fallback;
+}
+
+function extractAssignedAgentFromRow(row) {
+    if (!row || typeof row !== "object") {
+        return null;
+    }
+
+    var keys = ["assigned_agent", "assignedAgent", "agent", "owner", "department"];
+
+    for (var i = 0; i < keys.length; i++) {
+        var val = row[keys[i]];
+        if (val !== null && val !== undefined && String(val).trim()) {
+            return val;
+        }
+    }
+
+    return null;
+}
+
+function extractPriorityFromRow(row) {
+    if (!row || typeof row !== "object") {
+        return null;
+    }
+
+    var keys = ["priority", "urgency", "importance"];
+
+    for (var i = 0; i < keys.length; i++) {
+        var val = row[keys[i]];
+        if (val !== null && val !== undefined && String(val).trim()) {
+            return val;
+        }
+    }
+
+    return null;
+}
+
+function extractTaskTitleFromRow(row) {
+    if (!row || typeof row !== "object") {
+        return null;
+    }
+
+    return row.task_title || row.title || row.task || row.name || null;
+}
+
+function extractTaskDescriptionFromRow(row) {
+    if (!row || typeof row !== "object") {
+        return "";
+    }
+
+    return row.task_description || row.description || row.details || row.summary || "";
 }
 
 function buildAssignmentRecord(fields) {
+    var defaultPriority = fields.executive_default_priority ? "High" : "Medium";
+
     return {
         id: fields.id || generateAssignmentId(),
         parent_report_id: fields.parent_report_id || null,
         assigned_agent: normalizeAssignedAgent(fields.assigned_agent),
         task_title: String(fields.task_title || "Executive assignment").trim().slice(0, 255),
         task_description: String(fields.task_description || "").trim(),
-        priority: normalizeAssignmentPriority(fields.priority),
+        priority: normalizeAssignmentPriority(fields.priority, defaultPriority),
         status: normalizeAssignmentStatus(fields.status || "Pending"),
         created_at: fields.created_at || new Date().toISOString(),
         completed_at: fields.completed_at || null
     };
+}
+
+function normalizeAssignmentRow(row, parentReportId) {
+    if (!row || typeof row !== "object") {
+        return null;
+    }
+
+    console.log("EXECUTIVE ASSIGNMENT RAW ROW:", row);
+
+    var taskTitle = extractTaskTitleFromRow(row);
+    if (!taskTitle) {
+        return null;
+    }
+
+    var assignment = buildAssignmentRecord({
+        parent_report_id: parentReportId,
+        assigned_agent: extractAssignedAgentFromRow(row),
+        task_title: taskTitle,
+        task_description: extractTaskDescriptionFromRow(row),
+        priority: extractPriorityFromRow(row),
+        status: row.status || "Pending",
+        executive_default_priority: true
+    });
+
+    console.log("EXECUTIVE ASSIGNMENT NORMALIZED:", assignment);
+    return assignment;
 }
 
 function isExecutiveAssignmentAgent(value) {
@@ -1383,7 +1473,7 @@ function getAssignmentRowsFromJsonPayload(raw) {
                 nextRows = data.assignments;
             } else if (Array.isArray(data.tasks)) {
                 nextRows = data.tasks;
-            } else if (data.task_title || data.title || data.task || data.name) {
+            } else if (data.assigned_agent || data.assignedAgent || data.task_title || data.title || data.task || data.name) {
                 nextRows = [data];
             }
         }
@@ -1475,9 +1565,10 @@ function parseExecutiveAssignments(reportText, parentReportId) {
             parent_report_id: parentReportId,
             assigned_agent: fields.assigned_agent,
             task_title: taskTitle,
-            task_description: fields.task_description || fields.description || fields.details,
+            task_description: fields.task_description || fields.description || fields.details || fields.summary,
             priority: fields.priority,
-            status: fields.status || "Pending"
+            status: fields.status || "Pending",
+            executive_default_priority: true
         });
 
         var key = [
@@ -1499,13 +1590,22 @@ function parseExecutiveAssignments(reportText, parentReportId) {
         }
 
         rows.forEach(function(row) {
-            pushAssignment({
-                assigned_agent: row.assigned_agent || row.agent || row.agent_type,
-                task_title: row.task_title || row.title || row.task || row.name,
-                task_description: row.task_description || row.description || row.details,
-                priority: row.priority,
-                status: row.status
-            });
+            var record = normalizeAssignmentRow(row, parentReportId);
+            if (!record) {
+                return;
+            }
+
+            var key = [
+                record.assigned_agent,
+                record.task_title.toLowerCase()
+            ].join("|");
+
+            if (seen[key]) {
+                return;
+            }
+
+            seen[key] = true;
+            parsed.push(record);
         });
     }
 
@@ -1540,7 +1640,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
                 assigned_agent: tagged[1],
                 task_title: title,
                 task_description: body,
-                priority: priorityMatch ? priorityMatch[1] : "Medium"
+                priority: priorityMatch ? priorityMatch[1] : "High"
             });
             return;
         }
@@ -1551,7 +1651,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
                 assigned_agent: agentLine[1],
                 task_title: agentLine[2].split("|")[0].trim(),
                 task_description: agentLine[2],
-                priority: (agentLine[2].match(/Priority:\s*(\w+)/i) || [])[1]
+                priority: (agentLine[2].match(/Priority:\s*(\w+)/i) || [])[1] || "High"
             });
         }
     });
@@ -1571,7 +1671,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
                 assigned_agent: agentName,
                 task_title: titleMatch[1].split("\n")[0].trim(),
                 task_description: descMatch ? descMatch[1].trim() : block.trim(),
-                priority: priMatch ? priMatch[1] : "Medium"
+                priority: priMatch ? priMatch[1] : "High"
             });
         }
     }
@@ -1592,19 +1692,10 @@ function assignmentRowsToRecords(rows, parentReportId) {
     var seen = {};
 
     rows.forEach(function(row) {
-        var taskTitle = row.task_title || row.title || row.task || row.name;
-        if (!taskTitle) {
+        var record = normalizeAssignmentRow(row, parentReportId);
+        if (!record) {
             return;
         }
-
-        var record = buildAssignmentRecord({
-            parent_report_id: parentReportId,
-            assigned_agent: row.assigned_agent || row.agent || row.agent_type,
-            task_title: taskTitle,
-            task_description: row.task_description || row.description || row.details,
-            priority: row.priority,
-            status: row.status || "Pending"
-        });
 
         var key = [
             record.assigned_agent,
