@@ -1235,7 +1235,7 @@ window.processExecutiveAssignmentsFromReport = function(item) {
 
 document.addEventListener("DOMContentLoaded", function () {
 
-var AGENT_ASSIGNMENTS_STORAGE_KEY = "bizforce_agent_assignments";
+var AGENT_ASSIGNMENTS_STORAGE_KEY = "bf_agent_assignments";
 var ASSIGNMENT_STATUSES = ["Pending", "In Progress", "Completed", "Blocked"];
 var agentAssignments = [];
 
@@ -1645,6 +1645,103 @@ function extractJsonArraySubstrings(text) {
     return results;
 }
 
+function extractPlainTextAssignmentField(block, label) {
+    var escapedLabel = label.replace(/\s+/g, "\\s+");
+    var labelRegex = new RegExp("^\\s*" + escapedLabel + "\\s*:\\s*(.*)$", "i");
+    var nextLabelRegex = /^\s*(?:Task Title|Task Description|Priority|Owner|Timeline|KPIs|ASSIGNMENT|\d+\.\s+[A-Z][A-Z\s]+AGENT)\s*:/i;
+    var lines = String(block || "").split(/\r?\n/);
+
+    for (var i = 0; i < lines.length; i++) {
+        var match = lines[i].match(labelRegex);
+        if (!match) {
+            continue;
+        }
+
+        var valueParts = [];
+
+        if (match[1] && match[1].trim()) {
+            valueParts.push(match[1].trim());
+        }
+
+        for (var j = i + 1; j < lines.length; j++) {
+            if (nextLabelRegex.test(lines[j])) {
+                break;
+            }
+
+            if (lines[j].trim()) {
+                valueParts.push(lines[j].trim());
+            }
+        }
+
+        return valueParts.join("\n").trim();
+    }
+
+    return "";
+}
+
+function parseExecutivePlainTextQueue(reportText, parentReportId) {
+    var text = String(reportText || "");
+    var parsed = [];
+    var seen = {};
+
+    if (!/AGENT ASSIGNMENT QUEUE|ASSIGNMENT\s+\d+/i.test(text)) {
+        return parsed;
+    }
+
+    var agentBlocks = text.split(/(?=^\s*\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$)/im);
+
+    agentBlocks.forEach(function(agentBlock) {
+        var agentHeadingMatch = agentBlock.match(/^\s*\d+\.\s*(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/im);
+        if (!agentHeadingMatch) {
+            return;
+        }
+
+        var currentAgent = agentHeadingMatch[1];
+        var assignmentParts = agentBlock.split(/(?=^\s*ASSIGNMENT\s+[\d.]+\s*$)/im);
+
+        assignmentParts.forEach(function(assignmentBlock) {
+            var firstLine = (assignmentBlock.split(/\r?\n/)[0] || "").trim();
+            if (!/^\s*ASSIGNMENT\s+[\d.]+\s*$/i.test(firstLine)) {
+                return;
+            }
+
+            var taskTitle = extractPlainTextAssignmentField(assignmentBlock, "Task Title");
+            if (!taskTitle) {
+                return;
+            }
+
+            var taskDescription = extractPlainTextAssignmentField(assignmentBlock, "Task Description");
+            var priority = extractPlainTextAssignmentField(assignmentBlock, "Priority") || "High";
+            var owner = extractPlainTextAssignmentField(assignmentBlock, "Owner");
+            var assignedAgent = owner || currentAgent;
+
+            var record = buildAssignmentRecord({
+                parent_report_id: parentReportId,
+                assigned_agent: assignedAgent,
+                task_title: taskTitle,
+                task_description: taskDescription,
+                priority: priority,
+                status: "Pending",
+                executive_default_priority: true
+            });
+
+            var key = [
+                record.assigned_agent,
+                record.task_title.toLowerCase()
+            ].join("|");
+
+            if (seen[key]) {
+                return;
+            }
+
+            seen[key] = true;
+            parsed.push(record);
+        });
+    });
+
+    return parsed;
+}
+
 function parseExecutiveAssignments(reportText, parentReportId) {
     var text = String(reportText || "");
     var parsed = [];
@@ -1771,6 +1868,20 @@ function parseExecutiveAssignments(reportText, parentReportId) {
         }
     }
 
+    parseExecutivePlainTextQueue(text, parentReportId).forEach(function(record) {
+        var key = [
+            record.assigned_agent,
+            record.task_title.toLowerCase()
+        ].join("|");
+
+        if (seen[key]) {
+            return;
+        }
+
+        seen[key] = true;
+        parsed.push(record);
+    });
+
     return parsed;
 }
 
@@ -1851,6 +1962,8 @@ function processExecutiveAssignmentsFromReport(item) {
 
     var extracted = extractAssignmentRecordsFromReportItem(item);
 
+    console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
+
     if (!extracted.length) {
         return [];
     }
@@ -1869,8 +1982,12 @@ function processExecutiveAssignmentsFromReport(item) {
         }
     });
 
+    console.log("EXECUTIVE ASSIGNMENTS SAVED COUNT:", created.length);
+
     if (created.length) {
         saveAssignmentsLocal();
+        renderAssignmentDashboard();
+    } else if (extracted.length) {
         renderAssignmentDashboard();
     }
 
