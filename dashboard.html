@@ -842,11 +842,12 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     if (window.processExecutiveAssignmentsFromReport) {
         await window.processExecutiveAssignmentsFromReport({
             id: item.id,
-            agent: reportPayload.agent,
+            agent: item.agent,
             agent_type: item.agent_type,
-            type: reportPayload.task_type,
-            task_type: item.task_type,
-            result: reportPayload.result
+            type: item.type || item.task_type,
+            task_type: item.task_type || item.type,
+            result: item.result,
+            result_clean: reportPayload.result
         });
     }
 };
@@ -1144,7 +1145,9 @@ activePollInterval = setInterval(async function () {
                 window.addAiResultToMailbox({
                     id: pollData.task.id || taskId,
                     agent: pollData.task.agent || pollData.task.agent_type || agentType,
+                    agent_type: pollData.task.agent_type || agentType,
                     type: pollData.task.task_type || taskType,
+                    task_type: pollData.task.task_type || taskType,
                     summary: pollData.task.summary || prompt,
                     result: pollData.task.result,
                     created_at: pollData.task.created_at
@@ -1204,6 +1207,13 @@ activePollInterval = setInterval(async function () {
 
 </script>
 <script>
+window.processExecutiveAssignmentsFromReport = function(item) {
+    if (typeof window.__processExecutiveAssignmentsImpl === "function") {
+        return window.__processExecutiveAssignmentsImpl(item);
+    }
+    return [];
+};
+
 document.addEventListener("DOMContentLoaded", function () {
 
 var AGENT_ASSIGNMENTS_STORAGE_KEY = "bizforce_agent_assignments";
@@ -1310,22 +1320,63 @@ function isExecutiveAssignmentAgent(value) {
     return normalized === "executive" || normalized.indexOf("executive") !== -1;
 }
 
+function decodeAssignmentReportText(value) {
+    return String(value || "")
+        .replace(/&quot;/g, "\"")
+        .replace(/&#039;/g, "'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
+}
+
 function getAssignmentRowsFromJsonPayload(raw) {
-    try {
-        var data = JSON.parse(String(raw || "").trim());
+    var sources = [
+        String(raw || "").trim(),
+        decodeAssignmentReportText(raw).trim()
+    ];
+    var seen = {};
+    var rows = [];
+
+    function addRows(data) {
+        var nextRows = [];
+
         if (Array.isArray(data)) {
-            return data;
+            nextRows = data;
+        } else if (data && Array.isArray(data.assignments)) {
+            nextRows = data.assignments;
+        } else if (data && Array.isArray(data.tasks)) {
+            nextRows = data.tasks;
         }
-        if (data && Array.isArray(data.assignments)) {
-            return data.assignments;
-        }
-        if (data && Array.isArray(data.tasks)) {
-            return data.tasks;
-        }
-    } catch (err) {
-        /* ignore invalid json */
+
+        nextRows.forEach(function(row) {
+            var key = JSON.stringify(row);
+            if (!seen[key]) {
+                seen[key] = true;
+                rows.push(row);
+            }
+        });
     }
-    return [];
+
+    sources.forEach(function(source) {
+        if (!source) {
+            return;
+        }
+
+        var attempts = [
+            source,
+            source.replace(/,\s*([}\]])/g, "$1")
+        ];
+
+        attempts.forEach(function(candidate) {
+            try {
+                addRows(JSON.parse(candidate));
+            } catch (err) {
+                /* ignore invalid json */
+            }
+        });
+    });
+
+    return rows;
 }
 
 function extractJsonArraySubstrings(text) {
@@ -1473,18 +1524,26 @@ function parseExecutiveAssignments(reportText, parentReportId) {
     return parsed;
 }
 
+function isExecutiveReportItem(item) {
+    return isExecutiveAssignmentAgent(item.agent) ||
+        isExecutiveAssignmentAgent(item.agent_type) ||
+        isExecutiveAssignmentAgent(item.type) ||
+        isExecutiveAssignmentAgent(item.task_type);
+}
+
 function processExecutiveAssignmentsFromReport(item) {
-    if (
-        !isExecutiveAssignmentAgent(item.agent) &&
-        !isExecutiveAssignmentAgent(item.agent_type) &&
-        !isExecutiveAssignmentAgent(item.type) &&
-        !isExecutiveAssignmentAgent(item.task_type)
-    ) {
+    if (!isExecutiveReportItem(item)) {
         return [];
     }
 
     var parentReportId = item.id ? String(item.id) : null;
-    var extracted = parseExecutiveAssignments(item.result, parentReportId);
+    var rawText = String(item.result || item.result_clean || "");
+    var cleanText = String(item.result_clean || item.result || "");
+    var extracted = parseExecutiveAssignments(rawText, parentReportId);
+
+    if (!extracted.length && cleanText && cleanText !== rawText) {
+        extracted = parseExecutiveAssignments(cleanText, parentReportId);
+    }
 
     if (!extracted.length) {
         return [];
@@ -1678,6 +1737,7 @@ if (assignmentTabHistory) {
     });
 }
 
+window.__processExecutiveAssignmentsImpl = processExecutiveAssignmentsFromReport;
 window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromReport;
 
 loadAssignmentsLocal();
