@@ -843,18 +843,20 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     updateMailboxUnreadCount();
 
     if (window.processExecutiveAssignmentsFromReport) {
-        void window.processExecutiveAssignmentsFromReport({
-            id: item.id,
-            agent: item.agent,
-            agent_type: item.agent_type,
-            launch_agent: item.launch_agent,
-            type: item.type || item.task_type,
-            task_type: item.task_type || item.type,
-            result: item.result,
-            result_clean: reportPayload.result
-        }).catch(function(err) {
+        try {
+            window.processExecutiveAssignmentsFromReport({
+                id: item.id,
+                agent: item.agent,
+                agent_type: item.agent_type,
+                launch_agent: item.launch_agent,
+                type: item.type || item.task_type,
+                task_type: item.task_type || item.type,
+                result: item.result,
+                result_clean: reportPayload.result
+            });
+        } catch (err) {
             console.error("EXECUTIVE ASSIGNMENT BRIDGE ERROR:", err);
-        });
+        }
     }
 };
 
