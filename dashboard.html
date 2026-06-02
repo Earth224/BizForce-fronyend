@@ -1680,243 +1680,106 @@ function extractPlainTextAssignmentField(block, label) {
 }
 
 function parseExecutivePlainTextQueue(reportText, parentReportId) {
-    var text = String(reportText || "");
-    var parsed = [];
-    var seen = {};
+  var text = String(reportText || "");
+  var parsed = [];
+  var seen = {};
 
-    if (!/AGENT ASSIGNMENT QUEUE|ASSIGNMENT\s+\d+/i.test(text)) {
-        return parsed;
+  function cleanLine(value) {
+    return String(value || "")
+      .replace(/\*\*/g, "")
+      .replace(/^[\s\-•]+/, "")
+      .trim();
+  }
+
+  function detectAgent(line) {
+    var cleaned = cleanLine(line).toUpperCase();
+    var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS)\s+AGENT\b/);
+    if (!match) {
+      return "";
+    }
+    return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
+  }
+
+  function pushRecord(agent, title, description, priority, timeline, kpis) {
+    title = cleanLine(title);
+    description = cleanLine(description);
+    priority = cleanLine(priority || "Medium");
+    timeline = cleanLine(timeline || "Pending");
+    kpis = cleanLine(kpis || "");
+
+    if (!agent || !title) {
+      return;
     }
 
-    var agentBlocks = text.split(/(?=^\s*\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$)/im);
-
-    agentBlocks.forEach(function(agentBlock) {
-        var agentHeadingMatch = agentBlock.match(/^\s*\d+\.\s*(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/im);
-        if (!agentHeadingMatch) {
-            return;
-        }
-
-        var currentAgent = agentHeadingMatch[1];
-        var assignmentParts = agentBlock.split(/(?=^\s*ASSIGNMENT\s+[\d.]+\s*$)/im);
-
-        assignmentParts.forEach(function(assignmentBlock) {
-            var firstLine = (assignmentBlock.split(/\r?\n/)[0] || "").trim();
-            if (!/^\s*ASSIGNMENT\s+[\d.]+\s*$/i.test(firstLine)) {
-                return;
-            }
-
-            var taskTitle = extractPlainTextAssignmentField(assignmentBlock, "Task Title");
-            if (!taskTitle) {
-                return;
-            }
-
-            var taskDescription = extractPlainTextAssignmentField(assignmentBlock, "Task Description");
-            var priority = extractPlainTextAssignmentField(assignmentBlock, "Priority") || "High";
-            var owner = extractPlainTextAssignmentField(assignmentBlock, "Owner");
-            var assignedAgent = owner || currentAgent;
-
-            var record = buildAssignmentRecord({
-                parent_report_id: parentReportId,
-                assigned_agent: assignedAgent,
-                task_title: taskTitle,
-                task_description: taskDescription,
-                priority: priority,
-                status: "Pending",
-                executive_default_priority: true
-            });
-
-            var key = [
-                record.assigned_agent,
-                record.task_title.toLowerCase()
-            ].join("|");
-
-            if (seen[key]) {
-                return;
-            }
-
-            seen[key] = true;
-            parsed.push(record);
-        });
-    });
-
-    return parsed;
-}
-
-function parseExecutiveAssignments(reportText, parentReportId) {
-    var text = String(reportText || "");
-    var parsed = [];
-    var seen = {};
-
-    function pushAssignment(fields) {
-        var taskTitle = fields.task_title || fields.title || fields.task || fields.name;
-        if (!taskTitle) {
-            return;
-        }
-
-        var record = buildAssignmentRecord({
-            parent_report_id: parentReportId,
-            assigned_agent: fields.assigned_agent,
-            task_title: taskTitle,
-            task_description: fields.task_description || fields.description || fields.details || fields.summary,
-            priority: fields.priority,
-            status: fields.status || "Pending",
-            executive_default_priority: true
-        });
-
-        var key = [
-            record.assigned_agent,
-            record.task_title.toLowerCase()
-        ].join("|");
-
-        if (seen[key]) {
-            return;
-        }
-
-        seen[key] = true;
-        parsed.push(record);
+    var key = [agent, title.toLowerCase()].join("|");
+    if (seen[key]) {
+      return;
     }
 
-    function ingestAssignmentRows(rows) {
-        if (!rows || !rows.length) {
-            return;
-        }
+    seen[key] = true;
 
-        rows.forEach(function(row) {
-            var record = normalizeAssignmentRow(row, parentReportId);
-            if (!record) {
-                return;
-            }
+    parsed.push(buildAssignmentRecord({
+      parent_report_id: parentReportId,
+      assigned_agent: agent,
+      task_title: title,
+      task_description: description || title,
+      priority: priority,
+      timeline: timeline,
+      kpis: kpis,
+      status: "Pending",
+      executive_default_priority: true
+    }));
+  }
 
-            var key = [
-                record.assigned_agent,
-                record.task_title.toLowerCase()
-            ].join("|");
+  var lines = text.split(/\r?\n/);
+  var currentAgent = "";
+  var currentBlock = [];
 
-            if (seen[key]) {
-                return;
-            }
-
-            seen[key] = true;
-            parsed.push(record);
-        });
+  function flushBlock() {
+    if (!currentAgent || !currentBlock.length) {
+      currentBlock = [];
+      return;
     }
 
-    var jsonBlocks = text.match(/```(?:json|assignments)?\s*([\s\S]*?)```/gi) || [];
+    var block = currentBlock.join("\n");
+    var title = extractPlainTextAssignmentField(block, "Task Title");
+    var description = extractPlainTextAssignmentField(block, "Task Description");
+    var priority = extractPlainTextAssignmentField(block, "Priority");
+    var timeline = extractPlainTextAssignmentField(block, "Timeline");
+    var kpis = extractPlainTextAssignmentField(block, "KPIs");
 
-    jsonBlocks.forEach(function(block) {
-        var inner = block.replace(/```(?:json|assignments)?/i, "").replace(/```$/, "").trim();
-        ingestAssignmentRows(getAssignmentRowsFromJsonPayload(inner));
-    });
-
-    ingestAssignmentRows(getAssignmentRowsFromJsonPayload(text));
-
-    extractJsonArraySubstrings(text).forEach(function(arrayText) {
-        ingestAssignmentRows(getAssignmentRowsFromJsonPayload(arrayText));
-    });
-
-    var lines = text.split("\n");
-
-    lines.forEach(function(line) {
-        var clean = line.replace(/^\s*[-•*]\s*/, "").trim();
-        if (!clean) {
-            return;
-        }
-
-        var tagged = clean.match(/^\[(SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)\]\s*(.+)$/i);
-        if (tagged) {
-            var body = tagged[2];
-            var priorityMatch = body.match(/\|\s*Priority:\s*([^|]+)/i);
-            var title = body.split("|")[0].trim();
-
-            pushAssignment({
-                assigned_agent: tagged[1],
-                task_title: title,
-                task_description: body,
-                priority: priorityMatch ? priorityMatch[1] : "High"
-            });
-            return;
-        }
-
-        var agentLine = clean.match(/^(SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)(?:\s+Agent)?\s*[:\-]\s*(.+)$/i);
-        if (agentLine) {
-            pushAssignment({
-                assigned_agent: agentLine[1],
-                task_title: agentLine[2].split("|")[0].trim(),
-                task_description: agentLine[2],
-                priority: (agentLine[2].match(/Priority:\s*(\w+)/i) || [])[1] || "High"
-            });
-        }
-    });
-
-    var sectionRegex = /(?:^|\n)(?:#{1,3}\s*)?(SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)(?:\s+Agent)?[^\n]*\n([\s\S]*?)(?=\n(?:#{1,3}\s*)?(?:SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)|$)/gi;
-    var sectionMatch;
-
-    while ((sectionMatch = sectionRegex.exec(text)) !== null) {
-        var agentName = sectionMatch[1];
-        var block = sectionMatch[2] || "";
-        var titleMatch = block.match(/(?:Task|Title)\s*[:\-]\s*(.+)/i);
-        var descMatch = block.match(/(?:Description|Details)\s*[:\-]\s*([\s\S]+)/i);
-        var priMatch = block.match(/Priority\s*[:\-]\s*(\w+)/i);
-
-        if (titleMatch) {
-            pushAssignment({
-                assigned_agent: agentName,
-                task_title: titleMatch[1].split("\n")[0].trim(),
-                task_description: descMatch ? descMatch[1].trim() : block.trim(),
-                priority: priMatch ? priMatch[1] : "High"
-            });
-        }
+    if (!title) {
+      var firstMeaningful = currentBlock.map(cleanLine).filter(Boolean)[0] || "";
+      title = firstMeaningful.replace(/^ASSIGNMENT\s+[\d.]+/i, "").trim();
     }
 
-    parseExecutivePlainTextQueue(text, parentReportId).forEach(function(record) {
-        var key = [
-            record.assigned_agent,
-            record.task_title.toLowerCase()
-        ].join("|");
+    pushRecord(currentAgent, title, description, priority, timeline, kpis);
+    currentBlock = [];
+  }
 
-        if (seen[key]) {
-            return;
-        }
+  lines.forEach(function(line) {
+    var agent = detectAgent(line);
 
-        seen[key] = true;
-        parsed.push(record);
-    });
+    if (agent) {
+      flushBlock();
+      currentAgent = agent;
+      return;
+    }
 
-    return parsed;
-}
+    if (/^\s*ASSIGNMENT\s+[\d.]+/i.test(line)) {
+      flushBlock();
+      currentBlock = [line];
+      return;
+    }
 
-function isExecutiveReportItem(item) {
-    return isExecutiveAssignmentAgent(item.launch_agent) ||
-        isExecutiveAssignmentAgent(item.agent) ||
-        isExecutiveAssignmentAgent(item.agent_type) ||
-        isExecutiveAssignmentAgent(item.type) ||
-        isExecutiveAssignmentAgent(item.task_type);
-}
+    if (currentAgent) {
+      currentBlock.push(line);
+    }
+  });
 
-function assignmentRowsToRecords(rows, parentReportId) {
-    var parsed = [];
-    var seen = {};
+  flushBlock();
 
-    rows.forEach(function(row) {
-        var record = normalizeAssignmentRow(row, parentReportId);
-        if (!record) {
-            return;
-        }
-
-        var key = [
-            record.assigned_agent,
-            record.task_title.toLowerCase()
-        ].join("|");
-
-        if (seen[key]) {
-            return;
-        }
-
-        seen[key] = true;
-        parsed.push(record);
-    });
-
-    return parsed;
+  return parsed;
 }
 
 function extractAssignmentRecordsFromReportItem(item) {
