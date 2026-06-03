@@ -1410,6 +1410,73 @@ function buildAssignmentRecord(fields) {
     };
 }
 
+function isInvalidExecutiveTaskTitle(title) {
+    var t = String(title || "").trim();
+    var lower = t.toLowerCase();
+
+    if (t.length < 5) {
+        return true;
+    }
+
+    if (lower.indexOf("format assignments") !== -1) {
+        return true;
+    }
+
+    if (lower.indexOf("under the heading") !== -1) {
+        return true;
+    }
+
+    if (lower.indexOf("executive assignments") !== -1) {
+        return true;
+    }
+
+    return false;
+}
+
+function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
+    if (!String(agent || "").trim()) {
+        return false;
+    }
+
+    if (!String(priority || "").trim()) {
+        return false;
+    }
+
+    if (!String(taskTitle || "").trim()) {
+        return false;
+    }
+
+    if (isInvalidExecutiveTaskTitle(taskTitle)) {
+        return false;
+    }
+
+    return true;
+}
+
+function passesExecutiveAssignmentRecord(record) {
+    if (!record) {
+        return false;
+    }
+
+    if (!String(record.assigned_agent || "").trim()) {
+        return false;
+    }
+
+    if (!String(record.priority || "").trim()) {
+        return false;
+    }
+
+    if (!String(record.task_title || "").trim()) {
+        return false;
+    }
+
+    if (isInvalidExecutiveTaskTitle(record.task_title)) {
+        return false;
+    }
+
+    return true;
+}
+
 function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     if (!row || typeof row !== "object") {
         return null;
@@ -1418,7 +1485,7 @@ function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     console.log("EXECUTIVE ASSIGNMENT RAW ROW:", row);
 
     var taskTitle = extractTaskTitleFromRow(row);
-    if (!taskTitle) {
+    if (!taskTitle || isInvalidExecutiveTaskTitle(taskTitle)) {
         return null;
     }
 
@@ -1771,11 +1838,11 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   function pushRecord(agent, title, description, priority, timeline, kpis) {
     title = cleanLine(title);
     description = cleanLine(description);
-    priority = cleanLine(priority || "Medium");
+    priority = cleanLine(priority || "");
     timeline = cleanLine(timeline || "Pending");
     kpis = cleanLine(kpis || "");
 
-    if (!agent || !title) {
+    if (!passesExecutivePlainTextAssignment(agent, priority, title)) {
       return;
     }
 
@@ -1817,19 +1884,17 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var kpis = extractPlainTextAssignmentField(block, "KPIs") || extractPlainTextAssignmentField(block, "KPI");
     var expectedOutcome = extractPlainTextAssignmentField(block, "Expected Outcome");
     var agentField = extractPlainTextAssignmentField(block, "Agent");
-    var owner = extractPlainTextAssignmentField(block, "Owner");
-    var assignedAgent = agentField || owner || currentAgent;
+
+    if (!passesExecutivePlainTextAssignment(agentField, priority, title)) {
+      currentBlock = [];
+      return;
+    }
 
     if (!description && expectedOutcome) {
       description = expectedOutcome;
     }
 
-    if (!title) {
-      var firstMeaningful = currentBlock.map(cleanLine).filter(Boolean)[0] || "";
-      title = firstMeaningful.replace(/^ASSIGNMENT\s+[\d.]+/i, "").trim();
-    }
-
-    pushRecord(assignedAgent, title, description, priority, timeline, kpis);
+    pushRecord(agentField, title, description, priority, timeline, kpis);
     currentBlock = [];
   }
 
@@ -1907,7 +1972,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
     }
 
     function pushRecord(record) {
-        if (!record || !record.task_title) {
+        if (!passesExecutiveAssignmentRecord(record)) {
             return;
         }
 
@@ -1922,7 +1987,9 @@ function parseExecutiveAssignments(reportText, parentReportId) {
 
     function pushAssignment(fields) {
         var taskTitle = fields.task_title || fields.title || fields.task || fields.name;
-        if (!taskTitle) {
+        var priority = fields.priority;
+
+        if (!passesExecutivePlainTextAssignment(fields.assigned_agent, priority, taskTitle)) {
             return;
         }
 
