@@ -1281,6 +1281,17 @@ function loadAssignmentsLocal() {
     } catch (err) {
         agentAssignments = [];
     }
+
+    purgeInvalidAgentAssignments();
+}
+
+function purgeInvalidAgentAssignments() {
+    var beforeCount = agentAssignments.length;
+    agentAssignments = agentAssignments.filter(isValidAgentAssignmentRecord);
+
+    if (agentAssignments.length !== beforeCount) {
+        saveAssignmentsLocal();
+    }
 }
 
 var ASSIGNMENT_QUEUE_AGENTS = ["seo", "sales", "content", "ads", "email", "analytics", "community", "influencer", "operations", "reputation"];
@@ -1410,27 +1421,61 @@ function buildAssignmentRecord(fields) {
     };
 }
 
-function isInvalidExecutiveTaskTitle(title) {
-    var t = String(title || "").trim();
-    var lower = t.toLowerCase();
+var EXECUTIVE_ASSIGNMENT_REJECT_PHRASES = [
+    "format assignments under the heading",
+    "must create assignments",
+    "you must create",
+    "act as the executive agent",
+    "executive action plan",
+    "executive summary",
+    "coordinated assignments"
+];
 
-    if (t.length < 5) {
-        return true;
+function assignmentTextContainsRejectPhrase(value) {
+    var lower = String(value || "").trim().toLowerCase();
+    if (!lower) {
+        return false;
     }
 
-    if (lower.indexOf("format assignments") !== -1) {
-        return true;
-    }
-
-    if (lower.indexOf("under the heading") !== -1) {
-        return true;
-    }
-
-    if (lower.indexOf("executive assignments") !== -1) {
-        return true;
+    for (var i = 0; i < EXECUTIVE_ASSIGNMENT_REJECT_PHRASES.length; i++) {
+        if (lower.indexOf(EXECUTIVE_ASSIGNMENT_REJECT_PHRASES[i]) !== -1) {
+            return true;
+        }
     }
 
     return false;
+}
+
+function isValidAgentAssignmentRecord(record) {
+    if (!record || typeof record !== "object") {
+        return false;
+    }
+
+    var title = String(record.task_title || "").trim();
+    var description = String(record.task_description || "").trim();
+    var agent = String(record.assigned_agent || "").trim().toLowerCase();
+
+    if (!title || title.length < 8) {
+        return false;
+    }
+
+    if (title === description) {
+        return false;
+    }
+
+    if (assignmentTextContainsRejectPhrase(title)) {
+        return false;
+    }
+
+    if (assignmentTextContainsRejectPhrase(description)) {
+        return false;
+    }
+
+    if (ASSIGNMENT_QUEUE_AGENTS.indexOf(agent) === -1) {
+        return false;
+    }
+
+    return true;
 }
 
 function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
@@ -1446,7 +1491,11 @@ function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
         return false;
     }
 
-    if (isInvalidExecutiveTaskTitle(taskTitle)) {
+    if (String(taskTitle).trim().length < 8) {
+        return false;
+    }
+
+    if (assignmentTextContainsRejectPhrase(taskTitle)) {
         return false;
     }
 
@@ -1454,27 +1503,7 @@ function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
 }
 
 function passesExecutiveAssignmentRecord(record) {
-    if (!record) {
-        return false;
-    }
-
-    if (!String(record.assigned_agent || "").trim()) {
-        return false;
-    }
-
-    if (!String(record.priority || "").trim()) {
-        return false;
-    }
-
-    if (!String(record.task_title || "").trim()) {
-        return false;
-    }
-
-    if (isInvalidExecutiveTaskTitle(record.task_title)) {
-        return false;
-    }
-
-    return true;
+    return isValidAgentAssignmentRecord(record);
 }
 
 function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
@@ -1485,7 +1514,7 @@ function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     console.log("EXECUTIVE ASSIGNMENT RAW ROW:", row);
 
     var taskTitle = extractTaskTitleFromRow(row);
-    if (!taskTitle || isInvalidExecutiveTaskTitle(taskTitle)) {
+    if (!taskTitle) {
         return null;
     }
 
@@ -1500,6 +1529,11 @@ function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     });
 
     console.log("EXECUTIVE ASSIGNMENT NORMALIZED:", assignment);
+
+    if (!isValidAgentAssignmentRecord(assignment)) {
+        return null;
+    }
+
     return assignment;
 }
 
@@ -1853,17 +1887,23 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
 
     seen[key] = true;
 
-    parsed.push(buildAssignmentRecord({
+    var record = buildAssignmentRecord({
       parent_report_id: parentReportId,
       assigned_agent: agent,
       task_title: title,
-      task_description: description || title,
+      task_description: description,
       priority: priority,
       timeline: timeline,
       kpis: kpis,
       status: "Pending",
       executive_default_priority: true
-    }));
+    });
+
+    if (!isValidAgentAssignmentRecord(record)) {
+      return;
+    }
+
+    parsed.push(record);
   }
 
   var lines = text.split(/\r?\n/);
@@ -2121,6 +2161,10 @@ function processExecutiveAssignmentsFromReport(item) {
     var created = [];
 
     extracted.forEach(function(record) {
+        if (!isValidAgentAssignmentRecord(record)) {
+            return;
+        }
+
         var exists = agentAssignments.some(function(existing) {
             return getAssignmentDedupeKey(existing) === getAssignmentDedupeKey(record);
         });
