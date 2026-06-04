@@ -1382,6 +1382,13 @@ function normalizeStoredAssignmentRecord(item) {
 
     var record = Object.assign({}, item);
     record.status = normalizeAssignmentStatus(record.status);
+    record.archived = record.archived === true;
+
+    if (record.archived !== true) {
+        record.archived = false;
+        record.archived_at = record.archived_at || null;
+        record.archive_reason = record.archive_reason || null;
+    }
 
     if (record.status === "Completed") {
         if (!record.completed_at) {
@@ -1428,6 +1435,42 @@ var ASSIGNMENT_QUEUE_AGENTS = ["seo", "sales", "content", "ads", "email", "analy
 
 function generateAssignmentId() {
     return "asg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+}
+
+function generateExecutiveSprintId(reportItem) {
+    if (reportItem && reportItem.id) {
+        return "sprint_" + String(reportItem.id);
+    }
+
+    return "sprint_" + Date.now();
+}
+
+function isAssignmentArchived(item) {
+    return !!(item && item.archived === true);
+}
+
+function archiveSupersededExecutiveSprintAssignments(nextSprintId) {
+    var archivedAt = new Date().toISOString();
+
+    agentAssignments.forEach(function(assignment) {
+        if (isAssignmentArchived(assignment)) {
+            return;
+        }
+
+        var status = normalizeAssignmentStatus(assignment.status);
+
+        if (status === "Completed" || status === "Blocked") {
+            return;
+        }
+
+        if (String(assignment.sprint_id || "") === String(nextSprintId || "")) {
+            return;
+        }
+
+        assignment.archived = true;
+        assignment.archived_at = archivedAt;
+        assignment.archive_reason = "superseded_by_new_executive_sprint";
+    });
 }
 
 function normalizeAssignedAgent(value) {
@@ -1548,7 +1591,11 @@ function buildAssignmentRecord(fields) {
         priority: normalizeAssignmentPriority(fields.priority, defaultPriority),
         status: normalizeAssignmentStatus(fields.status || "Pending"),
         created_at: fields.created_at || new Date().toISOString(),
-        completed_at: fields.completed_at || null
+        completed_at: fields.completed_at || null,
+        sprint_id: fields.sprint_id || null,
+        archived: fields.archived === true,
+        archived_at: fields.archived_at || null,
+        archive_reason: fields.archive_reason || null
     };
 }
 
@@ -2553,6 +2600,7 @@ function processExecutiveAssignmentsFromReport(item) {
     }
 
     var created = [];
+    var sprintId = generateExecutiveSprintId(item);
 
     extracted.forEach(function(record) {
         if (!isValidAgentAssignmentRecord(record)) {
@@ -2565,6 +2613,10 @@ function processExecutiveAssignmentsFromReport(item) {
         });
 
         if (!exists) {
+            record.sprint_id = sprintId;
+            record.archived = false;
+            record.archived_at = null;
+            record.archive_reason = null;
             agentAssignments.unshift(record);
             created.push(record);
         }
@@ -2573,6 +2625,7 @@ function processExecutiveAssignmentsFromReport(item) {
     console.log("EXECUTIVE ASSIGNMENTS SAVED COUNT:", created.length);
 
     if (created.length) {
+        archiveSupersededExecutiveSprintAssignments(sprintId);
         saveAssignmentsLocal();
     }
 
@@ -2581,13 +2634,22 @@ function processExecutiveAssignmentsFromReport(item) {
     return created;
 }
 
-function getFilteredAssignments(includeCompleted) {
+function getFilteredAssignments(includeHistory) {
     var filterAgent = assignmentAgentFilter ? assignmentAgentFilter.value : "";
 
     return agentAssignments.filter(function(item) {
-        var isCompleted = normalizeAssignmentStatus(item.status) === "Completed";
+        var status = normalizeAssignmentStatus(item.status);
+        var archived = isAssignmentArchived(item);
 
-        if (includeCompleted !== isCompleted) {
+        if (!includeHistory) {
+            if (archived) {
+                return false;
+            }
+
+            if (status === "Completed" || status === "Blocked") {
+                return false;
+            }
+        } else if (!archived && status !== "Completed" && status !== "Blocked") {
             return false;
         }
 
@@ -2674,6 +2736,7 @@ function renderAssignmentCard(item, isHistory) {
 
     var createdLabel = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
+    var archivedLabel = item.archived_at ? new Date(item.archived_at).toLocaleString() : "—";
     var normalizedStatus = normalizeAssignmentStatus(item.status);
     var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
         var selected = normalizedStatus === status ? " selected" : "";
@@ -2702,7 +2765,8 @@ function renderAssignmentCard(item, isHistory) {
             <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Created</div>
             <div style="color:#aaa;font-size:13px;margin-top:4px;">${assignmentEscapeHtml(createdLabel)}</div>
         </div>
-        ${isHistory ? '<div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Completed</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(completedLabel) + '</div></div>' : ""}
+        ${isHistory && item.archived ? '<div style="grid-column:1/-1;"><div style="color:#8888aa;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">ARCHIVED — Superseded by newer Executive sprint</div></div><div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Archived</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(archivedLabel) + '</div></div>' : ""}
+        ${isHistory && !item.archived ? '<div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Completed</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(completedLabel) + '</div></div>' : ""}
     `;
 
     return card;
