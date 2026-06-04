@@ -940,13 +940,17 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
         expanded: false
     });
 
+    var reportId = item.id ? String(item.id) : getMailboxId(item);
+    console.log("EXECUTIVE REPORT SAVED TO MAILBOX:", reportId);
+
+    saveAiMailbox();
     renderAiMailbox();
     updateMailboxUnreadCount();
 
     if (window.processExecutiveAssignmentsFromReport) {
         try {
             window.processExecutiveAssignmentsFromReport({
-                id: item.id,
+                id: reportId,
                 agent: item.agent,
                 agent_type: item.agent_type,
                 launch_agent: item.launch_agent || item.agent_type || item.agent,
@@ -961,7 +965,8 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
                 prompt: item.prompt,
                 full_report: item.full_report,
                 report: item.report,
-                output: item.output
+                output: item.output,
+                created_at: item.created_at || new Date().toISOString()
             });
         } catch (err) {
             console.error("EXECUTIVE ASSIGNMENT BRIDGE ERROR:", err);
@@ -1451,6 +1456,7 @@ function isAssignmentArchived(item) {
 
 function archiveSupersededExecutiveSprintAssignments(nextSprintId) {
     var archivedAt = new Date().toISOString();
+    var archivedCount = 0;
 
     agentAssignments.forEach(function(assignment) {
         if (isAssignmentArchived(assignment)) {
@@ -1470,7 +1476,48 @@ function archiveSupersededExecutiveSprintAssignments(nextSprintId) {
         assignment.archived = true;
         assignment.archived_at = archivedAt;
         assignment.archive_reason = "superseded_by_new_executive_sprint";
+        archivedCount++;
     });
+
+    return archivedCount;
+}
+
+function getNewestActiveExecutiveSprintId() {
+    var sprintTimes = {};
+
+    agentAssignments.forEach(function(item) {
+        if (isAssignmentArchived(item)) {
+            return;
+        }
+
+        var status = normalizeAssignmentStatus(item.status);
+
+        if (status === "Completed" || status === "Blocked") {
+            return;
+        }
+
+        if (!item.sprint_id) {
+            return;
+        }
+
+        var createdAt = Date.parse(item.created_at || "") || 0;
+
+        if (!sprintTimes[item.sprint_id] || createdAt > sprintTimes[item.sprint_id]) {
+            sprintTimes[item.sprint_id] = createdAt;
+        }
+    });
+
+    var newestSprintId = null;
+    var newestTime = 0;
+
+    Object.keys(sprintTimes).forEach(function(sprintId) {
+        if (sprintTimes[sprintId] >= newestTime) {
+            newestTime = sprintTimes[sprintId];
+            newestSprintId = sprintId;
+        }
+    });
+
+    return newestSprintId;
 }
 
 function normalizeAssignedAgent(value) {
@@ -2612,6 +2659,9 @@ function processExecutiveAssignmentsFromReport(item) {
 
     loadAssignmentsLocal();
 
+    var sprintId = generateExecutiveSprintId(item);
+    console.log("EXECUTIVE SPRINT ID CREATED:", sprintId);
+
     var extracted = extractAssignmentRecordsFromReportItem(item);
 
     console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
@@ -2622,7 +2672,6 @@ function processExecutiveAssignmentsFromReport(item) {
     }
 
     var created = [];
-    var sprintId = generateExecutiveSprintId(item);
 
     extracted.forEach(function(record) {
         if (!isValidAgentAssignmentRecord(record)) {
@@ -2646,7 +2695,7 @@ function processExecutiveAssignmentsFromReport(item) {
 
     console.log("EXECUTIVE ASSIGNMENTS SAVED COUNT:", created.length);
 
-    if (created.length) {
+    if (created.length > 0) {
         archiveSupersededExecutiveSprintAssignments(sprintId);
         saveAssignmentsLocal();
     }
@@ -2658,6 +2707,7 @@ function processExecutiveAssignmentsFromReport(item) {
 
 function getFilteredAssignments(includeHistory) {
     var filterAgent = assignmentAgentFilter ? assignmentAgentFilter.value : "";
+    var newestActiveSprintId = getNewestActiveExecutiveSprintId();
 
     return agentAssignments.filter(function(item) {
         var status = normalizeAssignmentStatus(item.status);
@@ -2669,6 +2719,10 @@ function getFilteredAssignments(includeHistory) {
             }
 
             if (status === "Completed" || status === "Blocked") {
+                return false;
+            }
+
+            if (newestActiveSprintId && String(item.sprint_id || "") !== String(newestActiveSprintId)) {
                 return false;
             }
         } else if (!archived && status !== "Completed" && status !== "Blocked") {
@@ -2821,6 +2875,8 @@ function renderAssignmentDashboard() {
         });
     }
 
+    console.log("ACTIVE QUEUE RENDERED COUNT:", activeItems.length);
+    console.log("ACTIVE QUEUE NEWEST SPRINT:", getNewestActiveExecutiveSprintId() || "(none)");
     console.log("ASSIGNMENT DASHBOARD RENDERED:", activeItems.length, "active,", historyItems.length, "history");
 }
 
