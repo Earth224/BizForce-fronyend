@@ -1273,10 +1273,15 @@ activePollInterval = setInterval(async function () {
 
         console.log("TASK POLL:", pollData);
 
-        if (
-            pollData.task &&
-            pollData.task.status === "completed"
-        ) {
+        console.log("TASK POLL STATUS:", pollData.task && pollData.task.status);
+
+        var pollTaskStatus = pollData.task && pollData.task.status
+            ? String(pollData.task.status).trim().toLowerCase()
+            : "";
+        var isTerminalTaskSuccess =
+            pollTaskStatus === "completed" || pollTaskStatus === "requires_approval";
+
+        if (pollData.task && isTerminalTaskSuccess) {
             if (taskCompletionHandled) {
                 return;
             }
