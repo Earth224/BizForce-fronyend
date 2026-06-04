@@ -488,6 +488,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
 var aiMailbox = [];
 
+try {
+    var savedMailboxItems = JSON.parse(localStorage.getItem(AI_MAILBOX_STORAGE_KEY) || "[]");
+    if (Array.isArray(savedMailboxItems)) {
+        aiMailbox = savedMailboxItems;
+    }
+} catch (err) {
+    aiMailbox = [];
+}
+
 async function clearAiMailboxPermanently() {
     var response = await fetch(API_URL + "/api/ai/tasks", {
         method: "DELETE",
@@ -610,6 +619,9 @@ function updateMailboxUnreadCount() {
         }
 
        var existingMailboxMap = {};
+       var localCompletionReports = aiMailbox.filter(function(item) {
+           return item && item.type === "completion_report";
+       });
 
 aiMailbox.forEach(function(item) {
   existingMailboxMap[String(item.id)] = item;
@@ -633,6 +645,16 @@ aiMailbox = data.tasks
       expanded: existing ? existing.expanded : false
     };
   });
+
+        localCompletionReports.forEach(function(item) {
+            if (!aiMailbox.some(function(existingItem) {
+                return String(existingItem.id) === String(item.id);
+            })) {
+                aiMailbox.unshift(item);
+            }
+        });
+
+        saveAiMailbox();
         renderAiMailbox();
         updateMailboxUnreadCount();
 
@@ -644,6 +666,77 @@ aiMailbox = data.tasks
 window.loadMailboxReports = loadMailboxReports;
 
 loadMailboxReports();
+
+function findMailboxItemById(reportId) {
+    return aiMailbox.find(function(item) {
+        return String(item.id) === String(reportId);
+    });
+}
+
+function toggleMailboxReportById(reportId) {
+    var target = findMailboxItemById(reportId);
+
+    if (!target) {
+        return;
+    }
+
+    target.expanded = !target.expanded;
+    target.unread = false;
+    saveAiMailbox();
+    console.log("MAILBOX REPORT TOGGLED:", reportId, target.expanded ? "expanded" : "collapsed");
+    renderAiMailbox();
+}
+
+async function hideMailboxItemById(reportId) {
+    if (!reportId) {
+        return;
+    }
+
+    try {
+        await fetch(API_URL + "/api/ai/tasks/" + encodeURIComponent(reportId), {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+    } catch (err) {
+        console.error("MAILBOX DELETE ERROR:", err);
+    }
+
+    aiMailbox = aiMailbox.filter(function(item) {
+        return String(item.id) !== String(reportId);
+    });
+
+    saveAiMailbox();
+    renderAiMailbox();
+}
+
+function bindMailboxControls() {
+    if (!aiMailboxResults || aiMailboxResults.dataset.mailboxBound === "1") {
+        return;
+    }
+
+    aiMailboxResults.dataset.mailboxBound = "1";
+
+    aiMailboxResults.addEventListener("click", function(event) {
+        var toggleBtn = event.target.closest(".toggleMailboxItem");
+
+        if (toggleBtn) {
+            event.preventDefault();
+            toggleMailboxReportById(toggleBtn.getAttribute("data-id"));
+            return;
+        }
+
+        var hideBtn = event.target.closest(".hideMailboxItem");
+
+        if (hideBtn) {
+            event.preventDefault();
+            hideMailboxItemById(hideBtn.getAttribute("data-id"));
+        }
+    });
+}
+
+bindMailboxControls();
 
 function renderAiMailbox() {
 
@@ -709,13 +802,13 @@ mailboxCard.style.transition = "all 0.2s ease";
 
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             ${item.unread ? '<span style="padding:5px 9px;border-radius:999px;background:#ff4d6d;color:white;font-size:11px;font-weight:900;">Unread</span>' : ""}
-           <button class="hideMailboxItem" data-id="${escapeHtml(item.id)}" data-index="${index}" style="padding:8px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:#ff4d6d;">
+           <button type="button" class="hideMailboxItem" data-id="${escapeHtml(item.id)}" style="padding:8px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:#ff4d6d;">
     Trash
 </button>
         </div>
     </div>
 
-    <button class="toggleMailboxItem" data-index="${index}" style="width:100%;text-align:left;border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:12px;margin-top:12px;cursor:pointer;background:#090b12;color:#f4f7ff;line-height:1.4;">
+    <button type="button" class="toggleMailboxItem" data-id="${escapeHtml(item.id)}" style="width:100%;text-align:left;border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:12px;margin-top:12px;cursor:pointer;background:#090b12;color:#f4f7ff;line-height:1.4;">
         <div style="font-size:12px;font-weight:800;color:#ffffff;">
             ${escapeHtml(cleanSummary)}
         </div>
@@ -741,63 +834,71 @@ mailboxCard.style.transition = "all 0.2s ease";
 
     });
 
-    document.querySelectorAll(".hideMailboxItem").forEach(function(btn) {
-  btn.addEventListener("click", async function() {
+    updateMailboxUnreadCount();
 
-    var id = btn.dataset.id;
+}
 
-    try {
+function buildAssignmentCompletionReportText(assignment) {
+    var agentName = String(assignment.assigned_agent || "Agent").toUpperCase();
+    var completedAt = assignment.completed_at ?
+        new Date(assignment.completed_at).toLocaleString() :
+        new Date().toLocaleString();
 
-      if (id) {
+    return [
+        agentName + " COMPLETION REPORT",
+        "Assignment:",
+        assignment.task_title || "",
+        "Status:",
+        "Completed",
+        "Completed At:",
+        completedAt,
+        "Task Description:",
+        assignment.task_description || ""
+    ].join("\n");
+}
 
-        await fetch(API_URL + "/api/ai/tasks/" + encodeURIComponent(id), {
-          method: "DELETE",
-          headers: {
-            "Authorization": "Bearer " + token
-          }
-        });
+function assignmentCompletionReportExists(assignmentId) {
+    return aiMailbox.some(function(item) {
+        return String(item.assignment_id) === String(assignmentId) ||
+            String(item.id) === "completion_report_" + assignmentId;
+    });
+}
 
-      }
-
-    } catch (err) {
-
-      console.error("MAILBOX DELETE ERROR:", err);
-
+window.addAssignmentCompletionReportToMailbox = function(assignment) {
+    if (!assignment || !assignment.id) {
+        return false;
     }
 
-    aiMailbox = aiMailbox.filter(function(item) {
-      return String(item.id) !== String(id);
+    if (assignmentCompletionReportExists(assignment.id)) {
+        return false;
+    }
+
+    var reportId = "completion_report_" + assignment.id;
+    var createdAt = new Date().toISOString();
+    var reportText = buildAssignmentCompletionReportText(assignment);
+    var agentLabel = String(assignment.assigned_agent || "Agent").toUpperCase();
+
+    aiMailbox.unshift({
+        id: reportId,
+        assignment_id: assignment.id,
+        agent: agentLabel,
+        type: "completion_report",
+        task_title: assignment.task_title || "",
+        task_description: assignment.task_description || "",
+        completed_at: assignment.completed_at || createdAt,
+        created_at: createdAt,
+        summary: reportText,
+        result: reportText,
+        unread: true,
+        expanded: false
     });
 
     saveAiMailbox();
     renderAiMailbox();
-
-  });
-});
-
-    document.querySelectorAll(".toggleMailboxItem").forEach(function(btn) {
-
-        btn.addEventListener("click", function() {
-
-            var index = parseInt(btn.dataset.index);
-
-            if (!aiMailbox[index]) {
-                return;
-            }
-
-            aiMailbox[index].expanded = !aiMailbox[index].expanded;
-            aiMailbox[index].unread = false;
-
-            saveAiMailbox();
-            renderAiMailbox();
-
-        });
-
-    });
-
     updateMailboxUnreadCount();
-
-}
+    console.log("COMPLETION REPORT CREATED:", reportId);
+    return true;
+};
 
 window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     if (!item || !item.result) {
@@ -1274,15 +1375,44 @@ function saveAssignmentsLocal() {
     localStorage.setItem(AGENT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(agentAssignments));
 }
 
+function normalizeStoredAssignmentRecord(item) {
+    if (!item || typeof item !== "object") {
+        return null;
+    }
+
+    var record = Object.assign({}, item);
+    record.status = normalizeAssignmentStatus(record.status);
+
+    if (record.status === "Completed") {
+        if (!record.completed_at) {
+            record.completed_at = record.updated_at || record.created_at || new Date().toISOString();
+        }
+    } else {
+        record.completed_at = null;
+    }
+
+    return record;
+}
+
 function loadAssignmentsLocal() {
+    var storedRaw = localStorage.getItem(AGENT_ASSIGNMENTS_STORAGE_KEY) || "[]";
+
     try {
-        var saved = JSON.parse(localStorage.getItem(AGENT_ASSIGNMENTS_STORAGE_KEY) || "[]");
+        var saved = JSON.parse(storedRaw);
         agentAssignments = Array.isArray(saved) ? saved : [];
     } catch (err) {
         agentAssignments = [];
     }
 
+    agentAssignments = agentAssignments
+        .map(normalizeStoredAssignmentRecord)
+        .filter(Boolean);
+
     purgeInvalidAgentAssignments();
+
+    if (JSON.stringify(agentAssignments) !== storedRaw) {
+        saveAssignmentsLocal();
+    }
 }
 
 function purgeInvalidAgentAssignments() {
@@ -2190,7 +2320,7 @@ function getFilteredAssignments(includeCompleted) {
     var filterAgent = assignmentAgentFilter ? assignmentAgentFilter.value : "";
 
     return agentAssignments.filter(function(item) {
-        var isCompleted = item.status === "Completed";
+        var isCompleted = normalizeAssignmentStatus(item.status) === "Completed";
 
         if (includeCompleted !== isCompleted) {
             return false;
@@ -2201,6 +2331,68 @@ function getFilteredAssignments(includeCompleted) {
         }
 
         return true;
+    });
+}
+
+function updateAssignmentStatusById(assignmentId, nextStatusValue) {
+    var target = agentAssignments.find(function(item) {
+        return String(item.id) === String(assignmentId);
+    });
+
+    if (!target) {
+        return;
+    }
+
+    var nextStatus = normalizeAssignmentStatus(nextStatusValue);
+    var previousStatus = normalizeAssignmentStatus(target.status);
+
+    if (previousStatus === nextStatus) {
+        return;
+    }
+
+    target.status = nextStatus;
+
+    if (nextStatus === "Completed") {
+        if (!target.completed_at) {
+            target.completed_at = new Date().toISOString();
+        }
+    } else {
+        target.completed_at = null;
+    }
+
+    saveAssignmentsLocal();
+    console.log("ASSIGNMENT STATUS UPDATED:", target.id, nextStatus);
+
+    if (nextStatus === "Completed" && previousStatus !== "Completed") {
+        if (window.addAssignmentCompletionReportToMailbox) {
+            var reportCreated = window.addAssignmentCompletionReportToMailbox(target);
+            if (reportCreated) {
+                target.completion_report_id = "completion_report_" + target.id;
+                saveAssignmentsLocal();
+            }
+        }
+    }
+
+    renderAssignmentDashboard();
+}
+
+function bindAssignmentStatusControls() {
+    var section = document.getElementById("agentAssignmentSection");
+
+    if (!section || section.dataset.statusBound === "1") {
+        return;
+    }
+
+    section.dataset.statusBound = "1";
+
+    section.addEventListener("change", function(event) {
+        var select = event.target;
+
+        if (!select || !select.classList || !select.classList.contains("assignmentStatusSelect")) {
+            return;
+        }
+
+        updateAssignmentStatusById(select.getAttribute("data-id"), select.value);
     });
 }
 
@@ -2217,8 +2409,9 @@ function renderAssignmentCard(item, isHistory) {
 
     var createdLabel = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
+    var normalizedStatus = normalizeAssignmentStatus(item.status);
     var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
-        var selected = item.status === status ? " selected" : "";
+        var selected = normalizedStatus === status ? " selected" : "";
         return '<option value="' + status + '"' + selected + '>' + status + '</option>';
     }).join("");
 
@@ -2233,10 +2426,7 @@ function renderAssignmentCard(item, isHistory) {
         </div>
         <div>
             <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Status</div>
-            ${isHistory ?
-                '<div style="color:#00ff99;font-size:14px;font-weight:800;margin-top:4px;">Completed</div>' :
-                '<select class="assignmentStatusSelect" data-id="' + assignmentEscapeHtml(item.id) + '" style="margin-top:4px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-weight:700;">' + statusOptions + '</select>'
-            }
+            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:4px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-weight:700;">${statusOptions}</select>
         </div>
         <div style="grid-column:1/-1;">
             <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Task</div>
@@ -2280,30 +2470,7 @@ function renderAssignmentDashboard() {
         });
     }
 
-    document.querySelectorAll(".assignmentStatusSelect").forEach(function(select) {
-        select.addEventListener("change", function() {
-            var id = select.dataset.id;
-            var nextStatus = normalizeAssignmentStatus(select.value);
-            var target = agentAssignments.find(function(item) {
-                return String(item.id) === String(id);
-            });
-
-            if (!target) {
-                return;
-            }
-
-            target.status = nextStatus;
-
-            if (nextStatus === "Completed") {
-                target.completed_at = new Date().toISOString();
-            } else {
-                target.completed_at = null;
-            }
-
-            saveAssignmentsLocal();
-            renderAssignmentDashboard();
-        });
-    });
+    console.log("ASSIGNMENT DASHBOARD RENDERED:", activeItems.length, "active,", historyItems.length, "history");
 }
 
 function setAssignmentView(view) {
@@ -2356,6 +2523,7 @@ window.__processExecutiveAssignmentsImpl = processExecutiveAssignmentsFromReport
 window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromReport;
 
 loadAssignmentsLocal();
+bindAssignmentStatusControls();
 setAssignmentView("active");
 renderAssignmentDashboard();
 
