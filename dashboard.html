@@ -2047,7 +2047,7 @@ function extractJsonArraySubstrings(text) {
 }
 
 function getExecutiveAssignmentNextLabelRegex() {
-    return /^\s*(?:Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+    return /^\s*(?:Agent|Assigned Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
 }
 
 function getExecutiveAssignmentFieldMatchers() {
@@ -2055,6 +2055,7 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
+        { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
         { key: "deliverable", pattern: /^Deliverables?\s*:\s*(.*)$/i },
         { key: "success_metric", pattern: /^Success Metrics?\s*:\s*(.*)$/i },
@@ -2111,7 +2112,7 @@ function parseExecutiveAssignmentBlockFields(block) {
             return;
         }
 
-        if (/^Assignment\s+[\d.]+\s*$/i.test(cleaned)) {
+        if (/^Assignment\s+\d+(?:\.\d+)?\s*$/i.test(cleaned)) {
             return;
         }
 
@@ -2190,6 +2191,7 @@ function extractPlainTextAssignmentField(block, label) {
         "Task Title": "task_title",
         "Task Description": "task_description",
         "Agent": "agent",
+        "Assigned Agent": "assigned_agent",
         "Priority": "priority",
         "Deliverable": "deliverable",
         "Deliverables": "deliverable",
@@ -2217,12 +2219,94 @@ function buildFullExecutiveAssignmentDescription(block, title) {
 
 function splitExecutiveAssignmentBlocks(sectionText) {
     var text = String(sectionText || "");
-    var blocks = text.split(/(?=^\s*Assignment\s+[\d.]+\s*$)/im);
+    var blocks = text.split(/(?=^\s*Assignment\s+\d+(?:\.\d+)?\s*$)/im);
 
     return blocks.filter(function(block) {
-        return /Task Title\s*:/i.test(block) ||
-            /^\s*Assignment\s+[\d.]+\s*$/im.test(String(block.split(/\r?\n/)[0] || ""));
+        return /^\s*Assignment\s+\d+(?:\.\d+)?\s*$/im.test(String(block.split(/\r?\n/)[0] || "").trim()) ||
+            /Task Title\s*:/i.test(block);
     });
+}
+
+function detectExecutiveSectionAgent(line) {
+    var cleaned = cleanExecutiveAssignmentLine(line).toUpperCase();
+    var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
+
+    if (!match) {
+        match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/);
+    }
+
+    if (!match) {
+        return "";
+    }
+
+    return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
+}
+
+function extractExecutiveAssignmentNumber(block) {
+    var match = String(block || "").match(/^\s*Assignment\s+(\d+(?:\.\d+)?)\s*$/im);
+    return match ? match[1] : "";
+}
+
+function extractExecutiveAgentFromBlockFields(fields, parentAgent) {
+    if (fields.agent) {
+        return fields.agent;
+    }
+
+    if (fields.owner_assignment) {
+        return fields.owner_assignment;
+    }
+
+    if (fields.owner) {
+        return fields.owner;
+    }
+
+    if (fields.assigned_agent) {
+        return fields.assigned_agent;
+    }
+
+    return parentAgent || "";
+}
+
+function collectExecutiveAssignmentBlockEntries(sectionText) {
+    var entries = [];
+    var lines = String(sectionText || "").split(/\r?\n/);
+    var parentAgent = "";
+    var currentBlock = [];
+
+    function flushBlock() {
+        if (!currentBlock.length) {
+            return;
+        }
+
+        entries.push({
+            block: currentBlock.join("\n"),
+            parentAgent: parentAgent
+        });
+        currentBlock = [];
+    }
+
+    lines.forEach(function(line) {
+        var sectionAgent = detectExecutiveSectionAgent(line);
+
+        if (sectionAgent) {
+            flushBlock();
+            parentAgent = sectionAgent;
+            return;
+        }
+
+        if (/^\s*Assignment\s+\d+(?:\.\d+)?\s*$/i.test(cleanExecutiveAssignmentLine(line))) {
+            flushBlock();
+            currentBlock = [line];
+            return;
+        }
+
+        if (currentBlock.length) {
+            currentBlock.push(line);
+        }
+    });
+
+    flushBlock();
+    return entries;
 }
 
 function parseExecutivePlainTextQueue(reportText, parentReportId) {
@@ -2230,30 +2314,12 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|Assignment\s+[\d.]+|\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)/i.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|Assignment\s+\d+(?:\.\d+)?|\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)/i.test(text)) {
     return parsed;
   }
 
   function cleanLine(value) {
-    return String(value || "")
-      .replace(/\*\*/g, "")
-      .replace(/^[\s\-•]+/, "")
-      .trim();
-  }
-
-  function detectAgent(line) {
-    var cleaned = cleanLine(line).toUpperCase();
-    var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
-
-    if (!match) {
-      match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/);
-    }
-
-    if (!match) {
-      return "";
-    }
-
-    return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
+    return cleanExecutiveAssignmentLine(value);
   }
 
   function recordKey(record) {
@@ -2301,17 +2367,20 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     parsed.push(record);
   }
 
-  function parseAssignmentBlock(block) {
+  function parseAssignmentBlock(block, parentAgent) {
+    var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
-    var title = fields.task_title ||
-      fields.objective ||
-      fields.deliverable ||
-      extractPlainTextAssignmentField(block, "Task Title");
-    var assignedAgent = fields.agent ||
-      fields.owner_assignment ||
-      fields.owner;
+    var title = String(fields.task_title || "").trim();
+    var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
+
+    console.log(
+      "EXECUTIVE BLOCK PARSED:",
+      assignmentNumber || "?",
+      normalizeAssignedAgent(assignedAgent),
+      title
+    );
 
     pushRecord(assignedAgent, title, description, priority);
   }
@@ -2323,62 +2392,15 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     queueSectionText = text.slice(queueHeaderMatch.index + queueHeaderMatch[0].length);
   }
 
-  splitExecutiveAssignmentBlocks(queueSectionText).forEach(parseAssignmentBlock);
-
-  if (!parsed.length) {
-    splitExecutiveAssignmentBlocks(text).forEach(parseAssignmentBlock);
-  }
-
-  if (parsed.length) {
-    return parsed;
-  }
-
-  var lines = text.split(/\r?\n/);
-  var currentAgent = "";
-  var currentBlock = [];
-
-  function flushBlock() {
-    if (!currentBlock.length) {
-      currentBlock = [];
-      return;
-    }
-
-    var block = currentBlock.join("\n");
-    var agentField = extractPlainTextAssignmentField(block, "Agent") ||
-      extractPlainTextAssignmentField(block, "Owner Assignment") ||
-      extractPlainTextAssignmentField(block, "Owner");
-    var assignedAgent = agentField || currentAgent;
-
-    if (!assignedAgent) {
-      currentBlock = [];
-      return;
-    }
-
-    parseAssignmentBlock(block);
-    currentBlock = [];
-  }
-
-  lines.forEach(function(line) {
-    var agent = detectAgent(line);
-
-    if (agent) {
-      flushBlock();
-      currentAgent = agent;
-      return;
-    }
-
-    if (/^\s*Assignment\s+[\d.]+\s*$/i.test(line)) {
-      flushBlock();
-      currentBlock = [line];
-      return;
-    }
-
-    if (currentBlock.length || currentAgent) {
-      currentBlock.push(line);
-    }
+  collectExecutiveAssignmentBlockEntries(queueSectionText).forEach(function(entry) {
+    parseAssignmentBlock(entry.block, entry.parentAgent);
   });
 
-  flushBlock();
+  if (!parsed.length) {
+    collectExecutiveAssignmentBlockEntries(text).forEach(function(entry) {
+      parseAssignmentBlock(entry.block, entry.parentAgent);
+    });
+  }
 
   return parsed;
 }
