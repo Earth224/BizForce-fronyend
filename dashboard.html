@@ -949,7 +949,7 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
                 id: item.id,
                 agent: item.agent,
                 agent_type: item.agent_type,
-                launch_agent: item.launch_agent,
+                launch_agent: item.launch_agent || item.agent_type || item.agent,
                 type: item.type || item.task_type,
                 task_type: item.task_type || item.type,
                 result: item.result,
@@ -1524,7 +1524,7 @@ function extractTaskTitleFromRow(row) {
         return null;
     }
 
-    return row.task_title || row.title || row.task || row.name || null;
+    return row.task_title || row.title || row.task || row.name || row.objective || row.deliverable || null;
 }
 
 function extractTaskDescriptionFromRow(row) {
@@ -1532,7 +1532,8 @@ function extractTaskDescriptionFromRow(row) {
         return "";
     }
 
-    return row.task_description || row.description || row.details || row.summary || "";
+    return row.task_description || row.description || row.details || row.summary ||
+        row.objective || row.deliverable || row.success_metric || row.successMetric || "";
 }
 
 function buildAssignmentRecord(fields) {
@@ -1589,7 +1590,7 @@ function isValidAgentAssignmentRecord(record) {
         return false;
     }
 
-    if (title === description) {
+    if (description && title === description) {
         return false;
     }
 
@@ -1597,7 +1598,7 @@ function isValidAgentAssignmentRecord(record) {
         return false;
     }
 
-    if (assignmentTextContainsRejectPhrase(description)) {
+    if (description && assignmentTextContainsRejectPhrase(description)) {
         return false;
     }
 
@@ -1608,12 +1609,48 @@ function isValidAgentAssignmentRecord(record) {
     return true;
 }
 
-function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
-    if (!String(agent || "").trim()) {
-        return false;
+function getExecutiveAssignmentRejectReason(record) {
+    if (!record || typeof record !== "object") {
+        return "invalid record";
     }
 
-    if (!String(priority || "").trim()) {
+    var title = String(record.task_title || "").trim();
+    var description = String(record.task_description || "").trim();
+    var agent = String(record.assigned_agent || "").trim().toLowerCase();
+
+    if (!title || title.length < 8) {
+        return "task title missing or too short";
+    }
+
+    if (description && title === description) {
+        return "task title equals task description";
+    }
+
+    if (assignmentTextContainsRejectPhrase(title)) {
+        return "task title contains instruction phrase";
+    }
+
+    if (description && assignmentTextContainsRejectPhrase(description)) {
+        return "task description contains instruction phrase";
+    }
+
+    if (ASSIGNMENT_QUEUE_AGENTS.indexOf(agent) === -1) {
+        return "assigned agent not allowed";
+    }
+
+    return "";
+}
+
+function logExecutiveAssignmentRejected(record, reason) {
+    console.log(
+        "EXECUTIVE ASSIGNMENT REJECTED:",
+        reason || getExecutiveAssignmentRejectReason(record) || "unknown",
+        record
+    );
+}
+
+function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
+    if (!String(agent || "").trim()) {
         return false;
     }
 
@@ -1661,6 +1698,7 @@ function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
     console.log("EXECUTIVE ASSIGNMENT NORMALIZED:", assignment);
 
     if (!isValidAgentAssignmentRecord(assignment)) {
+        logExecutiveAssignmentRejected(assignment, getExecutiveAssignmentRejectReason(assignment));
         return null;
     }
 
@@ -1670,6 +1708,27 @@ function normalizeAssignmentRow(row, parentReportId, inheritedAgent) {
 function isExecutiveAssignmentAgent(value) {
     var normalized = String(value || "").trim().toLowerCase().replace(/[^a-z]/g, "");
     return normalized === "executive" || normalized.indexOf("executive") !== -1;
+}
+
+function reportTextLooksLikeExecutiveAssignments(item) {
+    if (!item || typeof item !== "object") {
+        return false;
+    }
+
+    var text = [
+        item.result,
+        item.result_clean,
+        item.content,
+        item.response,
+        item.text,
+        item.summary,
+        item.report,
+        item.output
+    ].join("\n");
+
+    return /Task Title\s*:|Objective\s*:|Deliverable\s*:/i.test(text) &&
+        (/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|ASSIGNMENT\s+[\d.]+)/i.test(text) ||
+            /(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent/i.test(text));
 }
 
 function decodeAssignmentReportText(value) {
@@ -1940,10 +1999,14 @@ function extractJsonArraySubstrings(text) {
     return results;
 }
 
+function getExecutiveAssignmentNextLabelRegex() {
+    return /^\s*(?:Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metric|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+}
+
 function extractPlainTextAssignmentField(block, label) {
     var escapedLabel = label.replace(/\s+/g, "\\s+");
     var labelRegex = new RegExp("^\\s*" + escapedLabel + "\\s*:\\s*(.*)$", "i");
-    var nextLabelRegex = /^\s*(?:Agent|Task Title|Task Description|Priority|Owner|Timeline|KPIs?|Expected Outcome|ASSIGNMENT|\d+\.\s+[A-Z][A-Z\s]+AGENT)\s*:/i;
+    var nextLabelRegex = getExecutiveAssignmentNextLabelRegex();
     var lines = String(block || "").split(/\r?\n/);
 
     for (var i = 0; i < lines.length; i++) {
@@ -1974,12 +2037,44 @@ function extractPlainTextAssignmentField(block, label) {
     return "";
 }
 
+function buildFullExecutiveAssignmentDescription(block, title) {
+    var fieldLabels = [
+        "Task Description",
+        "Deliverable",
+        "Success Metric",
+        "Estimated Completion Time",
+        "Owner Assignment",
+        "Dependencies",
+        "Next Action"
+    ];
+    var parts = [];
+
+    fieldLabels.forEach(function(label) {
+        var value = extractPlainTextAssignmentField(block, label);
+        if (value && String(value).trim() !== String(title || "").trim()) {
+            parts.push(String(value).trim());
+        }
+    });
+
+    return parts.join("\n\n").trim();
+}
+
+function splitExecutiveAssignmentBlocks(sectionText) {
+    var text = String(sectionText || "");
+    var blocks = text.split(/(?=^\s*Assignment\s+[\d.]+\s*$)/im);
+
+    return blocks.filter(function(block) {
+        return /Task Title\s*:/i.test(block) ||
+            /^\s*Assignment\s+[\d.]+\s*$/im.test(String(block.split(/\r?\n/)[0] || ""));
+    });
+}
+
 function parseExecutivePlainTextQueue(reportText, parentReportId) {
-  var text = String(reportText || "");
+  var text = decodeAssignmentReportText(String(reportText || ""));
   var parsed = [];
   var seen = {};
 
-  if (!/EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|ASSIGNMENT\s+[\d.]+/i.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|Assignment\s+[\d.]+|\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)/i.test(text)) {
     return parsed;
   }
 
@@ -1993,29 +2088,43 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   function detectAgent(line) {
     var cleaned = cleanLine(line).toUpperCase();
     var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
+
+    if (!match) {
+      match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/);
+    }
+
     if (!match) {
       return "";
     }
+
     return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
   }
 
-  function pushRecord(agent, title, description, priority, timeline, kpis) {
+  function recordKey(record) {
+    return [
+      String(parentReportId || ""),
+      record.assigned_agent,
+      String(record.task_title || "").toLowerCase()
+    ].join("|");
+  }
+
+  function pushRecord(agent, title, description, priority) {
     title = cleanLine(title);
-    description = cleanLine(description);
-    priority = cleanLine(priority || "");
-    timeline = cleanLine(timeline || "Pending");
-    kpis = cleanLine(kpis || "");
+    description = String(description || "").trim();
+    priority = cleanLine(priority || "High") || "High";
 
     if (!passesExecutivePlainTextAssignment(agent, priority, title)) {
       return;
     }
 
-    var key = [agent, title.toLowerCase()].join("|");
-    if (seen[key]) {
+    var previewRecord = {
+      assigned_agent: agent,
+      task_title: title
+    };
+
+    if (seen[recordKey(previewRecord)]) {
       return;
     }
-
-    seen[key] = true;
 
     var record = buildAssignmentRecord({
       parent_report_id: parentReportId,
@@ -2023,17 +2132,47 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       task_title: title,
       task_description: description,
       priority: priority,
-      timeline: timeline,
-      kpis: kpis,
       status: "Pending",
       executive_default_priority: true
     });
 
     if (!isValidAgentAssignmentRecord(record)) {
+      logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
       return;
     }
 
+    seen[recordKey(record)] = true;
     parsed.push(record);
+  }
+
+  function parseAssignmentBlock(block) {
+    var title = extractPlainTextAssignmentField(block, "Task Title") ||
+      extractPlainTextAssignmentField(block, "Objective") ||
+      extractPlainTextAssignmentField(block, "Deliverable");
+    var assignedAgent = extractPlainTextAssignmentField(block, "Agent") ||
+      extractPlainTextAssignmentField(block, "Owner Assignment") ||
+      extractPlainTextAssignmentField(block, "Owner");
+    var priority = extractPlainTextAssignmentField(block, "Priority") || "High";
+    var description = buildFullExecutiveAssignmentDescription(block, title);
+
+    pushRecord(assignedAgent, title, description, priority);
+  }
+
+  var queueSectionText = text;
+  var queueHeaderMatch = text.match(/AGENT WORK QUEUE ASSIGNMENTS\s*/i);
+
+  if (queueHeaderMatch) {
+    queueSectionText = text.slice(queueHeaderMatch.index + queueHeaderMatch[0].length);
+  }
+
+  splitExecutiveAssignmentBlocks(queueSectionText).forEach(parseAssignmentBlock);
+
+  if (!parsed.length) {
+    splitExecutiveAssignmentBlocks(text).forEach(parseAssignmentBlock);
+  }
+
+  if (parsed.length) {
+    return parsed;
   }
 
   var lines = text.split(/\r?\n/);
@@ -2041,30 +2180,23 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var currentBlock = [];
 
   function flushBlock() {
-    if (!currentAgent || !currentBlock.length) {
+    if (!currentBlock.length) {
       currentBlock = [];
       return;
     }
 
     var block = currentBlock.join("\n");
-    var title = extractPlainTextAssignmentField(block, "Task Title");
-    var description = extractPlainTextAssignmentField(block, "Task Description");
-    var priority = extractPlainTextAssignmentField(block, "Priority");
-    var timeline = extractPlainTextAssignmentField(block, "Timeline");
-    var kpis = extractPlainTextAssignmentField(block, "KPIs") || extractPlainTextAssignmentField(block, "KPI");
-    var expectedOutcome = extractPlainTextAssignmentField(block, "Expected Outcome");
-    var agentField = extractPlainTextAssignmentField(block, "Agent");
+    var agentField = extractPlainTextAssignmentField(block, "Agent") ||
+      extractPlainTextAssignmentField(block, "Owner Assignment") ||
+      extractPlainTextAssignmentField(block, "Owner");
+    var assignedAgent = agentField || currentAgent;
 
-    if (!passesExecutivePlainTextAssignment(agentField, priority, title)) {
+    if (!assignedAgent) {
       currentBlock = [];
       return;
     }
 
-    if (!description && expectedOutcome) {
-      description = expectedOutcome;
-    }
-
-    pushRecord(agentField, title, description, priority, timeline, kpis);
+    parseAssignmentBlock(block);
     currentBlock = [];
   }
 
@@ -2077,13 +2209,13 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       return;
     }
 
-    if (/^\s*ASSIGNMENT\s+[\d.]+/i.test(line)) {
+    if (/^\s*Assignment\s+[\d.]+\s*$/i.test(line)) {
       flushBlock();
       currentBlock = [line];
       return;
     }
 
-    if (currentAgent) {
+    if (currentBlock.length || currentAgent) {
       currentBlock.push(line);
     }
   });
@@ -2098,7 +2230,8 @@ function isExecutiveReportItem(item) {
         isExecutiveAssignmentAgent(item.agent) ||
         isExecutiveAssignmentAgent(item.agent_type) ||
         isExecutiveAssignmentAgent(item.type) ||
-        isExecutiveAssignmentAgent(item.task_type);
+        isExecutiveAssignmentAgent(item.task_type) ||
+        reportTextLooksLikeExecutiveAssignments(item);
 }
 
 function assignmentRowsToRecords(rows, parentReportId) {
@@ -2129,7 +2262,7 @@ function assignmentRowsToRecords(rows, parentReportId) {
 }
 
 function parseExecutiveAssignments(reportText, parentReportId) {
-    var text = String(reportText || "");
+    var text = decodeAssignmentReportText(String(reportText || ""));
     var parsed = [];
     var seen = {};
 
@@ -2143,6 +2276,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
 
     function pushRecord(record) {
         if (!passesExecutiveAssignmentRecord(record)) {
+            logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
             return;
         }
 
@@ -2156,8 +2290,9 @@ function parseExecutiveAssignments(reportText, parentReportId) {
     }
 
     function pushAssignment(fields) {
-        var taskTitle = fields.task_title || fields.title || fields.task || fields.name;
-        var priority = fields.priority;
+        var taskTitle = fields.task_title || fields.title || fields.task || fields.name ||
+            fields.objective || fields.deliverable;
+        var priority = fields.priority || "High";
 
         if (!passesExecutivePlainTextAssignment(fields.assigned_agent, priority, taskTitle)) {
             return;
@@ -2274,6 +2409,8 @@ function extractAssignmentRecordsFromReportItem(item) {
 }
 
 function processExecutiveAssignmentsFromReport(item) {
+    console.log("EXECUTIVE REPORT RECEIVED FOR QUEUE PARSING:", item && item.id ? item.id : "(no id)");
+
     if (!isExecutiveReportItem(item)) {
         return [];
     }
@@ -2285,6 +2422,7 @@ function processExecutiveAssignmentsFromReport(item) {
     console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
 
     if (!extracted.length) {
+        renderAssignmentDashboard();
         return [];
     }
 
@@ -2292,6 +2430,7 @@ function processExecutiveAssignmentsFromReport(item) {
 
     extracted.forEach(function(record) {
         if (!isValidAgentAssignmentRecord(record)) {
+            logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
             return;
         }
 
