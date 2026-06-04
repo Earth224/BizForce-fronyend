@@ -900,6 +900,24 @@ window.addAssignmentCompletionReportToMailbox = function(assignment) {
     return true;
 };
 
+window.dispatchExecutiveQueueParsing = function dispatchExecutiveQueueParsing(queueItem) {
+    if (!queueItem || typeof queueItem !== "object") {
+        return [];
+    }
+
+    if (typeof window.__processExecutiveAssignmentsImpl === "function") {
+        return window.__processExecutiveAssignmentsImpl(queueItem);
+    }
+
+    if (typeof window.processExecutiveAssignmentsFromReport === "function") {
+        return window.processExecutiveAssignmentsFromReport(queueItem);
+    }
+
+    window.__executiveAssignmentBridgeQueue = window.__executiveAssignmentBridgeQueue || [];
+    window.__executiveAssignmentBridgeQueue.push(queueItem);
+    return [];
+};
+
 window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     if (!item || !item.result) {
         return;
@@ -947,30 +965,31 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     renderAiMailbox();
     updateMailboxUnreadCount();
 
-    if (window.processExecutiveAssignmentsFromReport) {
-        try {
-            window.processExecutiveAssignmentsFromReport({
-                id: reportId,
-                agent: item.agent,
-                agent_type: item.agent_type,
-                launch_agent: item.launch_agent || item.agent_type || item.agent,
-                type: item.type || item.task_type,
-                task_type: item.task_type || item.type,
-                result: item.result,
-                result_clean: reportPayload.result,
-                content: item.content,
-                response: item.response,
-                text: item.text,
-                summary: item.summary || reportPayload.summary,
-                prompt: item.prompt,
-                full_report: item.full_report,
-                report: item.report,
-                output: item.output,
-                created_at: item.created_at || new Date().toISOString()
-            });
-        } catch (err) {
-            console.error("EXECUTIVE ASSIGNMENT BRIDGE ERROR:", err);
-        }
+    var queueParseItem = {
+        id: reportId,
+        agent: item.agent,
+        agent_type: item.agent_type,
+        launch_agent: item.launch_agent || item.agent_type || item.agent,
+        type: item.type || item.task_type,
+        task_type: item.task_type || item.type,
+        result: reportPayload.result,
+        result_clean: reportPayload.result,
+        content: item.content,
+        response: item.response,
+        text: item.text,
+        summary: item.summary || reportPayload.summary,
+        prompt: item.prompt,
+        full_report: item.full_report,
+        report: item.report,
+        output: item.output,
+        created_at: item.created_at || new Date().toISOString(),
+        mailbox_saved: true
+    };
+
+    try {
+        window.dispatchExecutiveQueueParsing(queueParseItem);
+    } catch (err) {
+        console.error("EXECUTIVE ASSIGNMENT BRIDGE ERROR:", err);
     }
 };
 
@@ -1629,7 +1648,7 @@ function extractTaskDescriptionFromRow(row) {
 function buildAssignmentRecord(fields) {
     var defaultPriority = fields.executive_default_priority ? "High" : "Medium";
 
-    return {
+    var record = {
         id: fields.id || generateAssignmentId(),
         parent_report_id: fields.parent_report_id || null,
         assigned_agent: normalizeAssignedAgent(fields.assigned_agent),
@@ -1644,6 +1663,14 @@ function buildAssignmentRecord(fields) {
         archived_at: fields.archived_at || null,
         archive_reason: fields.archive_reason || null
     };
+
+    ["deliverable", "success_metric", "owner_assignment", "dependencies", "next_action"].forEach(function(key) {
+        if (fields[key] !== null && fields[key] !== undefined && String(fields[key]).trim()) {
+            record[key] = String(fields[key]).trim();
+        }
+    });
+
+    return record;
 }
 
 var EXECUTIVE_ASSIGNMENT_REJECT_PHRASES = [
@@ -1809,20 +1836,69 @@ function reportTextLooksLikeExecutiveAssignments(item) {
         return false;
     }
 
-    var text = [
-        item.result,
+    var text = decodeAssignmentReportText([
         item.result_clean,
+        item.result,
         item.content,
         item.response,
         item.text,
         item.summary,
         item.report,
         item.output
-    ].join("\n");
+    ].filter(Boolean).join("\n"));
 
-    return /Task Title\s*:|Objective\s*:|Deliverable\s*:/i.test(text) &&
-        (/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|ASSIGNMENT\s+[\d.]+)/i.test(text) ||
-            /(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent/i.test(text));
+    if (!text.trim()) {
+        return false;
+    }
+
+    var hasAssignmentMarkers = /(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|ASSIGNMENT\s+\d+(?:\.\d+)?|Task Title\s*:|Assignment\s+\d+\.\d+)/i.test(text);
+    var hasAgentHeadings = /(?:^|\n)\s*(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/im.test(text);
+
+    return hasAssignmentMarkers || (hasAgentHeadings && /Task Title\s*:/i.test(text));
+}
+
+function shouldProcessExecutiveQueue(item) {
+    if (!item || typeof item !== "object") {
+        return false;
+    }
+
+    if (item.mailbox_saved) {
+        if (
+            isExecutiveAssignmentAgent(item.launch_agent) ||
+            isExecutiveAssignmentAgent(item.agent) ||
+            isExecutiveAssignmentAgent(item.agent_type)
+        ) {
+            return true;
+        }
+    }
+
+    return isExecutiveReportItem(item);
+}
+
+function getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount) {
+    if (!shouldProcessExecutiveQueue(item)) {
+        return "not recognized as executive report";
+    }
+
+    var canonicalBody = decodeAssignmentReportText(String(item.result_clean || item.result || "").trim());
+
+    if (!canonicalBody) {
+        return "report body empty after mailbox save";
+    }
+
+    if (!extracted.length) {
+        return "no assignments extracted from saved report body";
+    }
+
+    if (!validExtractedCount) {
+        return "extracted assignments failed validation";
+    }
+
+    if (!created.length) {
+        return "all assignments rejected or duplicate";
+    }
+
+    return "";
 }
 
 function decodeAssignmentReportText(value) {
@@ -2094,13 +2170,18 @@ function extractJsonArraySubstrings(text) {
 }
 
 function getExecutiveAssignmentNextLabelRegex() {
-    return /^\s*(?:Agent|Assigned Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+    return /^\s*(?:Agent|Assigned Agent|Task Title|Task Description|Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+}
+
+function getExecutiveAssignmentHeaderLinePattern() {
+    return /^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?\s*$/i;
 }
 
 function getExecutiveAssignmentFieldMatchers() {
     return [
         { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
+        { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
         { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
@@ -2159,7 +2240,7 @@ function parseExecutiveAssignmentBlockFields(block) {
             return;
         }
 
-        if (/^Assignment\s+\d+(?:\.\d+)?\s*$/i.test(cleaned)) {
+        if (getExecutiveAssignmentHeaderLinePattern().test(cleaned)) {
             return;
         }
 
@@ -2237,6 +2318,7 @@ function extractPlainTextAssignmentField(block, label) {
     var labelMap = {
         "Task Title": "task_title",
         "Task Description": "task_description",
+        "Description": "task_description",
         "Agent": "agent",
         "Assigned Agent": "assigned_agent",
         "Priority": "priority",
@@ -2266,10 +2348,11 @@ function buildFullExecutiveAssignmentDescription(block, title) {
 
 function splitExecutiveAssignmentBlocks(sectionText) {
     var text = String(sectionText || "");
-    var blocks = text.split(/(?=^\s*Assignment\s+\d+(?:\.\d+)?\s*$)/im);
+    var headerPattern = getExecutiveAssignmentHeaderLinePattern();
+    var blocks = text.split(/(?=^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?\s*$)/im);
 
     return blocks.filter(function(block) {
-        return /^\s*Assignment\s+\d+(?:\.\d+)?\s*$/im.test(String(block.split(/\r?\n/)[0] || "").trim()) ||
+        return headerPattern.test(String(block.split(/\r?\n/)[0] || "").trim()) ||
             /Task Title\s*:/i.test(block);
     });
 }
@@ -2279,7 +2362,7 @@ function detectExecutiveSectionAgent(line) {
     var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
 
     if (!match) {
-        match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/);
+        match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*:?\s*$/);
     }
 
     if (!match) {
@@ -2290,28 +2373,24 @@ function detectExecutiveSectionAgent(line) {
 }
 
 function extractExecutiveAssignmentNumber(block) {
-    var match = String(block || "").match(/^\s*Assignment\s+(\d+(?:\.\d+)?)\s*$/im);
+    var match = String(block || "").match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)\s*:?\s*$/im);
     return match ? match[1] : "";
 }
 
 function extractExecutiveAgentFromBlockFields(fields, parentAgent) {
-    if (fields.agent) {
-        return fields.agent;
-    }
-
-    if (fields.owner_assignment) {
-        return fields.owner_assignment;
-    }
-
-    if (fields.owner) {
-        return fields.owner;
-    }
-
     if (fields.assigned_agent) {
         return fields.assigned_agent;
     }
 
-    return parentAgent || "";
+    if (fields.agent) {
+        return fields.agent;
+    }
+
+    if (parentAgent) {
+        return parentAgent;
+    }
+
+    return "";
 }
 
 function collectExecutiveAssignmentBlockEntries(sectionText) {
@@ -2341,8 +2420,16 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
             return;
         }
 
-        if (/^\s*Assignment\s+\d+(?:\.\d+)?\s*$/i.test(cleanExecutiveAssignmentLine(line))) {
+        if (getExecutiveAssignmentHeaderLinePattern().test(cleanExecutiveAssignmentLine(line))) {
             flushBlock();
+            currentBlock = [line];
+            return;
+        }
+
+        if (parentAgent && /^Task Title\s*:/i.test(cleanExecutiveAssignmentLine(line))) {
+            if (currentBlock.length) {
+                flushBlock();
+            }
             currentBlock = [line];
             return;
         }
@@ -2361,7 +2448,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|Assignment\s+\d+(?:\.\d+)?|\d+\.\s*(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)/i.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?|Task Title\s*:|Description\s*:|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     return parsed;
   }
 
@@ -2377,7 +2464,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     ].join("|");
   }
 
-  function pushRecord(agent, title, description, priority) {
+  function pushRecord(agent, title, description, priority, metadata) {
     title = cleanLine(title);
     description = String(description || "").trim();
     priority = cleanLine(priority || "High") || "High";
@@ -2395,7 +2482,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       return;
     }
 
-    var record = buildAssignmentRecord({
+    var record = buildAssignmentRecord(Object.assign({
       parent_report_id: parentReportId,
       assigned_agent: agent,
       task_title: title,
@@ -2403,7 +2490,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       priority: priority,
       status: "Pending",
       executive_default_priority: true
-    });
+    }, metadata || {}));
 
     if (!isValidAgentAssignmentRecord(record)) {
       logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
@@ -2429,7 +2516,13 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       title
     );
 
-    pushRecord(assignedAgent, title, description, priority);
+    pushRecord(assignedAgent, title, description, priority, {
+      deliverable: fields.deliverable,
+      success_metric: fields.success_metric,
+      owner_assignment: fields.owner_assignment || fields.owner,
+      dependencies: fields.dependencies,
+      next_action: fields.next_action
+    });
   }
 
   var queueSectionText = text;
@@ -2637,13 +2730,31 @@ function extractAssignmentRecordsFromReportItem(item) {
         });
     }
 
+    var canonicalBody = decodeAssignmentReportText(String(item.result_clean || item.result || "").trim());
+
+    if (item.mailbox_saved) {
+        if (canonicalBody) {
+            mergeRecords(parseExecutiveAssignments(canonicalBody, parentReportId));
+        }
+
+        return extracted;
+    }
+
+    if (canonicalBody) {
+        mergeRecords(parseExecutiveAssignments(canonicalBody, parentReportId));
+    }
+
     collectAssignmentReportSources(item).forEach(function(source) {
         if (typeof source === "object" && source !== null) {
             mergeRecords(assignmentRowsToRecords(getAssignmentRowsFromJsonPayload(source), parentReportId));
         }
 
         if (typeof source === "string") {
-            mergeRecords(parseExecutiveAssignments(source, parentReportId));
+            var sourceText = decodeAssignmentReportText(String(source || "").trim());
+
+            if (sourceText && sourceText !== canonicalBody) {
+                mergeRecords(parseExecutiveAssignments(sourceText, parentReportId));
+            }
         }
     });
 
@@ -2653,20 +2764,27 @@ function extractAssignmentRecordsFromReportItem(item) {
 function processExecutiveAssignmentsFromReport(item) {
     console.log("EXECUTIVE REPORT RECEIVED FOR QUEUE PARSING:", item && item.id ? item.id : "(no id)");
 
-    if (!isExecutiveReportItem(item)) {
+    if (!shouldProcessExecutiveQueue(item)) {
+        console.log("EXECUTIVE QUEUE PARSE FAILED: not recognized as executive report");
         return [];
     }
 
     loadAssignmentsLocal();
 
     var sprintId = generateExecutiveSprintId(item);
-    console.log("EXECUTIVE SPRINT ID CREATED:", sprintId);
-
     var extracted = extractAssignmentRecordsFromReportItem(item);
+    var validExtractedCount = 0;
 
     console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
 
+    extracted.forEach(function(record) {
+        if (isValidAgentAssignmentRecord(record)) {
+            validExtractedCount++;
+        }
+    });
+
     if (!extracted.length) {
+        console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, [], validExtractedCount));
         renderAssignmentDashboard();
         return [];
     }
@@ -2698,6 +2816,8 @@ function processExecutiveAssignmentsFromReport(item) {
     if (created.length > 0) {
         archiveSupersededExecutiveSprintAssignments(sprintId);
         saveAssignmentsLocal();
+    } else {
+        console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
     }
 
     renderAssignmentDashboard();
@@ -2799,50 +2919,126 @@ function bindAssignmentStatusControls() {
     });
 }
 
+function bindAssignmentDetailsControls() {
+    var section = document.getElementById("agentAssignmentSection");
+
+    if (!section || section.dataset.detailsBound === "1") {
+        return;
+    }
+
+    section.dataset.detailsBound = "1";
+
+    section.addEventListener("click", function(event) {
+        var button = event.target.closest(".assignmentDetailsToggle");
+
+        if (!button) {
+            return;
+        }
+
+        var card = button.closest(".assignmentQueueCard");
+        var details = card && card.querySelector(".assignmentCardDetails");
+
+        if (!details) {
+            return;
+        }
+
+        var expanded = details.style.display !== "none";
+        details.style.display = expanded ? "none" : "block";
+        button.textContent = expanded ? "Details" : "Hide";
+    });
+}
+
+function assignmentPreviewText(text, maxLen) {
+    var value = String(text || "").replace(/\s+/g, " ").trim();
+
+    if (!value) {
+        return "";
+    }
+
+    if (value.length <= maxLen) {
+        return value;
+    }
+
+    return value.slice(0, maxLen).trim() + "...";
+}
+
+function assignmentDetailSection(label, value) {
+    if (!value) {
+        return "";
+    }
+
+    return '<div style="margin-top:10px;"><div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">' +
+        assignmentEscapeHtml(label) +
+        '</div><div style="color:#c5cdd8;font-size:12px;margin-top:4px;line-height:1.5;white-space:pre-wrap;">' +
+        assignmentEscapeHtml(value) +
+        "</div></div>";
+}
+
 function renderAssignmentCard(item, isHistory) {
     var card = document.createElement("div");
+    card.className = "assignmentQueueCard";
     card.style.background = "#111";
     card.style.border = "1px solid #222";
-    card.style.borderRadius = "14px";
-    card.style.padding = "14px";
+    card.style.borderRadius = "12px";
+    card.style.padding = "10px 12px";
     card.style.display = "grid";
-    card.style.gridTemplateColumns = "repeat(auto-fit,minmax(140px,1fr))";
-    card.style.gap = "12px";
-    card.style.alignItems = "center";
+    card.style.gridTemplateColumns = "repeat(auto-fit,minmax(110px,1fr))";
+    card.style.gap = "8px 12px";
+    card.style.alignItems = "start";
 
     var createdLabel = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
     var archivedLabel = item.archived_at ? new Date(item.archived_at).toLocaleString() : "—";
     var normalizedStatus = normalizeAssignmentStatus(item.status);
+    var preview = assignmentPreviewText(item.task_description, 180);
     var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
         var selected = normalizedStatus === status ? " selected" : "";
         return '<option value="' + status + '"' + selected + '>' + status + '</option>';
     }).join("");
 
+    var detailsHtml =
+        assignmentDetailSection("Full description", item.task_description) +
+        assignmentDetailSection("Deliverable", item.deliverable) +
+        assignmentDetailSection("Success metric", item.success_metric) +
+        assignmentDetailSection("Owner", item.owner_assignment) +
+        assignmentDetailSection("Dependencies", item.dependencies) +
+        assignmentDetailSection("Next action", item.next_action);
+
+    if (isHistory && item.archived) {
+        detailsHtml += assignmentDetailSection("Archived", archivedLabel);
+    } else if (isHistory && !item.archived) {
+        detailsHtml += assignmentDetailSection("Completed", completedLabel);
+    }
+
+    if (!detailsHtml) {
+        detailsHtml = assignmentDetailSection("Full description", item.task_description);
+    }
+
     card.innerHTML = `
         <div>
-            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Assigned Agent</div>
-            <div style="color:#00e5ff;font-size:15px;font-weight:900;margin-top:4px;">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
+            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Assigned Agent</div>
+            <div style="color:#00e5ff;font-size:13px;font-weight:900;margin-top:3px;">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
         </div>
         <div>
-            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Priority</div>
-            <div style="color:#f4f7ff;font-size:14px;font-weight:800;margin-top:4px;">${assignmentEscapeHtml(item.priority || "Medium")}</div>
+            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Priority</div>
+            <div style="color:#f4f7ff;font-size:12px;font-weight:800;margin-top:3px;">${assignmentEscapeHtml(item.priority || "Medium")}</div>
         </div>
         <div>
-            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Status</div>
-            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:4px;width:100%;padding:8px 10px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-weight:700;">${statusOptions}</select>
+            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Status</div>
+            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:3px;width:100%;padding:6px 8px;border-radius:8px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-size:12px;font-weight:700;">${statusOptions}</select>
+        </div>
+        <div>
+            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Created</div>
+            <div style="color:#aaa;font-size:11px;margin-top:3px;">${assignmentEscapeHtml(createdLabel)}</div>
         </div>
         <div style="grid-column:1/-1;">
-            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Task</div>
-            <div style="color:#f4f7ff;font-size:14px;font-weight:800;margin-top:4px;">${assignmentEscapeHtml(item.task_title)}</div>
-            ${item.task_description ? '<div style="color:#9aa4b2;font-size:13px;margin-top:6px;line-height:1.5;">' + assignmentEscapeHtml(item.task_description) + '</div>' : ""}
+            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Task</div>
+            <div style="color:#f4f7ff;font-size:13px;font-weight:800;margin-top:3px;line-height:1.35;">${assignmentEscapeHtml(item.task_title)}</div>
+            ${preview ? '<div style="color:#9aa4b2;font-size:12px;margin-top:4px;line-height:1.45;">' + assignmentEscapeHtml(preview) + "</div>" : ""}
+            ${isHistory && item.archived ? '<div style="margin-top:6px;color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Archived sprint</div>' : ""}
+            <button type="button" class="assignmentDetailsToggle" style="margin-top:8px;border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:5px 12px;background:#080812;color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;">Details</button>
+            <div class="assignmentCardDetails" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,229,255,.12);">${detailsHtml}</div>
         </div>
-        <div>
-            <div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Created</div>
-            <div style="color:#aaa;font-size:13px;margin-top:4px;">${assignmentEscapeHtml(createdLabel)}</div>
-        </div>
-        ${isHistory && item.archived ? '<div style="grid-column:1/-1;"><div style="color:#8888aa;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">ARCHIVED — Superseded by newer Executive sprint</div></div><div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Archived</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(archivedLabel) + '</div></div>' : ""}
-        ${isHistory && !item.archived ? '<div><div style="color:#8888aa;font-size:11px;font-weight:800;text-transform:uppercase;">Completed</div><div style="color:#aaa;font-size:13px;margin-top:4px;">' + assignmentEscapeHtml(completedLabel) + '</div></div>' : ""}
     `;
 
     return card;
@@ -2931,6 +3127,7 @@ window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromRe
 
 loadAssignmentsLocal();
 bindAssignmentStatusControls();
+bindAssignmentDetailsControls();
 setAssignmentView("active");
 renderAssignmentDashboard();
 
