@@ -1856,7 +1856,7 @@ function reportTextLooksLikeExecutiveAssignments(item) {
         return false;
     }
 
-    var hasAssignmentMarkers = /(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|ASSIGNMENT\s+\d+(?:\.\d+)?|Task Title\s*:|Assignment\s+\d+\.\d+)/i.test(text);
+    var hasAssignmentMarkers = /(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|ASSIGNMENT\s+\d+(?:\.\d+)?(?:\s*:\s*[^\r\n]+)?|Task Title\s*:|Assignment\s+\d+\.\d+|Primary Owner\s*:)/i.test(text);
     var hasAgentHeadings = /(?:^|\n)\s*(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/im.test(text);
 
     return hasAssignmentMarkers || (hasAgentHeadings && /Task Title\s*:/i.test(text));
@@ -2175,11 +2175,31 @@ function extractJsonArraySubstrings(text) {
 }
 
 function getExecutiveAssignmentNextLabelRegex() {
-    return /^\s*(?:Agent|Assigned Agent|Task Title|Task Description|Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+    return /^\s*(?:Agent|Assigned Agent|Primary Owner|Task Title|Task Description|Description|Priority|Priority Level|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
 }
 
 function getExecutiveAssignmentHeaderLinePattern() {
     return /^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?\s*$/i;
+}
+
+function isExecutiveAssignmentTitledHeaderLine(line) {
+    return /^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:\s*.+$/i.test(cleanExecutiveAssignmentLine(line));
+}
+
+function isExecutiveAssignmentHeaderLine(line) {
+    var cleaned = cleanExecutiveAssignmentLine(line);
+    return getExecutiveAssignmentHeaderLinePattern().test(cleaned) || isExecutiveAssignmentTitledHeaderLine(line);
+}
+
+function extractTitleFromAssignmentHeaderLine(line) {
+    var cleaned = cleanExecutiveAssignmentLine(line);
+    var match = cleaned.match(/^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:\s*(.+)$/i);
+    return match ? String(match[1]).trim() : "";
+}
+
+function extractExecutiveAssignmentTitleFromBlock(block) {
+    var firstLine = String(block || "").split(/\r?\n/)[0] || "";
+    return extractTitleFromAssignmentHeaderLine(firstLine);
 }
 
 function getExecutiveAssignmentFieldMatchers() {
@@ -2188,8 +2208,10 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
         { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
+        { key: "agent", pattern: /^Primary Owner\s*:\s*(.*)$/i },
         { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
+        { key: "priority", pattern: /^Priority Level\s*:\s*(.*)$/i },
         { key: "deliverable", pattern: /^Deliverables?\s*:\s*(.*)$/i },
         { key: "success_metric", pattern: /^Success Metrics?\s*:\s*(.*)$/i },
         { key: "estimated_completion_time", pattern: /^Estimated Completion Time\s*:\s*(.*)$/i },
@@ -2245,7 +2267,13 @@ function parseExecutiveAssignmentBlockFields(block) {
             return;
         }
 
-        if (getExecutiveAssignmentHeaderLinePattern().test(cleaned)) {
+        if (isExecutiveAssignmentHeaderLine(cleaned)) {
+            var headerTitle = extractTitleFromAssignmentHeaderLine(cleaned);
+
+            if (headerTitle && !fields.task_title) {
+                fields.task_title = headerTitle;
+            }
+
             return;
         }
 
@@ -2289,6 +2317,7 @@ function buildFullExecutiveAssignmentDescriptionFromFields(fields, title) {
         "deliverable",
         "success_metric",
         "estimated_completion_time",
+        "timeline",
         "owner_assignment",
         "owner",
         "dependencies",
@@ -2325,8 +2354,10 @@ function extractPlainTextAssignmentField(block, label) {
         "Task Description": "task_description",
         "Description": "task_description",
         "Agent": "agent",
+        "Primary Owner": "agent",
         "Assigned Agent": "assigned_agent",
         "Priority": "priority",
+        "Priority Level": "priority",
         "Deliverable": "deliverable",
         "Deliverables": "deliverable",
         "Success Metric": "success_metric",
@@ -2353,12 +2384,11 @@ function buildFullExecutiveAssignmentDescription(block, title) {
 
 function splitExecutiveAssignmentBlocks(sectionText) {
     var text = String(sectionText || "");
-    var headerPattern = getExecutiveAssignmentHeaderLinePattern();
-    var blocks = text.split(/(?=^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?\s*$)/im);
+    var blocks = text.split(/(?=^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?\s*$)/im);
 
     return blocks.filter(function(block) {
-        return headerPattern.test(String(block.split(/\r?\n/)[0] || "").trim()) ||
-            /Task Title\s*:/i.test(block);
+        var firstLine = String(block.split(/\r?\n/)[0] || "").trim();
+        return isExecutiveAssignmentHeaderLine(firstLine) || /Task Title\s*:/i.test(block);
     });
 }
 
@@ -2378,7 +2408,8 @@ function detectExecutiveSectionAgent(line) {
 }
 
 function extractExecutiveAssignmentNumber(block) {
-    var match = String(block || "").match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)\s*:?\s*$/im);
+    var firstLine = String(block || "").split(/\r?\n/)[0] || "";
+    var match = cleanExecutiveAssignmentLine(firstLine).match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
     return match ? match[1] : "";
 }
 
@@ -2425,7 +2456,7 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
             return;
         }
 
-        if (getExecutiveAssignmentHeaderLinePattern().test(cleanExecutiveAssignmentLine(line))) {
+        if (isExecutiveAssignmentHeaderLine(line)) {
             flushBlock();
             currentBlock = [line];
             return;
@@ -2453,7 +2484,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:?|Task Title\s*:|Description\s*:|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     return parsed;
   }
 
@@ -2509,7 +2540,8 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   function parseAssignmentBlock(block, parentAgent) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
-    var title = String(fields.task_title || "").trim();
+    var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
+    var title = String(fields.task_title || headerTitle || "").trim();
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
