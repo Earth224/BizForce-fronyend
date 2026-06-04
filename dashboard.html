@@ -2000,63 +2000,172 @@ function extractJsonArraySubstrings(text) {
 }
 
 function getExecutiveAssignmentNextLabelRegex() {
-    return /^\s*(?:Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metric|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
+    return /^\s*(?:Agent|Task Title|Task Description|Priority|Owner(?:\s+Assignment)?|Timeline|Estimated Completion Time|Deliverable|Success Metrics?|Objective|Expected Outcome|KPIs?|Dependencies|Next Action|Assignment|\d+\.\s+(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+Agent)\s*:/i;
 }
 
-function extractPlainTextAssignmentField(block, label) {
-    var escapedLabel = label.replace(/\s+/g, "\\s+");
-    var labelRegex = new RegExp("^\\s*" + escapedLabel + "\\s*:\\s*(.*)$", "i");
-    var nextLabelRegex = getExecutiveAssignmentNextLabelRegex();
+function getExecutiveAssignmentFieldMatchers() {
+    return [
+        { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
+        { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
+        { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
+        { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
+        { key: "deliverable", pattern: /^Deliverables?\s*:\s*(.*)$/i },
+        { key: "success_metric", pattern: /^Success Metrics?\s*:\s*(.*)$/i },
+        { key: "estimated_completion_time", pattern: /^Estimated Completion Time\s*:\s*(.*)$/i },
+        { key: "owner_assignment", pattern: /^Owner Assignment\s*:\s*(.*)$/i },
+        { key: "owner", pattern: /^Owner\s*:\s*(.*)$/i },
+        { key: "dependencies", pattern: /^Dependencies\s*:\s*(.*)$/i },
+        { key: "next_action", pattern: /^Next Action\s*:\s*(.*)$/i },
+        { key: "objective", pattern: /^Objective\s*:\s*(.*)$/i },
+        { key: "expected_outcome", pattern: /^Expected Outcome\s*:\s*(.*)$/i },
+        { key: "timeline", pattern: /^Timeline\s*:\s*(.*)$/i },
+        { key: "kpi", pattern: /^KPIs?\s*:\s*(.*)$/i }
+    ];
+}
+
+function cleanExecutiveAssignmentLine(line) {
+    return String(line || "")
+        .replace(/^\s*[-•*]\s*/, "")
+        .replace(/\*\*/g, "")
+        .trim();
+}
+
+function parseExecutiveAssignmentBlockFields(block) {
+    var fields = {};
     var lines = String(block || "").split(/\r?\n/);
+    var currentKey = null;
+    var buffer = [];
+    var matchers = getExecutiveAssignmentFieldMatchers();
 
-    for (var i = 0; i < lines.length; i++) {
-        var match = lines[i].match(labelRegex);
-        if (!match) {
-            continue;
+    function flushField() {
+        if (!currentKey) {
+            buffer = [];
+            return;
         }
 
-        var valueParts = [];
+        var value = buffer.join("\n").trim();
+        buffer = [];
 
-        if (match[1] && match[1].trim()) {
-            valueParts.push(match[1].trim());
+        if (!value) {
+            return;
         }
 
-        for (var j = i + 1; j < lines.length; j++) {
-            if (nextLabelRegex.test(lines[j])) {
-                break;
-            }
-
-            if (lines[j].trim()) {
-                valueParts.push(lines[j].trim());
-            }
+        if (fields[currentKey]) {
+            fields[currentKey] = fields[currentKey] + "\n" + value;
+        } else {
+            fields[currentKey] = value;
         }
-
-        return valueParts.join("\n").trim();
     }
 
-    return "";
-}
+    lines.forEach(function(line) {
+        var cleaned = cleanExecutiveAssignmentLine(line);
 
-function buildFullExecutiveAssignmentDescription(block, title) {
-    var fieldLabels = [
-        "Task Description",
-        "Deliverable",
-        "Success Metric",
-        "Estimated Completion Time",
-        "Owner Assignment",
-        "Dependencies",
-        "Next Action"
-    ];
-    var parts = [];
+        if (!cleaned) {
+            return;
+        }
 
-    fieldLabels.forEach(function(label) {
-        var value = extractPlainTextAssignmentField(block, label);
-        if (value && String(value).trim() !== String(title || "").trim()) {
-            parts.push(String(value).trim());
+        if (/^Assignment\s+[\d.]+\s*$/i.test(cleaned)) {
+            return;
+        }
+
+        var matched = null;
+
+        for (var i = 0; i < matchers.length; i++) {
+            var match = cleaned.match(matchers[i].pattern);
+
+            if (match) {
+                matched = {
+                    key: matchers[i].key,
+                    inline: match[1]
+                };
+                break;
+            }
+        }
+
+        if (matched) {
+            flushField();
+            currentKey = matched.key;
+
+            if (matched.inline && String(matched.inline).trim()) {
+                buffer.push(String(matched.inline).trim());
+            }
+
+            return;
+        }
+
+        if (currentKey) {
+            buffer.push(cleaned);
         }
     });
 
+    flushField();
+    return fields;
+}
+
+function buildFullExecutiveAssignmentDescriptionFromFields(fields, title) {
+    var orderedKeys = [
+        "task_description",
+        "deliverable",
+        "success_metric",
+        "estimated_completion_time",
+        "owner_assignment",
+        "owner",
+        "dependencies",
+        "next_action",
+        "objective",
+        "expected_outcome"
+    ];
+    var parts = [];
+    var titleText = String(title || "").trim();
+
+    orderedKeys.forEach(function(key) {
+        var value = fields[key];
+
+        if (!value) {
+            return;
+        }
+
+        value = String(value).trim();
+
+        if (!value || value === titleText) {
+            return;
+        }
+
+        parts.push(value);
+    });
+
     return parts.join("\n\n").trim();
+}
+
+function extractPlainTextAssignmentField(block, label) {
+    var fields = parseExecutiveAssignmentBlockFields(block);
+    var labelMap = {
+        "Task Title": "task_title",
+        "Task Description": "task_description",
+        "Agent": "agent",
+        "Priority": "priority",
+        "Deliverable": "deliverable",
+        "Deliverables": "deliverable",
+        "Success Metric": "success_metric",
+        "Success Metrics": "success_metric",
+        "Estimated Completion Time": "estimated_completion_time",
+        "Owner Assignment": "owner_assignment",
+        "Owner": "owner",
+        "Dependencies": "dependencies",
+        "Next Action": "next_action",
+        "Objective": "objective",
+        "Expected Outcome": "expected_outcome",
+        "Timeline": "timeline",
+        "KPI": "kpi",
+        "KPIs": "kpi"
+    };
+
+    return fields[labelMap[label]] || "";
+}
+
+function buildFullExecutiveAssignmentDescription(block, title) {
+    var fields = parseExecutiveAssignmentBlockFields(block);
+    return buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
 }
 
 function splitExecutiveAssignmentBlocks(sectionText) {
@@ -2146,14 +2255,16 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   }
 
   function parseAssignmentBlock(block) {
-    var title = extractPlainTextAssignmentField(block, "Task Title") ||
-      extractPlainTextAssignmentField(block, "Objective") ||
-      extractPlainTextAssignmentField(block, "Deliverable");
-    var assignedAgent = extractPlainTextAssignmentField(block, "Agent") ||
-      extractPlainTextAssignmentField(block, "Owner Assignment") ||
-      extractPlainTextAssignmentField(block, "Owner");
-    var priority = extractPlainTextAssignmentField(block, "Priority") || "High";
-    var description = buildFullExecutiveAssignmentDescription(block, title);
+    var fields = parseExecutiveAssignmentBlockFields(block);
+    var title = fields.task_title ||
+      fields.objective ||
+      fields.deliverable ||
+      extractPlainTextAssignmentField(block, "Task Title");
+    var assignedAgent = fields.agent ||
+      fields.owner_assignment ||
+      fields.owner;
+    var priority = fields.priority || "High";
+    var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
 
     pushRecord(assignedAgent, title, description, priority);
   }
@@ -2387,6 +2498,21 @@ function extractAssignmentRecordsFromReportItem(item) {
             var key = getAssignmentDedupeKey(record);
 
             if (seen[key]) {
+                for (var i = 0; i < extracted.length; i++) {
+                    if (getAssignmentDedupeKey(extracted[i]) !== key) {
+                        continue;
+                    }
+
+                    var existingDescription = String(extracted[i].task_description || "");
+                    var nextDescription = String(record.task_description || "");
+
+                    if (nextDescription.length > existingDescription.length) {
+                        extracted[i] = record;
+                    }
+
+                    break;
+                }
+
                 return;
             }
 
