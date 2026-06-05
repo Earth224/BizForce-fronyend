@@ -452,7 +452,7 @@ gap:18px;
 
 </section>
 
-<section id="agentAssignmentSection" style="padding:40px;max-width:1100px;margin:auto;">
+<section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
     <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Work Queue</h2>
     <select id="assignmentAgentFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
@@ -479,8 +479,12 @@ gap:18px;
     </button>
   </div>
 
-  <div id="assignmentActivePanel" style="display:flex;flex-direction:column;gap:14px;"></div>
-  <div id="assignmentHistoryPanel" style="display:none;flex-direction:column;gap:14px;"></div>
+  <div id="assignmentActivePanel" style="display:flex;flex-direction:column;gap:14px;">
+    <div id="activeAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;"></div>
+  </div>
+  <div id="assignmentHistoryPanel" style="display:none;flex-direction:column;gap:14px;">
+    <div id="historyAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;"></div>
+  </div>
 </section>
 
 <script>
@@ -1379,6 +1383,8 @@ var agentAssignments = [];
 
 var assignmentActivePanel = document.getElementById("assignmentActivePanel");
 var assignmentHistoryPanel = document.getElementById("assignmentHistoryPanel");
+var activeAssignmentsList = document.getElementById("activeAssignmentsList");
+var historyAssignmentsList = document.getElementById("historyAssignmentsList");
 var assignmentAgentFilter = document.getElementById("assignmentAgentFilter");
 var assignmentTabActive = document.getElementById("assignmentTabActive");
 var assignmentTabHistory = document.getElementById("assignmentTabHistory");
@@ -3034,7 +3040,7 @@ function updateAssignmentStatusById(assignmentId, nextStatusValue) {
 }
 
 function bindAssignmentStatusControls() {
-    var section = document.getElementById("agentAssignmentSection");
+    var section = document.getElementById("agentAssignmentsSection");
 
     if (!section || section.dataset.statusBound === "1") {
         return;
@@ -3054,7 +3060,7 @@ function bindAssignmentStatusControls() {
 }
 
 function bindAssignmentDetailsControls() {
-    var section = document.getElementById("agentAssignmentSection");
+    var section = document.getElementById("agentAssignmentsSection");
 
     if (!section || section.dataset.detailsBound === "1") {
         return;
@@ -3069,7 +3075,7 @@ function bindAssignmentDetailsControls() {
             return;
         }
 
-        var card = button.closest(".assignmentQueueCard");
+        var card = button.closest(".assignment-card");
         var details = card && card.querySelector(".assignmentCardDetails");
 
         if (!details) {
@@ -3110,7 +3116,7 @@ function assignmentDetailSection(label, value) {
 
 function renderAssignmentCard(item, isHistory) {
     var card = document.createElement("div");
-    card.className = "assignmentQueueCard";
+    card.className = "assignment-card assignmentQueueCard";
     card.style.background = "#111";
     card.style.border = "1px solid #222";
     card.style.borderRadius = "12px";
@@ -3179,29 +3185,29 @@ function renderAssignmentCard(item, isHistory) {
 }
 
 function renderAssignmentDashboard() {
-    if (!assignmentActivePanel || !assignmentHistoryPanel) {
+    if (!activeAssignmentsList || !historyAssignmentsList) {
         return;
     }
 
     var activeItems = getFilteredAssignments(false);
     var historyItems = getFilteredAssignments(true);
 
-    assignmentActivePanel.innerHTML = "";
-    assignmentHistoryPanel.innerHTML = "";
+    activeAssignmentsList.innerHTML = "";
+    historyAssignmentsList.innerHTML = "";
 
     if (!activeItems.length) {
-        assignmentActivePanel.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active assignments in queue.</div>';
+        activeAssignmentsList.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active assignments in queue.</div>';
     } else {
         activeItems.forEach(function(item) {
-            assignmentActivePanel.appendChild(renderAssignmentCard(item, false));
+            activeAssignmentsList.appendChild(renderAssignmentCard(item, false));
         });
     }
 
     if (!historyItems.length) {
-        assignmentHistoryPanel.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No completed assignment history yet.</div>';
+        historyAssignmentsList.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No completed assignment history yet.</div>';
     } else {
         historyItems.forEach(function(item) {
-            assignmentHistoryPanel.appendChild(renderAssignmentCard(item, true));
+            historyAssignmentsList.appendChild(renderAssignmentCard(item, true));
         });
     }
 
