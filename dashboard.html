@@ -1784,11 +1784,11 @@ function isValidAgentAssignmentRecord(record) {
     var description = String(record.task_description || "").trim();
     var agent = String(record.assigned_agent || "").trim().toLowerCase();
 
-    if (!title || title.length < 8) {
+    if (!title) {
         return false;
     }
 
-    if (description && title === description) {
+    if (!agent) {
         return false;
     }
 
@@ -1816,12 +1816,12 @@ function getExecutiveAssignmentRejectReason(record) {
     var description = String(record.task_description || "").trim();
     var agent = String(record.assigned_agent || "").trim().toLowerCase();
 
-    if (!title || title.length < 8) {
-        return "task title missing or too short";
+    if (!title) {
+        return "no title found";
     }
 
-    if (description && title === description) {
-        return "task title equals task description";
+    if (!agent) {
+        return "no owner found";
     }
 
     if (assignmentTextContainsRejectPhrase(title)) {
@@ -1853,10 +1853,6 @@ function passesExecutivePlainTextAssignment(agent, priority, taskTitle) {
     }
 
     if (!String(taskTitle || "").trim()) {
-        return false;
-    }
-
-    if (String(taskTitle).trim().length < 8) {
         return false;
     }
 
@@ -2264,12 +2260,14 @@ function extractAssignedAgentFromAssignmentText(text) {
         return "";
     }
 
-    var primaryOwnerMatch = source.match(/Primary Owner\s*:\s*([^|\n]+)/i);
+    var primaryOwnerMatch = source.match(/Primary Owner\s*:\s*([^|\n]+)/i) ||
+        source.match(/(?:^|\n)\s*Primary Owner\s+([^\n]+)/i);
     if (primaryOwnerMatch && primaryOwnerMatch[1]) {
         return primaryOwnerMatch[1].trim();
     }
 
-    var agentMatch = source.match(/(?:^|\s)Agent\s*:\s*([^|\n]+)/i);
+    var agentMatch = source.match(/(?:^|\s)Agent\s*:\s*([^|\n]+)/i) ||
+        source.match(/(?:^|\n)\s*Agent\s+([^\n]+)/i);
     if (agentMatch && agentMatch[1]) {
         return agentMatch[1].trim();
     }
@@ -2317,25 +2315,49 @@ function extractExecutiveAssignmentTitleFromBlock(block) {
 function getExecutiveAssignmentFieldMatchers() {
     return [
         { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
+        { key: "task_title", pattern: /^Task Title\s+(.+)$/i },
+        { key: "task_title", pattern: /^Title\s*:\s*(.*)$/i },
+        { key: "task_title", pattern: /^Title\s+(.+)$/i },
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
+        { key: "task_description", pattern: /^Task Description\s+(.+)$/i },
         { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
+        { key: "task_description", pattern: /^Description\s+(.+)$/i },
+        { key: "scope", pattern: /^Scope\s*:\s*(.*)$/i },
+        { key: "scope", pattern: /^Scope\s+(.+)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
+        { key: "agent", pattern: /^Agent\s+(.+)$/i },
         { key: "primary_owner", pattern: /^Primary Owner\s*:\s*(.*)$/i },
+        { key: "primary_owner", pattern: /^Primary Owner\s+(.+)$/i },
         { key: "co_owner", pattern: /^Co-Owner\s*:\s*(.*)$/i },
+        { key: "co_owner", pattern: /^Co-Owner\s+(.+)$/i },
         { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
+        { key: "assigned_agent", pattern: /^Assigned Agent\s+(.+)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
+        { key: "priority", pattern: /^Priority\s+(.+)$/i },
         { key: "priority", pattern: /^Priority Level\s*:\s*(.*)$/i },
+        { key: "priority", pattern: /^Priority Level\s+(.+)$/i },
         { key: "deliverable", pattern: /^Deliverables?\s*:\s*(.*)$/i },
+        { key: "deliverable", pattern: /^Deliverables?\s+(.+)$/i },
         { key: "success_metric", pattern: /^Success Metrics?\s*:\s*(.*)$/i },
+        { key: "success_metric", pattern: /^Success Metrics?\s+(.+)$/i },
         { key: "estimated_completion_time", pattern: /^Estimated Completion Time\s*:\s*(.*)$/i },
+        { key: "estimated_completion_time", pattern: /^Estimated Completion Time\s+(.+)$/i },
         { key: "owner_assignment", pattern: /^Owner Assignment\s*:\s*(.*)$/i },
+        { key: "owner_assignment", pattern: /^Owner Assignment\s+(.+)$/i },
         { key: "owner", pattern: /^Owner\s*:\s*(.*)$/i },
+        { key: "owner", pattern: /^Owner\s+(.+)$/i },
         { key: "dependencies", pattern: /^Dependencies\s*:\s*(.*)$/i },
+        { key: "dependencies", pattern: /^Dependencies\s+(.+)$/i },
         { key: "next_action", pattern: /^Next Action\s*:\s*(.*)$/i },
+        { key: "next_action", pattern: /^Next Action\s+(.+)$/i },
         { key: "objective", pattern: /^Objective\s*:\s*(.*)$/i },
+        { key: "objective", pattern: /^Objective\s+(.+)$/i },
         { key: "expected_outcome", pattern: /^Expected Outcome\s*:\s*(.*)$/i },
+        { key: "expected_outcome", pattern: /^Expected Outcome\s+(.+)$/i },
         { key: "timeline", pattern: /^Timeline\s*:\s*(.*)$/i },
-        { key: "kpi", pattern: /^KPIs?\s*:\s*(.*)$/i }
+        { key: "timeline", pattern: /^Timeline\s+(.+)$/i },
+        { key: "kpi", pattern: /^KPIs?\s*:\s*(.*)$/i },
+        { key: "kpi", pattern: /^KPIs?\s+(.+)$/i }
     ];
 }
 
@@ -2391,7 +2413,8 @@ function parseExecutiveAssignmentBlockFields(block) {
                 fields.task_title = extractAssignmentTitleFromAssignmentText(cleaned);
             }
 
-            var inlinePrimaryOwner = cleaned.match(/Primary Owner\s*:\s*([^|\n]+)/i);
+            var inlinePrimaryOwner = cleaned.match(/Primary Owner\s*:\s*([^|\n]+)/i) ||
+                cleaned.match(/Primary Owner\s+([^|\n]+)/i);
             if (inlinePrimaryOwner && inlinePrimaryOwner[1]) {
                 fields.primary_owner = inlinePrimaryOwner[1].trim();
             }
@@ -2441,6 +2464,7 @@ function parseExecutiveAssignmentBlockFields(block) {
 function buildFullExecutiveAssignmentDescriptionFromFields(fields, title) {
     var orderedKeys = [
         "task_description",
+        "scope",
         "deliverable",
         "success_metric",
         "estimated_completion_time",
@@ -2672,13 +2696,14 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
 
     seen[recordKey(record)] = true;
     parsed.push(record);
+    console.log("EXECUTIVE ASSIGNMENT PARSED", record);
   }
 
   function parseAssignmentBlock(block, parentAgent) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
     var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
-    var title = String(fields.task_title || headerTitle || extractAssignmentTitleFromAssignmentText(block) || "").trim();
+    var title = String(headerTitle || fields.task_title || extractAssignmentTitleFromAssignmentText(block) || "").trim();
     if (!title && assignmentNumber) {
         title = "Assignment " + assignmentNumber;
     }
@@ -2686,6 +2711,16 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
+
+    if (!String(title || "").trim()) {
+        logExecutiveAssignmentRejected({ task_title: "", assigned_agent: assignedAgent }, "no title found");
+        return;
+    }
+
+    if (!String(assignedAgent || "").trim()) {
+        logExecutiveAssignmentRejected({ task_title: title, assigned_agent: "" }, "no owner found");
+        return;
+    }
 
     console.log(
       "EXECUTIVE BLOCK PARSED:",
@@ -2720,6 +2755,8 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       parseAssignmentBlock(entry.block, entry.parentAgent);
     });
   }
+
+  console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
 
   return parsed;
 }
