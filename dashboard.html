@@ -452,6 +452,61 @@ gap:18px;
 
 </section>
 
+<style>
+#agentAssignmentsSection {
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+#assignmentActivePanel,
+#assignmentHistoryPanel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+#activeAssignmentsList,
+#historyAssignmentsList {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.assignment-card,
+.assignmentQueueCard {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.assignment-card > div,
+.assignmentQueueCard > div {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.assignment-card .assignmentCardDetails,
+.assignmentQueueCard .assignmentCardDetails,
+.assignment-card .assignmentCardDetails div,
+.assignmentQueueCard .assignmentCardDetails div {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.assignment-card .assignmentStatusSelect,
+.assignmentQueueCard .assignmentStatusSelect {
+    max-width: 100%;
+    min-width: 0;
+}
+</style>
+
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
     <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Work Queue</h2>
@@ -479,11 +534,11 @@ gap:18px;
     </button>
   </div>
 
-  <div id="assignmentActivePanel" style="display:flex;flex-direction:column;gap:14px;">
-    <div id="activeAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;"></div>
+  <div id="assignmentActivePanel" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;">
+    <div id="activeAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;"></div>
   </div>
-  <div id="assignmentHistoryPanel" style="display:none;flex-direction:column;gap:14px;">
-    <div id="historyAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;"></div>
+  <div id="assignmentHistoryPanel" style="display:none;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;">
+    <div id="historyAssignmentsList" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;"></div>
   </div>
 </section>
 
@@ -3107,9 +3162,9 @@ function assignmentDetailSection(label, value) {
         return "";
     }
 
-    return '<div style="margin-top:10px;"><div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">' +
+    return '<div style="margin-top:10px;max-width:100%;overflow-wrap:anywhere;word-break:break-word;"><div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;">' +
         assignmentEscapeHtml(label) +
-        '</div><div style="color:#c5cdd8;font-size:12px;margin-top:4px;line-height:1.5;white-space:pre-wrap;">' +
+        '</div><div style="color:#c5cdd8;font-size:12px;margin-top:4px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%;">' +
         assignmentEscapeHtml(value) +
         "</div></div>";
 }
@@ -3122,9 +3177,15 @@ function renderAssignmentCard(item, isHistory) {
     card.style.borderRadius = "12px";
     card.style.padding = "10px 12px";
     card.style.display = "grid";
-    card.style.gridTemplateColumns = "repeat(auto-fit,minmax(110px,1fr))";
+    card.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
     card.style.gap = "8px 12px";
     card.style.alignItems = "start";
+    card.style.width = "100%";
+    card.style.maxWidth = "100%";
+    card.style.minWidth = "0";
+    card.style.boxSizing = "border-box";
+    card.style.overflowWrap = "anywhere";
+    card.style.wordBreak = "break-word";
 
     var createdLabel = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
@@ -3155,29 +3216,29 @@ function renderAssignmentCard(item, isHistory) {
     }
 
     card.innerHTML = `
-        <div>
+        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
             <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Assigned Agent</div>
             <div style="color:#00e5ff;font-size:13px;font-weight:900;margin-top:3px;">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
         </div>
-        <div>
+        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
             <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Priority</div>
             <div style="color:#f4f7ff;font-size:12px;font-weight:800;margin-top:3px;">${assignmentEscapeHtml(item.priority || "Medium")}</div>
         </div>
-        <div>
+        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
             <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Status</div>
-            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:3px;width:100%;padding:6px 8px;border-radius:8px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-size:12px;font-weight:700;">${statusOptions}</select>
+            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:3px;width:100%;max-width:100%;min-width:0;padding:6px 8px;border-radius:8px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-size:12px;font-weight:700;">${statusOptions}</select>
         </div>
-        <div>
+        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
             <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Created</div>
             <div style="color:#aaa;font-size:11px;margin-top:3px;">${assignmentEscapeHtml(createdLabel)}</div>
         </div>
-        <div style="grid-column:1/-1;">
+        <div style="grid-column:1/-1;min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
             <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Task</div>
-            <div style="color:#f4f7ff;font-size:13px;font-weight:800;margin-top:3px;line-height:1.35;">${assignmentEscapeHtml(item.task_title)}</div>
-            ${preview ? '<div style="color:#9aa4b2;font-size:12px;margin-top:4px;line-height:1.45;">' + assignmentEscapeHtml(preview) + "</div>" : ""}
+            <div style="color:#f4f7ff;font-size:13px;font-weight:800;margin-top:3px;line-height:1.35;overflow-wrap:anywhere;word-break:break-word;">${assignmentEscapeHtml(item.task_title)}</div>
+            ${preview ? '<div style="color:#9aa4b2;font-size:12px;margin-top:4px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(preview) + "</div>" : ""}
             ${isHistory && item.archived ? '<div style="margin-top:6px;color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Archived sprint</div>' : ""}
             <button type="button" class="assignmentDetailsToggle" style="margin-top:8px;border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:5px 12px;background:#080812;color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;">Details</button>
-            <div class="assignmentCardDetails" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,229,255,.12);">${detailsHtml}</div>
+            <div class="assignmentCardDetails" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,229,255,.12);max-width:100%;overflow-wrap:anywhere;word-break:break-word;">${detailsHtml}</div>
         </div>
     `;
 
