@@ -1669,7 +1669,7 @@ function buildAssignmentRecord(fields) {
         archive_reason: fields.archive_reason || null
     };
 
-    ["deliverable", "success_metric", "owner_assignment", "dependencies", "next_action"].forEach(function(key) {
+    ["deliverable", "success_metric", "owner_assignment", "co_owner", "dependencies", "next_action"].forEach(function(key) {
         if (fields[key] !== null && fields[key] !== undefined && String(fields[key]).trim()) {
             record[key] = String(fields[key]).trim();
         }
@@ -2191,9 +2191,49 @@ function isExecutiveAssignmentTitledHeaderLine(line) {
     return /^\s*(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:\s*.+$/i.test(cleanExecutiveAssignmentLine(line));
 }
 
+function extractAssignedAgentFromAssignmentText(text) {
+    var source = String(text || "").trim();
+    if (!source) {
+        return "";
+    }
+
+    var primaryOwnerMatch = source.match(/Primary Owner\s*:\s*([^|\n]+)/i);
+    if (primaryOwnerMatch && primaryOwnerMatch[1]) {
+        return primaryOwnerMatch[1].trim();
+    }
+
+    var agentMatch = source.match(/(?:^|\s)Agent\s*:\s*([^|\n]+)/i);
+    if (agentMatch && agentMatch[1]) {
+        return agentMatch[1].trim();
+    }
+
+    return "";
+}
+
+function extractAssignmentTitleFromAssignmentText(text) {
+    var cleaned = String(text || "").trim();
+    var titledMatch = cleaned.match(
+        /^(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*:\s*([^|\n]+?)(?:\s+(?:Primary Owner|Agent|Co-Owner|Priority)\s*:|$)/i
+    );
+
+    if (titledMatch && titledMatch[1]) {
+        return titledMatch[1].trim();
+    }
+
+    var numberedMatch = cleaned.match(/^(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
+    if (numberedMatch) {
+        return "Assignment " + numberedMatch[1];
+    }
+
+    return "";
+}
+
 function isExecutiveAssignmentHeaderLine(line) {
     var cleaned = cleanExecutiveAssignmentLine(line);
-    return getExecutiveAssignmentHeaderLinePattern().test(cleaned) || isExecutiveAssignmentTitledHeaderLine(line);
+    return getExecutiveAssignmentHeaderLinePattern().test(cleaned) ||
+        isExecutiveAssignmentTitledHeaderLine(line) ||
+        /^(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s+Primary Owner\s*:/i.test(cleaned) ||
+        /^(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s+Agent\s*:/i.test(cleaned);
 }
 
 function extractTitleFromAssignmentHeaderLine(line) {
@@ -2214,6 +2254,7 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
         { key: "primary_owner", pattern: /^Primary Owner\s*:\s*(.*)$/i },
+        { key: "co_owner", pattern: /^Co-Owner\s*:\s*(.*)$/i },
         { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority Level\s*:\s*(.*)$/i },
@@ -2277,6 +2318,20 @@ function parseExecutiveAssignmentBlockFields(block) {
 
             if (headerTitle && !fields.task_title) {
                 fields.task_title = headerTitle;
+            }
+
+            if (!fields.task_title) {
+                fields.task_title = extractAssignmentTitleFromAssignmentText(cleaned);
+            }
+
+            var inlinePrimaryOwner = cleaned.match(/Primary Owner\s*:\s*([^|\n]+)/i);
+            if (inlinePrimaryOwner && inlinePrimaryOwner[1]) {
+                fields.primary_owner = inlinePrimaryOwner[1].trim();
+            }
+
+            var inlineAgent = cleaned.match(/(?:^|\s)Agent\s*:\s*([^|\n]+)/i);
+            if (inlineAgent && inlineAgent[1] && !fields.primary_owner) {
+                fields.agent = inlineAgent[1].trim();
             }
 
             return;
@@ -2418,7 +2473,7 @@ function extractExecutiveAssignmentNumber(block) {
     return match ? match[1] : "";
 }
 
-function extractExecutiveAgentFromBlockFields(fields, parentAgent) {
+function extractExecutiveAgentFromBlockFields(fields, parentAgent, blockText) {
     if (fields.primary_owner) {
         return fields.primary_owner;
     }
@@ -2429,6 +2484,11 @@ function extractExecutiveAgentFromBlockFields(fields, parentAgent) {
 
     if (fields.assigned_agent) {
         return fields.assigned_agent;
+    }
+
+    var bodyAgent = extractAssignedAgentFromAssignmentText(blockText);
+    if (bodyAgent) {
+        return bodyAgent;
     }
 
     if (parentAgent) {
@@ -2551,8 +2611,12 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
     var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
-    var title = String(fields.task_title || headerTitle || "").trim();
-    var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent);
+    var title = String(fields.task_title || headerTitle || extractAssignmentTitleFromAssignmentText(block) || "").trim();
+    if (!title && assignmentNumber) {
+        title = "Assignment " + assignmentNumber;
+    }
+
+    var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
 
@@ -2567,6 +2631,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       deliverable: fields.deliverable,
       success_metric: fields.success_metric,
       owner_assignment: fields.owner_assignment || fields.owner,
+      co_owner: fields.co_owner,
       dependencies: fields.dependencies,
       next_action: fields.next_action
     });
@@ -2660,16 +2725,22 @@ function parseExecutiveAssignments(reportText, parentReportId) {
         var taskTitle = fields.task_title || fields.title || fields.task || fields.name ||
             fields.objective || fields.deliverable;
         var priority = fields.priority || "High";
+        var assignmentBody = String(fields.task_description || fields.description || fields.details || fields.summary || fields.body || "");
+        var assignedAgent = fields.assigned_agent || extractAssignedAgentFromAssignmentText(assignmentBody || taskTitle);
 
-        if (!passesExecutivePlainTextAssignment(fields.assigned_agent, priority, taskTitle)) {
+        if (!taskTitle) {
+            taskTitle = extractAssignmentTitleFromAssignmentText(assignmentBody);
+        }
+
+        if (!passesExecutivePlainTextAssignment(assignedAgent, priority, taskTitle)) {
             return;
         }
 
         pushRecord(buildAssignmentRecord({
             parent_report_id: parentReportId,
-            assigned_agent: fields.assigned_agent,
+            assigned_agent: assignedAgent,
             task_title: taskTitle,
-            task_description: fields.task_description || fields.description || fields.details || fields.summary,
+            task_description: assignmentBody,
             priority: fields.priority,
             status: fields.status || "Pending",
             executive_default_priority: true
@@ -2720,7 +2791,23 @@ function parseExecutiveAssignments(reportText, parentReportId) {
             return;
         }
 
-        var agentLine = clean.match(/^(SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)(?:\s+Agent)?\s*[:\-]\s*(.+)$/i);
+        if (/^(?:\d+\.\s*)?Assignment\s+\d+/i.test(clean)) {
+            var inlineAgent = extractAssignedAgentFromAssignmentText(clean);
+            if (inlineAgent) {
+                pushAssignment({
+                    body: clean,
+                    task_title: extractAssignmentTitleFromAssignmentText(clean),
+                    task_description: clean,
+                    assigned_agent: inlineAgent,
+                    priority: (clean.match(/Priority\s*(?:Level)?\s*:\s*([^|\n]+)/i) || [])[1] || "High"
+                });
+                return;
+            }
+        }
+
+        var agentLine = !/Primary Owner\s*:/i.test(clean) &&
+            !/Co-Owner\s*:/i.test(clean) &&
+            clean.match(/^(SEO|Sales|Content|Ads|Email|Analytics|Community|Influencer|Operations|Reputation)(?:\s+Agent)?\s*[:\-]\s*(.+)$/i);
         if (agentLine) {
             pushAssignment({
                 assigned_agent: agentLine[1],
