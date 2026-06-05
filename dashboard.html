@@ -510,19 +510,24 @@ gap:18px;
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
     <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Work Queue</h2>
-    <select id="assignmentAgentFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
-      <option value="">All Agents</option>
-      <option value="seo">SEO</option>
-      <option value="sales">Sales</option>
-      <option value="content">Content</option>
-      <option value="ads">Ads</option>
-      <option value="email">Email</option>
-      <option value="analytics">Analytics</option>
-      <option value="community">Community</option>
-      <option value="influencer">Influencer</option>
-      <option value="operations">Operations</option>
-      <option value="reputation">Reputation</option>
-    </select>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <select id="assignmentAgentFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
+        <option value="">All Agents</option>
+        <option value="seo">SEO</option>
+        <option value="sales">Sales</option>
+        <option value="content">Content</option>
+        <option value="ads">Ads</option>
+        <option value="email">Email</option>
+        <option value="analytics">Analytics</option>
+        <option value="community">Community</option>
+        <option value="influencer">Influencer</option>
+        <option value="operations">Operations</option>
+        <option value="reputation">Reputation</option>
+      </select>
+      <button id="clearAssignmentQueue" type="button" style="padding:10px 14px;border:1px solid rgba(255,77,109,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#ff4d6d;background:#080812;font-size:13px;">
+        Clear Queue
+      </button>
+    </div>
   </div>
 
   <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">
@@ -1441,6 +1446,7 @@ var assignmentHistoryPanel = document.getElementById("assignmentHistoryPanel");
 var activeAssignmentsList = document.getElementById("activeAssignmentsList");
 var historyAssignmentsList = document.getElementById("historyAssignmentsList");
 var assignmentAgentFilter = document.getElementById("assignmentAgentFilter");
+var clearAssignmentQueueBtn = document.getElementById("clearAssignmentQueue");
 var assignmentTabActive = document.getElementById("assignmentTabActive");
 var assignmentTabHistory = document.getElementById("assignmentTabHistory");
 
@@ -3307,6 +3313,18 @@ function setAssignmentView(view) {
 
 if (assignmentAgentFilter) {
     assignmentAgentFilter.addEventListener("change", function() {
+        renderAssignmentDashboard();
+    });
+}
+
+if (clearAssignmentQueueBtn) {
+    clearAssignmentQueueBtn.addEventListener("click", function() {
+        if (!confirm("Clear all Agent Work Queue assignments?")) {
+            return;
+        }
+
+        localStorage.removeItem(AGENT_ASSIGNMENTS_STORAGE_KEY);
+        agentAssignments = [];
         renderAssignmentDashboard();
     });
 }
