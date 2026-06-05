@@ -1683,19 +1683,71 @@ var EXECUTIVE_ASSIGNMENT_REJECT_PHRASES = [
     "must create assignments",
     "you must create",
     "act as the executive agent",
+    "act as the executive",
     "executive action plan",
-    "executive summary",
-    "coordinated assignments"
+    "coordinated assignments",
+    "create assignments under the heading",
+    "parser instructions",
+    "report generation instructions"
 ];
 
-function assignmentTextContainsRejectPhrase(value) {
-    var lower = String(value || "").trim().toLowerCase();
-    if (!lower) {
+function assignmentTextLooksLikeInstructionLine(line) {
+    var cleaned = String(line || "")
+        .replace(/^\s*[-•*\d.]+\s*/, "")
+        .trim()
+        .toLowerCase();
+
+    if (!cleaned) {
         return false;
     }
 
-    for (var i = 0; i < EXECUTIVE_ASSIGNMENT_REJECT_PHRASES.length; i++) {
-        if (lower.indexOf(EXECUTIVE_ASSIGNMENT_REJECT_PHRASES[i]) !== -1) {
+    var instructionLinePatterns = [
+        /^format assignments under the heading/i,
+        /^must create assignments/i,
+        /^you must create\b/i,
+        /^act as the executive agent/i,
+        /^act as (?:the )?executive\b/i,
+        /^executive action plan\b/i,
+        /^coordinated assignments\b/i,
+        /^create assignments under the heading/i,
+        /^when you format assignments/i,
+        /^output required\b/i,
+        /^show:\s*$/i,
+        /^do not modify\b/i
+    ];
+
+    for (var i = 0; i < instructionLinePatterns.length; i++) {
+        if (instructionLinePatterns[i].test(cleaned)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function assignmentTextContainsRejectPhrase(value) {
+    var text = String(value || "").trim();
+    if (!text) {
+        return false;
+    }
+
+    var lower = text.toLowerCase();
+    var lines = lower.split(/\r?\n/).map(function(line) {
+        return line.replace(/^\s*[-•*\d.]+\s*/, "").trim();
+    }).filter(Boolean);
+
+    if (text.length > 160) {
+        for (var i = 0; i < lines.length; i++) {
+            if (assignmentTextLooksLikeInstructionLine(lines[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    for (var j = 0; j < EXECUTIVE_ASSIGNMENT_REJECT_PHRASES.length; j++) {
+        if (lower.indexOf(EXECUTIVE_ASSIGNMENT_REJECT_PHRASES[j]) !== -1) {
             return true;
         }
     }
