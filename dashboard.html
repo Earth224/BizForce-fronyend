@@ -2213,7 +2213,7 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
         { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
         { key: "agent", pattern: /^Agent\s*:\s*(.*)$/i },
-        { key: "agent", pattern: /^Primary Owner\s*:\s*(.*)$/i },
+        { key: "primary_owner", pattern: /^Primary Owner\s*:\s*(.*)$/i },
         { key: "assigned_agent", pattern: /^Assigned Agent\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority\s*:\s*(.*)$/i },
         { key: "priority", pattern: /^Priority Level\s*:\s*(.*)$/i },
@@ -2359,7 +2359,7 @@ function extractPlainTextAssignmentField(block, label) {
         "Task Description": "task_description",
         "Description": "task_description",
         "Agent": "agent",
-        "Primary Owner": "agent",
+        "Primary Owner": "primary_owner",
         "Assigned Agent": "assigned_agent",
         "Priority": "priority",
         "Priority Level": "priority",
@@ -2419,12 +2419,16 @@ function extractExecutiveAssignmentNumber(block) {
 }
 
 function extractExecutiveAgentFromBlockFields(fields, parentAgent) {
-    if (fields.assigned_agent) {
-        return fields.assigned_agent;
+    if (fields.primary_owner) {
+        return fields.primary_owner;
     }
 
     if (fields.agent) {
         return fields.agent;
+    }
+
+    if (fields.assigned_agent) {
+        return fields.assigned_agent;
     }
 
     if (parentAgent) {
@@ -2463,6 +2467,7 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
 
         if (isExecutiveAssignmentHeaderLine(line)) {
             flushBlock();
+            parentAgent = "";
             currentBlock = [line];
             return;
         }
