@@ -2584,12 +2584,20 @@ function extractExecutiveAgentFromBlockFields(fields, parentAgent, blockText) {
         return fields.primary_owner;
     }
 
+    if (fields["primary owner"]) {
+        return fields["primary owner"];
+    }
+
     if (fields.agent) {
         return fields.agent;
     }
 
     if (fields.assigned_agent) {
         return fields.assigned_agent;
+    }
+
+    if (fields.owner) {
+        return fields.owner;
     }
 
     var bodyAgent = extractAssignedAgentFromAssignmentText(blockText);
@@ -2660,7 +2668,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?Assignment\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     return parsed;
   }
 
@@ -2983,11 +2991,17 @@ function extractAssignmentRecordsFromReportItem(item) {
         });
     }
 
-    var canonicalBody = decodeAssignmentReportText(String(item.result_clean || item.result || "").trim());
+    var cleanBody = decodeAssignmentReportText(String(item.result_clean || "").trim());
+    var rawBody = decodeAssignmentReportText(String(item.result || "").trim());
+    var canonicalBody = cleanBody || rawBody;
 
     if (item.mailbox_saved) {
         if (canonicalBody) {
             mergeRecords(parseExecutiveAssignments(canonicalBody, parentReportId));
+        }
+
+        if (!extracted.length && rawBody && rawBody !== canonicalBody) {
+            mergeRecords(parseExecutiveAssignments(rawBody, parentReportId));
         }
 
         return extracted;
