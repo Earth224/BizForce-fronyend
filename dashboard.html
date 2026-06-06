@@ -2445,6 +2445,14 @@ function parseExecutiveAssignmentBlockFields(block) {
             return;
         }
 
+        if (detectExecutiveSectionAgent(cleaned)) {
+            var inlineOwner = cleaned.match(/\bOwner\s*:\s*(.+)$/i);
+            if (inlineOwner && inlineOwner[1] && !fields.owner) {
+                fields.owner = inlineOwner[1].trim();
+            }
+            return;
+        }
+
         var matched = null;
 
         for (var i = 0; i < matchers.length; i++) {
