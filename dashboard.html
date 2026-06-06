@@ -2333,6 +2333,8 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "task_title", pattern: /^Task Title\s+(.+)$/i },
         { key: "task_title", pattern: /^Title\s*:\s*(.*)$/i },
         { key: "task_title", pattern: /^Title\s+(.+)$/i },
+        { key: "mission", pattern: /^Mission\s*:\s*(.*)$/i },
+        { key: "mission", pattern: /^Mission\s+(.+)$/i },
         { key: "task_description", pattern: /^Task Description\s*:\s*(.*)$/i },
         { key: "task_description", pattern: /^Task Description\s+(.+)$/i },
         { key: "task_description", pattern: /^Description\s*:\s*(.*)$/i },
@@ -2380,6 +2382,7 @@ function cleanExecutiveAssignmentLine(line) {
     return String(line || "")
         .replace(/^\s*[-•*]\s*/, "")
         .replace(/\*\*/g, "")
+        .replace(/^[^\w]*(?=\w)/, "")
         .trim();
 }
 
@@ -2669,7 +2672,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     return parsed;
   }
 
@@ -2730,6 +2733,9 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var title = String(headerTitle || fields.task_title || extractAssignmentTitleFromAssignmentText(block) || "").trim();
     if (!title && assignmentNumber) {
         title = "Assignment " + assignmentNumber;
+    }
+    if (!title && fields.mission) {
+        title = String(fields.mission).trim();
     }
 
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
