@@ -1121,7 +1121,20 @@ function setProfileField(id, value) {
 }
 
 setProfileField("business_name", profile.business_name);
-setProfileField("business_type", profile.business_type);
+(function () {
+  var el = document.getElementById("business_type");
+  var v = String((profile && profile.business_type) || "").trim();
+  if (!el) return;
+  if (!v) { el.value = ""; return; }
+  for (var i = 0; i < el.options.length; i++) {
+    var opt = el.options[i];
+    if (opt.value === v || opt.text === v) {
+      el.value = opt.value;
+      return;
+    }
+  }
+  el.value = "";
+})();
 setProfileField("industry", profile.industry);
 setProfileField("niche", profile.niche);
 setProfileField("website", profile.website);
