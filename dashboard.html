@@ -2784,15 +2784,15 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     queueSectionText = text.slice(queueHeaderMatch.index + queueHeaderMatch[0].length);
   }
 
-  if (queueHeaderMatch) {
-    collectExecutiveAssignmentBlockEntries(queueSectionText).forEach(function(entry) {
+  collectExecutiveAssignmentBlockEntries(queueSectionText).forEach(function(entry) {
+    parseAssignmentBlock(entry.block, entry.parentAgent);
+  });
+
+  if (!parsed.length) {
+    collectExecutiveAssignmentBlockEntries(text).forEach(function(entry) {
       parseAssignmentBlock(entry.block, entry.parentAgent);
     });
   }
-
-  collectExecutiveAssignmentBlockEntries(text).forEach(function(entry) {
-    parseAssignmentBlock(entry.block, entry.parentAgent);
-  });
 
   console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
 
