@@ -349,35 +349,126 @@ grid-column:1/3;
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        width: min(1100px, 92vw) !important;
-        max-height: 80vh !important;
-        overflow-y: auto !important;
+        width: min(960px, 92vw) !important;
+        max-height: min(82vh, 760px) !important;
+        display: none;
+        flex-direction: column !important;
+        overflow: hidden !important;
         z-index: 9999 !important;
-       
-        background: rgba(10,10,15,0.82) !important;
-backdrop-filter: blur(18px) !important;
--webkit-backdrop-filter: blur(18px) !important;
-border: 1px solid rgba(0,229,255,0.18) !important; 
-       
-        box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 40px rgba(0,229,255,.18) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 16px !important;
+        background: rgba(10, 10, 15, 0.94) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        border: 1px solid rgba(0, 229, 255, 0.18) !important;
+        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65), 0 0 40px rgba(0, 229, 255, 0.18) !important;
+    }
+
+    #aiMailboxPanel.ai-mailbox-open {
+        display: flex !important;
+    }
+
+    .ai-mailbox-header {
+        flex: 0 0 auto;
+        padding: 16px 18px 12px;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+        background: linear-gradient(180deg, rgba(8, 12, 20, 0.98), rgba(10, 10, 15, 0.92));
+    }
+
+    .ai-mailbox-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .ai-mailbox-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    #aiMailboxSearch {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        background: #080b12;
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .ai-mailbox-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 14px 18px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ai-mailbox-scroll::-webkit-scrollbar,
+    .mailboxFullReport::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .ai-mailbox-scroll::-webkit-scrollbar-thumb,
+    .mailboxFullReport::-webkit-scrollbar-thumb {
+        background: rgba(0, 229, 255, 0.28);
+        border-radius: 999px;
+    }
+
+    .mailboxFullReport {
+        margin-top: 14px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        background: rgba(3, 8, 18, 0.55);
+        border: 1px solid rgba(0, 229, 255, 0.14);
+        box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.25);
+        max-height: min(42vh, 360px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
     }
 
     body.ai-mailbox-open {
         overflow: hidden !important;
     }
+
+    body.ai-mailbox-open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 4, 10, 0.62);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        z-index: 9998;
+    }
 </style>
-<div id="aiMailboxPanel" style="display:none;margin-bottom:22px;padding:18px;border:1px solid #333;border-radius:16px;background:#0b0b0b;">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-    <strong style="color:#00e5ff;font-size:18px;">AI Result Mailbox</strong>
-    <button id="closeAiMailbox" style="padding:10px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:900;color:white;background:#333;">
-        ✕
-    </button>
-    <button id="clearAiMailbox" style="padding:10px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:#ff4d6d;">
-      Clear Mailbox
-    </button>
+<div id="aiMailboxPanel">
+  <div class="ai-mailbox-header">
+    <div class="ai-mailbox-title-row">
+      <strong style="color:#00e5ff;font-size:18px;">AI Result Mailbox</strong>
+      <div class="ai-mailbox-header-actions">
+        <button id="clearAiMailbox" style="padding:10px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:800;color:white;background:#ff4d6d;">
+          Clear Mailbox
+        </button>
+        <button id="closeAiMailbox" style="padding:10px 14px;border:none;border-radius:999px;cursor:pointer;font-weight:900;color:white;background:#333;">
+          ✕
+        </button>
+      </div>
+    </div>
+    <input id="aiMailboxSearch" placeholder="Search reports..." />
   </div>
-  <input id="aiMailboxSearch" placeholder="Search reports..." style="width:100%;box-sizing:border-box;margin:0 0 14px 0;padding:12px 14px;border-radius:12px;border:1px solid #00e5ff;background:#080b12;color:white;font-weight:700;" />
-  <div id="aiMailboxResults" style="display:flex;flex-direction:column;gap:14px;"></div>
+  <div id="aiMailboxResults" class="ai-mailbox-scroll"></div>
 </div>
 
 <div style="display:grid;gap:18px;grid-template-columns:1fr 1fr;">
@@ -881,15 +972,7 @@ mailboxCard.style.transition = "all 0.2s ease";
         </div>
     </button>
 
-    <div class="mailboxFullReport" style="
-  display:${isExpanded ? "block" : "none"};
-  margin-top:14px;
-  padding:18px;
-  border-radius:14px;
-  background:rgba(3,8,18,0.55);
-  border:1px solid rgba(0,229,255,0.14);
-  box-shadow:inset 0 0 18px rgba(0,0,0,0.25);
-">
+    <div class="mailboxFullReport" style="display:${isExpanded ? "block" : "none"};">
   ${formatMailboxReport(item.result)}
 </div>
 `;
@@ -1061,14 +1144,12 @@ if (toggleAiMailbox && aiMailboxPanel) {
 
     toggleAiMailbox.addEventListener("click", function() {
 
-        if (aiMailboxPanel.style.display === "none") {
-
-            aiMailboxPanel.style.display = "block";
-
+        if (aiMailboxPanel.classList.contains("ai-mailbox-open")) {
+            aiMailboxPanel.classList.remove("ai-mailbox-open");
+            document.body.classList.remove("ai-mailbox-open");
         } else {
-
-            aiMailboxPanel.style.display = "none";
-
+            aiMailboxPanel.classList.add("ai-mailbox-open");
+            document.body.classList.add("ai-mailbox-open");
         }
 
     });
@@ -1086,7 +1167,9 @@ if (clearAiMailbox) {
 }
 if (closeAiMailbox) {
     closeAiMailbox.addEventListener("click", function () {
-        aiMailboxPanel.style.display = "none";
+        if (aiMailboxPanel) {
+            aiMailboxPanel.classList.remove("ai-mailbox-open");
+        }
         document.body.classList.remove("ai-mailbox-open");
     });
 }
@@ -1411,7 +1494,7 @@ activePollInterval = setInterval(async function () {
       <div style="font-size:13px;color:#9aa4b2;margin-bottom:12px;">
         Saved to Mailbox. Open the AI Result Mailbox to view, expand, search, or delete this report.
       </div>
-      <button type="button" onclick="document.getElementById('aiMailboxPanel') && (document.getElementById('aiMailboxPanel').style.display='block')" style="border:0;border-radius:999px;padding:10px 16px;font-weight:900;color:white;background:linear-gradient(135deg,#00d5ff,#7c3cff);cursor:pointer;">
+      <button type="button" onclick="(function(){var p=document.getElementById('aiMailboxPanel');if(!p){return;}p.classList.add('ai-mailbox-open');document.body.classList.add('ai-mailbox-open');})()" style="border:0;border-radius:999px;padding:10px 16px;font-weight:900;color:white;background:linear-gradient(135deg,#00d5ff,#7c3cff);cursor:pointer;">
         Open Mailbox Report
       </button>
     </div>
