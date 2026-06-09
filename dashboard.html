@@ -596,6 +596,191 @@ gap:18px;
     max-width: 100%;
     min-width: 0;
 }
+
+.assignmentQueueCard {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    border: 1px solid rgba(0, 229, 255, 0.14) !important;
+    background: linear-gradient(145deg, rgba(17, 17, 24, 0.96), rgba(10, 12, 20, 0.98)) !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.assignmentCardCompactHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.assignmentCardAgentName {
+    color: #00e5ff;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.assignmentCardMetaRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.assignmentBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.assignmentBadgePriorityHigh,
+.assignmentBadgePriorityCritical {
+    background: rgba(255, 77, 109, 0.16);
+    color: #ff7a96;
+    border: 1px solid rgba(255, 77, 109, 0.34);
+}
+
+.assignmentBadgePriorityMedium {
+    background: rgba(0, 207, 255, 0.12);
+    color: #53daff;
+    border: 1px solid rgba(0, 207, 255, 0.3);
+}
+
+.assignmentBadgePriorityLow {
+    background: rgba(154, 164, 178, 0.14);
+    color: #b8c0cc;
+    border: 1px solid rgba(154, 164, 178, 0.28);
+}
+
+.assignmentBadgeStatusPending {
+    background: rgba(124, 60, 255, 0.14);
+    color: #c4a5ff;
+    border: 1px solid rgba(124, 60, 255, 0.28);
+}
+
+.assignmentBadgeStatusProgress {
+    background: rgba(0, 229, 255, 0.12);
+    color: #67ecff;
+    border: 1px solid rgba(0, 229, 255, 0.28);
+}
+
+.assignmentBadgeStatusCompleted {
+    background: rgba(46, 213, 115, 0.12);
+    color: #6fe59f;
+    border: 1px solid rgba(46, 213, 115, 0.28);
+}
+
+.assignmentBadgeStatusBlocked {
+    background: rgba(255, 145, 77, 0.12);
+    color: #ffb27a;
+    border: 1px solid rgba(255, 145, 77, 0.28);
+}
+
+.assignmentCardMissionLabel {
+    color: #8888aa;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+}
+
+.assignmentCardMission {
+    color: #f4f7ff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.assignmentCardFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.assignmentCardCreated {
+    color: #9aa4b2;
+    font-size: 10px;
+    font-weight: 700;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.assignmentCardActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.assignment-card .assignmentStatusSelect,
+.assignmentQueueCard .assignmentStatusSelect {
+    width: auto;
+    max-width: 118px;
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 999px;
+}
+
+.assignmentDetailsToggle {
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, rgba(8, 12, 20, 0.95), rgba(12, 16, 28, 0.98));
+    color: #00e5ff;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.assignmentCardDetails {
+    display: none;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 229, 255, 0.12);
+    max-height: min(36vh, 280px);
+    overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+    .assignmentCardCompactHeader,
+    .assignmentCardFooter,
+    .assignmentCardActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .assignmentCardMetaRow {
+        justify-content: flex-start;
+    }
+
+    .assignment-card .assignmentStatusSelect,
+    .assignmentQueueCard .assignmentStatusSelect {
+        max-width: 100%;
+        width: 100%;
+    }
+}
 </style>
 
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
@@ -1307,6 +1492,89 @@ business_description: document.getElementById("business_description").value
 
 });
 
+function getExecutiveAgentAssignmentFormatTemplate() {
+    return [
+        "AGENT ASSIGNMENT 1: SEO AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:",
+        "AGENT ASSIGNMENT 2: CONTENT AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:",
+        "AGENT ASSIGNMENT 3: SALES AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:",
+        "AGENT ASSIGNMENT 4: OPERATIONS AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:",
+        "AGENT ASSIGNMENT 5: REPUTATION AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:",
+        "AGENT ASSIGNMENT 6: ANALYTICS AGENT",
+        "Mission:",
+        "Owner:",
+        "Priority:",
+        "Timeline:",
+        "Tasks:",
+        "KPIs:",
+        "Risks:",
+        "Next Action:"
+    ].join("\n");
+}
+
+function buildExecutiveAgentTaskPrompt(userPrompt) {
+    var userTask = String(userPrompt || "").trim();
+
+    return [
+        "Act as the Executive Agent for BizForce. Analyze the business request below and produce a full executive report with agent work queue assignments.",
+        "",
+        "BUSINESS REQUEST:",
+        userTask,
+        "",
+        "REQUIRED OUTPUT FORMAT — you MUST output EXACTLY SIX separate assignment blocks every time. Use this exact heading and field structure (all six blocks, no exceptions):",
+        "",
+        getExecutiveAgentAssignmentFormatTemplate(),
+        "",
+        "STRICT VALIDATION (mandatory before finalizing your response):",
+        "Before finalizing, count the assignment headings. If fewer than 6 exist, continue writing until all 6 exist. Never stop after 3.",
+        "",
+        "Rules:",
+        "- Output exactly six blocks: AGENT ASSIGNMENT 1 through AGENT ASSIGNMENT 6.",
+        "- Use exactly these agent names: SEO AGENT, CONTENT AGENT, SALES AGENT, OPERATIONS AGENT, REPUTATION AGENT, ANALYTICS AGENT.",
+        "- Every block must include all fields: Mission, Owner, Priority, Timeline, Tasks, KPIs, Risks, Next Action.",
+        "- Fill every field with actionable, business-specific content.",
+        "- Do not merge agents, skip agents, or stop after three assignments."
+    ].join("\n");
+}
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -1344,6 +1612,9 @@ document.addEventListener("DOMContentLoaded", function () {
         var agentType = document.getElementById("agentType").value;
         var taskType = document.getElementById("taskType").value;
         var prompt = document.getElementById("taskPrompt").value.trim();
+        var launchPrompt = agentType === "executive"
+            ? buildExecutiveAgentTaskPrompt(prompt)
+            : prompt;
 
         if (!prompt) {
             statusEl.innerHTML = "Please enter a task.";
@@ -1365,7 +1636,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify({
                     agent_type: agentType,
                     task_type: taskType,
-                    prompt: prompt
+                    prompt: launchPrompt
                 })
             });
 
@@ -2652,16 +2923,40 @@ function splitExecutiveAssignmentBlocks(sectionText) {
     });
 }
 
+function normalizeExecutiveSectionAgentToken(token) {
+    var cleaned = cleanExecutiveAssignmentLine(token).replace(/\s+agent\s*$/i, "").trim();
+    if (!cleaned) {
+        return "";
+    }
+
+    var match = cleaned.toUpperCase().match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)$/);
+    if (!match) {
+        return "";
+    }
+
+    return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
+}
+
+function getExecutiveSectionAgentRegexSource() {
+    return "(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)";
+}
+
 function detectExecutiveSectionAgent(line) {
-    var cleaned = cleanExecutiveAssignmentLine(line).toUpperCase();
-    var match = cleaned.match(/^(?:\d+\.\s*)?(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
+    var cleaned = cleanExecutiveAssignmentLine(line);
+    var upper = cleaned.toUpperCase();
+    var agentPattern = getExecutiveSectionAgentRegexSource();
+    var match = upper.match(new RegExp("^(?:\\d+\\.\\s*)?" + agentPattern + "\\s+AGENT\\b"));
 
     if (!match) {
-        match = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*:?\s*$/);
+        match = upper.match(new RegExp("^" + agentPattern + "\\s+AGENT\\s*:?\\s*$"));
     }
 
     if (!match) {
-        match = cleaned.match(/^AGENT\s+ASSIGNMENT\s+\d+\s*:\s*(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b/);
+        match = upper.match(new RegExp("^AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
+    }
+
+    if (!match) {
+        match = upper.match(new RegExp("^(?:\\d+\\.\\s*)?AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
     }
 
     if (!match) {
@@ -2762,12 +3057,123 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
     return entries;
 }
 
+function runExecutivePlainTextAgentFallback(text, pushRecord) {
+    var seenAgents = {};
+    var lines = String(text || "").split(/\r?\n/);
+
+    function emitFromBlock(agentLine, blockLines) {
+        var parentAgent = detectExecutiveSectionAgent(agentLine);
+        if (!parentAgent) {
+            return;
+        }
+
+        var normalized = normalizeAssignedAgent(parentAgent);
+        if (seenAgents[normalized]) {
+            return;
+        }
+
+        seenAgents[normalized] = true;
+        var block = blockLines.join("\n");
+        var fields = parseExecutiveAssignmentBlockFields(block);
+        var title = String(
+            fields.mission ||
+            fields.task_title ||
+            fields.objective ||
+            fields.deliverable ||
+            fields.task_description ||
+            ""
+        ).trim();
+
+        if (!title) {
+            title = normalized.charAt(0).toUpperCase() + normalized.slice(1) + " executive assignment";
+        }
+
+        var priority = fields.priority || "Medium";
+        var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title) || block.trim() || title;
+
+        pushRecord(parentAgent, title, description, priority, {
+            deliverable: fields.deliverable,
+            success_metric: fields.success_metric,
+            owner_assignment: fields.owner_assignment || fields.owner,
+            co_owner: fields.co_owner,
+            dependencies: fields.dependencies,
+            next_action: fields.next_action
+        });
+    }
+
+    var currentHeading = "";
+    var currentLines = [];
+
+    lines.forEach(function(line) {
+        if (detectExecutiveSectionAgent(line)) {
+            if (currentHeading) {
+                emitFromBlock(currentHeading, currentLines);
+            }
+            currentHeading = line;
+            currentLines = [line];
+            return;
+        }
+
+        if (currentHeading) {
+            currentLines.push(line);
+        }
+    });
+
+    if (currentHeading) {
+        emitFromBlock(currentHeading, currentLines);
+    }
+
+    lines.forEach(function(line, idx) {
+        var cleaned = cleanExecutiveAssignmentLine(line);
+        var agentsMatch = cleaned.match(/^Agents?\s*:\s*(.+)$/i);
+        if (!agentsMatch) {
+            return;
+        }
+
+        var nearby = lines.slice(idx + 1, idx + 14).join("\n").trim();
+        agentsMatch[1].split(/[\s,|\/+]+/).forEach(function(token) {
+            var parentAgent = normalizeExecutiveSectionAgentToken(token);
+            if (!parentAgent) {
+                return;
+            }
+
+            var normalized = normalizeAssignedAgent(parentAgent);
+            if (seenAgents[normalized]) {
+                return;
+            }
+
+            seenAgents[normalized] = true;
+            var title = normalized.charAt(0).toUpperCase() + normalized.slice(1) + " executive assignment";
+            pushRecord(parentAgent, title, nearby || title, "Medium", {});
+        });
+    });
+
+    if (!Object.keys(seenAgents).length) {
+        var detectedAgents = ASSIGNMENT_QUEUE_AGENTS.filter(function(agentKey) {
+            return new RegExp("\\b" + agentKey + "\\b", "i").test(text);
+        });
+
+        if (detectedAgents.length >= 2) {
+            detectedAgents.forEach(function(agentKey) {
+                if (seenAgents[agentKey]) {
+                    return;
+                }
+
+                seenAgents[agentKey] = true;
+                var parentAgent = agentKey.charAt(0).toUpperCase() + agentKey.slice(1) + " Agent";
+                var title = agentKey.charAt(0).toUpperCase() + agentKey.slice(1) + " executive assignment";
+                pushRecord(parentAgent, title, title, "Medium", {});
+            });
+        }
+    }
+}
+
 function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var text = decodeAssignmentReportText(String(reportText || ""));
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|AGENT\s+ASSIGNMENT\s+\d+|(?:^|\n)\s*Agents?\s*:|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     return parsed;
   }
 
@@ -2829,8 +3235,8 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     if (!title && assignmentNumber) {
         title = "Assignment " + assignmentNumber;
     }
-    if (!title && fields.mission) {
-        title = String(fields.mission).trim();
+    if (!title) {
+        title = String(fields.mission || fields.objective || fields.deliverable || fields.task_description || "").trim();
     }
 
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
@@ -2879,6 +3285,13 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     collectExecutiveAssignmentBlockEntries(text).forEach(function(entry) {
       parseAssignmentBlock(entry.block, entry.parentAgent);
     });
+  }
+
+  if (!parsed.length) {
+    console.log("EXECUTIVE FALLBACK PARSER USED");
+    var fallbackStart = parsed.length;
+    runExecutivePlainTextAgentFallback(text, pushRecord);
+    console.log("EXECUTIVE FALLBACK CREATED COUNT:", parsed.length - fallbackStart);
   }
 
   console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
@@ -3313,8 +3726,55 @@ function bindAssignmentDetailsControls() {
 
         var expanded = details.style.display !== "none";
         details.style.display = expanded ? "none" : "block";
-        button.textContent = expanded ? "Details" : "Hide";
+        button.textContent = expanded ? "Expand details" : "Collapse details";
     });
+}
+
+function assignmentPriorityBadgeHtml(priority) {
+    var normalized = normalizeAssignmentPriority(priority, "Medium");
+    var lower = String(normalized).toLowerCase();
+    var badgeClass = "assignmentBadge assignmentBadgePriorityMedium";
+
+    if (/critical|high/.test(lower)) {
+        badgeClass = /critical/.test(lower)
+            ? "assignmentBadge assignmentBadgePriorityCritical"
+            : "assignmentBadge assignmentBadgePriorityHigh";
+    } else if (/low/.test(lower)) {
+        badgeClass = "assignmentBadge assignmentBadgePriorityLow";
+    }
+
+    return '<span class="' + badgeClass + '">' + assignmentEscapeHtml(normalized) + "</span>";
+}
+
+function assignmentStatusBadgeHtml(status) {
+    var normalized = normalizeAssignmentStatus(status);
+    var badgeClass = "assignmentBadge assignmentBadgeStatusPending";
+
+    if (normalized === "In Progress") {
+        badgeClass = "assignmentBadge assignmentBadgeStatusProgress";
+    } else if (normalized === "Completed") {
+        badgeClass = "assignmentBadge assignmentBadgeStatusCompleted";
+    } else if (normalized === "Blocked") {
+        badgeClass = "assignmentBadge assignmentBadgeStatusBlocked";
+    }
+
+    return '<span class="' + badgeClass + '">' + assignmentEscapeHtml(normalized) + "</span>";
+}
+
+function getAssignmentTimelineDisplay(item) {
+    return item.next_action || item.owner_assignment || "";
+}
+
+function getAssignmentTasksDisplay(item) {
+    return item.task_description || item.deliverable || "";
+}
+
+function getAssignmentKpisDisplay(item) {
+    return item.success_metric || "";
+}
+
+function getAssignmentRisksDisplay(item) {
+    return item.dependencies || "";
 }
 
 function assignmentPreviewText(text, maxLen) {
@@ -3346,14 +3806,6 @@ function assignmentDetailSection(label, value) {
 function renderAssignmentCard(item, isHistory) {
     var card = document.createElement("div");
     card.className = "assignment-card assignmentQueueCard";
-    card.style.background = "#111";
-    card.style.border = "1px solid #222";
-    card.style.borderRadius = "12px";
-    card.style.padding = "10px 12px";
-    card.style.display = "grid";
-    card.style.gridTemplateColumns = "repeat(2, minmax(0, 1fr))";
-    card.style.gap = "8px 12px";
-    card.style.alignItems = "start";
     card.style.width = "100%";
     card.style.maxWidth = "100%";
     card.style.minWidth = "0";
@@ -3365,19 +3817,17 @@ function renderAssignmentCard(item, isHistory) {
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
     var archivedLabel = item.archived_at ? new Date(item.archived_at).toLocaleString() : "—";
     var normalizedStatus = normalizeAssignmentStatus(item.status);
-    var preview = assignmentPreviewText(item.task_description, 180);
+    var missionSummary = assignmentPreviewText(item.task_title, 110);
     var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
         var selected = normalizedStatus === status ? " selected" : "";
         return '<option value="' + status + '"' + selected + '>' + status + '</option>';
     }).join("");
 
     var detailsHtml =
-        assignmentDetailSection("Full description", item.task_description) +
-        assignmentDetailSection("Deliverable", item.deliverable) +
-        assignmentDetailSection("Success metric", item.success_metric) +
-        assignmentDetailSection("Owner", item.owner_assignment) +
-        assignmentDetailSection("Dependencies", item.dependencies) +
-        assignmentDetailSection("Next action", item.next_action);
+        assignmentDetailSection("Timeline", getAssignmentTimelineDisplay(item)) +
+        assignmentDetailSection("Tasks", getAssignmentTasksDisplay(item)) +
+        assignmentDetailSection("KPIs", getAssignmentKpisDisplay(item)) +
+        assignmentDetailSection("Risks", getAssignmentRisksDisplay(item));
 
     if (isHistory && item.archived) {
         detailsHtml += assignmentDetailSection("Archived", archivedLabel);
@@ -3386,34 +3836,32 @@ function renderAssignmentCard(item, isHistory) {
     }
 
     if (!detailsHtml) {
-        detailsHtml = assignmentDetailSection("Full description", item.task_description);
+        detailsHtml = assignmentDetailSection("Tasks", getAssignmentTasksDisplay(item));
     }
 
     card.innerHTML = `
-        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Assigned Agent</div>
-            <div style="color:#00e5ff;font-size:13px;font-weight:900;margin-top:3px;">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
+        <div class="assignmentCardCompactHeader">
+            <div style="min-width:0;max-width:100%;">
+                <div class="assignmentCardAgentName">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
+            </div>
+            <div class="assignmentCardMetaRow">
+                ${assignmentPriorityBadgeHtml(item.priority || "Medium")}
+                ${assignmentStatusBadgeHtml(normalizedStatus)}
+            </div>
         </div>
-        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Priority</div>
-            <div style="color:#f4f7ff;font-size:12px;font-weight:800;margin-top:3px;">${assignmentEscapeHtml(item.priority || "Medium")}</div>
+        <div style="min-width:0;max-width:100%;">
+            <div class="assignmentCardMissionLabel">Mission</div>
+            <div class="assignmentCardMission">${assignmentEscapeHtml(missionSummary || item.task_title || "Executive assignment")}</div>
         </div>
-        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Status</div>
-            <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" style="margin-top:3px;width:100%;max-width:100%;min-width:0;padding:6px 8px;border-radius:8px;border:1px solid rgba(0,229,255,.25);background:#080812;color:white;font-size:12px;font-weight:700;">${statusOptions}</select>
+        <div class="assignmentCardFooter">
+            <div class="assignmentCardCreated">${assignmentEscapeHtml(createdLabel)}</div>
+            <div class="assignmentCardActions">
+                <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" aria-label="Assignment status">${statusOptions}</select>
+                <button type="button" class="assignmentDetailsToggle">Expand details</button>
+            </div>
         </div>
-        <div style="min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Created</div>
-            <div style="color:#aaa;font-size:11px;margin-top:3px;">${assignmentEscapeHtml(createdLabel)}</div>
-        </div>
-        <div style="grid-column:1/-1;min-width:0;max-width:100%;overflow-wrap:anywhere;word-break:break-word;">
-            <div style="color:#8888aa;font-size:10px;font-weight:800;text-transform:uppercase;">Task</div>
-            <div style="color:#f4f7ff;font-size:13px;font-weight:800;margin-top:3px;line-height:1.35;overflow-wrap:anywhere;word-break:break-word;">${assignmentEscapeHtml(item.task_title)}</div>
-            ${preview ? '<div style="color:#9aa4b2;font-size:12px;margin-top:4px;line-height:1.45;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(preview) + "</div>" : ""}
-            ${isHistory && item.archived ? '<div style="margin-top:6px;color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Archived sprint</div>' : ""}
-            <button type="button" class="assignmentDetailsToggle" style="margin-top:8px;border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:5px 12px;background:#080812;color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;">Details</button>
-            <div class="assignmentCardDetails" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,229,255,.12);max-width:100%;overflow-wrap:anywhere;word-break:break-word;">${detailsHtml}</div>
-        </div>
+        ${isHistory && item.archived ? '<div style="color:#8888aa;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Archived sprint</div>' : ""}
+        <div class="assignmentCardDetails">${detailsHtml}</div>
     `;
 
     return card;
