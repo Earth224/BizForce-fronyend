@@ -2995,7 +2995,11 @@ function detectExecutiveSectionAgent(line) {
     }
 
     if (!match) {
-        match = upper.match(new RegExp("^(?:\\d+\\.\\s*)?AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "(?:\\s+AGENT)?\\b"));
+        match = upper.match(new RegExp("^AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
+    }
+
+    if (!match) {
+        match = upper.match(new RegExp("^(?:\\d+\\.\\s*)?AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
     }
 
     if (!match) {
@@ -3003,36 +3007,6 @@ function detectExecutiveSectionAgent(line) {
     }
 
     return match[1].charAt(0) + match[1].slice(1).toLowerCase() + " Agent";
-}
-
-function isExecutiveAgentAssignmentHeadingLine(line) {
-    return /^AGENT\s+ASSIGNMENT\s+\d+\b/i.test(cleanExecutiveAssignmentLine(line));
-}
-
-function resolveExecutiveParentAgentFromAssignmentHeading(line, nextLine) {
-    var detected = detectExecutiveSectionAgent(line);
-
-    if (detected) {
-        return detected;
-    }
-
-    if (nextLine) {
-        detected = detectExecutiveSectionAgent(nextLine);
-
-        if (detected) {
-            return detected;
-        }
-    }
-
-    var cleaned = cleanExecutiveAssignmentLine(line);
-    var agentPattern = getExecutiveSectionAgentRegexSource();
-    var inlineMatch = cleaned.match(new RegExp("^AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*(" + agentPattern + ")(?:\\s+AGENT)?\\b", "i"));
-
-    if (inlineMatch) {
-        return normalizeExecutiveSectionAgentToken(inlineMatch[1]);
-    }
-
-    return "";
 }
 
 function extractExecutiveAssignmentNumber(block) {
@@ -3103,13 +3077,12 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
         currentBlock = [];
     }
 
-    lines.forEach(function(line, lineIndex) {
+    lines.forEach(function(line) {
         var sectionAgent = detectExecutiveSectionAgent(line);
-        var assignmentHeading = isExecutiveAgentAssignmentHeadingLine(line);
 
-        if (sectionAgent || assignmentHeading) {
+        if (sectionAgent) {
             flushBlock();
-            parentAgent = sectionAgent || resolveExecutiveParentAgentFromAssignmentHeading(line, lines[lineIndex + 1] || "");
+            parentAgent = sectionAgent;
             currentBlock = [line];
             return;
         }
@@ -3144,11 +3117,6 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
 
     function emitFromBlock(agentLine, blockLines) {
         var parentAgent = detectExecutiveSectionAgent(agentLine);
-
-        if (!parentAgent) {
-            parentAgent = resolveExecutiveParentAgentFromAssignmentHeading(agentLine, blockLines[1] || "");
-        }
-
         if (!parentAgent) {
             return;
         }
@@ -3190,8 +3158,8 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
     var currentHeading = "";
     var currentLines = [];
 
-    lines.forEach(function(line, idx) {
-        if (detectExecutiveSectionAgent(line) || isExecutiveAgentAssignmentHeadingLine(line)) {
+    lines.forEach(function(line) {
+        if (detectExecutiveSectionAgent(line)) {
             if (currentHeading) {
                 emitFromBlock(currentHeading, currentLines);
             }
