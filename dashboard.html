@@ -3168,14 +3168,67 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
     }
 }
 
+function debugExecutiveParserScanReport(text, sourceLabel) {
+    var decoded = decodeAssignmentReportText(String(text || ""));
+    var lines = decoded.split(/\r?\n/);
+    var headingMatches = [];
+
+    lines.forEach(function(line, lineIndex) {
+        var cleaned = cleanExecutiveAssignmentLine(line);
+
+        if (/AGENT\s+ASSIGNMENT\s+\d+/i.test(cleaned)) {
+            headingMatches.push({
+                lineIndex: lineIndex + 1,
+                raw: line,
+                cleaned: cleaned,
+                detectedAgent: detectExecutiveSectionAgent(line) || "(detectExecutiveSectionAgent returned empty)"
+            });
+        }
+    });
+
+    console.log("EXECUTIVE PARSER DEBUG: REPORT SCAN [" + sourceLabel + "]", {
+        totalReportLength: decoded.length,
+        totalLineCount: lines.length,
+        agentAssignmentHeadingCount: headingMatches.length
+    });
+
+    headingMatches.forEach(function(match, idx) {
+        console.log(
+            "EXECUTIVE PARSER DEBUG: HEADING MATCH #" + (idx + 1),
+            "line", match.lineIndex,
+            "| agent:", match.detectedAgent,
+            "| text:", match.cleaned
+        );
+    });
+
+    return headingMatches.length;
+}
+
+function debugExecutiveParserLogExtractedBlocks(entries, sourceLabel) {
+    console.log("EXECUTIVE PARSER DEBUG: BLOCK ENTRIES [" + sourceLabel + "]:", entries.length);
+
+    entries.forEach(function(entry, idx) {
+        var blockLines = String(entry.block || "").split(/\r?\n/);
+        console.log("EXECUTIVE PARSER DEBUG: EXTRACTED BLOCK #" + (idx + 1), {
+            parentAgent: entry.parentAgent || "(none)",
+            firstLine: (blockLines[0] || "").trim(),
+            blockLength: String(entry.block || "").length,
+            lineCount: blockLines.length
+        });
+    });
+}
+
 function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var text = decodeAssignmentReportText(String(reportText || ""));
   var parsed = [];
   var seen = {};
 
   if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|AGENT\s+ASSIGNMENT\s+\d+|(?:^|\n)\s*Agents?\s*:|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+    console.log("EXECUTIVE PARSER DEBUG: entry gate rejected report (no assignment markers)");
     return parsed;
   }
+
+  var fullReportHeadingCount = debugExecutiveParserScanReport(text, "full-report");
 
   function cleanLine(value) {
     return cleanExecutiveAssignmentLine(value);
@@ -3195,6 +3248,11 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     priority = cleanLine(priority || "High") || "High";
 
     if (!passesExecutivePlainTextAssignment(agent, priority, title)) {
+      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — plain-text gate failed", {
+        agent: agent,
+        title: title,
+        priority: priority
+      });
       return;
     }
 
@@ -3204,6 +3262,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     };
 
     if (seen[recordKey(previewRecord)]) {
+      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — duplicate recordKey", recordKey(previewRecord));
       return;
     }
 
@@ -3218,6 +3277,10 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     }, metadata || {}));
 
     if (!isValidAgentAssignmentRecord(record)) {
+      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — validation failed", {
+        reason: getExecutiveAssignmentRejectReason(record),
+        record: record
+      });
       logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
       return;
     }
@@ -3227,7 +3290,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     console.log("EXECUTIVE ASSIGNMENT PARSED", record);
   }
 
-  function parseAssignmentBlock(block, parentAgent) {
+  function parseAssignmentBlock(block, parentAgent, blockIndex) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
     var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
@@ -3243,12 +3306,24 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
 
+    console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock START #" + (blockIndex || "?"), {
+      parentAgent: parentAgent || "(none)",
+      assignmentNumber: assignmentNumber || "(none)",
+      resolvedTitle: title || "(empty)",
+      resolvedAgent: assignedAgent || "(empty)",
+      mission: fields.mission || "(empty)",
+      owner: fields.owner || fields.primary_owner || "(empty)",
+      firstLine: String(block || "").split(/\r?\n/)[0]
+    });
+
     if (!String(title || "").trim()) {
+        console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock STOP #" + (blockIndex || "?") + " — no title found");
         logExecutiveAssignmentRejected({ task_title: "", assigned_agent: assignedAgent }, "no title found");
         return;
     }
 
     if (!String(assignedAgent || "").trim()) {
+        console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock STOP #" + (blockIndex || "?") + " — no owner/agent found");
         logExecutiveAssignmentRejected({ task_title: title, assigned_agent: "" }, "no owner found");
         return;
     }
@@ -3275,23 +3350,68 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
 
   if (queueHeaderMatch) {
     queueSectionText = text.slice(queueHeaderMatch.index + queueHeaderMatch[0].length);
-  }
-
-  collectExecutiveAssignmentBlockEntries(queueSectionText).forEach(function(entry) {
-    parseAssignmentBlock(entry.block, entry.parentAgent);
-  });
-
-  if (!parsed.length) {
-    collectExecutiveAssignmentBlockEntries(text).forEach(function(entry) {
-      parseAssignmentBlock(entry.block, entry.parentAgent);
+    console.log("EXECUTIVE PARSER DEBUG: sliced report at AGENT WORK QUEUE ASSIGNMENTS", {
+      headerIndex: queueHeaderMatch.index,
+      fullReportLength: text.length,
+      slicedSectionLength: queueSectionText.length,
+      bytesBeforeHeader: queueHeaderMatch.index
+    });
+  } else {
+    console.log("EXECUTIVE PARSER DEBUG: no AGENT WORK QUEUE ASSIGNMENTS header — using full report", {
+      fullReportLength: text.length
     });
   }
 
-  if (!parsed.length) {
+  debugExecutiveParserScanReport(queueSectionText, "queue-section-after-slice");
+
+  var slicedEntries = collectExecutiveAssignmentBlockEntries(queueSectionText);
+  debugExecutiveParserLogExtractedBlocks(slicedEntries, "sliced-section");
+
+  slicedEntries.forEach(function(entry, idx) {
+    parseAssignmentBlock(entry.block, entry.parentAgent, idx + 1);
+  });
+
+  console.log("EXECUTIVE PARSER DEBUG: after sliced-section parse, parsed.length =", parsed.length);
+
+  var parsedAfterSlice = parsed.length;
+  debugExecutiveParserScanReport(text, "full-report-rescan");
+  var fullTextEntries = collectExecutiveAssignmentBlockEntries(text);
+  debugExecutiveParserLogExtractedBlocks(fullTextEntries, "full-report-rescan");
+  fullTextEntries.forEach(function(entry, idx) {
+    parseAssignmentBlock(entry.block, entry.parentAgent, "full-" + (idx + 1));
+  });
+  console.log(
+    "EXECUTIVE PARSER DEBUG: after full-report rescan, parsed.length =",
+    parsed.length,
+    "(added",
+    parsed.length - parsedAfterSlice,
+    "from full report; headingCount:",
+    fullReportHeadingCount,
+    ")"
+  );
+
+  if (parsed.length < fullReportHeadingCount) {
+    console.log(
+      "EXECUTIVE PARSER DEBUG: fallback parser engaged because parsed.length (" +
+      parsed.length +
+      ") < headingCount (" +
+      fullReportHeadingCount +
+      ")"
+    );
     console.log("EXECUTIVE FALLBACK PARSER USED");
     var fallbackStart = parsed.length;
     runExecutivePlainTextAgentFallback(text, pushRecord);
     console.log("EXECUTIVE FALLBACK CREATED COUNT:", parsed.length - fallbackStart);
+  }
+
+  if (parsed.length < fullReportHeadingCount) {
+    console.log(
+      "EXECUTIVE PARSER DEBUG: STOP REASON — parsed count still below heading count (" +
+      parsed.length +
+      " / " +
+      fullReportHeadingCount +
+      "). Remaining blocks were likely rejected by parseAssignmentBlock/pushRecord."
+    );
   }
 
   console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
@@ -3483,6 +3603,7 @@ function extractAssignmentRecordsFromReportItem(item) {
             var key = getAssignmentDedupeKey(record);
 
             if (seen[key]) {
+                console.log("EXECUTIVE PARSER DEBUG: mergeRecords SKIPPED duplicate", key);
                 for (var i = 0; i < extracted.length; i++) {
                     if (getAssignmentDedupeKey(extracted[i]) !== key) {
                         continue;
@@ -3509,6 +3630,14 @@ function extractAssignmentRecordsFromReportItem(item) {
     var cleanBody = decodeAssignmentReportText(String(item.result_clean || "").trim());
     var rawBody = decodeAssignmentReportText(String(item.result || "").trim());
     var canonicalBody = cleanBody || rawBody;
+
+    console.log("EXECUTIVE PARSER DEBUG: extractAssignmentRecordsFromReportItem", {
+        reportId: parentReportId,
+        mailbox_saved: !!item.mailbox_saved,
+        result_clean_length: cleanBody.length,
+        result_length: rawBody.length,
+        canonicalBody_length: canonicalBody.length
+    });
 
     if (item.mailbox_saved) {
         if (canonicalBody) {
