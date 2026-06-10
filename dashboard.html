@@ -2681,49 +2681,6 @@ function extractExecutiveAssignmentTitleFromBlock(block) {
     return extractTitleFromAssignmentHeaderLine(firstLine);
 }
 
-function extractExecutiveAssignmentTitleFromAgentHeading(block) {
-    var lines = String(block || "").split(/\r?\n/);
-
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        var cleaned = cleanExecutiveAssignmentLine(line);
-
-        if (!cleaned) {
-            continue;
-        }
-
-        var sectionAgent = detectExecutiveSectionAgent(line);
-        if (sectionAgent) {
-            return sectionAgent;
-        }
-
-        var agentAssignmentMatch = cleaned.match(/^AGENT\s+ASSIGNMENT\s+\d+\s*[-:\s]*\s*(.+)$/i);
-        if (agentAssignmentMatch && agentAssignmentMatch[1]) {
-            return String(agentAssignmentMatch[1]).trim();
-        }
-
-        var bareAgentMatch = cleaned.match(/^(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\s*$/i);
-        if (bareAgentMatch) {
-            return bareAgentMatch[1].charAt(0) + bareAgentMatch[1].slice(1).toLowerCase() + " Agent";
-        }
-    }
-
-    return "";
-}
-
-function extractExecutiveAgentFromBlockHeading(block) {
-    var lines = String(block || "").split(/\r?\n/);
-
-    for (var i = 0; i < lines.length; i++) {
-        var sectionAgent = detectExecutiveSectionAgent(lines[i]);
-        if (sectionAgent) {
-            return sectionAgent;
-        }
-    }
-
-    return "";
-}
-
 function getExecutiveAssignmentFieldMatchers() {
     return [
         { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
@@ -3011,13 +2968,7 @@ function detectExecutiveSectionAgent(line) {
 
 function extractExecutiveAssignmentNumber(block) {
     var firstLine = String(block || "").split(/\r?\n/)[0] || "";
-    var cleaned = cleanExecutiveAssignmentLine(firstLine);
-    var match = cleaned.match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
-
-    if (!match) {
-        match = cleaned.match(/^AGENT\s+ASSIGNMENT\s+(\d+)/i);
-    }
-
+    var match = cleanExecutiveAssignmentLine(firstLine).match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
     return match ? match[1] : "";
 }
 
@@ -3045,11 +2996,6 @@ function extractExecutiveAgentFromBlockFields(fields, parentAgent, blockText) {
     var bodyAgent = extractAssignedAgentFromAssignmentText(blockText);
     if (bodyAgent) {
         return bodyAgent;
-    }
-
-    var headingAgent = extractExecutiveAgentFromBlockHeading(blockText);
-    if (headingAgent) {
-        return headingAgent;
     }
 
     if (parentAgent) {
@@ -3348,45 +3294,17 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
     var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
-    var headingTitle = extractExecutiveAssignmentTitleFromAgentHeading(block);
-    var title = String(
-      headerTitle ||
-      fields.task_title ||
-      extractAssignmentTitleFromAssignmentText(block) ||
-      headingTitle ||
-      ""
-    ).trim();
+    var title = String(headerTitle || fields.task_title || extractAssignmentTitleFromAssignmentText(block) || "").trim();
     if (!title && assignmentNumber) {
         title = "Assignment " + assignmentNumber;
     }
     if (!title) {
         title = String(fields.mission || fields.objective || fields.deliverable || fields.task_description || "").trim();
     }
-    if (!title && headingTitle) {
-        title = headingTitle;
-    }
 
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
-    var rejectReason = "none";
-
-    if (!String(title || "").trim()) {
-        rejectReason = "no title found";
-    } else if (!String(assignedAgent || "").trim()) {
-        rejectReason = "no owner found";
-    }
-
-    console.log("EXECUTIVE TITLE DEBUG", {
-      blockNumber: blockIndex || "?",
-      detectedTitle: title || null,
-      detectedAgent: assignedAgent ? normalizeAssignedAgent(assignedAgent) : null,
-      rejectReason: rejectReason,
-      headingTitle: headingTitle || null,
-      assignmentNumber: assignmentNumber || null,
-      mission: fields.mission || null,
-      parentAgent: parentAgent || null
-    });
 
     console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock START #" + (blockIndex || "?"), {
       parentAgent: parentAgent || "(none)",
@@ -3770,21 +3688,8 @@ function processExecutiveAssignmentsFromReport(item) {
 
     console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
 
-    extracted.forEach(function(record, extractIndex) {
-        var recordKey = getAssignmentDedupeKey(record);
-        var agentName = String(record.assigned_agent || "").trim();
-        var validationResult = isValidAgentAssignmentRecord(record);
-        var validationReason = validationResult ? "valid" : getExecutiveAssignmentRejectReason(record);
-
-        console.log("QUEUE SAVE DEBUG: EXTRACTED RECORD #" + (extractIndex + 1), {
-            agentName: agentName,
-            recordKey: recordKey,
-            validationResult: validationResult,
-            skipReason: validationResult ? "(none yet — not saved)" : validationReason,
-            task_title: record.task_title
-        });
-
-        if (validationResult) {
+    extracted.forEach(function(record) {
+        if (isValidAgentAssignmentRecord(record)) {
             validExtractedCount++;
         }
     });
@@ -3797,79 +3702,30 @@ function processExecutiveAssignmentsFromReport(item) {
 
     var created = [];
 
-    extracted.forEach(function(record, saveIndex) {
-        var recordKey = getAssignmentDedupeKey(record);
-        var agentName = String(record.assigned_agent || "").trim();
-        var validationResult = isValidAgentAssignmentRecord(record);
-
-        if (!validationResult) {
-            var rejectReason = getExecutiveAssignmentRejectReason(record);
-            console.log("QUEUE SAVE DEBUG: SAVE SKIPPED — validation rejected", {
-                saveIndex: saveIndex + 1,
-                agentName: agentName,
-                recordKey: recordKey,
-                validationResult: false,
-                skipReason: rejectReason
-            });
-            logExecutiveAssignmentRejected(record, rejectReason);
+    extracted.forEach(function(record) {
+        if (!isValidAgentAssignmentRecord(record)) {
+            logExecutiveAssignmentRejected(record, getExecutiveAssignmentRejectReason(record));
             return;
         }
 
-        var matchingExisting = null;
         var exists = agentAssignments.some(function(existing) {
-            var existingKey = getAssignmentDedupeKey(existing);
-            if (existingKey === recordKey) {
-                matchingExisting = existing;
-                return true;
-            }
-            return false;
+            return getAssignmentDedupeKey(existing) === getAssignmentDedupeKey(record);
         });
 
-        if (exists) {
-            console.log("QUEUE SAVE DEBUG: SAVE SKIPPED — deduped (already in queue)", {
-                saveIndex: saveIndex + 1,
-                agentName: agentName,
-                recordKey: recordKey,
-                validationResult: true,
-                skipReason: "duplicate recordKey already in agentAssignments",
-                existingId: matchingExisting && matchingExisting.id,
-                existingSprintId: matchingExisting && matchingExisting.sprint_id,
-                existingTitle: matchingExisting && matchingExisting.task_title
-            });
-            return;
+        if (!exists) {
+            record.sprint_id = sprintId;
+            record.archived = false;
+            record.archived_at = null;
+            record.archive_reason = null;
+            agentAssignments.unshift(record);
+            created.push(record);
         }
-
-        record.sprint_id = sprintId;
-        record.archived = false;
-        record.archived_at = null;
-        record.archive_reason = null;
-        agentAssignments.unshift(record);
-        created.push(record);
-
-        console.log("QUEUE SAVE DEBUG: SAVE ACCEPTED", {
-            saveIndex: saveIndex + 1,
-            agentName: agentName,
-            recordKey: recordKey,
-            validationResult: true,
-            skipReason: "(none — saved)",
-            sprintId: sprintId,
-            assignmentId: record.id
-        });
     });
 
     console.log("EXECUTIVE ASSIGNMENTS SAVED COUNT:", created.length);
-    console.log("QUEUE SAVE DEBUG: SAVE SUMMARY", {
-        extractedCount: extracted.length,
-        validExtractedCount: validExtractedCount,
-        savedCount: created.length,
-        skippedCount: extracted.length - created.length,
-        sprintId: sprintId,
-        queueSizeBeforeArchive: agentAssignments.length
-    });
 
     if (created.length > 0) {
-        var archivedCount = archiveSupersededExecutiveSprintAssignments(sprintId);
-        console.log("QUEUE SAVE DEBUG: archiveSupersededExecutiveSprintAssignments archived", archivedCount, "assignments");
+        archiveSupersededExecutiveSprintAssignments(sprintId);
         saveAssignmentsLocal();
     } else {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
@@ -4147,35 +4003,6 @@ function renderAssignmentDashboard() {
 
     var activeItems = getFilteredAssignments(false);
     var historyItems = getFilteredAssignments(true);
-    var newestActiveSprintId = getNewestActiveExecutiveSprintId();
-
-    agentAssignments.forEach(function(item) {
-        if (isAssignmentArchived(item)) {
-            return;
-        }
-
-        var status = normalizeAssignmentStatus(item.status);
-        var inActiveSprint = !newestActiveSprintId || String(item.sprint_id || "") === String(newestActiveSprintId);
-        var wouldRenderActive = !isAssignmentArchived(item) &&
-            status !== "Completed" &&
-            status !== "Blocked" &&
-            inActiveSprint;
-
-        if (!wouldRenderActive && (item.assigned_agent === "operations" || item.assigned_agent === "reputation" || item.assigned_agent === "analytics")) {
-            console.log("QUEUE SAVE DEBUG: RENDER FILTER may hide assignment", {
-                agentName: item.assigned_agent,
-                recordKey: getAssignmentDedupeKey(item),
-                sprintId: item.sprint_id,
-                newestActiveSprintId: newestActiveSprintId,
-                inActiveSprint: inActiveSprint,
-                status: status,
-                archived: isAssignmentArchived(item),
-                skipReason: isAssignmentArchived(item) ? "archived" :
-                    (status === "Completed" || status === "Blocked") ? "completed/blocked status" :
-                    !inActiveSprint ? "sprint_id does not match newest active sprint" : "unknown"
-            });
-        }
-    });
 
     activeAssignmentsList.innerHTML = "";
     historyAssignmentsList.innerHTML = "";
