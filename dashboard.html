@@ -3640,16 +3640,13 @@ function extractAssignmentRecordsFromReportItem(item) {
     });
 
     if (item.mailbox_saved) {
-  if (canonicalBody) {
-    mergeRecords(parseExecutiveAssignments(canonicalBody, parentReportId));
-  }
+        if (canonicalBody) {
+            mergeRecords(parseExecutiveAssignments(canonicalBody, parentReportId));
+        }
 
-  if (rawBody && rawBody !== canonicalBody) {
-    mergeRecords(parseExecutiveAssignments(rawBody, parentReportId));
-  }
-
-  return extracted;
-}
+        if (!extracted.length && rawBody && rawBody !== canonicalBody) {
+            mergeRecords(parseExecutiveAssignments(rawBody, parentReportId));
+        }
 
         return extracted;
     }
