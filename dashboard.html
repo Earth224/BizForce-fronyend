@@ -600,11 +600,13 @@ gap:18px;
 .assignmentQueueCard {
     padding: 8px 10px !important;
     gap: 6px !important;
+    margin-bottom: 10px;
     border: 1px solid rgba(0, 229, 255, 0.14) !important;
     background: linear-gradient(145deg, rgba(17, 17, 24, 0.96), rgba(10, 12, 20, 0.98)) !important;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22) !important;
     display: flex !important;
     flex-direction: column !important;
+    min-height: 0;
 }
 
 .assignmentCardCompactHeader {
@@ -2105,7 +2107,7 @@ function buildAssignmentRecord(fields) {
         archive_reason: fields.archive_reason || null
     };
 
-    ["deliverable", "success_metric", "owner_assignment", "co_owner", "dependencies", "next_action"].forEach(function(key) {
+    ["deliverable", "success_metric", "owner_assignment", "co_owner", "dependencies", "next_action", "mission", "timeline", "tasks", "kpi", "risks", "assignment_number"].forEach(function(key) {
         if (fields[key] !== null && fields[key] !== undefined && String(fields[key]).trim()) {
             record[key] = String(fields[key]).trim();
         }
@@ -2710,39 +2712,137 @@ function extractExecutiveHeadingAgentTitle(block, parentAgent) {
     return "";
 }
 
+function isGenericExecutiveAssignmentTitle(title, assignedAgent) {
+    var cleaned = String(title || "").replace(/\s+/g, " ").trim();
+
+    if (!cleaned) {
+        return true;
+    }
+
+    if (/^Assignment\s+\d+(?:\.\d+)?$/i.test(cleaned)) {
+        return true;
+    }
+
+    if (/^Executive Assignment\s+\d+$/i.test(cleaned)) {
+        return true;
+    }
+
+    var genericAgentTitles = [
+        "seo agent", "content agent", "sales agent", "operations agent",
+        "reputation agent", "analytics agent", "email agent", "ads agent",
+        "community agent", "influencer agent"
+    ];
+
+    if (genericAgentTitles.indexOf(cleaned.toLowerCase()) !== -1) {
+        return true;
+    }
+
+    var normalizedAgent = normalizeAssignedAgent(assignedAgent || cleaned);
+    var expectedLabel = normalizedAgent.charAt(0).toUpperCase() + normalizedAgent.slice(1) + " Agent";
+
+    if (cleaned.toLowerCase() === expectedLabel.toLowerCase()) {
+        return true;
+    }
+
+    return false;
+}
+
+function getExecutiveAssignmentRecordScore(record) {
+    var title = String(record.task_title || "").trim();
+    var description = String(record.task_description || "").trim();
+    var mission = String(record.mission || "").trim();
+    var score = Math.max(description.length, mission.length);
+
+    if (!isGenericExecutiveAssignmentTitle(title, record.assigned_agent)) {
+        score += 1000 + title.length;
+    }
+
+    return score;
+}
+
+function getAssignmentDedupeKey(record) {
+    return [
+        String(record.parent_report_id || ""),
+        String(record.assigned_agent || ""),
+        String(record.task_title || "").toLowerCase()
+    ].join("|");
+}
+
+function getExecutiveAssignmentDedupeKey(record) {
+    var agent = normalizeAssignedAgent(record.assigned_agent);
+    var number = String(record.assignment_number || "").trim();
+
+    if (number) {
+        return [
+            String(record.parent_report_id || ""),
+            agent,
+            number
+        ].join("|");
+    }
+
+    return getAssignmentDedupeKey(record);
+}
+
+function mergeExecutiveAssignmentRecords(existing, incoming) {
+    return getExecutiveAssignmentRecordScore(incoming) > getExecutiveAssignmentRecordScore(existing)
+        ? incoming
+        : existing;
+}
+
+function dedupeExecutiveAssignmentRecords(records) {
+    var merged = {};
+
+    records.forEach(function(record) {
+        var key = getExecutiveAssignmentDedupeKey(record);
+
+        if (!merged[key]) {
+            merged[key] = record;
+            return;
+        }
+
+        merged[key] = mergeExecutiveAssignmentRecords(merged[key], record);
+    });
+
+    return Object.keys(merged).map(function(key) {
+        return merged[key];
+    });
+}
+
 function resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber) {
-    var title = String(
+    var candidate = String(
         extractExecutiveAssignmentTitleFromBlock(block) ||
         fields.task_title ||
         extractAssignmentTitleFromAssignmentText(block) ||
         ""
     ).trim();
 
-    if (!title && assignmentNumber) {
-        title = "Assignment " + assignmentNumber;
+    if (candidate && !isGenericExecutiveAssignmentTitle(candidate, parentAgent)) {
+        return candidate;
     }
 
-    if (!title) {
-        var missionText = String(fields.mission || "").trim();
+    var missionText = String(fields.mission || "").trim();
 
-        if (missionText) {
-            title = extractExecutiveMissionFirstSentence(missionText);
-        }
+    if (missionText) {
+        return extractExecutiveMissionFirstSentence(missionText) || missionText;
     }
 
-    if (!title) {
-        title = extractExecutiveHeadingAgentTitle(block, parentAgent);
+    var objectiveText = String(fields.objective || fields.deliverable || fields.task_description || "").trim();
+
+    if (objectiveText) {
+        return extractExecutiveMissionFirstSentence(objectiveText) || objectiveText;
     }
 
-    if (!title) {
-        var number = assignmentNumber || extractExecutiveAssignmentNumber(block);
-
-        if (number) {
-            title = "Executive Assignment " + number;
-        }
+    if (candidate) {
+        return candidate;
     }
 
-    return String(title || "").trim();
+    var number = assignmentNumber || extractExecutiveAssignmentNumber(block);
+
+    if (number) {
+        return "Executive Assignment " + number;
+    }
+
+    return extractExecutiveHeadingAgentTitle(block, parentAgent);
 }
 
 function getExecutiveAssignmentFieldMatchers() {
@@ -2791,8 +2891,12 @@ function getExecutiveAssignmentFieldMatchers() {
         { key: "expected_outcome", pattern: /^Expected Outcome\s+(.+)$/i },
         { key: "timeline", pattern: /^Timeline\s*:\s*(.*)$/i },
         { key: "timeline", pattern: /^Timeline\s+(.+)$/i },
+        { key: "tasks", pattern: /^Tasks\s*:\s*(.*)$/i },
+        { key: "tasks", pattern: /^Tasks\s+(.+)$/i },
         { key: "kpi", pattern: /^KPIs?\s*:\s*(.*)$/i },
-        { key: "kpi", pattern: /^KPIs?\s+(.+)$/i }
+        { key: "kpi", pattern: /^KPIs?\s+(.+)$/i },
+        { key: "risks", pattern: /^Risks\s*:\s*(.*)$/i },
+        { key: "risks", pattern: /^Risks\s+(.+)$/i }
     ];
 }
 
@@ -3016,11 +3120,7 @@ function detectExecutiveSectionAgent(line) {
     }
 
     if (!match) {
-        match = upper.match(new RegExp("^AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
-    }
-
-    if (!match) {
-        match = upper.match(new RegExp("^(?:\\d+\\.\\s*)?AGENT\\s+ASSIGNMENT\\s+\\d+\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
+        match = upper.match(new RegExp("^AGENT\\s+ASSIGNMENT(?:\\s+\\d+)?\\s*[-:\\s]*\\s*" + agentPattern + "\\s+AGENT\\b"));
     }
 
     if (!match) {
@@ -3145,23 +3245,22 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
         seenAgents[normalized] = true;
         var block = blockLines.join("\n");
         var fields = parseExecutiveAssignmentBlockFields(block);
-        var title = String(
-            fields.mission ||
-            fields.task_title ||
-            fields.objective ||
-            fields.deliverable ||
-            fields.task_description ||
-            ""
-        ).trim();
-
-        if (!title) {
-            title = normalized.charAt(0).toUpperCase() + normalized.slice(1) + " executive assignment";
-        }
-
+        var assignmentNumber = extractExecutiveAssignmentNumber(block);
+        var title = resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber);
         var priority = fields.priority || "Medium";
         var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title) || block.trim() || title;
 
+        if (!description && fields.mission) {
+            description = String(fields.mission).trim();
+        }
+
         pushRecord(parentAgent, title, description, priority, {
+            assignment_number: assignmentNumber,
+            mission: fields.mission,
+            timeline: fields.timeline,
+            tasks: fields.tasks,
+            kpi: fields.kpi,
+            risks: fields.risks,
             deliverable: fields.deliverable,
             success_metric: fields.success_metric,
             owner_assignment: fields.owner_assignment || fields.owner,
@@ -3246,7 +3345,7 @@ function debugExecutiveParserScanReport(text, sourceLabel) {
     lines.forEach(function(line, lineIndex) {
         var cleaned = cleanExecutiveAssignmentLine(line);
 
-        if (/AGENT\s+ASSIGNMENT\s+\d+/i.test(cleaned)) {
+        if (/AGENT\s+ASSIGNMENT(?:\s+\d+)?\b/i.test(cleaned)) {
             headingMatches.push({
                 lineIndex: lineIndex + 1,
                 raw: line,
@@ -3293,7 +3392,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   var parsed = [];
   var seen = {};
 
-  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|AGENT\s+ASSIGNMENT\s+\d+|(?:^|\n)\s*Agents?\s*:|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
+  if (!/(?:AGENT WORK QUEUE ASSIGNMENTS|EXECUTIVE ASSIGNMENTS|AGENT ASSIGNMENT QUEUE|AGENT\s+ASSIGNMENT(?:\s+\d+)?|(?:^|\n)\s*Agents?\s*:|(?:\d+\.\s*)?ASSIGNMENT\s+\d+(?:\.\d+)?\s*(?::\s*[^\r\n]+)?|(?:^|\n)\s*Title\s*:|(?:^|\n)\s*Title\s+\S|Task Title\s*:|Description\s*:|Primary Owner\s*:|(?:^|\n)\s*Primary Owner\s+\S|(?:^|\n)\s*[^\w]*(?:\d+\.\s*)?(?:SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)\s+AGENT\b)/im.test(text)) {
     console.log("EXECUTIVE PARSER DEBUG: entry gate rejected report (no assignment markers)");
     return parsed;
   }
@@ -3305,17 +3404,42 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   }
 
   function recordKey(record) {
-    return [
-      String(parentReportId || ""),
-      record.assigned_agent,
-      String(record.task_title || "").toLowerCase()
-    ].join("|");
+    return getExecutiveAssignmentDedupeKey(Object.assign({}, record, {
+      parent_report_id: parentReportId
+    }));
+  }
+
+  function upsertParsedRecord(record) {
+    var key = recordKey(record);
+
+    for (var i = 0; i < parsed.length; i++) {
+      if (recordKey(parsed[i]) !== key) {
+        continue;
+      }
+
+      parsed[i] = mergeExecutiveAssignmentRecords(parsed[i], record);
+      seen[key] = true;
+      return;
+    }
+
+    seen[key] = true;
+    parsed.push(record);
+    console.log("EXECUTIVE ASSIGNMENT PARSED", record);
   }
 
   function pushRecord(agent, title, description, priority, metadata) {
     title = cleanLine(title);
     description = String(description || "").trim();
     priority = cleanLine(priority || "High") || "High";
+    metadata = metadata || {};
+
+    if (isGenericExecutiveAssignmentTitle(title, agent)) {
+      var missionFallback = String(metadata.mission || description || "").trim();
+
+      if (missionFallback) {
+        title = extractExecutiveMissionFirstSentence(missionFallback) || missionFallback;
+      }
+    }
 
     if (!passesExecutivePlainTextAssignment(agent, priority, title)) {
       console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — plain-text gate failed", {
@@ -3326,13 +3450,11 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       return;
     }
 
-    var previewRecord = {
-      assigned_agent: agent,
-      task_title: title
-    };
-
-    if (seen[recordKey(previewRecord)]) {
-      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — duplicate recordKey", recordKey(previewRecord));
+    if (isGenericExecutiveAssignmentTitle(title, agent) && !String(description || metadata.mission || "").trim()) {
+      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — generic title without mission text", {
+        agent: agent,
+        title: title
+      });
       return;
     }
 
@@ -3355,9 +3477,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       return;
     }
 
-    seen[recordKey(record)] = true;
-    parsed.push(record);
-    console.log("EXECUTIVE ASSIGNMENT PARSED", record);
+    upsertParsedRecord(record);
   }
 
   function parseAssignmentBlock(block, parentAgent, blockIndex) {
@@ -3368,6 +3488,10 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
+
+    if (!description && fields.mission) {
+        description = String(fields.mission).trim();
+    }
 
     console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock START #" + (blockIndex || "?"), {
       parentAgent: parentAgent || "(none)",
@@ -3399,6 +3523,12 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     );
 
     pushRecord(assignedAgent, title, description, priority, {
+      assignment_number: assignmentNumber,
+      mission: fields.mission,
+      timeline: fields.timeline,
+      tasks: fields.tasks,
+      kpi: fields.kpi,
+      risks: fields.risks,
       deliverable: fields.deliverable,
       success_metric: fields.success_metric,
       owner_assignment: fields.owner_assignment || fields.owner,
@@ -3479,7 +3609,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
 
   console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
 
-  return parsed;
+  return dedupeExecutiveAssignmentRecords(parsed);
 }
 
 function isExecutiveReportItem(item) {
@@ -3648,37 +3778,23 @@ function parseExecutiveAssignments(reportText, parentReportId) {
     return parsed;
 }
 
-function getAssignmentDedupeKey(record) {
-    return [
-        String(record.parent_report_id || ""),
-        String(record.assigned_agent || ""),
-        String(record.task_title || "").toLowerCase()
-    ].join("|");
-}
-
 function extractAssignmentRecordsFromReportItem(item) {
     var parentReportId = item.id ? String(item.id) : null;
     var extracted = [];
     var seen = {};
 
     function mergeRecords(records) {
-        records.forEach(function(record) {
-            var key = getAssignmentDedupeKey(record);
+        dedupeExecutiveAssignmentRecords(records).forEach(function(record) {
+            var key = getExecutiveAssignmentDedupeKey(record);
 
             if (seen[key]) {
                 console.log("EXECUTIVE PARSER DEBUG: mergeRecords SKIPPED duplicate", key);
                 for (var i = 0; i < extracted.length; i++) {
-                    if (getAssignmentDedupeKey(extracted[i]) !== key) {
+                    if (getExecutiveAssignmentDedupeKey(extracted[i]) !== key) {
                         continue;
                     }
 
-                    var existingDescription = String(extracted[i].task_description || "");
-                    var nextDescription = String(record.task_description || "");
-
-                    if (nextDescription.length > existingDescription.length) {
-                        extracted[i] = record;
-                    }
-
+                    extracted[i] = mergeExecutiveAssignmentRecords(extracted[i], record);
                     break;
                 }
 
@@ -3746,7 +3862,7 @@ function processExecutiveAssignmentsFromReport(item) {
     loadAssignmentsLocal();
 
     var sprintId = generateExecutiveSprintId(item);
-    var extracted = extractAssignmentRecordsFromReportItem(item);
+    var extracted = dedupeExecutiveAssignmentRecords(extractAssignmentRecordsFromReportItem(item));
     var validExtractedCount = 0;
 
     console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", extracted.length);
@@ -3772,17 +3888,24 @@ function processExecutiveAssignmentsFromReport(item) {
         }
 
         var exists = agentAssignments.some(function(existing) {
-            return getAssignmentDedupeKey(existing) === getAssignmentDedupeKey(record);
+            return getExecutiveAssignmentDedupeKey(existing) === getExecutiveAssignmentDedupeKey(record);
         });
 
-        if (!exists) {
-            record.sprint_id = sprintId;
-            record.archived = false;
-            record.archived_at = null;
-            record.archive_reason = null;
-            agentAssignments.unshift(record);
-            created.push(record);
+        if (exists) {
+            console.log("QUEUE SAVE DEBUG: SAVE SKIPPED — deduped (already in queue)", {
+                agentName: String(record.assigned_agent || "").trim(),
+                recordKey: getExecutiveAssignmentDedupeKey(record),
+                assignmentNumber: record.assignment_number || null
+            });
+            return;
         }
+
+        record.sprint_id = sprintId;
+        record.archived = false;
+        record.archived_at = null;
+        record.archive_reason = null;
+        agentAssignments.unshift(record);
+        created.push(record);
     });
 
     console.log("EXECUTIVE ASSIGNMENTS SAVED COUNT:", created.length);
@@ -3953,20 +4076,74 @@ function assignmentStatusBadgeHtml(status) {
     return '<span class="' + badgeClass + '">' + assignmentEscapeHtml(normalized) + "</span>";
 }
 
+function getAssignmentAgentLabel(item) {
+    var agent = normalizeAssignedAgent(item.assigned_agent);
+    return agent ? agent.toUpperCase() : "AGENT";
+}
+
+function getAssignmentMissionDisplay(item) {
+    var mission = String(item.mission || "").trim();
+
+    if (mission) {
+        return mission;
+    }
+
+    var title = String(item.task_title || "").trim();
+
+    if (title && !isGenericExecutiveAssignmentTitle(title, item.assigned_agent)) {
+        return title;
+    }
+
+    return "";
+}
+
+function getAssignmentOwnerDisplay(item) {
+    return String(item.owner_assignment || item.co_owner || item.assigned_agent || "").trim();
+}
+
 function getAssignmentTimelineDisplay(item) {
-    return item.next_action || item.owner_assignment || "";
+    return String(item.timeline || item.next_action || "").trim();
 }
 
 function getAssignmentTasksDisplay(item) {
-    return item.task_description || item.deliverable || "";
+    return String(item.tasks || item.deliverable || item.task_description || "").trim();
 }
 
 function getAssignmentKpisDisplay(item) {
-    return item.success_metric || "";
+    return String(item.kpi || item.success_metric || "").trim();
 }
 
 function getAssignmentRisksDisplay(item) {
-    return item.dependencies || "";
+    return String(item.risks || item.dependencies || "").trim();
+}
+
+function getAssignmentNextActionDisplay(item) {
+    return String(item.next_action || "").trim();
+}
+
+function getAssignmentCollapsedMission(item) {
+    var description = String(item.task_description || "").trim();
+    var mission = String(item.mission || "").trim();
+    var title = String(item.task_title || "").trim();
+
+    if (description && !isGenericExecutiveAssignmentTitle(description, item.assigned_agent)) {
+        var descriptionPreview = extractExecutiveMissionFirstSentence(description) || description;
+
+        if (!isGenericExecutiveAssignmentTitle(descriptionPreview, item.assigned_agent)) {
+            return assignmentPreviewText(descriptionPreview, 110);
+        }
+    }
+
+    if (mission) {
+        return assignmentPreviewText(mission, 110);
+    }
+
+    if (title && !isGenericExecutiveAssignmentTitle(title, item.assigned_agent)) {
+        return assignmentPreviewText(title, 110);
+    }
+
+    var agent = normalizeAssignedAgent(item.assigned_agent);
+    return agent.charAt(0).toUpperCase() + agent.slice(1) + " Assignment";
 }
 
 function assignmentPreviewText(text, maxLen) {
@@ -4009,17 +4186,21 @@ function renderAssignmentCard(item, isHistory) {
     var completedLabel = item.completed_at ? new Date(item.completed_at).toLocaleString() : "—";
     var archivedLabel = item.archived_at ? new Date(item.archived_at).toLocaleString() : "—";
     var normalizedStatus = normalizeAssignmentStatus(item.status);
-    var missionSummary = assignmentPreviewText(item.task_title, 110);
+    var missionSummary = getAssignmentCollapsedMission(item);
     var statusOptions = ASSIGNMENT_STATUSES.map(function(status) {
         var selected = normalizedStatus === status ? " selected" : "";
         return '<option value="' + status + '"' + selected + '>' + status + '</option>';
     }).join("");
 
     var detailsHtml =
+        assignmentDetailSection("Mission", getAssignmentMissionDisplay(item)) +
+        assignmentDetailSection("Owner", getAssignmentOwnerDisplay(item)) +
+        assignmentDetailSection("Priority", item.priority || "Medium") +
         assignmentDetailSection("Timeline", getAssignmentTimelineDisplay(item)) +
         assignmentDetailSection("Tasks", getAssignmentTasksDisplay(item)) +
         assignmentDetailSection("KPIs", getAssignmentKpisDisplay(item)) +
-        assignmentDetailSection("Risks", getAssignmentRisksDisplay(item));
+        assignmentDetailSection("Risks", getAssignmentRisksDisplay(item)) +
+        assignmentDetailSection("Next Action", getAssignmentNextActionDisplay(item));
 
     if (isHistory && item.archived) {
         detailsHtml += assignmentDetailSection("Archived", archivedLabel);
@@ -4027,14 +4208,10 @@ function renderAssignmentCard(item, isHistory) {
         detailsHtml += assignmentDetailSection("Completed", completedLabel);
     }
 
-    if (!detailsHtml) {
-        detailsHtml = assignmentDetailSection("Tasks", getAssignmentTasksDisplay(item));
-    }
-
     card.innerHTML = `
         <div class="assignmentCardCompactHeader">
             <div style="min-width:0;max-width:100%;">
-                <div class="assignmentCardAgentName">${assignmentEscapeHtml(String(item.assigned_agent || "").toUpperCase())}</div>
+                <div class="assignmentCardAgentName">${assignmentEscapeHtml(getAssignmentAgentLabel(item))}</div>
             </div>
             <div class="assignmentCardMetaRow">
                 ${assignmentPriorityBadgeHtml(item.priority || "Medium")}
@@ -4043,7 +4220,7 @@ function renderAssignmentCard(item, isHistory) {
         </div>
         <div style="min-width:0;max-width:100%;">
             <div class="assignmentCardMissionLabel">Mission</div>
-            <div class="assignmentCardMission">${assignmentEscapeHtml(missionSummary || item.task_title || "Executive assignment")}</div>
+            <div class="assignmentCardMission">${assignmentEscapeHtml(missionSummary || "Executive assignment")}</div>
         </div>
         <div class="assignmentCardFooter">
             <div class="assignmentCardCreated">${assignmentEscapeHtml(createdLabel)}</div>
