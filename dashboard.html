@@ -2681,6 +2681,70 @@ function extractExecutiveAssignmentTitleFromBlock(block) {
     return extractTitleFromAssignmentHeaderLine(firstLine);
 }
 
+function extractExecutiveMissionFirstSentence(mission) {
+    var text = String(mission || "").trim();
+
+    if (!text) {
+        return "";
+    }
+
+    var sentence = text.split(/[.!?](?:\s+|$)/)[0].trim();
+    return sentence || text;
+}
+
+function extractExecutiveHeadingAgentTitle(block, parentAgent) {
+    var lines = String(block || "").split(/\r?\n/);
+
+    for (var i = 0; i < lines.length; i++) {
+        var sectionAgent = detectExecutiveSectionAgent(lines[i]);
+
+        if (sectionAgent) {
+            return sectionAgent;
+        }
+    }
+
+    if (parentAgent) {
+        return parentAgent;
+    }
+
+    return "";
+}
+
+function resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber) {
+    var title = String(
+        extractExecutiveAssignmentTitleFromBlock(block) ||
+        fields.task_title ||
+        extractAssignmentTitleFromAssignmentText(block) ||
+        ""
+    ).trim();
+
+    if (!title && assignmentNumber) {
+        title = "Assignment " + assignmentNumber;
+    }
+
+    if (!title) {
+        var missionText = String(fields.mission || "").trim();
+
+        if (missionText) {
+            title = extractExecutiveMissionFirstSentence(missionText);
+        }
+    }
+
+    if (!title) {
+        title = extractExecutiveHeadingAgentTitle(block, parentAgent);
+    }
+
+    if (!title) {
+        var number = assignmentNumber || extractExecutiveAssignmentNumber(block);
+
+        if (number) {
+            title = "Executive Assignment " + number;
+        }
+    }
+
+    return String(title || "").trim();
+}
+
 function getExecutiveAssignmentFieldMatchers() {
     return [
         { key: "task_title", pattern: /^Task Title\s*:\s*(.*)$/i },
@@ -2968,7 +3032,13 @@ function detectExecutiveSectionAgent(line) {
 
 function extractExecutiveAssignmentNumber(block) {
     var firstLine = String(block || "").split(/\r?\n/)[0] || "";
-    var match = cleanExecutiveAssignmentLine(firstLine).match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
+    var cleaned = cleanExecutiveAssignmentLine(firstLine);
+    var match = cleaned.match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
+
+    if (!match) {
+        match = cleaned.match(/^AGENT\s+ASSIGNMENT\s+(\d+)/i);
+    }
+
     return match ? match[1] : "";
 }
 
@@ -3293,14 +3363,7 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   function parseAssignmentBlock(block, parentAgent, blockIndex) {
     var assignmentNumber = extractExecutiveAssignmentNumber(block);
     var fields = parseExecutiveAssignmentBlockFields(block);
-    var headerTitle = extractExecutiveAssignmentTitleFromBlock(block);
-    var title = String(headerTitle || fields.task_title || extractAssignmentTitleFromAssignmentText(block) || "").trim();
-    if (!title && assignmentNumber) {
-        title = "Assignment " + assignmentNumber;
-    }
-    if (!title) {
-        title = String(fields.mission || fields.objective || fields.deliverable || fields.task_description || "").trim();
-    }
+    var title = resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber);
 
     var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
