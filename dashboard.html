@@ -1494,88 +1494,151 @@ business_description: document.getElementById("business_description").value
 
 });
 
-function getExecutiveAgentAssignmentFormatTemplate() {
-    return [
-        "AGENT ASSIGNMENT 1: SEO AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:",
-        "AGENT ASSIGNMENT 2: CONTENT AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:",
-        "AGENT ASSIGNMENT 3: SALES AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:",
-        "AGENT ASSIGNMENT 4: OPERATIONS AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:",
-        "AGENT ASSIGNMENT 5: REPUTATION AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:",
-        "AGENT ASSIGNMENT 6: ANALYTICS AGENT",
-        "Mission:",
-        "Owner:",
-        "Priority:",
-        "Timeline:",
-        "Tasks:",
-        "KPIs:",
-        "Risks:",
-        "Next Action:"
-    ].join("\n");
+function getDefaultExecutivePromptAgents() {
+    return ["seo", "content", "sales", "operations", "reputation", "analytics"];
+}
+
+function formatExecutivePromptAgentLabel(agentKey) {
+    var key = String(agentKey || "").trim().toLowerCase();
+    var labels = {
+        seo: "SEO AGENT",
+        content: "CONTENT AGENT",
+        sales: "SALES AGENT",
+        ads: "ADS AGENT",
+        operations: "OPERATIONS AGENT",
+        reputation: "REPUTATION AGENT",
+        analytics: "ANALYTICS AGENT",
+        email: "EMAIL AGENT",
+        community: "COMMUNITY AGENT",
+        influencer: "INFLUENCER AGENT"
+    };
+
+    return labels[key] || (key.charAt(0).toUpperCase() + key.slice(1) + " AGENT");
+}
+
+function extractRequestedExecutiveAgentsFromPrompt(userPrompt) {
+    var text = String(userPrompt || "").trim();
+
+    if (!text) {
+        return [];
+    }
+
+    var scanText = text;
+    var lockedOnly = /\b(?:assign(?:\s+work)?\s+only|only\s+(?:assign|create|use)|do\s+not\s+create\s+any\s+additional\s+agents?)\b/i.test(text);
+    var onlySectionMatch = text.match(
+        /\b(?:assign(?:\s+work)?\s+only(?:\s+(?:to|for))?|only(?:\s+(?:to|for))?)\s*:?\s*([\s\S]+?)(?:\.\s|DO NOT|Do not|$)/i
+    );
+
+    if (onlySectionMatch && onlySectionMatch[1]) {
+        scanText = onlySectionMatch[1];
+    } else if (/\b(?:assign(?:\s+work)?\s+to|assign\s+to|requested\s+agents?)\s*:/i.test(text)) {
+        var assignMatch = text.match(/\b(?:assign(?:\s+work)?\s+to|assign\s+to|requested\s+agents?)\s*:\s*([\s\S]+?)(?:\.\s|DO NOT|Do not|$)/i);
+        if (assignMatch && assignMatch[1]) {
+            scanText = assignMatch[1];
+        }
+    }
+
+    var agentRegex = /\b(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)(?:\s+AGENT)?\b/gi;
+    var seen = {};
+    var found = [];
+    var match;
+
+    while ((match = agentRegex.exec(scanText)) !== null) {
+        var key = String(match[1] || "").trim().toLowerCase();
+
+        if (!key || seen[key]) {
+            continue;
+        }
+
+        seen[key] = true;
+        found.push(key);
+    }
+
+    if (found.length && lockedOnly) {
+        return found;
+    }
+
+    if (found.length >= 2 && /\b(?:assign(?:\s+(?:work\s+)?to)|use\s+only|requested\s+agents?|these\s+agents?)\b/i.test(text)) {
+        return found;
+    }
+
+    return [];
+}
+
+function buildExecutiveAgentAssignmentBlocks(agentKeys) {
+    var blocks = [];
+    var fieldLines = ["Mission:", "Owner:", "Priority:", "Timeline:", "Tasks:", "KPIs:", "Risks:", "Next Action:"];
+
+    agentKeys.forEach(function(agentKey, index) {
+        blocks.push("AGENT ASSIGNMENT " + (index + 1) + ": " + formatExecutivePromptAgentLabel(agentKey));
+        fieldLines.forEach(function(fieldLine) {
+            blocks.push(fieldLine);
+        });
+    });
+
+    return blocks.join("\n");
+}
+
+function getExecutiveAgentAssignmentFormatTemplate(agentKeys) {
+    var keys = agentKeys && agentKeys.length ? agentKeys : getDefaultExecutivePromptAgents();
+    return buildExecutiveAgentAssignmentBlocks(keys);
 }
 
 function buildExecutiveAgentTaskPrompt(userPrompt) {
     var userTask = String(userPrompt || "").trim();
-
-    return [
+    var requestedAgents = extractRequestedExecutiveAgentsFromPrompt(userTask);
+    var agents = requestedAgents.length ? requestedAgents : getDefaultExecutivePromptAgents();
+    var assignmentCount = agents.length;
+    var agentLabels = agents.map(formatExecutivePromptAgentLabel);
+    var lockedAgentList = requestedAgents.length > 0;
+    var promptLines = [
         "Act as the Executive Agent for BizForce. Analyze the business request below and produce a full executive report with agent work queue assignments.",
         "",
         "BUSINESS REQUEST:",
         userTask,
+        ""
+    ];
+
+    if (lockedAgentList) {
+        promptLines.push(
+            "LOCKED AGENT LIST — EXTRACTED FROM USER REQUEST:",
+            agents.map(function(agentKey, index) {
+                return (index + 1) + ". " + formatExecutivePromptAgentLabel(agentKey);
+            }).join("\n"),
+            "",
+            "If the user says ONLY, treat the requested agent list as locked. Do not add, remove, rename, merge, or replace agents.",
+            "You MUST generate assignments ONLY for these exact agents: " + agentLabels.join(", ") + ".",
+            "Preserve the exact requested agents in the same order.",
+            "Never substitute Sales for Ads, Ads for Sales, or Operations for any other agent.",
+            "Never add extra agents that were not requested.",
+            "Never omit any requested agent.",
+            ""
+        );
+    }
+
+    promptLines.push(
+        "REQUIRED OUTPUT FORMAT — you MUST output EXACTLY " + assignmentCount + " separate assignment block(s). Use this exact heading and field structure:",
         "",
-        "REQUIRED OUTPUT FORMAT — you MUST output EXACTLY SIX separate assignment blocks every time. Use this exact heading and field structure (all six blocks, no exceptions):",
-        "",
-        getExecutiveAgentAssignmentFormatTemplate(),
+        getExecutiveAgentAssignmentFormatTemplate(agents),
         "",
         "STRICT VALIDATION (mandatory before finalizing your response):",
-        "Before finalizing, count the assignment headings. If fewer than 6 exist, continue writing until all 6 exist. Never stop after 3.",
+        "Before finalizing, count the assignment headings. If fewer than " + assignmentCount + " exist, continue writing until all " + assignmentCount + " exist.",
         "",
         "Rules:",
-        "- Output exactly six blocks: AGENT ASSIGNMENT 1 through AGENT ASSIGNMENT 6.",
-        "- Use exactly these agent names: SEO AGENT, CONTENT AGENT, SALES AGENT, OPERATIONS AGENT, REPUTATION AGENT, ANALYTICS AGENT.",
+        "- Output exactly " + assignmentCount + " block(s): AGENT ASSIGNMENT 1 through AGENT ASSIGNMENT " + assignmentCount + ".",
+        lockedAgentList
+            ? "- Use ONLY these agent names in this exact order: " + agentLabels.join(", ") + "."
+            : "- Use exactly these agent names: SEO AGENT, CONTENT AGENT, SALES AGENT, OPERATIONS AGENT, REPUTATION AGENT, ANALYTICS AGENT.",
         "- Every block must include all fields: Mission, Owner, Priority, Timeline, Tasks, KPIs, Risks, Next Action.",
         "- Fill every field with actionable, business-specific content.",
-        "- Do not merge agents, skip agents, or stop after three assignments."
-    ].join("\n");
+        "- Do not merge agents, skip agents, rename agents, or stop early."
+    );
+
+    if (lockedAgentList) {
+        promptLines.push("- If the user says ONLY, treat the requested agent list as locked. Do not add, remove, rename, merge, or replace agents.");
+    }
+
+    return promptLines.join("\n");
 }
 
 document.addEventListener("DOMContentLoaded", function () {
