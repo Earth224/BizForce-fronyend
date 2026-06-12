@@ -1523,22 +1523,27 @@ function extractRequestedExecutiveAgentsFromPrompt(userPrompt) {
         return [];
     }
 
-    var scanText = text;
     var lockedOnly = /\b(?:assign(?:\s+work)?\s+only|only\s+(?:assign|create|use)|do\s+not\s+create\s+any\s+additional\s+agents?)\b/i.test(text);
+    var scanText = text;
     var onlySectionMatch = text.match(
-        /\b(?:assign(?:\s+work)?\s+only(?:\s+(?:to|for))?|only(?:\s+(?:to|for))?)\s*:?\s*([\s\S]+?)(?:\.\s|DO NOT|Do not|$)/i
+        /\bassign(?:\s+work)?\s+only(?:\s+(?:to|for))?\s*:?\s*([\s\S]+?)(?=\bdo\s+not\s+create\b|$)/i
     );
 
     if (onlySectionMatch && onlySectionMatch[1]) {
         scanText = onlySectionMatch[1];
     } else if (/\b(?:assign(?:\s+work)?\s+to|assign\s+to|requested\s+agents?)\s*:/i.test(text)) {
-        var assignMatch = text.match(/\b(?:assign(?:\s+work)?\s+to|assign\s+to|requested\s+agents?)\s*:\s*([\s\S]+?)(?:\.\s|DO NOT|Do not|$)/i);
+        var assignMatch = text.match(/\b(?:assign(?:\s+work)?\s+to|assign\s+to|requested\s+agents?)\s*:\s*([\s\S]+?)(?=\bdo\s+not\s+create\b|$)/i);
+
         if (assignMatch && assignMatch[1]) {
             scanText = assignMatch[1];
         }
     }
 
-    var agentRegex = /\b(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)(?:\s+AGENT)?\b/gi;
+    if (lockedOnly) {
+        scanText = text;
+    }
+
+    var agentRegex = /\b(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)(?:\s+AGENTS?\b|\s+AGENT\b|\b)/gi;
     var seen = {};
     var found = [];
     var match;
@@ -1565,11 +1570,36 @@ function extractRequestedExecutiveAgentsFromPrompt(userPrompt) {
     return [];
 }
 
+function dedupeExecutivePromptAgents(agentKeys) {
+    var seen = {};
+    var deduped = [];
+
+    (agentKeys || []).forEach(function(agentKey) {
+        var key = String(agentKey || "").trim().toLowerCase();
+
+        if (!key || seen[key]) {
+            return;
+        }
+
+        seen[key] = true;
+        deduped.push(key);
+    });
+
+    return deduped;
+}
+
+function buildExecutiveAgentHeadingPlan(agentKeys) {
+    return agentKeys.map(function(agentKey, index) {
+        return "AGENT ASSIGNMENT " + (index + 1) + ": " + formatExecutivePromptAgentLabel(agentKey) + " (exactly once — never duplicate " + formatExecutivePromptAgentLabel(agentKey) + ")";
+    }).join("\n");
+}
+
 function buildExecutiveAgentAssignmentBlocks(agentKeys) {
     var blocks = [];
     var fieldLines = ["Mission:", "Owner:", "Priority:", "Timeline:", "Tasks:", "KPIs:", "Risks:", "Next Action:"];
+    var uniqueAgents = dedupeExecutivePromptAgents(agentKeys);
 
-    agentKeys.forEach(function(agentKey, index) {
+    uniqueAgents.forEach(function(agentKey, index) {
         blocks.push("AGENT ASSIGNMENT " + (index + 1) + ": " + formatExecutivePromptAgentLabel(agentKey));
         fieldLines.forEach(function(fieldLine) {
             blocks.push(fieldLine);
@@ -1586,7 +1616,7 @@ function getExecutiveAgentAssignmentFormatTemplate(agentKeys) {
 
 function buildExecutiveAgentTaskPrompt(userPrompt) {
     var userTask = String(userPrompt || "").trim();
-    var requestedAgents = extractRequestedExecutiveAgentsFromPrompt(userTask);
+    var requestedAgents = dedupeExecutivePromptAgents(extractRequestedExecutiveAgentsFromPrompt(userTask));
     var agents = requestedAgents.length ? requestedAgents : getDefaultExecutivePromptAgents();
     var assignmentCount = agents.length;
     var agentLabels = agents.map(formatExecutivePromptAgentLabel);
@@ -1601,10 +1631,8 @@ function buildExecutiveAgentTaskPrompt(userPrompt) {
 
     if (lockedAgentList) {
         promptLines.push(
-            "LOCKED AGENT LIST — EXTRACTED FROM USER REQUEST:",
-            agents.map(function(agentKey, index) {
-                return (index + 1) + ". " + formatExecutivePromptAgentLabel(agentKey);
-            }).join("\n"),
+            "LOCKED AGENT LIST (instruction only — do NOT repeat this list in your output):",
+            agentLabels.join(", "),
             "",
             "If the user says ONLY, treat the requested agent list as locked. Do not add, remove, rename, merge, or replace agents.",
             "You MUST generate assignments ONLY for these exact agents: " + agentLabels.join(", ") + ".",
@@ -1612,26 +1640,36 @@ function buildExecutiveAgentTaskPrompt(userPrompt) {
             "Never substitute Sales for Ads, Ads for Sales, or Operations for any other agent.",
             "Never add extra agents that were not requested.",
             "Never omit any requested agent.",
+            "Never duplicate any agent. Each requested agent must appear in exactly one assignment block.",
+            "Do NOT output 6 blocks when fewer agents were requested. Output exactly " + assignmentCount + " unique blocks.",
+            "",
+            "CANONICAL HEADING PLAN (use these headings exactly once each, in this order):",
+            buildExecutiveAgentHeadingPlan(agents),
             ""
         );
     }
 
     promptLines.push(
-        "REQUIRED OUTPUT FORMAT — you MUST output EXACTLY " + assignmentCount + " separate assignment block(s). Use this exact heading and field structure:",
+        "REQUIRED OUTPUT FORMAT — output EXACTLY " + assignmentCount + " separate assignment block(s) and no more. Use this exact heading and field structure:",
         "",
         getExecutiveAgentAssignmentFormatTemplate(agents),
         "",
         "STRICT VALIDATION (mandatory before finalizing your response):",
-        "Before finalizing, count the assignment headings. If fewer than " + assignmentCount + " exist, continue writing until all " + assignmentCount + " exist.",
+        "Before finalizing, count the assignment headings. There must be exactly " + assignmentCount + " headings.",
+        "Each requested agent must appear exactly once. If any agent appears twice, delete the duplicate block.",
+        lockedAgentList
+            ? "If Operations Agent is in the locked list, AGENT ASSIGNMENT " + assignmentCount + " MUST be OPERATIONS AGENT. Never skip Operations."
+            : "If fewer than " + assignmentCount + " unique agents are present, continue until all required blocks exist.",
         "",
         "Rules:",
         "- Output exactly " + assignmentCount + " block(s): AGENT ASSIGNMENT 1 through AGENT ASSIGNMENT " + assignmentCount + ".",
         lockedAgentList
-            ? "- Use ONLY these agent names in this exact order: " + agentLabels.join(", ") + "."
+            ? "- Use ONLY these agent names in this exact order, one block each: " + agentLabels.join(", ") + "."
             : "- Use exactly these agent names: SEO AGENT, CONTENT AGENT, SALES AGENT, OPERATIONS AGENT, REPUTATION AGENT, ANALYTICS AGENT.",
         "- Every block must include all fields: Mission, Owner, Priority, Timeline, Tasks, KPIs, Risks, Next Action.",
         "- Fill every field with actionable, business-specific content.",
-        "- Do not merge agents, skip agents, rename agents, or stop early."
+        "- Do not merge agents, skip agents, rename agents, duplicate agents, or stop early.",
+        "- Do not echo the LOCKED AGENT LIST section in the final report."
     );
 
     if (lockedAgentList) {
