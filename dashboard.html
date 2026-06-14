@@ -1814,8 +1814,15 @@ activePollInterval = setInterval(async function () {
         var pollTaskStatus = pollData.task && pollData.task.status
             ? String(pollData.task.status).trim().toLowerCase()
             : "";
-        var isTerminalTaskSuccess =
-            pollTaskStatus === "completed" || pollTaskStatus === "requires_approval";
+        var isTerminalTaskSuccess = pollTaskStatus === "completed";
+
+        if (pollTaskStatus === "requires_approval") {
+            if (statusEl) {
+                statusEl.innerHTML = "Awaiting Approval";
+                statusEl.style.color = "#00e5ff";
+            }
+            return;
+        }
 
         if (pollData.task && isTerminalTaskSuccess) {
             if (taskCompletionHandled) {
@@ -2870,18 +2877,11 @@ function getAssignmentDedupeKey(record) {
 }
 
 function getExecutiveAssignmentDedupeKey(record) {
-    var agent = normalizeAssignedAgent(record.assigned_agent);
-    var number = String(record.assignment_number || "").trim();
-
-    if (number) {
-        return [
-            String(record.parent_report_id || ""),
-            agent,
-            number
-        ].join("|");
-    }
-
-    return getAssignmentDedupeKey(record);
+    return [
+        String(record.parent_report_id || ""),
+        String(record.assignment_number || "").trim(),
+        normalizeAssignedAgent(record.assigned_agent)
+    ].join("|");
 }
 
 function mergeExecutiveAssignmentRecords(existing, incoming) {
@@ -3210,6 +3210,28 @@ function getExecutiveSectionAgentRegexSource() {
     return "(SEO|CONTENT|SALES|ADS|REPUTATION|ANALYTICS|EMAIL|COMMUNITY|OPERATIONS|INFLUENCER)";
 }
 
+function matchExecutiveStrictAssignmentHeading(line) {
+    var cleaned = cleanExecutiveAssignmentLine(line);
+    var agentPattern = getExecutiveSectionAgentRegexSource();
+    var match = cleaned.match(new RegExp(
+        "^AGENT\\s+ASSIGNMENT\\s+(\\d+)\\s*:\\s*" + agentPattern + "\\s+AGENT\\b",
+        "i"
+    ));
+
+    if (!match) {
+        return null;
+    }
+
+    var agentKey = match[2].toLowerCase();
+
+    return {
+        number: String(match[1]).trim(),
+        agent: agentKey.charAt(0).toUpperCase() + agentKey.slice(1) + " Agent",
+        agentKey: agentKey,
+        line: cleaned
+    };
+}
+
 function detectExecutiveSectionAgent(line) {
     var cleaned = cleanExecutiveAssignmentLine(line);
     var upper = cleaned.toUpperCase();
@@ -3233,6 +3255,12 @@ function detectExecutiveSectionAgent(line) {
 
 function extractExecutiveAssignmentNumber(block) {
     var firstLine = String(block || "").split(/\r?\n/)[0] || "";
+    var strictHeading = matchExecutiveStrictAssignmentHeading(firstLine);
+
+    if (strictHeading) {
+        return strictHeading.number;
+    }
+
     var cleaned = cleanExecutiveAssignmentLine(firstLine);
     var match = cleaned.match(/^\s*(?:\d+\.\s*)?Assignment\s+(\d+(?:\.\d+)?)/i);
 
@@ -3295,26 +3323,17 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
     }
 
     lines.forEach(function(line) {
-        var sectionAgent = detectExecutiveSectionAgent(line);
+        var strictHeading = matchExecutiveStrictAssignmentHeading(line);
 
-        if (sectionAgent) {
+        if (strictHeading) {
+            console.log(
+                "EXECUTIVE STRICT HEADING MATCH:",
+                strictHeading.number,
+                strictHeading.agentKey,
+                strictHeading.line
+            );
             flushBlock();
-            parentAgent = sectionAgent;
-            currentBlock = [line];
-            return;
-        }
-
-        if (isExecutiveAssignmentHeaderLine(line)) {
-            flushBlock();
-            parentAgent = "";
-            currentBlock = [line];
-            return;
-        }
-
-        if (parentAgent && /^Task Title\s*:/i.test(cleanExecutiveAssignmentLine(line))) {
-            if (currentBlock.length) {
-                flushBlock();
-            }
+            parentAgent = strictHeading.agent;
             currentBlock = [line];
             return;
         }
@@ -3329,25 +3348,24 @@ function collectExecutiveAssignmentBlockEntries(sectionText) {
 }
 
 function runExecutivePlainTextAgentFallback(text, pushRecord) {
-    var seenAgents = {};
+    var seenKeys = {};
     var lines = String(text || "").split(/\r?\n/);
 
-    function emitFromBlock(agentLine, blockLines) {
-        var parentAgent = detectExecutiveSectionAgent(agentLine);
-        if (!parentAgent) {
+    function emitFromBlock(headingLine, blockLines) {
+        var strictHeading = matchExecutiveStrictAssignmentHeading(headingLine);
+        if (!strictHeading) {
             return;
         }
 
-        var normalized = normalizeAssignedAgent(parentAgent);
-        if (seenAgents[normalized]) {
+        var blockKey = strictHeading.number + "|" + strictHeading.agentKey;
+        if (seenKeys[blockKey]) {
             return;
         }
 
-        seenAgents[normalized] = true;
+        seenKeys[blockKey] = true;
         var block = blockLines.join("\n");
         var fields = parseExecutiveAssignmentBlockFields(block);
-        var assignmentNumber = extractExecutiveAssignmentNumber(block);
-        var title = resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber);
+        var title = resolveExecutiveAssignmentBlockTitle(block, fields, strictHeading.agent, strictHeading.number);
         var priority = fields.priority || "Medium";
         var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title) || block.trim() || title;
 
@@ -3355,8 +3373,8 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
             description = String(fields.mission).trim();
         }
 
-        pushRecord(parentAgent, title, description, priority, {
-            assignment_number: assignmentNumber,
+        pushRecord(strictHeading.agent, title, description, priority, {
+            assignment_number: strictHeading.number,
             mission: fields.mission,
             timeline: fields.timeline,
             tasks: fields.tasks,
@@ -3375,7 +3393,7 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
     var currentLines = [];
 
     lines.forEach(function(line) {
-        if (detectExecutiveSectionAgent(line)) {
+        if (matchExecutiveStrictAssignmentHeading(line)) {
             if (currentHeading) {
                 emitFromBlock(currentHeading, currentLines);
             }
@@ -3392,50 +3410,6 @@ function runExecutivePlainTextAgentFallback(text, pushRecord) {
     if (currentHeading) {
         emitFromBlock(currentHeading, currentLines);
     }
-
-    lines.forEach(function(line, idx) {
-        var cleaned = cleanExecutiveAssignmentLine(line);
-        var agentsMatch = cleaned.match(/^Agents?\s*:\s*(.+)$/i);
-        if (!agentsMatch) {
-            return;
-        }
-
-        var nearby = lines.slice(idx + 1, idx + 14).join("\n").trim();
-        agentsMatch[1].split(/[\s,|\/+]+/).forEach(function(token) {
-            var parentAgent = normalizeExecutiveSectionAgentToken(token);
-            if (!parentAgent) {
-                return;
-            }
-
-            var normalized = normalizeAssignedAgent(parentAgent);
-            if (seenAgents[normalized]) {
-                return;
-            }
-
-            seenAgents[normalized] = true;
-            var title = normalized.charAt(0).toUpperCase() + normalized.slice(1) + " executive assignment";
-            pushRecord(parentAgent, title, nearby || title, "Medium", {});
-        });
-    });
-
-    if (!Object.keys(seenAgents).length) {
-        var detectedAgents = ASSIGNMENT_QUEUE_AGENTS.filter(function(agentKey) {
-            return new RegExp("\\b" + agentKey + "\\b", "i").test(text);
-        });
-
-        if (detectedAgents.length >= 2) {
-            detectedAgents.forEach(function(agentKey) {
-                if (seenAgents[agentKey]) {
-                    return;
-                }
-
-                seenAgents[agentKey] = true;
-                var parentAgent = agentKey.charAt(0).toUpperCase() + agentKey.slice(1) + " Agent";
-                var title = agentKey.charAt(0).toUpperCase() + agentKey.slice(1) + " executive assignment";
-                pushRecord(parentAgent, title, title, "Medium", {});
-            });
-        }
-    }
 }
 
 function debugExecutiveParserScanReport(text, sourceLabel) {
@@ -3444,14 +3418,15 @@ function debugExecutiveParserScanReport(text, sourceLabel) {
     var headingMatches = [];
 
     lines.forEach(function(line, lineIndex) {
-        var cleaned = cleanExecutiveAssignmentLine(line);
+        var strictHeading = matchExecutiveStrictAssignmentHeading(line);
 
-        if (/AGENT\s+ASSIGNMENT(?:\s+\d+)?\b/i.test(cleaned)) {
+        if (strictHeading) {
             headingMatches.push({
                 lineIndex: lineIndex + 1,
                 raw: line,
-                cleaned: cleaned,
-                detectedAgent: detectExecutiveSectionAgent(line) || "(detectExecutiveSectionAgent returned empty)"
+                cleaned: strictHeading.line,
+                assignmentNumber: strictHeading.number,
+                detectedAgent: strictHeading.agent
             });
         }
     });
@@ -3552,11 +3527,15 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     }
 
     if (isGenericExecutiveAssignmentTitle(title, agent) && !String(description || metadata.mission || "").trim()) {
-      console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — generic title without mission text", {
-        agent: agent,
-        title: title
-      });
-      return;
+      if (metadata.assignment_number) {
+        description = title || ("Executive Assignment " + metadata.assignment_number);
+      } else {
+        console.log("EXECUTIVE PARSER DEBUG: pushRecord SKIPPED — generic title without mission text", {
+          agent: agent,
+          title: title
+        });
+        return;
+      }
     }
 
     var record = buildAssignmentRecord(Object.assign({
@@ -3582,16 +3561,50 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   }
 
   function parseAssignmentBlock(block, parentAgent, blockIndex) {
-    var assignmentNumber = extractExecutiveAssignmentNumber(block);
+    var firstLine = String(block || "").split(/\r?\n/)[0] || "";
+    var strictHeading = matchExecutiveStrictAssignmentHeading(firstLine);
+
+    if (!strictHeading) {
+        console.log(
+          "EXECUTIVE PARSER DEBUG: parseAssignmentBlock STOP #" + (blockIndex || "?") +
+          " — not a strict AGENT ASSIGNMENT heading"
+        );
+        return;
+    }
+
+    var assignmentNumber = strictHeading.number;
+    var assignedAgent = strictHeading.agent;
+    parentAgent = strictHeading.agent;
     var fields = parseExecutiveAssignmentBlockFields(block);
     var title = resolveExecutiveAssignmentBlockTitle(block, fields, parentAgent, assignmentNumber);
-
-    var assignedAgent = extractExecutiveAgentFromBlockFields(fields, parentAgent, block);
     var priority = fields.priority || "High";
     var description = buildFullExecutiveAssignmentDescriptionFromFields(fields, title);
 
     if (!description && fields.mission) {
         description = String(fields.mission).trim();
+    }
+
+    if (!String(title || "").trim()) {
+        var weakFieldTitle = String(
+            fields.tasks || fields.timeline || fields.next_action ||
+            fields.deliverable || fields.kpi || fields.risks || ""
+        ).trim();
+
+        if (weakFieldTitle) {
+            title = extractExecutiveMissionFirstSentence(weakFieldTitle) || weakFieldTitle;
+        }
+    }
+
+    if (!String(title || "").trim()) {
+        title = "Executive Assignment " + assignmentNumber;
+    }
+
+    if (!String(description || "").trim()) {
+        description = String(
+            fields.tasks || fields.timeline || fields.next_action ||
+            fields.deliverable || fields.kpi || fields.risks ||
+            fields.mission || block.trim() || title
+        ).trim();
     }
 
     console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock START #" + (blockIndex || "?"), {
@@ -3600,14 +3613,18 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
       resolvedTitle: title || "(empty)",
       resolvedAgent: assignedAgent || "(empty)",
       mission: fields.mission || "(empty)",
-      owner: fields.owner || fields.primary_owner || "(empty)",
-      firstLine: String(block || "").split(/\r?\n/)[0]
+      owner: fields.owner || fields.primary_owner || "(ignored for card agent)",
+      firstLine: firstLine
     });
 
     if (!String(title || "").trim()) {
         console.log("EXECUTIVE PARSER DEBUG: parseAssignmentBlock STOP #" + (blockIndex || "?") + " — no title found");
         logExecutiveAssignmentRejected({ task_title: "", assigned_agent: assignedAgent }, "no title found");
         return;
+    }
+
+    if (!String(description || "").trim()) {
+        description = title;
     }
 
     if (!String(assignedAgent || "").trim()) {
@@ -3668,37 +3685,45 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
   console.log("EXECUTIVE PARSER DEBUG: after sliced-section parse, parsed.length =", parsed.length);
 
   var parsedAfterSlice = parsed.length;
-  debugExecutiveParserScanReport(text, "full-report-rescan");
-  var fullTextEntries = collectExecutiveAssignmentBlockEntries(text);
-  debugExecutiveParserLogExtractedBlocks(fullTextEntries, "full-report-rescan");
-  fullTextEntries.forEach(function(entry, idx) {
-    parseAssignmentBlock(entry.block, entry.parentAgent, "full-" + (idx + 1));
-  });
-  console.log(
-    "EXECUTIVE PARSER DEBUG: after full-report rescan, parsed.length =",
-    parsed.length,
-    "(added",
-    parsed.length - parsedAfterSlice,
-    "from full report; headingCount:",
-    fullReportHeadingCount,
-    ")"
-  );
+  var sliceTextDiffersFromFull = queueSectionText !== text;
+  var needsFullRescan = sliceTextDiffersFromFull && parsedAfterSlice < fullReportHeadingCount;
 
-  if (parsed.length < fullReportHeadingCount) {
+  if (needsFullRescan) {
+    debugExecutiveParserScanReport(text, "full-report-rescan");
+    var fullTextEntries = collectExecutiveAssignmentBlockEntries(text);
+    debugExecutiveParserLogExtractedBlocks(fullTextEntries, "full-report-rescan");
+    fullTextEntries.forEach(function(entry, idx) {
+      parseAssignmentBlock(entry.block, entry.parentAgent, "full-" + (idx + 1));
+    });
     console.log(
-      "EXECUTIVE PARSER DEBUG: fallback parser engaged because parsed.length (" +
-      parsed.length +
-      ") < headingCount (" +
-      fullReportHeadingCount +
+      "EXECUTIVE PARSER DEBUG: after full-report rescan, parsed.length =",
+      parsed.length,
+      "(added",
+      parsed.length - parsedAfterSlice,
+      "from full report; headingCount:",
+      fullReportHeadingCount,
       ")"
+    );
+  } else {
+    console.log(
+      "EXECUTIVE PARSER DEBUG: full-report rescan SKIPPED — duplicate parse avoided",
+      {
+        parsedAfterSlice: parsedAfterSlice,
+        headingCount: fullReportHeadingCount,
+        sliceTextDiffersFromFull: sliceTextDiffersFromFull
+      }
+    );
+  }
+
+  if (!parsed.length) {
+    console.log(
+      "EXECUTIVE PARSER DEBUG: fallback parser engaged because strict block parse returned zero records"
     );
     console.log("EXECUTIVE FALLBACK PARSER USED");
     var fallbackStart = parsed.length;
     runExecutivePlainTextAgentFallback(text, pushRecord);
     console.log("EXECUTIVE FALLBACK CREATED COUNT:", parsed.length - fallbackStart);
-  }
-
-  if (parsed.length < fullReportHeadingCount) {
+  } else if (parsed.length < fullReportHeadingCount) {
     console.log(
       "EXECUTIVE PARSER DEBUG: STOP REASON — parsed count still below heading count (" +
       parsed.length +
@@ -3708,9 +3733,15 @@ function parseExecutivePlainTextQueue(reportText, parentReportId) {
     );
   }
 
-  console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", parsed.length);
+  var deduped = dedupeExecutiveAssignmentRecords(parsed);
+  var uniqueAgents = deduped.map(function(record) {
+    return normalizeAssignedAgent(record.assigned_agent);
+  });
 
-  return dedupeExecutiveAssignmentRecords(parsed);
+  console.log("EXECUTIVE FINAL UNIQUE AGENTS:", JSON.stringify(uniqueAgents));
+  console.log("EXECUTIVE ASSIGNMENTS EXTRACTED COUNT:", deduped.length);
+
+  return deduped;
 }
 
 function isExecutiveReportItem(item) {
@@ -3751,16 +3782,21 @@ function assignmentRowsToRecords(rows, parentReportId) {
 
 function parseExecutiveAssignments(reportText, parentReportId) {
     var text = decodeAssignmentReportText(String(reportText || ""));
+    var strictRecords = parseExecutivePlainTextQueue(text, parentReportId);
+
+    if (strictRecords.length > 0) {
+        console.log(
+            "EXECUTIVE PARSER DEBUG: strict block parser used, Path B skipped —",
+            strictRecords.length,
+            "record(s)"
+        );
+        return strictRecords;
+    }
+
+    console.log("EXECUTIVE PARSER DEBUG: strict block parser returned zero records, running Path B fallback");
+
     var parsed = [];
     var seen = {};
-
-    function assignmentRecordKey(record) {
-        return [
-            String(parentReportId || ""),
-            record.assigned_agent,
-            String(record.task_title || "").toLowerCase()
-        ].join("|");
-    }
 
     function pushRecord(record) {
         if (!passesExecutiveAssignmentRecord(record)) {
@@ -3768,7 +3804,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
             return;
         }
 
-        var key = assignmentRecordKey(record);
+        var key = getExecutiveAssignmentDedupeKey(record);
         if (seen[key]) {
             return;
         }
@@ -3874,9 +3910,7 @@ function parseExecutiveAssignments(reportText, parentReportId) {
         }
     });
 
-    parseExecutivePlainTextQueue(text, parentReportId).forEach(pushRecord);
-
-    return parsed;
+    return dedupeExecutiveAssignmentRecords(parsed);
 }
 
 function extractAssignmentRecordsFromReportItem(item) {
