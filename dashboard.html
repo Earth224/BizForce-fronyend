@@ -1266,6 +1266,8 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
         unread: true
     };
 
+    console.log("MAILBOX SAVE TEXT:", reportPayload.result);
+
     if (reportPayload.prompt && reportPayload.prompt.trim()) {
         try {
             await fetch(API_URL + "/api/ai/tasks", {
@@ -1709,6 +1711,10 @@ document.addEventListener("DOMContentLoaded", function () {
         statusEl.innerHTML = "Launching AI task...";
         statusEl.style.color = "#00e5ff";
 
+        if (agentType === "executive") {
+            console.log("EXECUTIVE PROMPT:", launchPrompt);
+        }
+
         try {
 
             var response = await fetch(API_URL + "/api/ai/tasks", {
@@ -1819,6 +1825,9 @@ activePollInterval = setInterval(async function () {
 
             try {
                 if (window.addAiResultToMailbox && pollData.task.result) {
+                    if (agentType === "executive") {
+                        console.log("RAW EXECUTIVE RESPONSE:", pollData.task.result);
+                    }
                     await window.addAiResultToMailbox({
                         id: pollData.task.id || taskId,
                         agent: pollData.task.agent || pollData.task.agent_type || agentType,
