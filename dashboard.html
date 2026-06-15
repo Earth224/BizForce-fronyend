@@ -1642,7 +1642,24 @@ function buildExecutiveAgentTaskPrompt(userPrompt) {
         "Each requested agent must appear exactly once. If any agent appears twice, delete the duplicate block.",
         lockedAgentList
             ? "If Operations Agent is in the locked list, AGENT ASSIGNMENT " + assignmentCount + " MUST be OPERATIONS AGENT. Never skip Operations."
-            : "If fewer than " + assignmentCount + " unique agents are present, continue until all required blocks exist.",
+            : "The report must contain exactly " + assignmentCount + " AGENT ASSIGNMENT headings and no more.",
+        "",
+        "================================================",
+        "FINAL STOP RULE",
+        "Generate EXACTLY the requested number of AGENT ASSIGNMENT blocks.",
+        "After the final AGENT ASSIGNMENT block:",
+        "STOP IMMEDIATELY.",
+        "DO NOT:",
+        "- create another assignment section",
+        "- restart numbering",
+        "- create alternate agents",
+        "- create replacement agents",
+        "- create summary assignments",
+        "- repeat earlier assignments",
+        "- continue generating blocks",
+        "- add missing agents later",
+        "The final report must contain ONE assignment section only.",
+        "================================================",
         "",
         "Rules:",
         "- Output exactly " + assignmentCount + " block(s): AGENT ASSIGNMENT 1 through AGENT ASSIGNMENT " + assignmentCount + ".",
@@ -1651,7 +1668,7 @@ function buildExecutiveAgentTaskPrompt(userPrompt) {
             : "- Use exactly these agent names: SEO AGENT, CONTENT AGENT, SALES AGENT, OPERATIONS AGENT, REPUTATION AGENT, ANALYTICS AGENT.",
         "- Every block must include all fields: Mission, Owner, Priority, Timeline, Tasks, KPIs, Risks, Next Action.",
         "- Fill every field with actionable, business-specific content.",
-        "- Do not merge agents, skip agents, rename agents, duplicate agents, or stop early.",
+        "- Do not merge agents, skip agents, rename agents, or duplicate agents.",
         "- Do not echo the LOCKED AGENT LIST section in the final report."
     );
 
