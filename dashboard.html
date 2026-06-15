@@ -1801,9 +1801,12 @@ activePollInterval = setInterval(async function () {
         var pollTaskStatus = pollData.task && pollData.task.status
             ? String(pollData.task.status).trim().toLowerCase()
             : "";
-        var isTerminalTaskSuccess = pollTaskStatus === "completed";
+        var hasTaskResult = !!(pollData.task && pollData.task.result);
+        var isTerminalTaskSuccess =
+            pollTaskStatus === "completed" ||
+            (pollTaskStatus === "requires_approval" && hasTaskResult);
 
-        if (pollTaskStatus === "requires_approval") {
+        if (pollTaskStatus === "requires_approval" && !hasTaskResult) {
             if (statusEl) {
                 statusEl.innerHTML = "Awaiting Approval";
                 statusEl.style.color = "#00e5ff";
