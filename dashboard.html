@@ -4190,6 +4190,50 @@ function bindAssignmentDetailsControls() {
     });
 }
 
+function bindAssignmentStartControls() {
+    var section = document.getElementById("agentAssignmentsSection");
+    if (!section || section.dataset.startBound === "1") return;
+    section.dataset.startBound = "1";
+    section.addEventListener("click", async function(event) {
+        var btn = event.target;
+        if (!btn || !btn.classList || !btn.classList.contains("assignmentStartBtn")) return;
+        var id = btn.dataset.id;
+        if (!id) return;
+        btn.disabled = true;
+        btn.textContent = "Starting...";
+        try {
+            var token = localStorage.getItem("bf_token") || "";
+            var response = await fetch(API_URL + "/api/assignments/" + encodeURIComponent(id) + "/start", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+            var data = await response.json();
+            if (!response.ok || !data.ok) {
+                throw new Error(data.error || data.message || "Assignment start failed");
+            }
+            var target = agentAssignments.find(function(item) {
+                return item.id === id;
+            });
+            if (target) {
+                target.status = "completed";
+                target.result = data.result || target.result || "";
+                target.orchestration = data.orchestration || target.orchestration || null;
+                saveAssignmentsLocal();
+            }
+            console.log("ASSIGNMENT START SUCCESS:", data);
+            renderAssignmentDashboard();
+        } catch (error) {
+            console.error("ASSIGNMENT START FAILED:", error);
+            btn.disabled = false;
+            btn.textContent = "Start";
+            alert("Assignment start failed: " + error.message);
+        }
+    });
+}
+
 function assignmentPriorityBadgeHtml(priority) {
     var normalized = normalizeAssignmentPriority(priority, "Medium");
     var lower = String(normalized).toLowerCase();
@@ -4370,6 +4414,7 @@ function renderAssignmentCard(item, isHistory) {
         <div class="assignmentCardFooter">
             <div class="assignmentCardCreated">${assignmentEscapeHtml(createdLabel)}</div>
             <div class="assignmentCardActions">
+                ${!isHistory && normalizedStatus === "Pending" ? `<button type="button" class="assignmentStartBtn" data-id="${assignmentEscapeHtml(item.id)}">Start</button>` : ""}
                 <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" aria-label="Assignment status">${statusOptions}</select>
                 <button type="button" class="assignmentDetailsToggle">Expand details</button>
             </div>
@@ -4477,6 +4522,7 @@ window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromRe
 loadAssignmentsLocal();
 bindAssignmentStatusControls();
 bindAssignmentDetailsControls();
+bindAssignmentStartControls();
 setAssignmentView("active");
 renderAssignmentDashboard();
 
