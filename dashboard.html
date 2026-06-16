@@ -4236,10 +4236,37 @@ function bindAssignmentStartControls() {
                 throw new Error(data.error || data.message || "Assignment start failed");
             }
             if (item) {
-  item.status = "In Progress";
-  item.result = data.result || item.result || "";
-  item.orchestration = data.orchestration || item.orchestration || null;
-  saveAssignmentsLocal();
+
+item.result =
+    data.result ||
+    item.result ||
+    "";
+
+item.orchestration =
+    data.orchestration ||
+    item.orchestration ||
+    null;
+
+if (
+    data.result &&
+    data.result.toLowerCase().includes("complete")
+) {
+
+    item.status = "Completed";
+
+    if (!item.completed_at) {
+        item.completed_at =
+            new Date().toISOString();
+    }
+
+} else {
+
+    item.status = "In Progress";
+
+}
+
+saveAssignmentsLocal();
+
 }
 
 console.log("ASSIGNMENT START SUCCESS:", data);
