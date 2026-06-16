@@ -4199,28 +4199,43 @@ function bindAssignmentStartControls() {
         if (!btn || !btn.classList || !btn.classList.contains("assignmentStartBtn")) return;
         var id = btn.dataset.id;
         if (!id) return;
+        var item = agentAssignments.find(function(assignment) {
+            return String(assignment.id) === String(id);
+        });
+        if (!item) {
+            alert("Assignment not found.");
+            return;
+        }
         btn.disabled = true;
         btn.textContent = "Starting...";
         try {
+            var agentTypeRaw = item.agent_type || item.agent || item.assignedAgent || item.assigned_agent || item.title || "";
+            var body = {
+                agent_type: String(agentTypeRaw).trim().toLowerCase(),
+                mission: String(item.mission || item.summary || item.description || item.task_description || "").trim(),
+                priority: String(item.priority || "").trim(),
+                timeline: String(item.timeline || "").trim(),
+                tasks: item.tasks || [],
+                result: String(item.result || item.content || "").trim()
+            };
+            console.log("ASSIGNMENT START BODY:", body);
             var token = localStorage.getItem("bf_token") || "";
             var response = await fetch(API_URL + "/api/assignments/" + encodeURIComponent(id) + "/start", {
                 method: "POST",
                 headers: {
                     "Authorization": "Bearer " + token,
                     "Content-Type": "application/json"
-                }
+                },
+                body: JSON.stringify(body)
             });
             var data = await response.json();
             if (!response.ok || !data.ok) {
                 throw new Error(data.error || data.message || "Assignment start failed");
             }
-            var target = agentAssignments.find(function(item) {
-                return item.id === id;
-            });
-            if (target) {
-                target.status = "completed";
-                target.result = data.result || target.result || "";
-                target.orchestration = data.orchestration || target.orchestration || null;
+            if (item) {
+                item.status = "completed";
+                item.result = data.result || item.result || "";
+                item.orchestration = data.orchestration || item.orchestration || null;
                 saveAssignmentsLocal();
             }
             console.log("ASSIGNMENT START SUCCESS:", data);
