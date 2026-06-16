@@ -1927,8 +1927,10 @@ window.processExecutiveAssignmentsFromReport = function(item) {
 document.addEventListener("DOMContentLoaded", function () {
 
 var AGENT_ASSIGNMENTS_STORAGE_KEY = "bizforce_agent_assignments";
+var AGENT_MEMORY_STORAGE_KEY = "bizforce_agent_memories";
 var ASSIGNMENT_STATUSES = ["Pending", "In Progress", "Completed", "Blocked"];
 var agentAssignments = [];
+var agentMemories = [];
 
 var assignmentActivePanel = document.getElementById("assignmentActivePanel");
 var assignmentHistoryPanel = document.getElementById("assignmentHistoryPanel");
@@ -2006,6 +2008,48 @@ function loadAssignmentsLocal() {
         saveAssignmentsLocal();
     }
 }
+
+function saveAgentMemoriesLocal() {
+    localStorage.setItem(AGENT_MEMORY_STORAGE_KEY, JSON.stringify(agentMemories));
+}
+
+function loadAgentMemoriesLocal() {
+    var storedRaw = localStorage.getItem(AGENT_MEMORY_STORAGE_KEY) || "[]";
+
+    try {
+        var saved = JSON.parse(storedRaw);
+        agentMemories = Array.isArray(saved) ? saved : [];
+    } catch (err) {
+        agentMemories = [];
+    }
+}
+
+function rememberAgentEvent(memory) {
+    if (!memory || typeof memory !== "object") {
+        return null;
+    }
+
+    var record = {
+        id: String(memory.id || ("mem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9))).trim(),
+        agent_type: String(memory.agent_type || "").trim().toLowerCase(),
+        source: String(memory.source || "").trim(),
+        title: String(memory.title || "").trim(),
+        summary: String(memory.summary || "").trim(),
+        assignment_id: memory.assignment_id ? String(memory.assignment_id).trim() : null,
+        created_at: memory.created_at || new Date().toISOString(),
+        business_context: memory.business_context && typeof memory.business_context === "object" ? memory.business_context : {}
+    };
+
+    agentMemories.unshift(record);
+    window.agentMemories = agentMemories;
+    saveAgentMemoriesLocal();
+    return record;
+}
+
+window.agentMemories = agentMemories;
+window.saveAgentMemoriesLocal = saveAgentMemoriesLocal;
+window.loadAgentMemoriesLocal = loadAgentMemoriesLocal;
+window.rememberAgentEvent = rememberAgentEvent;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -4569,6 +4613,8 @@ window.__processExecutiveAssignmentsImpl = processExecutiveAssignmentsFromReport
 window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromReport;
 
 loadAssignmentsLocal();
+loadAgentMemoriesLocal();
+window.agentMemories = agentMemories;
 bindAssignmentStatusControls();
 bindAssignmentDetailsControls();
 bindAssignmentStartControls();
