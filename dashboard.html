@@ -4236,16 +4236,14 @@ function bindAssignmentStartControls() {
                 throw new Error(data.error || data.message || "Assignment start failed");
             }
             if (item) {
-                item.status = "Completed";
-                if (!item.completed_at) {
-                    item.completed_at = new Date().toISOString();
-                }
-                item.result = data.result || item.result || "";
-                item.orchestration = data.orchestration || item.orchestration || null;
-                saveAssignmentsLocal();
-            }
-            console.log("ASSIGNMENT START SUCCESS:", data);
-            renderAssignmentDashboard();
+  item.status = "In Progress";
+  item.result = data.result || item.result || "";
+  item.orchestration = data.orchestration || item.orchestration || null;
+  saveAssignmentsLocal();
+}
+
+console.log("ASSIGNMENT START SUCCESS:", data);
+renderAssignmentDashboard();
         } catch (error) {
             console.error("ASSIGNMENT START FAILED:", error);
             item.status = "Pending";
