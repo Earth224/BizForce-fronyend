@@ -1301,6 +1301,24 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
     renderAiMailbox();
     updateMailboxUnreadCount();
 
+    var execAgentLabel = String(item.launch_agent || item.agent_type || item.agent || "").toLowerCase();
+    if (/executive/.test(execAgentLabel)) {
+        var reportTitle = reportPayload.summary;
+        var taskTitle = reportPayload.task_type;
+        var userPrompt = item.prompt || "";
+        var assignmentId = reportId;
+        if (typeof window.rememberAgentEvent === "function") {
+            window.rememberAgentEvent({
+                agent_type: "executive agent",
+                source: "executive_report",
+                title: "Executive report saved",
+                summary: reportTitle || taskTitle || userPrompt || "Executive report generated and saved.",
+                assignment_id: assignmentId || null,
+                business_context: window.currentBusinessProfile || null
+            });
+        }
+    }
+
     var queueParseItem = {
         id: reportId,
         agent: item.agent,
@@ -4102,6 +4120,22 @@ function processExecutiveAssignmentsFromReport(item) {
     if (created.length > 0) {
         archiveSupersededExecutiveSprintAssignments(sprintId);
         saveAssignmentsLocal();
+        created.forEach(function(record) {
+            var reportTitle = record.task_title || (item && item.summary) || "";
+            var taskTitle = record.mission || "";
+            var userPrompt = (item && item.prompt) || "";
+            var assignmentId = record.id;
+            if (typeof rememberAgentEvent === "function") {
+                rememberAgentEvent({
+                    agent_type: "executive agent",
+                    source: "executive_report",
+                    title: "Executive report saved",
+                    summary: reportTitle || taskTitle || userPrompt || "Executive report generated and saved.",
+                    assignment_id: assignmentId || null,
+                    business_context: window.currentBusinessProfile || null
+                });
+            }
+        });
     } else {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
     }
