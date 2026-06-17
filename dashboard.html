@@ -2595,6 +2595,176 @@ function replanExecutiveSprint(sprint) {
     return summary;
 }
 
+function getDownstreamAgents(sprint, completedAgentName) {
+    var downstream = [];
+    var completedKey = normalizeExecutiveSprintAgentKey(completedAgentName);
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return downstream;
+    }
+
+    sprint.agents.forEach(function(agent) {
+        var dependencyKey = null;
+
+        if (agent.dependency !== null && agent.dependency !== undefined && String(agent.dependency).trim()) {
+            dependencyKey = normalizeExecutiveSprintAgentKey(agent.dependency);
+        } else {
+            dependencyKey = getAgentDependency(getExecutiveSprintAgentLabel(agent));
+        }
+
+        if (dependencyKey === completedKey) {
+            downstream.push(agent);
+        }
+    });
+
+    return downstream;
+}
+
+function sendAgentMessage(sprintId, fromAgent, toAgent, type, payload) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint) {
+        return null;
+    }
+
+    if (!Array.isArray(sprint.messages)) {
+        sprint.messages = [];
+    }
+
+    var fromLabel = String(fromAgent || "").trim().toUpperCase();
+    var toLabel = String(toAgent || "").trim().toUpperCase();
+    var message = {
+        id: "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+        timestamp: new Date().toISOString(),
+        from: fromLabel,
+        to: toLabel,
+        type: String(type || "message").trim(),
+        payload: payload && typeof payload === "object" ? payload : {},
+        status: "sent"
+    };
+
+    sprint.messages.unshift(message);
+
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "agent_message_sent",
+        agentName: fromLabel,
+        message: fromLabel + " sent " + message.type + " to " + toLabel + "."
+    });
+
+    if (getSprintAgent(sprint, toLabel)) {
+        message.status = "received";
+        saveExecutiveAutonomyEvent(sprint, {
+            type: "agent_message_received",
+            agentName: toLabel,
+            message: toLabel + " received " + message.type + " from " + fromLabel + "."
+        });
+    }
+
+    saveExecutiveSprint(sprint);
+    return message;
+}
+
+function getAgentMessages(sprint, agentName) {
+    var messages = [];
+    var targetKey = normalizeExecutiveSprintAgentKey(agentName);
+
+    if (!sprint || !Array.isArray(sprint.messages) || !agentName) {
+        return messages;
+    }
+
+    sprint.messages.forEach(function(message) {
+        var fromKey = normalizeExecutiveSprintAgentKey(message.from);
+        var toKey = normalizeExecutiveSprintAgentKey(message.to);
+
+        if (fromKey === targetKey || toKey === targetKey) {
+            messages.push(message);
+        }
+    });
+
+    return messages;
+}
+
+function notifyDependencyCompleted(sprint, completedAgent) {
+    var started = [];
+    var completedLabel = getExecutiveSprintAgentLabel(completedAgent).toUpperCase();
+    var downstreamAgents = getDownstreamAgents(sprint, completedLabel);
+    var now = new Date().toISOString();
+    var index;
+    var recipient;
+    var recipientLabel;
+
+    if (!sprint || !sprint.sprintId) {
+        return started;
+    }
+
+    for (index = 0; index < downstreamAgents.length; index++) {
+        recipient = downstreamAgents[index];
+        recipientLabel = getExecutiveSprintAgentLabel(recipient).toUpperCase();
+
+        sendAgentMessage(sprint.sprintId, completedLabel, recipientLabel, "dependency_completed", {
+            completedAgent: completedLabel,
+            sprintId: sprint.sprintId
+        });
+
+        sprint = getSprintById(sprint.sprintId) || sprint;
+        recipient = getSprintAgent(sprint, recipientLabel) || recipient;
+
+        if (recipient.status === "waiting" && areDependenciesMet(recipient, sprint)) {
+            saveExecutiveAutonomyEvent(sprint, {
+                type: "agent_dependency_met",
+                agentName: recipientLabel,
+                message: recipientLabel + " dependency met via " + completedLabel + "."
+            });
+
+            recipient.status = "running";
+            recipient.startedAt = recipient.startedAt || now;
+            recipient.progress = Number(recipient.progress) || 0;
+
+            saveExecutiveAutonomyEvent(sprint, {
+                type: "agent_auto_started",
+                agentName: recipientLabel,
+                message: recipientLabel + " auto-started via communication bus."
+            });
+            started.push(recipient);
+        } else if (recipient.status === "waiting") {
+            saveExecutiveAutonomyEvent(sprint, {
+                type: "agent_waiting",
+                agentName: recipientLabel,
+                message: recipientLabel + " waiting for additional dependencies."
+            });
+        }
+    }
+
+    if (started.length) {
+        saveExecutiveSprint(sprint);
+    }
+
+    return started;
+}
+
+function formatCommunicationMessageAge(timestamp) {
+    var ms = getExecutiveAgentTimestampMs(timestamp);
+
+    if (!ms) {
+        return "—";
+    }
+
+    var elapsed = Math.max(0, Date.now() - ms);
+    var seconds = Math.floor(elapsed / 1000);
+
+    if (seconds < 60) {
+        return seconds + " sec ago";
+    }
+
+    var minutes = Math.floor(seconds / 60);
+
+    if (minutes < 60) {
+        return minutes + " min ago";
+    }
+
+    return Math.floor(minutes / 60) + " hr ago";
+}
+
 function formatExecutiveAgentList(labels) {
     if (!labels || !labels.length) {
         return "";
@@ -3194,6 +3364,35 @@ function renderExecutiveReview(sprint) {
     '</div>';
 }
 
+function getExecutiveRuntimeCommunicationCardHtml(sprint) {
+    var messages = sprint && Array.isArray(sprint.messages) ? sprint.messages.slice() : [];
+    var communicationHtml;
+
+    messages.sort(function(a, b) {
+        return (getExecutiveAgentTimestampMs(b.timestamp) || 0) - (getExecutiveAgentTimestampMs(a.timestamp) || 0);
+    });
+
+    communicationHtml = messages.length
+        ? messages.map(function(message) {
+            var statusLabel = String(message.status || "sent");
+            var statusDisplay = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
+
+            return '<div style="padding:8px 10px;border-radius:10px;border:1px solid rgba(124,60,255,.18);background:rgba(8,8,18,.55);margin-top:6px;">' +
+                '<div style="color:#00e5ff;font-size:12px;font-weight:800;line-height:1.5;">' +
+                    assignmentEscapeHtml(String(message.from || "—")) + '<br>↓<br>' + assignmentEscapeHtml(String(message.to || "—")) +
+                '</div>' +
+                '<div style="color:#c5cdd8;font-size:12px;margin-top:4px;">' + assignmentEscapeHtml(String(message.type || "message")) + '</div>' +
+                '<div style="color:#8888aa;font-size:11px;margin-top:4px;">' + assignmentEscapeHtml(statusDisplay) + ' · ' + assignmentEscapeHtml(formatCommunicationMessageAge(message.timestamp)) + '</div>' +
+            '</div>';
+        }).join("")
+        : '<div style="color:#8888aa;font-size:12px;margin-top:6px;">No agent messages yet.</div>';
+
+    return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
+        '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Communication Panel</div>' +
+        communicationHtml +
+    '</div>';
+}
+
 function getExecutiveRuntimePlanningCardHtml(sprint) {
     var summary = sprint && sprint.planningSummary ? sprint.planningSummary : null;
     var lastReplanLabel = "—";
@@ -3425,6 +3624,7 @@ function renderExecutiveRuntimeDashboard(sprint) {
                 '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">' + metricsHtml + '</div>' +
             '</div>' +
             getExecutiveRuntimePlanningCardHtml(sprint) +
+            getExecutiveRuntimeCommunicationCardHtml(sprint) +
             '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
                 '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Timeline Feed</div>' +
                 feedHtml +
@@ -3853,6 +4053,7 @@ function completeAgent(sprintId, agentName) {
         agentName: getExecutiveSprintAgentLabel(agent).toUpperCase(),
         message: getExecutiveSprintAgentLabel(agent).toUpperCase() + " completed."
     });
+    notifyDependencyCompleted(getSprintById(sprintId) || sprint, agent);
     refreshExecutiveSprintState(sprint);
     progressExecutiveSprintRuntime(sprintId);
     sprint = getSprintById(sprintId);
@@ -4385,6 +4586,9 @@ window.createTestSprint = createTestSprint;
 window.createFailureScenario = createFailureScenario;
 window.createParallelScenario = createParallelScenario;
 window.clearTestSprints = clearTestSprints;
+window.sendAgentMessage = sendAgentMessage;
+window.getAgentMessages = getAgentMessages;
+window.notifyDependencyCompleted = notifyDependencyCompleted;
 window.resumeAgent = resumeAgent;
 window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
@@ -4477,7 +4681,8 @@ function createExecutiveSprint(options) {
         executiveSummary: String(options.executiveSummary || "Executive orchestration sprint initiated.").trim(),
         executiveRecommendation: String(options.executiveRecommendation || "Begin with SEO agent execution, then advance downstream agents as dependencies complete.").trim(),
         executiveNextAction: "",
-        autonomyEvents: []
+        autonomyEvents: [],
+        messages: Array.isArray(options.messages) ? options.messages : []
     };
 
     calculateSprintProgress(sprint);
@@ -4743,6 +4948,9 @@ window.createTestSprint = createTestSprint;
 window.createFailureScenario = createFailureScenario;
 window.createParallelScenario = createParallelScenario;
 window.clearTestSprints = clearTestSprints;
+window.sendAgentMessage = sendAgentMessage;
+window.getAgentMessages = getAgentMessages;
+window.notifyDependencyCompleted = notifyDependencyCompleted;
 window.resumeAgent = resumeAgent;
 
 function purgeInvalidAgentAssignments() {
@@ -7377,6 +7585,9 @@ window.createTestSprint = createTestSprint;
 window.createFailureScenario = createFailureScenario;
 window.createParallelScenario = createParallelScenario;
 window.clearTestSprints = clearTestSprints;
+window.sendAgentMessage = sendAgentMessage;
+window.getAgentMessages = getAgentMessages;
+window.notifyDependencyCompleted = notifyDependencyCompleted;
 window.resumeAgent = resumeAgent;
 setAssignmentView("active");
 renderAssignmentDashboard();
@@ -7412,6 +7623,9 @@ window.createTestSprint = createTestSprint;
 window.createFailureScenario = createFailureScenario;
 window.createParallelScenario = createParallelScenario;
 window.clearTestSprints = clearTestSprints;
+window.sendAgentMessage = sendAgentMessage;
+window.getAgentMessages = getAgentMessages;
+window.notifyDependencyCompleted = notifyDependencyCompleted;
 window.resumeAgent = resumeAgent;
 
 }
