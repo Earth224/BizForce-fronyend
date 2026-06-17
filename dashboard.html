@@ -2820,7 +2820,22 @@ function completeExecutiveSprint(sprintId) {
         type: "sprint_completed",
         message: "Executive sprint completed."
     });
-    saveExecutiveSprint(sprint);
+    var sprints = getExecutiveSprints();
+
+var index = sprints.findIndex(function(entry){
+    return String(entry.sprintId) === String(sprint.sprintId);
+});
+
+if(index >= 0){
+    sprints[index] = sprint;
+}else{
+    sprints.unshift(sprint);
+}
+
+localStorage.setItem(
+    BF_EXECUTIVE_SPRINTS_STORAGE_KEY,
+    JSON.stringify(sprints)
+);
     queueNextExecutiveSprint(sprint);
     renderExecutiveSprintDashboard();
     return sprint;
