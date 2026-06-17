@@ -2401,15 +2401,201 @@ function canAgentStart(sprint, agentName) {
     return !!(dependencyAgent && dependencyAgent.status === "completed");
 }
 
+function getExecutiveAgentTimestampMs(value) {
+    if (value === null || value === undefined || value === "") {
+        return null;
+    }
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    var parsed = Date.parse(String(value));
+
+    return isNaN(parsed) ? null : parsed;
+}
+
+function formatElapsedTime(ms) {
+    var elapsed = Number(ms) || 0;
+
+    if (elapsed < 60000) {
+        return "0m";
+    }
+
+    if (elapsed < 3600000) {
+        return Math.floor(elapsed / 60000) + "m";
+    }
+
+    var hours = Math.floor(elapsed / 3600000);
+    var minutes = Math.floor((elapsed % 3600000) / 60000);
+
+    return hours + "h " + minutes + "m";
+}
+
+function updateSprintTimingState(sprint) {
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return sprint;
+    }
+
+    var now = Date.now();
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status === "running" && !agent.startedAt) {
+            agent.startedAt = now;
+        }
+
+        if (agent.status === "completed" && !agent.completedAt) {
+            agent.completedAt = now;
+        }
+    });
+
+    return sprint;
+}
+
+function detectStuckAgents(sprint) {
+    var now = Date.now();
+    var oneHourMs = 60 * 60 * 1000;
+    var fourHoursMs = 4 * oneHourMs;
+    var twentyFourHoursMs = 24 * oneHourMs;
+    var stuckAgents = [];
+    var status = "healthy";
+    var message = "No stuck agents detected";
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return {
+            status: status,
+            message: message,
+            agents: stuckAgents
+        };
+    }
+
+    sprint.agents.forEach(function(agent) {
+        var label = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
+        if (agent.status === "running") {
+            var startedMs = getExecutiveAgentTimestampMs(agent.startedAt);
+
+            if (startedMs) {
+                var runningElapsed = now - startedMs;
+
+                if (runningElapsed > fourHoursMs) {
+                    stuckAgents.push({
+                        agentName: label,
+                        level: "critical",
+                        elapsedMs: runningElapsed,
+                        reason: "running over 4 hours"
+                    });
+                    status = "critical";
+                } else if (runningElapsed > oneHourMs) {
+                    stuckAgents.push({
+                        agentName: label,
+                        level: "warning",
+                        elapsedMs: runningElapsed,
+                        reason: "running over 1 hour"
+                    });
+
+                    if (status !== "critical") {
+                        status = "warning";
+                    }
+                }
+            }
+        }
+
+        if (agent.status === "blocked") {
+            var blockedMs = getExecutiveAgentTimestampMs(agent.blockedAt);
+
+            if (blockedMs) {
+                var blockedElapsed = now - blockedMs;
+
+                if (blockedElapsed > twentyFourHoursMs) {
+                    stuckAgents.push({
+                        agentName: label,
+                        level: "critical",
+                        elapsedMs: blockedElapsed,
+                        reason: "blocked over 24 hours"
+                    });
+                    status = "critical";
+                }
+            }
+        }
+    });
+
+    if (status === "critical") {
+        message = "Critical stuck agents detected";
+    } else if (status === "warning") {
+        message = "Running agents need monitoring";
+    }
+
+    return {
+        status: status,
+        message: message,
+        agents: stuckAgents
+    };
+}
+
+function buildExecutiveAgentTimingSummary(sprint) {
+    if (!sprint || !Array.isArray(sprint.agents) || !sprint.agents.length) {
+        return "No agent timing data available.";
+    }
+
+    var now = Date.now();
+    var lines = [];
+
+    sprint.agents.forEach(function(agent) {
+        var label = getExecutiveSprintAgentLabel(agent).toUpperCase();
+        var detail = String(agent.status || "waiting").toUpperCase();
+
+        if (agent.status === "running") {
+            var startedMs = getExecutiveAgentTimestampMs(agent.startedAt);
+
+            if (startedMs) {
+                detail += " · " + formatElapsedTime(now - startedMs);
+            }
+        } else if (agent.status === "blocked") {
+            var blockedMs = getExecutiveAgentTimestampMs(agent.blockedAt);
+
+            if (blockedMs) {
+                detail += " · blocked " + formatElapsedTime(now - blockedMs);
+            }
+        } else if (agent.status === "completed") {
+            var completedMs = getExecutiveAgentTimestampMs(agent.completedAt);
+
+            if (completedMs) {
+                detail += " · completed";
+            }
+        }
+
+        lines.push(label + ": " + detail);
+    });
+
+    return lines.join("\n");
+}
+
+function refreshExecutiveSprintState(sprint) {
+    if (!sprint) {
+        return null;
+    }
+
+    updateSprintTimingState(sprint);
+    calculateSprintProgress(sprint);
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
+    saveExecutiveSprint(sprint);
+    return sprint;
+}
+
 function generateExecutiveRecommendation(sprint) {
     if (!sprint || !Array.isArray(sprint.agents) || !sprint.agents.length) {
         return "No sprint data available.";
     }
 
+    updateSprintTimingState(sprint);
+
+    var stuckReport = detectStuckAgents(sprint);
     var blockedAgent = null;
     var runningAgents = [];
     var waitingAgents = [];
     var completedAgents = [];
+    var nextUnlockAgents = [];
 
     sprint.agents.forEach(function(agent) {
         var label = getExecutiveSprintAgentLabel(agent).toUpperCase();
@@ -2419,9 +2605,13 @@ function generateExecutiveRecommendation(sprint) {
                 blockedAgent = agent;
             }
         } else if (agent.status === "running") {
-            runningAgents.push(label);
+            runningAgents.push(agent);
         } else if (agent.status === "waiting") {
             waitingAgents.push(label);
+
+            if (canAgentStart(sprint, getExecutiveSprintAgentLabel(agent))) {
+                nextUnlockAgents.push(label);
+            }
         } else if (agent.status === "completed") {
             completedAgents.push(label);
         }
@@ -2430,6 +2620,33 @@ function generateExecutiveRecommendation(sprint) {
     if (blockedAgent) {
         var blockedReason = String(blockedAgent.blockerReason || blockedAgent.blocker || "Unknown blocker").trim();
         return generateBlockedEscalationRecommendation(sprint, blockedAgent, blockedReason);
+    }
+
+    var stuckRunningMessages = [];
+
+    stuckReport.agents.forEach(function(stuckAgent) {
+        if (String(stuckAgent.reason || "").indexOf("running") === -1) {
+            return;
+        }
+
+        stuckRunningMessages.push(
+            stuckAgent.agentName + " has been running for " + formatElapsedTime(stuckAgent.elapsedMs) + " without completion. Monitor closely."
+        );
+    });
+
+    if (stuckRunningMessages.length) {
+        return stuckRunningMessages.join("\n");
+    }
+
+    if (runningAgents.length === 1) {
+        var singleRunningLabel = getExecutiveSprintAgentLabel(runningAgents[0]).toUpperCase();
+        return singleRunningLabel + " currently running. Waiting agents will unlock as dependencies complete.";
+    }
+
+    if (runningAgents.length > 1) {
+        return runningAgents.map(function(agent) {
+            return getExecutiveSprintAgentLabel(agent).toUpperCase();
+        }).join(", ") + " currently running. Waiting agents will unlock as dependencies complete.";
     }
 
     if (completedAgents.indexOf("CONTENT") !== -1) {
@@ -2441,12 +2658,14 @@ function generateExecutiveRecommendation(sprint) {
         }
     }
 
-    if (runningAgents.indexOf("SEO") !== -1) {
-        return "SEO is running first. CONTENT, SALES, OPERATIONS, REPUTATION and ANALYTICS are waiting.";
+    if (nextUnlockAgents.length) {
+        return nextUnlockAgents.join(", ") + " ready to start when launched.";
     }
 
     if (runningAgents.length) {
-        return runningAgents.join(", ") + " currently running. Waiting agents will unlock as dependencies complete.";
+        return runningAgents.map(function(agent) {
+            return getExecutiveSprintAgentLabel(agent).toUpperCase();
+        }).join(", ") + " currently running. Waiting agents will unlock as dependencies complete.";
     }
 
     if (completedAgents.length === sprint.agents.length) {
@@ -2485,12 +2704,8 @@ function startNextAvailableAgents(sprintId) {
         startedAgents.push(agent);
     });
 
-    if (startedAgents.length) {
-        calculateSprintProgress(sprint);
-        sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
-        saveExecutiveSprint(sprint);
-        renderExecutiveSprintDashboard();
-    }
+    refreshExecutiveSprintState(sprint);
+    renderExecutiveSprintDashboard();
 
     return startedAgents;
 }
@@ -2619,15 +2834,12 @@ function completeAgent(sprintId, agentName) {
     agent.blocker = null;
     agent.recommendation = null;
 
-    calculateSprintProgress(sprint);
-
     var allCompleted = sprint.agents.every(function(entry) {
         return entry.status === "completed";
     });
 
     sprint.status = allCompleted ? "completed" : "active";
-    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
-    saveExecutiveSprint(sprint);
+    refreshExecutiveSprintState(sprint);
     startNextAvailableAgents(sprintId);
     renderExecutiveSprintDashboard();
     return agent;
@@ -2657,8 +2869,7 @@ function blockAgent(sprintId, agentName, reason) {
 
     pauseDownstreamAgents(sprint, blockedLabel);
     sprint.status = "paused";
-    sprint.executiveRecommendation = generateBlockedEscalationRecommendation(sprint, agent, blockerText);
-    saveExecutiveSprint(sprint);
+    refreshExecutiveSprintState(sprint);
     renderExecutiveSprintDashboard();
 
     if (typeof renderAssignmentDashboard === "function") {
@@ -2692,9 +2903,9 @@ function unblockAgent(sprintId, agentName) {
     });
 
     sprint.status = anyBlocked ? "paused" : "active";
-    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
     saveExecutiveSprint(sprint);
     startNextAvailableAgents(sprintId);
+    refreshExecutiveSprintState(sprint);
     renderExecutiveSprintDashboard();
 
     if (typeof renderAssignmentDashboard === "function") {
@@ -2884,13 +3095,27 @@ function renderExecutiveSprintDashboard() {
         return;
     }
 
+    updateSprintTimingState(sprint);
     calculateSprintProgress(sprint);
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
+    saveExecutiveSprint(sprint);
 
     var runningAgents = [];
     var blockedAgents = [];
     var sprintHealth = generateSprintHealth(sprint);
+    var stuckReport = detectStuckAgents(sprint);
     var healthEmoji = sprintHealth.status === "healthy" ? "🟢" : sprintHealth.status === "critical" ? "🔴" : "🟡";
     var healthLabel = sprintHealth.status === "healthy" ? "HEALTHY" : sprintHealth.status === "critical" ? "CRITICAL" : "ACTIVE";
+
+    if (stuckReport.status === "critical" && sprintHealth.status !== "critical") {
+        healthEmoji = "🔴";
+        healthLabel = "CRITICAL";
+    } else if (stuckReport.status === "warning" && sprintHealth.status === "active") {
+        healthEmoji = "🟡";
+        healthLabel = "ACTIVE";
+    }
+
+    var healthMessage = stuckReport.status !== "healthy" ? stuckReport.message : sprintHealth.message;
 
     sprint.agents.forEach(function(agent) {
         var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
@@ -2907,6 +3132,7 @@ function renderExecutiveSprintDashboard() {
     var blockedLabel = blockedAgents.length ? blockedAgents.join(", ") : "None";
     var statusLabel = String(sprint.status || "active").toUpperCase();
     var recommendationText = sprint.executiveRecommendation || generateExecutiveRecommendation(sprint);
+    var timingSummary = buildExecutiveAgentTimingSummary(sprint);
 
     executiveCommandCenterContent.innerHTML =
         '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
@@ -2921,7 +3147,7 @@ function renderExecutiveSprintDashboard() {
                 '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
                     '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Sprint Health</div>' +
                     '<div style="color:#ffffff;font-size:13px;font-weight:900;margin-top:4px;">' + healthEmoji + ' ' + assignmentEscapeHtml(healthLabel) + '</div>' +
-                    '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(sprintHealth.message || "") + '</div>' +
+                    '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(healthMessage || "") + '</div>' +
                 '</div>' +
                 '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
                     '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Overall Progress</div>' +
@@ -2935,6 +3161,10 @@ function renderExecutiveSprintDashboard() {
                     '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Blocked Agents</div>' +
                     '<div style="color:#ffffff;font-size:13px;font-weight:800;margin-top:4px;">' + assignmentEscapeHtml(blockedLabel) + '</div>' +
                 '</div>' +
+            '</div>' +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.18);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Agent Timing Summary</div>' +
+                '<div style="color:#c5cdd8;font-size:12px;line-height:1.6;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(timingSummary) + '</div>' +
             '</div>' +
             '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
                 '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Recommendation</div>' +
@@ -2953,6 +3183,9 @@ window.generateSprintHealth = generateSprintHealth;
 window.startNextAvailableAgents = startNextAvailableAgents;
 window.canAgentStart = canAgentStart;
 window.generateExecutiveRecommendation = generateExecutiveRecommendation;
+window.detectStuckAgents = detectStuckAgents;
+window.formatElapsedTime = formatElapsedTime;
+window.updateSprintTimingState = updateSprintTimingState;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -5556,6 +5789,9 @@ window.generateSprintHealth = generateSprintHealth;
 window.startNextAvailableAgents = startNextAvailableAgents;
 window.canAgentStart = canAgentStart;
 window.generateExecutiveRecommendation = generateExecutiveRecommendation;
+window.detectStuckAgents = detectStuckAgents;
+window.formatElapsedTime = formatElapsedTime;
+window.updateSprintTimingState = updateSprintTimingState;
 setAssignmentView("active");
 renderAssignmentDashboard();
 
