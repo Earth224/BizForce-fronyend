@@ -825,6 +825,25 @@ gap:18px;
   </div>
 </section>
 
+<section id="agentMemorySection" style="padding:40px;max-width:1100px;margin:auto;box-sizing:border-box;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
+    <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Memory</h2>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <select id="agentMemoryFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
+        <option value="">All Agents</option>
+        <option value="seo">SEO</option>
+        <option value="content">Content</option>
+        <option value="sales">Sales</option>
+        <option value="operations">Operations</option>
+        <option value="reputation">Reputation</option>
+        <option value="analytics">Analytics</option>
+      </select>
+      <input id="agentMemorySearch" type="search" placeholder="Search memories..." style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:220px;" />
+    </div>
+  </div>
+  <div id="agentMemoryList" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;"></div>
+</section>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -2068,6 +2087,189 @@ window.agentMemories = agentMemories;
 window.saveAgentMemoriesLocal = saveAgentMemoriesLocal;
 window.loadAgentMemoriesLocal = loadAgentMemoriesLocal;
 window.rememberAgentEvent = rememberAgentEvent;
+
+var BF_AGENT_MEMORY_STORAGE_KEY = "bf_agent_memories";
+var AGENT_MEMORY_AUTO_AGENTS = ["seo", "content", "sales", "operations", "reputation", "analytics"];
+var agentMemoryList = document.getElementById("agentMemoryList");
+var agentMemoryFilter = document.getElementById("agentMemoryFilter");
+var agentMemorySearch = document.getElementById("agentMemorySearch");
+
+function getAgentMemories() {
+    try {
+        var saved = JSON.parse(localStorage.getItem(BF_AGENT_MEMORY_STORAGE_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+    } catch (err) {
+        return [];
+    }
+}
+
+function saveAgentMemory(memory) {
+    if (!memory || typeof memory !== "object") {
+        return null;
+    }
+
+    var record = {
+        id: String(memory.id || ("bfmem_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9))).trim(),
+        agentName: String(memory.agentName || "").trim(),
+        title: String(memory.title || "").trim(),
+        summary: String(memory.summary || "").trim(),
+        createdAt: memory.createdAt || new Date().toISOString(),
+        type: String(memory.type || "executive_assignment").trim(),
+        reportId: memory.reportId ? String(memory.reportId).trim() : null
+    };
+
+    var memories = getAgentMemories();
+    memories.unshift(record);
+    localStorage.setItem(BF_AGENT_MEMORY_STORAGE_KEY, JSON.stringify(memories));
+    renderAgentMemories();
+    return record;
+}
+
+function saveExecutiveAssignmentMemories(createdRecords, reportItem) {
+    if (!Array.isArray(createdRecords) || !createdRecords.length) {
+        return;
+    }
+
+    var allowedAgents = {};
+    AGENT_MEMORY_AUTO_AGENTS.forEach(function(agent) {
+        allowedAgents[agent] = true;
+    });
+
+    var reportId = reportItem && reportItem.id ? String(reportItem.id) : null;
+    var existingMemories = getAgentMemories();
+
+    createdRecords.forEach(function(record) {
+        var agentKey = normalizeAssignedAgent(record.assigned_agent);
+
+        if (!allowedAgents[agentKey]) {
+            return;
+        }
+
+        var title = String(record.task_title || "Executive assignment").trim();
+        var summary = String(record.mission || record.task_description || "").trim();
+        var duplicate = existingMemories.some(function(mem) {
+            return String(mem.reportId || "") === String(reportId || "") &&
+                String(mem.agentName || "").toLowerCase() === agentKey &&
+                String(mem.title || "") === title;
+        });
+
+        if (duplicate) {
+            return;
+        }
+
+        var saved = saveAgentMemory({
+            agentName: agentKey.toUpperCase(),
+            title: title,
+            summary: summary,
+            createdAt: record.created_at || new Date().toISOString(),
+            type: "executive_assignment",
+            reportId: reportId
+        });
+
+        if (saved) {
+            existingMemories.unshift(saved);
+        }
+    });
+}
+
+function renderAgentMemories() {
+    if (!agentMemoryList) {
+        return;
+    }
+
+    var filterAgent = agentMemoryFilter ? String(agentMemoryFilter.value || "").toLowerCase().trim() : "";
+    var searchValue = agentMemorySearch ? String(agentMemorySearch.value || "").toLowerCase().trim() : "";
+    var memories = getAgentMemories().filter(function(memory) {
+        var agentName = String(memory.agentName || "").toLowerCase();
+        var title = String(memory.title || "").toLowerCase();
+        var summary = String(memory.summary || "").toLowerCase();
+
+        if (filterAgent && agentName !== filterAgent) {
+            return false;
+        }
+
+        if (searchValue && title.indexOf(searchValue) === -1 && summary.indexOf(searchValue) === -1 && agentName.indexOf(searchValue) === -1) {
+            return false;
+        }
+
+        return true;
+    });
+
+    agentMemoryList.innerHTML = "";
+
+    if (!memories.length) {
+        agentMemoryList.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No agent memories saved yet.</div>';
+        return;
+    }
+
+    memories.forEach(function(memory) {
+        var card = document.createElement("div");
+        card.className = "agent-memory-card";
+        card.dataset.memoryId = memory.id;
+        card.style.cssText = "width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:12px 14px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:8px;overflow-wrap:anywhere;word-break:break-word;";
+
+        var createdLabel = memory.createdAt ? new Date(memory.createdAt).toLocaleString() : "—";
+
+        card.innerHTML =
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">' +
+                '<div style="min-width:0;max-width:100%;">' +
+                    '<div style="color:#00e5ff;font-size:13px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;">' + assignmentEscapeHtml(memory.agentName || "AGENT") + '</div>' +
+                    '<div style="color:#ffffff;font-size:15px;font-weight:800;margin-top:4px;">' + assignmentEscapeHtml(memory.title || "Untitled memory") + '</div>' +
+                    '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(createdLabel) + '</div>' +
+                '</div>' +
+                '<button type="button" class="agentMemoryOpenBtn" data-id="' + assignmentEscapeHtml(memory.id) + '" style="border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:6px 12px;background:linear-gradient(135deg,rgba(8,12,20,.95),rgba(12,16,28,.98));color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;">Open</button>' +
+            '</div>' +
+            '<div style="color:#c5cdd8;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(memory.summary || "No summary available.") + '</div>' +
+            '<div class="agentMemoryDetail" style="display:none;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);color:#dfe6ef;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"></div>';
+
+        var detail = card.querySelector(".agentMemoryDetail");
+        if (detail) {
+            detail.textContent = String(memory.summary || "No summary available.");
+        }
+
+        agentMemoryList.appendChild(card);
+    });
+}
+
+function bindAgentMemoryControls() {
+    var section = document.getElementById("agentMemorySection");
+    if (!section || section.dataset.memoryBound === "1") {
+        return;
+    }
+
+    section.dataset.memoryBound = "1";
+
+    if (agentMemoryFilter) {
+        agentMemoryFilter.addEventListener("change", renderAgentMemories);
+    }
+
+    if (agentMemorySearch) {
+        agentMemorySearch.addEventListener("input", renderAgentMemories);
+    }
+
+    section.addEventListener("click", function(event) {
+        var button = event.target.closest(".agentMemoryOpenBtn");
+        if (!button) {
+            return;
+        }
+
+        var card = button.closest(".agent-memory-card");
+        var detail = card && card.querySelector(".agentMemoryDetail");
+        if (!detail) {
+            return;
+        }
+
+        var expanded = detail.style.display !== "none";
+        detail.style.display = expanded ? "none" : "block";
+        button.textContent = expanded ? "Open" : "Close";
+    });
+}
+
+window.getAgentMemories = getAgentMemories;
+window.saveAgentMemory = saveAgentMemory;
+window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
+window.renderAgentMemories = renderAgentMemories;
+window.bindAgentMemoryControls = bindAgentMemoryControls;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -4136,6 +4338,7 @@ function processExecutiveAssignmentsFromReport(item) {
                 });
             }
         });
+        saveExecutiveAssignmentMemories(created, item);
     } else {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
     }
@@ -4651,6 +4854,13 @@ window.agentMemories = agentMemories;
 bindAssignmentStatusControls();
 bindAssignmentDetailsControls();
 bindAssignmentStartControls();
+bindAgentMemoryControls();
+renderAgentMemories();
+window.getAgentMemories = getAgentMemories;
+window.saveAgentMemory = saveAgentMemory;
+window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
+window.renderAgentMemories = renderAgentMemories;
+window.bindAgentMemoryControls = bindAgentMemoryControls;
 setAssignmentView("active");
 renderAssignmentDashboard();
 
