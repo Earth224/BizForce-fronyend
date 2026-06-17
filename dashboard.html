@@ -2821,6 +2821,7 @@ function completeExecutiveSprint(sprintId) {
         message: "Executive sprint completed."
     });
     saveExecutiveSprint(sprint);
+    queueNextExecutiveSprint(sprint);
     renderExecutiveSprintDashboard();
     return sprint;
 }
@@ -2836,8 +2837,95 @@ function maybeFinalizeExecutiveSprint(sprint) {
 
     return null;
 }
+function queueNextExecutiveSprint(completedSprint){
+
+if(!completedSprint){
+    return null;
+}
+
+const nextSprint = {
+
+    sprintId:
+        "sprint_" +
+        crypto.randomUUID(),
+
+    parentSprintId:
+        completedSprint.sprintId,
+
+    createdAt:
+        new Date().toISOString(),
+
+    status:
+        "queued",
+
+    progress:
+        0,
+
+    summary:
+        "Awaiting executive launch.",
+
+    agents: [
+
+        {
+            agentName:"SEO",
+            status:"waiting",
+            dependency:null,
+            progress:0
+        },
+
+        {
+            agentName:"CONTENT",
+            status:"waiting",
+            dependency:"SEO",
+            progress:0
+        },
+
+        {
+            agentName:"SALES",
+            status:"waiting",
+            dependency:"CONTENT",
+            progress:0
+        },
+
+        {
+            agentName:"OPERATIONS",
+            status:"waiting",
+            dependency:"SALES",
+            progress:0
+        },
+
+        {
+            agentName:"REPUTATION",
+            status:"waiting",
+            dependency:"CONTENT",
+            progress:0
+        },
+
+        {
+            agentName:"ANALYTICS",
+            status:"waiting",
+            dependency:"SALES",
+            progress:0
+        }
+
+    ]
+
+};
+
+const sprints =
+    getExecutiveSprints();
+
+sprints.unshift(nextSprint);
+
+saveExecutiveSprints(sprints);
+
+return nextSprint;
+
+}
+
 
 function renderExecutiveReview(sprint) {
+    
     if (!sprint || !isExecutiveSprintComplete(sprint)) {
         return "";
     }
