@@ -2329,18 +2329,231 @@ function calculateSprintProgress(sprint) {
         return 0;
     }
 
-    var total = 0;
+    var completedCount = 0;
 
     sprint.agents.forEach(function(agent) {
-        var progress = Number(agent.progress);
-        if (isNaN(progress)) {
-            progress = 0;
+        if (agent.status === "completed") {
+            completedCount++;
         }
-        total += Math.max(0, Math.min(100, progress));
     });
 
-    sprint.overallProgress = Math.round(total / sprint.agents.length);
+    sprint.overallProgress = Math.floor((completedCount / sprint.agents.length) * 100);
     return sprint.overallProgress;
+}
+
+function normalizeExecutiveSprintAgentKey(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function getExecutiveSprintAgentLabel(agent) {
+    return String((agent && (agent.name || agent.agentName)) || "").trim();
+}
+
+function getSprintById(sprintId) {
+    var sprints = getExecutiveSprints();
+    var match = null;
+
+    sprints.forEach(function(entry) {
+        if (String(entry.sprintId) === String(sprintId)) {
+            match = entry;
+        }
+    });
+
+    return match;
+}
+
+function getSprintAgent(sprint, agentName) {
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return null;
+    }
+
+    var targetKey = normalizeExecutiveSprintAgentKey(agentName);
+    var match = null;
+
+    sprint.agents.forEach(function(agent) {
+        if (normalizeExecutiveSprintAgentKey(getExecutiveSprintAgentLabel(agent)) === targetKey) {
+            match = agent;
+        }
+    });
+
+    return match;
+}
+
+function getAgentDependency(agentName) {
+    var agentKey = normalizeExecutiveSprintAgentKey(agentName);
+    return EXECUTIVE_SPRINT_DEPENDENCIES[agentKey] || null;
+}
+
+function canAgentStart(sprint, agentName) {
+    var agent = getSprintAgent(sprint, agentName);
+
+    if (!agent || agent.status !== "waiting") {
+        return false;
+    }
+
+    var dependencyKey = getAgentDependency(getExecutiveSprintAgentLabel(agent));
+
+    if (!dependencyKey) {
+        return true;
+    }
+
+    var dependencyAgent = getSprintAgent(sprint, dependencyKey);
+    return !!(dependencyAgent && dependencyAgent.status === "completed");
+}
+
+function generateExecutiveRecommendation(sprint) {
+    if (!sprint || !Array.isArray(sprint.agents) || !sprint.agents.length) {
+        return "No sprint data available.";
+    }
+
+    var blockedAgent = null;
+    var runningAgents = [];
+    var waitingAgents = [];
+    var completedAgents = [];
+
+    sprint.agents.forEach(function(agent) {
+        var label = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
+        if (agent.status === "blocked") {
+            if (!blockedAgent) {
+                blockedAgent = agent;
+            }
+        } else if (agent.status === "running") {
+            runningAgents.push(label);
+        } else if (agent.status === "waiting") {
+            waitingAgents.push(label);
+        } else if (agent.status === "completed") {
+            completedAgents.push(label);
+        }
+    });
+
+    if (blockedAgent) {
+        var blockedLabel = getExecutiveSprintAgentLabel(blockedAgent).toUpperCase();
+        var blockedReason = String(blockedAgent.blockerReason || blockedAgent.blocker || "Unknown blocker").trim();
+        return blockedLabel + " blocked.\nReason:\n" + blockedReason + ".\nRecommendation:\nResolve blocker and resume sprint.";
+    }
+
+    if (completedAgents.indexOf("CONTENT") !== -1) {
+        var salesReady = getSprintAgent(sprint, "sales") && getSprintAgent(sprint, "sales").status === "waiting" && canAgentStart(sprint, "sales");
+        var reputationReady = getSprintAgent(sprint, "reputation") && getSprintAgent(sprint, "reputation").status === "waiting" && canAgentStart(sprint, "reputation");
+
+        if (salesReady || reputationReady) {
+            return "CONTENT completed successfully.\nSALES and REPUTATION unlocked.\nRecommendation:\nLaunch Funnel Sprint and Reputation Campaign.";
+        }
+    }
+
+    if (runningAgents.indexOf("SEO") !== -1) {
+        return "SEO is running first. CONTENT, SALES, OPERATIONS, REPUTATION and ANALYTICS are waiting.";
+    }
+
+    if (runningAgents.length) {
+        return runningAgents.join(", ") + " currently running. Waiting agents will unlock as dependencies complete.";
+    }
+
+    if (completedAgents.length === sprint.agents.length) {
+        return "All agents completed. Executive sprint is ready for review.";
+    }
+
+    if (waitingAgents.length) {
+        return waitingAgents.join(", ") + " waiting for dependency completion.";
+    }
+
+    return "Monitor sprint progress and advance agents as dependencies complete.";
+}
+
+function startNextAvailableAgents(sprintId) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return [];
+    }
+
+    var startedAgents = [];
+    var now = new Date().toISOString();
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status !== "waiting") {
+            return;
+        }
+
+        if (!canAgentStart(sprint, getExecutiveSprintAgentLabel(agent))) {
+            return;
+        }
+
+        agent.status = "running";
+        agent.startedAt = now;
+        agent.progress = Number(agent.progress) || 0;
+        startedAgents.push(agent);
+    });
+
+    if (startedAgents.length) {
+        calculateSprintProgress(sprint);
+        sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
+        saveExecutiveSprint(sprint);
+        renderExecutiveSprintDashboard();
+    }
+
+    return startedAgents;
+}
+
+function completeAgent(sprintId, agentName) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint) {
+        return null;
+    }
+
+    var agent = getSprintAgent(sprint, agentName);
+
+    if (!agent) {
+        return null;
+    }
+
+    var now = new Date().toISOString();
+
+    agent.status = "completed";
+    agent.progress = 100;
+    agent.completedAt = now;
+    agent.blockerReason = null;
+    agent.blocker = null;
+    agent.recommendation = null;
+
+    calculateSprintProgress(sprint);
+
+    var allCompleted = sprint.agents.every(function(entry) {
+        return entry.status === "completed";
+    });
+
+    sprint.status = allCompleted ? "completed" : "active";
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
+    saveExecutiveSprint(sprint);
+    startNextAvailableAgents(sprintId);
+    renderExecutiveSprintDashboard();
+    return agent;
+}
+
+function blockAgent(sprintId, agentName, reason) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint) {
+        return null;
+    }
+
+    var agent = getSprintAgent(sprint, agentName);
+
+    if (!agent) {
+        return null;
+    }
+
+    agent.status = "blocked";
+    agent.blockerReason = String(reason || "").trim() || "Unknown blocker";
+    agent.blocker = agent.blockerReason;
+    agent.recommendation = "Resolve blocker before continuing sprint.";
+    sprint.status = "paused";
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
+    saveExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    return agent;
 }
 
 function buildDefaultExecutiveSprintAgents() {
@@ -2350,11 +2563,16 @@ function buildDefaultExecutiveSprintAgents() {
         var dependencyKey = EXECUTIVE_SPRINT_DEPENDENCIES[agentKey];
 
         return {
+            name: agentKey.toUpperCase(),
             agentName: agentKey.toUpperCase(),
             status: agentKey === "seo" ? "running" : "waiting",
             dependency: dependencyKey ? dependencyKey.toUpperCase() : null,
             progress: 0,
+            startedAt: agentKey === "seo" ? now : null,
+            completedAt: null,
+            blockerReason: null,
             blocker: null,
+            recommendation: null,
             updatedAt: now
         };
     });
@@ -2380,6 +2598,7 @@ function createExecutiveSprint(options) {
     };
 
     calculateSprintProgress(sprint);
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
     saveExecutiveSprint(sprint);
     renderExecutiveSprintDashboard();
     return sprint;
@@ -2416,11 +2635,11 @@ function updateAgentSprintStatus(sprintId, agentName, updates) {
         return null;
     }
 
-    var agentKey = String(agentName || "").toLowerCase();
+    var agentKey = normalizeExecutiveSprintAgentKey(agentName);
     var targetAgent = null;
 
     sprint.agents.forEach(function(agent) {
-        if (String(agent.agentName || "").toLowerCase() === agentKey) {
+        if (normalizeExecutiveSprintAgentKey(getExecutiveSprintAgentLabel(agent)) === agentKey) {
             targetAgent = agent;
         }
     });
@@ -2431,6 +2650,13 @@ function updateAgentSprintStatus(sprintId, agentName, updates) {
 
     if (updates.status) {
         targetAgent.status = String(updates.status).trim();
+        if (targetAgent.status === "running" && !targetAgent.startedAt) {
+            targetAgent.startedAt = new Date().toISOString();
+        }
+        if (targetAgent.status === "completed") {
+            targetAgent.progress = 100;
+            targetAgent.completedAt = new Date().toISOString();
+        }
     }
 
     if (updates.progress !== undefined && updates.progress !== null) {
@@ -2438,12 +2664,15 @@ function updateAgentSprintStatus(sprintId, agentName, updates) {
         targetAgent.progress = isNaN(nextProgress) ? 0 : Math.max(0, Math.min(100, nextProgress));
     }
 
-    if (updates.blocker !== undefined) {
-        targetAgent.blocker = updates.blocker ? String(updates.blocker).trim() : null;
+    if (updates.blocker !== undefined || updates.blockerReason !== undefined) {
+        var blockerValue = updates.blockerReason !== undefined ? updates.blockerReason : updates.blocker;
+        targetAgent.blockerReason = blockerValue ? String(blockerValue).trim() : null;
+        targetAgent.blocker = targetAgent.blockerReason;
     }
 
     targetAgent.updatedAt = new Date().toISOString();
     calculateSprintProgress(sprint);
+    sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
 
     var allCompleted = sprint.agents.every(function(agent) {
         return agent.status === "completed";
@@ -2490,8 +2719,7 @@ function createExecutiveSprintFromAssignments(reportItem, reportSprintId) {
         sprintId: "orchestrator_" + String(reportSprintId || Date.now()),
         sprintName: "Executive Sprint",
         status: "active",
-        executiveSummary: summaryText,
-        executiveRecommendation: "SEO is running first. CONTENT, SALES, OPERATIONS, REPUTATION, and ANALYTICS are waiting on dependency completion."
+        executiveSummary: summaryText
     });
 }
 
@@ -2513,11 +2741,13 @@ function renderExecutiveSprintDashboard() {
     var blockedAgents = [];
 
     sprint.agents.forEach(function(agent) {
+        var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
         if (agent.status === "running") {
-            runningAgents.push(agent.agentName);
+            runningAgents.push(agentLabel);
         }
         if (agent.status === "blocked") {
-            blockedAgents.push(agent.agentName);
+            blockedAgents.push(agentLabel);
         }
     });
 
@@ -2558,6 +2788,11 @@ function renderExecutiveSprintDashboard() {
 window.getExecutiveSprints = getExecutiveSprints;
 window.createExecutiveSprint = createExecutiveSprint;
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
+window.completeAgent = completeAgent;
+window.blockAgent = blockAgent;
+window.startNextAvailableAgents = startNextAvailableAgents;
+window.canAgentStart = canAgentStart;
+window.generateExecutiveRecommendation = generateExecutiveRecommendation;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -5154,6 +5389,11 @@ window.bindAgentMemoryControls = bindAgentMemoryControls;
 window.getExecutiveSprints = getExecutiveSprints;
 window.createExecutiveSprint = createExecutiveSprint;
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
+window.completeAgent = completeAgent;
+window.blockAgent = blockAgent;
+window.startNextAvailableAgents = startNextAvailableAgents;
+window.canAgentStart = canAgentStart;
+window.generateExecutiveRecommendation = generateExecutiveRecommendation;
 setAssignmentView("active");
 renderAssignmentDashboard();
 
