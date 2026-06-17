@@ -785,6 +785,11 @@ gap:18px;
 }
 </style>
 
+<section id="executiveCommandCenterSection" style="padding:40px;max-width:1100px;margin:auto;box-sizing:border-box;">
+  <h2 style="font-size:32px;margin:0;color:#00e5ff;margin-bottom:25px;letter-spacing:.04em;">EXECUTIVE COMMAND CENTER</h2>
+  <div id="executiveCommandCenterContent" style="width:100%;max-width:100%;min-width:0;"></div>
+</section>
+
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:25px;flex-wrap:wrap;">
     <h2 style="font-size:32px;margin:0;color:#00e5ff;">Agent Work Queue</h2>
@@ -2270,6 +2275,289 @@ window.saveAgentMemory = saveAgentMemory;
 window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
 window.renderAgentMemories = renderAgentMemories;
 window.bindAgentMemoryControls = bindAgentMemoryControls;
+
+var BF_EXECUTIVE_SPRINTS_STORAGE_KEY = "bf_executive_sprints";
+var EXECUTIVE_SPRINT_AGENT_ORDER = ["seo", "content", "sales", "operations", "reputation", "analytics"];
+var EXECUTIVE_SPRINT_DEPENDENCIES = {
+    seo: null,
+    content: "seo",
+    sales: "content",
+    operations: "sales",
+    reputation: "content",
+    analytics: "sales"
+};
+var executiveCommandCenterContent = document.getElementById("executiveCommandCenterContent");
+
+function getExecutiveSprints() {
+    try {
+        var saved = JSON.parse(localStorage.getItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY) || "[]");
+        return Array.isArray(saved) ? saved : [];
+    } catch (err) {
+        return [];
+    }
+}
+
+function saveExecutiveSprint(sprint) {
+    if (!sprint || !sprint.sprintId) {
+        return null;
+    }
+
+    var sprints = getExecutiveSprints();
+    var existingIndex = -1;
+
+    sprints.forEach(function(entry, index) {
+        if (String(entry.sprintId) === String(sprint.sprintId)) {
+            existingIndex = index;
+        }
+    });
+
+    if (existingIndex >= 0) {
+        sprints[existingIndex] = sprint;
+    } else {
+        sprints.unshift(sprint);
+    }
+
+    localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify(sprints));
+    return sprint;
+}
+
+function calculateSprintProgress(sprint) {
+    if (!sprint || !Array.isArray(sprint.agents) || !sprint.agents.length) {
+        if (sprint) {
+            sprint.overallProgress = 0;
+        }
+        return 0;
+    }
+
+    var total = 0;
+
+    sprint.agents.forEach(function(agent) {
+        var progress = Number(agent.progress);
+        if (isNaN(progress)) {
+            progress = 0;
+        }
+        total += Math.max(0, Math.min(100, progress));
+    });
+
+    sprint.overallProgress = Math.round(total / sprint.agents.length);
+    return sprint.overallProgress;
+}
+
+function buildDefaultExecutiveSprintAgents() {
+    var now = new Date().toISOString();
+
+    return EXECUTIVE_SPRINT_AGENT_ORDER.map(function(agentKey) {
+        var dependencyKey = EXECUTIVE_SPRINT_DEPENDENCIES[agentKey];
+
+        return {
+            agentName: agentKey.toUpperCase(),
+            status: agentKey === "seo" ? "running" : "waiting",
+            dependency: dependencyKey ? dependencyKey.toUpperCase() : null,
+            progress: 0,
+            blocker: null,
+            updatedAt: now
+        };
+    });
+}
+
+function createExecutiveSprint(options) {
+    options = options || {};
+    var now = new Date().toISOString();
+    var agents = Array.isArray(options.agents) && options.agents.length
+        ? options.agents
+        : buildDefaultExecutiveSprintAgents();
+
+    var sprint = {
+        sprintId: String(options.sprintId || ("exec_sprint_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9))).trim(),
+        sprintName: String(options.sprintName || "Executive Sprint").trim(),
+        createdAt: options.createdAt || now,
+        status: options.status || "active",
+        totalAgents: agents.length,
+        agents: agents,
+        overallProgress: 0,
+        executiveSummary: String(options.executiveSummary || "Executive orchestration sprint initiated.").trim(),
+        executiveRecommendation: String(options.executiveRecommendation || "Begin with SEO agent execution, then advance downstream agents as dependencies complete.").trim()
+    };
+
+    calculateSprintProgress(sprint);
+    saveExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    return sprint;
+}
+
+function getActiveExecutiveSprint() {
+    var sprints = getExecutiveSprints();
+
+    for (var i = 0; i < sprints.length; i++) {
+        if (sprints[i].status === "active" || sprints[i].status === "planning" || sprints[i].status === "paused") {
+            return sprints[i];
+        }
+    }
+
+    return sprints.length ? sprints[0] : null;
+}
+
+function updateAgentSprintStatus(sprintId, agentName, updates) {
+    if (!sprintId || !agentName) {
+        return null;
+    }
+
+    updates = updates || {};
+    var sprints = getExecutiveSprints();
+    var sprint = null;
+
+    sprints.forEach(function(entry) {
+        if (String(entry.sprintId) === String(sprintId)) {
+            sprint = entry;
+        }
+    });
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return null;
+    }
+
+    var agentKey = String(agentName || "").toLowerCase();
+    var targetAgent = null;
+
+    sprint.agents.forEach(function(agent) {
+        if (String(agent.agentName || "").toLowerCase() === agentKey) {
+            targetAgent = agent;
+        }
+    });
+
+    if (!targetAgent) {
+        return null;
+    }
+
+    if (updates.status) {
+        targetAgent.status = String(updates.status).trim();
+    }
+
+    if (updates.progress !== undefined && updates.progress !== null) {
+        var nextProgress = Number(updates.progress);
+        targetAgent.progress = isNaN(nextProgress) ? 0 : Math.max(0, Math.min(100, nextProgress));
+    }
+
+    if (updates.blocker !== undefined) {
+        targetAgent.blocker = updates.blocker ? String(updates.blocker).trim() : null;
+    }
+
+    targetAgent.updatedAt = new Date().toISOString();
+    calculateSprintProgress(sprint);
+
+    var allCompleted = sprint.agents.every(function(agent) {
+        return agent.status === "completed";
+    });
+    var anyBlocked = sprint.agents.some(function(agent) {
+        return agent.status === "blocked";
+    });
+    var anyRunning = sprint.agents.some(function(agent) {
+        return agent.status === "running";
+    });
+
+    if (allCompleted) {
+        sprint.status = "completed";
+    } else if (anyRunning) {
+        sprint.status = "active";
+    } else if (anyBlocked && !anyRunning) {
+        sprint.status = "paused";
+    }
+
+    saveExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    return targetAgent;
+}
+
+function createExecutiveSprintFromAssignments(reportItem, reportSprintId) {
+    var sprints = getExecutiveSprints();
+
+    sprints.forEach(function(entry) {
+        if (entry.status === "active" || entry.status === "planning" || entry.status === "paused") {
+            entry.status = "completed";
+            saveExecutiveSprint(entry);
+        }
+    });
+
+    var summaryText = "Executive sprint created from latest report with 6 coordinated agents.";
+
+    if (reportItem && reportItem.summary) {
+        summaryText = String(reportItem.summary).trim();
+    } else if (reportItem && reportItem.prompt) {
+        summaryText = String(reportItem.prompt).trim().slice(0, 180);
+    }
+
+    return createExecutiveSprint({
+        sprintId: "orchestrator_" + String(reportSprintId || Date.now()),
+        sprintName: "Executive Sprint",
+        status: "active",
+        executiveSummary: summaryText,
+        executiveRecommendation: "SEO is running first. CONTENT, SALES, OPERATIONS, REPUTATION, and ANALYTICS are waiting on dependency completion."
+    });
+}
+
+function renderExecutiveSprintDashboard() {
+    if (!executiveCommandCenterContent) {
+        return;
+    }
+
+    var sprint = getActiveExecutiveSprint();
+
+    if (!sprint) {
+        executiveCommandCenterContent.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active executive sprint yet.</div>';
+        return;
+    }
+
+    calculateSprintProgress(sprint);
+
+    var runningAgents = [];
+    var blockedAgents = [];
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status === "running") {
+            runningAgents.push(agent.agentName);
+        }
+        if (agent.status === "blocked") {
+            blockedAgents.push(agent.agentName);
+        }
+    });
+
+    var runningLabel = runningAgents.length ? runningAgents.join(", ") : "None";
+    var blockedLabel = blockedAgents.length ? blockedAgents.join(", ") : "None";
+    var statusLabel = String(sprint.status || "active").toUpperCase();
+
+    executiveCommandCenterContent.innerHTML =
+        '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">' +
+                '<div style="min-width:0;max-width:100%;">' +
+                    '<div style="color:#ffffff;font-size:18px;font-weight:900;">' + assignmentEscapeHtml(sprint.sprintName || "Executive Sprint") + '</div>' +
+                    '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(sprint.createdAt ? new Date(sprint.createdAt).toLocaleString() : "—") + '</div>' +
+                '</div>' +
+                '<div style="color:#00e5ff;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:6px 12px;">' + assignmentEscapeHtml(statusLabel) + '</div>' +
+            '</div>' +
+            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">' +
+                '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+                    '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Overall Progress</div>' +
+                    '<div style="color:#00e5ff;font-size:22px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(sprint.overallProgress || 0)) + '%</div>' +
+                '</div>' +
+                '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.18);background:rgba(8,8,18,.72);">' +
+                    '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Running Agents</div>' +
+                    '<div style="color:#ffffff;font-size:13px;font-weight:800;margin-top:4px;">' + assignmentEscapeHtml(runningLabel) + '</div>' +
+                '</div>' +
+                '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,77,109,.18);background:rgba(8,8,18,.72);">' +
+                    '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Blocked Agents</div>' +
+                    '<div style="color:#ffffff;font-size:13px;font-weight:800;margin-top:4px;">' + assignmentEscapeHtml(blockedLabel) + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Recommendation</div>' +
+                '<div style="color:#c5cdd8;font-size:12px;line-height:1.6;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(sprint.executiveRecommendation || "No recommendation available.") + '</div>' +
+            '</div>' +
+        '</div>';
+}
+
+window.getExecutiveSprints = getExecutiveSprints;
+window.createExecutiveSprint = createExecutiveSprint;
+window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -4339,6 +4627,7 @@ function processExecutiveAssignmentsFromReport(item) {
             }
         });
         saveExecutiveAssignmentMemories(created, item);
+        createExecutiveSprintFromAssignments(item, sprintId);
     } else {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
     }
@@ -4856,11 +5145,15 @@ bindAssignmentDetailsControls();
 bindAssignmentStartControls();
 bindAgentMemoryControls();
 renderAgentMemories();
+renderExecutiveSprintDashboard();
 window.getAgentMemories = getAgentMemories;
 window.saveAgentMemory = saveAgentMemory;
 window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
 window.renderAgentMemories = renderAgentMemories;
 window.bindAgentMemoryControls = bindAgentMemoryControls;
+window.getExecutiveSprints = getExecutiveSprints;
+window.createExecutiveSprint = createExecutiveSprint;
+window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 setAssignmentView("active");
 renderAssignmentDashboard();
 
