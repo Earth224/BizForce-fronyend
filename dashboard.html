@@ -789,6 +789,7 @@ gap:18px;
   <h2 style="font-size:32px;margin:0;color:#00e5ff;margin-bottom:25px;letter-spacing:.04em;">EXECUTIVE COMMAND CENTER</h2>
   <div id="executiveCommandCenterContent" style="width:100%;max-width:100%;min-width:0;"></div>
   <div id="executiveRuntimeDashboardContent" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
+  <div id="executiveRuntimeTestControls" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
 </section>
 
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
@@ -4148,6 +4149,175 @@ function restoreExecutiveRuntime() {
     return executiveRuntimeSchedulerState;
 }
 
+function prepareHarnessSprintSlot() {
+    getExecutiveSprints().forEach(function(entry) {
+        if (entry.status === "active" || entry.status === "planning" || entry.status === "paused") {
+            entry.status = "completed";
+            saveExecutiveSprint(entry);
+        }
+    });
+}
+
+function buildHarnessTestAgent(agentName, dependency, status) {
+    var now = new Date().toISOString();
+
+    return {
+        name: agentName,
+        agentName: agentName,
+        status: status || "waiting",
+        dependency: dependency || null,
+        progress: 0,
+        startedAt: status === "running" ? now : null,
+        completedAt: null,
+        blockerReason: null,
+        blocker: null,
+        recommendation: null,
+        blockedAt: null,
+        updatedAt: now,
+        retryCount: 0,
+        maxRetries: 3,
+        lastError: null
+    };
+}
+
+function createTestSprint() {
+    var sprint;
+
+    prepareHarnessSprintSlot();
+    sprint = createExecutiveSprint({
+        sprintId: "test_sprint_" + Date.now(),
+        sprintName: "Test Normal Sprint",
+        status: "active",
+        agents: [
+            buildHarnessTestAgent("SEO", null, "running"),
+            buildHarnessTestAgent("CONTENT", "SEO", "waiting"),
+            buildHarnessTestAgent("SALES", "CONTENT", "waiting"),
+            buildHarnessTestAgent("OPERATIONS", "SALES", "waiting"),
+            buildHarnessTestAgent("REPUTATION", "OPERATIONS", "waiting"),
+            buildHarnessTestAgent("ANALYTICS", "REPUTATION", "waiting")
+        ],
+        executiveSummary: "Executive runtime harness — normal dependency chain test."
+    });
+    replanExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    renderExecutiveRuntimeDashboard(getSprintById(sprint.sprintId));
+    return getSprintById(sprint.sprintId);
+}
+
+function createFailureScenario() {
+    var sprint = createTestSprint();
+    var sprintId = sprint.sprintId;
+    var agent = getSprintAgent(getSprintById(sprintId), "seo");
+
+    if (agent) {
+        agent.maxRetries = 1;
+        saveExecutiveSprint(getSprintById(sprintId));
+    }
+
+    failAgent(sprintId, "seo", "Harness simulated failure", "SEO harness failure.");
+    tickExecutiveRuntimeScheduler();
+    failAgent(sprintId, "seo", "Harness repeated failure", "SEO harness failure again.");
+    retryAgent(sprintId, "seo");
+    replanExecutiveSprint(getSprintById(sprintId));
+    renderExecutiveRuntimeDashboard(getSprintById(sprintId));
+    tickExecutiveRuntimeScheduler();
+    return getSprintById(sprintId);
+}
+
+function createParallelScenario() {
+    var sprint;
+
+    prepareHarnessSprintSlot();
+    sprint = createExecutiveSprint({
+        sprintId: "test_parallel_" + Date.now(),
+        sprintName: "Test Parallel Sprint",
+        status: "active",
+        agents: [
+            buildHarnessTestAgent("SEO", null, "running"),
+            buildHarnessTestAgent("EMAIL", null, "running"),
+            buildHarnessTestAgent("ADS", null, "running")
+        ],
+        executiveSummary: "Executive runtime harness — parallel agent test."
+    });
+    replanExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    renderExecutiveRuntimeDashboard(getSprintById(sprint.sprintId));
+    return getSprintById(sprint.sprintId);
+}
+
+function clearTestSprints() {
+    stopExecutiveRuntimeScheduler();
+    localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify([]));
+    executiveRuntimeSchedulerState.lastTick = null;
+    executiveRuntimeSchedulerState.running = false;
+    executiveRuntimeSchedulerState.timerId = null;
+
+    if (executiveRuntimeDashboardContent) {
+        executiveRuntimeDashboardContent.innerHTML = "";
+    }
+
+    if (executiveCommandCenterContent) {
+        executiveCommandCenterContent.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active executive sprint yet.</div>';
+    }
+
+    startExecutiveRuntimeScheduler();
+    renderExecutiveRuntimeDashboard(null);
+    return [];
+}
+
+function bindExecutiveRuntimeTestControls() {
+    var panel = document.getElementById("executiveRuntimeTestControls");
+    var normalBtn;
+    var failureBtn;
+    var parallelBtn;
+    var clearBtn;
+
+    if (!panel || panel.dataset.bound === "true") {
+        return;
+    }
+
+    panel.dataset.bound = "true";
+    panel.innerHTML =
+        '<div style="padding:12px 14px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);display:flex;flex-direction:column;gap:10px;">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Runtime Test Controls</div>' +
+            '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+                '<button type="button" id="executiveTestNormalBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">+ Test Normal Sprint</button>' +
+                '<button type="button" id="executiveTestFailureBtn" style="padding:10px 14px;border:1px solid rgba(255,77,109,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#ff4d6d;background:#080812;font-size:13px;">+ Test Failure Recovery</button>' +
+                '<button type="button" id="executiveTestParallelBtn" style="padding:10px 14px;border:1px solid rgba(124,60,255,.35);border-radius:999px;cursor:pointer;font-weight:800;color:#c5cdd8;background:#080812;font-size:13px;">+ Test Parallel Agents</button>' +
+                '<button type="button" id="executiveTestClearBtn" style="padding:10px 14px;border:1px solid rgba(255,77,109,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#ff4d6d;background:#080812;font-size:13px;">Clear Test Sprints</button>' +
+            '</div>' +
+        '</div>';
+
+    normalBtn = document.getElementById("executiveTestNormalBtn");
+    failureBtn = document.getElementById("executiveTestFailureBtn");
+    parallelBtn = document.getElementById("executiveTestParallelBtn");
+    clearBtn = document.getElementById("executiveTestClearBtn");
+
+    if (normalBtn) {
+        normalBtn.addEventListener("click", function() {
+            createTestSprint();
+        });
+    }
+
+    if (failureBtn) {
+        failureBtn.addEventListener("click", function() {
+            createFailureScenario();
+        });
+    }
+
+    if (parallelBtn) {
+        parallelBtn.addEventListener("click", function() {
+            createParallelScenario();
+        });
+    }
+
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function() {
+            clearTestSprints();
+        });
+    }
+}
+
 function blockAgent(sprintId, agentName, reason) {
     var sprint = getSprintById(sprintId);
 
@@ -4211,6 +4381,10 @@ window.areDependenciesMet = areDependenciesMet;
 window.getBlockedAgents = getBlockedAgents;
 window.unlockEligibleAgents = unlockEligibleAgents;
 window.replanExecutiveSprint = replanExecutiveSprint;
+window.createTestSprint = createTestSprint;
+window.createFailureScenario = createFailureScenario;
+window.createParallelScenario = createParallelScenario;
+window.clearTestSprints = clearTestSprints;
 window.resumeAgent = resumeAgent;
 window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
@@ -4565,6 +4739,10 @@ window.areDependenciesMet = areDependenciesMet;
 window.getBlockedAgents = getBlockedAgents;
 window.unlockEligibleAgents = unlockEligibleAgents;
 window.replanExecutiveSprint = replanExecutiveSprint;
+window.createTestSprint = createTestSprint;
+window.createFailureScenario = createFailureScenario;
+window.createParallelScenario = createParallelScenario;
+window.clearTestSprints = clearTestSprints;
 window.resumeAgent = resumeAgent;
 
 function purgeInvalidAgentAssignments() {
@@ -7155,6 +7333,7 @@ bindAgentMemoryControls();
 renderAgentMemories();
 renderExecutiveSprintDashboard();
 restoreExecutiveRuntime();
+bindExecutiveRuntimeTestControls();
 window.getAgentMemories = getAgentMemories;
 window.saveAgentMemory = saveAgentMemory;
 window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
@@ -7194,6 +7373,10 @@ window.areDependenciesMet = areDependenciesMet;
 window.getBlockedAgents = getBlockedAgents;
 window.unlockEligibleAgents = unlockEligibleAgents;
 window.replanExecutiveSprint = replanExecutiveSprint;
+window.createTestSprint = createTestSprint;
+window.createFailureScenario = createFailureScenario;
+window.createParallelScenario = createParallelScenario;
+window.clearTestSprints = clearTestSprints;
 window.resumeAgent = resumeAgent;
 setAssignmentView("active");
 renderAssignmentDashboard();
@@ -7225,6 +7408,10 @@ window.areDependenciesMet = areDependenciesMet;
 window.getBlockedAgents = getBlockedAgents;
 window.unlockEligibleAgents = unlockEligibleAgents;
 window.replanExecutiveSprint = replanExecutiveSprint;
+window.createTestSprint = createTestSprint;
+window.createFailureScenario = createFailureScenario;
+window.createParallelScenario = createParallelScenario;
+window.clearTestSprints = clearTestSprints;
 window.resumeAgent = resumeAgent;
 
 }
