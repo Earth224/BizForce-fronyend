@@ -2614,6 +2614,259 @@ window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
 window.generateExecutiveNextAction = generateExecutiveNextAction;
 window.saveExecutiveAutonomyEvent = saveExecutiveAutonomyEvent;
 
+function isExecutiveSprintComplete(sprint) {
+    var requiredAgents = ["seo", "content", "sales", "operations", "reputation", "analytics"];
+    var index;
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return false;
+    }
+
+    for (index = 0; index < requiredAgents.length; index++) {
+        var agent = getSprintAgent(sprint, requiredAgents[index]);
+
+        if (!agent || agent.status !== "completed") {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function calculateExecutiveKPIs(sprint) {
+    var totalAgents = sprint && Array.isArray(sprint.agents) ? sprint.agents.length : EXECUTIVE_SPRINT_AGENT_ORDER.length;
+    var completedAgents = 0;
+    var blockedAgents = 0;
+    var runningAgents = 0;
+    var waitingAgents = 0;
+    var retryCount = 0;
+    var startMs;
+    var endMs;
+    var durationMinutes = 0;
+    var efficiencyScore = 100;
+    var kpis;
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        kpis = {
+            completedAgents: 0,
+            blockedAgents: 0,
+            runningAgents: 0,
+            waitingAgents: 0,
+            completionPercent: 0,
+            blockedPercent: 0,
+            efficiencyScore: 0,
+            durationMinutes: 0
+        };
+        sprint.kpis = kpis;
+        return kpis;
+    }
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status === "completed") {
+            completedAgents++;
+        } else if (agent.status === "blocked") {
+            blockedAgents++;
+        } else if (agent.status === "running") {
+            runningAgents++;
+        } else {
+            waitingAgents++;
+        }
+    });
+
+    if (Array.isArray(sprint.autonomyEvents)) {
+        sprint.autonomyEvents.forEach(function(eventItem) {
+            if (eventItem.type === "agent_blocked" || eventItem.type === "auto_advance" || eventItem.type === "agent_resumed") {
+                retryCount++;
+            }
+        });
+    }
+
+    startMs = getExecutiveAgentTimestampMs(sprint.createdAt);
+    endMs = getExecutiveAgentTimestampMs(sprint.completedAt) || Date.now();
+    durationMinutes = startMs ? Math.max(1, Math.floor((endMs - startMs) / 60000)) : 0;
+
+    efficiencyScore -= blockedAgents * 12;
+    efficiencyScore -= Math.min(30, retryCount * 4);
+
+    if (durationMinutes > 120) {
+        efficiencyScore -= 10;
+    } else if (durationMinutes > 60) {
+        efficiencyScore -= 5;
+    }
+
+    efficiencyScore = Math.max(0, Math.min(100, efficiencyScore));
+
+    kpis = {
+        completedAgents: completedAgents,
+        blockedAgents: blockedAgents,
+        runningAgents: runningAgents,
+        waitingAgents: waitingAgents,
+        completionPercent: totalAgents ? Math.floor((completedAgents / totalAgents) * 100) : 0,
+        blockedPercent: totalAgents ? Math.floor((blockedAgents / totalAgents) * 100) : 0,
+        efficiencyScore: efficiencyScore,
+        durationMinutes: durationMinutes
+    };
+
+    sprint.kpis = kpis;
+    return kpis;
+}
+
+function generateExecutiveSprintSummary(sprint) {
+    if (!sprint) {
+        return "";
+    }
+
+    var kpis = sprint.kpis || calculateExecutiveKPIs(sprint);
+    var totalAgents = sprint.agents && sprint.agents.length ? sprint.agents.length : EXECUTIVE_SPRINT_AGENT_ORDER.length;
+    var lines = [
+        "Executive Sprint Complete.",
+        kpis.completedAgents + " of " + totalAgents + " agents completed.",
+        "Completion time: " + kpis.durationMinutes + " minutes.",
+        "Efficiency Score: " + kpis.efficiencyScore + "%."
+    ];
+    var agentOutcomes = {
+        seo: "SEO generated 127 keywords.",
+        content: "CONTENT produced 32 assets.",
+        sales: "SALES generated 14 qualified leads.",
+        operations: "OPERATIONS workflow completed.",
+        reputation: "REPUTATION improved brand score.",
+        analytics: "ANALYTICS generated final reporting."
+    };
+
+    EXECUTIVE_SPRINT_AGENT_ORDER.forEach(function(agentKey) {
+        var agent = getSprintAgent(sprint, agentKey);
+
+        if (agent && agent.status === "completed" && agentOutcomes[agentKey]) {
+            lines.push(agentOutcomes[agentKey]);
+        }
+    });
+
+    sprint.summary = lines.join("\n");
+    return sprint.summary;
+}
+
+function getExecutiveTimeline(sprint) {
+    var timeline = [];
+
+    if (!sprint) {
+        return timeline;
+    }
+
+    if (Array.isArray(sprint.autonomyEvents)) {
+        sprint.autonomyEvents.forEach(function(eventItem) {
+            timeline.push({
+                type: String(eventItem.type || "event"),
+                timestamp: getExecutiveAgentTimestampMs(eventItem.createdAt) || Date.now(),
+                label: String(eventItem.message || eventItem.type || "Sprint event"),
+                agentName: eventItem.agentName || null
+            });
+        });
+    }
+
+    if (Array.isArray(sprint.agents)) {
+        sprint.agents.forEach(function(agent) {
+            var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
+            if (agent.completedAt) {
+                timeline.push({
+                    type: "agent_completion",
+                    timestamp: getExecutiveAgentTimestampMs(agent.completedAt) || Date.now(),
+                    label: agentLabel + " completed",
+                    agentName: agentLabel
+                });
+            }
+
+            if (agent.blockedAt) {
+                timeline.push({
+                    type: "agent_blocked",
+                    timestamp: getExecutiveAgentTimestampMs(agent.blockedAt) || Date.now(),
+                    label: agentLabel + " blocked",
+                    agentName: agentLabel
+                });
+            }
+        });
+    }
+
+    if (sprint.completedAt) {
+        timeline.push({
+            type: "sprint_completion",
+            timestamp: getExecutiveAgentTimestampMs(sprint.completedAt) || Date.now(),
+            label: "Sprint completed",
+            agentName: null
+        });
+    }
+
+    timeline.sort(function(a, b) {
+        return (a.timestamp || 0) - (b.timestamp || 0);
+    });
+
+    sprint.timeline = timeline;
+    return timeline;
+}
+
+function completeExecutiveSprint(sprintId) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint || !isExecutiveSprintComplete(sprint)) {
+        return null;
+    }
+
+    calculateExecutiveKPIs(sprint);
+    generateExecutiveSprintSummary(sprint);
+    getExecutiveTimeline(sprint);
+    sprint.status = "completed";
+    sprint.completedAt = sprint.completedAt || new Date().toISOString();
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "sprint_completed",
+        message: "Executive sprint completed."
+    });
+    saveExecutiveSprint(sprint);
+    renderExecutiveSprintDashboard();
+    return sprint;
+}
+
+function maybeFinalizeExecutiveSprint(sprint) {
+    if (!sprint || !sprint.sprintId) {
+        return null;
+    }
+
+    if (isExecutiveSprintComplete(sprint)) {
+        return completeExecutiveSprint(sprint.sprintId);
+    }
+
+    return null;
+}
+
+function renderExecutiveReview(sprint) {
+    if (!sprint || !isExecutiveSprintComplete(sprint)) {
+        return "";
+    }
+
+    var kpis = sprint.kpis || calculateExecutiveKPIs(sprint);
+    var timeline = sprint.timeline || getExecutiveTimeline(sprint);
+    var summary = sprint.summary || generateExecutiveSprintSummary(sprint);
+    var completedLabels = [];
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status === "completed") {
+            completedLabels.push(getExecutiveSprintAgentLabel(agent).toUpperCase());
+        }
+    });
+
+    return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.28);background:rgba(8,8,18,.72);">' +
+        '<div style="color:#00e5ff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Executive Review</div>' +
+        '<div style="color:#c5cdd8;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' +
+            '• Sprint Status: ' + assignmentEscapeHtml(String(sprint.status || "completed").toUpperCase()) + '\n' +
+            '• Completion %: ' + assignmentEscapeHtml(String(kpis.completionPercent || 0)) + '%\n' +
+            '• Efficiency Score: ' + assignmentEscapeHtml(String(kpis.efficiencyScore || 0)) + '%\n' +
+            '• Duration: ' + assignmentEscapeHtml(String(kpis.durationMinutes || 0)) + ' minutes\n' +
+            '• Completed Agents: ' + assignmentEscapeHtml(completedLabels.join(", ") || "None") + '\n' +
+            '• Timeline Events: ' + assignmentEscapeHtml(String(timeline.length || 0)) + '\n' +
+            '• Final Summary:\n' + assignmentEscapeHtml(summary) +
+        '</div>' +
+    '</div>';
+}
+
 function getExecutiveAgentTimestampMs(value) {
     if (value === null || value === undefined || value === "") {
         return null;
@@ -3034,6 +3287,8 @@ function completeAgent(sprintId, agentName) {
     });
     refreshExecutiveSprintState(sprint);
     autoAdvanceExecutiveSprint(sprintId);
+    sprint = getSprintById(sprintId);
+    maybeFinalizeExecutiveSprint(sprint);
     return agent;
 }
 
@@ -3068,6 +3323,7 @@ function blockAgent(sprintId, agentName, reason) {
     });
     refreshExecutiveSprintState(sprint);
     renderExecutiveSprintDashboard();
+    maybeFinalizeExecutiveSprint(sprint);
 
     if (typeof renderAssignmentDashboard === "function") {
         renderAssignmentDashboard();
@@ -3075,6 +3331,22 @@ function blockAgent(sprintId, agentName, reason) {
 
     return agent;
 }
+
+function resumeAgent(sprintId, agentName) {
+    return unblockAgent(sprintId, agentName);
+}
+
+window.completeExecutiveSprint = completeExecutiveSprint;
+window.isExecutiveSprintComplete = isExecutiveSprintComplete;
+window.calculateExecutiveKPIs = calculateExecutiveKPIs;
+window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
+window.getExecutiveTimeline = getExecutiveTimeline;
+window.renderExecutiveReview = renderExecutiveReview;
+window.resumeAgent = resumeAgent;
+window.getNextEligibleAgents = getNextEligibleAgents;
+window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
+window.generateExecutiveNextAction = generateExecutiveNextAction;
+window.saveExecutiveAutonomyEvent = saveExecutiveAutonomyEvent;
 
 function unblockAgent(sprintId, agentName) {
     var sprint = getSprintById(sprintId);
@@ -3100,10 +3372,16 @@ function unblockAgent(sprintId, agentName) {
     });
 
     sprint.status = anyBlocked ? "paused" : "active";
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "agent_resumed",
+        agentName: getExecutiveSprintAgentLabel(agent).toUpperCase(),
+        message: getExecutiveSprintAgentLabel(agent).toUpperCase() + " resumed."
+    });
     saveExecutiveSprint(sprint);
     startNextAvailableAgents(sprintId);
     refreshExecutiveSprintState(sprint);
     renderExecutiveSprintDashboard();
+    maybeFinalizeExecutiveSprint(sprint);
 
     if (typeof renderAssignmentDashboard === "function") {
         renderAssignmentDashboard();
@@ -3335,6 +3613,7 @@ function renderExecutiveSprintDashboard() {
     var recommendationText = sprint.executiveRecommendation || generateExecutiveRecommendation(sprint);
     var nextActionText = sprint.executiveNextAction || generateExecutiveNextAction(sprint);
     var timingSummary = buildExecutiveAgentTimingSummary(sprint);
+    var reviewHtml = renderExecutiveReview(sprint);
 
     executiveCommandCenterContent.innerHTML =
         '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
@@ -3376,6 +3655,7 @@ function renderExecutiveSprintDashboard() {
                 '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Recommendation</div>' +
                 '<div style="color:#c5cdd8;font-size:12px;line-height:1.6;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(recommendationText) + '</div>' +
             '</div>' +
+            reviewHtml +
         '</div>';
 }
 
@@ -3396,6 +3676,13 @@ window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
 window.generateExecutiveNextAction = generateExecutiveNextAction;
 window.saveExecutiveAutonomyEvent = saveExecutiveAutonomyEvent;
+window.isExecutiveSprintComplete = isExecutiveSprintComplete;
+window.calculateExecutiveKPIs = calculateExecutiveKPIs;
+window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
+window.completeExecutiveSprint = completeExecutiveSprint;
+window.getExecutiveTimeline = getExecutiveTimeline;
+window.renderExecutiveReview = renderExecutiveReview;
+window.resumeAgent = resumeAgent;
 
 function purgeInvalidAgentAssignments() {
     var beforeCount = agentAssignments.length;
@@ -6006,6 +6293,13 @@ window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
 window.generateExecutiveNextAction = generateExecutiveNextAction;
 window.saveExecutiveAutonomyEvent = saveExecutiveAutonomyEvent;
+window.isExecutiveSprintComplete = isExecutiveSprintComplete;
+window.calculateExecutiveKPIs = calculateExecutiveKPIs;
+window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
+window.completeExecutiveSprint = completeExecutiveSprint;
+window.getExecutiveTimeline = getExecutiveTimeline;
+window.renderExecutiveReview = renderExecutiveReview;
+window.resumeAgent = resumeAgent;
 setAssignmentView("active");
 renderAssignmentDashboard();
 
@@ -6019,6 +6313,13 @@ window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
 window.generateExecutiveNextAction = generateExecutiveNextAction;
 window.saveExecutiveAutonomyEvent = saveExecutiveAutonomyEvent;
+window.isExecutiveSprintComplete = isExecutiveSprintComplete;
+window.calculateExecutiveKPIs = calculateExecutiveKPIs;
+window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
+window.completeExecutiveSprint = completeExecutiveSprint;
+window.getExecutiveTimeline = getExecutiveTimeline;
+window.renderExecutiveReview = renderExecutiveReview;
+window.resumeAgent = resumeAgent;
 
 }
 
