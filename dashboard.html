@@ -788,6 +788,7 @@ gap:18px;
 <section id="executiveCommandCenterSection" style="padding:40px;max-width:1100px;margin:auto;box-sizing:border-box;">
   <h2 style="font-size:32px;margin:0;color:#00e5ff;margin-bottom:25px;letter-spacing:.04em;">EXECUTIVE COMMAND CENTER</h2>
   <div id="executiveCommandCenterContent" style="width:100%;max-width:100%;min-width:0;"></div>
+  <div id="executiveRuntimeDashboardContent" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
 </section>
 
 <section id="agentAssignmentsSection" style="padding:40px;max-width:1100px;margin:auto;">
@@ -2287,6 +2288,14 @@ var EXECUTIVE_SPRINT_DEPENDENCIES = {
     analytics: "sales"
 };
 var executiveCommandCenterContent = document.getElementById("executiveCommandCenterContent");
+var executiveRuntimeDashboardContent = document.getElementById("executiveRuntimeDashboardContent");
+var executiveRuntimeSchedulerState = {
+    running: false,
+    lastTick: null,
+    heartbeatMs: 5000,
+    autoRecovery: true,
+    timerId: null
+};
 
 function getExecutiveSprints() {
     try {
@@ -2391,7 +2400,13 @@ function canAgentStart(sprint, agentName) {
         return false;
     }
 
-    var dependencyKey = getAgentDependency(getExecutiveSprintAgentLabel(agent));
+    var dependencyKey = null;
+
+    if (agent.dependency !== null && agent.dependency !== undefined && String(agent.dependency).trim()) {
+        dependencyKey = normalizeExecutiveSprintAgentKey(agent.dependency);
+    } else {
+        dependencyKey = getAgentDependency(getExecutiveSprintAgentLabel(agent));
+    }
 
     if (!dependencyKey) {
         return true;
@@ -2423,6 +2438,162 @@ function getNextEligibleAgents(sprint) {
     return eligible;
 }
 
+function areDependenciesMet(agent, sprint) {
+    var dependencyKeys = [];
+    var index;
+
+    if (!agent || !sprint) {
+        return false;
+    }
+
+    if (agent.dependency !== null && agent.dependency !== undefined) {
+        if (Array.isArray(agent.dependency)) {
+            for (index = 0; index < agent.dependency.length; index++) {
+                if (agent.dependency[index] !== null && agent.dependency[index] !== undefined && String(agent.dependency[index]).trim()) {
+                    dependencyKeys.push(normalizeExecutiveSprintAgentKey(agent.dependency[index]));
+                }
+            }
+        } else if (String(agent.dependency).trim()) {
+            dependencyKeys.push(normalizeExecutiveSprintAgentKey(agent.dependency));
+        }
+    }
+
+    if (!dependencyKeys.length) {
+        var mapDependency = getAgentDependency(getExecutiveSprintAgentLabel(agent));
+
+        if (mapDependency) {
+            dependencyKeys.push(mapDependency);
+        }
+    }
+
+    if (!dependencyKeys.length) {
+        return true;
+    }
+
+    for (index = 0; index < dependencyKeys.length; index++) {
+        var dependencyAgent = getSprintAgent(sprint, dependencyKeys[index]);
+
+        if (!dependencyAgent || dependencyAgent.status !== "completed") {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function getBlockedAgents(sprint) {
+    var blocked = [];
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return blocked;
+    }
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status === "waiting" && !areDependenciesMet(agent, sprint)) {
+            blocked.push(agent);
+        }
+    });
+
+    return blocked;
+}
+
+function unlockEligibleAgents(sprint) {
+    var started = [];
+    var now = new Date().toISOString();
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return started;
+    }
+
+    sprint.agents.forEach(function(agent) {
+        if (agent.status !== "waiting" || !areDependenciesMet(agent, sprint)) {
+            return;
+        }
+
+        var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
+        saveExecutiveAutonomyEvent(sprint, {
+            type: "agent_dependency_met",
+            agentName: agentLabel,
+            message: agentLabel + " dependencies met."
+        });
+        saveExecutiveAutonomyEvent(sprint, {
+            type: "agent_unblocked",
+            agentName: agentLabel,
+            message: agentLabel + " unblocked."
+        });
+
+        agent.status = "running";
+        agent.startedAt = agent.startedAt || now;
+        agent.progress = Number(agent.progress) || 0;
+
+        saveExecutiveAutonomyEvent(sprint, {
+            type: "agent_auto_started",
+            agentName: agentLabel,
+            message: agentLabel + " auto-started by planning engine."
+        });
+        started.push(agent);
+    });
+
+    if (started.length) {
+        saveExecutiveSprint(sprint);
+    }
+
+    return started;
+}
+
+function replanExecutiveSprint(sprint) {
+    var summary;
+
+    if (!sprint) {
+        return null;
+    }
+
+    summary = {
+        totalAgents: 0,
+        completed: 0,
+        running: 0,
+        waiting: 0,
+        blocked: 0,
+        failed: 0,
+        eligibleToStart: 0,
+        lastReplan: new Date().toISOString()
+    };
+
+    if (Array.isArray(sprint.agents)) {
+        summary.totalAgents = sprint.agents.length;
+
+        sprint.agents.forEach(function(agent) {
+            applyExecutiveAgentRetryDefaults(agent);
+            var status = String(agent.status || "waiting").toLowerCase();
+
+            if (status === "completed") {
+                summary.completed++;
+            } else if (status === "running") {
+                summary.running++;
+            } else if (status === "blocked") {
+                summary.blocked++;
+            } else if (status === "failed") {
+                summary.failed++;
+            } else if (status === "waiting") {
+                summary.waiting++;
+
+                if (areDependenciesMet(agent, sprint)) {
+                    summary.eligibleToStart++;
+                }
+            }
+        });
+    }
+
+    sprint.planningSummary = summary;
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "sprint_replanned",
+        message: "Executive sprint replanned: " + summary.eligibleToStart + " eligible to start."
+    });
+    saveExecutiveSprint(sprint);
+    return summary;
+}
+
 function formatExecutiveAgentList(labels) {
     if (!labels || !labels.length) {
         return "";
@@ -2450,16 +2621,39 @@ function saveExecutiveAutonomyEvent(sprint, event) {
         sprint.autonomyEvents = [];
     }
 
+    if (!Array.isArray(sprint.timeline)) {
+        sprint.timeline = [];
+    }
+
+    var createdAt = event.createdAt || event.timestamp || new Date().toISOString();
+    var timestamp = typeof createdAt === "number"
+        ? createdAt
+        : (getExecutiveAgentTimestampMs(createdAt) || Date.now());
+
     var record = {
         id: "autonomy_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
-        createdAt: event.createdAt || new Date().toISOString(),
+        createdAt: typeof createdAt === "number" ? new Date(createdAt).toISOString() : String(createdAt),
         type: String(event.type || "advancement").trim(),
         message: String(event.message || "").trim(),
         agentName: event.agentName ? String(event.agentName).trim() : null,
         meta: event.meta && typeof event.meta === "object" ? event.meta : {}
     };
 
+    if (event.error !== undefined && event.error !== null && String(event.error).trim()) {
+        record.meta.error = String(event.error).trim();
+    }
+
     sprint.autonomyEvents.unshift(record);
+    sprint.timeline.push({
+        type: record.type,
+        agentName: record.agentName,
+        message: record.message,
+        error: event.error !== undefined && event.error !== null ? String(event.error).trim() : null,
+        timestamp: timestamp
+    });
+    sprint.timeline.sort(function(a, b) {
+        return (a.timestamp || 0) - (b.timestamp || 0);
+    });
     saveExecutiveSprint(sprint);
     return record;
 }
@@ -2559,7 +2753,15 @@ function generateExecutiveNextAction(sprint) {
     return "Monitor sprint progress and advance agents as dependencies complete.";
 }
 
-function autoAdvanceExecutiveSprint(sprintId) {
+function renderExecutiveRuntimeViews() {
+    renderExecutiveSprintDashboard();
+
+    if (typeof renderAssignmentDashboard === "function") {
+        renderAssignmentDashboard();
+    }
+}
+
+function progressExecutiveSprintRuntime(sprintId) {
     var sprint = getSprintById(sprintId);
 
     if (!sprint || !Array.isArray(sprint.agents)) {
@@ -2568,6 +2770,8 @@ function autoAdvanceExecutiveSprint(sprintId) {
             eligible: []
         };
     }
+
+    saveExecutiveSprint(sprint);
 
     var eligible = getNextEligibleAgents(sprint);
     var started = [];
@@ -2585,28 +2789,35 @@ function autoAdvanceExecutiveSprint(sprintId) {
     });
 
     if (started.length) {
-        saveExecutiveAutonomyEvent(sprint, {
-            type: "auto_advance",
-            message: started.map(function(agent) {
-                return getExecutiveSprintAgentLabel(agent).toUpperCase();
-            }).join(", ") + " auto-started.",
-            meta: {
-                startedAgents: started.map(function(agent) {
-                    return getExecutiveSprintAgentLabel(agent).toUpperCase();
-                })
-            }
+        started.forEach(function(agent) {
+            var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+
+            saveExecutiveAutonomyEvent(sprint, {
+                type: "agent_started",
+                agentName: agentLabel,
+                message: agentLabel + " started running."
+            });
         });
     }
 
     refreshExecutiveSprintState(sprint);
     sprint.executiveNextAction = generateExecutiveNextAction(sprint);
     saveExecutiveSprint(sprint);
-    renderExecutiveSprintDashboard();
+    sprint = getSprintById(sprintId) || sprint;
+    unlockEligibleAgents(sprint);
+    replanExecutiveSprint(getSprintById(sprintId) || sprint);
+    sprint = getSprintById(sprintId) || sprint;
+    renderExecutiveRuntimeViews();
+    renderExecutiveRuntimeDashboard(sprint);
 
     return {
         started: started,
         eligible: eligible
     };
+}
+
+function autoAdvanceExecutiveSprint(sprintId) {
+    return progressExecutiveSprintRuntime(sprintId);
 }
 
 window.getNextEligibleAgents = getNextEligibleAgents;
@@ -2752,48 +2963,60 @@ function getExecutiveTimeline(sprint) {
         return timeline;
     }
 
-    if (Array.isArray(sprint.autonomyEvents)) {
-        sprint.autonomyEvents.forEach(function(eventItem) {
-            timeline.push({
-                type: String(eventItem.type || "event"),
-                timestamp: getExecutiveAgentTimestampMs(eventItem.createdAt) || Date.now(),
-                label: String(eventItem.message || eventItem.type || "Sprint event"),
-                agentName: eventItem.agentName || null
+    if (Array.isArray(sprint.timeline) && sprint.timeline.length) {
+        timeline = sprint.timeline.map(function(entry) {
+            return {
+                type: String(entry.type || "event"),
+                agentName: entry.agentName || null,
+                message: String(entry.message || entry.label || entry.type || "Sprint event"),
+                error: entry.error || null,
+                timestamp: getExecutiveAgentTimestampMs(entry.timestamp || entry.createdAt) || Date.now()
+            };
+        });
+    } else {
+        if (Array.isArray(sprint.autonomyEvents)) {
+            sprint.autonomyEvents.forEach(function(eventItem) {
+                timeline.push({
+                    type: String(eventItem.type || "event"),
+                    agentName: eventItem.agentName || null,
+                    message: String(eventItem.message || eventItem.type || "Sprint event"),
+                    timestamp: getExecutiveAgentTimestampMs(eventItem.createdAt) || Date.now()
+                });
             });
-        });
-    }
+        }
 
-    if (Array.isArray(sprint.agents)) {
-        sprint.agents.forEach(function(agent) {
-            var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+        if (Array.isArray(sprint.agents)) {
+            sprint.agents.forEach(function(agent) {
+                var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
 
-            if (agent.completedAt) {
-                timeline.push({
-                    type: "agent_completion",
-                    timestamp: getExecutiveAgentTimestampMs(agent.completedAt) || Date.now(),
-                    label: agentLabel + " completed",
-                    agentName: agentLabel
-                });
-            }
+                if (agent.completedAt) {
+                    timeline.push({
+                        type: "agent_completion",
+                        agentName: agentLabel,
+                        message: agentLabel + " completed",
+                        timestamp: getExecutiveAgentTimestampMs(agent.completedAt) || Date.now()
+                    });
+                }
 
-            if (agent.blockedAt) {
-                timeline.push({
-                    type: "agent_blocked",
-                    timestamp: getExecutiveAgentTimestampMs(agent.blockedAt) || Date.now(),
-                    label: agentLabel + " blocked",
-                    agentName: agentLabel
-                });
-            }
-        });
-    }
+                if (agent.blockedAt) {
+                    timeline.push({
+                        type: "agent_blocked",
+                        agentName: agentLabel,
+                        message: agentLabel + " blocked",
+                        timestamp: getExecutiveAgentTimestampMs(agent.blockedAt) || Date.now()
+                    });
+                }
+            });
+        }
 
-    if (sprint.completedAt) {
-        timeline.push({
-            type: "sprint_completion",
-            timestamp: getExecutiveAgentTimestampMs(sprint.completedAt) || Date.now(),
-            label: "Sprint completed",
-            agentName: null
-        });
+        if (sprint.completedAt) {
+            timeline.push({
+                type: "sprint_completion",
+                agentName: null,
+                message: "Sprint completed",
+                timestamp: getExecutiveAgentTimestampMs(sprint.completedAt) || Date.now()
+            });
+        }
     }
 
     timeline.sort(function(a, b) {
@@ -2813,16 +3036,17 @@ function completeExecutiveSprint(sprintId) {
 
     calculateExecutiveKPIs(sprint);
     generateExecutiveSprintSummary(sprint);
-    getExecutiveTimeline(sprint);
     sprint.status = "completed";
     sprint.completedAt = sprint.completedAt || new Date().toISOString();
     saveExecutiveAutonomyEvent(sprint, {
         type: "sprint_completed",
         message: "Executive sprint completed."
     });
-    saveExecutiveSprint(sprint);
     queueNextExecutiveSprint(sprint);
+    getExecutiveTimeline(sprint);
+    saveExecutiveSprint(sprint);
     renderExecutiveSprintDashboard();
+    renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
     return sprint;
 }
 
@@ -2912,12 +3136,26 @@ const nextSprint = {
 
 };
 
+nextSprint.agents.forEach(function(agent) {
+    applyExecutiveAgentRetryDefaults(agent);
+});
+
+saveExecutiveAutonomyEvent(completedSprint, {
+    type: "sprint_auto_queued",
+    message: "Next executive sprint auto-queued: " + nextSprint.sprintId + ".",
+    meta: {
+        nextSprintId: nextSprint.sprintId
+    }
+});
+
 const sprints =
     getExecutiveSprints();
 
 sprints.unshift(nextSprint);
 
 localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify(sprints));
+
+renderExecutiveRuntimeDashboard(getSprintById(completedSprint.sprintId) || completedSprint);
 
 return nextSprint;
 
@@ -2953,6 +3191,246 @@ function renderExecutiveReview(sprint) {
             '• Final Summary:\n' + assignmentEscapeHtml(summary) +
         '</div>' +
     '</div>';
+}
+
+function getExecutiveRuntimePlanningCardHtml(sprint) {
+    var summary = sprint && sprint.planningSummary ? sprint.planningSummary : null;
+    var lastReplanLabel = "—";
+
+    if (!summary && sprint) {
+        summary = {
+            completed: 0,
+            running: 0,
+            waiting: 0,
+            blocked: 0,
+            failed: 0,
+            eligibleToStart: 0,
+            lastReplan: null
+        };
+
+        if (Array.isArray(sprint.agents)) {
+            sprint.agents.forEach(function(agent) {
+                var status = String(agent.status || "waiting").toLowerCase();
+
+                if (status === "completed") {
+                    summary.completed++;
+                } else if (status === "running") {
+                    summary.running++;
+                } else if (status === "blocked") {
+                    summary.blocked++;
+                } else if (status === "failed") {
+                    summary.failed++;
+                } else if (status === "waiting") {
+                    summary.waiting++;
+
+                    if (areDependenciesMet(agent, sprint)) {
+                        summary.eligibleToStart++;
+                    }
+                }
+            });
+        }
+    }
+
+    if (!summary) {
+        summary = {
+            completed: 0,
+            running: 0,
+            waiting: 0,
+            blocked: 0,
+            failed: 0,
+            eligibleToStart: 0,
+            lastReplan: null
+        };
+    }
+
+    if (summary.lastReplan) {
+        lastReplanLabel = new Date(summary.lastReplan).toLocaleString();
+    }
+
+    return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+        '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Planning Status</div>' +
+        '<div style="color:#c5cdd8;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' +
+            '• Completed: ' + assignmentEscapeHtml(String(summary.completed || 0)) + '\n' +
+            '• Running: ' + assignmentEscapeHtml(String(summary.running || 0)) + '\n' +
+            '• Waiting: ' + assignmentEscapeHtml(String(summary.waiting || 0)) + '\n' +
+            '• Blocked: ' + assignmentEscapeHtml(String(summary.blocked || 0)) + '\n' +
+            '• Failed: ' + assignmentEscapeHtml(String(summary.failed || 0)) + '\n' +
+            '• Eligible: ' + assignmentEscapeHtml(String(summary.eligibleToStart || 0)) + '\n' +
+            '• Last Replan: ' + assignmentEscapeHtml(lastReplanLabel) +
+        '</div>' +
+    '</div>';
+}
+
+function getExecutiveRuntimeSchedulerCardHtml() {
+    var queuedCount = 0;
+    var schedulerStatus = executiveRuntimeSchedulerState.running ? "Running" : "Stopped";
+    var lastTickLabel = executiveRuntimeSchedulerState.lastTick
+        ? new Date(executiveRuntimeSchedulerState.lastTick).toLocaleString()
+        : "—";
+    var autoRecoveryLabel = executiveRuntimeSchedulerState.autoRecovery ? "Enabled" : "Disabled";
+
+    getExecutiveSprints().forEach(function(entry) {
+        if (entry.status === "queued") {
+            queuedCount++;
+        }
+    });
+
+    return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
+        '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Scheduler</div>' +
+        '<div style="color:#c5cdd8;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' +
+            '• Scheduler Status: ' + assignmentEscapeHtml(schedulerStatus) + '\n' +
+            '• Heartbeat: ' + assignmentEscapeHtml(String(executiveRuntimeSchedulerState.heartbeatMs || 5000)) + ' ms\n' +
+            '• Last Tick: ' + assignmentEscapeHtml(lastTickLabel) + '\n' +
+            '• Queued Sprints: ' + assignmentEscapeHtml(String(queuedCount)) + '\n' +
+            '• Auto Recovery: ' + assignmentEscapeHtml(autoRecoveryLabel) +
+        '</div>' +
+    '</div>';
+}
+
+function renderExecutiveRuntimeDashboard(sprint) {
+    if (!executiveRuntimeDashboardContent) {
+        return "";
+    }
+
+    if (!sprint) {
+        executiveRuntimeDashboardContent.innerHTML =
+            '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
+                '<div style="color:#00e5ff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Executive Runtime Dashboard</div>' +
+                getExecutiveRuntimeSchedulerCardHtml() +
+                '<div style="color:#8888aa;font-size:12px;">No active executive sprint.</div>' +
+            '</div>';
+        return executiveRuntimeDashboardContent.innerHTML;
+    }
+
+    if (Array.isArray(sprint.agents)) {
+        calculateSprintProgress(sprint);
+    }
+
+    var timeline = sprint.timeline || getExecutiveTimeline(sprint);
+    var totalAgents = sprint.agents && sprint.agents.length ? sprint.agents.length : 0;
+    var runningCount = 0;
+    var completedCount = 0;
+    var waitingCount = 0;
+    var failedCount = 0;
+    var timelineItems;
+    var feedHtml;
+    var metricsHtml;
+    var createdLabel;
+    var completedLabel;
+    var statusLabel;
+    var progressPercent;
+    var runtimeHealth;
+    var healthEmoji;
+    var healthLabel;
+    var healthMessage;
+
+    if (Array.isArray(sprint.agents)) {
+        sprint.agents.forEach(function(agent) {
+            applyExecutiveAgentRetryDefaults(agent);
+            var status = String(agent.status || "waiting").toLowerCase();
+
+            if (status === "running") {
+                runningCount++;
+            } else if (status === "completed") {
+                completedCount++;
+            } else if (status === "failed") {
+                failedCount++;
+            } else if (status === "blocked") {
+                failedCount++;
+            } else {
+                waitingCount++;
+            }
+        });
+    }
+
+    runtimeHealth = getRuntimeHealth(sprint);
+    healthEmoji = runtimeHealth.emoji || "🟢";
+    healthLabel = runtimeHealth.label || "Healthy";
+    healthMessage = runtimeHealth.message || "";
+    progressPercent = sprint.overallProgress || 0;
+    createdLabel = sprint.createdAt ? new Date(sprint.createdAt).toLocaleString() : "—";
+    completedLabel = sprint.completedAt ? new Date(sprint.completedAt).toLocaleString() : "—";
+    statusLabel = String(sprint.status || "active").toUpperCase();
+
+    timelineItems = Array.isArray(timeline) ? timeline.slice().sort(function(a, b) {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+    }) : [];
+
+    feedHtml = timelineItems.length
+        ? timelineItems.map(function(entry) {
+            var ts = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "—";
+            var agent = entry.agentName ? assignmentEscapeHtml(String(entry.agentName)) : "—";
+            var msg = assignmentEscapeHtml(String(entry.message || entry.type || "Event"));
+            var errHtml = entry.error
+                ? '<div style="color:#ff4d6d;font-size:11px;line-height:1.4;margin-top:2px;">' + assignmentEscapeHtml(String(entry.error)) + '</div>'
+                : "";
+
+            return '<div style="padding:8px 10px;border-radius:10px;border:1px solid rgba(0,229,255,.1);background:rgba(8,8,18,.55);margin-top:6px;">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:700;">' + assignmentEscapeHtml(ts) + '</div>' +
+                '<div style="color:#00e5ff;font-size:11px;font-weight:800;margin-top:2px;">' + agent + '</div>' +
+                '<div style="color:#c5cdd8;font-size:12px;line-height:1.5;margin-top:2px;">' + msg + '</div>' +
+                errHtml +
+            '</div>';
+        }).join("")
+        : '<div style="color:#8888aa;font-size:12px;margin-top:6px;">No timeline events yet.</div>';
+
+    metricsHtml =
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Total Agents</div>' +
+            '<div style="color:#ffffff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(totalAgents)) + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.18);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Running</div>' +
+            '<div style="color:#ffffff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(runningCount)) + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Completed</div>' +
+            '<div style="color:#00e5ff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(completedCount)) + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Waiting</div>' +
+            '<div style="color:#ffffff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(waitingCount)) + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(255,77,109,.18);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Failed</div>' +
+            '<div style="color:#ffffff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(failedCount)) + '</div>' +
+        '</div>' +
+        '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
+            '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Timeline Events</div>' +
+            '<div style="color:#ffffff;font-size:18px;font-weight:900;margin-top:4px;">' + assignmentEscapeHtml(String(timelineItems.length)) + '</div>' +
+        '</div>';
+
+    executiveRuntimeDashboardContent.innerHTML =
+        '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
+            '<div style="color:#00e5ff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Executive Runtime Dashboard</div>' +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Health</div>' +
+                '<div style="color:#ffffff;font-size:13px;font-weight:900;margin-top:4px;">' + healthEmoji + ' ' + assignmentEscapeHtml(healthLabel) + '</div>' +
+                '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(healthMessage) + '</div>' +
+            '</div>' +
+            getExecutiveRuntimeSchedulerCardHtml() +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Sprint Summary</div>' +
+                '<div style="color:#c5cdd8;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' +
+                    '• Sprint ID: ' + assignmentEscapeHtml(String(sprint.sprintId || "—")) + '\n' +
+                    '• Status: ' + assignmentEscapeHtml(statusLabel) + '\n' +
+                    '• Created: ' + assignmentEscapeHtml(createdLabel) + '\n' +
+                    '• Completed: ' + assignmentEscapeHtml(completedLabel) + '\n' +
+                    '• Progress: ' + assignmentEscapeHtml(String(progressPercent)) + '%' +
+                '</div>' +
+            '</div>' +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Agent Metrics</div>' +
+                '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">' + metricsHtml + '</div>' +
+            '</div>' +
+            getExecutiveRuntimePlanningCardHtml(sprint) +
+            '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
+                '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Timeline Feed</div>' +
+                feedHtml +
+            '</div>' +
+        '</div>';
+
+    return executiveRuntimeDashboardContent.innerHTML;
 }
 
 function getExecutiveAgentTimestampMs(value) {
@@ -3368,16 +3846,306 @@ function completeAgent(sprintId, agentName) {
     });
 
     sprint.status = allCompleted ? "completed" : "active";
+    saveExecutiveSprint(sprint);
     saveExecutiveAutonomyEvent(sprint, {
         type: "agent_completed",
         agentName: getExecutiveSprintAgentLabel(agent).toUpperCase(),
         message: getExecutiveSprintAgentLabel(agent).toUpperCase() + " completed."
     });
     refreshExecutiveSprintState(sprint);
-    autoAdvanceExecutiveSprint(sprintId);
+    progressExecutiveSprintRuntime(sprintId);
     sprint = getSprintById(sprintId);
     maybeFinalizeExecutiveSprint(sprint);
+    renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
     return agent;
+}
+
+function applyExecutiveAgentRetryDefaults(agent) {
+    if (!agent) {
+        return agent;
+    }
+
+    if (agent.retryCount === undefined || agent.retryCount === null) {
+        agent.retryCount = 0;
+    }
+
+    if (agent.maxRetries === undefined || agent.maxRetries === null) {
+        agent.maxRetries = 3;
+    }
+
+    if (agent.lastError === undefined) {
+        agent.lastError = null;
+    }
+
+    return agent;
+}
+
+function getRuntimeHealth(sprint) {
+    var hasBlocked = false;
+    var hasFailed = false;
+    var retryAvailable = false;
+
+    if (!sprint || !Array.isArray(sprint.agents)) {
+        return {
+            status: "healthy",
+            label: "Healthy",
+            emoji: "🟢",
+            message: "No failed agents detected."
+        };
+    }
+
+    sprint.agents.forEach(function(agent) {
+        applyExecutiveAgentRetryDefaults(agent);
+        var status = String(agent.status || "").toLowerCase();
+
+        if (status === "blocked") {
+            hasBlocked = true;
+        }
+
+        if (status === "failed") {
+            hasFailed = true;
+
+            if ((agent.retryCount || 0) < (agent.maxRetries !== undefined ? agent.maxRetries : 3)) {
+                retryAvailable = true;
+            }
+        }
+    });
+
+    if (hasBlocked) {
+        return {
+            status: "blocked",
+            label: "Blocked",
+            emoji: "🔴",
+            message: "Blocked agents detected."
+        };
+    }
+
+    if (hasFailed && retryAvailable) {
+        return {
+            status: "degraded",
+            label: "Degraded",
+            emoji: "🟡",
+            message: "Failed agents with retries remaining."
+        };
+    }
+
+    if (hasFailed) {
+        return {
+            status: "blocked",
+            label: "Blocked",
+            emoji: "🔴",
+            message: "Failed agents exhausted retries."
+        };
+    }
+
+    return {
+        status: "healthy",
+        label: "Healthy",
+        emoji: "🟢",
+        message: "No failed agents detected."
+    };
+}
+
+function failAgent(sprintId, agentName, error, message) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint) {
+        return null;
+    }
+
+    var agent = getSprintAgent(sprint, agentName);
+
+    if (!agent) {
+        return null;
+    }
+
+    applyExecutiveAgentRetryDefaults(agent);
+
+    var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+    var errorText = String(error || message || "Unknown runtime failure").trim();
+
+    agent.status = "failed";
+    agent.lastError = errorText;
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "agent_failed",
+        agentName: agentLabel,
+        message: message || (agentLabel + " failed."),
+        error: errorText
+    });
+    saveExecutiveSprint(sprint);
+    renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
+    return agent;
+}
+
+function retryAgent(sprintId, agentName) {
+    var sprint = getSprintById(sprintId);
+
+    if (!sprint) {
+        return null;
+    }
+
+    var agent = getSprintAgent(sprint, agentName);
+
+    if (!agent) {
+        return null;
+    }
+
+    applyExecutiveAgentRetryDefaults(agent);
+
+    var agentLabel = getExecutiveSprintAgentLabel(agent).toUpperCase();
+    var maxRetries = agent.maxRetries !== undefined ? agent.maxRetries : 3;
+    var now = new Date().toISOString();
+
+    if ((agent.retryCount || 0) < maxRetries) {
+        agent.retryCount = (agent.retryCount || 0) + 1;
+        agent.status = "waiting";
+        agent.status = "running";
+        agent.startedAt = agent.startedAt || now;
+        agent.blockerReason = null;
+        agent.blocker = null;
+        agent.blockedAt = null;
+        saveExecutiveAutonomyEvent(sprint, {
+            type: "agent_retry",
+            agentName: agentLabel,
+            message: agentLabel + " retry " + agent.retryCount + " of " + maxRetries + "."
+        });
+        saveExecutiveSprint(sprint);
+        renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
+        return agent;
+    }
+
+    agent.status = "blocked";
+    agent.blockerReason = agent.lastError || "Max retries exceeded";
+    agent.blocker = agent.blockerReason;
+    agent.blockedAt = Date.now();
+    agent.recommendation = agentLabel + " blocked:\n" + agent.blockerReason;
+    saveExecutiveAutonomyEvent(sprint, {
+        type: "agent_blocked",
+        agentName: agentLabel,
+        message: agentLabel + " blocked: max retries exceeded.",
+        error: agent.lastError
+    });
+    saveExecutiveSprint(sprint);
+    renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
+    return agent;
+}
+
+function findActiveExecutiveSprintForScheduler() {
+    var sprints = getExecutiveSprints();
+    var index;
+
+    for (index = 0; index < sprints.length; index++) {
+        if (sprints[index].status === "active" || sprints[index].status === "planning" || sprints[index].status === "paused") {
+            return sprints[index];
+        }
+    }
+
+    return null;
+}
+
+function findQueuedExecutiveSprint() {
+    var sprints = getExecutiveSprints();
+    var index;
+
+    for (index = 0; index < sprints.length; index++) {
+        if (sprints[index].status === "queued") {
+            return sprints[index];
+        }
+    }
+
+    return null;
+}
+
+function activateQueuedExecutiveSprint(queuedSprint) {
+    if (!queuedSprint || !queuedSprint.sprintId) {
+        return null;
+    }
+
+    queuedSprint.status = "active";
+    saveExecutiveAutonomyEvent(queuedSprint, {
+        type: "sprint_activated",
+        message: "Queued executive sprint activated: " + queuedSprint.sprintId + "."
+    });
+    saveExecutiveSprint(queuedSprint);
+    progressExecutiveSprintRuntime(queuedSprint.sprintId);
+    renderExecutiveSprintDashboard();
+    renderExecutiveRuntimeDashboard(getSprintById(queuedSprint.sprintId) || queuedSprint);
+    return getSprintById(queuedSprint.sprintId) || queuedSprint;
+}
+
+function tickExecutiveRuntimeScheduler() {
+    executiveRuntimeSchedulerState.lastTick = new Date().toISOString();
+
+    var activeSprint = findActiveExecutiveSprintForScheduler();
+    var sprint;
+    var index;
+
+    if (activeSprint) {
+        refreshExecutiveSprintState(activeSprint);
+        progressExecutiveSprintRuntime(activeSprint.sprintId);
+        sprint = getSprintById(activeSprint.sprintId) || activeSprint;
+
+        if (executiveRuntimeSchedulerState.autoRecovery && sprint && Array.isArray(sprint.agents)) {
+            for (index = 0; index < sprint.agents.length; index++) {
+                applyExecutiveAgentRetryDefaults(sprint.agents[index]);
+
+                if (sprint.agents[index].status === "failed" &&
+                    (sprint.agents[index].retryCount || 0) < (sprint.agents[index].maxRetries !== undefined ? sprint.agents[index].maxRetries : 3)) {
+                    retryAgent(sprint.sprintId, getExecutiveSprintAgentLabel(sprint.agents[index]));
+                }
+            }
+        }
+
+        renderExecutiveRuntimeDashboard(getSprintById(activeSprint.sprintId) || activeSprint);
+        return executiveRuntimeSchedulerState;
+    }
+
+    activeSprint = findQueuedExecutiveSprint();
+
+    if (activeSprint) {
+        activateQueuedExecutiveSprint(activeSprint);
+    }
+
+    return executiveRuntimeSchedulerState;
+}
+
+function startExecutiveRuntimeScheduler() {
+    stopExecutiveRuntimeScheduler();
+    executiveRuntimeSchedulerState.running = true;
+    executiveRuntimeSchedulerState.timerId = setInterval(
+        tickExecutiveRuntimeScheduler,
+        executiveRuntimeSchedulerState.heartbeatMs || 5000
+    );
+    tickExecutiveRuntimeScheduler();
+    return executiveRuntimeSchedulerState;
+}
+
+function stopExecutiveRuntimeScheduler() {
+    if (executiveRuntimeSchedulerState.timerId) {
+        clearInterval(executiveRuntimeSchedulerState.timerId);
+        executiveRuntimeSchedulerState.timerId = null;
+    }
+
+    executiveRuntimeSchedulerState.running = false;
+    return executiveRuntimeSchedulerState;
+}
+
+function restoreExecutiveRuntime() {
+    var activeSprint = findActiveExecutiveSprintForScheduler();
+    var queuedSprint = findQueuedExecutiveSprint();
+
+    if (activeSprint) {
+        refreshExecutiveSprintState(activeSprint);
+        renderExecutiveSprintDashboard();
+        renderExecutiveRuntimeDashboard(getSprintById(activeSprint.sprintId) || activeSprint);
+    } else if (queuedSprint) {
+        renderExecutiveRuntimeDashboard(null);
+    } else {
+        renderExecutiveRuntimeDashboard(getActiveExecutiveSprint());
+    }
+
+    startExecutiveRuntimeScheduler();
+    return executiveRuntimeSchedulerState;
 }
 
 function blockAgent(sprintId, agentName, reason) {
@@ -3432,6 +4200,17 @@ window.calculateExecutiveKPIs = calculateExecutiveKPIs;
 window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
 window.getExecutiveTimeline = getExecutiveTimeline;
 window.renderExecutiveReview = renderExecutiveReview;
+window.renderExecutiveRuntimeDashboard = renderExecutiveRuntimeDashboard;
+window.retryAgent = retryAgent;
+window.getRuntimeHealth = getRuntimeHealth;
+window.failAgent = failAgent;
+window.startExecutiveRuntimeScheduler = startExecutiveRuntimeScheduler;
+window.stopExecutiveRuntimeScheduler = stopExecutiveRuntimeScheduler;
+window.restoreExecutiveRuntime = restoreExecutiveRuntime;
+window.areDependenciesMet = areDependenciesMet;
+window.getBlockedAgents = getBlockedAgents;
+window.unlockEligibleAgents = unlockEligibleAgents;
+window.replanExecutiveSprint = replanExecutiveSprint;
 window.resumeAgent = resumeAgent;
 window.getNextEligibleAgents = getNextEligibleAgents;
 window.autoAdvanceExecutiveSprint = autoAdvanceExecutiveSprint;
@@ -3498,7 +4277,10 @@ function buildDefaultExecutiveSprintAgents() {
             blocker: null,
             recommendation: null,
             blockedAt: null,
-            updatedAt: now
+            updatedAt: now,
+            retryCount: 0,
+            maxRetries: 3,
+            lastError: null
         };
     });
 }
@@ -3772,6 +4554,17 @@ window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
 window.completeExecutiveSprint = completeExecutiveSprint;
 window.getExecutiveTimeline = getExecutiveTimeline;
 window.renderExecutiveReview = renderExecutiveReview;
+window.renderExecutiveRuntimeDashboard = renderExecutiveRuntimeDashboard;
+window.retryAgent = retryAgent;
+window.getRuntimeHealth = getRuntimeHealth;
+window.failAgent = failAgent;
+window.startExecutiveRuntimeScheduler = startExecutiveRuntimeScheduler;
+window.stopExecutiveRuntimeScheduler = stopExecutiveRuntimeScheduler;
+window.restoreExecutiveRuntime = restoreExecutiveRuntime;
+window.areDependenciesMet = areDependenciesMet;
+window.getBlockedAgents = getBlockedAgents;
+window.unlockEligibleAgents = unlockEligibleAgents;
+window.replanExecutiveSprint = replanExecutiveSprint;
 window.resumeAgent = resumeAgent;
 
 function purgeInvalidAgentAssignments() {
@@ -6361,6 +7154,7 @@ bindAssignmentStartControls();
 bindAgentMemoryControls();
 renderAgentMemories();
 renderExecutiveSprintDashboard();
+restoreExecutiveRuntime();
 window.getAgentMemories = getAgentMemories;
 window.saveAgentMemory = saveAgentMemory;
 window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
@@ -6389,6 +7183,17 @@ window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
 window.completeExecutiveSprint = completeExecutiveSprint;
 window.getExecutiveTimeline = getExecutiveTimeline;
 window.renderExecutiveReview = renderExecutiveReview;
+window.renderExecutiveRuntimeDashboard = renderExecutiveRuntimeDashboard;
+window.retryAgent = retryAgent;
+window.getRuntimeHealth = getRuntimeHealth;
+window.failAgent = failAgent;
+window.startExecutiveRuntimeScheduler = startExecutiveRuntimeScheduler;
+window.stopExecutiveRuntimeScheduler = stopExecutiveRuntimeScheduler;
+window.restoreExecutiveRuntime = restoreExecutiveRuntime;
+window.areDependenciesMet = areDependenciesMet;
+window.getBlockedAgents = getBlockedAgents;
+window.unlockEligibleAgents = unlockEligibleAgents;
+window.replanExecutiveSprint = replanExecutiveSprint;
 window.resumeAgent = resumeAgent;
 setAssignmentView("active");
 renderAssignmentDashboard();
@@ -6409,6 +7214,17 @@ window.generateExecutiveSprintSummary = generateExecutiveSprintSummary;
 window.completeExecutiveSprint = completeExecutiveSprint;
 window.getExecutiveTimeline = getExecutiveTimeline;
 window.renderExecutiveReview = renderExecutiveReview;
+window.renderExecutiveRuntimeDashboard = renderExecutiveRuntimeDashboard;
+window.retryAgent = retryAgent;
+window.getRuntimeHealth = getRuntimeHealth;
+window.failAgent = failAgent;
+window.startExecutiveRuntimeScheduler = startExecutiveRuntimeScheduler;
+window.stopExecutiveRuntimeScheduler = stopExecutiveRuntimeScheduler;
+window.restoreExecutiveRuntime = restoreExecutiveRuntime;
+window.areDependenciesMet = areDependenciesMet;
+window.getBlockedAgents = getBlockedAgents;
+window.unlockEligibleAgents = unlockEligibleAgents;
+window.replanExecutiveSprint = replanExecutiveSprint;
 window.resumeAgent = resumeAgent;
 
 }
