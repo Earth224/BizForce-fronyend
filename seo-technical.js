@@ -157,6 +157,11 @@
             createdAt: new Date().toISOString()
         };
 
+        technical = technical || {};
+        technical.audits = Array.isArray(technical.audits) ? technical.audits : [];
+        technical.issues = Array.isArray(technical.issues) ? technical.issues : [];
+        technical.crawlFindings = Array.isArray(technical.crawlFindings) ? technical.crawlFindings : [];
+
         technical.audits.unshift(audit);
         technical.audits = technical.audits.slice(0, 30);
         technical.crawlFindings = crawlFindings.concat(technical.crawlFindings).slice(0, 30);
