@@ -18565,6 +18565,10 @@ function renderExecutiveSprintDashboard() {
 
 window.getExecutiveSprints = getExecutiveSprints;
 window.createExecutiveSprint = createExecutiveSprint;
+window.reloadBizforceAssignmentDashboard = function() {
+    loadAssignmentsLocal();
+    renderAssignmentDashboard();
+};
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 window.completeAgent = completeAgent;
 window.blockAgent = blockAgent;
@@ -21507,6 +21511,10 @@ window.renderAgentMemories = renderAgentMemories;
 window.bindAgentMemoryControls = bindAgentMemoryControls;
 window.getExecutiveSprints = getExecutiveSprints;
 window.createExecutiveSprint = createExecutiveSprint;
+window.reloadBizforceAssignmentDashboard = function() {
+    loadAssignmentsLocal();
+    renderAssignmentDashboard();
+};
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 window.completeAgent = completeAgent;
 window.blockAgent = blockAgent;
@@ -22126,6 +22134,111 @@ window.resumeAgent = resumeAgent;
 
 }
 
+function submitTechnicalSeoAuditExecutiveQueue(auditResult) {
+    var now = new Date().toISOString();
+    var auditUrl = auditResult && auditResult.url ? String(auditResult.url) : "website audit";
+    var sprint;
+    var storageKey = "bizforce_agent_assignments";
+    var assignments = [];
+    var assignment;
+    var index;
+
+    if (typeof window.createExecutiveSprint !== "function") {
+        console.warn("createExecutiveSprint missing");
+        return null;
+    }
+
+    sprint = window.createExecutiveSprint({
+        sprintId: "seo_technical_audit_" + Date.now(),
+        sprintName: "Technical SEO Audit",
+        status: "active",
+        executiveSummary: "SEO Agent completed a Technical SEO Audit and submitted findings to the Executive Queue.",
+        agents: [{
+            name: "SEO",
+            agentName: "SEO",
+            status: "completed",
+            dependency: null,
+            progress: 100,
+            startedAt: now,
+            completedAt: now,
+            blockerReason: null,
+            blocker: null,
+            recommendation: null,
+            blockedAt: null,
+            updatedAt: now,
+            retryCount: 0,
+            maxRetries: 3,
+            lastError: null,
+            memory: {}
+        }]
+    });
+
+    try {
+        assignments = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        if (!Array.isArray(assignments)) {
+            assignments = [];
+        }
+    } catch (err) {
+        assignments = [];
+    }
+
+    assignment = {
+        id: "asg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+        assigned_agent: "seo",
+        task_title: "Technical SEO Audit",
+        task_description: "SEO Agent completed a Technical SEO Audit for " + auditUrl + " and submitted findings to the Executive Queue.",
+        priority: "High",
+        status: "In Progress",
+        created_at: now,
+        sprint_id: sprint.sprintId,
+        mission: "Review technical SEO audit findings and prioritize fixes.",
+        archived: false
+    };
+
+    for (index = 0; index < assignments.length; index++) {
+        if (!assignments[index] || assignments[index].archived === true) {
+            continue;
+        }
+
+        if (String(assignments[index].status || "").toLowerCase() === "completed" ||
+            String(assignments[index].status || "").toLowerCase() === "blocked") {
+            continue;
+        }
+
+        if (String(assignments[index].sprint_id || "") !== String(sprint.sprintId || "")) {
+            assignments[index].archived = true;
+            assignments[index].archived_at = now;
+            assignments[index].archive_reason = "superseded_by_new_executive_sprint";
+        }
+    }
+
+    assignments.unshift(assignment);
+    localStorage.setItem(storageKey, JSON.stringify(assignments));
+
+    if (typeof window.renderExecutiveSprintDashboard === "function") {
+        window.renderExecutiveSprintDashboard();
+    }
+
+    if (typeof window.renderExecutiveRuntimeDashboard === "function") {
+        window.renderExecutiveRuntimeDashboard(sprint);
+    }
+
+    if (typeof window.reloadBizforceAssignmentDashboard === "function") {
+        window.reloadBizforceAssignmentDashboard();
+    }
+
+    return sprint;
+}
+window.submitTechnicalSeoAuditExecutiveQueue = submitTechnicalSeoAuditExecutiveQueue;
+console.log(
+    "SEO QUEUE EXPORT CHECK",
+    typeof submitTechnicalSeoAuditExecutiveQueue
+);
+console.log(
+    "WINDOW EXPORT CHECK",
+    typeof window.submitTechnicalSeoAuditExecutiveQueue
+);
+
 function getLiveSeoBusinessProfileContext() {
     function readProfileField(id) {
         var el = document.getElementById(id);
@@ -22247,6 +22360,14 @@ function bindLiveSeoAgentModuleButtons() {
         }
 
         console.log("SEO Agent result:", result);
+
+        if (fnName === "analyzeTechnicalSeoAudit" && result && typeof window.submitTechnicalSeoAuditExecutiveQueue === "function") {
+            try {
+                window.submitTechnicalSeoAuditExecutiveQueue(result);
+            } catch (queueErr) {
+                console.warn("SEO Agent executive queue submission failed:", queueErr);
+            }
+        }
 
         if (lastActionEl) {
             lastActionEl.textContent = "Last SEO Action: " + label + " — Complete";
