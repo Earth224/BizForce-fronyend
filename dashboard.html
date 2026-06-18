@@ -18659,84 +18659,118 @@ function renderExecutiveSprintDashboard() {
     }
 
     var sprint = getActiveExecutiveSprint();
-    var sprints;
-    var index;
-    var candidate;
     var resolvedSprint = sprint;
-    var newestMatch = null;
-    var newestMatchTime = 0;
-    var sprintTime;
-    var status;
-    var hasActiveAgents;
-    var hasActiveAssignment;
-    var assignmentSprintId;
-    var activeAssignmentSprintIds = {};
+    var assignmentStorageKey = typeof AGENT_ASSIGNMENTS_STORAGE_KEY !== "undefined"
+        ? AGENT_ASSIGNMENTS_STORAGE_KEY
+        : "bizforce_agent_assignments";
+    var queueAssignments = [];
+    var newestAssignment = null;
+    var newestAssignmentTime = 0;
+    var linkedSprintId = "";
+    var assignmentIndex;
+    var queueItem;
+    var queueStatus;
+    var queueCreatedAt;
+    var sprintIndex;
+    var storedSprints;
+    var skipSprintSave = false;
 
     if (!resolvedSprint) {
-        sprints = getExecutiveSprints();
-
-        if (typeof getNewestActiveExecutiveSprintId === "function") {
-            assignmentSprintId = getNewestActiveExecutiveSprintId();
+        if (typeof agentAssignments !== "undefined" && Array.isArray(agentAssignments) && agentAssignments.length) {
+            queueAssignments = agentAssignments;
+        } else {
+            try {
+                queueAssignments = JSON.parse(localStorage.getItem(assignmentStorageKey) || "[]");
+                if (!Array.isArray(queueAssignments)) {
+                    queueAssignments = [];
+                }
+            } catch (queueErr) {
+                queueAssignments = [];
+            }
         }
 
-        if (typeof agentAssignments !== "undefined" && Array.isArray(agentAssignments)) {
-            agentAssignments.forEach(function(item) {
-                var itemStatus;
+        for (assignmentIndex = 0; assignmentIndex < queueAssignments.length; assignmentIndex++) {
+            queueItem = queueAssignments[assignmentIndex];
 
-                if (!item || item.archived === true) {
-                    return;
-                }
-
-                itemStatus = String(item.status || "").toLowerCase();
-
-                if (itemStatus === "completed" || itemStatus === "blocked") {
-                    return;
-                }
-
-                if (item.sprint_id) {
-                    activeAssignmentSprintIds[String(item.sprint_id)] = true;
-                }
-            });
-        }
-
-        for (index = 0; index < sprints.length; index++) {
-            candidate = sprints[index];
-
-            if (!candidate || !candidate.sprintId) {
+            if (!queueItem || queueItem.archived === true) {
                 continue;
             }
 
-            status = String(candidate.status || "").toLowerCase();
-            hasActiveAssignment = !!activeAssignmentSprintIds[String(candidate.sprintId)];
-            hasActiveAgents = Array.isArray(candidate.agents) && candidate.agents.some(function(agent) {
-                var agentStatus = String(agent && agent.status || "").toLowerCase();
+            queueStatus = String(queueItem.status || "").toLowerCase();
 
-                return agentStatus === "running" ||
-                    agentStatus === "waiting" ||
-                    agentStatus === "active" ||
-                    agentStatus === "in_progress";
-            });
+            if (queueStatus === "completed" || queueStatus === "blocked") {
+                continue;
+            }
 
-            if (status === "active" ||
-                status === "running" ||
-                status === "in_progress" ||
-                status === "planning" ||
-                status === "paused" ||
-                hasActiveAgents ||
-                hasActiveAssignment) {
-                sprintTime = Date.parse(candidate.createdAt || "") || index;
+            linkedSprintId = String(queueItem.sprint_id || queueItem.sprintId || "").trim();
 
-                if (!newestMatch || sprintTime >= newestMatchTime) {
-                    newestMatch = candidate;
-                    newestMatchTime = sprintTime;
-                }
+            if (!linkedSprintId) {
+                continue;
+            }
+
+            queueCreatedAt = Date.parse(queueItem.created_at || "") || 0;
+
+            if (!newestAssignment || queueCreatedAt >= newestAssignmentTime) {
+                newestAssignment = queueItem;
+                newestAssignmentTime = queueCreatedAt;
             }
         }
 
-        if (newestMatch) {
-            resolvedSprint = newestMatch;
-        } else if (assignmentSprintId && typeof getSprintById === "function") {
-            resolvedSprint = getSprintById(assignmentSprintId);
+        if (newestAssignment) {
+            linkedSprintId = String(newestAssignment.sprint_id || newestAssignment.sprintId || "").trim();
+
+            if (linkedSprintId && typeof getSprintById === "function") {
+                resolvedSprint = getSprintById(linkedSprintId);
+            }
+
+            if (!resolvedSprint) {
+                storedSprints = getExecutiveSprints();
+
+                for (sprintIndex = 0; sprintIndex < storedSprints.length; sprintIndex++) {
+                    if (storedSprints[sprintIndex] &&
+                        String(storedSprints[sprintIndex].sprintId || "") === linkedSprintId) {
+                        resolvedSprint = storedSprints[sprintIndex];
+                        break;
+                    }
+                }
+            }
+
+            if (!resolvedSprint) {
+                resolvedSprint = {
+                    sprintId: linkedSprintId,
+                    sprintName: newestAssignment.task_title || "Executive Sprint",
+                    status: "active",
+                    createdAt: newestAssignment.created_at || new Date().toISOString(),
+                    totalAgents: 1,
+                    agents: [{
+                        name: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
+                        agentName: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
+                        status: "completed",
+                        dependency: null,
+                        progress: 100,
+                        startedAt: newestAssignment.created_at || null,
+                        completedAt: newestAssignment.created_at || null,
+                        blockerReason: null,
+                        blocker: null,
+                        recommendation: null,
+                        blockedAt: null,
+                        updatedAt: newestAssignment.created_at || null,
+                        retryCount: 0,
+                        maxRetries: 3,
+                        lastError: null,
+                        memory: {}
+                    }],
+                    overallProgress: 100,
+                    executiveSummary: newestAssignment.task_description || newestAssignment.mission || "",
+                    executiveRecommendation: newestAssignment.mission || "Review agent findings and prioritize next actions.",
+                    executiveNextAction: newestAssignment.mission || "Review active queue assignment.",
+                    autonomyEvents: [],
+                    messages: [],
+                    recoveryEvents: [],
+                    _assignmentQueueFallback: true
+                };
+                skipSprintSave = true;
+            }
         }
     }
 
@@ -18751,7 +18785,10 @@ function renderExecutiveSprintDashboard() {
     calculateSprintProgress(sprint);
     sprint.executiveRecommendation = generateExecutiveRecommendation(sprint);
     sprint.executiveNextAction = generateExecutiveNextAction(sprint);
-    saveExecutiveSprint(sprint);
+
+    if (!skipSprintSave && !sprint._assignmentQueueFallback) {
+        saveExecutiveSprint(sprint);
+    }
 
     var runningAgents = [];
     var blockedAgents = [];
