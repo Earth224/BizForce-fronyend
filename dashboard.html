@@ -13696,11 +13696,33 @@ function runCompetitorAnalysis(domain) {
 }
 
 function runTechnicalSeoAudit(url) {
-    var memory = getSeoAgentMemory();
-    var store = ensureSeoAgentStore(memory);
-    var normalized = normalizeSeoUrl(url);
-    var seed = seoHashSeed(normalized + "_technical");
+    var memory = typeof getSeoAgentMemory === "function"
+        ? getSeoAgentMemory()
+        : (typeof loadExecutiveMemory === "function" ? loadExecutiveMemory() : null);
+    var store;
+    var normalized;
+    var seed;
     var audit;
+
+    if (!memory || typeof memory !== "object") {
+        memory = {};
+    }
+
+    memory.seoAgent = memory.seoAgent || {};
+    memory.seoAgent.audits = Array.isArray(memory.seoAgent.audits) ? memory.seoAgent.audits : [];
+
+    store = typeof ensureSeoAgentStore === "function" ? ensureSeoAgentStore(memory) : memory.seoAgent;
+
+    if (!store || typeof store !== "object") {
+        store = memory.seoAgent;
+    }
+
+    if (!Array.isArray(store.audits)) {
+        store.audits = [];
+    }
+
+    normalized = normalizeSeoUrl(url || "");
+    seed = seoHashSeed(normalized + "_technical");
 
     audit = {
         id: createSeoRecordId(),
@@ -13723,8 +13745,15 @@ function runTechnicalSeoAudit(url) {
 
     store.audits.unshift(audit);
     store.lastAnalysis = audit;
-    seoAgentState.lastAnalysis = audit;
-    saveSeoAgentMemory(memory);
+
+    if (typeof seoAgentState !== "undefined" && seoAgentState) {
+        seoAgentState.lastAnalysis = audit;
+    }
+
+    if (typeof saveSeoAgentMemory === "function") {
+        saveSeoAgentMemory(memory);
+    }
+
     return audit;
 }
 
