@@ -3593,6 +3593,8 @@ function renderExecutiveRuntimeDashboard(sprint) {
         return "";
     }
 
+    sprint = resolveExecutiveSprintWithQueueFallback(sprint);
+
     if (!sprint) {
         executiveRuntimeDashboardContent.innerHTML =
             '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere;word-break:break-word;">' +
@@ -17851,6 +17853,8 @@ function renderExecutiveAgentCommandCenter(sprint) {
         return "";
     }
 
+    sprint = resolveExecutiveSprintWithQueueFallback(sprint);
+
     if (!sprint) {
         panel.innerHTML =
             '<div style="padding:16px 18px;border:1px solid rgba(0,229,255,.14);border-radius:14px;background:linear-gradient(145deg,rgba(17,17,24,.96),rgba(10,12,20,.98));box-shadow:0 8px 22px rgba(0,0,0,.22);">' +
@@ -18653,13 +18657,8 @@ function createExecutiveSprintFromAssignments(reportItem, reportSprintId) {
     });
 }
 
-function renderExecutiveSprintDashboard() {
-    if (!executiveCommandCenterContent) {
-        return;
-    }
-
-    var sprint = getActiveExecutiveSprint();
-    var resolvedSprint = sprint;
+function resolveExecutiveSprintWithQueueFallback(preferredSprint) {
+    var resolvedSprint = preferredSprint || getActiveExecutiveSprint();
     var assignmentStorageKey = typeof AGENT_ASSIGNMENTS_STORAGE_KEY !== "undefined"
         ? AGENT_ASSIGNMENTS_STORAGE_KEY
         : "bizforce_agent_assignments";
@@ -18673,108 +18672,119 @@ function renderExecutiveSprintDashboard() {
     var queueCreatedAt;
     var sprintIndex;
     var storedSprints;
-    var skipSprintSave = false;
 
-    if (!resolvedSprint) {
-        if (typeof agentAssignments !== "undefined" && Array.isArray(agentAssignments) && agentAssignments.length) {
-            queueAssignments = agentAssignments;
-        } else {
-            try {
-                queueAssignments = JSON.parse(localStorage.getItem(assignmentStorageKey) || "[]");
-                if (!Array.isArray(queueAssignments)) {
-                    queueAssignments = [];
-                }
-            } catch (queueErr) {
+    if (resolvedSprint) {
+        return resolvedSprint;
+    }
+
+    if (typeof agentAssignments !== "undefined" && Array.isArray(agentAssignments) && agentAssignments.length) {
+        queueAssignments = agentAssignments;
+    } else {
+        try {
+            queueAssignments = JSON.parse(localStorage.getItem(assignmentStorageKey) || "[]");
+            if (!Array.isArray(queueAssignments)) {
                 queueAssignments = [];
             }
+        } catch (queueErr) {
+            queueAssignments = [];
+        }
+    }
+
+    for (assignmentIndex = 0; assignmentIndex < queueAssignments.length; assignmentIndex++) {
+        queueItem = queueAssignments[assignmentIndex];
+
+        if (!queueItem || queueItem.archived === true) {
+            continue;
         }
 
-        for (assignmentIndex = 0; assignmentIndex < queueAssignments.length; assignmentIndex++) {
-            queueItem = queueAssignments[assignmentIndex];
+        queueStatus = String(queueItem.status || "").toLowerCase();
 
-            if (!queueItem || queueItem.archived === true) {
-                continue;
-            }
-
-            queueStatus = String(queueItem.status || "").toLowerCase();
-
-            if (queueStatus === "completed" || queueStatus === "blocked") {
-                continue;
-            }
-
-            linkedSprintId = String(queueItem.sprint_id || queueItem.sprintId || "").trim();
-
-            if (!linkedSprintId) {
-                continue;
-            }
-
-            queueCreatedAt = Date.parse(queueItem.created_at || "") || 0;
-
-            if (!newestAssignment || queueCreatedAt >= newestAssignmentTime) {
-                newestAssignment = queueItem;
-                newestAssignmentTime = queueCreatedAt;
-            }
+        if (queueStatus === "completed" || queueStatus === "blocked") {
+            continue;
         }
 
-        if (newestAssignment) {
-            linkedSprintId = String(newestAssignment.sprint_id || newestAssignment.sprintId || "").trim();
+        linkedSprintId = String(queueItem.sprint_id || queueItem.sprintId || "").trim();
 
-            if (linkedSprintId && typeof getSprintById === "function") {
-                resolvedSprint = getSprintById(linkedSprintId);
-            }
+        if (!linkedSprintId) {
+            continue;
+        }
 
-            if (!resolvedSprint) {
-                storedSprints = getExecutiveSprints();
+        queueCreatedAt = Date.parse(queueItem.created_at || "") || 0;
 
-                for (sprintIndex = 0; sprintIndex < storedSprints.length; sprintIndex++) {
-                    if (storedSprints[sprintIndex] &&
-                        String(storedSprints[sprintIndex].sprintId || "") === linkedSprintId) {
-                        resolvedSprint = storedSprints[sprintIndex];
-                        break;
-                    }
-                }
-            }
+        if (!newestAssignment || queueCreatedAt >= newestAssignmentTime) {
+            newestAssignment = queueItem;
+            newestAssignmentTime = queueCreatedAt;
+        }
+    }
 
-            if (!resolvedSprint) {
-                resolvedSprint = {
-                    sprintId: linkedSprintId,
-                    sprintName: newestAssignment.task_title || "Executive Sprint",
-                    status: "active",
-                    createdAt: newestAssignment.created_at || new Date().toISOString(),
-                    totalAgents: 1,
-                    agents: [{
-                        name: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
-                        agentName: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
-                        status: "completed",
-                        dependency: null,
-                        progress: 100,
-                        startedAt: newestAssignment.created_at || null,
-                        completedAt: newestAssignment.created_at || null,
-                        blockerReason: null,
-                        blocker: null,
-                        recommendation: null,
-                        blockedAt: null,
-                        updatedAt: newestAssignment.created_at || null,
-                        retryCount: 0,
-                        maxRetries: 3,
-                        lastError: null,
-                        memory: {}
-                    }],
-                    overallProgress: 100,
-                    executiveSummary: newestAssignment.task_description || newestAssignment.mission || "",
-                    executiveRecommendation: newestAssignment.mission || "Review agent findings and prioritize next actions.",
-                    executiveNextAction: newestAssignment.mission || "Review active queue assignment.",
-                    autonomyEvents: [],
-                    messages: [],
-                    recoveryEvents: [],
-                    _assignmentQueueFallback: true
-                };
-                skipSprintSave = true;
+    if (!newestAssignment) {
+        return null;
+    }
+
+    linkedSprintId = String(newestAssignment.sprint_id || newestAssignment.sprintId || "").trim();
+
+    if (linkedSprintId && typeof getSprintById === "function") {
+        resolvedSprint = getSprintById(linkedSprintId);
+    }
+
+    if (!resolvedSprint) {
+        storedSprints = getExecutiveSprints();
+
+        for (sprintIndex = 0; sprintIndex < storedSprints.length; sprintIndex++) {
+            if (storedSprints[sprintIndex] &&
+                String(storedSprints[sprintIndex].sprintId || "") === linkedSprintId) {
+                resolvedSprint = storedSprints[sprintIndex];
+                break;
             }
         }
     }
 
-    sprint = resolvedSprint;
+    if (!resolvedSprint) {
+        resolvedSprint = {
+            sprintId: linkedSprintId,
+            sprintName: newestAssignment.task_title || "Executive Sprint",
+            status: "active",
+            createdAt: newestAssignment.created_at || new Date().toISOString(),
+            totalAgents: 1,
+            agents: [{
+                name: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
+                agentName: String(newestAssignment.assigned_agent || "seo").toUpperCase(),
+                status: "completed",
+                dependency: null,
+                progress: 100,
+                startedAt: newestAssignment.created_at || null,
+                completedAt: newestAssignment.created_at || null,
+                blockerReason: null,
+                blocker: null,
+                recommendation: null,
+                blockedAt: null,
+                updatedAt: newestAssignment.created_at || null,
+                retryCount: 0,
+                maxRetries: 3,
+                lastError: null,
+                memory: {}
+            }],
+            overallProgress: 100,
+            executiveSummary: newestAssignment.task_description || newestAssignment.mission || "",
+            executiveRecommendation: newestAssignment.mission || "Review agent findings and prioritize next actions.",
+            executiveNextAction: newestAssignment.mission || "Review active queue assignment.",
+            autonomyEvents: [],
+            messages: [],
+            recoveryEvents: [],
+            _assignmentQueueFallback: true
+        };
+    }
+
+    return resolvedSprint;
+}
+
+function renderExecutiveSprintDashboard() {
+    if (!executiveCommandCenterContent) {
+        return;
+    }
+
+    var sprint = resolveExecutiveSprintWithQueueFallback(getActiveExecutiveSprint());
+    var skipSprintSave = !!(sprint && sprint._assignmentQueueFallback);
 
     if (!sprint) {
         executiveCommandCenterContent.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active executive sprint yet.</div>';
