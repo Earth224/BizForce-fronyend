@@ -18659,6 +18659,88 @@ function renderExecutiveSprintDashboard() {
     }
 
     var sprint = getActiveExecutiveSprint();
+    var sprints;
+    var index;
+    var candidate;
+    var resolvedSprint = sprint;
+    var newestMatch = null;
+    var newestMatchTime = 0;
+    var sprintTime;
+    var status;
+    var hasActiveAgents;
+    var hasActiveAssignment;
+    var assignmentSprintId;
+    var activeAssignmentSprintIds = {};
+
+    if (!resolvedSprint) {
+        sprints = getExecutiveSprints();
+
+        if (typeof getNewestActiveExecutiveSprintId === "function") {
+            assignmentSprintId = getNewestActiveExecutiveSprintId();
+        }
+
+        if (typeof agentAssignments !== "undefined" && Array.isArray(agentAssignments)) {
+            agentAssignments.forEach(function(item) {
+                var itemStatus;
+
+                if (!item || item.archived === true) {
+                    return;
+                }
+
+                itemStatus = String(item.status || "").toLowerCase();
+
+                if (itemStatus === "completed" || itemStatus === "blocked") {
+                    return;
+                }
+
+                if (item.sprint_id) {
+                    activeAssignmentSprintIds[String(item.sprint_id)] = true;
+                }
+            });
+        }
+
+        for (index = 0; index < sprints.length; index++) {
+            candidate = sprints[index];
+
+            if (!candidate || !candidate.sprintId) {
+                continue;
+            }
+
+            status = String(candidate.status || "").toLowerCase();
+            hasActiveAssignment = !!activeAssignmentSprintIds[String(candidate.sprintId)];
+            hasActiveAgents = Array.isArray(candidate.agents) && candidate.agents.some(function(agent) {
+                var agentStatus = String(agent && agent.status || "").toLowerCase();
+
+                return agentStatus === "running" ||
+                    agentStatus === "waiting" ||
+                    agentStatus === "active" ||
+                    agentStatus === "in_progress";
+            });
+
+            if (status === "active" ||
+                status === "running" ||
+                status === "in_progress" ||
+                status === "planning" ||
+                status === "paused" ||
+                hasActiveAgents ||
+                hasActiveAssignment) {
+                sprintTime = Date.parse(candidate.createdAt || "") || index;
+
+                if (!newestMatch || sprintTime >= newestMatchTime) {
+                    newestMatch = candidate;
+                    newestMatchTime = sprintTime;
+                }
+            }
+        }
+
+        if (newestMatch) {
+            resolvedSprint = newestMatch;
+        } else if (assignmentSprintId && typeof getSprintById === "function") {
+            resolvedSprint = getSprintById(assignmentSprintId);
+        }
+    }
+
+    sprint = resolvedSprint;
 
     if (!sprint) {
         executiveCommandCenterContent.innerHTML = '<div style="padding:18px;border:1px solid rgba(0,229,255,.18);border-radius:14px;color:#8888aa;background:#080812;">No active executive sprint yet.</div>';
