@@ -6678,36 +6678,43 @@ function getAutonomousRuntimeSummary(sprintId) {
     var memorySummary;
     var timeline;
     var storageStats;
+    var runtimeState;
+    var schedulerStatus;
+    var emptySummary = {
+        runtimeState: "off",
+        schedulerState: "idle",
+        activeAgents: [],
+        waitingAgents: [],
+        retryQueueSize: 0,
+        recoveringAgents: [],
+        timelineEvents: 0,
+        memoryUsage: 0,
+        sprintCompletionPercent: 0,
+        cycleCount: 0,
+        lastCycleAt: null,
+        failedAgents: [],
+        totalMemories: 0,
+        sprintStatus: "NONE",
+        runtimeOn: false
+    };
 
     if (!sprint) {
-        return {
-            runtimeState: "off",
-            schedulerState: "idle",
-            activeAgents: [],
-            waitingAgents: [],
-            retryQueueSize: 0,
-            recoveringAgents: [],
-            timelineEvents: 0,
-            memoryUsage: 0,
-            sprintCompletionPercent: 0
-        };
+        return emptySummary;
     }
 
-    ensureMiniScheduler(sprint);
-    ensureAutonomousRuntime(sprint);
-    updateSchedulerState(sprint);
-    sprint = getSprintById(sprintId);
-    scheduler = sprint.scheduler;
-    runtime = sprint.autonomousRuntime;
-    retrySummary = getMiniSchedulerRetryQueueSummary(scheduler, sprint);
-    memorySummary = computeSprintMemorySummary(sprint);
-    storageStats = getExecutiveMemoryStorageStats();
+    runtime = sprint.autonomousRuntime || createEmptyAutonomousRuntime();
+    scheduler = sprint.scheduler || createEmptyMiniScheduler();
+    runtimeState = runtime.state || "idle";
+    schedulerStatus = scheduler.status || "idle";
+    retrySummary = getMiniSchedulerRetryQueueSummary(scheduler, sprint) || {};
+    memorySummary = computeSprintMemorySummary(sprint) || {};
+    storageStats = getExecutiveMemoryStorageStats() || {};
     timeline = sprint.timeline || getExecutiveTimeline(sprint);
     calculateSprintProgress(sprint);
 
     return {
-        runtimeState: String(runtime.state || "off").toUpperCase(),
-        schedulerState: String(scheduler.status || "idle").toUpperCase(),
+        runtimeState: String(runtimeState).toUpperCase(),
+        schedulerState: String(schedulerStatus).toUpperCase(),
         activeAgents: Array.isArray(scheduler.runningAgents) ? scheduler.runningAgents.slice() : [],
         waitingAgents: Array.isArray(scheduler.waitingAgents) ? scheduler.waitingAgents.slice() : [],
         retryQueueSize: retrySummary.retryQueueCount || 0,
@@ -6720,7 +6727,7 @@ function getAutonomousRuntimeSummary(sprintId) {
         failedAgents: Array.isArray(scheduler.failedAgents) ? scheduler.failedAgents.slice() : [],
         totalMemories: memorySummary.totalMemories || 0,
         sprintStatus: String(sprint.status || "active").toUpperCase(),
-        runtimeOn: runtime.state === "running"
+        runtimeOn: runtimeState === "running"
     };
 }
 
@@ -6896,6 +6903,10 @@ function renderAutonomousRuntimeStatus(sprint) {
 
 function getExecutiveAutonomousRuntimeCardHtml(sprint) {
     var summary;
+    var runtime;
+    var scheduler;
+    var runtimeState;
+    var schedulerState;
 
     if (!sprint) {
         return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.12);background:rgba(8,8,18,.72);">' +
@@ -6904,12 +6915,18 @@ function getExecutiveAutonomousRuntimeCardHtml(sprint) {
         '</div>';
     }
 
-    summary = getAutonomousRuntimeSummary(sprint.sprintId);
+    runtime = sprint.autonomousRuntime;
+    scheduler = sprint.scheduler;
+    runtime = runtime || createEmptyAutonomousRuntime();
+    scheduler = scheduler || createEmptyMiniScheduler();
+    runtimeState = runtime.state || "idle";
+    schedulerState = scheduler.status || "idle";
+    summary = sprint.autonomousRuntimeSummary || sprint.runtimeSummary || {};
 
     return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);">' +
         '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Autonomous Runtime</div>' +
         '<div style="color:#c5cdd8;font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' +
-            'Runtime ON/OFF: ' + assignmentEscapeHtml(summary.runtimeOn ? "ON" : "OFF") + '\n' +
+            'Runtime ON/OFF: ' + assignmentEscapeHtml(runtimeState === "running" ? "ON" : "OFF") + '\n' +
             'Running Agents: ' + assignmentEscapeHtml(formatMiniSchedulerAgentList(summary.activeAgents)) + '\n' +
             'Failed Agents: ' + assignmentEscapeHtml(formatMiniSchedulerAgentList(summary.failedAgents)) + '\n' +
             'Recovering Agents: ' + assignmentEscapeHtml(formatMiniSchedulerAgentList(summary.recoveringAgents)) + '\n' +
