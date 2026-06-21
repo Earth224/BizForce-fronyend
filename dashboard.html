@@ -5673,7 +5673,50 @@ function completeAgent(sprintId, agentName) {
     }
 
     renderExecutiveRuntimeDashboard(getSprintById(sprintId) || sprint);
+    renderExecutiveSprintDashboard();
     recordAgentSuccess(agent);
+    return agent;
+}
+
+function markExecutiveAgentCompleteAndUnlock(agentName) {
+    var sprint = getActiveExecutiveAgentSprint() || getExecutiveCommandSprint() || getActiveExecutiveSprint();
+    var sprintId;
+    var agent;
+    var status;
+
+    if (!sprint || !sprint.sprintId || sprint._assignmentQueueFallback) {
+        return null;
+    }
+
+    sprintId = sprint.sprintId;
+    agent = getSprintAgent(sprint, agentName);
+
+    if (!agent) {
+        return null;
+    }
+
+    status = String(agent.status || "waiting").toLowerCase();
+
+    if (status === "completed") {
+        sprint = getSprintById(sprintId) || sprint;
+        refreshExecutiveSprintState(sprint);
+        updateSchedulerState(sprint);
+        renderExecutiveSprintDashboard();
+        renderExecutiveRuntimeDashboard(sprint);
+        return agent;
+    }
+
+    if (status !== "running") {
+        return null;
+    }
+
+    agent = completeAgent(sprintId, agentName);
+
+    if (agent && typeof persistSprintMemory === "function") {
+        persistSprintMemory(getSprintById(sprintId) || sprint);
+    }
+
+    renderExecutiveSprintDashboard();
     return agent;
 }
 
@@ -34227,6 +34270,14 @@ function bindSeoAgentButtons() {
             if (typeof refreshLiveSeoAgentModuleStatus === "function") {
                 refreshLiveSeoAgentModuleStatus();
             }
+
+            if (typeof markExecutiveAgentCompleteAndUnlock === "function") {
+                try {
+                    markExecutiveAgentCompleteAndUnlock("seo");
+                } catch (unlockErr) {
+                    console.warn("Executive SEO unlock failed:", unlockErr);
+                }
+            }
         } else if (target.id === "seoAgentCompetitorAnalysisBtn") {
             runCompetitorAnalysis(domainInput && domainInput.value ? domainInput.value : "competitor.com");
         } else if (target.id === "seoAgentGeneratePlanBtn") {
@@ -35719,6 +35770,7 @@ window.reloadBizforceAssignmentDashboard = function() {
 };
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 window.completeAgent = completeAgent;
+window.markExecutiveAgentCompleteAndUnlock = markExecutiveAgentCompleteAndUnlock;
 window.blockAgent = blockAgent;
 window.unblockAgent = unblockAgent;
 window.generateSprintHealth = generateSprintHealth;
@@ -38668,6 +38720,7 @@ window.reloadBizforceAssignmentDashboard = function() {
 };
 window.renderExecutiveSprintDashboard = renderExecutiveSprintDashboard;
 window.completeAgent = completeAgent;
+window.markExecutiveAgentCompleteAndUnlock = markExecutiveAgentCompleteAndUnlock;
 window.blockAgent = blockAgent;
 window.unblockAgent = unblockAgent;
 window.generateSprintHealth = generateSprintHealth;
@@ -89366,6 +89419,14 @@ function bindLiveSeoAgentModuleButtons() {
 
         if (typeof refreshLiveSeoAgentModuleStatus === "function") {
             refreshLiveSeoAgentModuleStatus();
+        }
+
+        if (typeof markExecutiveAgentCompleteAndUnlock === "function") {
+            try {
+                markExecutiveAgentCompleteAndUnlock("seo");
+            } catch (unlockErr) {
+                console.warn("Executive SEO unlock failed:", unlockErr);
+            }
         }
 
         if (typeof refreshExecutiveAgentCommandViews === "function") {
