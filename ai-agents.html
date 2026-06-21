@@ -1,493 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <style>
-body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #e2e8f0;
-    padding: 30px;
-}
-
-.container {
-    max-width: 800px;
-    margin: auto;
-}
-
-h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-}
-
-.brand-title {
-  background: linear-gradient(135deg, #00c6ff, #7b2ff7);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  font-weight: 800;
-}
-
-select, textarea, button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-}
-
-textarea {
-    min-height: 120px;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 8px;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #00c6ff, #7b2ff7);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 198, 255, 0.25);
-}
-
-button:hover {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(123, 47, 247, 0.35);
-}
-
-
-
-.result-box {
-    width: 100%;
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 16px;
-    background: rgba(15, 23, 42, 0.92);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    color: #ffffff;
-    overflow-x: hidden;
-    overflow-y: auto;
-    max-height: 650px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    line-height: 1.6;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-.task-card {
-    margin-bottom: 16px;
-    padding: 16px;
-    border-radius: 14px;
-    background: rgba(2, 6, 23, 0.92);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-}
-
-.task-card-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.agent-pill {
-    padding: 5px 10px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #00c6ff, #7b2ff7);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.status-pill {
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.status-completed {
-    background: rgba(34, 197, 94, 0.16);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.4);
-}
-
-.status-processing,
-.status-running {
-    background: rgba(234, 179, 8, 0.16);
-    color: #facc15;
-    border: 1px solid rgba(234, 179, 8, 0.4);
-}
-
-.status-failed {
-    background: rgba(239, 68, 68, 0.16);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-.status-queued {
-    background: rgba(59, 130, 246, 0.16);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.4);
-}
-
-.task-label {
-    color: #22c55e;
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 10px;
-    text-transform: uppercase;
-}
-
-.task-text {
-    margin-top: 5px;
-    color: #e2e8f0;
-    font-size: 13px;
-    line-height: 1.45;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-}
-
-.task-preview {
-    max-height: 120px;
-    overflow: hidden;
-}
-
-.task-details {
-    margin-top: 12px;
-}
-
-.task-details summary {
-    cursor: pointer;
-    color: #00c6ff;
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.task-full-report {
-    padding: 12px;
-    border-radius: 10px;
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    max-height: 420px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-    font-size: 13px;
-    line-height: 1.5;
-}
-strong {
-    color: #22c55e;
-}
-</style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BizForce AI - AI Staff</title>
-</head>
-<body>
-<div class="container">
-  <h1><span class="brand-title">BizForce AI</span> Staff</h1>
-
-  <button onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-
-  <hr />
-
-  <label>Choose Agent</label>
-  <select id="agentType">
-    <option value="seo">SEO Agent</option>
-    <option value="sales">Sales Agent</option>
-    <option value="content">Content Agent</option>
-    <option value="ads">Ads Agent</option>
-    <option value="reputation">Reputation Agent</option>
-    <option value="analytics">Analytics Agent</option>
-    <option value="email">Email Agent</option>
-    <option value="community">Community Agent</option>
-    <option value="influencer">Influencer Agent</option>
-    <option value="operations">Operations Agent</option>
-    <option value="executive">Executive Coordinator</option>
-  </select>
-
-  <br /><br />
-
-  <label>Task Prompt</label>
-  <br />
-  <textarea id="prompt" rows="8" cols="60" placeholder="Tell your AI agent what to do..."></textarea>
-
-  <br /><br />
-
-  <button id="runAgentBtn" onclick="runAgent()">Run AI Agent</button>
-
-  <h2>Result</h2>
-  <div id="result">Waiting for task...</div>
-  <div id="taskHistory" style="margin-top:30px;">
-  <h3>Task History</h3>
-  <div id="taskList"></div>
-</div>
-  <script>
-    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
-function cleanAiText(value) {
-      return String(value || "")
-            .replace(/#{1,6}\s?/g, "")
-            .replace(/\*\*/g, "")
-            .replace(/\|/g, " · ")
-            .replace(/---/g, "")
-            .replace(/\n{3,}/g, "\n\n")
-            .trim();
-}
-    async function runAgent() {
-      var token = localStorage.getItem("bf_token");
-      var agentType = document.getElementById("agentType").value;
-      var prompt = document.getElementById("prompt").value;
-      var runButton = document.getElementById("runAgentBtn");
-      var resultBox = document.getElementById("result");
-      if (!token) {
-        resultBox.textContent = "You are not logged in.";
-        return;
-      }
-
-      if (!prompt) {
-        resultBox.textContent = "Enter a task prompt first.";
-        return;
-      }
-
-      resultBox.innerHTML = "⏳ Running AI Agent... (this can take up to 30–45 seconds)";
-runButton.disabled = true;
-runButton.textContent = "Running...";
-      try {
-        var controller = new AbortController();
-var timeout = setTimeout(function() {
-  controller.abort();
-}, 45000); // 45 sec timeout
-var response = await fetch(API_URL + "/api/ai/tasks", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer " + token
-  },
-  body: JSON.stringify({
-    agent_type: agentType,
-    task_type: agentType === "seo" ? "seo_audit" : agentType === "sales" ? "sales_funnel" : agentType === "content" ? "content_plan" : agentType === "ads" ? "ad_campaign" : "general",
-    prompt: prompt
-  }),
-  signal: controller.signal
-});
-
-clearTimeout(timeout);
-
-        var data = await response.json();
-
-if (!response.ok) {
-    resultBox.innerHTML = "❌ Request failed: " + (data.error || "Unknown error");
-    runButton.disabled = false;
-    runButton.textContent = "Run AI Agent";
-    return;
-}
-
-var taskId = data.task && data.task.id;
-
-if (!taskId) {
-    resultBox.innerHTML = "⚠️ Task queued but no task ID returned.";
-    runButton.disabled = false;
-    runButton.textContent = "Run AI Agent";
-    return;
-}
-
-resultBox.innerHTML = "⏳ Task queued. Waiting for result...";
-
-await pollTaskResult(taskId, resultBox, runButton);
-return;
-
-
-     } catch (error) {
-  if (error.name === "AbortError") {
-    resultBox.innerHTML = "⏱️ Request timed out. Try again.";
-  } else {
-    resultBox.innerHTML = "❌ Error: " + error.message;
-  }
-
-  runButton.disabled = false;
-  runButton.textContent = "Run AI Agent";
-}
-      }
-async function pollTaskResult(taskId, resultBox, runButton) {
-
-    var token = localStorage.getItem("bf_token");
-
-    for (var i = 0; i < 30; i++) {
-
-        await new Promise(function(resolve) {
-            setTimeout(resolve, 2000);
-        });
-
-        try {
-
-            var response = await fetch(API_URL + "/api/ai/tasks", {
-                headers: {
-                    "Authorization": "Bearer " + token
-                }
-            });
-
-            var data = await response.json();
-
-            if (!data.tasks || !Array.isArray(data.tasks)) {
-                continue;
-            }
-
-            var task = data.tasks.find(function(t) {
-                return t.id === taskId;
-            });
-
-            if (!task) {
-                continue;
-            }
-
-            if (task.status === "completed") {
-
-                resultBox.innerHTML = (task.result || "No result returned.")
-                    .replace(/\n\n/g, "<br><br>")
-                    .replace(/\n/g, "<br>")
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-                runButton.disabled = false;
-                runButton.textContent = "Run AI Agent";
-
-                loadTasks();
-
-                return;
-            }
-
-            if (task.status === "failed") {
-
-                resultBox.innerHTML = "❌ Task failed.";
-
-                runButton.disabled = false;
-                runButton.textContent = "Run AI Agent";
-
-                return;
-            }
-
-        } catch (error) {
-            console.error(error);
-        }
-
+  <title>BizForce AI — Agent Directory</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
     }
 
-    resultBox.innerHTML = "⚠️ Task timed out.";
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
 
-    runButton.disabled = false;
-    runButton.textContent = "Run AI Agent";
-}    
-async function loadTasks() {
-  try {
-    var token = localStorage.getItem("bf_token");
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-    var res = await fetch(API_URL + "/api/ai/tasks", {
-      headers: {
-        "Authorization": "Bearer " + token
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Nav ── */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 48px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(0, 229, 255, 0.08);
+      color: #22d3ee;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      margin: 0 0 10px;
+      font-size: clamp(2.4rem, 6vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: none;
+      filter: drop-shadow(0 0 30px rgba(0, 229, 255, 0.25));
+    }
+
+    .hero-subtitle {
+      margin: 0 0 14px;
+      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      font-weight: 600;
+      color: #c4b5fd;
+    }
+
+    .hero-description {
+      margin: 0 auto 28px;
+      max-width: 560px;
+      font-size: 1rem;
+      line-height: 1.65;
+      color: #8892b8;
+    }
+
+    .agent-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 22px;
+      border-radius: 999px;
+      background: rgba(12, 18, 38, 0.75);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 0 24px rgba(168, 85, 247, 0.12);
+    }
+
+    .agent-count-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #8888aa;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .agent-count-value {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* ── Agent Grid ── */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .agent-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 28px 24px 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(168, 85, 247, 0.06));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .agent-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(0, 229, 255, 0.35);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.45),
+        0 0 40px rgba(0, 229, 255, 0.12),
+        0 0 60px rgba(168, 85, 247, 0.08);
+    }
+
+    .agent-card:hover::before {
+      opacity: 1;
+    }
+
+    .agent-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(168, 85, 247, 0.2));
+      border: 2px solid rgba(0, 229, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+      flex-shrink: 0;
+    }
+
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.7;
+    }
+
+    .agent-name {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    .agent-description {
+      margin: 0 0 24px;
+      flex: 1;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
+
+    .open-agent-btn {
+      display: block;
+      width: 100%;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      text-decoration: none;
+      color: #ffffff;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0, 198, 255, 0.25);
+    }
+
+    .open-agent-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 8px 28px rgba(0, 198, 255, 0.35),
+        0 0 20px rgba(168, 85, 247, 0.25);
+    }
+
+    .open-agent-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ── Accent variants per card ── */
+    .agent-card--seo .agent-avatar { border-color: rgba(34, 211, 238, 0.45); }
+    .agent-card--sales .agent-avatar { border-color: rgba(168, 85, 247, 0.45); }
+    .agent-card--content .agent-avatar { border-color: rgba(52, 211, 153, 0.45); }
+    .agent-card--analytics .agent-avatar { border-color: rgba(96, 165, 250, 0.45); }
+    .agent-card--social .agent-avatar { border-color: rgba(244, 114, 182, 0.45); }
+
+    @media (max-width: 600px) {
+      .page {
+        padding: 24px 16px 48px;
       }
-    });
 
-    var data = await res.json();
-
-    var container = document.getElementById("taskList");
-    container.innerHTML = "";
-
-    if (!data.tasks || data.tasks.length === 0) {
-  container.innerHTML = "<div>No tasks yet</div>";
-  return;
-}
-
-data.tasks.forEach(function(task) {
-
-      var statusClass = "status-queued";
-
-      if (task.status === "completed") {
-            statusClass = "status-completed";
+      .top-nav {
+        margin-bottom: 36px;
       }
 
-      if (task.status === "running" || task.status === "processing") {
-            statusClass = "status-running";
+      .agents-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
       }
+    }
+  </style>
+</head>
+<body>
 
-      if (task.status === "failed") {
-            statusClass = "status-failed";
-      }
+  <div class="page">
 
-      var shortResult = task.result || "Processing...";
+    <nav class="top-nav">
+      <a class="back-link" href="dashboard.html">← Back to Dashboard</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
 
-      if (shortResult.length > 320) {
-            shortResult = shortResult.substring(0, 320) + "...";
-      }
+    <header class="hero">
+      <span class="hero-eyebrow">Agent Directory</span>
+      <h1 class="hero-title">AGENTS</h1>
+      <p class="hero-subtitle">Your AI Business Team</p>
+      <p class="hero-description">
+        Build your own customizable team of AI business specialists.
+      </p>
+      <div class="agent-count">
+        <span class="agent-count-label">Total Agents</span>
+        <span class="agent-count-value">5</span>
+      </div>
+    </header>
 
-      var div = document.createElement("div");
+    <section class="agents-grid" aria-label="AI Agent Directory">
 
-      div.className = "task-card";
+      <article class="agent-card agent-card--seo">
+        <div class="agent-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+        <h2 class="agent-name">SEO Agent</h2>
+        <p class="agent-description">
+          Search engine optimization, rankings, backlinks, audits, forecasts.
+        </p>
+        <a class="open-agent-btn" href="agents/seo.html" onclick="return handleAgentOpen(event)">Open Agent</a>
+      </article>
 
-      div.innerHTML = `
-            <div class="task-card-header">
+      <article class="agent-card agent-card--sales">
+        <div class="agent-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <h2 class="agent-name">Sales Agent</h2>
+        <p class="agent-description">
+          Leads, pipeline, outreach and CRM.
+        </p>
+        <a class="open-agent-btn" href="agents/sales.html" onclick="return handleAgentOpen(event)">Open Agent</a>
+      </article>
 
-                  <div class="agent-pill">
-                        ${task.agent_type || "agent"}
-                  </div>
+      <article class="agent-card agent-card--content">
+        <div class="agent-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h2 class="agent-name">Content Agent</h2>
+        <p class="agent-description">
+          Blogs, social media, articles and campaigns.
+        </p>
+        <a class="open-agent-btn" href="agents/content.html" onclick="return handleAgentOpen(event)">Open Agent</a>
+      </article>
 
-                  <div class="status-pill ${statusClass}">
-                        ${task.status || "queued"}
-                  </div>
+      <article class="agent-card agent-card--analytics">
+        <div class="agent-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
+        <h2 class="agent-name">Analytics Agent</h2>
+        <p class="agent-description">
+          Traffic, KPIs, forecasting and business metrics.
+        </p>
+        <a class="open-agent-btn" href="agents/analytics.html" onclick="return handleAgentOpen(event)">Open Agent</a>
+      </article>
 
-            </div>
+      <article class="agent-card agent-card--social">
+        <div class="agent-avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h2 class="agent-name">Social Agent</h2>
+        <p class="agent-description">
+          Social campaigns, engagement and brand growth.
+        </p>
+        <a class="open-agent-btn" href="agents/social.html" onclick="return handleAgentOpen(event)">Open Agent</a>
+      </article>
 
-            <div class="task-label">
-                  Prompt
-            </div>
+    </section>
 
-            <div class="task-text">
-                  ${task.prompt || "No prompt"}
-            </div>
+  </div>
 
-            <div class="task-label">
-                  Quick Result
-            </div>
+  <script>
+    /* Phase 1 — architecture only. Remove this guard when agent pages are live. */
+    function handleAgentOpen(event) {
+      event.preventDefault();
+      alert("Coming Soon");
+      return false;
+    }
+  </script>
 
-            <div class="task-text task-preview">
-                  ${shortResult}
-            </div>
-
-            <details class="task-details">
-
-                  <summary>
-                        View Full Report
-                  </summary>
-
-                  <div class="task-full-report">
-                        ${cleanAiText(task.result || "Processing...")}
-                  </div>
-
-            </details>
-      `;
-
-      container.appendChild(div);
-
-});
-
-  } catch (err) {
-    console.error("LOAD TASKS ERROR:", err);
-  }
-}
-
-loadTasks();
-</script> 
-
-</div>
 </body>
 </html>
