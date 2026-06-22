@@ -43,18 +43,6 @@
   gap: 12px;
 }
 
-.topbar-mark.bf-neon-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  --bf-icon-stroke: #67ecff;
-}
-
-.topbar-mark.bf-neon-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
 .topbar-brand-text {
   font-size: 1.05rem;
   font-weight: 800;
@@ -327,12 +315,23 @@
 }
 
 .bf-directory-preview h3 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #fff;
+}
+
+.bf-directory-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+#agentDirectoryLanding.bf-directory-preview {
+  margin-bottom: 32px;
 }
 
 .bf-agent-icon-grid {
@@ -359,12 +358,7 @@
 }
 
 .bf-agent-icon-lg {
-  border-radius: 14px !important;
-}
-
-.bf-agent-icon-lg svg {
-  width: 22px;
-  height: 22px;
+  border-radius: 50% !important;
 }
 
 .bf-summary-card {
@@ -463,9 +457,28 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.2s ease, padding-top 0.2s ease;
+}
+
+#agentMemorySection.is-memory-open .bf-memory-list {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-height: 420px;
+  overflow-y: auto;
+  opacity: 1;
+}
+
+.bf-memory-toggle {
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  font-size: 0.78rem !important;
 }
 
 .bf-memory-controls {
@@ -499,7 +512,6 @@ button.bf-btn,
 #saveBusinessProfile,
 #toggleAiMailbox,
 #submitAiTask,
-#openAiStaffBtn,
 #openAgentDirectoryBtn,
 #viewQueueBtn,
 #assignmentTabActive,
@@ -529,7 +541,6 @@ button.bf-btn:hover,
 #saveBusinessProfile:hover,
 #toggleAiMailbox:hover,
 #submitAiTask:hover,
-#openAiStaffBtn:hover,
 #openAgentDirectoryBtn:hover,
 #viewQueueBtn:hover,
 #assignmentTabActive:hover,
@@ -584,91 +595,250 @@ button.logout.bf-btn-ghost:hover {
   line-height: 1;
 }
 
-/* Executive HQ icon system */
+/* Executive HQ icon system — mirrors Agent Directory .agent-avatar */
 .bf-neon-icon,
 .bf-hq-icon {
-  --bf-icon-stroke: #5ee8ff;
+  --bf-icon-stroke: #22d3ee;
   color: var(--bf-icon-stroke);
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, rgba(0, 229, 255, 0.1), rgba(125, 92, 255, 0.16));
-  border: 1.5px solid rgba(0, 229, 255, 0.42);
-  box-shadow:
-    0 0 10px rgba(0, 229, 255, 0.18),
-    0 0 24px rgba(125, 92, 255, 0.1),
-    inset 0 0 10px rgba(0, 229, 255, 0.05);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(168, 85, 247, 0.2));
+  border: 2px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
   flex-shrink: 0;
-  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+
+.bf-hq-icon svg {
+  display: block;
+  flex-shrink: 0;
+  shape-rendering: geometricPrecision;
+  opacity: 0.85;
+}
+
+.bf-hq-icon.analytics,
+.bf-hq-icon.analytics-agent {
+  --bf-icon-stroke: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.18);
+}
+
+.bf-hq-icon.integrations {
+  --bf-icon-stroke: #c084fc;
+  border-color: rgba(192, 132, 252, 0.45);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.18);
+}
+
+.bf-hq-icon.chat {
+  --bf-icon-stroke: #34d399;
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: 0 0 24px rgba(52, 211, 153, 0.18);
+}
+
+.bf-hq-icon.queue,
+.bf-hq-icon.work-queue {
+  --bf-icon-stroke: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.45);
+  box-shadow: 0 0 24px rgba(139, 92, 246, 0.18);
+}
+
+.bf-hq-icon.directory {
+  --bf-icon-stroke: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+}
+
+.bf-hq-icon.seo {
+  --bf-icon-stroke: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+}
+
+.bf-hq-icon.sales {
+  --bf-icon-stroke: #a855f7;
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.18);
+}
+
+.bf-hq-icon.content {
+  --bf-icon-stroke: #34d399;
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: 0 0 24px rgba(52, 211, 153, 0.18);
+}
+
+.bf-hq-icon.social {
+  --bf-icon-stroke: #f472b6;
+  border-color: rgba(244, 114, 182, 0.45);
+  box-shadow: 0 0 24px rgba(244, 114, 182, 0.18);
+}
+
+.bf-hq-icon.profile {
+  --bf-icon-stroke: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.16), 0 0 18px rgba(34, 211, 238, 0.1);
+}
+
+.bf-hq-icon.command {
+  --bf-icon-stroke: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.2), 0 0 18px rgba(168, 85, 247, 0.12);
+}
+
+.bf-hq-icon.memory {
+  --bf-icon-stroke: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.45);
+  box-shadow: 0 0 24px rgba(45, 212, 191, 0.18), 0 0 16px rgba(34, 211, 238, 0.1);
+}
+
+.bf-hq-icon.activity {
+  --bf-icon-stroke: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.18), 0 0 16px rgba(34, 211, 238, 0.1);
 }
 
 .bf-hq-icon.bf-card-icon,
 .bf-feature-card .bf-hq-icon {
   width: 60px;
   height: 60px;
+}
+
+.bf-hq-icon.bf-card-icon svg,
+.bf-feature-card .bf-hq-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.bf-hq-icon.bf-agent-icon {
+  width: 56px;
+  height: 56px;
+}
+
+.bf-hq-icon.bf-agent-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.bf-hq-icon.bf-section-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.bf-hq-icon.bf-section-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.topbar-mark.bf-hq-icon {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
 }
 
-.bf-agent-icon,
-.bf-neon-icon.bf-agent-icon,
-.bf-neon-icon.bf-agent-icon-lg {
-  width: 52px !important;
-  height: 52px !important;
-  border-radius: 14px !important;
-}
-
-.bf-neon-icon.bf-section-icon,
-.bf-hq-icon.bf-section-icon {
-  width: 48px !important;
-  height: 48px !important;
-  border-radius: 12px !important;
-}
-
-.bf-neon-icon svg,
-.bf-hq-icon svg,
-.bf-agent-icon svg {
-  width: 26px;
-  height: 26px;
-  display: block;
-  flex-shrink: 0;
-  shape-rendering: geometricPrecision;
-}
-
-.bf-agent-icon svg,
-.bf-agent-icon-lg svg {
-  width: 22px;
-  height: 22px;
-}
-
-.bf-section-icon svg {
-  width: 22px;
-  height: 22px;
+.topbar-mark.bf-hq-icon svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.85;
 }
 
 .bf-feature-card:hover .bf-hq-icon,
-.bf-agent-icon-block:hover .bf-agent-icon,
-.bf-collapsible:hover .bf-hq-icon.bf-section-icon {
-  --bf-icon-stroke: #8af5ff;
-  border-color: rgba(0, 255, 255, 0.58);
-  box-shadow:
-    0 0 14px rgba(0, 229, 255, 0.28),
-    0 0 32px rgba(125, 92, 255, 0.16),
-    inset 0 0 12px rgba(0, 229, 255, 0.08);
+.bf-agent-icon-block:hover .bf-hq-icon,
+.bf-collapsible:hover .bf-hq-icon.bf-section-icon,
+.bf-section-header-copy:hover .bf-hq-icon,
+.bf-activity-heading:hover .bf-hq-icon {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
 }
 
 .bf-status-card .bf-neon-icon.bf-status-icon {
   width: 60px;
   height: 60px;
   margin: 0 auto 14px;
-  border-radius: 50%;
 }
 
 .bf-status-card .bf-status-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
+}
+
+.bf-section-header-copy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bf-section-header-copy .bf-section-title {
+  margin: 0;
+}
+
+.bf-activity-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bf-profile-panel {
+  border-color: rgba(0, 229, 255, 0.22) !important;
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.1),
+    0 0 40px rgba(125, 92, 255, 0.08) !important;
+}
+
+.bf-profile-header {
+  align-items: center !important;
+}
+
+.bf-profile-copy {
+  align-items: center !important;
+}
+
+.bf-profile-name {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.bf-profile-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bf-profile-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(168, 85, 247, 0.12));
+  color: #c4d0e8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bf-profile-expand {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px !important;
+  flex-shrink: 0;
+}
+
+.bf-profile-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.bf-profile-panel:has(.bf-profile-form.is-open) .bf-profile-chevron {
+  transform: rotate(180deg);
 }
 
 .bf-card-icon {
@@ -919,10 +1089,6 @@ button.logout.bf-btn-ghost:hover {
 #historyAssignmentsList > .bf-status-card,
 #agentMemoryList > .bf-status-card,
 #aiMailboxResults > .bf-status-card {
-  margin-bottom: 0;
-}
-
-#agentDirectoryLanding.bf-directory-preview {
   margin-bottom: 0;
 }
 
