@@ -18,17 +18,97 @@ if (!token) {
 <title>BizForce AI — Executive HQ</title>
 <link rel="stylesheet" href="/css/bizforce-ui.css">
 <style>
-    *{margin:0;padding:0;box-sizing:border-box}html,body{color:#e8e8ff;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}body{background:#070b18;position:relative;overflow-x:hidden}body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}nav,.main,body>section,#planStatus,#tierDAgentStatusTracker{position:relative;z-index:1}nav.hq-nav{background:rgba(8,8,18,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,229,255,.15);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}nav h1{margin:0;background:linear-gradient(135deg,#00e5ff,#9f6bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-size:1.4rem}.nav-right{display:flex;align-items:center;gap:16px}.brand-badge{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}.biz-name{color:#8888aa;font-size:.9rem}button.logout{background:transparent;border:1px solid rgba(255,45,120,.4);color:#ff2d78;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;transition:all .2s}button.logout:hover{background:rgba(255,45,120,.1)}.main{padding:32px 24px;max-width:1200px;margin:0 auto}.hq-hero{text-align:center;margin-bottom:40px}.hq-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.08);color:#22d3ee;font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}.hq-hero-title{margin:0 0 8px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff,#7b2ff7 60%,#a855f7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}.hq-hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}.hq-hero-welcome{margin:12px 0 0;font-size:.95rem;color:#c4b5fd;font-weight:600}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:32px}.card{background:#080812;border:1px solid rgba(0,229,255,0.15);border-radius:16px;padding:24px;transition:border-color 0.2s}.card:hover{border-color:rgba(0,229,255,0.4)}.card-icon{font-size:2rem;margin-bottom:12px}.card h3{font-size:1rem;font-weight:700;margin-bottom:6px}.card p{color:#8888aa;font-size:0.85rem;line-height:1.5}.card .badge{display:inline-block;margin-top:12px;background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(159,107,255,0.15));border:1px solid rgba(0,229,255,0.3);border-radius:20px;padding:4px 12px;font-size:0.75rem;color:#00e5ff}.activity{background:#080812;border:1px solid rgba(0,229,255,0.15);border-radius:16px;padding:24px}.activity h3{font-size:1rem;font-weight:700;margin-bottom:16px;color:#8888aa;text-transform:uppercase;letter-spacing:0.05em}.activity-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:12px}.activity-item:last-child{border-bottom:none}.activity-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#9f6bff);flex-shrink:0}.activity-text{font-size:0.88rem;color:#aaaacc}.activity-time{margin-left:auto;font-size:0.78rem;color:#555577}.empty-state{text-align:center;padding:40px;color:#555577;font-size:0.9rem}
+    *{margin:0;padding:0;box-sizing:border-box}html,body{color:#e8e8ff;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}body{background:#070b18;position:relative;overflow-x:hidden}body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}.topbar,.app-main,body>section,#planStatus,#tierDAgentStatusTracker{position:relative;z-index:1}
 </style>
 </head>
-<body>
-<div id="planStatus" style="background:#111;border:1px solid #333;padding:15px;margin-bottom:20px;border-radius:8px;">
-  Checking subscription...
+<body class="app-shell">
+<div id="planStatus" class="plan-status-minimal" role="status">Checking subscription...</div>
+<div id="tierDAgentStatusTracker" class="bf-hidden-tracker" aria-hidden="true">Tier D Agents: Store Agent <span class="bf-status-ok">Active</span> · Broker Agent <span class="bf-status-ok">Active</span> · Publicist Agent <span class="bf-status-ok">Active</span> · R&amp;D Agent Phase 4 checkpoint</div>
+<header class="topbar bf-glass-panel">
+  <div class="topbar-brand">
+    <div class="topbar-mark bf-neon-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+    <span class="topbar-brand-text">BizForce AI</span>
+  </div>
+  <div class="topbar-actions">
+    <button type="button" class="bf-btn bf-btn-ghost topbar-quick-action" id="quickActionBtn">Quick Action</button>
+    <button type="button" class="topbar-icon-btn" id="notificationBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="userAvatar">ER</div>
+      <div class="topbar-user-meta">
+        <span class="topbar-user-name" id="bizName">Earth Rose</span>
+        <span class="topbar-role">Executive</span>
+      </div>
+    </div>
+    <button class="logout bf-btn bf-btn-ghost" type="button" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+<div class="app-main">
+<header class="hero hq-hero">
+  <span class="hq-eyebrow hero-pill">BIZFORCE AI</span>
+  <h1 class="hq-hero-title hero-title">EXECUTIVE HQ</h1>
+  <p class="hq-hero-sub">Control your AI business empire.</p>
+  <p class="hq-hero-welcome" id="welcomeMsg">Welcome back, Earth Rose</p>
+</header>
+<div class="bf-feature-grid cards">
+<div class="bf-feature-card card bf-card">
+  <div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+  <h3>AI Staff</h3>
+  <p>Deploy and manage your AI team members across departments.</p>
+  <button id="openAiStaffBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open AI Staff</button>
 </div>
-<div id="tierDAgentStatusTracker" style="background:#080812;border:1px solid rgba(0,229,255,0.15);padding:10px 14px;margin-bottom:16px;border-radius:8px;color:#c5cdd8;font-size:12px;line-height:1.6;">Tier D Agents: Store Agent <span class="bf-status-ok">Active</span> · Broker Agent <span class="bf-status-ok">Active</span> · Publicist Agent <span class="bf-status-ok">Active</span> · R&amp;D Agent Phase 4 checkpoint</div>
-<nav class="hq-nav"><h1>BizForce AI</h1><div class="nav-right"><span class="brand-badge">Executive HQ</span><span class="biz-name" id="bizName">Loading...</span><button class="logout" type="button" onclick="logout()">Sign Out</button></div></nav>
-<div class="main"><header class="hq-hero"><span class="hq-eyebrow">BizForce AI</span><h1 class="hq-hero-title">EXECUTIVE HQ</h1><p class="hq-hero-sub">Control your AI business empire.</p><p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p></header><div class="cards"><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>AI Staff</h3><p>Deploy and manage your AI team members across departments.</p><button id="openAiStaffBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open AI Staff</button></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg></div><h3>Analytics</h3><p>Track performance, revenue, and growth metrics in real time.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><h3>Integrations</h3><p>Connect your tools — CRM, email, scheduling, and more.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Business Chat</h3><p>AI-powered messaging for your entire business network.</p><span class="badge">Coming Soon</span></div></div><div id="agentDirectoryLanding"><div class="card bf-card bf-compact-preview"><h3>AI Agent Directory</h3><p class="bf-compact-sub">Manage your AI business team.</p><div class="bf-agent-chips"><span class="bf-agent-chip">SEO</span><span class="bf-agent-chip">Sales</span><span class="bf-agent-chip">Content</span><span class="bf-agent-chip">Analytics</span><span class="bf-agent-chip">Social</span></div><button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open Agent Directory</button></div></div><div class="activity bf-card bf-activity-compact" id="recentActivitySection"><div class="bf-activity-header"><h3 class="bf-activity-title">Recent Activity</h3><button type="button" class="bf-btn bf-btn-ghost bf-activity-toggle" id="toggleRecentActivity">View activity</button></div><div class="bf-activity-body" id="recentActivityBody"><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">Account created successfully</div><div class="activity-time">Just now</div></div><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">BizForce AI dashboard activated</div><div class="activity-time">Just now</div></div><div class="empty-state">More activity will appear here as you use BizForce AI</div></div></div></div>
-<script>token=localStorage.getItem('bf_token');const user=localStorage.getItem('bf_user');if(!token){window.location.href='/app.html';}else{try{const u=JSON.parse(user);if(u&&u.business_name){document.getElementById('bizName').textContent=u.business_name;document.getElementById('welcomeMsg').textContent='Welcome back, '+u.business_name;}}catch(e){}}function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');window.location.href='/app.html';}</script>
+<div class="bf-feature-card card bf-card">
+  <div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg></div>
+  <h3>Analytics</h3>
+  <p>Track performance, revenue, and growth metrics in real time.</p>
+  <span class="badge">Coming Soon</span>
+</div>
+<div class="bf-feature-card card bf-card">
+  <div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+  <h3>Integrations</h3>
+  <p>Connect your tools — CRM, email, scheduling, and more.</p>
+  <span class="badge">Coming Soon</span>
+</div>
+<div class="bf-feature-card card bf-card">
+  <div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+  <h3>Business Chat</h3>
+  <p>AI-powered messaging for your entire business network.</p>
+  <span class="badge">Coming Soon</span>
+</div>
+</div>
+<div class="bf-section-grid">
+<div id="agentDirectoryLanding" class="bf-directory-preview bf-glass-panel bf-card">
+  <div class="bf-directory-preview-copy">
+    <h3>AI Agent Directory</h3>
+    <p class="bf-compact-sub">Deploy specialists across SEO, sales, content, analytics, and social.</p>
+    <button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open Directory</button>
+  </div>
+  <div class="bf-agent-icon-grid" aria-label="Featured agents">
+    <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-agent-icon-lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><span>SEO Agent</span></div>
+    <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-agent-icon-lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>Sales Agent</span></div>
+    <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-agent-icon-lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><span>Content Agent</span></div>
+    <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-agent-icon-lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg></div><span>Analytics Agent</span></div>
+    <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-agent-icon-lg" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="M15.41 6.51l-6.82 3.98"/></svg></div><span>Social Agent</span></div>
+  </div>
+</div>
+<div id="activeQueueSummary" class="bf-summary-card bf-glass-panel bf-card">
+  <h3>Active Queue</h3>
+  <p class="bf-summary-status" id="activeQueueSummaryStatus">No active assignments</p>
+  <button type="button" id="viewQueueBtn" class="bf-btn bf-btn-ghost">View Queue</button>
+</div>
+</div>
+<div class="activity bf-card bf-activity-compact bf-collapsible" id="recentActivitySection">
+  <div class="bf-activity-header">
+    <h3 class="bf-activity-title">Recent Activity</h3>
+    <button type="button" class="bf-btn bf-btn-ghost bf-activity-toggle" id="toggleRecentActivity">View activity</button>
+  </div>
+  <div class="bf-activity-body" id="recentActivityBody">
+    <div class="activity-item"><div class="activity-dot"></div><div class="activity-text">Account created successfully</div><div class="activity-time">Just now</div></div>
+    <div class="activity-item"><div class="activity-dot"></div><div class="activity-text">BizForce AI dashboard activated</div><div class="activity-time">Just now</div></div>
+    <div class="empty-state">More activity will appear here as you use BizForce AI</div>
+  </div>
+</div>
+</div>
+<script>token=localStorage.getItem('bf_token');const user=localStorage.getItem('bf_user');function bfUserInitials(name){if(!name)return'ER';return name.split(/\s+/).filter(Boolean).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();}if(!token){window.location.href='/app.html';}else{try{const u=JSON.parse(user);if(u&&u.business_name){document.getElementById('bizName').textContent=u.business_name;document.getElementById('welcomeMsg').textContent='Welcome back, '+u.business_name;var av=document.getElementById('userAvatar');if(av){av.textContent=bfUserInitials(u.business_name);}}}catch(e){}}</script>
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -76,6 +156,16 @@ window.updateBusinessProfileSummary = function updateBusinessProfileSummary() {
     }
 };
 
+window.updateActiveQueueSummary = function updateActiveQueueSummary(count) {
+    var el = document.getElementById("activeQueueSummaryStatus");
+    if (!el) {
+        return;
+    }
+    if (typeof count === "number") {
+        el.textContent = count ? count + " active assignment" + (count === 1 ? "" : "s") : "No active assignments";
+    }
+};
+
 window.initDashboardUiChrome = function initDashboardUiChrome() {
     var activityToggle = document.getElementById("toggleRecentActivity");
     var activitySection = document.getElementById("recentActivitySection");
@@ -91,6 +181,23 @@ window.initDashboardUiChrome = function initDashboardUiChrome() {
         profileToggle.addEventListener("click", function () {
             var open = profileForm.classList.toggle("is-open");
             profileToggle.textContent = open ? "Collapse Profile" : "Expand Profile";
+        });
+    }
+    var viewQueueBtn = document.getElementById("viewQueueBtn");
+    if (viewQueueBtn) {
+        viewQueueBtn.addEventListener("click", function () {
+            var target = document.getElementById("agentAssignmentsSection");
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        });
+    }
+    var runtimeToggle = document.getElementById("toggleExecutiveRuntime");
+    var runtimePanels = document.getElementById("executiveRuntimePanels");
+    if (runtimeToggle && runtimePanels) {
+        runtimeToggle.addEventListener("click", function () {
+            var open = runtimePanels.classList.toggle("is-open");
+            runtimeToggle.textContent = open ? "Hide Runtime Details" : "Show Runtime Details";
         });
     }
 };
@@ -317,10 +424,9 @@ if (planStatus) {
         ) {
          planStatus.innerHTML = "Subscription ACTIVE — Full Access";
 
-var loadingBadge = document.querySelector("nav");
-
-if (loadingBadge) {
-  loadingBadge.innerHTML = loadingBadge.innerHTML.replace("Loading...", "Active");
+var bizNameEl = document.getElementById("bizName");
+if (bizNameEl && bizNameEl.textContent === "Loading...") {
+  bizNameEl.textContent = "Active";
 }
         } else {
           planStatus.innerHTML = "Subscription not active yet.";
@@ -333,14 +439,17 @@ if (loadingBadge) {
 }
 </script>
 <section id="businessProfileSection" class="bf-section">
-  <h2 class="bf-section-title">Business Profile</h2>
-
-  <div class="bf-card">
-  <div id="businessProfileSummary" class="bf-profile-summary">
-    <div class="bf-profile-summary-line" id="businessProfileSummaryName"><strong>Business name not set</strong></div>
-    <div class="bf-profile-summary-line" id="businessProfileSummaryMeta">Category not set · Goal not set</div>
-  </div>
-  <button type="button" id="toggleBusinessProfile" class="bf-btn bf-btn-ghost">Expand Profile</button>
+  <div class="bf-collapsible bf-summary-card bf-glass-panel bf-card">
+    <div class="bf-collapsible-header">
+      <div class="bf-collapsible-copy">
+        <h2 class="bf-collapsible-title">Business Profile</h2>
+        <div id="businessProfileSummary" class="bf-profile-summary bf-profile-summary-inline">
+          <div class="bf-profile-summary-line" id="businessProfileSummaryName"><strong>Business name not set</strong></div>
+          <div class="bf-profile-summary-line" id="businessProfileSummaryMeta">Category not set · Goal not set</div>
+        </div>
+      </div>
+      <button type="button" id="toggleBusinessProfile" class="bf-btn bf-btn-ghost">Expand Profile</button>
+    </div>
   <div id="businessProfileFormWrap" class="bf-profile-form">
   <div class="bf-form-grid">
 
@@ -840,12 +949,25 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
 }
 </style>
 
-<section id="executiveCommandCenterSection" class="bf-section">
-  <h2 class="bf-section-title">Executive Command Center</h2>
-  <div id="executiveCommandCenterContent" style="width:100%;max-width:100%;min-width:0;margin-bottom:18px;"></div>
-  <div id="executiveRuntimeDashboardContent" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
-  <div id="executiveAgentCommandCenterContent" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
-  <div id="executiveRuntimeTestControls" style="width:100%;max-width:100%;min-width:0;margin-top:18px;"></div>
+<section id="executiveCommandCenterSection" class="bf-section bf-section-compact">
+  <div class="bf-collapsible bf-summary-card bf-glass-panel bf-card">
+    <div class="bf-collapsible-header">
+      <div class="bf-collapsible-copy">
+        <div class="bf-neon-icon bf-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
+        <div>
+          <h2 class="bf-collapsible-title">Executive Command Center</h2>
+          <p class="bf-compact-sub">Coordinate sprints, runtime health, and agent orchestration.</p>
+        </div>
+      </div>
+      <button type="button" id="toggleExecutiveRuntime" class="bf-btn bf-btn-ghost">Show Runtime Details</button>
+    </div>
+    <div id="executiveCommandCenterContent" class="bf-command-summary"></div>
+    <div id="executiveRuntimePanels" class="bf-runtime-panels">
+      <div id="executiveRuntimeDashboardContent" class="bf-runtime-panel"></div>
+      <div id="executiveAgentCommandCenterContent" class="bf-runtime-panel"></div>
+      <div id="executiveRuntimeTestControls" class="bf-runtime-panel"></div>
+    </div>
+  </div>
 </section>
 
 <section id="agentAssignmentsSection" class="bf-section">
@@ -890,11 +1012,18 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
   </div>
 </section>
 
-<section id="agentMemorySection" class="bf-section">
-  <div class="bf-section-header">
-    <h2 class="bf-section-title">Agent Memory</h2>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <select id="agentMemoryFilter" style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:180px;">
+<section id="agentMemorySection" class="bf-section bf-section-compact">
+  <div class="bf-collapsible bf-summary-card bf-glass-panel bf-card">
+    <div class="bf-collapsible-header">
+      <div class="bf-collapsible-copy">
+        <div class="bf-neon-icon bf-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+        <div>
+          <h2 class="bf-collapsible-title">Agent Memory</h2>
+          <p class="bf-compact-sub">Search and filter stored agent context and learnings.</p>
+        </div>
+      </div>
+      <div class="bf-memory-controls">
+      <select id="agentMemoryFilter" class="bf-select-compact">
         <option value="">All Agents</option>
         <option value="seo">SEO</option>
         <option value="content">Content</option>
@@ -903,11 +1032,10 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
         <option value="reputation">Reputation</option>
         <option value="analytics">Analytics</option>
       </select>
-      <input id="agentMemorySearch" type="search" placeholder="Search memories..." style="padding:12px 16px;font-size:14px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:white;font-weight:700;min-width:220px;" />
+      <input id="agentMemorySearch" class="bf-input-compact" type="search" placeholder="Search memories..." />
+      </div>
     </div>
-  </div>
-  <div class="bf-card bf-panel">
-  <div id="agentMemoryList" style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;"></div>
+  <div id="agentMemoryList" class="bf-memory-list"></div>
   </div>
 </section>
 
@@ -38630,6 +38758,10 @@ function renderAssignmentDashboard() {
         historyItems.forEach(function(item) {
             historyAssignmentsList.appendChild(renderAssignmentCard(item, true));
         });
+    }
+
+    if (typeof window.updateActiveQueueSummary === "function") {
+        window.updateActiveQueueSummary(activeItems.length);
     }
 
     if (false) {
