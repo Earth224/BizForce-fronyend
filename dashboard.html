@@ -25,23 +25,74 @@ if (!token) {
 <div id="planStatus" style="background:#111;border:1px solid #333;padding:15px;margin-bottom:20px;border-radius:8px;">
   Checking subscription...
 </div>
-<div id="tierDAgentStatusTracker" style="background:#080812;border:1px solid rgba(0,229,255,0.15);padding:10px 14px;margin-bottom:16px;border-radius:8px;color:#c5cdd8;font-size:12px;line-height:1.6;">Tier D Agents: Store Agent ✅ · Broker Agent ✅ · Publicist Agent ✅ · R&amp;D Agent Phase 4 checkpoint</div>
+<div id="tierDAgentStatusTracker" style="background:#080812;border:1px solid rgba(0,229,255,0.15);padding:10px 14px;margin-bottom:16px;border-radius:8px;color:#c5cdd8;font-size:12px;line-height:1.6;">Tier D Agents: Store Agent <span class="bf-status-ok">Active</span> · Broker Agent <span class="bf-status-ok">Active</span> · Publicist Agent <span class="bf-status-ok">Active</span> · R&amp;D Agent Phase 4 checkpoint</div>
 <nav class="hq-nav"><h1>BizForce AI</h1><div class="nav-right"><span class="brand-badge">Executive HQ</span><span class="biz-name" id="bizName">Loading...</span><button class="logout" type="button" onclick="logout()">Sign Out</button></div></nav>
-<div class="main"><header class="hq-hero"><span class="hq-eyebrow">BizForce AI</span><h1 class="hq-hero-title">EXECUTIVE HQ</h1><p class="hq-hero-sub">Control your AI business empire.</p><p class="hq-hero-welcome" id="welcomeMsg">Welcome back 👋</p></header><div class="cards"><div class="card bf-card"><div class="card-icon">🤖</div><h3>AI Staff</h3><p>Deploy and manage your AI team members across departments.</p><button id="openAiStaffBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open AI Staff</button></div><div class="card bf-card"><div class="card-icon">📊</div><h3>Analytics</h3><p>Track performance, revenue, and growth metrics in real time.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="card-icon">🔗</div><h3>Integrations</h3><p>Connect your tools — CRM, email, scheduling, and more.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="card-icon">💬</div><h3>Business Chat</h3><p>AI-powered messaging for your entire business network.</p><span class="badge">Coming Soon</span></div></div><div id="agentDirectoryLanding"><div class="card bf-card"><h3 style="font-size:1rem;font-weight:800;margin:0 0 12px;color:#ffffff;letter-spacing:.06em;text-transform:uppercase;">AI Agent Directory</h3><p style="margin:0 0 8px;color:#8892b8;font-size:0.9rem;font-weight:700;">Manage:</p><ul style="margin:0 0 16px;padding-left:20px;color:#8892b8;font-size:0.9rem;line-height:1.8;list-style:disc;"><li>SEO Agent</li><li>Sales Agent</li><li>Content Agent</li><li>Analytics Agent</li><li>Social Agent</li><li>Future BizForce agents</li></ul><button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open Agent Directory</button></div></div><div class="activity bf-card"><h3 class="bf-section-title" style="font-size:1rem;margin-bottom:16px;">Recent Activity</h3><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">Account created successfully</div><div class="activity-time">Just now</div></div><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">BizForce AI dashboard activated</div><div class="activity-time">Just now</div></div><div class="empty-state">More activity will appear here as you use BizForce AI</div></div></div>
-<script>token=localStorage.getItem('bf_token');const user=localStorage.getItem('bf_user');if(!token){window.location.href='/app.html';}else{try{const u=JSON.parse(user);if(u&&u.business_name){document.getElementById('bizName').textContent=u.business_name;document.getElementById('welcomeMsg').textContent='Welcome back, '+u.business_name+' 👋';}}catch(e){}}function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');window.location.href='/app.html';}</script>
+<div class="main"><header class="hq-hero"><span class="hq-eyebrow">BizForce AI</span><h1 class="hq-hero-title">EXECUTIVE HQ</h1><p class="hq-hero-sub">Control your AI business empire.</p><p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p></header><div class="cards"><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><h3>AI Staff</h3><p>Deploy and manage your AI team members across departments.</p><button id="openAiStaffBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open AI Staff</button></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg></div><h3>Analytics</h3><p>Track performance, revenue, and growth metrics in real time.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><h3>Integrations</h3><p>Connect your tools — CRM, email, scheduling, and more.</p><span class="badge">Coming Soon</span></div><div class="card bf-card"><div class="bf-neon-icon bf-card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><h3>Business Chat</h3><p>AI-powered messaging for your entire business network.</p><span class="badge">Coming Soon</span></div></div><div id="agentDirectoryLanding"><div class="card bf-card bf-compact-preview"><h3>AI Agent Directory</h3><p class="bf-compact-sub">Manage your AI business team.</p><div class="bf-agent-chips"><span class="bf-agent-chip">SEO</span><span class="bf-agent-chip">Sales</span><span class="bf-agent-chip">Content</span><span class="bf-agent-chip">Analytics</span><span class="bf-agent-chip">Social</span></div><button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open Agent Directory</button></div></div><div class="activity bf-card bf-activity-compact" id="recentActivitySection"><div class="bf-activity-header"><h3 class="bf-activity-title">Recent Activity</h3><button type="button" class="bf-btn bf-btn-ghost bf-activity-toggle" id="toggleRecentActivity">View activity</button></div><div class="bf-activity-body" id="recentActivityBody"><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">Account created successfully</div><div class="activity-time">Just now</div></div><div class="activity-item"><div class="activity-dot"></div><div class="activity-text">BizForce AI dashboard activated</div><div class="activity-time">Just now</div></div><div class="empty-state">More activity will appear here as you use BizForce AI</div></div></div></div>
+<script>token=localStorage.getItem('bf_token');const user=localStorage.getItem('bf_user');if(!token){window.location.href='/app.html';}else{try{const u=JSON.parse(user);if(u&&u.business_name){document.getElementById('bizName').textContent=u.business_name;document.getElementById('welcomeMsg').textContent='Welcome back, '+u.business_name;}}catch(e){}}function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');window.location.href='/app.html';}</script>
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var AI_MAILBOX_STORAGE_KEY = "bizforce_ai_mailbox";
 var AI_MAILBOX_HYDRATION_DISABLED_KEY = "bizforce_ai_mailbox_hydration_disabled";
 
-window.bfStatusCard = function bfStatusCard(icon, headline, title, body) {
+window.bfIcon = function bfIcon(key) {
+    var icons = {
+        staff: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        analytics: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg>',
+        integrations: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+        chat: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+        command: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>',
+        memory: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>',
+        queue: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+        mailbox: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+        history: '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 3"/></svg>'
+    };
+    return icons[key] || icons.command;
+};
+
+window.bfStatusCard = function bfStatusCard(iconKey, headline, title, body) {
     return '<div class="bf-status-card bf-card">' +
-        '<div class="bf-status-icon">' + icon + '</div>' +
+        '<div class="bf-neon-icon bf-status-icon" aria-hidden="true">' + window.bfIcon(iconKey) + '</div>' +
         '<div class="bf-status-headline">' + headline + '</div>' +
         '<div class="bf-status-title">' + title + '</div>' +
         '<div class="bf-status-body">' + body + '</div>' +
     '</div>';
+};
+
+window.updateBusinessProfileSummary = function updateBusinessProfileSummary() {
+    var nameEl = document.getElementById("businessProfileSummaryName");
+    var metaEl = document.getElementById("businessProfileSummaryMeta");
+    var nameField = document.getElementById("business_name");
+    var typeField = document.getElementById("business_type");
+    var goalField = document.getElementById("primary_goal");
+    var name = nameField && nameField.value ? nameField.value : "Business name not set";
+    var type = typeField && typeField.value ? typeField.value : "Category not set";
+    var goal = goalField && goalField.value ? goalField.value : "Goal not set";
+    if (nameEl) {
+        nameEl.innerHTML = "<strong>" + name + "</strong>";
+    }
+    if (metaEl) {
+        metaEl.textContent = type + " · " + goal;
+    }
+};
+
+window.initDashboardUiChrome = function initDashboardUiChrome() {
+    var activityToggle = document.getElementById("toggleRecentActivity");
+    var activitySection = document.getElementById("recentActivitySection");
+    if (activityToggle && activitySection) {
+        activityToggle.addEventListener("click", function () {
+            var open = activitySection.classList.toggle("is-open");
+            activityToggle.textContent = open ? "Hide activity" : "View activity";
+        });
+    }
+    var profileToggle = document.getElementById("toggleBusinessProfile");
+    var profileForm = document.getElementById("businessProfileFormWrap");
+    if (profileToggle && profileForm) {
+        profileToggle.addEventListener("click", function () {
+            var open = profileForm.classList.toggle("is-open");
+            profileToggle.textContent = open ? "Collapse Profile" : "Expand Profile";
+        });
+    }
 };
 
 window.bfStatTile = function bfStatTile(label, value, tone) {
@@ -285,11 +336,17 @@ if (loadingBadge) {
   <h2 class="bf-section-title">Business Profile</h2>
 
   <div class="bf-card">
+  <div id="businessProfileSummary" class="bf-profile-summary">
+    <div class="bf-profile-summary-line" id="businessProfileSummaryName"><strong>Business name not set</strong></div>
+    <div class="bf-profile-summary-line" id="businessProfileSummaryMeta">Category not set · Goal not set</div>
+  </div>
+  <button type="button" id="toggleBusinessProfile" class="bf-btn bf-btn-ghost">Expand Profile</button>
+  <div id="businessProfileFormWrap" class="bf-profile-form">
   <div class="bf-form-grid">
 
-<input id="business_name" type="text" placeholder="Business Name" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="business_name" class="bf-input" type="text" placeholder="Business Name" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<select id="business_type" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<select id="business_type" class="bf-input" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 <option value="">Business Type</option>
 <option>E-Commerce</option>
 <option>Service Business</option>
@@ -305,29 +362,29 @@ if (loadingBadge) {
 <option>Other</option>
 </select>
 
-<input id="industry" type="text" placeholder="Industry" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="industry" type="text" placeholder="Industry" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="niche" type="text" placeholder="Niche" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="niche" type="text" placeholder="Niche" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="website" type="text" placeholder="Website" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="website" type="text" placeholder="Website" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="location" type="text" placeholder="Business Location" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="location" type="text" placeholder="Business Location" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="target_audience" type="text" placeholder="Target Audience" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="target_audience" type="text" placeholder="Target Audience" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="offer" type="text" placeholder="Main Offer / Product" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="offer" type="text" placeholder="Main Offer / Product" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="monthly_revenue" type="text" placeholder="Monthly Revenue" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="monthly_revenue" type="text" placeholder="Monthly Revenue" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="monthly_budget" type="text" placeholder="Monthly Marketing Budget" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="monthly_budget" type="text" placeholder="Monthly Marketing Budget" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="primary_goal" type="text" placeholder="Primary Business Goal" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="primary_goal" type="text" placeholder="Primary Business Goal" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="top_keywords" type="text" placeholder="Top Keywords" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="top_keywords" type="text" placeholder="Top Keywords" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="top_competitors" type="text" placeholder="Top Competitors" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="top_competitors" type="text" placeholder="Top Competitors" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
-<input id="social_platforms" type="text" placeholder="Social Platforms" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<input id="social_platforms" type="text" placeholder="Social Platforms" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 
 <textarea id="products_services" placeholder="Products / Services" class="bf-span-2" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;min-height:120px;"></textarea>
 
@@ -341,6 +398,7 @@ Save Business Profile
 
 <div id="businessProfileStatus" class="bf-span-2" style="font-size:16px;"></div>
 
+</div>
 </div>
 </div>
 </section>
@@ -498,7 +556,7 @@ Save Business Profile
 <option value="operations">Operations Agent</option>
 </select>
 
-<select id="taskType" style="padding:15px;font-size:16px;border-radius:10px;border:none;">
+<select id="taskType" style="padding:15px;font-size:16px;border-radius:12px;border:1px solid rgba(0,255,255,.12);background:rgba(8,12,28,.85);color:#f4f7ff;">
 <option value="general">General Task</option>
 <option value="seo_audit">SEO Audit</option>
 <option value="sales_funnel">Sales Funnel</option>
@@ -856,6 +914,10 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
+if (typeof window.initDashboardUiChrome === "function") {
+    window.initDashboardUiChrome();
+}
+
 var aiMailbox = [];
 
 try {
@@ -1117,7 +1179,7 @@ function renderAiMailbox() {
     aiMailboxResults.innerHTML = "";
 
     if (!aiMailbox.length) {
-        aiMailboxResults.innerHTML = window.bfStatusCard("📬", "MAILBOX READY", "No AI reports saved yet.", "Launch an AI task and results will appear here automatically.");
+        aiMailboxResults.innerHTML = window.bfStatusCard("mailbox", "MAILBOX READY", "No AI reports saved yet.", "Launch an AI task and results will appear here automatically.");
         updateMailboxUnreadCount();
         return;
     }
@@ -1468,6 +1530,9 @@ setProfileField("social_platforms", profile.social_platforms);
 setProfileField("products_services", profile.products_services);
 setProfileField("brand_voice", profile.brand_voice);
 setProfileField("business_description", profile.business_description);
+if (typeof window.updateBusinessProfileSummary === "function") {
+    window.updateBusinessProfileSummary();
+}
 })
 .catch(function (err) {
 
@@ -1527,6 +1592,10 @@ business_description: document.getElementById("business_description").value
 
       document.getElementById("businessProfileStatus").innerHTML =
         "<span style='color:#00ff99;'>Business profile saved successfully.</span>";
+
+      if (typeof window.updateBusinessProfileSummary === "function") {
+        window.updateBusinessProfileSummary();
+      }
 
       console.log("BUSINESS PROFILE SAVED:", data);
 
@@ -2207,7 +2276,7 @@ function renderAgentMemories() {
     agentMemoryList.innerHTML = "";
 
     if (!memories.length) {
-        agentMemoryList.innerHTML = window.bfStatusCard("🧠", "MEMORY READY", "No memories stored yet.", "Agents will automatically save experiences and outcomes.");
+        agentMemoryList.innerHTML = window.bfStatusCard("memory", "MEMORY READY", "No memories stored yet.", "Agents will automatically save experiences and outcomes.");
         return;
     }
 
@@ -3602,7 +3671,7 @@ function renderExecutiveRuntimeDashboard(sprint) {
             '<div class="bf-card bf-panel">' +
                 '<div class="bf-subpanel-title">Executive Runtime Dashboard</div>' +
                 getExecutiveRuntimeSchedulerCardHtml() +
-                window.bfStatusCard("🚀", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.") +
+                window.bfStatusCard("command", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.") +
             '</div>';
         return executiveRuntimeDashboardContent.innerHTML;
     }
@@ -3625,7 +3694,7 @@ function renderExecutiveRuntimeDashboard(sprint) {
     var statusLabel;
     var progressPercent;
     var runtimeHealth;
-    var healthEmoji;
+    var healthTone;
     var healthLabel;
     var healthMessage;
 
@@ -3649,7 +3718,7 @@ function renderExecutiveRuntimeDashboard(sprint) {
     }
 
     runtimeHealth = getRuntimeHealth(sprint);
-    healthEmoji = runtimeHealth.emoji || "🟢";
+    healthTone = runtimeHealth.status === "healthy" ? "accent" : (runtimeHealth.status === "blocked" || runtimeHealth.status === "degraded") ? "warn" : "";
     healthLabel = runtimeHealth.label || "Healthy";
     healthMessage = runtimeHealth.message || "";
     progressPercent = sprint.overallProgress || 0;
@@ -3693,7 +3762,7 @@ function renderExecutiveRuntimeDashboard(sprint) {
             '<div class="bf-card" style="padding:16px;">' +
                 '<div class="bf-subpanel-title">Health</div>' +
                 window.bfStatGrid(
-                    window.bfStatTile("Status", healthEmoji + " " + assignmentEscapeHtml(healthLabel), "accent") +
+                    window.bfStatTile("Status", assignmentEscapeHtml(healthLabel), healthTone) +
                     window.bfStatTile("Message", assignmentEscapeHtml(healthMessage))
                 ) +
             '</div>' +
@@ -7126,7 +7195,7 @@ function clearTestSprints() {
     }
 
     if (executiveCommandCenterContent) {
-        executiveCommandCenterContent.innerHTML = window.bfStatusCard("🚀", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.");
+        executiveCommandCenterContent.innerHTML = window.bfStatusCard("command", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.");
     }
 
     startExecutiveRuntimeScheduler();
@@ -35653,7 +35722,7 @@ function renderExecutiveSprintDashboard() {
     var skipSprintSave = !!(sprint && sprint._assignmentQueueFallback);
 
     if (!sprint) {
-        executiveCommandCenterContent.innerHTML = window.bfStatusCard("🚀", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.");
+        executiveCommandCenterContent.innerHTML = window.bfStatusCard("command", "READY", "No active sprint.", "Launch a sprint to begin coordinating your AI workforce.");
         return;
     }
 
@@ -35670,14 +35739,14 @@ function renderExecutiveSprintDashboard() {
     var blockedAgents = [];
     var sprintHealth = generateSprintHealth(sprint);
     var stuckReport = detectStuckAgents(sprint);
-    var healthEmoji = sprintHealth.status === "healthy" ? "🟢" : sprintHealth.status === "critical" ? "🔴" : "🟡";
+    var healthTone = sprintHealth.status === "healthy" ? "accent" : sprintHealth.status === "critical" ? "warn" : "";
     var healthLabel = sprintHealth.status === "healthy" ? "HEALTHY" : sprintHealth.status === "critical" ? "CRITICAL" : "ACTIVE";
 
     if (stuckReport.status === "critical" && sprintHealth.status !== "critical") {
-        healthEmoji = "🔴";
+        healthTone = "warn";
         healthLabel = "CRITICAL";
     } else if (stuckReport.status === "warning" && sprintHealth.status === "active") {
-        healthEmoji = "🟡";
+        healthTone = "";
         healthLabel = "ACTIVE";
     }
 
@@ -35712,7 +35781,7 @@ function renderExecutiveSprintDashboard() {
                 '<div style="color:#00e5ff;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:6px 12px;">' + assignmentEscapeHtml(statusLabel) + '</div>' +
             '</div>' +
             window.bfStatGrid(
-                window.bfStatTile("Sprint Health", healthEmoji + " " + assignmentEscapeHtml(healthLabel), "accent") +
+                window.bfStatTile("Sprint Health", assignmentEscapeHtml(healthLabel), healthTone) +
                 window.bfStatTile("Progress", assignmentEscapeHtml(String(sprint.overallProgress || 0)) + "%", "accent") +
                 window.bfStatTile("Running", assignmentEscapeHtml(runningLabel)) +
                 window.bfStatTile("Blocked", assignmentEscapeHtml(blockedLabel), blockedAgents.length ? "warn" : "")
@@ -38548,7 +38617,7 @@ function renderAssignmentDashboard() {
     historyAssignmentsList.innerHTML = "";
 
     if (!activeItems.length) {
-        activeAssignmentsList.innerHTML = window.bfStatusCard("📋", "QUEUE CLEAR", "No active assignments.", "Your AI workforce is standing by.");
+        activeAssignmentsList.innerHTML = window.bfStatusCard("queue", "QUEUE CLEAR", "No active assignments.", "Your AI workforce is standing by.");
     } else {
         activeItems.forEach(function(item) {
             activeAssignmentsList.appendChild(renderAssignmentCard(item, false));
@@ -38556,7 +38625,7 @@ function renderAssignmentDashboard() {
     }
 
     if (!historyItems.length) {
-        historyAssignmentsList.innerHTML = window.bfStatusCard("📁", "HISTORY EMPTY", "No completed assignments yet.", "Finished work will archive here for review.");
+        historyAssignmentsList.innerHTML = window.bfStatusCard("history", "HISTORY EMPTY", "No completed assignments yet.", "Finished work will archive here for review.");
     } else {
         historyItems.forEach(function(item) {
             historyAssignmentsList.appendChild(renderAssignmentCard(item, true));
