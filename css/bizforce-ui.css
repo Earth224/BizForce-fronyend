@@ -46,6 +46,13 @@
 .topbar-mark.bf-neon-icon {
   width: 40px;
   height: 40px;
+  border-radius: 12px;
+  --bf-icon-stroke: #67ecff;
+}
+
+.topbar-mark.bf-neon-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .topbar-brand-text {
@@ -76,8 +83,9 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  border: 1px solid rgba(0, 229, 255, 0.32);
   background: rgba(8, 12, 28, 0.85);
+  color: #5ee8ff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -88,11 +96,14 @@
 .topbar-icon-btn svg {
   width: 18px;
   height: 18px;
+  display: block;
+  shape-rendering: geometricPrecision;
 }
 
 .topbar-icon-btn:hover {
-  border-color: rgba(0, 255, 255, 0.45);
-  box-shadow: 0 0 16px rgba(0, 217, 255, 0.15);
+  color: #8af5ff;
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 16px rgba(0, 217, 255, 0.2);
 }
 
 .topbar-user {
@@ -348,14 +359,12 @@
 }
 
 .bf-agent-icon-lg {
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 16px !important;
+  border-radius: 14px !important;
 }
 
 .bf-agent-icon-lg svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
 }
 
 .bf-summary-card {
@@ -414,8 +423,6 @@
 }
 
 .bf-section-icon {
-  width: 44px !important;
-  height: 44px !important;
   flex-shrink: 0;
 }
 
@@ -577,28 +584,91 @@ button.logout.bf-btn-ghost:hover {
   line-height: 1;
 }
 
-.bf-neon-icon {
+/* Executive HQ icon system */
+.bf-neon-icon,
+.bf-hq-icon {
+  --bf-icon-stroke: #5ee8ff;
+  color: var(--bf-icon-stroke);
   width: 52px;
   height: 52px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(168, 85, 247, 0.2));
-  border: 2px solid rgba(0, 229, 255, 0.3);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+  background: linear-gradient(145deg, rgba(0, 229, 255, 0.1), rgba(125, 92, 255, 0.16));
+  border: 1.5px solid rgba(0, 229, 255, 0.42);
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.18),
+    0 0 24px rgba(125, 92, 255, 0.1),
+    inset 0 0 10px rgba(0, 229, 255, 0.05);
   flex-shrink: 0;
+  transition: color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.bf-neon-icon svg {
-  width: 24px;
-  height: 24px;
+.bf-hq-icon.bf-card-icon,
+.bf-feature-card .bf-hq-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}
+
+.bf-agent-icon,
+.bf-neon-icon.bf-agent-icon,
+.bf-neon-icon.bf-agent-icon-lg {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+}
+
+.bf-neon-icon.bf-section-icon,
+.bf-hq-icon.bf-section-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+}
+
+.bf-neon-icon svg,
+.bf-hq-icon svg,
+.bf-agent-icon svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+  flex-shrink: 0;
+  shape-rendering: geometricPrecision;
+}
+
+.bf-agent-icon svg,
+.bf-agent-icon-lg svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bf-section-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bf-feature-card:hover .bf-hq-icon,
+.bf-agent-icon-block:hover .bf-agent-icon,
+.bf-collapsible:hover .bf-hq-icon.bf-section-icon {
+  --bf-icon-stroke: #8af5ff;
+  border-color: rgba(0, 255, 255, 0.58);
+  box-shadow:
+    0 0 14px rgba(0, 229, 255, 0.28),
+    0 0 32px rgba(125, 92, 255, 0.16),
+    inset 0 0 12px rgba(0, 229, 255, 0.08);
 }
 
 .bf-status-card .bf-neon-icon.bf-status-icon {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   margin: 0 auto 14px;
+  border-radius: 50%;
+}
+
+.bf-status-card .bf-status-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .bf-card-icon {
