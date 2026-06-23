@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BizForce AI — Content Agent</title>
+  <title>BizForce AI — Email Agent</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -391,21 +391,21 @@
       .report-items { grid-template-columns: 1fr; }
     }
   
-    .agent-avatar{border-color:rgba(52,211,153,0.5);background:linear-gradient(135deg,rgba(0,229,255,0.18),rgba(168,85,247,0.22));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
+    .agent-avatar{border-color:rgba(251,191,36,0.5);background:linear-gradient(135deg,rgba(251,191,36,0.18),rgba(168,85,247,0.15));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
   </style>
 </head>
 <body>
   <div class="page">
     <nav class="top-nav">
-      <a class="back-link" href="../ai-agents.html">← Agent Directory</a>
+      <a class="back-link" href="ai-agents.html">← Agent Directory</a>
       <span class="brand-badge">BizForce AI</span>
     </nav>
     <header class="agent-header">
-      <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg></div>
       <div class="agent-header-text">
-        <h1 class="agent-title">Content Agent</h1>
-        <p class="agent-subtitle">Articles, campaigns, and creative strategy intelligence.</p>
-        <div class="capability-pills"><span class="capability-pill">Articles</span><span class="capability-pill">Campaigns</span><span class="capability-pill">Social Posts</span><span class="capability-pill">Video Scripts</span><span class="capability-pill">Strategy</span></div>
+        <h1 class="agent-title">Email Agent</h1>
+        <p class="agent-subtitle">Email campaigns, sequences, and deliverability intelligence.</p>
+        <div class="capability-pills"><span class="capability-pill">Campaigns</span><span class="capability-pill">Sequences</span><span class="capability-pill">Deliverability</span><span class="capability-pill">Audiences</span><span class="capability-pill">Automation</span></div>
       </div>
     </header>
     <section class="context-card" aria-label="Business Profile Context">
@@ -418,20 +418,20 @@
       <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
-        <a class="action-btn" href="../dashboard.html">Run on Dashboard</a>
+        <a class="action-btn" href="dashboard.html">Run on Dashboard</a>
       </div>
     </div>
     <div class="reports-grid" id="reportsGrid"></div>
   </div>
   <script>
-    var AGENT_KEY = "contentAgent";
+    var AGENT_KEY = "emailAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Articles","collections":["articles"]},{"title":"Campaigns","collections":["campaigns"]},{"title":"Social Posts","collections":["socialPosts"]},{"title":"Strategies","collections":["strategies","ideas"]},{"title":"Legacy Reports","collections":["legacyReports"]}];
+    var REPORT_SECTIONS = [{"title":"Campaigns","collections":["campaigns"]},{"title":"Sequences","collections":["sequences"]},{"title":"Insights","collections":["insights"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Opportunities","collections":["opportunities"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
-    var DASHBOARD_HREF = "../dashboard.html";
-    var AGENT_LABEL = "Content Agent";
+    var DASHBOARD_HREF = "dashboard.html";
+    var AGENT_LABEL = "Email Agent";
 
     function escapeHtml(value) {
       return String(value == null ? "" : value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
