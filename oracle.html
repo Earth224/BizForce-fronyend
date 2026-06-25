@@ -38,6 +38,17 @@
       --header-bg:    rgba(2, 5, 16, 0.88);
       --text-clr:     #cce8ee;
       --sender-clr:   rgba(45, 212, 191, 0.55);
+      /* Jungle & mirror — overridden by JS palette */
+      --j-far:        rgba(10, 20, 48, 0.85);
+      --j-mid:        rgba(4, 10, 28, 0.92);
+      --j-near:       rgba(1, 4, 14, 1);
+      --stream-clr:   rgba(0, 90, 130, 0.38);
+      --stream-deep:  rgba(0, 55, 98, 0.62);
+      --stream-shim:  rgba(45, 212, 191, 0.18);
+      --mirror-f-clr: #2dd4bf;
+      --mirror-glow:  rgba(45, 212, 191, 0.44);
+      --nebula-1:     rgba(76, 0, 115, 0.48);
+      --nebula-2:     rgba(0, 115, 155, 0.42);
     }
 
     html, body {
@@ -527,10 +538,147 @@
     .oracle-send-btn:active { transform: translateY(0); }
     .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
 
+    /* ════════════════════════════════════════
+       JUNGLE SCENE
+    ════════════════════════════════════════ */
+    .jungle-scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .jl-layer { position: absolute; bottom: 0; left: 0; right: 0; }
+    .jl-far   { opacity: 0.28; z-index: 1; }
+    .jl-mid   { opacity: 0.58; z-index: 2; }
+    .jl-near  { opacity: 0.90; z-index: 5; }
+
+    .jl-far  .jungle-tree { color: var(--j-far); }
+    .jl-mid  .jungle-tree { color: var(--j-mid); }
+    .jl-near .jungle-tree { color: var(--j-near); }
+
+    .jungle-tree { position: absolute; bottom: 0; transform-origin: bottom center; }
+    .jungle-tree svg { display: block; fill: currentColor; transition: fill 4s ease; }
+
+    /* Stream */
+    .jungle-stream {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 65px; z-index: 3; overflow: hidden;
+    }
+    .stream-surface {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 0%, var(--stream-clr) 45%, var(--stream-deep) 100%);
+      transition: background 4s ease;
+    }
+    .stream-shimmer {
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg, transparent 0px, transparent 36px,
+        var(--stream-shim) 36px, var(--stream-shim) 37px
+      );
+      animation: streamFlow 3s linear infinite;
+    }
+    .stream-wave {
+      position: absolute; bottom: 0; left: -100%; width: 200%; height: 38px;
+      background: var(--stream-clr);
+      border-radius: 50% 50% 0 0 / 22px 22px 0 0;
+      animation: streamWave 5.5s ease-in-out infinite;
+      opacity: 0.44; transition: background 4s ease;
+    }
+    .stream-wave.sw2 { animation-delay: -2.75s; opacity: 0.26; }
+    @keyframes streamFlow {
+      from { transform: translateX(0); } to { transform: translateX(37px); }
+    }
+    @keyframes streamWave {
+      0%, 100% { transform: translateX(-4%) scaleY(1);   }
+      50%       { transform: translateX(4%)  scaleY(1.4); }
+    }
+
+    /* ════════════════════════════════════════
+       ORNATE MIRROR
+    ════════════════════════════════════════ */
+    .mirror-container {
+      position: relative;
+      width: 260px; height: 360px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-bottom: -100px;
+      z-index: 2;
+    }
+    .mirror-frame-svg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      color: var(--mirror-f-clr); z-index: 3;
+      filter: drop-shadow(0 0 10px var(--mirror-glow));
+      transition: color 4s ease, filter 4s ease;
+    }
+    .mirror-face {
+      position: absolute; width: 170px; height: 240px;
+      border-radius: 50%; overflow: hidden; z-index: 2;
+      box-shadow: 0 0 24px var(--mirror-glow), 0 0 52px var(--mirror-glow), inset 0 0 50px rgba(0,0,0,0.88);
+      transition: box-shadow 4s ease;
+    }
+    .cosmic-abyss { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
+    .nebula-base {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 55%, rgba(55,5,75,1) 0%, rgba(18,2,35,1) 42%, rgba(0,0,8,1) 100%);
+    }
+    .nebula-bloom-1 {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 68% 48% at 38% 46%, var(--nebula-1) 0%, transparent 68%);
+      animation: nebulaDrift 8s ease-in-out infinite alternate;
+      transition: background 4s ease;
+    }
+    .nebula-bloom-2 {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 58% 42% at 64% 58%, var(--nebula-2) 0%, transparent 62%);
+      animation: nebulaDrift 11s ease-in-out infinite alternate-reverse;
+      transition: background 4s ease;
+    }
+    @keyframes nebulaDrift {
+      0%   { opacity: 0.55; transform: scale(1)    translate(0,   0);   }
+      50%  { opacity: 0.82; transform: scale(1.09) translate(-4%, 3%);  }
+      100% { opacity: 0.58; transform: scale(0.94) translate(5%, -4%);  }
+    }
+    .star-particles {
+      position: absolute; width: 1px; height: 1px; top: 50%; left: 50%; background: transparent;
+      box-shadow:
+        -62px -98px 0 0.5px rgba(255,255,255,0.85), -42px -110px 0 1px rgba(220,240,255,0.72),
+        -18px -118px 0 0.5px rgba(255,255,255,0.80),  12px -106px 0 1px rgba(200,220,255,0.68),
+         36px -115px 0 0.5px rgba(255,255,255,0.75),  57px  -97px 0 1px rgba(220,240,255,0.70),
+         70px  -70px 0 0.5px rgba(255,255,255,0.62),  78px  -40px 0 1px rgba(200,220,255,0.58),
+         74px   -8px 0 0.5px rgba(255,255,255,0.66),  66px   24px 0 1px rgba(220,240,255,0.62),
+         52px   54px 0 0.5px rgba(255,255,255,0.55),  30px   72px 0 1px rgba(200,220,255,0.52),
+          5px   82px 0 0.5px rgba(255,255,255,0.60), -22px   78px 0 1px rgba(220,240,255,0.58),
+        -48px   64px 0 0.5px rgba(255,255,255,0.65), -66px   40px 0 1px rgba(200,220,255,0.62),
+        -74px   10px 0 0.5px rgba(255,255,255,0.72), -76px  -22px 0 1px rgba(220,240,255,0.66),
+        -70px  -52px 0 0.5px rgba(255,255,255,0.76), -32px  -72px 0 1px rgba(200,220,255,0.58),
+         20px  -65px 0 0.5px rgba(255,255,255,0.62),  50px  -32px 0 1px rgba(220,240,255,0.52),
+         42px   30px 0 0.5px rgba(255,255,255,0.56), -14px   42px 0 1px rgba(200,220,255,0.52),
+        -52px  -12px 0 0.5px rgba(255,255,255,0.62),  -4px  -42px 0 1px rgba(220,240,255,0.66),
+         28px   12px 0 0.5px rgba(255,255,255,0.48), -36px   22px 0 1px rgba(200,220,255,0.48);
+      animation: starTwinkle 5.5s ease-in-out infinite;
+    }
+    @keyframes starTwinkle {
+      0%, 100% { opacity: 0.88; } 50% { opacity: 0.42; }
+    }
+    .eye-pupil {
+      position: absolute; top: 50%; left: 50%;
+      width: 44px; height: 44px;
+      transform: translate(-50%, -50%); border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255,255,255,0.92) 0%, rgba(210,245,255,0.82) 14%,
+        var(--core-g1) 35%, var(--core-g2) 62%, transparent 82%);
+      animation: pupilPulse 3s ease-in-out infinite;
+      transition: background 4s ease;
+    }
+    @keyframes pupilPulse {
+      0%, 100% { transform: translate(-50%,-50%) scale(1);    opacity: 1;    }
+      50%       { transform: translate(-50%,-50%) scale(1.18); opacity: 0.78; }
+    }
+
     @media (max-width: 600px) {
-      .void-container { width: 300px; height: 300px; margin-bottom: -110px; }
-      .r3 { width: 200px; height: 200px; }
-      .r4 { display: none; }
+      .mirror-container { width: 200px; height: 280px; margin-bottom: -80px; }
+      .mirror-face { width: 130px; height: 184px; }
       .oracle-msg { max-width: 88%; }
       .oracle-messages, .oracle-input-bar { padding-left: 16px; padding-right: 16px; }
     }
@@ -541,25 +689,253 @@
   <!-- Light ray overlay — angle and color temperature shift with time -->
   <div class="light-rays" aria-hidden="true"></div>
 
+  <!-- ══════════════ JUNGLE SCENE ══════════════ -->
+  <div class="jungle-scene" aria-hidden="true">
+
+    <!-- Far layer: distant silhouettes -->
+    <div class="jl-layer jl-far">
+      <div class="jungle-tree" style="left:3%">
+        <svg style="height:95px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:17%">
+        <svg style="height:108px;width:auto" viewBox="0 0 120 270" preserveAspectRatio="xMidYMax meet">
+          <path d="M57 270Q54 160 61 88L59 88Q52 160 63 270Z"/>
+          <path d="M60 90C54 80 26 66 2 52C12 60 44 76 60 90Z"/>
+          <path d="M60 90C56 78 34 52 10 30C22 42 52 70 60 90Z"/>
+          <path d="M60 90C60 76 56 48 52 22C55 38 59 66 60 90Z"/>
+          <path d="M60 90C62 76 66 48 68 22C65 38 61 66 60 90Z"/>
+          <path d="M60 90C64 78 86 52 110 30C98 42 68 70 60 90Z"/>
+          <path d="M60 90C66 80 94 66 118 52C108 60 76 76 60 90Z"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:32%">
+        <svg style="height:92px;width:auto" viewBox="0 0 80 270" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="40" cy="88" rx="36" ry="64"/><ellipse cx="14" cy="108" rx="22" ry="52"/>
+          <ellipse cx="66" cy="108" rx="22" ry="52"/><ellipse cx="40" cy="140" rx="28" ry="38"/>
+          <rect x="36" y="158" width="8" height="112" rx="3"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:49%">
+        <svg style="height:100px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:65%">
+        <svg style="height:106px;width:auto" viewBox="0 0 120 270" preserveAspectRatio="xMidYMax meet">
+          <path d="M57 270Q54 160 61 88L59 88Q52 160 63 270Z"/>
+          <path d="M60 90C54 80 26 66 2 52C12 60 44 76 60 90Z"/>
+          <path d="M60 90C56 78 34 52 10 30C22 42 52 70 60 90Z"/>
+          <path d="M60 90C60 76 56 48 52 22C55 38 59 66 60 90Z"/>
+          <path d="M60 90C62 76 66 48 68 22C65 38 61 66 60 90Z"/>
+          <path d="M60 90C64 78 86 52 110 30C98 42 68 70 60 90Z"/>
+          <path d="M60 90C66 80 94 66 118 52C108 60 76 76 60 90Z"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:82%">
+        <svg style="height:98px;width:auto" viewBox="0 0 80 270" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="40" cy="88" rx="36" ry="64"/><ellipse cx="14" cy="108" rx="22" ry="52"/>
+          <ellipse cx="66" cy="108" rx="22" ry="52"/><ellipse cx="40" cy="140" rx="28" ry="38"/>
+          <rect x="36" y="158" width="8" height="112" rx="3"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Mid layer -->
+    <div class="jl-layer jl-mid">
+      <div class="jungle-tree" style="left:0%">
+        <svg style="height:165px;width:auto" viewBox="0 0 80 270" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="40" cy="88" rx="36" ry="64"/><ellipse cx="14" cy="108" rx="22" ry="52"/>
+          <ellipse cx="66" cy="108" rx="22" ry="52"/><ellipse cx="40" cy="140" rx="28" ry="38"/>
+          <rect x="36" y="158" width="8" height="112" rx="3"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:13%">
+        <svg style="height:178px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:29%">
+        <svg style="height:160px;width:auto" viewBox="0 0 120 270" preserveAspectRatio="xMidYMax meet">
+          <path d="M57 270Q54 160 61 88L59 88Q52 160 63 270Z"/>
+          <path d="M60 90C54 80 26 66 2 52C12 60 44 76 60 90Z"/>
+          <path d="M60 90C56 78 34 52 10 30C22 42 52 70 60 90Z"/>
+          <path d="M60 90C60 76 56 48 52 22C55 38 59 66 60 90Z"/>
+          <path d="M60 90C62 76 66 48 68 22C65 38 61 66 60 90Z"/>
+          <path d="M60 90C64 78 86 52 110 30C98 42 68 70 60 90Z"/>
+          <path d="M60 90C66 80 94 66 118 52C108 60 76 76 60 90Z"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:55%">
+        <svg style="height:172px;width:auto" viewBox="0 0 80 270" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="40" cy="88" rx="36" ry="64"/><ellipse cx="14" cy="108" rx="22" ry="52"/>
+          <ellipse cx="66" cy="108" rx="22" ry="52"/><ellipse cx="40" cy="140" rx="28" ry="38"/>
+          <rect x="36" y="158" width="8" height="112" rx="3"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:71%">
+        <svg style="height:182px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:90%">
+        <svg style="height:166px;width:auto" viewBox="0 0 120 270" preserveAspectRatio="xMidYMax meet">
+          <path d="M57 270Q54 160 61 88L59 88Q52 160 63 270Z"/>
+          <path d="M60 90C54 80 26 66 2 52C12 60 44 76 60 90Z"/>
+          <path d="M60 90C56 78 34 52 10 30C22 42 52 70 60 90Z"/>
+          <path d="M60 90C60 76 56 48 52 22C55 38 59 66 60 90Z"/>
+          <path d="M60 90C62 76 66 48 68 22C65 38 61 66 60 90Z"/>
+          <path d="M60 90C64 78 86 52 110 30C98 42 68 70 60 90Z"/>
+          <path d="M60 90C66 80 94 66 118 52C108 60 76 76 60 90Z"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Near layer: foreground silhouettes -->
+    <div class="jl-layer jl-near">
+      <div class="jungle-tree" style="left:-3%">
+        <svg style="height:300px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:7%">
+        <svg style="height:135px;width:auto" viewBox="0 0 160 120" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="80" cy="70" rx="78" ry="58"/><ellipse cx="22" cy="76" rx="40" ry="46"/>
+          <ellipse cx="138" cy="76" rx="40" ry="46"/><ellipse cx="80" cy="46" rx="55" ry="36"/>
+          <ellipse cx="40" cy="54" rx="36" ry="30"/><ellipse cx="120" cy="54" rx="36" ry="30"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:25%">
+        <svg style="height:325px;width:auto" viewBox="0 0 120 270" preserveAspectRatio="xMidYMax meet">
+          <path d="M57 270Q54 160 61 88L59 88Q52 160 63 270Z"/>
+          <path d="M60 90C54 80 26 66 2 52C12 60 44 76 60 90Z"/>
+          <path d="M60 90C56 78 34 52 10 30C22 42 52 70 60 90Z"/>
+          <path d="M60 90C60 76 56 48 52 22C55 38 59 66 60 90Z"/>
+          <path d="M60 90C62 76 66 48 68 22C65 38 61 66 60 90Z"/>
+          <path d="M60 90C64 78 86 52 110 30C98 42 68 70 60 90Z"/>
+          <path d="M60 90C66 80 94 66 118 52C108 60 76 76 60 90Z"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:60%">
+        <svg style="height:290px;width:auto" viewBox="0 0 80 270" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="40" cy="88" rx="36" ry="64"/><ellipse cx="14" cy="108" rx="22" ry="52"/>
+          <ellipse cx="66" cy="108" rx="22" ry="52"/><ellipse cx="40" cy="140" rx="28" ry="38"/>
+          <rect x="36" y="158" width="8" height="112" rx="3"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:77%">
+        <svg style="height:128px;width:auto" viewBox="0 0 160 120" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="80" cy="70" rx="78" ry="58"/><ellipse cx="22" cy="76" rx="40" ry="46"/>
+          <ellipse cx="138" cy="76" rx="40" ry="46"/><ellipse cx="80" cy="46" rx="55" ry="36"/>
+          <ellipse cx="40" cy="54" rx="36" ry="30"/><ellipse cx="120" cy="54" rx="36" ry="30"/>
+        </svg>
+      </div>
+      <div class="jungle-tree" style="left:93%">
+        <svg style="height:308px;width:auto" viewBox="0 0 100 240" preserveAspectRatio="xMidYMax meet">
+          <ellipse cx="50" cy="118" rx="48" ry="70"/><ellipse cx="18" cy="146" rx="32" ry="52"/>
+          <ellipse cx="82" cy="142" rx="32" ry="55"/><ellipse cx="50" cy="156" rx="38" ry="40"/>
+          <rect x="44" y="168" width="12" height="72" rx="4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Water stream -->
+    <div class="jungle-stream">
+      <div class="stream-surface"></div>
+      <div class="stream-shimmer"></div>
+      <div class="stream-wave"></div>
+      <div class="stream-wave sw2"></div>
+    </div>
+  </div>
+
   <!-- ══════════════ SYNC SCREEN ══════════════ -->
   <div id="syncScreen" class="oracle-screen">
-    <div class="void-container" aria-hidden="true">
-      <div class="void-ring r1"></div>
-      <div class="void-ring r2"></div>
-      <div class="void-ring r3"></div>
-      <div class="void-ring r4"></div>
-      <div class="void-core">
-        <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" width="46" height="46">
-          <ellipse cx="30" cy="30" rx="23" ry="11.5" stroke="url(#eyeG)" stroke-width="1.2"/>
-          <circle cx="30" cy="30" r="6.5" fill="url(#eyeG)" opacity="0.9"/>
-          <circle cx="30" cy="30" r="2.5" fill="#ffffff" opacity="0.55"/>
-          <defs>
-            <linearGradient id="eyeG" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-              <stop offset="0%"   style="stop-color: var(--acc-from)"/>
-              <stop offset="100%" style="stop-color: var(--acc-to)"/>
-            </linearGradient>
-          </defs>
-        </svg>
+    <!-- Ornate mirror with cosmic abyss -->
+    <div class="mirror-container" aria-hidden="true">
+      <!-- Decorative vine frame (SVG) -->
+      <svg class="mirror-frame-svg" viewBox="0 0 260 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Oval mirror border -->
+        <ellipse cx="130" cy="180" rx="85" ry="120" stroke="currentColor" stroke-width="2.5"/>
+        <!-- Outer dashed accent ring -->
+        <ellipse cx="130" cy="180" rx="90" ry="125" stroke="currentColor" stroke-width="0.7" stroke-dasharray="5 3" opacity="0.45"/>
+        <!-- TOP CROWN: central stem -->
+        <line x1="130" y1="60" x2="130" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="130" cy="12" r="5" fill="currentColor"/>
+        <!-- Crown left branch -->
+        <path d="M130 40C115 35 105 24 98 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="95" cy="11" r="3.5" fill="currentColor"/>
+        <!-- Crown right branch -->
+        <path d="M130 40C145 35 155 24 162 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="165" cy="11" r="3.5" fill="currentColor"/>
+        <!-- Crown leaves -->
+        <ellipse cx="112" cy="30" rx="11" ry="5" transform="rotate(-40 112 30)" fill="currentColor" opacity="0.88"/>
+        <ellipse cx="148" cy="30" rx="11" ry="5" transform="rotate(40 148 30)" fill="currentColor" opacity="0.88"/>
+        <!-- TOP LEFT VINE -->
+        <path d="M72 80C55 64 35 50 14 42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="49" cy="60" rx="12" ry="5.5" transform="rotate(-38 49 60)" fill="currentColor" opacity="0.85"/>
+        <ellipse cx="26" cy="48" rx="11" ry="5" transform="rotate(-50 26 48)" fill="currentColor" opacity="0.80"/>
+        <circle cx="13" cy="41" r="3" fill="currentColor" opacity="0.68"/>
+        <!-- TOP RIGHT VINE -->
+        <path d="M188 80C205 64 225 50 246 42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="211" cy="60" rx="12" ry="5.5" transform="rotate(38 211 60)" fill="currentColor" opacity="0.85"/>
+        <ellipse cx="234" cy="48" rx="11" ry="5" transform="rotate(50 234 48)" fill="currentColor" opacity="0.80"/>
+        <circle cx="247" cy="41" r="3" fill="currentColor" opacity="0.68"/>
+        <!-- LEFT UPPER SIDE VINE -->
+        <path d="M45 155C27 149 13 149 3 147" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="18" cy="148" rx="13" ry="5" transform="rotate(-8 18 148)" fill="currentColor" opacity="0.80"/>
+        <!-- Left upper tendril curl -->
+        <path d="M45 155C28 137 20 118 25 106C30 94 42 95 44 106" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
+        <!-- LEFT LOWER SIDE VINE -->
+        <path d="M45 205C25 213 12 211 2 208" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="16" cy="211" rx="13" ry="5" transform="rotate(13 16 211)" fill="currentColor" opacity="0.80"/>
+        <!-- Left lower tendril curl -->
+        <path d="M45 205C26 223 18 243 22 257C26 271 38 271 40 259" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
+        <!-- RIGHT UPPER SIDE VINE -->
+        <path d="M215 155C233 149 247 149 257 147" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="242" cy="148" rx="13" ry="5" transform="rotate(8 242 148)" fill="currentColor" opacity="0.80"/>
+        <!-- Right upper tendril curl -->
+        <path d="M215 155C232 137 240 118 235 106C230 94 218 95 216 106" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
+        <!-- RIGHT LOWER SIDE VINE -->
+        <path d="M215 205C235 213 248 211 258 208" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="244" cy="211" rx="13" ry="5" transform="rotate(-13 244 211)" fill="currentColor" opacity="0.80"/>
+        <!-- Right lower tendril curl -->
+        <path d="M215 205C234 223 242 243 238 257C234 271 222 271 220 259" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
+        <!-- BOTTOM LEFT VINE -->
+        <path d="M77 280C58 296 38 310 18 318" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="48" cy="299" rx="12" ry="5.5" transform="rotate(42 48 299)" fill="currentColor" opacity="0.80"/>
+        <ellipse cx="24" cy="313" rx="11" ry="5" transform="rotate(54 24 313)" fill="currentColor" opacity="0.75"/>
+        <circle cx="16" cy="319" r="3" fill="currentColor" opacity="0.65"/>
+        <!-- BOTTOM RIGHT VINE -->
+        <path d="M183 280C202 296 222 310 242 318" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="212" cy="299" rx="12" ry="5.5" transform="rotate(-42 212 299)" fill="currentColor" opacity="0.80"/>
+        <ellipse cx="236" cy="313" rx="11" ry="5" transform="rotate(-54 236 313)" fill="currentColor" opacity="0.75"/>
+        <circle cx="244" cy="319" r="3" fill="currentColor" opacity="0.65"/>
+        <!-- BOTTOM CENTER DROOP -->
+        <path d="M130 300C122 317 118 333 120 345" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M130 300C138 317 142 333 140 345" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <ellipse cx="119" cy="344" rx="10" ry="4.5" transform="rotate(-22 119 344)" fill="currentColor" opacity="0.75"/>
+        <ellipse cx="141" cy="344" rx="10" ry="4.5" transform="rotate(22 141 344)" fill="currentColor" opacity="0.75"/>
+      </svg>
+      <!-- Mirror face with cosmic abyss inside -->
+      <div class="mirror-face">
+        <div class="cosmic-abyss">
+          <div class="nebula-base"></div>
+          <div class="nebula-bloom-1"></div>
+          <div class="nebula-bloom-2"></div>
+          <div class="star-particles"></div>
+          <div class="eye-pupil"></div>
+        </div>
       </div>
     </div>
 
@@ -666,7 +1042,17 @@
         '--msg-bdr':    'rgba(13,148,136,0.22)',
         '--header-bg':  'rgba(2,5,16,0.88)',
         '--text-clr':   '#cce8ee',
-        '--sender-clr': 'rgba(45,212,191,0.55)'
+        '--sender-clr':   'rgba(45,212,191,0.55)',
+        '--j-far':        'rgba(10,20,48,0.85)',
+        '--j-mid':        'rgba(4,10,28,0.92)',
+        '--j-near':       'rgba(1,4,14,1)',
+        '--stream-clr':   'rgba(0,90,130,0.38)',
+        '--stream-deep':  'rgba(0,55,98,0.62)',
+        '--stream-shim':  'rgba(45,212,191,0.18)',
+        '--mirror-f-clr': '#2dd4bf',
+        '--mirror-glow':  'rgba(45,212,191,0.44)',
+        '--nebula-1':     'rgba(76,0,115,0.48)',
+        '--nebula-2':     'rgba(0,115,155,0.42)'
       },
       dawn: {
         /* Rose gold / amber */
@@ -697,7 +1083,17 @@
         '--msg-bdr':    'rgba(245,158,11,0.22)',
         '--header-bg':  'rgba(15,6,3,0.88)',
         '--text-clr':   '#fde8c8',
-        '--sender-clr': 'rgba(251,191,36,0.62)'
+        '--sender-clr':   'rgba(251,191,36,0.62)',
+        '--j-far':        'rgba(48,18,8,0.85)',
+        '--j-mid':        'rgba(28,10,4,0.92)',
+        '--j-near':       'rgba(12,4,2,1)',
+        '--stream-clr':   'rgba(170,90,18,0.32)',
+        '--stream-deep':  'rgba(110,55,8,0.56)',
+        '--stream-shim':  'rgba(251,191,36,0.20)',
+        '--mirror-f-clr': '#fbbf24',
+        '--mirror-glow':  'rgba(251,191,36,0.44)',
+        '--nebula-1':     'rgba(115,38,0,0.48)',
+        '--nebula-2':     'rgba(175,75,18,0.38)'
       },
       day: {
         /* Vivid green / gold */
@@ -728,7 +1124,17 @@
         '--msg-bdr':    'rgba(16,185,129,0.22)',
         '--header-bg':  'rgba(2,8,4,0.88)',
         '--text-clr':   '#d1fae5',
-        '--sender-clr': 'rgba(52,211,153,0.62)'
+        '--sender-clr':   'rgba(52,211,153,0.62)',
+        '--j-far':        'rgba(8,32,14,0.85)',
+        '--j-mid':        'rgba(4,18,8,0.92)',
+        '--j-near':       'rgba(1,8,3,1)',
+        '--stream-clr':   'rgba(0,148,110,0.35)',
+        '--stream-deep':  'rgba(0,92,72,0.60)',
+        '--stream-shim':  'rgba(52,211,153,0.22)',
+        '--mirror-f-clr': '#34d399',
+        '--mirror-glow':  'rgba(52,211,153,0.44)',
+        '--nebula-1':     'rgba(0,78,38,0.48)',
+        '--nebula-2':     'rgba(0,148,92,0.38)'
       },
       sunset: {
         /* Orange / crimson / purple */
@@ -759,7 +1165,17 @@
         '--msg-bdr':    'rgba(249,115,22,0.22)',
         '--header-bg':  'rgba(8,2,5,0.88)',
         '--text-clr':   '#fde8d8',
-        '--sender-clr': 'rgba(251,146,60,0.64)'
+        '--sender-clr':   'rgba(251,146,60,0.64)',
+        '--j-far':        'rgba(40,10,8,0.85)',
+        '--j-mid':        'rgba(22,5,4,0.92)',
+        '--j-near':       'rgba(10,2,2,1)',
+        '--stream-clr':   'rgba(175,58,10,0.32)',
+        '--stream-deep':  'rgba(115,28,5,0.56)',
+        '--stream-shim':  'rgba(249,115,22,0.22)',
+        '--mirror-f-clr': '#fb923c',
+        '--mirror-glow':  'rgba(249,115,22,0.44)',
+        '--nebula-1':     'rgba(115,20,5,0.48)',
+        '--nebula-2':     'rgba(78,0,58,0.42)'
       }
     };
 
