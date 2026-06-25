@@ -409,9 +409,5 @@
   }
 
   /* ── boot ── */
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", inject);
-  } else {
-    inject();
-  }
+  document.addEventListener("DOMContentLoaded", inject);
 })();
