@@ -49,6 +49,7 @@
       --mirror-glow:  rgba(45, 212, 191, 0.44);
       --nebula-1:     rgba(76, 0, 115, 0.48);
       --nebula-2:     rgba(0, 115, 155, 0.42);
+      --mist-clr:     rgba(30, 80, 150, 0.15);
     }
 
     html, body {
@@ -676,6 +677,142 @@
       50%       { transform: translate(-50%,-50%) scale(1.18); opacity: 0.78; }
     }
 
+    /* ════════════════════════════════════════
+       HANGING VINES
+    ════════════════════════════════════════ */
+    .jungle-vines-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 8;
+      pointer-events: none;
+      color: var(--j-near);
+      transition: color 4s ease;
+    }
+    .hanging-vine {
+      position: absolute;
+      top: 0;
+      transform-origin: top center;
+    }
+    .hanging-vine svg {
+      display: block;
+      fill: currentColor;
+      stroke: currentColor;
+      transition: fill 4s ease, stroke 4s ease;
+    }
+    .vs-a { animation: vineSwayA var(--vs-dur, 6s) var(--vs-delay, 0s) ease-in-out infinite; }
+    .vs-b { animation: vineSwayB var(--vs-dur, 6s) var(--vs-delay, 0s) ease-in-out infinite; }
+    @keyframes vineSwayA {
+      0%, 100% { transform: rotate(-4deg); }
+      50%       { transform: rotate(3deg);  }
+    }
+    @keyframes vineSwayB {
+      0%, 100% { transform: rotate(3deg);  }
+      50%       { transform: rotate(-4deg); }
+    }
+
+    /* ════════════════════════════════════════
+       GROUND MIST
+    ════════════════════════════════════════ */
+    .jungle-mist-layer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 150px;
+      z-index: 4;
+      pointer-events: none;
+    }
+    .mist-cloud {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--mist-clr);
+      filter: blur(22px);
+      transition: background 4s ease;
+    }
+    .mc1 {
+      bottom: 62px; left: -8%; width: 70%; height: 82px;
+      animation: mistDrift 13s ease-in-out infinite alternate;
+    }
+    .mc2 {
+      bottom: 70px; left: 18%; width: 65%; height: 68px;
+      animation: mistDrift 17s -5s ease-in-out infinite alternate-reverse;
+    }
+    .mc3 {
+      bottom: 58px; right: -8%; width: 60%; height: 78px;
+      animation: mistDrift 15s -2s ease-in-out infinite alternate;
+    }
+    @keyframes mistDrift {
+      0%   { transform: translateX(0);    opacity: 0.65; }
+      50%  { transform: translateX(28px); opacity: 0.92; }
+      100% { transform: translateX(-18px); opacity: 0.50; }
+    }
+
+    /* ════════════════════════════════════════
+       BIOLUMINESCENT PLANTS
+    ════════════════════════════════════════ */
+    .bio-plants {
+      position: absolute; inset: 0;
+      z-index: 6; pointer-events: none;
+    }
+    .bio-plant {
+      position: absolute;
+      border-radius: 50%;
+      animation: bioGlow var(--bg-dur, 3s) var(--bg-delay, 0s) ease-in-out infinite;
+    }
+    .bio-teal {
+      width: 6px; height: 9px;
+      background: var(--acc-from);
+      box-shadow:
+        0 0 8px 3px var(--acc-from),
+        0 0 20px 8px rgba(45,212,191,0.32),
+        0 0 40px 16px rgba(45,212,191,0.14);
+      transition: background 4s ease, box-shadow 4s ease;
+    }
+    .bio-purple {
+      width: 5px; height: 8px;
+      background: var(--acc-to);
+      box-shadow:
+        0 0 7px 3px var(--acc-to),
+        0 0 18px 7px rgba(124,58,237,0.32),
+        0 0 36px 14px rgba(124,58,237,0.14);
+      transition: background 4s ease, box-shadow 4s ease;
+    }
+    @keyframes bioGlow {
+      0%, 100% { opacity: 0.72; transform: scale(1);    }
+      50%       { opacity: 1;    transform: scale(1.24); }
+    }
+
+    /* ════════════════════════════════════════
+       FIREFLIES
+    ════════════════════════════════════════ */
+    .firefly-container {
+      position: absolute; inset: 0;
+      z-index: 7; pointer-events: none;
+    }
+    .firefly {
+      position: absolute;
+      width: 2px; height: 2px;
+      border-radius: 50%;
+      background: var(--acc-from);
+      box-shadow: 0 0 5px 2px var(--acc-from), 0 0 12px 5px var(--acc-mid);
+      animation:
+        ffRise var(--ff-dur, 9s) var(--ff-delay, 0s) ease-in infinite,
+        ffGlow var(--ff-gd, 2.2s) var(--ff-delay, 0s) ease-in-out infinite;
+      transition: background 4s ease, box-shadow 4s ease;
+    }
+    .firefly.ff-p {
+      background: var(--acc-to);
+      box-shadow: 0 0 5px 2px var(--acc-to), 0 0 12px 5px var(--acc-mid);
+    }
+    @keyframes ffRise {
+      0%   { transform: translate(0, 0) scale(0.6); opacity: 0; }
+      12%  { opacity: 1; }
+      88%  { opacity: 0.72; }
+      100% { transform: translate(var(--ff-dx, 18px), -260px) scale(1); opacity: 0; }
+    }
+    @keyframes ffGlow {
+      0%, 100% { filter: brightness(1);   }
+      50%       { filter: brightness(2.4); }
+    }
+
     @media (max-width: 600px) {
       .mirror-container { width: 200px; height: 280px; margin-bottom: -80px; }
       .mirror-face { width: 130px; height: 184px; }
@@ -856,6 +993,115 @@
       <div class="stream-shimmer"></div>
       <div class="stream-wave"></div>
       <div class="stream-wave sw2"></div>
+    </div>
+
+    <!-- Hanging vines from top -->
+    <div class="jungle-vines-top">
+      <div class="hanging-vine vs-a" style="left:4%;--vs-dur:6.5s;--vs-delay:0s;">
+        <svg viewBox="0 0 14 125" width="14" height="125" fill="none">
+          <path d="M7 0C6 22 8 44 6 66C4 90 8 112 7 125" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="1" cy="28" rx="13" ry="5.5" transform="rotate(-38 1 28)" fill="currentColor"/>
+          <ellipse cx="13" cy="70" rx="12" ry="5" transform="rotate(32 13 70)" fill="currentColor"/>
+          <ellipse cx="2" cy="108" rx="10" ry="4.5" transform="rotate(-26 2 108)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-b" style="left:12%;--vs-dur:7.2s;--vs-delay:-2s;">
+        <svg viewBox="0 0 12 80" width="12" height="80" fill="none">
+          <path d="M6 0C7 18 5 38 6 58C7 70 5 77 6 80" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="12" cy="22" rx="11" ry="5" transform="rotate(35 12 22)" fill="currentColor"/>
+          <ellipse cx="0" cy="56" rx="10" ry="4.5" transform="rotate(-30 0 56)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-a" style="left:21%;--vs-dur:8s;--vs-delay:-1s;">
+        <svg viewBox="0 0 14 155" width="14" height="155" fill="none">
+          <path d="M7 0C8 28 5 55 7 82C9 108 6 132 7 155" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="13" cy="32" rx="13" ry="5.5" transform="rotate(40 13 32)" fill="currentColor"/>
+          <ellipse cx="1" cy="78" rx="12" ry="5" transform="rotate(-35 1 78)" fill="currentColor"/>
+          <ellipse cx="12" cy="125" rx="11" ry="4.5" transform="rotate(30 12 125)" fill="currentColor"/>
+          <ellipse cx="2" cy="148" rx="9" ry="4" transform="rotate(-22 2 148)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-b" style="left:38%;--vs-dur:6s;--vs-delay:-3s;">
+        <svg viewBox="0 0 12 95" width="12" height="95" fill="none">
+          <path d="M6 0C5 20 7 42 5 62C3 78 6 88 6 95" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="0" cy="24" rx="11" ry="5" transform="rotate(-36 0 24)" fill="currentColor"/>
+          <ellipse cx="12" cy="62" rx="11" ry="4.5" transform="rotate(32 12 62)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-a" style="left:52%;--vs-dur:7.5s;--vs-delay:-0.5s;">
+        <svg viewBox="0 0 14 140" width="14" height="140" fill="none">
+          <path d="M7 0C6 25 8 50 6 75C4 100 8 122 7 140" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="13" cy="28" rx="12" ry="5.5" transform="rotate(38 13 28)" fill="currentColor"/>
+          <ellipse cx="1" cy="72" rx="12" ry="5" transform="rotate(-34 1 72)" fill="currentColor"/>
+          <ellipse cx="12" cy="118" rx="10" ry="4.5" transform="rotate(28 12 118)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-b" style="left:65%;--vs-dur:6.8s;--vs-delay:-4s;">
+        <svg viewBox="0 0 12 84" width="12" height="84" fill="none">
+          <path d="M6 0C7 20 5 40 7 60C8 74 6 80 6 84" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="0" cy="22" rx="11" ry="5" transform="rotate(-34 0 22)" fill="currentColor"/>
+          <ellipse cx="12" cy="58" rx="10" ry="4.5" transform="rotate(30 12 58)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-a" style="left:77%;--vs-dur:8.5s;--vs-delay:-2.5s;">
+        <svg viewBox="0 0 14 165" width="14" height="165" fill="none">
+          <path d="M7 0C8 30 5 58 7 88C9 115 6 142 7 165" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="1" cy="35" rx="13" ry="5.5" transform="rotate(-40 1 35)" fill="currentColor"/>
+          <ellipse cx="13" cy="85" rx="12" ry="5" transform="rotate(36 13 85)" fill="currentColor"/>
+          <ellipse cx="2" cy="135" rx="11" ry="4.5" transform="rotate(-28 2 135)" fill="currentColor"/>
+          <ellipse cx="11" cy="158" rx="9" ry="4" transform="rotate(24 11 158)" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hanging-vine vs-b" style="left:91%;--vs-dur:7s;--vs-delay:-1.5s;">
+        <svg viewBox="0 0 12 108" width="12" height="108" fill="none">
+          <path d="M6 0C5 22 7 46 5 68C3 88 6 100 6 108" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <ellipse cx="12" cy="25" rx="11" ry="5" transform="rotate(35 12 25)" fill="currentColor"/>
+          <ellipse cx="0" cy="65" rx="11" ry="4.5" transform="rotate(-32 0 65)" fill="currentColor"/>
+          <ellipse cx="10" cy="98" rx="9" ry="4" transform="rotate(26 10 98)" fill="currentColor"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Ground mist / fog -->
+    <div class="jungle-mist-layer">
+      <div class="mist-cloud mc1"></div>
+      <div class="mist-cloud mc2"></div>
+      <div class="mist-cloud mc3"></div>
+    </div>
+
+    <!-- Bioluminescent plants -->
+    <div class="bio-plants">
+      <div class="bio-plant bio-teal"   style="left:8%;bottom:68px;--bg-dur:3.2s;--bg-delay:0s;"></div>
+      <div class="bio-plant bio-purple" style="left:15%;bottom:70px;--bg-dur:3.4s;--bg-delay:-1s;"></div>
+      <div class="bio-plant bio-teal"   style="left:26%;bottom:68px;--bg-dur:2.8s;--bg-delay:-1.4s;"></div>
+      <div class="bio-plant bio-purple" style="left:35%;bottom:72px;--bg-dur:2.9s;--bg-delay:-1.8s;"></div>
+      <div class="bio-plant bio-teal"   style="left:47%;bottom:66px;--bg-dur:3.5s;--bg-delay:-0.8s;"></div>
+      <div class="bio-plant bio-purple" style="left:58%;bottom:70px;--bg-dur:3.1s;--bg-delay:-0.3s;"></div>
+      <div class="bio-plant bio-teal"   style="left:72%;bottom:68px;--bg-dur:2.6s;--bg-delay:-2s;"></div>
+      <div class="bio-plant bio-purple" style="left:80%;bottom:72px;--bg-dur:3.6s;--bg-delay:-1.5s;"></div>
+      <div class="bio-plant bio-teal"   style="left:88%;bottom:68px;--bg-dur:3.8s;--bg-delay:-0.5s;"></div>
+    </div>
+
+    <!-- Fireflies -->
+    <div class="firefly-container">
+      <div class="firefly"     style="left:11%;bottom:110px;--ff-dur:8.5s;--ff-delay:0s;--ff-dx:22px;--ff-gd:2.4s;"></div>
+      <div class="firefly ff-p" style="left:18%;bottom:180px;--ff-dur:9.2s;--ff-delay:-3.2s;--ff-dx:-18px;--ff-gd:1.9s;"></div>
+      <div class="firefly"     style="left:24%;bottom:130px;--ff-dur:7.8s;--ff-delay:-1.5s;--ff-dx:15px;--ff-gd:2.8s;"></div>
+      <div class="firefly ff-p" style="left:31%;bottom:250px;--ff-dur:10s;--ff-delay:-5s;--ff-dx:-25px;--ff-gd:2.1s;"></div>
+      <div class="firefly"     style="left:38%;bottom:160px;--ff-dur:8s;--ff-delay:-2.8s;--ff-dx:20px;--ff-gd:2.6s;"></div>
+      <div class="firefly ff-p" style="left:42%;bottom:95px;--ff-dur:9.5s;--ff-delay:-7s;--ff-dx:-12px;--ff-gd:1.8s;"></div>
+      <div class="firefly"     style="left:50%;bottom:220px;--ff-dur:8.8s;--ff-delay:-1s;--ff-dx:18px;--ff-gd:2.3s;"></div>
+      <div class="firefly ff-p" style="left:56%;bottom:140px;--ff-dur:7.5s;--ff-delay:-4s;--ff-dx:-20px;--ff-gd:2.7s;"></div>
+      <div class="firefly"     style="left:62%;bottom:190px;--ff-dur:9s;--ff-delay:-6s;--ff-dx:14px;--ff-gd:2s;"></div>
+      <div class="firefly ff-p" style="left:67%;bottom:112px;--ff-dur:8.2s;--ff-delay:-2s;--ff-dx:-16px;--ff-gd:2.5s;"></div>
+      <div class="firefly"     style="left:73%;bottom:165px;--ff-dur:10.5s;--ff-delay:-3.8s;--ff-dx:22px;--ff-gd:1.7s;"></div>
+      <div class="firefly ff-p" style="left:79%;bottom:238px;--ff-dur:8.5s;--ff-delay:-0.5s;--ff-dx:-24px;--ff-gd:2.9s;"></div>
+      <div class="firefly"     style="left:85%;bottom:135px;--ff-dur:7.2s;--ff-delay:-5.5s;--ff-dx:16px;--ff-gd:2.2s;"></div>
+      <div class="firefly ff-p" style="left:89%;bottom:200px;--ff-dur:9.8s;--ff-delay:-1.8s;--ff-dx:-14px;--ff-gd:1.6s;"></div>
+      <div class="firefly"     style="left:6%;bottom:280px;--ff-dur:11s;--ff-delay:-4.5s;--ff-dx:20px;--ff-gd:2.4s;"></div>
+      <div class="firefly ff-p" style="left:44%;bottom:300px;--ff-dur:9s;--ff-delay:-7.5s;--ff-dx:-22px;--ff-gd:2s;"></div>
+      <div class="firefly"     style="left:70%;bottom:320px;--ff-dur:10s;--ff-delay:-3s;--ff-dx:18px;--ff-gd:1.9s;"></div>
+      <div class="firefly ff-p" style="left:95%;bottom:155px;--ff-dur:8s;--ff-delay:-6.5s;--ff-dx:-15px;--ff-gd:2.6s;"></div>
     </div>
   </div>
 
@@ -1052,7 +1298,8 @@
         '--mirror-f-clr': '#2dd4bf',
         '--mirror-glow':  'rgba(45,212,191,0.44)',
         '--nebula-1':     'rgba(76,0,115,0.48)',
-        '--nebula-2':     'rgba(0,115,155,0.42)'
+        '--nebula-2':     'rgba(0,115,155,0.42)',
+        '--mist-clr':     'rgba(30,80,150,0.15)'
       },
       dawn: {
         /* Rose gold / amber */
@@ -1093,7 +1340,8 @@
         '--mirror-f-clr': '#fbbf24',
         '--mirror-glow':  'rgba(251,191,36,0.44)',
         '--nebula-1':     'rgba(115,38,0,0.48)',
-        '--nebula-2':     'rgba(175,75,18,0.38)'
+        '--nebula-2':     'rgba(175,75,18,0.38)',
+        '--mist-clr':     'rgba(200,100,40,0.11)'
       },
       day: {
         /* Vivid green / gold */
@@ -1134,7 +1382,8 @@
         '--mirror-f-clr': '#34d399',
         '--mirror-glow':  'rgba(52,211,153,0.44)',
         '--nebula-1':     'rgba(0,78,38,0.48)',
-        '--nebula-2':     'rgba(0,148,92,0.38)'
+        '--nebula-2':     'rgba(0,148,92,0.38)',
+        '--mist-clr':     'rgba(20,130,80,0.12)'
       },
       sunset: {
         /* Orange / crimson / purple */
@@ -1175,7 +1424,8 @@
         '--mirror-f-clr': '#fb923c',
         '--mirror-glow':  'rgba(249,115,22,0.44)',
         '--nebula-1':     'rgba(115,20,5,0.48)',
-        '--nebula-2':     'rgba(78,0,58,0.42)'
+        '--nebula-2':     'rgba(78,0,58,0.42)',
+        '--mist-clr':     'rgba(180,50,20,0.11)'
       }
     };
 
