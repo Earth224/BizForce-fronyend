@@ -1528,23 +1528,6 @@ window.addAiResultToMailbox = async function addAiResultToMailbox(item) {
         unread: true
     };
 
-    console.log("MAILBOX SAVE TEXT:", reportPayload.result);
-
-    if (reportPayload.prompt && reportPayload.prompt.trim()) {
-        try {
-            await fetch(API_URL + "/api/ai/tasks", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer " + token
-                },
-                body: JSON.stringify(reportPayload)
-            });
-        } catch (err) {
-            console.error("AI REPORT SAVE ERROR:", err);
-        }
-    }
-
     aiMailbox.unshift({
         id: getMailboxId(item),
         agent: reportPayload.agent,
@@ -38879,6 +38862,87 @@ window.processExecutiveAssignmentsFromReport = processExecutiveAssignmentsFromRe
 loadAssignmentsLocal();
 loadAgentMemoriesLocal();
 window.agentMemories = agentMemories;
+
+(function syncAgentMemoryFromApi() {
+    var memToken = localStorage.getItem("bf_token");
+    if (!memToken) { return; }
+    fetch(API_URL + "/api/memory?limit=100", {
+        headers: { "Authorization": "Bearer " + memToken }
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+        if (!data || !Array.isArray(data.memories)) { return; }
+        var existing = getAgentMemories();
+        var existingIds = {};
+        existing.forEach(function(m) { existingIds[String(m.id)] = true; });
+        var added = 0;
+        data.memories.forEach(function(m) {
+            var key = "api_" + m.id;
+            if (existingIds[key]) { return; }
+            existing.push({
+                id: key,
+                agentName: String(m.agent_type || "").toUpperCase(),
+                title: m.title || "Agent memory",
+                summary: m.content || m.title || "",
+                createdAt: m.created_at || new Date().toISOString(),
+                type: m.memory_type || "insight",
+                reportId: m.assignment_id || null
+            });
+            added++;
+        });
+        if (added > 0) {
+            localStorage.setItem(BF_AGENT_MEMORY_STORAGE_KEY, JSON.stringify(existing));
+            renderAgentMemories();
+        }
+    })
+    .catch(function() {});
+})();
+
+(function syncAssignmentsFromApi() {
+    var asgToken = localStorage.getItem("bf_token");
+    if (!asgToken) { return; }
+    fetch(API_URL + "/api/assignments?limit=100", {
+        headers: { "Authorization": "Bearer " + asgToken }
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+        if (!data || !Array.isArray(data.assignments)) { return; }
+        var existingIds = {};
+        agentAssignments.forEach(function(a) { existingIds[String(a.id)] = true; });
+        var added = 0;
+        data.assignments.forEach(function(a) {
+            if (existingIds[String(a.id)]) { return; }
+            agentAssignments.unshift({
+                id: String(a.id),
+                assigned_agent: a.agent_type || "general",
+                task_title: a.mission || "Agent assignment",
+                task_description: Array.isArray(a.tasks) ? a.tasks.join("; ") : (a.mission || ""),
+                mission: a.mission || "",
+                priority: a.priority || "Medium",
+                status: normalizeAssignmentStatus(a.status),
+                created_at: a.created_at || new Date().toISOString(),
+                updated_at: a.updated_at || a.created_at || new Date().toISOString(),
+                archived: a.status === "completed",
+                archived_at: a.status === "completed" ? (a.updated_at || null) : null,
+                archive_reason: null,
+                completed_at: a.status === "completed" ? (a.updated_at || null) : null
+            });
+            added++;
+        });
+        if (added > 0) {
+            saveAssignmentsLocal();
+            renderAssignmentDashboard();
+            if (typeof window.updateActiveQueueSummary === "function") {
+                var active = agentAssignments.filter(function(a) {
+                    return !a.archived && a.status !== "Completed";
+                }).length;
+                window.updateActiveQueueSummary(active);
+            }
+        }
+    })
+    .catch(function() {});
+})();
+
 bindAssignmentStatusControls();
 bindAssignmentDetailsControls();
 bindAssignmentStartControls();
