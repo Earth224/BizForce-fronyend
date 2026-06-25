@@ -305,16 +305,12 @@
     var token = tok();
     if (!token) return;
 
-    fetch(API_URL + "/api/ai/tasks?limit=100", {
+    fetch(API_URL + "/api/ai/tasks?agent_type=" + encodeURIComponent(AGENT_TYPE) + "&limit=50", {
       headers: { "Authorization": "Bearer " + token }
     })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (data) {
-      var all = (data && Array.isArray(data.tasks)) ? data.tasks : [];
-      /* filter to this agent's tasks */
-      var tasks = all.filter(function (t) {
-        return String(t.agent_type || "").toLowerCase() === AGENT_TYPE;
-      });
+      var tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
       renderStats(tasks);
       renderHistory(tasks);
     })
@@ -361,10 +357,10 @@
     chartEl.innerHTML = buckets.map(function (v, i) {
       var pct   = v / peak;
       var h     = Math.max(4, Math.round(pct * 48));
-      var alpha = (0.25 + pct * 0.55).toFixed(2);
-      return '<div class="ap-bar" style="height:' + h + 'px;background:linear-gradient(180deg,' +
-        accentSafe + ',' + accentSafe.replace(/^#/, "rgba(") + ',0.' + Math.round(pct * 60 + 20) + '));opacity:' + alpha +
-        '" title="' + v + ' task' + (v === 1 ? '' : 's') + ' · ' + esc(labels[i]) + '"></div>';
+      var alpha = (0.22 + pct * 0.6).toFixed(2);
+      return '<div class="ap-bar" style="height:' + h + 'px;background:' + accentSafe +
+        ';opacity:' + alpha + '" title="' + v + ' task' + (v === 1 ? '' : 's') +
+        ' · ' + esc(labels[i]) + '"></div>';
     }).join("");
 
     if (daysLblEl) {
