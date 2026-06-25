@@ -19,6 +19,10 @@ if (!token) {
 <link rel="stylesheet" href="/css/bizforce-ui.css">
 <style>
     *{margin:0;padding:0;box-sizing:border-box}html,body{color:#e8e8ff;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}body{background:#070b18;position:relative;overflow-x:hidden}body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}.topbar,.app-main,body>section,#planStatus,#tierDAgentStatusTracker{position:relative;z-index:1}
+    .topbar-agents-pill{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 14px;border-radius:12px;border:1px solid rgba(168,85,247,.35);background:rgba(12,18,38,.75);text-decoration:none;cursor:pointer;transition:border-color .25s,box-shadow .25s;backdrop-filter:blur(10px);line-height:1}
+    .topbar-agents-pill:hover{border-color:rgba(168,85,247,.7);box-shadow:0 0 18px rgba(168,85,247,.2)}
+    .topbar-agents-num{font-size:1.05rem;font-weight:800;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1}
+    .topbar-agents-lbl{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8888aa;margin-top:1px}
 </style>
 </head>
 <body class="app-shell">
@@ -31,6 +35,11 @@ if (!token) {
   </div>
   <div class="topbar-actions">
     <button type="button" class="bf-btn bf-btn-ghost topbar-quick-action" id="quickActionBtn">Quick Action</button>
+    <a href="agents-hub.html" class="topbar-agents-pill" id="agentsNavBtn" aria-label="AI Agents">
+      <span class="topbar-agents-num">15</span>
+      <span class="topbar-agents-lbl">Agents</span>
+    </a>
+    <a href="oracle.html" class="topbar-icon-btn" id="oracleNavBtn" aria-label="The Oracle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="10" ry="5"/><circle cx="12" cy="12" r="2.5"/></svg></a>
     <button type="button" class="topbar-icon-btn" id="notificationBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
     <div class="topbar-user">
       <div class="topbar-avatar" id="userAvatar">ER</div>
@@ -82,7 +91,8 @@ if (!token) {
       <h3>AI Agent Directory</h3>
     </div>
     <p class="bf-compact-sub">Deploy specialists across SEO, sales, content, analytics, and social.</p>
-    <button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Open Directory</button>
+    <button type="button" id="openAgentHubBtn" class="badge bf-btn" onclick="window.location.href='agents-hub.html';">Agent Hub</button>
+    <button type="button" id="openAgentDirectoryBtn" class="badge bf-btn" onclick="window.location.href='ai-agents.html';">Full Directory</button>
   </div>
   <div class="bf-agent-icon-grid" aria-label="Featured agents">
     <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-hq-icon bf-agent-icon seo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><span>SEO Agent</span></div>
