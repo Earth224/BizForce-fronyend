@@ -185,7 +185,12 @@
       '</div>'
     ].join("");
 
-    page.insertAdjacentHTML("beforeend", html);
+    var reportsGrid = document.getElementById("reportsGrid");
+    if (reportsGrid) {
+      reportsGrid.insertAdjacentHTML("beforebegin", html);
+    } else {
+      page.insertAdjacentHTML("beforeend", html);
+    }
 
     document.getElementById("apLaunchBtn").addEventListener("click", launchTask);
     loadHistory();
