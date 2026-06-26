@@ -2016,7 +2016,7 @@ loadAll();
     <div class="pf-form-group">
       <label class="pf-form-label">Album Art</label>
       <div class="pf-upload-row">
-        <button class="pf-upload-trigger" onclick="triggerFileUpload('fi-mus-cover','music-covers','mm-cover-url','mm-cover-prev','mm-cover-status')">Upload Image</button>
+        <button class="pf-upload-trigger" onclick="triggerFileUpload('fi-mus-cover','music-art','mm-cover-url','mm-cover-prev','mm-cover-status')">Upload Image</button>
         <img id="mm-cover-prev" class="pf-upload-preview" src="" alt="" style="display:none">
         <input type="hidden" id="mm-cover-url">
       </div>
@@ -2503,26 +2503,38 @@ function openMusicModal(id) {
   openModal("modalMusic");
 }
 async function saveTrack() {
-  var btn=document.getElementById("musSaveBtn"), status=document.getElementById("musModalStatus");
-  var title=document.getElementById("mm-title").value.trim();
-  if (!title) { setModalStatus(status,"Title is required","err"); return; }
-  var audioUrl=document.getElementById("mm-audio-url").value.trim();
-  if (!editingMusicId && !audioUrl) { setModalStatus(status,"Please upload an audio file","err"); return; }
-  btn.disabled=true; setModalStatus(status,"Saving…","");
+  var btn    = document.getElementById("musSaveBtn");
+  var status = document.getElementById("musModalStatus");
+  var title  = document.getElementById("mm-title").value.trim();
+  if (!title) { setModalStatus(status, "Title is required", "err"); return; }
+  var audioUrl = document.getElementById("mm-audio-url").value.trim();
+  if (!editingMusicId && !audioUrl) { setModalStatus(status, "Please upload an audio file", "err"); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+  setModalStatus(status, "", "");
   try {
-    var body={title, artist:document.getElementById("mm-artist").value.trim(),
-      cover_url:document.getElementById("mm-cover-url").value||null};
-    if (audioUrl) body.audio_url=audioUrl;
-    var path=editingMusicId?"/api/bfp/music/"+editingMusicId:"/api/bfp/music";
-    var method=editingMusicId?"PUT":"POST";
-    var res=await apiFetch(path,method,body);
-    if (!res.ok) throw new Error((await res.json()).error||"Save failed");
-    var d=await res.json();
-    if (editingMusicId) tracks=tracks.map(function(t){ return t.id===editingMusicId?d.track:t; });
+    var body = {
+      title,
+      artist:    document.getElementById("mm-artist").value.trim(),
+      cover_url: document.getElementById("mm-cover-url").value || null
+    };
+    if (audioUrl) body.audio_url = audioUrl;
+    var path   = editingMusicId ? "/api/bfp/music/"+editingMusicId : "/api/bfp/music";
+    var method = editingMusicId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+    var d = await res.json();
+    if (editingMusicId) tracks = tracks.map(function(t){ return t.id===editingMusicId ? d.track : t; });
     else tracks.push(d.track);
-    renderMusic(); closeModal("modalMusic"); showToast(editingMusicId?"Track updated!":"Track added!");
-  } catch(e) { setModalStatus(status,e.message,"err"); }
-  btn.disabled=false;
+    renderMusic();
+    closeModal("modalMusic");
+    showToast(editingMusicId ? "Track updated!" : "Track added!");
+  } catch(e) {
+    setModalStatus(status, e.message, "err");
+    btn.innerHTML = "Save";
+  }
+  btn.disabled = false;
+  btn.innerHTML = "Save";
 }
 async function deleteTrack(id) {
   if (currentTrackId===id) { if(audioPlayer)audioPlayer.pause(); stopProgressRAF(); currentTrackId=null; }
@@ -2545,7 +2557,7 @@ document.getElementById("fi-mus-audio").addEventListener("change", async functio
   status.textContent="Uploading…"; status.className="pf-upload-status uploading";
   progWrap.style.display="block"; prog.style.width="30%";
   try {
-    var url=await uploadToStorage(file,"music-audio");
+    var url=await uploadToStorage(file,"music");
     document.getElementById("mm-audio-url").value=url;
     nameEl.textContent=file.name;
     prog.style.width="100%";
