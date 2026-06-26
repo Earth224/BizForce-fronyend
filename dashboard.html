@@ -38558,33 +38558,27 @@ function bindAssignmentDetailsControls() {
 
     section.dataset.detailsBound = "1";
 
-    var _detailToggleGuard = false;
-
     section.addEventListener("click", function(event) {
-        var button = event.target.closest(".assignmentDetailsToggle");
+        var expandBtn = event.target.closest(".assignmentDetailsExpand");
+        var collapseBtn = event.target.closest(".assignmentDetailsCollapse");
 
-        if (!button) {
+        if (expandBtn) {
+            var card = expandBtn.closest(".assignment-card");
+            if (!card) { return; }
+            card.querySelector(".assignmentCardDetails").style.display = "block";
+            expandBtn.style.display = "none";
+            card.querySelector(".assignmentDetailsCollapse").style.display = "";
             return;
         }
 
-        if (_detailToggleGuard) {
+        if (collapseBtn) {
+            var card = collapseBtn.closest(".assignment-card");
+            if (!card) { return; }
+            card.querySelector(".assignmentCardDetails").style.display = "none";
+            collapseBtn.style.display = "none";
+            card.querySelector(".assignmentDetailsExpand").style.display = "";
             return;
         }
-        _detailToggleGuard = true;
-        setTimeout(function() { _detailToggleGuard = false; }, 200);
-
-        var card = button.closest(".assignment-card");
-        var details = card && card.querySelector(".assignmentCardDetails");
-
-        if (!details) {
-            _detailToggleGuard = false;
-            return;
-        }
-
-        var expanded = details.dataset.expanded === "true";
-        details.dataset.expanded = expanded ? "false" : "true";
-        details.style.display = expanded ? "none" : "block";
-        button.textContent = expanded ? "Expand details" : "Collapse details";
     });
 }
 
@@ -38854,7 +38848,8 @@ function renderAssignmentCard(item, isHistory) {
             <div class="assignmentCardActions">
                 ${!isHistory && normalizedStatus === "Pending" ? `<button type="button" class="assignmentStartBtn" data-id="${assignmentEscapeHtml(item.id)}">Start</button>` : ""}
                 <select class="assignmentStatusSelect" data-id="${assignmentEscapeHtml(item.id)}" aria-label="Assignment status">${statusOptions}</select>
-                <button type="button" class="assignmentDetailsToggle">Expand details</button>
+                <button type="button" class="assignmentDetailsToggle assignmentDetailsExpand">Expand details</button>
+                <button type="button" class="assignmentDetailsToggle assignmentDetailsCollapse" style="display:none">Collapse details</button>
             </div>
         </div>
         ${isHistory && item.archived ? '<div style="color:#8888aa;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Archived sprint</div>' : ""}
