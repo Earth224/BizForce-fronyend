@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Certifications</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 64px}
+
+    /* Top nav */
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.2);transform:translateY(-1px)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+    /* Hero */
+    .hero{text-align:center;margin-bottom:48px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.08);color:#22d3ee;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0 0 8px;color:#8892b8;font-size:1rem;line-height:1.6}
+    .hero-stats{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:20px;flex-wrap:wrap}
+    .hero-stat{text-align:center}
+    .hero-stat-num{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+    .hero-stat-lbl{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-top:4px}
+    .hero-stat-sep{width:1px;height:36px;background:rgba(255,255,255,.1)}
+
+    /* Category filter */
+    .filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:32px;flex-wrap:wrap}
+    .filter-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;border:1px solid rgba(0,229,255,.2);background:rgba(8,12,28,.7);color:#8892b8;font-size:.82rem;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:all .2s;font-family:inherit}
+    .filter-btn:hover{border-color:rgba(0,229,255,.4);color:#e8e8ff}
+    .filter-btn.active{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.45);color:#22d3ee}
+    .filter-btn .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .dot-all{background:linear-gradient(135deg,#00e5ff,#a855f7)}
+    .dot-sales{background:#a855f7}
+    .dot-marketing{background:#f472b6}
+    .dot-analytics{background:#60a5fa}
+    .dot-leadership{background:#fbbf24}
+
+    /* Cert grid */
+    .cert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+    .cert-card{background:rgba(10,15,35,.78);border:1px solid rgba(0,255,255,.12);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px;transition:all .25s;cursor:pointer;position:relative;overflow:hidden}
+    .cert-card::before{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .3s}
+    .cert-card:hover{transform:translateY(-3px)}
+    .cert-card.cat-sales{border-color:rgba(168,85,247,.18)}
+    .cert-card.cat-sales:hover{border-color:rgba(168,85,247,.4);box-shadow:0 0 30px rgba(168,85,247,.15)}
+    .cert-card.cat-marketing{border-color:rgba(244,114,182,.18)}
+    .cert-card.cat-marketing:hover{border-color:rgba(244,114,182,.4);box-shadow:0 0 30px rgba(244,114,182,.15)}
+    .cert-card.cat-analytics{border-color:rgba(96,165,250,.18)}
+    .cert-card.cat-analytics:hover{border-color:rgba(96,165,250,.4);box-shadow:0 0 30px rgba(96,165,250,.15)}
+    .cert-card.cat-leadership{border-color:rgba(251,191,36,.18)}
+    .cert-card.cat-leadership:hover{border-color:rgba(251,191,36,.4);box-shadow:0 0 30px rgba(251,191,36,.12)}
+    .cert-card.earned{background:rgba(10,15,35,.88)}
+    .cert-card.hidden{display:none}
+
+    .cert-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .cert-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cert-icon svg{width:24px;height:24px}
+    .ci-sales{background:rgba(168,85,247,.15);border:1.5px solid rgba(168,85,247,.35);color:#a855f7}
+    .ci-marketing{background:rgba(244,114,182,.15);border:1.5px solid rgba(244,114,182,.35);color:#f472b6}
+    .ci-analytics{background:rgba(96,165,250,.15);border:1.5px solid rgba(96,165,250,.35);color:#60a5fa}
+    .ci-leadership{background:rgba(251,191,36,.15);border:1.5px solid rgba(251,191,36,.35);color:#fbbf24}
+
+    .cert-badges{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .badge-earned{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+    .badge-earned svg{width:12px;height:12px}
+    .badge-diff{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+    .diff-beginner{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#34d399}
+    .diff-intermediate{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
+    .diff-advanced{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.3);color:#a855f7}
+
+    .cert-name{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .cert-category{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0}
+    .cert-desc{font-size:.85rem;color:#8892b8;line-height:1.55;margin:0;flex:1}
+    .cert-meta{display:flex;align-items:center;gap:12px;font-size:.75rem;color:#5a6890;font-weight:600}
+    .cert-meta-sep{width:3px;height:3px;border-radius:50%;background:#3a4860}
+
+    .cert-score{margin-top:2px;font-size:.78rem;font-weight:700;color:#34d399}
+
+    .cert-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:999px;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;border:none;margin-top:auto}
+    .cert-btn-start{background:linear-gradient(90deg,#00d9ff,#7d5cff);color:#fff;box-shadow:0 0 16px rgba(0,217,255,.2)}
+    .cert-btn-start:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 0 24px rgba(0,217,255,.35)}
+    .cert-btn-retry{background:rgba(8,8,18,.85);border:1px solid rgba(0,229,255,.3);color:#00e5ff}
+    .cert-btn-retry:hover{border-color:rgba(0,229,255,.5);box-shadow:0 0 16px rgba(0,229,255,.12)}
+    .cert-btn-earned{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:#34d399;cursor:default}
+
+    /* Empty state */
+    .empty-filter{text-align:center;padding:60px 20px;color:#5a6890;font-size:.9rem}
+
+    /* ── Quiz Modal ── */
+    .quiz-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(4,6,18,.88);backdrop-filter:blur(12px)}
+    .quiz-overlay.hidden{display:none}
+    .quiz-modal{background:rgba(8,12,28,.97);border:1px solid rgba(0,229,255,.18);border-radius:24px;padding:36px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 0 60px rgba(0,229,255,.08),0 0 120px rgba(168,85,247,.06)}
+
+    .quiz-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#8892b8;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit;font-size:1rem}
+    .quiz-close:hover{border-color:rgba(255,255,255,.25);color:#e8e8ff}
+
+    /* Intro screen */
+    .quiz-intro{text-align:center}
+    .quiz-cert-icon{width:72px;height:72px;border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .quiz-cert-icon svg{width:32px;height:32px}
+    .quiz-title{font-size:1.35rem;font-weight:800;color:#f4f7ff;margin:0 0 8px}
+    .quiz-subtitle{font-size:.9rem;color:#8892b8;line-height:1.6;margin:0 0 24px}
+    .quiz-info-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:28px;flex-wrap:wrap}
+    .quiz-info-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);color:#8892b8;font-size:.78rem;font-weight:700}
+    .quiz-info-pill span.val{color:#22d3ee}
+    .quiz-begin-btn{display:inline-flex;align-items:center;justify-content:center;padding:13px 32px;border-radius:999px;background:linear-gradient(90deg,#00d9ff,#7d5cff);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;border:none;font-family:inherit;box-shadow:0 0 20px rgba(0,217,255,.25);transition:all .2s}
+    .quiz-begin-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+
+    /* Question screen */
+    .quiz-question-wrap{display:none}
+    .quiz-progress-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);margin-bottom:28px;overflow:hidden}
+    .quiz-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#00d9ff,#7d5cff);transition:width .4s ease}
+    .quiz-q-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-size:.78rem;font-weight:700;color:#5a6890}
+    .quiz-q-num{color:#22d3ee}
+    .quiz-q-text{font-size:1.05rem;font-weight:700;color:#f4f7ff;line-height:1.5;margin:0 0 22px}
+    .quiz-options{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+    .quiz-opt{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid rgba(0,229,255,.14);background:rgba(8,12,28,.6);cursor:pointer;transition:all .2s;color:#c4d0e8;font-size:.9rem;line-height:1.45}
+    .quiz-opt:hover{border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.06)}
+    .quiz-opt.selected{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.1);color:#f4f7ff}
+    .quiz-opt-letter{min-width:28px;height:28px;border-radius:50%;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.22);color:#22d3ee;font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s}
+    .quiz-opt.selected .quiz-opt-letter{background:rgba(0,229,255,.25);border-color:rgba(0,229,255,.55)}
+    .quiz-nav{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .quiz-next-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 28px;border-radius:999px;background:linear-gradient(90deg,#00d9ff,#7d5cff);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s;margin-left:auto}
+    .quiz-next-btn:hover:not(:disabled){filter:brightness(1.1)}
+    .quiz-next-btn:disabled{opacity:.45;cursor:not-allowed}
+    .quiz-skip{font-size:.78rem;color:#5a6890;font-weight:600;cursor:pointer;transition:color .2s}
+    .quiz-skip:hover{color:#8892b8}
+
+    /* Result screen */
+    .quiz-result-wrap{display:none;text-align:center}
+    .result-ring{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;font-weight:800}
+    .result-ring.pass{background:rgba(52,211,153,.12);border:3px solid rgba(52,211,153,.5);color:#34d399;box-shadow:0 0 32px rgba(52,211,153,.2)}
+    .result-ring.fail{background:rgba(168,85,247,.1);border:3px solid rgba(168,85,247,.4);color:#a855f7;box-shadow:0 0 24px rgba(168,85,247,.15)}
+    .result-headline{font-size:1.4rem;font-weight:800;margin:0 0 8px}
+    .result-headline.pass{color:#34d399}
+    .result-headline.fail{color:#a855f7}
+    .result-sub{font-size:.9rem;color:#8892b8;line-height:1.6;margin:0 0 24px}
+    .result-score-block{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:18px 32px;border-radius:16px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);margin-bottom:28px}
+    .result-score-val{font-size:2.8rem;font-weight:800;line-height:1;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .result-score-lbl{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5a6890}
+    .result-cert-badge{display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:14px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);margin-bottom:28px;text-align:left}
+    .result-cert-badge svg{width:28px;height:28px;color:#34d399;flex-shrink:0}
+    .result-cert-badge-text{font-size:.9rem;font-weight:700;color:#f4f7ff}
+    .result-cert-badge-sub{font-size:.78rem;color:#34d399;margin-top:2px}
+    .result-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+    .result-done-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 28px;border-radius:999px;background:linear-gradient(90deg,#00d9ff,#7d5cff);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+    .result-done-btn:hover{filter:brightness(1.1)}
+    .result-retry-btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 24px;border-radius:999px;background:transparent;border:1px solid rgba(0,229,255,.3);color:#22d3ee;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .result-retry-btn:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 16px rgba(0,229,255,.12)}
+
+    /* Loading state */
+    .certs-loading{text-align:center;padding:48px;color:#5a6890;font-size:.9rem}
+
+    @media(max-width:600px){
+      .quiz-modal{padding:24px 18px}
+      .cert-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Top nav -->
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <span class="hero-eyebrow">Platform Certifications</span>
+    <h1 class="hero-title">Earn Your Badge</h1>
+    <p class="hero-sub">Demonstrate expertise across Sales, Marketing, Analytics, and Leadership.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num" id="statTotal">12</div>
+        <div class="hero-stat-lbl">Available</div>
+      </div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-num" id="statEarned">—</div>
+        <div class="hero-stat-lbl">Earned</div>
+      </div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">80%</div>
+        <div class="hero-stat-lbl">Pass Threshold</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Category filter -->
+  <div class="filter-bar">
+    <button class="filter-btn active" data-cat="all">
+      <span class="dot dot-all"></span>All Certifications
+    </button>
+    <button class="filter-btn" data-cat="Sales">
+      <span class="dot dot-sales"></span>Sales
+    </button>
+    <button class="filter-btn" data-cat="Marketing">
+      <span class="dot dot-marketing"></span>Marketing
+    </button>
+    <button class="filter-btn" data-cat="Analytics">
+      <span class="dot dot-analytics"></span>Analytics
+    </button>
+    <button class="filter-btn" data-cat="Leadership">
+      <span class="dot dot-leadership"></span>Leadership
+    </button>
+  </div>
+
+  <!-- Cert grid -->
+  <div class="cert-grid" id="certGrid">
+    <div class="certs-loading">Loading certifications…</div>
+  </div>
+
+</div>
+
+<!-- Quiz Modal -->
+<div class="quiz-overlay hidden" id="quizOverlay" role="dialog" aria-modal="true">
+  <div class="quiz-modal">
+    <button class="quiz-close" id="quizClose" aria-label="Close quiz">✕</button>
+
+    <!-- Intro screen -->
+    <div class="quiz-intro" id="quizIntro">
+      <div class="quiz-cert-icon" id="quizIntroIcon"></div>
+      <h2 class="quiz-title" id="quizIntroTitle"></h2>
+      <p class="quiz-subtitle" id="quizIntroDesc"></p>
+      <div class="quiz-info-row">
+        <span class="quiz-info-pill">Questions: <span class="val" id="quizInfoQ"></span></span>
+        <span class="quiz-info-pill">Pass score: <span class="val">80%</span></span>
+        <span class="quiz-info-pill">Category: <span class="val" id="quizInfoCat"></span></span>
+      </div>
+      <button class="quiz-begin-btn" id="quizBeginBtn">Begin Assessment</button>
+    </div>
+
+    <!-- Question screen -->
+    <div class="quiz-question-wrap" id="quizQuestions">
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgressFill" style="width:0%"></div></div>
+      <div class="quiz-q-header">
+        <span class="quiz-q-num" id="quizQNum">Question 1</span>
+        <span id="quizQOf"></span>
+      </div>
+      <p class="quiz-q-text" id="quizQText"></p>
+      <div class="quiz-options" id="quizOptions"></div>
+      <div class="quiz-nav">
+        <span class="quiz-skip" id="quizSkipBtn">Skip</span>
+        <button class="quiz-next-btn" id="quizNextBtn" disabled>Next →</button>
+      </div>
+    </div>
+
+    <!-- Result screen -->
+    <div class="quiz-result-wrap" id="quizResult">
+      <div class="result-ring" id="resultRing"></div>
+      <h2 class="result-headline" id="resultHeadline"></h2>
+      <p class="result-sub" id="resultSub"></p>
+      <div class="result-score-block">
+        <span class="result-score-val" id="resultScore"></span>
+        <span class="result-score-lbl">Your Score</span>
+      </div>
+      <div class="result-cert-badge" id="resultCertBadge" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <div>
+          <div class="result-cert-badge-text" id="resultCertName"></div>
+          <div class="result-cert-badge-sub">Certification Earned</div>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="result-retry-btn" id="resultRetryBtn">Try Again</button>
+        <button class="result-done-btn" id="resultDoneBtn">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+/* ── Certification catalog ── */
+var CERTS = [
+  /* SALES */
+  {id:"sales-1",category:"Sales",name:"Sales Fundamentals",desc:"Master the core concepts of selling: funnels, qualification, objection handling, and conversion.",difficulty:"Beginner",questions:10},
+  {id:"sales-2",category:"Sales",name:"Advanced Sales Strategy",desc:"Go deep on pipeline management, account-based selling, CRM strategy, and advanced closing techniques.",difficulty:"Intermediate",questions:10},
+  {id:"sales-3",category:"Sales",name:"Revenue Optimization",desc:"Learn LTV, churn reduction, pricing strategy, upsell architecture, and SaaS growth frameworks.",difficulty:"Advanced",questions:10},
+  /* MARKETING */
+  {id:"marketing-1",category:"Marketing",name:"Content Marketing Foundations",desc:"Build a content strategy from scratch — calendars, SEO basics, CTAs, and repurposing workflows.",difficulty:"Beginner",questions:10},
+  {id:"marketing-2",category:"Marketing",name:"Digital Marketing Mastery",desc:"Retargeting, A/B testing, email optimization, influencer partnerships, and paid media fundamentals.",difficulty:"Intermediate",questions:10},
+  {id:"marketing-3",category:"Marketing",name:"Marketing Analytics Pro",desc:"Attribution modeling, CAC, cohort analysis, LTV:CAC, and multi-touch attribution.",difficulty:"Advanced",questions:10},
+  /* ANALYTICS */
+  {id:"analytics-1",category:"Analytics",name:"Data Analysis Basics",desc:"Learn KPIs, dashboards, pivot tables, data integrity, and core statistical concepts.",difficulty:"Beginner",questions:10},
+  {id:"analytics-2",category:"Analytics",name:"Business Intelligence",desc:"Deep-dive into OLAP, ETL, data warehousing, star schemas, and BI tooling.",difficulty:"Intermediate",questions:10},
+  {id:"analytics-3",category:"Analytics",name:"Predictive Analytics",desc:"Machine learning basics, regression analysis, classification models, and churn prediction.",difficulty:"Advanced",questions:10},
+  /* LEADERSHIP */
+  {id:"leadership-1",category:"Leadership",name:"Leadership Essentials",desc:"Servant leadership, emotional intelligence, delegation, active listening, and SMART goals.",difficulty:"Beginner",questions:10},
+  {id:"leadership-2",category:"Leadership",name:"Executive Decision Making",desc:"Decision fatigue, Pareto principle, scenario planning, SWOT analysis, and cognitive bias.",difficulty:"Intermediate",questions:10},
+  {id:"leadership-3",category:"Leadership",name:"Strategic Management",desc:"Competitive moats, Porter's Five Forces, blue ocean strategy, and platform strategy.",difficulty:"Advanced",questions:10}
+];
+
+/* ── Quiz questions bank ── */
+var QUESTIONS = {
+  "sales-1": [
+    {q:"What is the primary goal of a sales funnel?",opts:["Increase marketing spend","Guide prospects through buying stages","Generate press coverage","Build social media followers"],ans:1},
+    {q:"Which metric best measures sales team performance?",opts:["Website traffic","Conversion rate","Number of emails sent","Social media likes"],ans:1},
+    {q:"\"Cold calling\" means contacting prospects…",opts:["After a previous sale","With no prior relationship","Who are already customers","Through referrals only"],ans:1},
+    {q:"AIDA stands for…",opts:["Awareness, Interest, Decision, Action","Attention, Interest, Desire, Action","Analysis, Insight, Data, Assessment","Acquire, Influence, Direct, Achieve"],ans:1},
+    {q:"A \"pain point\" in sales is best described as…",opts:["A difficult customer","A competitor's advantage","A problem the customer needs solved","A failed sales call"],ans:2},
+    {q:"The SPIN selling technique stands for…",opts:["Situation, Problem, Implication, Need-Payoff","Sales, Profit, Interest, Numbers","Strategy, Pipeline, Initiative, Net-revenue","Success, Planning, Information, Nurturing"],ans:0},
+    {q:"\"Social proof\" in sales refers to…",opts:["Social media advertising","Evidence that others have benefited from your product","A public relations campaign","Word-of-mouth marketing only"],ans:1},
+    {q:"When handling a price objection, the best first response is to…",opts:["Immediately discount the price","End the conversation","Reframe the value and demonstrate ROI","Blame the product"],ans:2},
+    {q:"B2B stands for…",opts:["Business to Business","Buy to Buy","Brand to Brand","Build to Buy"],ans:0},
+    {q:"A \"qualified lead\" is a prospect who has…",opts:["A large social following","Budget, authority, need, and timeline to buy","Visited your website","Responded to an email"],ans:1}
+  ],
+  "sales-2": [
+    {q:"\"Pipeline velocity\" measures…",opts:["Speed of email responses","Rate at which deals move through the pipeline","Speed of order fulfillment","Sales team communication speed"],ans:1},
+    {q:"The \"challenger sale\" methodology focuses on…",opts:["Discounting aggressively","Only responding to inbound leads","Teaching prospects something new that disrupts their thinking","Following up daily"],ans:2},
+    {q:"Account-based selling (ABS) is most effective for…",opts:["B2C retail","High-value, complex B2B deals","Social media campaigns","Email newsletters"],ans:1},
+    {q:"\"Sandbagging\" in sales means…",opts:["Overcommitting to targets","Deliberately underestimating a deal to exceed quota","Adding unnecessary product features","Removing old leads from CRM"],ans:1},
+    {q:"A win/loss analysis helps you…",opts:["Track email open rates","Count competitors","Understand why deals are won or lost to improve strategy","Manage inventory"],ans:2},
+    {q:"What is \"upselling\"?",opts:["Raising the price of existing products","Encouraging a customer to purchase a higher-tier product","Selling only to existing customers","Offering discounts to close deals"],ans:1},
+    {q:"Which CRM feature is most critical for revenue forecasting?",opts:["Contact storage","Pipeline stage tracking with deal probability","Email templates","Calendar syncing"],ans:1},
+    {q:"In the MEDDIC framework, \"Champion\" refers to…",opts:["The largest deal closed","An internal advocate who promotes your solution","The sales manager","The top-performing rep"],ans:1},
+    {q:"Churn rate measures…",opts:["The speed of new customer acquisition","The rate at which customers stop buying","Profit margins","Market share"],ans:1},
+    {q:"What does \"cross-selling\" mean?",opts:["Selling to competitors","Offering a complementary product to an existing customer","Increasing a customer's plan tier","Selling in a new geography"],ans:1}
+  ],
+  "sales-3": [
+    {q:"Customer Lifetime Value (CLV) is calculated as…",opts:["Revenue × margins","Average purchase value × purchase frequency × customer lifespan","Leads × conversion rate","MRR × 12"],ans:1},
+    {q:"Net Revenue Retention (NRR) above 100% indicates…",opts:["Negative churn — expansion revenue exceeds lost revenue","Customer satisfaction only","New customer growth","High advertising spend"],ans:0},
+    {q:"Product-led growth (PLG) means…",opts:["Advertising-driven acquisition","The product itself drives user acquisition and expansion","Large enterprise sales teams","PR campaigns"],ans:1},
+    {q:"Which pricing strategy best extracts maximum willingness to pay?",opts:["Cost-plus pricing","Penetration pricing","Value-based pricing","Competitive pricing"],ans:2},
+    {q:"Annual Recurring Revenue (ARR) is most relevant to…",opts:["E-commerce stores","SaaS and subscription businesses","Physical retail","One-time service providers"],ans:1},
+    {q:"A \"land and expand\" strategy means…",opts:["Starting with a small deal and growing the account over time","Geographic market expansion","Acquiring competitors","Product line extension"],ans:0},
+    {q:"The Rule of 40 in SaaS states that…",opts:["40% of revenue should be profit","Growth rate % + profit margin % should equal or exceed 40","40 customers is the break-even point","40 days is the ideal sales cycle"],ans:1},
+    {q:"\"Revenue leakage\" refers to…",opts:["Refunds only","Money lost due to process inefficiencies, billing errors, or missed upsells","Marketing overspend","Pricing errors only"],ans:1},
+    {q:"\"Price elasticity\" measures…",opts:["Profit margins","How demand changes in response to price changes","Inventory flexibility","Team capacity"],ans:1},
+    {q:"Which has the highest impact on revenue per employee?",opts:["Hiring more salespeople","Automation and process optimization","Reducing prices","Increasing advertising"],ans:1}
+  ],
+  "marketing-1": [
+    {q:"What is the purpose of a content calendar?",opts:["Tracking ad spend","Organizing and scheduling content in advance","Measuring website traffic","Managing social followers"],ans:1},
+    {q:"\"SEO\" stands for…",opts:["Sales Excellence Operations","Search Engine Optimization","Social Engagement Outreach","System Enhancement Output"],ans:1},
+    {q:"Which content format typically generates the most organic reach?",opts:["Stock photos","Short-form video","Long PDFs","Text-only posts"],ans:1},
+    {q:"A \"content pillar\" is…",opts:["A one-time blog post","A social media ad","A core topic that spawns multiple pieces of content","A website header image"],ans:2},
+    {q:"What is a \"call to action\" (CTA)?",opts:["A customer complaint","A prompt directing the audience to take a specific next step","A sales script","An email subject line"],ans:1},
+    {q:"Which metric measures how many visitors completed a desired action on a landing page?",opts:["Bounce rate","Conversion rate","Session duration","Impressions"],ans:1},
+    {q:"User-generated content (UGC) is valuable primarily because…",opts:["It is free to produce","It provides authentic social proof and trust","It always ranks better in search","It requires no editing"],ans:1},
+    {q:"Content repurposing means…",opts:["Deleting old content","Adapting one piece of content into multiple formats","Reposting competitors' content","Republishing content unchanged"],ans:1},
+    {q:"An \"editorial calendar\" maps…",opts:["Ad results to budgets","Content topics to publishing dates and channels","A list of content writers","Email tool schedules"],ans:1},
+    {q:"Which funnel stage does brand awareness content primarily serve?",opts:["Decision","Retention","Advocacy","Top of funnel — Awareness"],ans:3}
+  ],
+  "marketing-2": [
+    {q:"\"Retargeting\" in digital advertising means…",opts:["Emailing inactive subscribers","Showing ads to people who previously visited your website","Re-posting old content","Following up on lost leads"],ans:1},
+    {q:"\"A/B testing\" in marketing involves…",opts:["Testing two different budgets","Testing two versions of content to find which performs better","Comparing two competitors","Two reviewers evaluating the same ad"],ans:1},
+    {q:"CPM in digital advertising stands for…",opts:["Cost Per Month","Cost Per Mile","Cost Per Thousand impressions","Cost Per Message"],ans:2},
+    {q:"Email open rate is best improved by…",opts:["Sending more emails","Optimizing subject lines and send timing","Adding more images","Increasing email length"],ans:1},
+    {q:"\"Influencer marketing\" means…",opts:["Cold outreach to investors","Partnering with content creators to reach their audience","Influencing search algorithms","Advertising on news sites"],ans:1},
+    {q:"Google Analytics primarily tracks…",opts:["Social media engagement","Email performance","Website visitor behavior and traffic sources","Ad creative performance"],ans:2},
+    {q:"\"Organic reach\" refers to…",opts:["Revenue from content","Audience reached without paid promotion","Followers gained through ads","Natural language in copy"],ans:1},
+    {q:"A \"lead magnet\" is…",opts:["A viral video","A high-end product","A free offer designed to attract email subscribers","A pop-up ad"],ans:2},
+    {q:"\"CTR\" stands for…",opts:["Content Traffic Rate","Click-Through Rate","Customer Transaction Rate","Creative Test Ratio"],ans:1},
+    {q:"Which platform is generally most effective for B2B digital marketing?",opts:["TikTok","Pinterest","LinkedIn","Snapchat"],ans:2}
+  ],
+  "marketing-3": [
+    {q:"\"Attribution modeling\" in marketing means…",opts:["Designing ad creatives","Assigning credit to marketing touchpoints that led to a conversion","Tracking competitor ads","Building audience segments"],ans:1},
+    {q:"Customer Acquisition Cost (CAC) is calculated as…",opts:["Total revenue / total customers","Total sales + marketing costs / new customers acquired","Total traffic / conversions","Leads × close rate"],ans:1},
+    {q:"\"Cohort analysis\" analyzes…",opts:["Team performance reviews","Groups of users who share a characteristic, tracked over time","Email segmentation","Social media analytics"],ans:1},
+    {q:"An LTV:CAC ratio of 3:1 means…",opts:["The business is losing money","The business generates 3x the customer lifetime value vs. acquisition cost","Revenue is flat","Marketing is underperforming"],ans:1},
+    {q:"\"Multi-touch attribution\" solves…",opts:["Email spam issues","The challenge of crediting multiple channels that contributed to a sale","Slow website loading","Low ad quality scores"],ans:1},
+    {q:"\"Funnel drop-off rate\" measures…",opts:["Sales team attrition","Percentage of users who leave at each funnel stage","Email unsubscribes","Ad impression decline"],ans:1},
+    {q:"\"Statistical significance\" in marketing tests means…",opts:["A large sample size","Confidence that a test result is not due to random chance","Positive ROI","A 50%+ conversion rate"],ans:1},
+    {q:"\"Dark social\" traffic refers to…",opts:["Anonymous website visitors","Private shares via messaging apps or email that don't show in analytics","Hacked accounts","Bot traffic"],ans:1},
+    {q:"\"Share of Voice\" (SOV) measures…",opts:["Revenue share","Brand presence relative to competitors in a market","Podcast listener share","Social media follower percentage"],ans:1},
+    {q:"Marketing Mix Modeling (MMM) helps businesses…",opts:["Design brand logos","Understand the ROI of each marketing channel to optimize spend","Hire marketing staff","Write better ad copy"],ans:1}
+  ],
+  "analytics-1": [
+    {q:"KPI stands for…",opts:["Key Product Indicator","Key Performance Indicator","Key Profit Index","Known Productivity Item"],ans:1},
+    {q:"A \"data dashboard\" is primarily used to…",opts:["Store raw data","Visualize key metrics in real time","Write narrative reports","Collect customer data"],ans:1},
+    {q:"\"Data normalization\" means…",opts:["Deleting unusual values","Organizing data to reduce redundancy and improve consistency","Making all numbers equal","Averaging data sets"],ans:1},
+    {q:"An \"outlier\" in data analysis is…",opts:["A hidden data source","A data point significantly different from the rest","The most common value","A missing value"],ans:1},
+    {q:"Mean, median, and mode are all measures of…",opts:["Variance","Data distribution","Central tendency","Growth rate"],ans:2},
+    {q:"What is a \"pivot table\"?",opts:["A database table","A data summarization tool that reorganizes and aggregates data","A business strategy","A type of chart"],ans:1},
+    {q:"Data visualization primarily helps by…",opts:["Hiding sensitive data","Making complex data easier to understand and communicate","Automating reporting","Increasing data accuracy"],ans:1},
+    {q:"CSV stands for…",opts:["Comma-Separated Values","Customized System Variables","Client Software Version","Content Storage View"],ans:0},
+    {q:"A \"trend line\" in data analysis shows…",opts:["Current sales figures","The general direction of data over time","Customer geographic locations","Expense totals"],ans:1},
+    {q:"\"Data integrity\" means…",opts:["Encrypting all data","The accuracy and consistency of data throughout its lifecycle","Large-scale data storage","Fast data retrieval"],ans:1}
+  ],
+  "analytics-2": [
+    {q:"OLAP stands for…",opts:["Online Language Analytics Platform","Online Analytical Processing","Output Layer Analysis Protocol","Organizational Learning and Performance"],ans:1},
+    {q:"ETL stands for…",opts:["Email, Transfer, Launch","Extract, Transform, Load","Evaluate, Test, Launch","Enterprise Task Log"],ans:1},
+    {q:"A \"data warehouse\" is…",opts:["A place to store physical hardware","A central repository of integrated data from multiple sources","A cloud backup system","A database management tool"],ans:1},
+    {q:"Business Intelligence (BI) primarily helps organizations…",opts:["Build websites","Hire better employees","Make data-driven decisions","Reduce headcount"],ans:2},
+    {q:"A \"star schema\" in database design consists of…",opts:["A 5-star rating system","A central fact table surrounded by dimension tables","A star-shaped org chart","A circular data model"],ans:1},
+    {q:"\"Real-time analytics\" refers to…",opts:["Analyzing data from the last year","Processing and analyzing data as it is generated","Updating dashboards monthly","Annual reporting cycles"],ans:1},
+    {q:"\"Data governance\" is…",opts:["Government data regulations","The framework ensuring data quality, security, and proper use","Encrypting databases","Auditing financial records only"],ans:1},
+    {q:"Which tool category is most commonly used for BI dashboards?",opts:["Word processing software","Visualization tools like Tableau or Power BI","Image editing software","Messaging apps"],ans:1},
+    {q:"\"Drill-down\" in BI means…",opts:["Deleting detailed data","Exploring more detailed layers within aggregated data","Exporting reports","Combining disparate data sources"],ans:1},
+    {q:"A \"data lake\" differs from a data warehouse in that it…",opts:["Stores only structured data","Is smaller in capacity","Stores raw, unprocessed data in native format","Only holds financial data"],ans:2}
+  ],
+  "analytics-3": [
+    {q:"Predictive analytics uses…",opts:["Current news headlines","Historical data and statistical models to forecast future outcomes","Customer interviews only","Real-time social data only"],ans:1},
+    {q:"\"Machine learning\" in analytics means…",opts:["Hardware optimization","Algorithms that learn from data to improve predictions over time","Manual data entry","Employee training programs"],ans:1},
+    {q:"\"Regression analysis\" is a method for…",opts:["Going back to older methods","Understanding relationships between variables","Analyzing declining metrics","Data rollback procedures"],ans:1},
+    {q:"\"Overfitting\" in a predictive model means…",opts:["The model performs too well on new data","The model performs well on training data but poorly on new data","The dataset is too large","Predictions are too conservative"],ans:1},
+    {q:"A \"classification model\" is one that…",opts:["Categorizes data points into distinct groups","Predicts continuous numeric values","Sorts records alphabetically","Cleans messy data"],ans:0},
+    {q:"\"Training data\" in machine learning is…",opts:["Data used to improve employee skills","Historical data used to build and teach a predictive model","Real-time streaming data","Data collected about competitors"],ans:1},
+    {q:"\"Churn prediction\" enables a business to…",opts:["Track competitor activity","Identify customers likely to cancel before they do, enabling proactive retention","Forecast sales seasonality","Optimize email send timing"],ans:1},
+    {q:"A \"confusion matrix\" is used to measure…",opts:["User confusion on a website","The accuracy and error types of a classification model","Employee performance","Customer satisfaction"],ans:1},
+    {q:"\"Feature engineering\" means…",opts:["Hiring data engineers","Creating new variables from raw data to improve model performance","Hardware setup","Software feature planning"],ans:1},
+    {q:"What is the purpose of a \"validation set\" in model training?",opts:["To store backup data","To evaluate model performance on unseen data during training","To collect new customer data","To validate employee credentials"],ans:1}
+  ],
+  "leadership-1": [
+    {q:"\"Servant leadership\" is a style focused on…",opts:["Following orders from above","Serving and empowering the team","Delegating all work","Strict top-down management"],ans:1},
+    {q:"Emotional intelligence (EQ) in leadership refers to…",opts:["Technical knowledge","Understanding and managing your own emotions and others'","Analytical skills","Decision-making speed"],ans:1},
+    {q:"\"Psychological safety\" in a team means…",opts:["Physical safety protocols","A culture where members feel safe speaking up, taking risks, and making mistakes","Employee health insurance","Safety training programs"],ans:1},
+    {q:"\"Delegation\" in leadership means…",opts:["Micromanaging every task","Assigning tasks and authority to others while remaining accountable","Refusing to share work","Reducing team size"],ans:1},
+    {q:"Active listening means…",opts:["Preparing your response while others talk","Fully concentrating, understanding, and responding thoughtfully","Taking extensive notes","Speaking more than listening"],ans:1},
+    {q:"SMART goals stand for…",opts:["Simple, Measurable, Agile, Realistic, Timely","Specific, Measurable, Achievable, Relevant, Time-bound","Strategic, Mindful, Attainable, Rapid, Tracked","Systematic, Managed, Actionable, Reviewed, Targeted"],ans:1},
+    {q:"A \"1-on-1\" meeting is primarily used for…",opts:["Annual performance reviews only","Regular check-ins for coaching and support between leader and team member","Company-wide announcements","Team retrospectives only"],ans:1},
+    {q:"Transformational leadership focuses on…",opts:["Maintaining the status quo","Transactional rewards only","Inspiring and motivating teams toward a compelling vision","Process compliance above all"],ans:2},
+    {q:"\"Conflict resolution\" in leadership means…",opts:["Avoiding all disagreements","Addressing and resolving disputes constructively","Disciplining employees","Escalating all issues upward"],ans:1},
+    {q:"\"Leading by example\" means…",opts:["Telling employees exactly what to do","Modeling the behavior and values you expect from your team","Avoiding responsibility","Creating policies and guidelines"],ans:1}
+  ],
+  "leadership-2": [
+    {q:"\"Decision fatigue\" refers to…",opts:["Exhaustion from processing too much data","The decline in decision quality after making many decisions","Analysis paralysis only","Board meeting exhaustion"],ans:1},
+    {q:"The Pareto Principle (80/20 rule) states that…",opts:["80% of effort produces 20% of results","80% of results come from 20% of causes","20% of employees do 80% of work","80% of customers are unprofitable"],ans:1},
+    {q:"\"Scenario planning\" involves…",opts:["Writing business case studies","Developing strategies for multiple possible future situations","Reviewing past decisions","Forecasting quarterly earnings only"],ans:1},
+    {q:"\"First principles thinking\" means…",opts:["Following industry best practices","Breaking problems down to fundamental truths and reasoning upward","Using proven templates","Following senior leadership guidance"],ans:1},
+    {q:"\"Opportunity cost\" is…",opts:["The cost of missed marketing campaigns","The value of the next-best alternative forgone when making a decision","Project over-budget amounts","Employee turnover costs"],ans:1},
+    {q:"A SWOT analysis evaluates…",opts:["Sales, Work, Operations, Team","Strengths, Weaknesses, Opportunities, Threats","Strategy, Workforce, Objectives, Tactics","Systems, Workflow, Output, Timeline"],ans:1},
+    {q:"Why does distinguishing reversible vs. irreversible decisions matter?",opts:["Irreversible decisions require more caution and deeper analysis","All decisions should be reversible","Reversible decisions are more important","Speed always matters more than reversibility"],ans:0},
+    {q:"\"Stakeholder analysis\" involves…",opts:["Tracking stock performance","Identifying parties affected by decisions and understanding their interests","Investor relations management","Employee satisfaction surveys only"],ans:1},
+    {q:"\"Cognitive bias\" in decision-making refers to…",opts:["Rational analytical thinking","Systematic deviations from rationality that affect judgments","Slow, cautious decision-making","Data overload"],ans:1},
+    {q:"The \"pre-mortem\" technique involves…",opts:["Reviewing past project failures","Imagining a project has failed and identifying why before it starts","Conducting exit interviews","Board-level risk assessments"],ans:1}
+  ],
+  "leadership-3": [
+    {q:"A \"competitive moat\" is…",opts:["A marketing strategy","A sustainable competitive advantage that protects a business from rivals","A financial reserve fund","A patent portfolio only"],ans:1},
+    {q:"Porter's Five Forces model analyzes…",opts:["Five leadership styles","Five forces that shape industry competition and profitability","Five marketing channels","Five financial metrics"],ans:1},
+    {q:"\"Blue ocean strategy\" means…",opts:["Competing aggressively in existing markets","Creating uncontested new market space with no competition","Entering international markets","Optimizing existing products"],ans:1},
+    {q:"\"Organizational agility\" refers to…",opts:["Employee physical fitness","An organization's ability to rapidly adapt to market changes","Remote work capability","Fast hiring processes"],ans:1},
+    {q:"\"Economies of scale\" mean…",opts:["Smaller businesses are always more efficient","Cost per unit decreases as production volume increases","Revenue always grows faster than costs","Market share automatically increases"],ans:1},
+    {q:"A \"core competency\" is…",opts:["A required technical job skill","A unique capability that gives a business a competitive advantage","A standard industry practice","A team's combined skills list"],ans:1},
+    {q:"\"Vertical integration\" means…",opts:["Acquiring horizontal competitors","Expanding into supply chain stages upstream or downstream","Hiring senior executives","Merging with a direct competitor"],ans:1},
+    {q:"\"Market penetration\" as a growth strategy focuses on…",opts:["Entering new markets","Increasing share in existing markets with existing products","Developing new products","Acquiring direct competitors"],ans:1},
+    {q:"A \"balanced scorecard\" is…",opts:["An employee performance review tool","A strategic framework measuring performance across financial, customer, internal process, and learning dimensions","A budget management system","A project management methodology"],ans:1},
+    {q:"\"Platform strategy\" creates value by…",opts:["Building proprietary software","Facilitating interactions and transactions between two or more user groups","Expanding product lines","Increasing prices across segments"],ans:1}
+  ]
+};
+
+/* ── Category styles ── */
+var CAT_STYLE = {
+  Sales:      {dot:"dot-sales",  iconClass:"ci-sales",      textColor:"#a855f7"},
+  Marketing:  {dot:"dot-marketing",iconClass:"ci-marketing",textColor:"#f472b6"},
+  Analytics:  {dot:"dot-analytics",iconClass:"ci-analytics",textColor:"#60a5fa"},
+  Leadership: {dot:"dot-leadership",iconClass:"ci-leadership",textColor:"#fbbf24"}
+};
+
+var CAT_ICONS = {
+  Sales: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  Marketing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3H10l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  Analytics: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  Leadership: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+};
+
+/* ── State ── */
+var earnedSet = new Set();
+var earnedScores = {};
+var activeCert = null;
+var currentQ = 0;
+var answers = [];
+var activeFilter = "all";
+
+/* ── API helpers ── */
+function authFetch(path, opts) {
+  return fetch(API_URL + path, Object.assign({headers:{"Content-Type":"application/json","Authorization":"Bearer "+token}}, opts));
+}
+
+/* ── Load earned certifications ── */
+function loadEarned() {
+  authFetch("/api/certifications/earned")
+    .then(function(r){return r.json();})
+    .then(function(data){
+      (data.certifications||[]).forEach(function(c){
+        earnedSet.add(c.cert_id);
+        earnedScores[c.cert_id] = c.score;
+      });
+      document.getElementById("statEarned").textContent = earnedSet.size;
+    })
+    .catch(function(){})
+    .finally(renderGrid);
+}
+
+/* ── Render cert grid ── */
+function renderGrid() {
+  var grid = document.getElementById("certGrid");
+  var html = "";
+  var filtered = CERTS.filter(function(c){
+    return activeFilter === "all" || c.category === activeFilter;
+  });
+  if (!filtered.length) {
+    grid.innerHTML = '<p class="empty-filter">No certifications in this category yet.</p>';
+    return;
+  }
+  filtered.forEach(function(cert) {
+    var cs = CAT_STYLE[cert.category];
+    var earned = earnedSet.has(cert.id);
+    var score = earnedScores[cert.id];
+    var diffClass = "diff-" + cert.difficulty.toLowerCase();
+    var catClass = "cat-" + cert.category.toLowerCase();
+    html += '<div class="cert-card '+catClass+(earned?" earned":"")+(activeFilter!=="all"&&cert.category!==activeFilter?" hidden":"")+'" data-id="'+cert.id+'">';
+    html += '<div class="cert-card-top">';
+    html += '<div class="cert-icon '+cs.iconClass+'">'+CAT_ICONS[cert.category]+'</div>';
+    html += '<div class="cert-badges">';
+    if (earned) {
+      html += '<span class="badge-earned"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Earned</span>';
+    }
+    html += '<span class="badge-diff '+diffClass+'">'+cert.difficulty+'</span>';
+    html += '</div></div>';
+    html += '<div>';
+    html += '<p class="cert-category" style="color:'+cs.textColor+';font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:0 0 4px">'+cert.category+'</p>';
+    html += '<h3 class="cert-name">'+cert.name+'</h3>';
+    html += '</div>';
+    html += '<p class="cert-desc">'+cert.desc+'</p>';
+    html += '<div class="cert-meta"><span>'+cert.questions+' questions</span><span class="cert-meta-sep"></span><span>Pass: 80%</span></div>';
+    if (earned && score !== undefined) {
+      html += '<div class="cert-score">Score: '+score+'%</div>';
+    }
+    if (earned) {
+      html += '<button class="cert-btn cert-btn-retry" data-id="'+cert.id+'">Retake Assessment</button>';
+    } else {
+      html += '<button class="cert-btn cert-btn-start" data-id="'+cert.id+'">Start Assessment</button>';
+    }
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+  grid.querySelectorAll(".cert-btn").forEach(function(btn){
+    btn.addEventListener("click", function(e){
+      e.stopPropagation();
+      openQuiz(btn.getAttribute("data-id"));
+    });
+  });
+  grid.querySelectorAll(".cert-card").forEach(function(card){
+    card.addEventListener("click", function(){
+      openQuiz(card.getAttribute("data-id"));
+    });
+  });
+}
+
+/* ── Filter buttons ── */
+document.querySelectorAll(".filter-btn").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".filter-btn").forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    activeFilter = btn.getAttribute("data-cat");
+    renderGrid();
+  });
+});
+
+/* ── Quiz: open ── */
+function openQuiz(certId) {
+  activeCert = CERTS.find(function(c){return c.id===certId;});
+  if (!activeCert) return;
+  currentQ = 0;
+  answers = new Array(activeCert.questions).fill(null);
+
+  var cs = CAT_STYLE[activeCert.category];
+
+  // Populate intro
+  var iconEl = document.getElementById("quizIntroIcon");
+  iconEl.className = "quiz-cert-icon " + cs.iconClass;
+  iconEl.innerHTML = CAT_ICONS[activeCert.category];
+  iconEl.style.width = "72px";
+  iconEl.style.height = "72px";
+  iconEl.style.borderRadius = "18px";
+
+  document.getElementById("quizIntroTitle").textContent = activeCert.name;
+  document.getElementById("quizIntroDesc").textContent = activeCert.desc;
+  document.getElementById("quizInfoQ").textContent = activeCert.questions;
+  document.getElementById("quizInfoCat").textContent = activeCert.category;
+
+  showScreen("intro");
+  document.getElementById("quizOverlay").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeQuiz() {
+  document.getElementById("quizOverlay").classList.add("hidden");
+  document.body.style.overflow = "";
+  activeCert = null;
+}
+
+function showScreen(name) {
+  document.getElementById("quizIntro").style.display = name==="intro" ? "block" : "none";
+  document.getElementById("quizQuestions").style.display = name==="question" ? "block" : "none";
+  document.getElementById("quizResult").style.display = name==="result" ? "block" : "none";
+}
+
+/* ── Quiz: question rendering ── */
+function renderQuestion() {
+  if (!activeCert) return;
+  var qs = QUESTIONS[activeCert.id];
+  var q = qs[currentQ];
+  var total = activeCert.questions;
+
+  document.getElementById("quizQNum").textContent = "Question " + (currentQ + 1);
+  document.getElementById("quizQOf").textContent = (currentQ + 1) + " of " + total;
+  document.getElementById("quizQText").textContent = q.q;
+  document.getElementById("quizProgressFill").style.width = (((currentQ) / total) * 100) + "%";
+
+  var optHtml = "";
+  var letters = ["A","B","C","D"];
+  q.opts.forEach(function(opt, i){
+    var sel = answers[currentQ] === i ? " selected" : "";
+    optHtml += '<div class="quiz-opt'+sel+'" data-idx="'+i+'">';
+    optHtml += '<span class="quiz-opt-letter">'+letters[i]+'</span>';
+    optHtml += '<span>'+opt+'</span>';
+    optHtml += '</div>';
+  });
+  document.getElementById("quizOptions").innerHTML = optHtml;
+
+  var nextBtn = document.getElementById("quizNextBtn");
+  nextBtn.textContent = currentQ === total - 1 ? "Submit" : "Next →";
+  nextBtn.disabled = answers[currentQ] === null;
+
+  document.querySelectorAll(".quiz-opt").forEach(function(opt){
+    opt.addEventListener("click", function(){
+      answers[currentQ] = parseInt(opt.getAttribute("data-idx"));
+      document.querySelectorAll(".quiz-opt").forEach(function(o){o.classList.remove("selected");});
+      opt.classList.add("selected");
+      nextBtn.disabled = false;
+    });
+  });
+}
+
+/* ── Quiz: navigation ── */
+document.getElementById("quizBeginBtn").addEventListener("click", function(){
+  showScreen("question");
+  renderQuestion();
+});
+
+document.getElementById("quizNextBtn").addEventListener("click", function(){
+  var total = activeCert.questions;
+  if (currentQ < total - 1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    submitQuiz();
+  }
+});
+
+document.getElementById("quizSkipBtn").addEventListener("click", function(){
+  var total = activeCert.questions;
+  if (currentQ < total - 1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    submitQuiz();
+  }
+});
+
+/* ── Quiz: submit & score ── */
+function submitQuiz() {
+  var qs = QUESTIONS[activeCert.id];
+  var correct = 0;
+  answers.forEach(function(ans, i){
+    if (ans !== null && ans === qs[i].ans) correct++;
+  });
+  var total = activeCert.questions;
+  var pct = Math.round((correct / total) * 100);
+  var passed = pct >= 80;
+
+  // Record via API
+  authFetch("/api/certifications/award", {
+    method: "POST",
+    body: JSON.stringify({cert_id: activeCert.id, category: activeCert.category, score: pct, passed: passed})
+  })
+  .then(function(){
+    if (passed) {
+      earnedSet.add(activeCert.id);
+      earnedScores[activeCert.id] = pct;
+      document.getElementById("statEarned").textContent = earnedSet.size;
+    }
+  })
+  .catch(function(){});
+
+  // Show result
+  showResult(pct, passed);
+}
+
+function showResult(pct, passed) {
+  var ring = document.getElementById("resultRing");
+  ring.className = "result-ring " + (passed ? "pass" : "fail");
+  ring.textContent = passed ? "✓" : pct + "%";
+
+  var headline = document.getElementById("resultHeadline");
+  headline.className = "result-headline " + (passed ? "pass" : "fail");
+  headline.textContent = passed ? "Certification Earned!" : "Not Quite";
+
+  document.getElementById("resultSub").textContent = passed
+    ? "You demonstrated mastery of " + activeCert.name + ". Your badge has been added to your profile."
+    : "You scored " + pct + "% and need 80% to pass. Review the material and try again — you've got this.";
+
+  document.getElementById("resultScore").textContent = pct + "%";
+
+  var badge = document.getElementById("resultCertBadge");
+  badge.style.display = passed ? "flex" : "none";
+  if (passed) document.getElementById("resultCertName").textContent = activeCert.name;
+
+  document.getElementById("resultProgressFill") && (document.getElementById("resultProgressFill").style.width = "100%");
+  document.getElementById("quizProgressFill").style.width = "100%";
+
+  showScreen("result");
+}
+
+/* ── Result actions ── */
+document.getElementById("resultRetryBtn").addEventListener("click", function(){
+  currentQ = 0;
+  answers = new Array(activeCert.questions).fill(null);
+  showScreen("question");
+  renderQuestion();
+});
+
+document.getElementById("resultDoneBtn").addEventListener("click", function(){
+  closeQuiz();
+  renderGrid();
+});
+
+/* ── Close handlers ── */
+document.getElementById("quizClose").addEventListener("click", closeQuiz);
+document.getElementById("quizOverlay").addEventListener("click", function(e){
+  if (e.target === this) closeQuiz();
+});
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape") closeQuiz();
+});
+
+/* ── Init ── */
+loadEarned();
+</script>
+</body>
+</html>
