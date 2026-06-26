@@ -906,26 +906,29 @@
     /* ── Empty states ────────────────────────────────────────────────────── */
     .pf-empty {
       display: flex; flex-direction: column; align-items: center;
-      padding: 56px 24px; text-align: center;
-      background: rgba(var(--pa-rgb),.02);
-      border: 1px dashed rgba(var(--pa-rgb),.28);
-      border-radius: var(--card-radius);
+      width: 100%; grid-column: 1 / -1;
+      padding: 64px 24px; text-align: center;
+      background: rgba(12,16,38,.72);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px dashed rgba(34,211,238,.3);
+      border-radius: 18px;
+      box-sizing: border-box;
     }
     .pf-empty-icon {
-      width: 64px; height: 64px; border-radius: 50%; margin-bottom: 18px;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(var(--pa-rgb),.09);
-      border: 1px solid rgba(var(--pa-rgb),.3);
-      box-shadow: 0 0 18px rgba(var(--pa-rgb),.1);
+      width: 88px; height: 88px; border-radius: 50%; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: rgba(34,211,238,.08);
+      border: 1px solid rgba(34,211,238,.3);
+      box-shadow: 0 0 28px rgba(34,211,238,.12);
     }
-    .pf-empty-icon svg { width: 26px; height: 26px; color: var(--pa); opacity: .75; }
-    .pf-empty-title { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 7px; }
-    .pf-empty-sub { font-size: 14px; color: rgba(255,255,255,.5); line-height: 1.65; margin-bottom: 22px; max-width: 300px; }
+    .pf-empty-icon svg { width: 48px; height: 48px; color: #22d3ee; flex-shrink: 0; }
+    .pf-empty-title { font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 8px; }
+    .pf-empty-sub { font-size: 14px; color: rgba(255,255,255,.5); line-height: 1.65; margin-bottom: 24px; max-width: 300px; }
     .pf-empty-btn {
       display: inline-flex; align-items: center; gap: 7px;
-      padding: 9px 22px; border-radius: 10px;
-      background: linear-gradient(90deg, var(--pa), var(--pa2));
-      border: none; color: #050c1a; font-size: .82rem; font-weight: 900;
+      padding: 10px 24px; border-radius: 10px;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      border: none; color: #050c1a; font-size: .85rem; font-weight: 900;
       cursor: pointer; font-family: var(--pf); transition: filter .2s;
     }
     .pf-empty-btn:hover { filter: brightness(1.12); }
@@ -1347,12 +1350,13 @@ async function loadAll() {
       fetch(API_URL + (own ? "/api/bfp/videos"     : "/api/bfp/videos/public/"     + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/music"      : "/api/bfp/music/public/"      + uid), { headers: hdr })
     ]);
-    try { profileData = (await pRes.json()).profile || {}; }    catch(e){ profileData = {}; }
-    try { products    = (await prodRes.json()).products  || []; } catch(e){ products = []; }
-    try { portfolio   = (await portRes.json()).items     || []; } catch(e){ portfolio = []; }
-    try { videos      = (await vidRes.json()).videos     || []; } catch(e){ videos = []; }
-    try { tracks      = (await musRes.json()).tracks     || []; } catch(e){ tracks = []; }
+    try { profileData = (await pRes.json()).profile || {}; }    catch(e){ console.error('[BF] profile parse:', e); profileData = {}; }
+    try { products    = (await prodRes.json()).products  || []; } catch(e){ console.error('[BF] products parse:', e); products = []; }
+    try { portfolio   = (await portRes.json()).items     || []; } catch(e){ console.error('[BF] portfolio parse:', e); portfolio = []; }
+    try { videos      = (await vidRes.json()).videos     || []; } catch(e){ console.error('[BF] videos parse:', e); videos = []; }
+    try { tracks      = (await musRes.json()).tracks     || []; } catch(e){ console.error('[BF] music parse:', e); tracks = []; }
   } catch(e) {
+    console.error('[BF] loadAll fetch failed:', e);
     profileData = {}; products = []; portfolio = []; videos = []; tracks = [];
   }
   applyProfile(profileData);
@@ -1557,11 +1561,30 @@ async function saveAbout() {
   setTimeout(function(){ status.textContent=""; status.className="pf-about-save-status"; }, 3000);
 }
 
+// ── Empty state helper ────────────────────────────────────────────────────────
+function emptyState(svgPath, title, sub, btnLabel, btnCall) {
+  var btn = (btnLabel && btnCall)
+    ? '<button class="pf-empty-btn" onclick="'+btnCall+'">+ '+btnLabel+'</button>'
+    : '';
+  return '<div class="pf-empty">'
+    + '<div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+svgPath+'</svg></div>'
+    + '<div class="pf-empty-title">'+title+'</div>'
+    + '<div class="pf-empty-sub">'+sub+'</div>'
+    + btn
+    + '</div>';
+}
+
 // ── PRODUCTS ──────────────────────────────────────────────────────────────────
 function renderProducts() {
   var grid = document.getElementById("productsGrid");
   if (!products.length) {
-    grid.innerHTML = '<div class="pf-empty"><div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="pf-empty-title">No products yet</div><div class="pf-empty-sub">Add your first product to showcase your offerings to visitors.</div>'+(isOwner&&editMode?'<button class="pf-empty-btn" onclick="openProductModal(null)">+ Add Product</button>':'')+'</div>';
+    grid.innerHTML = emptyState(
+      '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+      'No products yet',
+      'Add your first product to showcase your offerings to visitors.',
+      isOwner && editMode ? 'Add Product' : null,
+      isOwner && editMode ? 'openProductModal(null)' : null
+    );
     return;
   }
   grid.innerHTML = products.map(function(p) {
@@ -1878,7 +1901,13 @@ var editingPortfolioId = null;
 function renderPortfolio() {
   var grid = document.getElementById("portfolioGrid");
   if (!portfolio.length) {
-    grid.innerHTML = '<div class="pf-empty"><div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div class="pf-empty-title">No portfolio items yet</div><div class="pf-empty-sub">Showcase your best work — projects, designs, campaigns, and more.</div>'+(isOwner&&editMode?'<button class="pf-empty-btn" onclick="openPortfolioModal(null)">+ Add Work</button>':'')+'</div>';
+    grid.innerHTML = emptyState(
+      '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+      'No portfolio items yet',
+      'Showcase your best work — projects, designs, campaigns, and more.',
+      isOwner && editMode ? 'Add Work' : null,
+      isOwner && editMode ? 'openPortfolioModal(null)' : null
+    );
     return;
   }
   grid.innerHTML = portfolio.map(function(p) {
@@ -1986,7 +2015,13 @@ function getVideoThumb(v) {
 function renderVideos() {
   var grid=document.getElementById("videosGrid");
   if (!videos.length) {
-    grid.innerHTML='<div class="pf-empty"><div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><div class="pf-empty-title">No videos yet</div><div class="pf-empty-sub">Paste a YouTube or Vimeo link, or upload a video file directly.</div>'+(isOwner&&editMode?'<button class="pf-empty-btn" onclick="openVideoModal(null)">+ Add Video</button>':'')+'</div>';
+    grid.innerHTML = emptyState(
+      '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+      'No videos yet',
+      'Paste a YouTube or Vimeo link, or upload a video file directly.',
+      isOwner && editMode ? 'Add Video' : null,
+      isOwner && editMode ? 'openVideoModal(null)' : null
+    );
     return;
   }
   grid.innerHTML=videos.map(function(v) {
@@ -2101,7 +2136,13 @@ var rafId          = null;
 function renderMusic() {
   var list=document.getElementById("musicList");
   if (!tracks.length) {
-    list.innerHTML='<div class="pf-empty"><div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div><div class="pf-empty-title">No tracks yet</div><div class="pf-empty-sub">Upload MP3 or WAV files with album art to build your music showcase.</div>'+(isOwner&&editMode?'<button class="pf-empty-btn" onclick="openMusicModal(null)">+ Upload Track</button>':'')+'</div>';
+    list.innerHTML = emptyState(
+      '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+      'No tracks yet',
+      'Upload MP3 or WAV files with album art to build your music showcase.',
+      isOwner && editMode ? 'Upload Track' : null,
+      isOwner && editMode ? 'openMusicModal(null)' : null
+    );
     return;
   }
   list.innerHTML=tracks.map(function(t) {
