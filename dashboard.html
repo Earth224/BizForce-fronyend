@@ -38859,7 +38859,16 @@ function renderAssignmentCard(item, isHistory) {
     return card;
 }
 
+function isAnyAssignmentDetailOpen() {
+    var btns = document.querySelectorAll(".assignmentDetailsExpand");
+    for (var i = 0; i < btns.length; i++) {
+        if (btns[i].style.display === "none") { return true; }
+    }
+    return false;
+}
+
 function renderAssignmentDashboard() {
+    if (isAnyAssignmentDetailOpen()) { return; }
     if (!activeAssignmentsList || !historyAssignmentsList) {
         return;
     }
