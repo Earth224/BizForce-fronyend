@@ -38558,6 +38558,8 @@ function bindAssignmentDetailsControls() {
 
     section.dataset.detailsBound = "1";
 
+    var _detailToggleGuard = false;
+
     section.addEventListener("click", function(event) {
         var button = event.target.closest(".assignmentDetailsToggle");
 
@@ -38565,14 +38567,22 @@ function bindAssignmentDetailsControls() {
             return;
         }
 
+        if (_detailToggleGuard) {
+            return;
+        }
+        _detailToggleGuard = true;
+        setTimeout(function() { _detailToggleGuard = false; }, 200);
+
         var card = button.closest(".assignment-card");
         var details = card && card.querySelector(".assignmentCardDetails");
 
         if (!details) {
+            _detailToggleGuard = false;
             return;
         }
 
-        var expanded = details.style.display !== "none";
+        var expanded = details.dataset.expanded === "true";
+        details.dataset.expanded = expanded ? "false" : "true";
         details.style.display = expanded ? "none" : "block";
         button.textContent = expanded ? "Expand details" : "Collapse details";
     });
@@ -38582,6 +38592,15 @@ function bindAssignmentStartControls() {
     var section = document.getElementById("agentAssignmentsSection");
     if (!section || section.dataset.startBound === "1") return;
     section.dataset.startBound = "1";
+
+    /* inject spinner keyframe once */
+    if (!document.getElementById("aqSpinnerStyle")) {
+        var sty = document.createElement("style");
+        sty.id = "aqSpinnerStyle";
+        sty.textContent = "@keyframes aqSpin{to{transform:rotate(360deg)}}";
+        document.head.appendChild(sty);
+    }
+
     section.addEventListener("click", async function(event) {
         var btn = event.target;
         if (!btn || !btn.classList || !btn.classList.contains("assignmentStartBtn")) return;
@@ -38594,11 +38613,11 @@ function bindAssignmentStartControls() {
             alert("Assignment not found.");
             return;
         }
+
+        var startTime = Date.now();
         btn.disabled = true;
-        btn.textContent = "Starting...";
-        item.status = "In Progress";
-        saveAssignmentsLocal();
-        renderAssignmentDashboard();
+        btn.innerHTML = '<span style="display:inline-block;width:9px;height:9px;border:2px solid rgba(34,211,238,.3);border-top-color:#22d3ee;border-radius:50%;animation:aqSpin .7s linear infinite;vertical-align:middle;margin-right:4px;flex-shrink:0;"></span>Agent running...';
+
         try {
             var agentTypeRaw = item.agent_type || item.agent || item.assignedAgent || item.assigned_agent || item.title || "";
             var body = {
@@ -38624,48 +38643,31 @@ function bindAssignmentStartControls() {
                 throw new Error(data.error || data.message || "Assignment start failed");
             }
             if (item) {
+                item.result = data.result || item.result || "";
+                item.orchestration = data.orchestration || item.orchestration || null;
+                if (data.result && data.result.toLowerCase().includes("complete")) {
+                    item.status = "Completed";
+                    if (!item.completed_at) {
+                        item.completed_at = new Date().toISOString();
+                    }
+                } else {
+                    item.status = "In Progress";
+                }
+                saveAssignmentsLocal();
+            }
+            console.log("ASSIGNMENT START SUCCESS:", data);
 
-item.result =
-    data.result ||
-    item.result ||
-    "";
-
-item.orchestration =
-    data.orchestration ||
-    item.orchestration ||
-    null;
-
-if (
-    data.result &&
-    data.result.toLowerCase().includes("complete")
-) {
-
-    item.status = "Completed";
-
-    if (!item.completed_at) {
-        item.completed_at =
-            new Date().toISOString();
-    }
-
-} else {
-
-    item.status = "In Progress";
-
-}
-
-saveAssignmentsLocal();
-
-}
-
-console.log("ASSIGNMENT START SUCCESS:", data);
-renderAssignmentDashboard();
+            /* ensure spinner shows for at least 1.5 seconds */
+            var elapsed = Date.now() - startTime;
+            if (elapsed < 1500) {
+                await new Promise(function(resolve) { setTimeout(resolve, 1500 - elapsed); });
+            }
+            renderAssignmentDashboard();
         } catch (error) {
             console.error("ASSIGNMENT START FAILED:", error);
             item.status = "Pending";
             saveAssignmentsLocal();
             renderAssignmentDashboard();
-            btn.disabled = false;
-            btn.textContent = "Start";
             alert("Assignment start failed: " + error.message);
         }
     });
