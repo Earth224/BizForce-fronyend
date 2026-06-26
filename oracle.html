@@ -10,7 +10,7 @@
 
     /* ── CSS Custom Properties (night defaults, overridden by JS) ── */
     :root {
-      --bg-hex:       #050810;
+      --bg-hex:       #020d0a;
       --bg-g1:        rgba(0, 120, 108, 0.22);
       --bg-g2:        rgba(0, 75, 65, 0.28);
       --star-op:      1;
@@ -544,92 +544,45 @@
     .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
 
     /* ════════════════════════════════════════
-       SCENE — Cosmic Portal
+       SCENE — Forest Portal
     ════════════════════════════════════════ */
     .scene {
       position: fixed; inset: 0; z-index: 0;
       pointer-events: none; overflow: hidden;
     }
 
-    /* ── God Rays ── */
-    .god-rays-wrap {
-      position: absolute; inset: 0; z-index: 1;
-      animation: raysBreath 7s ease-in-out infinite;
+    /* ── Radiating Light Beams ── */
+    .light-beams {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      animation: beamBreath 9s ease-in-out infinite;
     }
-    .god-rays-wrap svg { width: 100%; height: 100%; }
-    @keyframes raysBreath {
-      0%, 100% { opacity: 0.72; }
-      50%       { opacity: 1; }
-    }
+    .light-beams svg { width: 100%; height: 100%; }
+    @keyframes beamBreath { 0%,100%{opacity:0.60} 50%{opacity:1} }
 
-    /* ── Foliage Silhouettes ── */
-    .foliage-layer { position: absolute; bottom: 0; left: 0; right: 0; }
-    .fl-far  { z-index: 2; color: var(--j-far);  opacity: 0.65; transition: color 4s ease; }
-    .fl-mid  { z-index: 3; color: var(--j-mid);  opacity: 0.85; transition: color 4s ease; }
-    .fl-near { z-index: 5; color: var(--j-near); opacity: 1;    transition: color 4s ease; }
-    .foliage-layer svg {
-      display: block; width: 100%; height: auto;
-      fill: currentColor; transition: fill 4s ease;
-    }
+    /* ── Forest Trees ── */
+    .forest-tree { position: absolute; bottom: 0; pointer-events: none; fill: #071a12; }
+    .tree-left  { left: -30px;  height: 88vh; width: auto; z-index: 3; }
+    .tree-right { right: -30px; height: 88vh; width: auto; z-index: 3; transform: scaleX(-1); }
 
-    /* ── Side Vine Climbers ── */
-    .vine-side { position: absolute; bottom: 0; z-index: 4; color: var(--j-near); transition: color 4s ease; }
-    .vine-left  { left: 0; }
-    .vine-right { right: 0; transform: scaleX(-1); }
-    .vine-side svg { display: block; fill: currentColor; stroke: currentColor; transition: fill 4s ease, stroke 4s ease; }
-
-    /* ── Hanging Vines ── */
-    .vines-top {
-      position: absolute; top: 0; left: 0; right: 0; z-index: 6;
-      color: var(--j-near); transition: color 4s ease;
-    }
-    .hvine { position: absolute; top: 0; transform-origin: top center; }
-    .hvine svg { display: block; fill: currentColor; stroke: currentColor; transition: fill 4s ease, stroke 4s ease; }
-    .hv-a { animation: hvSwayA var(--hvd,7s) var(--hvdl,0s) ease-in-out infinite; }
-    .hv-b { animation: hvSwayB var(--hvd,7s) var(--hvdl,0s) ease-in-out infinite; }
-    @keyframes hvSwayA { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(4deg)} }
-    @keyframes hvSwayB { 0%,100%{transform:rotate(4deg)}  50%{transform:rotate(-5deg)} }
+    /* ── Branch Vines ── */
+    .branch-vines { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+    .bvine { position: absolute; }
 
     /* ── Ground Mist ── */
     .mist-field {
       position: absolute; bottom: 0; left: 0; right: 0;
-      height: 220px; z-index: 4; pointer-events: none;
+      height: 220px; z-index: 5; pointer-events: none;
     }
-    .mist { position: absolute; border-radius: 50%; background: var(--mist-clr); transition: background 4s ease; }
-    .m1 { bottom:0;    left:-10%; width:88%; height:138px; filter:blur(38px); opacity:0.92; animation:mDrift 16s          ease-in-out infinite alternate; }
-    .m2 { bottom:14px; left:8%;   width:92%; height:108px; filter:blur(32px); opacity:0.78; animation:mDrift 22s -6s     ease-in-out infinite alternate-reverse; }
-    .m3 { bottom:6px;  right:-8%; width:80%; height:122px; filter:blur(42px); opacity:0.88; animation:mDrift 19s -3s     ease-in-out infinite alternate; }
-    .m4 { bottom:24px; left:2%;   width:74%; height:88px;  filter:blur(26px); opacity:0.62; animation:mDrift 25s -9s     ease-in-out infinite alternate-reverse; }
-    .m5 { bottom:0;    left:20%;  width:58%; height:98px;  filter:blur(48px); opacity:0.72; animation:mDrift 14s -4s     ease-in-out infinite alternate; }
-    .m6 { bottom:10px; left:-5%;  width:112%;height:78px;  filter:blur(55px); opacity:0.50; animation:mDrift 28s -12s    ease-in-out infinite alternate; }
+    .mist { position: absolute; border-radius: 50%; background: rgba(0,180,140,0.08); filter: blur(40px); }
+    .m1 { bottom:0;    left:-10%; width:88%; height:138px; opacity:0.95; animation:mDrift 16s          ease-in-out infinite alternate; }
+    .m2 { bottom:14px; left:8%;   width:92%; height:108px; opacity:0.80; animation:mDrift 22s -6s     ease-in-out infinite alternate-reverse; }
+    .m3 { bottom:6px;  right:-8%; width:80%; height:122px; opacity:0.90; animation:mDrift 19s -3s     ease-in-out infinite alternate; }
+    .m4 { bottom:24px; left:2%;   width:74%; height:88px;  opacity:0.65; animation:mDrift 25s -9s     ease-in-out infinite alternate-reverse; }
+    .m5 { bottom:0;    left:20%;  width:58%; height:98px;  opacity:0.75; animation:mDrift 14s -4s     ease-in-out infinite alternate; }
+    .m6 { bottom:10px; left:-5%;  width:112%;height:78px;  opacity:0.55; animation:mDrift 28s -12s    ease-in-out infinite alternate; }
     @keyframes mDrift {
       0%   { transform: translateX(0);    }
       100% { transform: translateX(44px); }
-    }
-
-    /* ── Floating Particles ── */
-    .particles { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
-    .pt {
-      position: absolute; border-radius: 50%;
-      background: var(--acc-from); transition: background 4s ease;
-      animation:
-        ptRise var(--ptd,10s) var(--ptdl,0s) ease-in infinite,
-        ptGlow var(--ptg,2.5s) var(--ptdl,0s) ease-in-out infinite;
-    }
-    .pt.p2 { background: var(--acc-mid); }
-    .pt.pp { background: var(--acc-to); }
-    .pt.gl    { box-shadow: 0 0 6px 3px var(--acc-from); transition: box-shadow 4s ease; }
-    .pt.p2.gl { box-shadow: 0 0 6px 3px var(--acc-mid);  transition: box-shadow 4s ease; }
-    .pt.pp.gl { box-shadow: 0 0 6px 3px var(--acc-to);   transition: box-shadow 4s ease; }
-    @keyframes ptRise {
-      0%   { transform: translate(0,0)                    scale(0.8); opacity: 0; }
-      10%  { opacity: var(--pto, 0.7); }
-      90%  { opacity: calc(var(--pto, 0.7) * 0.28); }
-      100% { transform: translate(var(--ptx,15px),-300px) scale(1);   opacity: 0; }
-    }
-    @keyframes ptGlow {
-      0%, 100% { filter: brightness(1);   }
-      50%       { filter: brightness(2.8); }
     }
 
     /* ════════════════════════════════════════
@@ -672,9 +625,9 @@
     .nebula-base {
       position: absolute; inset: 0;
       background: radial-gradient(ellipse at 50% 52%,
-        #a0fff0 0%, rgba(160,255,240,0.92) 5%,
-        #00c8b0 16%, rgba(0,150,128,0.80) 30%,
-        #003830 55%, rgba(0,20,18,0.96) 76%, rgba(0,0,4,1) 100%);
+        #b0fff5 0%, rgba(176,255,245,0.92) 5%,
+        #00d4b0 16%, rgba(0,164,136,0.80) 30%,
+        #004d3a 55%, rgba(1,12,8,0.96) 76%, #010f0a 100%);
     }
     .nebula-bloom-1 {
       position: absolute; inset: 0;
@@ -719,9 +672,9 @@
       transform: translate(-50%, -50%); border-radius: 50%;
       background: radial-gradient(circle,
         #ffffff 0%, rgba(220,255,250,0.96) 8%,
-        #a0fff0 18%, #00c8b0 38%,
+        #b0fff5 18%, #00d4b0 38%,
         rgba(0,80,65,0.75) 65%, transparent 85%);
-      box-shadow: 0 0 22px 10px rgba(160,255,240,0.45), 0 0 44px 22px rgba(0,200,176,0.35);
+      box-shadow: 0 0 22px 10px rgba(176,255,245,0.45), 0 0 44px 22px rgba(0,212,176,0.35);
       animation: pupilPulse 3s ease-in-out infinite;
     }
     @keyframes pupilPulse {
@@ -745,197 +698,122 @@
   <!-- ══════════ SCENE ══════════ -->
   <div class="scene" aria-hidden="true">
 
-    <!-- God rays fanning from behind mirror downward -->
-    <div class="god-rays-wrap">
+    <!-- 8 radiating light beams from portal center -->
+    <div class="light-beams">
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="rg1" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.08"/>
-            <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
-          </linearGradient>
-          <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#00ffcc" stop-opacity="0.05"/>
-            <stop offset="100%" stop-color="#00ffcc" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <polygon points="50,33 28,100 32,100" fill="url(#rg1)" opacity="0.9"/>
-        <polygon points="50,33 34,100 37,100" fill="url(#rg2)" opacity="0.7"/>
-        <polygon points="50,33 40,100 44,100" fill="url(#rg1)" opacity="1.0"/>
-        <polygon points="50,33 46,100 51,100" fill="url(#rg1)" opacity="0.85"/>
-        <polygon points="50,33 52,100 57,100" fill="url(#rg1)" opacity="0.85"/>
-        <polygon points="50,33 59,100 62,100" fill="url(#rg1)" opacity="1.0"/>
-        <polygon points="50,33 64,100 67,100" fill="url(#rg2)" opacity="0.7"/>
-        <polygon points="50,33 70,100 74,100" fill="url(#rg1)" opacity="0.9"/>
-        <polygon points="50,33 78,100 81,100" fill="url(#rg2)" opacity="0.6"/>
-        <polygon points="50,33 36,100 64,100" fill="url(#rg2)" opacity="0.18"/>
+        <polygon points="50,42 48,-8 52,-8"    fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 112,-12 116,-6" fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 112,40 112,44"  fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 116,96 112,100" fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 48,108 52,108"  fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 -12,100 -16,96" fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 -12,44 -12,40"  fill="#00dcb4" fill-opacity="0.06"/>
+        <polygon points="50,42 -16,-6 -12,-12" fill="#00dcb4" fill-opacity="0.06"/>
       </svg>
     </div>
 
-    <!-- Far foliage -->
-    <div class="foliage-layer fl-far">
-      <svg viewBox="0 0 1440 300" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
-        <path d="M-20,300 Q80,215 180,235 Q280,210 380,228 Q480,200 580,218 Q680,195 780,212 Q880,188 980,205 Q1080,186 1180,202 Q1280,218 1380,200 L1460,210 L1460,300 Z"/>
-        <path d="M-20,300 Q60,258 140,268 Q240,250 340,260 Q440,242 540,255 Q640,240 740,252 Q840,236 940,248 Q1040,234 1140,246 Q1240,254 1340,242 L1460,250 L1460,300 Z" opacity="0.55"/>
-      </svg>
-    </div>
-
-    <!-- Mid foliage -->
-    <div class="foliage-layer fl-mid">
-      <svg viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
-        <rect x="-20" y="315" width="1480" height="85"/>
-        <ellipse cx="72" cy="300" rx="78" ry="90"/>
-        <ellipse cx="198" cy="278" rx="88" ry="105"/>
-        <ellipse cx="332" cy="292" rx="82" ry="95"/>
-        <ellipse cx="465" cy="268" rx="92" ry="112"/>
-        <ellipse cx="598" cy="280" rx="86" ry="102"/>
-        <ellipse cx="728" cy="258" rx="94" ry="118"/>
-        <ellipse cx="860" cy="272" rx="88" ry="108"/>
-        <ellipse cx="990" cy="255" rx="90" ry="115"/>
-        <ellipse cx="1120" cy="268" rx="86" ry="105"/>
-        <ellipse cx="1248" cy="278" rx="88" ry="98"/>
-        <ellipse cx="1374" cy="290" rx="80" ry="90"/>
-        <ellipse cx="138" cy="308" rx="70" ry="78"/>
-        <ellipse cx="268" cy="295" rx="74" ry="82"/>
-        <ellipse cx="398" cy="285" rx="76" ry="86"/>
-        <ellipse cx="530" cy="296" rx="72" ry="80"/>
-        <ellipse cx="662" cy="278" rx="78" ry="88"/>
-        <ellipse cx="795" cy="290" rx="74" ry="82"/>
-        <ellipse cx="928" cy="278" rx="76" ry="86"/>
-        <ellipse cx="1058" cy="290" rx="72" ry="80"/>
-        <ellipse cx="1186" cy="298" rx="74" ry="76"/>
-        <ellipse cx="1312" cy="305" rx="70" ry="74"/>
-      </svg>
-    </div>
-
-    <!-- Left side vine climber -->
-    <svg class="vine-side vine-left" viewBox="0 0 130 640" width="130" height="640" fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,640 L0,300 Q18,278 12,242 Q32,205 18,168 Q44,132 28,96 Q54,60 38,28 L68,20 Q56,50 74,80 Q60,116 80,146 Q64,182 86,212 Q70,248 94,276 Q80,312 104,338 L122,390 L130,440 L130,640 Z" stroke-width="0"/>
-      <ellipse cx="22" cy="172" rx="64" ry="30" transform="rotate(-22 22 172)"/>
-      <ellipse cx="38" cy="284" rx="60" ry="27" transform="rotate(-18 38 284)"/>
-      <ellipse cx="14" cy="395" rx="68" ry="32" transform="rotate(-28 14 395)"/>
-      <ellipse cx="50" cy="490" rx="56" ry="25" transform="rotate(-14 50 490)"/>
-      <path d="M28,96 C10,76 -14,68 -22,56" fill="none" stroke-width="3.5" stroke-linecap="round"/>
-      <ellipse cx="-24" cy="54" rx="22" ry="10" transform="rotate(-40 -24 54)"/>
-      <path d="M54,210 C30,196 6,190 -8,180" fill="none" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="-10" cy="178" rx="20" ry="9" transform="rotate(-30 -10 178)"/>
-      <path d="M18,328 C-4,316 -20,310 -30,302" fill="none" stroke-width="2.5" stroke-linecap="round"/>
-      <ellipse cx="-32" cy="300" rx="18" ry="8" transform="rotate(-22 -32 300)"/>
+    <!-- Left forest tree — trunk, roots, and branching silhouette -->
+    <svg class="forest-tree tree-left" viewBox="0 0 260 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- Trunk -->
+      <path fill="#071a12" d="M120,800 Q118,660 117,530 Q115,400 117,270 Q119,180 122,100 Q126,70 130,42 Q134,70 138,100 Q141,180 142,270 Q144,400 143,530 Q142,660 140,800 Z"/>
+      <!-- Root base -->
+      <ellipse fill="#071a12" cx="132" cy="796" rx="88" ry="18"/>
+      <path fill="#071a12" d="M120,798 Q88,778 58,760 Q32,744 18,730 Q15,717 44,725 Q74,737 118,758 Z"/>
+      <path fill="#071a12" d="M142,798 Q174,776 202,760 Q226,744 240,730 Q237,717 210,724 Q182,736 144,758 Z"/>
+      <!-- Left branch 1 -->
+      <path fill="#071a12" d="M118,590 Q84,567 48,547 Q20,530 6,516 Q10,502 40,514 Q77,529 120,554 L123,572 Z"/>
+      <path fill="#071a12" d="M42,550 Q14,532 -4,516 L-1,503 Q25,518 56,535 Z"/>
+      <!-- Left branch 2 -->
+      <path fill="#071a12" d="M116,440 Q80,416 43,394 Q12,375 -4,362 Q0,348 32,360 Q70,374 118,399 L122,421 Z"/>
+      <!-- Left branch 3 -->
+      <path fill="#071a12" d="M116,287 Q82,264 47,243 Q18,227 4,214 Q8,201 38,212 Q76,226 118,251 L122,270 Z"/>
+      <path fill="#071a12" d="M60,255 Q32,238 10,222 Q-7,210 -9,200 L-6,188 Q18,199 48,215 Q76,231 65,250 Z"/>
+      <!-- Left branch 4 -->
+      <path fill="#071a12" d="M118,168 Q86,148 54,131 Q27,116 13,104 Q17,92 47,102 Q80,115 120,136 L122,152 Z"/>
+      <!-- Right branch 1 -->
+      <path fill="#071a12" d="M143,508 Q177,483 212,465 Q238,449 252,437 Q248,424 222,433 Q188,447 144,471 L141,489 Z"/>
+      <!-- Right branch 2 -->
+      <path fill="#071a12" d="M145,354 Q180,330 216,312 Q244,297 257,285 Q252,272 226,282 Q192,295 147,319 L143,337 Z"/>
+      <!-- Right branch 3 -->
+      <path fill="#071a12" d="M143,208 Q177,186 210,168 Q236,153 248,142 Q244,130 218,140 Q184,152 144,174 L140,191 Z"/>
+      <!-- Crown -->
+      <path fill="#071a12" d="M121,94 Q94,68 65,46 Q42,29 33,16 Q37,4 62,15 Q89,27 122,56 L124,74 Z"/>
+      <path fill="#071a12" d="M115,74 Q86,50 55,30 Q32,14 22,2 Q26,-8 54,3 Q84,17 117,41 L119,58 Z"/>
+      <path fill="#071a12" d="M139,89 Q163,64 187,44 Q208,27 218,15 Q212,4 190,15 Q165,27 141,54 L137,71 Z"/>
+      <path fill="#071a12" d="M144,74 Q172,50 198,30 Q222,14 232,3 Q226,-7 202,4 Q176,18 146,42 Z"/>
+      <path fill="#071a12" d="M126,52 Q124,32 122,10 Q128,3 134,10 Q133,32 131,52 Z"/>
     </svg>
 
-    <!-- Right side vine climber -->
-    <svg class="vine-side vine-right" viewBox="0 0 130 640" width="130" height="640" fill="currentColor" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,640 L0,300 Q18,278 12,242 Q32,205 18,168 Q44,132 28,96 Q54,60 38,28 L68,20 Q56,50 74,80 Q60,116 80,146 Q64,182 86,212 Q70,248 94,276 Q80,312 104,338 L122,390 L130,440 L130,640 Z" stroke-width="0"/>
-      <ellipse cx="22" cy="172" rx="64" ry="30" transform="rotate(-22 22 172)"/>
-      <ellipse cx="38" cy="284" rx="60" ry="27" transform="rotate(-18 38 284)"/>
-      <ellipse cx="14" cy="395" rx="68" ry="32" transform="rotate(-28 14 395)"/>
-      <ellipse cx="50" cy="490" rx="56" ry="25" transform="rotate(-14 50 490)"/>
-      <path d="M28,96 C10,76 -14,68 -22,56" fill="none" stroke-width="3.5" stroke-linecap="round"/>
-      <ellipse cx="-24" cy="54" rx="22" ry="10" transform="rotate(-40 -24 54)"/>
-      <path d="M54,210 C30,196 6,190 -8,180" fill="none" stroke-width="3" stroke-linecap="round"/>
-      <ellipse cx="-10" cy="178" rx="20" ry="9" transform="rotate(-30 -10 178)"/>
-      <path d="M18,328 C-4,316 -20,310 -30,302" fill="none" stroke-width="2.5" stroke-linecap="round"/>
-      <ellipse cx="-32" cy="300" rx="18" ry="8" transform="rotate(-22 -32 300)"/>
+    <!-- Right forest tree (CSS mirrors via scaleX(-1)) -->
+    <svg class="forest-tree tree-right" viewBox="0 0 260 800" xmlns="http://www.w3.org/2000/svg">
+      <!-- Trunk -->
+      <path fill="#071a12" d="M120,800 Q118,660 117,530 Q115,400 117,270 Q119,180 122,100 Q126,70 130,42 Q134,70 138,100 Q141,180 142,270 Q144,400 143,530 Q142,660 140,800 Z"/>
+      <!-- Root base -->
+      <ellipse fill="#071a12" cx="132" cy="796" rx="88" ry="18"/>
+      <path fill="#071a12" d="M120,798 Q88,778 58,760 Q32,744 18,730 Q15,717 44,725 Q74,737 118,758 Z"/>
+      <path fill="#071a12" d="M142,798 Q174,776 202,760 Q226,744 240,730 Q237,717 210,724 Q182,736 144,758 Z"/>
+      <!-- Left branch 1 (varied Y) -->
+      <path fill="#071a12" d="M118,602 Q84,579 48,559 Q20,542 6,528 Q10,514 40,526 Q77,541 120,566 L123,584 Z"/>
+      <path fill="#071a12" d="M42,562 Q14,544 -4,528 L-1,515 Q25,530 56,547 Z"/>
+      <!-- Left branch 2 -->
+      <path fill="#071a12" d="M116,452 Q80,428 43,406 Q12,387 -4,374 Q0,360 32,372 Q70,386 118,411 L122,433 Z"/>
+      <!-- Left branch 3 -->
+      <path fill="#071a12" d="M116,299 Q82,276 47,255 Q18,239 4,226 Q8,213 38,224 Q76,238 118,263 L122,282 Z"/>
+      <path fill="#071a12" d="M60,267 Q32,250 10,234 Q-7,222 -9,212 L-6,200 Q18,211 48,227 Q76,243 65,262 Z"/>
+      <!-- Left branch 4 -->
+      <path fill="#071a12" d="M118,180 Q86,160 54,143 Q27,128 13,116 Q17,104 47,114 Q80,127 120,148 L122,164 Z"/>
+      <!-- Right branch 1 (varied Y) -->
+      <path fill="#071a12" d="M143,520 Q177,495 212,477 Q238,461 252,449 Q248,436 222,445 Q188,459 144,483 L141,501 Z"/>
+      <!-- Right branch 2 -->
+      <path fill="#071a12" d="M145,366 Q180,342 216,324 Q244,309 257,297 Q252,284 226,294 Q192,307 147,331 L143,349 Z"/>
+      <!-- Right branch 3 -->
+      <path fill="#071a12" d="M143,220 Q177,198 210,180 Q236,165 248,154 Q244,142 218,152 Q184,164 144,186 L140,203 Z"/>
+      <!-- Crown -->
+      <path fill="#071a12" d="M121,94 Q94,68 65,46 Q42,29 33,16 Q37,4 62,15 Q89,27 122,56 L124,74 Z"/>
+      <path fill="#071a12" d="M115,74 Q86,50 55,30 Q32,14 22,2 Q26,-8 54,3 Q84,17 117,41 L119,58 Z"/>
+      <path fill="#071a12" d="M139,89 Q163,64 187,44 Q208,27 218,15 Q212,4 190,15 Q165,27 141,54 L137,71 Z"/>
+      <path fill="#071a12" d="M144,74 Q172,50 198,30 Q222,14 232,3 Q226,-7 202,4 Q176,18 146,42 Z"/>
+      <path fill="#071a12" d="M126,52 Q124,32 122,10 Q128,3 134,10 Q133,32 131,52 Z"/>
     </svg>
 
-    <!-- Near foliage — dense organic canopy silhouettes -->
-    <div class="foliage-layer fl-near">
-      <svg viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
-        <rect x="-20" y="390" width="1480" height="130"/>
-        <ellipse cx="48" cy="374" rx="72" ry="85"/>
-        <ellipse cx="158" cy="348" rx="86" ry="102"/>
-        <ellipse cx="272" cy="362" rx="80" ry="92"/>
-        <ellipse cx="385" cy="335" rx="92" ry="112"/>
-        <ellipse cx="495" cy="348" rx="84" ry="100"/>
-        <ellipse cx="602" cy="322" rx="90" ry="118"/>
-        <ellipse cx="712" cy="338" rx="88" ry="108"/>
-        <ellipse cx="822" cy="315" rx="92" ry="122"/>
-        <ellipse cx="932" cy="330" rx="86" ry="112"/>
-        <ellipse cx="1042" cy="312" rx="90" ry="120"/>
-        <ellipse cx="1152" cy="328" rx="84" ry="108"/>
-        <ellipse cx="1260" cy="340" rx="88" ry="100"/>
-        <ellipse cx="1368" cy="355" rx="82" ry="92"/>
-        <ellipse cx="1448" cy="368" rx="70" ry="80"/>
-        <ellipse cx="105" cy="388" rx="68" ry="78"/>
-        <ellipse cx="218" cy="376" rx="74" ry="82"/>
-        <ellipse cx="330" cy="366" rx="76" ry="86"/>
-        <ellipse cx="442" cy="375" rx="70" ry="80"/>
-        <ellipse cx="548" cy="355" rx="74" ry="88"/>
-        <ellipse cx="660" cy="368" rx="78" ry="82"/>
-        <ellipse cx="770" cy="352" rx="76" ry="88"/>
-        <ellipse cx="878" cy="366" rx="72" ry="82"/>
-        <ellipse cx="988" cy="350" rx="76" ry="88"/>
-        <ellipse cx="1098" cy="364" rx="72" ry="80"/>
-        <ellipse cx="1208" cy="375" rx="74" ry="76"/>
-        <ellipse cx="1316" cy="382" rx="70" ry="74"/>
-        <ellipse cx="1412" cy="390" rx="64" ry="68"/>
+    <!-- Branch vines hanging from top tree branches -->
+    <div class="branch-vines">
+      <svg class="bvine" style="left:162px;top:6vh;width:60px;height:280px;" viewBox="0 0 60 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8,0 C14,40 4,80 10,120 C16,160 6,200 8,240 C10,260 6,275 8,280" stroke="#0d2818" stroke-width="1.4" stroke-linecap="round"/>
+        <ellipse cx="18" cy="50" rx="18" ry="7" transform="rotate(28 18 50)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="4" cy="118" rx="16" ry="6.5" transform="rotate(-24 4 118)" fill="#071a12" opacity="0.48"/>
+        <ellipse cx="16" cy="195" rx="15" ry="6" transform="rotate(20 16 195)" fill="#071a12" opacity="0.45"/>
       </svg>
-    </div>
-
-    <!-- Hanging vines -->
-    <div class="vines-top">
-      <div class="hvine hv-a" style="left:4%;--hvd:6.5s;--hvdl:0s;">
-        <svg viewBox="0 0 16 130" width="16" height="130" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 0C7 22 9 44 7 66C5 90 9 112 8 130" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="1" cy="28" rx="14" ry="6" transform="rotate(-38 1 28)" fill="currentColor"/>
-          <ellipse cx="15" cy="70" rx="13" ry="5.5" transform="rotate(32 15 70)" fill="currentColor"/>
-          <ellipse cx="2" cy="108" rx="11" ry="5" transform="rotate(-26 2 108)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-b" style="left:13%;--hvd:7.5s;--hvdl:-2s;">
-        <svg viewBox="0 0 14 84" width="14" height="84" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 0C8 18 6 38 7 58C8 70 6 78 7 84" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="13" cy="22" rx="12" ry="5.5" transform="rotate(35 13 22)" fill="currentColor"/>
-          <ellipse cx="1" cy="56" rx="11" ry="5" transform="rotate(-30 1 56)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-a" style="left:23%;--hvd:8s;--hvdl:-1s;">
-        <svg viewBox="0 0 16 165" width="16" height="165" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 0C9 28 6 55 8 82C10 108 7 132 8 165" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="14" cy="32" rx="14" ry="6" transform="rotate(40 14 32)" fill="currentColor"/>
-          <ellipse cx="2" cy="78" rx="13" ry="5.5" transform="rotate(-35 2 78)" fill="currentColor"/>
-          <ellipse cx="13" cy="128" rx="12" ry="5" transform="rotate(30 13 128)" fill="currentColor"/>
-          <ellipse cx="3" cy="155" rx="10" ry="4.5" transform="rotate(-22 3 155)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-b" style="left:40%;--hvd:6s;--hvdl:-3s;">
-        <svg viewBox="0 0 14 100" width="14" height="100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 0C6 20 8 42 6 62C4 78 7 92 7 100" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="1" cy="24" rx="12" ry="5.5" transform="rotate(-36 1 24)" fill="currentColor"/>
-          <ellipse cx="13" cy="62" rx="12" ry="5" transform="rotate(32 13 62)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-a" style="left:55%;--hvd:7.5s;--hvdl:-0.5s;">
-        <svg viewBox="0 0 16 150" width="16" height="150" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 0C7 25 9 50 7 75C5 100 9 125 8 150" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="14" cy="28" rx="13" ry="6" transform="rotate(38 14 28)" fill="currentColor"/>
-          <ellipse cx="2" cy="72" rx="13" ry="5.5" transform="rotate(-34 2 72)" fill="currentColor"/>
-          <ellipse cx="13" cy="122" rx="11" ry="5" transform="rotate(28 13 122)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-b" style="left:67%;--hvd:6.8s;--hvdl:-4s;">
-        <svg viewBox="0 0 14 90" width="14" height="90" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 0C8 20 6 40 8 60C9 74 7 84 7 90" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="1" cy="22" rx="12" ry="5.5" transform="rotate(-34 1 22)" fill="currentColor"/>
-          <ellipse cx="13" cy="60" rx="11" ry="5" transform="rotate(30 13 60)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-a" style="left:79%;--hvd:8.5s;--hvdl:-2.5s;">
-        <svg viewBox="0 0 16 175" width="16" height="175" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 0C9 30 6 58 8 88C10 115 7 145 8 175" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="2" cy="35" rx="14" ry="6" transform="rotate(-40 2 35)" fill="currentColor"/>
-          <ellipse cx="14" cy="86" rx="13" ry="5.5" transform="rotate(36 14 86)" fill="currentColor"/>
-          <ellipse cx="3" cy="140" rx="12" ry="5" transform="rotate(-28 3 140)" fill="currentColor"/>
-          <ellipse cx="12" cy="165" rx="10" ry="4.5" transform="rotate(24 12 165)" fill="currentColor"/>
-        </svg>
-      </div>
-      <div class="hvine hv-b" style="left:92%;--hvd:7s;--hvdl:-1.5s;">
-        <svg viewBox="0 0 14 114" width="14" height="114" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 0C6 22 8 46 6 68C4 88 7 105 7 114" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <ellipse cx="13" cy="25" rx="12" ry="5.5" transform="rotate(35 13 25)" fill="currentColor"/>
-          <ellipse cx="1" cy="65" rx="12" ry="5" transform="rotate(-32 1 65)" fill="currentColor"/>
-          <ellipse cx="11" cy="102" rx="10" ry="4.5" transform="rotate(26 11 102)" fill="currentColor"/>
-        </svg>
-      </div>
+      <svg class="bvine" style="left:195px;top:3vh;width:50px;height:230px;" viewBox="0 0 50 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5,0 C12,32 3,66 8,102 C13,136 4,172 6,204 C8,220 4,226 5,230" stroke="#0d2818" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="14" cy="40" rx="16" ry="6" transform="rotate(25 14 40)" fill="#071a12" opacity="0.55"/>
+        <ellipse cx="3" cy="100" rx="14" ry="5.5" transform="rotate(-22 3 100)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="12" cy="170" rx="13" ry="5" transform="rotate(18 12 170)" fill="#071a12" opacity="0.45"/>
+      </svg>
+      <svg class="bvine" style="left:130px;top:14vh;width:55px;height:200px;" viewBox="0 0 55 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10,0 C16,28 7,58 12,88 C17,118 8,148 10,178 C12,192 8,198 10,200" stroke="#0d2818" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="22" cy="34" rx="18" ry="7" transform="rotate(30 22 34)" fill="#071a12" opacity="0.48"/>
+        <ellipse cx="5" cy="88" rx="16" ry="6" transform="rotate(-26 5 88)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="18" cy="155" rx="14" ry="5.5" transform="rotate(22 18 155)" fill="#071a12" opacity="0.45"/>
+      </svg>
+      <svg class="bvine" style="right:162px;top:6vh;width:60px;height:280px;" viewBox="0 0 60 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M52,0 C46,40 56,80 50,120 C44,160 54,200 52,240 C50,260 54,275 52,280" stroke="#0d2818" stroke-width="1.4" stroke-linecap="round"/>
+        <ellipse cx="42" cy="50" rx="18" ry="7" transform="rotate(-28 42 50)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="56" cy="118" rx="16" ry="6.5" transform="rotate(24 56 118)" fill="#071a12" opacity="0.48"/>
+        <ellipse cx="44" cy="195" rx="15" ry="6" transform="rotate(-20 44 195)" fill="#071a12" opacity="0.45"/>
+      </svg>
+      <svg class="bvine" style="right:195px;top:3vh;width:50px;height:230px;" viewBox="0 0 50 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M45,0 C38,32 47,66 42,102 C37,136 46,172 44,204 C42,220 46,226 45,230" stroke="#0d2818" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="36" cy="40" rx="16" ry="6" transform="rotate(-25 36 40)" fill="#071a12" opacity="0.55"/>
+        <ellipse cx="47" cy="100" rx="14" ry="5.5" transform="rotate(22 47 100)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="38" cy="170" rx="13" ry="5" transform="rotate(-18 38 170)" fill="#071a12" opacity="0.45"/>
+      </svg>
+      <svg class="bvine" style="right:130px;top:14vh;width:55px;height:200px;" viewBox="0 0 55 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M45,0 C39,28 48,58 43,88 C38,118 47,148 45,178 C43,192 47,198 45,200" stroke="#0d2818" stroke-width="1.6" stroke-linecap="round"/>
+        <ellipse cx="33" cy="34" rx="18" ry="7" transform="rotate(-30 33 34)" fill="#071a12" opacity="0.48"/>
+        <ellipse cx="50" cy="88" rx="16" ry="6" transform="rotate(26 50 88)" fill="#071a12" opacity="0.50"/>
+        <ellipse cx="37" cy="155" rx="14" ry="5.5" transform="rotate(-22 37 155)" fill="#071a12" opacity="0.45"/>
+      </svg>
     </div>
 
     <!-- Ground mist -->
@@ -946,33 +824,6 @@
       <div class="mist m4"></div>
       <div class="mist m5"></div>
       <div class="mist m6"></div>
-    </div>
-
-    <!-- Floating particles — varied sizes and opacity -->
-    <div class="particles">
-      <div class="pt"       style="width:1px;height:1px;left:9%;bottom:145px;--ptd:11s;--ptdl:0s;--ptx:14px;--pto:0.65;--ptg:2.8s;"></div>
-      <div class="pt pp"    style="width:1px;height:1px;left:22%;bottom:205px;--ptd:9s;--ptdl:-3s;--ptx:-12px;--pto:0.5;--ptg:2.2s;"></div>
-      <div class="pt p2"    style="width:1px;height:1px;left:38%;bottom:165px;--ptd:13s;--ptdl:-7s;--ptx:18px;--pto:0.6;--ptg:3s;"></div>
-      <div class="pt"       style="width:1px;height:1px;left:55%;bottom:245px;--ptd:10s;--ptdl:-1s;--ptx:-16px;--pto:0.55;--ptg:2.5s;"></div>
-      <div class="pt pp"    style="width:1px;height:1px;left:71%;bottom:182px;--ptd:12s;--ptdl:-5s;--ptx:14px;--pto:0.6;--ptg:2.1s;"></div>
-      <div class="pt p2"    style="width:1px;height:1px;left:84%;bottom:225px;--ptd:9.5s;--ptdl:-4s;--ptx:-10px;--pto:0.5;--ptg:3.2s;"></div>
-      <div class="pt"       style="width:1px;height:1px;left:47%;bottom:305px;--ptd:14s;--ptdl:-9s;--ptx:20px;--pto:0.45;--ptg:2.6s;"></div>
-      <div class="pt pp"    style="width:1px;height:1px;left:16%;bottom:355px;--ptd:12s;--ptdl:-2s;--ptx:-15px;--pto:0.4;--ptg:2.9s;"></div>
-      <div class="pt gl"    style="width:2px;height:2px;left:13%;bottom:118px;--ptd:8.5s;--ptdl:-1.5s;--ptx:22px;--pto:0.80;--ptg:2.4s;"></div>
-      <div class="pt p2 gl" style="width:2px;height:2px;left:29%;bottom:188px;--ptd:10s;--ptdl:-4s;--ptx:-20px;--pto:0.75;--ptg:1.9s;"></div>
-      <div class="pt gl"    style="width:2px;height:2px;left:44%;bottom:132px;--ptd:7.5s;--ptdl:-6s;--ptx:16px;--pto:0.82;--ptg:2.7s;"></div>
-      <div class="pt pp gl" style="width:2px;height:2px;left:60%;bottom:225px;--ptd:9s;--ptdl:-2s;--ptx:-18px;--pto:0.78;--ptg:2s;"></div>
-      <div class="pt gl"    style="width:2px;height:2px;left:75%;bottom:158px;--ptd:11s;--ptdl:-8s;--ptx:24px;--pto:0.72;--ptg:2.3s;"></div>
-      <div class="pt p2 gl" style="width:2px;height:2px;left:88%;bottom:198px;--ptd:8s;--ptdl:-3.5s;--ptx:-14px;--pto:0.76;--ptg:1.7s;"></div>
-      <div class="pt pp gl" style="width:2px;height:2px;left:33%;bottom:285px;--ptd:12s;--ptdl:-5.5s;--ptx:20px;--pto:0.65;--ptg:2.8s;"></div>
-      <div class="pt gl"    style="width:2px;height:2px;left:65%;bottom:315px;--ptd:10.5s;--ptdl:-0.5s;--ptx:-22px;--pto:0.60;--ptg:2.2s;"></div>
-      <div class="pt gl"    style="width:3px;height:3px;left:7%;bottom:215px;--ptd:15s;--ptdl:-4s;--ptx:28px;--pto:0.90;--ptg:3.2s;"></div>
-      <div class="pt pp gl" style="width:4px;height:4px;left:35%;bottom:148px;--ptd:12s;--ptdl:-7s;--ptx:-25px;--pto:0.85;--ptg:2.5s;"></div>
-      <div class="pt p2 gl" style="width:3px;height:3px;left:52%;bottom:265px;--ptd:16s;--ptdl:-2s;--ptx:22px;--pto:0.80;--ptg:2.8s;"></div>
-      <div class="pt gl"    style="width:4px;height:4px;left:78%;bottom:178px;--ptd:11s;--ptdl:-9s;--ptx:-28px;--pto:0.88;--ptg:2.1s;"></div>
-      <div class="pt pp gl" style="width:3px;height:3px;left:91%;bottom:245px;--ptd:13.5s;--ptdl:-1s;--ptx:20px;--pto:0.82;--ptg:3s;"></div>
-      <div class="pt p2 gl" style="width:3px;height:3px;left:20%;bottom:325px;--ptd:14s;--ptdl:-6s;--ptx:-18px;--pto:0.70;--ptg:2.6s;"></div>
-      <div class="pt gl"    style="width:4px;height:4px;left:58%;bottom:385px;--ptd:17s;--ptdl:-3s;--ptx:25px;--pto:0.65;--ptg:3.5s;"></div>
     </div>
   </div>
 
@@ -1133,7 +984,7 @@
     var PALETTES = {
       night: {
         /* Midnight teal / deep ocean */
-        '--bg-hex':     '#020608',
+        '--bg-hex':     '#020d0a',
         '--bg-g1':      'rgba(0,120,108,0.22)',
         '--bg-g2':      'rgba(0,75,65,0.28)',
         '--star-op':    '1',
@@ -1179,7 +1030,7 @@
       },
       dawn: {
         /* Aqua dawn / deep ocean first light */
-        '--bg-hex':     '#020608',
+        '--bg-hex':     '#020d0a',
         '--bg-g1':      'rgba(0,130,118,0.20)',
         '--bg-g2':      'rgba(0,80,70,0.24)',
         '--star-op':    '0.40',
@@ -1225,7 +1076,7 @@
       },
       day: {
         /* Deep teal / ocean noon */
-        '--bg-hex':     '#020810',
+        '--bg-hex':     '#020d0a',
         '--bg-g1':      'rgba(0,110,100,0.20)',
         '--bg-g2':      'rgba(0,65,58,0.25)',
         '--star-op':    '0.055',
@@ -1271,7 +1122,7 @@
       },
       sunset: {
         /* Twilight ocean / deep teal dusk */
-        '--bg-hex':     '#020608',
+        '--bg-hex':     '#020d0a',
         '--bg-g1':      'rgba(0,105,95,0.22)',
         '--bg-g2':      'rgba(0,65,58,0.25)',
         '--star-op':    '0.58',
