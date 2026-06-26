@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Marketplace</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:#a855f7;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}
+    .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:220px;position:relative}
+    .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#8892b8;pointer-events:none}
+    .search-input{width:100%;padding:11px 14px 11px 40px;background:rgba(10,15,35,.78);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:#8892b8}
+    .search-input:focus{border-color:rgba(168,85,247,.45)}
+    .tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+    .tab-btn{padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,28,.7);color:#8892b8;font-size:.8rem;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .tab-btn:hover{border-color:rgba(168,85,247,.35);color:#e8e8ff}
+    .tab-btn.active{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.45);color:#a855f7}
+    .tab-btn.my-tab.active{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.4);color:#22d3ee}
+    .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+    .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
+    .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .listing-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .listing-cat{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid transparent}
+    .cat-consulting{color:#60a5fa;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25)}
+    .cat-design{color:#f472b6;background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.25)}
+    .cat-development{color:#22d3ee;background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.25)}
+    .cat-marketing{color:#a855f7;background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)}
+    .cat-sales{color:#34d399;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25)}
+    .cat-strategy{color:#fbbf24;background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.25)}
+    .cat-operations{color:#f97316;background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.25)}
+    .cat-other{color:#8892b8;background:rgba(136,146,184,.08);border-color:rgba(136,146,184,.2)}
+    .listing-price{font-size:.82rem;font-weight:800;color:#fbbf24;white-space:nowrap}
+    .listing-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .listing-desc{font-size:.84rem;color:#8892b8;line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .listing-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .listing-tag{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#8892b8;letter-spacing:.04em}
+    .listing-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
+    .listing-date{font-size:.7rem;color:#4a5280}
+    .listing-actions{display:flex;gap:8px}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
+    .btn-contact{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.35);color:#a855f7}
+    .btn-contact:hover{background:rgba(168,85,247,.2)}
+    .btn-edit{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.3);color:#22d3ee}
+    .btn-edit:hover{background:rgba(34,211,238,.15)}
+    .btn-delete{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.28);color:#f87171}
+    .btn-delete:hover{background:rgba(248,113,113,.16)}
+    .btn-pause{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.28);color:#fbbf24}
+    .btn-pause:hover{background:rgba(251,191,36,.16)}
+    .status-badge{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+    .status-active{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399}
+    .status-paused{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
+    .status-sold{background:rgba(136,146,184,.08);border:1px solid rgba(136,146,184,.2);color:#8892b8}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:1px solid rgba(168,85,247,.4);background:rgba(168,85,247,.12);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .create-btn:hover{background:rgba(168,85,247,.22);border-color:rgba(168,85,247,.6);box-shadow:0 0 20px rgba(168,85,247,.2)}
+    .create-btn svg{width:16px;height:16px}
+    .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:rgba(10,15,35,.97);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:32px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .modal-title{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+    .modal-close:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .form-group{margin-bottom:18px}
+    .form-label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input::placeholder,.form-textarea::placeholder{color:#4a5280}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(168,85,247,.5)}
+    .form-select{appearance:none;cursor:pointer}
+    .form-select option{background:#0d1228;color:#e8e8ff}
+    .form-textarea{resize:vertical;min-height:100px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
+    .btn-cancel{padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8892b8;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#e8e8ff}
+    .btn-submit{padding:10px 24px;border-radius:10px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.18);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-submit:hover{background:rgba(168,85,247,.28)}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:28px;right:28px;z-index:300;padding:14px 22px;border-radius:12px;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
+    .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
+    @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">SERVICE MARKETPLACE</div>
+    <h1 class="hero-title">BizForce Marketplace</h1>
+    <p class="hero-sub">Buy and sell professional services within the BizForce AI network.</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search services..." autocomplete="off">
+    </div>
+    <button class="create-btn" onclick="openCreateModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      List a Service
+    </button>
+  </div>
+
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn active" data-cat="all" onclick="selectTab(this)">All</button>
+    <button class="tab-btn" data-cat="consulting" onclick="selectTab(this)">Consulting</button>
+    <button class="tab-btn" data-cat="design" onclick="selectTab(this)">Design</button>
+    <button class="tab-btn" data-cat="development" onclick="selectTab(this)">Development</button>
+    <button class="tab-btn" data-cat="marketing" onclick="selectTab(this)">Marketing</button>
+    <button class="tab-btn" data-cat="sales" onclick="selectTab(this)">Sales</button>
+    <button class="tab-btn" data-cat="strategy" onclick="selectTab(this)">Strategy</button>
+    <button class="tab-btn" data-cat="operations" onclick="selectTab(this)">Operations</button>
+    <button class="tab-btn my-tab" data-cat="mine" onclick="selectTab(this)">My Listings</button>
+  </div>
+
+  <div class="listings-grid" id="listingsGrid"><div class="loading">Loading marketplace...</div></div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="listingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">List a Service</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Service Title *</label>
+      <input class="form-input" id="fTitle" type="text" placeholder="e.g. Complete SEO Audit &amp; Strategy" maxlength="150">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="Describe what you offer, deliverables, timeline..." maxlength="2000"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select class="form-select" id="fCategory">
+          <option value="">Select category</option>
+          <option value="consulting">Consulting</option>
+          <option value="design">Design</option>
+          <option value="development">Development</option>
+          <option value="marketing">Marketing</option>
+          <option value="sales">Sales</option>
+          <option value="strategy">Strategy</option>
+          <option value="operations">Operations</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price (BFC)</label>
+        <input class="form-input" id="fPrice" type="number" min="0" value="0" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags <span style="font-weight:400;text-transform:none;letter-spacing:0">(comma-separated, optional)</span></label>
+      <input class="form-input" id="fTags" type="text" placeholder="seo, local, google, audit">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" id="submitBtn" onclick="submitListing()">List Service</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+var currentUserId = (function() {
+  try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
+})();
+
+var allListings = [];
+var myListings = [];
+var activeTab = "all";
+var editingId = null;
+var searchTimer = null;
+
+async function loadListings() {
+  try {
+    var [resAll, resMine] = await Promise.all([
+      fetch(API_URL + "/api/marketplace/listings", { headers: { "Authorization": "Bearer " + token } }),
+      fetch(API_URL + "/api/marketplace/my-listings", { headers: { "Authorization": "Bearer " + token } })
+    ]);
+    if (resAll.ok) { var d = await resAll.json(); allListings = d.listings || []; }
+    if (resMine.ok) { var d2 = await resMine.json(); myListings = d2.listings || []; }
+    renderGrid();
+  } catch (e) {
+    document.getElementById("listingsGrid").innerHTML = '<div class="empty-msg">Unable to load marketplace. Please try again.</div>';
+  }
+}
+
+function selectTab(el) {
+  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  el.classList.add("active");
+  activeTab = el.dataset.cat;
+  renderGrid();
+}
+
+function renderGrid() {
+  var q = document.getElementById("searchInput").value.toLowerCase().trim();
+  var items = activeTab === "mine" ? myListings : allListings;
+  if (activeTab !== "mine" && activeTab !== "all") {
+    items = items.filter(function(l) { return l.category === activeTab; });
+  }
+  if (q) {
+    items = items.filter(function(l) {
+      return (l.title || "").toLowerCase().includes(q) || (l.description || "").toLowerCase().includes(q);
+    });
+  }
+  var grid = document.getElementById("listingsGrid");
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-msg">' + (activeTab === "mine" ? 'You haven\'t listed any services yet.<br>Click "List a Service" to get started.' : 'No listings found. Be the first to list a service!') + '</div>';
+    return;
+  }
+  grid.innerHTML = items.map(function(l) { return renderCard(l); }).join("");
+}
+
+function renderCard(l) {
+  var isOwn = l.seller_id === currentUserId;
+  var catClass = "cat-" + (l.category || "other");
+  var catLabel = (l.category || "other").charAt(0).toUpperCase() + (l.category || "other").slice(1);
+  var price = l.price_bfc > 0 ? l.price_bfc.toLocaleString() + " BFC" : "Free";
+  var desc = l.description ? l.description.slice(0, 180) + (l.description.length > 180 ? "…" : "") : "";
+  var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + t + '</span>'; }).join("");
+  var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
+  var statusHtml = isOwn ? '<span class="status-badge status-' + l.status + '">' + l.status + '</span>' : "";
+  var actions = isOwn
+    ? '<div class="listing-actions">' +
+        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
+        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
+      '</div>'
+    : '<div class="listing-actions"><button class="btn-sm btn-contact">Contact</button></div>';
+  return '<div class="listing-card">' +
+    '<div class="listing-header">' +
+      '<span class="listing-cat ' + catClass + '">' + catLabel + '</span>' +
+      '<span class="listing-price">' + price + '</span>' +
+    '</div>' +
+    '<h3 class="listing-title">' + l.title + '</h3>' +
+    (desc ? '<p class="listing-desc">' + desc + '</p>' : '') +
+    (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
+    '<div class="listing-footer">' +
+      '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
+      actions +
+    '</div>' +
+  '</div>';
+}
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById("modalTitle").textContent = "List a Service";
+  document.getElementById("submitBtn").textContent = "List Service";
+  document.getElementById("fTitle").value = "";
+  document.getElementById("fDesc").value = "";
+  document.getElementById("fCategory").value = "";
+  document.getElementById("fPrice").value = "0";
+  document.getElementById("fTags").value = "";
+  document.getElementById("listingModal").classList.add("open");
+}
+
+function openEditModal(id) {
+  var listing = myListings.find(function(l) { return l.id === id; });
+  if (!listing) return;
+  editingId = id;
+  document.getElementById("modalTitle").textContent = "Edit Listing";
+  document.getElementById("submitBtn").textContent = "Save Changes";
+  document.getElementById("fTitle").value = listing.title || "";
+  document.getElementById("fDesc").value = listing.description || "";
+  document.getElementById("fCategory").value = listing.category || "";
+  document.getElementById("fPrice").value = listing.price_bfc || 0;
+  document.getElementById("fTags").value = (listing.tags || []).join(", ");
+  document.getElementById("listingModal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("listingModal").classList.remove("open");
+}
+
+async function submitListing() {
+  var title = document.getElementById("fTitle").value.trim();
+  var desc = document.getElementById("fDesc").value.trim();
+  var category = document.getElementById("fCategory").value;
+  var price = parseInt(document.getElementById("fPrice").value) || 0;
+  var tagsRaw = document.getElementById("fTags").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
+  if (!title) { showToast("Title is required", "error"); return; }
+  if (!category) { showToast("Category is required", "error"); return; }
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  try {
+    var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
+    var method = editingId ? "PUT" : "POST";
+    var res = await fetch(url, {
+      method: method,
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description: desc, category, price_bfc: price, tags: tagsRaw })
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    closeModal();
+    showToast(editingId ? "Listing updated!" : "Service listed!", "success");
+    await loadListings();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+async function deleteListing(id) {
+  if (!confirm("Delete this listing?")) return;
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Delete failed");
+    showToast("Listing deleted", "success");
+    await loadListings();
+  } catch (e) {
+    showToast("Delete failed", "error");
+  }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function() { el.classList.remove("show"); }, 3200);
+}
+
+document.getElementById("searchInput").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderGrid, 250);
+});
+
+document.getElementById("listingModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+loadListings();
+</script>
+</body>
+</html>
