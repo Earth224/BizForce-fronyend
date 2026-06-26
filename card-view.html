@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Business Card</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow-x:hidden;padding:32px 20px 64px}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 20% 20%,rgba(34,211,238,.10),transparent 40%),radial-gradient(circle at 80% 80%,rgba(168,85,247,.12),transparent 40%),#070b18;z-index:0;pointer-events:none}
+
+    /* ── Loading / Error ─────────────────────────── */
+    .state-wrap{position:relative;z-index:1;text-align:center}
+    .spinner{width:40px;height:40px;border:3px solid rgba(34,211,238,.2);border-top-color:#22d3ee;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .state-msg{font-size:.95rem;color:#8892b8}
+    .state-err-ico{font-size:2.5rem;margin-bottom:12px}
+    .state-err-title{font-size:1.1rem;font-weight:800;color:#f4f7ff;margin-bottom:6px}
+
+    /* ── Card ───────────────────────────────────── */
+    .card-wrap{position:relative;z-index:1;width:100%;max-width:620px}
+    .card-preview{width:100%;aspect-ratio:1.75;border-radius:16px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.65)}
+    .card-preview[data-theme="dark"]    {background:linear-gradient(135deg,#0c1228,#070b18);border:1.5px solid rgba(34,211,238,.3)}
+    .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729);border:1.5px solid rgba(168,85,247,.35)}
+    .card-preview[data-theme="forest"]  {background:linear-gradient(135deg,#0a1f14,#061a12);border:1.5px solid rgba(52,211,153,.32)}
+    .card-preview[data-theme="ember"]   {background:linear-gradient(135deg,#220e06,#1a0a06);border:1.5px solid rgba(249,115,22,.32)}
+    .card-inner{display:flex;height:100%;padding:28px 26px}
+    .card-left{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;padding-right:20px}
+    .card-company{font-size:.7rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:auto}
+    .card-preview[data-theme="dark"]    .card-company{color:#22d3ee}
+    .card-preview[data-theme="midnight"].card-company{color:#c084fc}
+    .card-preview[data-theme="forest"]  .card-company{color:#34d399}
+    .card-preview[data-theme="ember"]   .card-company{color:#fb923c}
+    .card-name-block{margin:auto 0}
+    .card-name{font-size:clamp(1rem,2.8vw,1.35rem);font-weight:900;line-height:1.1;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-preview[data-theme="dark"]    .card-name{background:linear-gradient(135deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .card-preview[data-theme="midnight"].card-name{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .card-preview[data-theme="forest"]  .card-name{background:linear-gradient(135deg,#34d399,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .card-preview[data-theme="ember"]   .card-name{background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .card-job{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-contacts-block{display:flex;flex-direction:column;gap:4px;margin-top:auto}
+    .card-contact-line{font-size:.63rem;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+    .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.25)}
+    .card-right{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;flex-shrink:0}
+    .card-qr-wrap{background:rgba(255,255,255,.06);border-radius:8px;padding:6px;border:1px solid rgba(255,255,255,.08)}
+    #qrCanvas{display:block;border-radius:4px}
+    .card-qr-label{font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);text-align:center;white-space:nowrap}
+    .card-watermark{position:absolute;bottom:8px;right:14px;font-size:.5rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.18)}
+
+    /* ── Video Mode ────────────────────────────── */
+    .card-video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1}
+    .card-video-overlay{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;z-index:2;pointer-events:none}
+    .card-video-grad{position:absolute;bottom:0;left:0;right:0;height:70%;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.45) 55%,transparent 100%)}
+    .card-video-text{position:relative;z-index:1;padding:16px 18px 14px}
+    .card-video-glass{background:rgba(8,12,30,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:inline-block;max-width:100%}
+    .card-video-vname{font-size:clamp(.9rem,2.5vw,1.2rem);font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.1;margin-bottom:3px}
+    .card-video-vjob{font-size:.66rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.04em}
+    .card-video-vco{font-size:.58rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
+    .card-video-qr-ov{display:none;position:absolute;bottom:12px;right:12px;z-index:3;background:rgba(8,12,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px;pointer-events:none}
+    .card-preview.video-mode .card-inner{display:none}
+    .card-preview.video-mode .card-watermark{display:none}
+    .card-preview.video-mode .card-video-el{display:block}
+    .card-preview.video-mode .card-video-overlay{display:flex}
+    .card-preview.video-mode .card-video-qr-ov{display:block}
+
+    /* ── Actions ───────────────────────────────── */
+    .card-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+    .cv-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 20px;border-radius:11px;font-size:.82rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid;white-space:nowrap;text-decoration:none}
+    .cv-btn svg{width:15px;height:15px;flex-shrink:0}
+    .cv-btn-vcf{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.35);color:#22d3ee}
+    .cv-btn-vcf:hover{background:rgba(34,211,238,.18)}
+    .cv-btn-create{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#8892b8}
+    .cv-btn-create:hover{background:rgba(255,255,255,.1);color:#e8e8ff}
+
+    /* ── Watermark ────────────────────────────── */
+    .page-watermark{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);white-space:nowrap;z-index:10}
+
+    @media(max-width:540px){.card-wrap{max-width:100%}.card-actions{justify-content:center}}
+  </style>
+</head>
+<body>
+
+<div id="stateLoading" class="state-wrap">
+  <div class="spinner"></div>
+  <div class="state-msg">Loading card…</div>
+</div>
+
+<div id="stateError" class="state-wrap" style="display:none">
+  <div class="state-err-ico">🪪</div>
+  <div class="state-err-title">Card not found</div>
+  <div class="state-msg">This link may be invalid or the card was removed.</div>
+</div>
+
+<div id="cardWrap" class="card-wrap" style="display:none">
+  <div class="card-preview" id="cardPreview" data-theme="dark">
+    <div class="card-inner">
+      <div class="card-left">
+        <div class="card-company" id="pCompany"></div>
+        <div class="card-name-block">
+          <div class="card-name" id="pName"></div>
+          <div class="card-job"  id="pTitle"></div>
+        </div>
+        <div class="card-contacts-block">
+          <div class="card-contact-line" id="pEmail"></div>
+          <div class="card-contact-line" id="pPhone"></div>
+          <div class="card-contact-line" id="pWebsite"></div>
+        </div>
+      </div>
+      <div class="card-right">
+        <div class="card-qr-wrap">
+          <canvas id="qrCanvas" width="110" height="110"></canvas>
+        </div>
+        <div class="card-qr-label">Scan to connect</div>
+      </div>
+    </div>
+    <div class="card-watermark">BIZFORCE AI</div>
+    <!-- Video Mode -->
+    <video class="card-video-el" id="cardVideo" autoplay loop muted playsinline></video>
+    <div class="card-video-overlay">
+      <div class="card-video-grad"></div>
+      <div class="card-video-text">
+        <div class="card-video-glass">
+          <div class="card-video-vname" id="pvName"></div>
+          <div class="card-video-vjob"  id="pvJob"></div>
+          <div class="card-video-vco"   id="pvCompany"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-video-qr-ov">
+      <canvas id="qrVideoCanvas" width="60" height="60"></canvas>
+    </div>
+  </div>
+
+  <div class="card-actions">
+    <button class="cv-btn cv-btn-vcf" onclick="saveContact()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Save Contact
+    </button>
+    <a class="cv-btn cv-btn-create" href="https://bizforceai.net/digital-cards.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+      Create Your Own
+    </a>
+  </div>
+</div>
+
+<div class="page-watermark">BIZFORCE AI</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var cardData = null;
+
+var THEME_QR = {
+  dark:     { dark: "#e8e8ff", light: "#070b18" },
+  midnight: { dark: "#e8e8ff", light: "#0f1729" },
+  forest:   { dark: "#e8e8ff", light: "#061a12" },
+  ember:    { dark: "#e8e8ff", light: "#1a0a06" }
+};
+
+function buildVCard(c) {
+  return [
+    "BEGIN:VCARD", "VERSION:3.0",
+    "FN:"    + (c.full_name || ""),
+    "TITLE:" + (c.job_title || ""),
+    "ORG:"   + (c.company   || ""),
+    c.phone   ? "TEL:"   + c.phone   : "",
+    c.email   ? "EMAIL:" + c.email   : "",
+    c.website ? "URL:"   + c.website : "",
+    "END:VCARD"
+  ].filter(Boolean).join("\n");
+}
+
+function renderCard(c) {
+  var theme = c.theme || "dark";
+  var card  = document.getElementById("cardPreview");
+  card.dataset.theme = theme;
+
+  document.getElementById("pCompany").textContent = (c.company || "").toUpperCase();
+  document.getElementById("pName").textContent    = c.full_name || "";
+  document.getElementById("pTitle").textContent   = c.job_title || "";
+  document.getElementById("pEmail").textContent   = c.email   || "";
+  document.getElementById("pPhone").textContent   = c.phone   || "";
+  var ws = (c.website || "").replace(/^https?:\/\//, "");
+  document.getElementById("pWebsite").textContent = ws;
+
+  var vcard  = buildVCard(c);
+  var colors = THEME_QR[theme] || THEME_QR.dark;
+  QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
+    width: 110, margin: 1, errorCorrectionLevel: "M",
+    color: { dark: colors.dark, light: colors.light }
+  }, function() {});
+  QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
+    width: 60, margin: 1, errorCorrectionLevel: "M",
+    color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
+  }, function() {});
+
+  if (c.video_url) {
+    document.getElementById("cardVideo").src = c.video_url;
+    document.getElementById("pvName").textContent    = c.full_name || "";
+    document.getElementById("pvJob").textContent     = c.job_title || "";
+    document.getElementById("pvCompany").textContent = (c.company  || "").toUpperCase();
+    card.classList.add("video-mode");
+  }
+
+  document.getElementById("stateLoading").style.display = "none";
+  document.getElementById("cardWrap").style.display     = "block";
+}
+
+function saveContact() {
+  if (!cardData) return;
+  var blob = new Blob([buildVCard(cardData)], { type: "text/vcard" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (cardData.full_name || "contact").replace(/\s+/g, "_") + ".vcf";
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
+}
+
+(async function() {
+  var token = new URLSearchParams(window.location.search).get("token");
+  if (!token) {
+    document.getElementById("stateLoading").style.display = "none";
+    document.getElementById("stateError").style.display   = "block";
+    return;
+  }
+  try {
+    var res = await fetch(API_URL + "/api/cards/share/" + encodeURIComponent(token));
+    if (!res.ok) throw new Error("not found");
+    var d = await res.json();
+    cardData = d.card;
+    renderCard(cardData);
+  } catch(e) {
+    document.getElementById("stateLoading").style.display = "none";
+    document.getElementById("stateError").style.display   = "block";
+  }
+})();
+</script>
+</body>
+</html>

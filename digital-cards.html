@@ -90,6 +90,8 @@
     .btn-dl:hover{background:rgba(34,211,238,.18)}
     .btn-vcf{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#8892b8}
     .btn-vcf:hover{background:rgba(255,255,255,.1);color:#e8e8ff}
+    .btn-share{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#c084fc}
+    .btn-share:hover{background:rgba(168,85,247,.22)}
     .action-btn svg{width:15px;height:15px}
     .save-status{font-size:.8rem;padding:10px 0;min-height:24px}
     .save-status.ok{color:#34d399}
@@ -284,6 +286,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy vCard
         </button>
+        <button class="action-btn btn-share" onclick="shareCard()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
       </div>
       <div class="save-status info" id="saveStatus"></div>
     </div>
@@ -295,8 +301,9 @@
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
-var activeCardId = null;
-var activeTheme = "dark";
+var activeCardId    = null;
+var activeTheme     = "dark";
+var activeShareToken = null;
 var qrTimer = null;
 var videoUrl = null;
 var videoMode = false;
@@ -407,6 +414,7 @@ async function loadCard() {
     var data = await res.json();
     if (data.cards && data.cards.length) {
       activeCardId = data.cards[0].id;
+      if (data.cards[0].share_token) activeShareToken = data.cards[0].share_token;
       fillForm(data.cards[0]);
       setStatus("Card loaded.", "info");
     } else {
@@ -439,7 +447,7 @@ async function saveCard() {
     if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Save failed"); }
     var d = await res.json();
     var saved = d.card;
-    if (saved) activeCardId = saved.id;
+    if (saved) { activeCardId = saved.id; if (saved.share_token) activeShareToken = saved.share_token; }
     setStatus("", "info");
     showToast("Card saved!");
   } catch(e) {
@@ -516,6 +524,33 @@ function setStatus(msg, type) {
 ["fName","fTitle","fCompany","fEmail","fPhone","fWebsite"].forEach(function(id) {
   document.getElementById(id).addEventListener("input", updatePreview);
 });
+
+async function shareCard() {
+  if (!activeCardId) { showToast("Save your card first", true); return; }
+  try {
+    var st = activeShareToken;
+    if (!st) {
+      var r = await fetch(API_URL + "/api/cards/share-token", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: activeCardId })
+      });
+      if (!r.ok) throw new Error("Could not generate share link");
+      var rd = await r.json();
+      st = rd.share_token;
+      activeShareToken = st;
+    }
+    var url = "https://bizforceai.net/card-view.html?token=" + st;
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = url; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+    }
+    showToast("Share link copied!");
+  } catch(e) { showToast(e.message || "Share failed", true); }
+}
 
 function setVideoMode(on) {
   videoMode = on;
