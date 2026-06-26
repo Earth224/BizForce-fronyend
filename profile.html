@@ -933,6 +933,51 @@
     }
     .pf-empty-btn:hover { filter: brightness(1.12); }
 
+    /* ── Portfolio lightbox ─────────────────────────────────────────────── */
+    .pf-lightbox {
+      position: fixed; inset: 0; z-index: 150;
+      background: rgba(0,0,0,.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .pf-lightbox.open { opacity: 1; pointer-events: all; }
+    .pf-lightbox-inner {
+      max-width: 760px; width: 100%; position: relative;
+      background: rgba(10,14,36,.97);
+      border: 1px solid rgba(34,211,238,.22); border-radius: 20px; overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.7);
+    }
+    .pf-lightbox-img { width: 100%; max-height: 440px; object-fit: cover; display: block; }
+    .pf-lightbox-no-img {
+      width: 100%; height: 200px; display: flex; align-items: center; justify-content: center;
+      background: rgba(34,211,238,.04); border-bottom: 1px solid rgba(34,211,238,.1);
+    }
+    .pf-lightbox-no-img svg { width: 48px; height: 48px; opacity: .15; color: #22d3ee; }
+    .pf-lightbox-body { padding: 22px 26px 26px; }
+    .pf-lightbox-cat {
+      font-size: .66rem; font-weight: 800; letter-spacing: .12em;
+      text-transform: uppercase; color: #22d3ee; margin-bottom: 6px;
+    }
+    .pf-lightbox-title { font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 10px; line-height: 1.3; }
+    .pf-lightbox-desc  { font-size: .88rem; color: rgba(255,255,255,.55); line-height: 1.7; margin-bottom: 20px; }
+    .pf-lightbox-foot  { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+    .pf-lightbox-close {
+      position: absolute; top: 14px; right: 14px; z-index: 5;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(0,0,0,.65); border: 1px solid rgba(255,255,255,.18);
+      color: #fff; font-size: 1rem; cursor: pointer; font-family: var(--pf);
+      display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .pf-lightbox-close:hover { background: rgba(248,113,113,.3); border-color: #f87171; color: #f87171; }
+    .pf-lightbox-visit {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 22px; border-radius: 10px;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      color: #050c1a; font-size: .82rem; font-weight: 900;
+      text-decoration: none; transition: filter .2s;
+    }
+    .pf-lightbox-visit:hover { filter: brightness(1.1); }
+
     /* ── Product buy button & spinner ───────────────────────────────────── */
     .pf-product-buy-btn {
       display: inline-flex; align-items: center; gap: 5px;
@@ -1257,6 +1302,25 @@
   </div>
 </div>
 
+<!-- Portfolio Lightbox -->
+<div class="pf-lightbox" id="portfolioLightbox" onclick="if(event.target===this)closeLightbox()">
+  <div class="pf-lightbox-inner">
+    <button class="pf-lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lbImg" class="pf-lightbox-img" src="" alt="">
+    <div class="pf-lightbox-no-img" id="lbNoImg" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </div>
+    <div class="pf-lightbox-body">
+      <div class="pf-lightbox-cat"  id="lbCat"></div>
+      <div class="pf-lightbox-title" id="lbTitle"></div>
+      <div class="pf-lightbox-desc"  id="lbDesc"></div>
+      <div class="pf-lightbox-foot">
+        <a id="lbLink" class="pf-lightbox-visit" href="#" target="_blank" rel="noopener" style="display:none">Visit Link ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="pf-toast" id="toast"></div>
 
@@ -1346,7 +1410,7 @@ async function loadAll() {
     var [pRes, prodRes, portRes, vidRes, musRes] = await Promise.all([
       fetch(API_URL + (own ? "/api/bfp/profile/me" : "/api/bfp/profile/" + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/pproducts"  : "/api/bfp/pproducts/public/"  + uid), { headers: hdr }),
-      fetch(API_URL + (own ? "/api/bfp/portfolio"  : "/api/bfp/portfolio/public/"  + uid), { headers: hdr }),
+      fetch(API_URL + (own ? "/api/bfp/pportfolio" : "/api/bfp/pportfolio/public/" + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/videos"     : "/api/bfp/videos/public/"     + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/music"      : "/api/bfp/music/public/"      + uid), { headers: hdr })
     ]);
@@ -1798,18 +1862,19 @@ loadAll();
       <input class="pf-form-input" id="portm-title" placeholder="Project name or title">
     </div>
     <div class="pf-form-group">
+      <label class="pf-form-label">Category</label>
+      <select class="pf-form-select" id="portm-cat">
+        <option value="">— Select category —</option>
+        <option value="Design">Design</option>
+        <option value="Photography">Photography</option>
+        <option value="Art">Art</option>
+        <option value="Web">Web</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="pf-form-group">
       <label class="pf-form-label">Description</label>
       <textarea class="pf-form-textarea" id="portm-desc" placeholder="Describe this piece of work…"></textarea>
-    </div>
-    <div class="pf-form-row">
-      <div class="pf-form-group">
-        <label class="pf-form-label">Category</label>
-        <input class="pf-form-input" id="portm-cat" placeholder="e.g. Branding, Web, Film">
-      </div>
-      <div class="pf-form-group">
-        <label class="pf-form-label">Link URL</label>
-        <input class="pf-form-input" id="portm-url" placeholder="https://…">
-      </div>
     </div>
     <div class="pf-form-group">
       <label class="pf-form-label">Project Image</label>
@@ -1819,6 +1884,10 @@ loadAll();
         <input type="hidden" id="portm-img-url">
       </div>
       <div class="pf-upload-status" id="portm-img-status"></div>
+    </div>
+    <div class="pf-form-group">
+      <label class="pf-form-label">External Link <span style="color:var(--sub);font-weight:400">(optional)</span></label>
+      <input class="pf-form-input" id="portm-url" placeholder="https://…">
     </div>
     <div class="pf-modal-foot">
       <span class="pf-modal-status" id="portModalStatus"></span>
@@ -1924,79 +1993,122 @@ function renderPortfolio() {
     );
     return;
   }
+  var EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var DEL_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
   grid.innerHTML = portfolio.map(function(p) {
     var photoHtml = p.image_url
-      ? '<img src="'+esc(p.image_url)+'" alt="" loading="lazy"><div class="pf-portfolio-photo-overlay"></div>'
+      ? '<img src="'+esc(p.image_url)+'" alt="'+esc(p.title)+'" loading="lazy"><div class="pf-portfolio-photo-overlay"></div>'
       : '<div class="pf-portfolio-photo-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><div class="pf-portfolio-photo-overlay"></div>';
-    var linkIcon = p.url ? '<div class="pf-portfolio-link-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>' : '';
-    var acts = (isOwner && editMode) ? '<div class="pf-card-actions" style="opacity:0;position:absolute;top:10px;right:10px;z-index:5;display:flex;gap:5px"><button class="pf-act-btn pf-act-edit" onclick="event.stopPropagation();openPortfolioModal(\''+p.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="pf-act-btn pf-act-del" onclick="event.stopPropagation();deletePortfolio(\''+p.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>' : '';
-    var wrap = p.url && !editMode ? 'a href="'+esc(p.url)+'" target="_blank" rel="noopener"' : 'div';
-    var wrapClose = p.url && !editMode ? 'a' : 'div';
-    return '<'+wrap+' class="pf-portfolio-card">'
-      + '<div class="pf-portfolio-photo">'+photoHtml
-      + '<div class="pf-portfolio-overlay-text"><div class="pf-portfolio-overlay-cat">'+esc(p.category||'')+'</div><div class="pf-portfolio-overlay-title">'+esc(p.title)+'</div></div>'
-      + linkIcon+'</div>'
-      + (p.description ? '<div class="pf-portfolio-body"><div class="pf-portfolio-desc">'+esc(p.description)+'</div></div>' : '')
-      + acts+'</'+wrapClose+'>';
+    var acts = (isOwner && editMode)
+      ? '<div class="pf-card-actions" style="opacity:0;position:absolute;top:10px;right:10px;z-index:5;display:flex;gap:5px">'
+          +'<button class="pf-act-btn pf-act-edit" onclick="event.stopPropagation();openPortfolioModal(\''+p.id+'\')" title="Edit">'+EDIT_SVG+'</button>'
+          +'<button class="pf-act-btn pf-act-del"  onclick="event.stopPropagation();deletePortfolio(\''+p.id+'\')" title="Delete">'+DEL_SVG+'</button>'
+        +'</div>'
+      : '';
+    return '<div class="pf-portfolio-card" onclick="openLightbox(\''+p.id+'\')" style="cursor:pointer">'
+      +'<div class="pf-portfolio-photo">'+photoHtml
+      +'<div class="pf-portfolio-overlay-text">'
+        +'<div class="pf-portfolio-overlay-cat">'+esc(p.category||'')+'</div>'
+        +'<div class="pf-portfolio-overlay-title">'+esc(p.title)+'</div>'
+      +'</div></div>'
+      +acts+'</div>';
   }).join("");
-  // Re-apply hover show for edit action buttons
   grid.querySelectorAll(".pf-portfolio-card").forEach(function(card) {
-    var acts = card.querySelector(".pf-card-actions");
-    if (!acts) return;
-    card.addEventListener("mouseenter", function(){ acts.style.opacity="1"; });
-    card.addEventListener("mouseleave", function(){ acts.style.opacity="0"; });
+    var a = card.querySelector(".pf-card-actions");
+    if (!a) return;
+    card.addEventListener("mouseenter", function(){ a.style.opacity="1"; });
+    card.addEventListener("mouseleave", function(){ a.style.opacity="0"; });
   });
 }
+
+function openLightbox(id) {
+  var p = portfolio.find(function(x){ return x.id===id; });
+  if (!p) return;
+  var hasImg = !!p.image_url;
+  document.getElementById("lbImg").src            = hasImg ? p.image_url : "";
+  document.getElementById("lbImg").style.display  = hasImg ? "block" : "none";
+  document.getElementById("lbNoImg").style.display = hasImg ? "none" : "flex";
+  document.getElementById("lbCat").textContent    = p.category || "";
+  document.getElementById("lbTitle").textContent  = p.title    || "";
+  document.getElementById("lbDesc").textContent   = p.description || "";
+  var lbLink = document.getElementById("lbLink");
+  if (p.url) { lbLink.href = p.url; lbLink.style.display = "inline-flex"; }
+  else         lbLink.style.display = "none";
+  document.getElementById("portfolioLightbox").classList.add("open");
+}
+function closeLightbox() {
+  document.getElementById("portfolioLightbox").classList.remove("open");
+}
+document.addEventListener("keydown", function(e){ if (e.key==="Escape") closeLightbox(); });
+
 function openPortfolioModal(id) {
   editingPortfolioId = id;
   document.getElementById("portModalTitle").textContent = id ? "Edit Work" : "Add Work";
+  document.getElementById("portSaveBtn").textContent = "Save";
   clearModalStatus("portModalStatus");
+  var prev = document.getElementById("portm-img-prev");
   if (id) {
     var p = portfolio.find(function(x){ return x.id===id; });
     if (p) {
-      document.getElementById("portm-title").value = p.title || "";
+      document.getElementById("portm-title").value = p.title       || "";
+      document.getElementById("portm-cat").value   = p.category    || "";
       document.getElementById("portm-desc").value  = p.description || "";
-      document.getElementById("portm-cat").value   = p.category || "";
-      document.getElementById("portm-url").value   = p.url || "";
+      document.getElementById("portm-url").value   = p.url         || "";
       document.getElementById("portm-img-url").value = p.image_url || "";
-      var prev = document.getElementById("portm-img-prev");
-      if (p.image_url) { prev.src=p.image_url; prev.style.display="block"; } else prev.style.display="none";
+      if (p.image_url) { prev.src=p.image_url; prev.style.display="block"; }
+      else prev.style.display="none";
     }
   } else {
-    ["portm-title","portm-desc","portm-cat","portm-url","portm-img-url"].forEach(function(i){ document.getElementById(i).value=""; });
-    document.getElementById("portm-img-prev").style.display="none";
+    ["portm-title","portm-desc","portm-url","portm-img-url"].forEach(function(i){ document.getElementById(i).value=""; });
+    document.getElementById("portm-cat").value = "";
+    prev.style.display = "none";
   }
   openModal("modalPortfolio");
 }
+
 async function savePortfolio() {
-  var btn=document.getElementById("portSaveBtn"), status=document.getElementById("portModalStatus");
-  var title=document.getElementById("portm-title").value.trim();
-  if (!title) { setModalStatus(status,"Title is required","err"); return; }
-  btn.disabled=true; setModalStatus(status,"Saving…","");
+  var btn    = document.getElementById("portSaveBtn");
+  var status = document.getElementById("portModalStatus");
+  var title  = document.getElementById("portm-title").value.trim();
+  if (!title) { setModalStatus(status, "Title is required", "err"); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+  setModalStatus(status, "", "");
   try {
-    var body={title, description:document.getElementById("portm-desc").value.trim(),
-      category:document.getElementById("portm-cat").value.trim(),
-      url:document.getElementById("portm-url").value.trim(),
-      image_url:document.getElementById("portm-img-url").value||null};
-    var path=editingPortfolioId?"/api/bfp/portfolio/"+editingPortfolioId:"/api/bfp/portfolio";
-    var method=editingPortfolioId?"PUT":"POST";
-    var res=await apiFetch(path,method,body);
-    if (!res.ok) throw new Error((await res.json()).error||"Save failed");
-    var d=await res.json();
-    if (editingPortfolioId) portfolio=portfolio.map(function(p){ return p.id===editingPortfolioId?d.item:p; });
+    var body = {
+      title,
+      category:    document.getElementById("portm-cat").value  || null,
+      description: document.getElementById("portm-desc").value.trim(),
+      image_url:   document.getElementById("portm-img-url").value || null,
+      url:         document.getElementById("portm-url").value.trim() || null
+    };
+    var path   = editingPortfolioId ? "/api/bfp/pportfolio/"+editingPortfolioId : "/api/bfp/pportfolio";
+    var method = editingPortfolioId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+    var d = await res.json();
+    if (editingPortfolioId) portfolio = portfolio.map(function(p){ return p.id===editingPortfolioId ? d.item : p; });
     else portfolio.unshift(d.item);
-    renderPortfolio(); closeModal("modalPortfolio"); showToast(editingPortfolioId?"Work updated!":"Work added!");
-  } catch(e) { setModalStatus(status,e.message,"err"); }
-  btn.disabled=false;
+    renderPortfolio();
+    closeModal("modalPortfolio");
+    showToast(editingPortfolioId ? "Work updated!" : "Work added!");
+  } catch(e) {
+    setModalStatus(status, e.message, "err");
+    btn.innerHTML = "Save";
+  }
+  btn.disabled = false;
+  btn.innerHTML = "Save";
 }
+
 async function deletePortfolio(id) {
   if (!confirm("Delete this portfolio item?")) return;
   try {
-    var res=await apiFetch("/api/bfp/portfolio/"+id,"DELETE");
+    var res = await apiFetch("/api/bfp/pportfolio/"+id, "DELETE");
     if (!res.ok) throw new Error("Delete failed");
-    portfolio=portfolio.filter(function(p){ return p.id!==id; });
-    renderPortfolio(); showToast("Item deleted.");
-  } catch(e) { showToast(e.message,true); }
+    portfolio = portfolio.filter(function(p){ return p.id!==id; });
+    renderPortfolio();
+    showToast("Item deleted.");
+  } catch(e) { showToast(e.message, true); }
 }
 
 // ── Videos ───────────────────────────────────────────────────────────────────
