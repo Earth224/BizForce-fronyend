@@ -133,6 +133,12 @@
     .card-preview.video-mode .card-video-overlay{display:flex}
     .card-preview.video-mode .card-video-qr-ov{display:block}
 
+    /* Toast */
+    .dc-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);padding:11px 22px;border-radius:12px;font-size:.84rem;font-weight:700;color:#fff;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.45)}
+    .dc-toast.ok{background:linear-gradient(90deg,rgba(52,211,153,.22),rgba(34,211,238,.18));border:1px solid rgba(52,211,153,.4)}
+    .dc-toast.err{background:rgba(248,113,113,.18);border:1px solid rgba(248,113,113,.4);color:#fca5a5}
+    .dc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
     @media(max-width:760px){.builder{grid-template-columns:1fr}.card-preview{max-width:100%}}
   </style>
 </head>
@@ -284,6 +290,8 @@
   </div>
 </div>
 
+<div class="dc-toast" id="dcToast"></div>
+
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
@@ -432,9 +440,11 @@ async function saveCard() {
     var d = await res.json();
     var saved = d.card;
     if (saved) activeCardId = saved.id;
-    setStatus("Card saved!", "ok");
+    setStatus("", "info");
+    showToast("Card saved!");
   } catch(e) {
-    setStatus(e.message || "Save failed", "err");
+    setStatus("", "info");
+    showToast(e.message || "Save failed", true);
   }
   btn.disabled = false;
 }
@@ -448,9 +458,11 @@ async function downloadCard() {
     link.download = "bizforce-card.png";
     link.href = canvas.toDataURL("image/png");
     link.click();
-    setStatus("Downloaded!", "ok");
+    setStatus("", "info");
+    showToast("Downloaded!");
   } catch(e) {
-    setStatus("Download failed. Try again.", "err");
+    setStatus("", "info");
+    showToast("Download failed. Try again.", true);
   }
 }
 
@@ -459,7 +471,7 @@ function copyVCard() {
   var vcard = buildVCard(f);
   if (navigator.clipboard) {
     navigator.clipboard.writeText(vcard).then(function() {
-      setStatus("vCard copied to clipboard!", "ok");
+      showToast("vCard copied to clipboard!");
     }).catch(function() {
       fallbackCopy(vcard);
     });
@@ -477,7 +489,19 @@ function fallbackCopy(text) {
   ta.select();
   document.execCommand("copy");
   document.body.removeChild(ta);
-  setStatus("vCard copied!", "ok");
+  showToast("vCard copied!");
+}
+
+var _toastTimer = null;
+function showToast(msg, isErr) {
+  var el = document.getElementById("dcToast");
+  el.textContent = msg;
+  el.className = "dc-toast " + (isErr ? "err" : "ok");
+  clearTimeout(_toastTimer);
+  requestAnimationFrame(function() {
+    el.classList.add("show");
+    _toastTimer = setTimeout(function() { el.classList.remove("show"); }, 3200);
+  });
 }
 
 function setStatus(msg, type) {
@@ -539,11 +563,13 @@ async function uploadPitchVideo(file) {
     nameEl.textContent = file.name;
     status.textContent = "Uploaded!";
     status.className = "vid-upload-st done";
-    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; }, 1200);
+    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
+    showToast("Video uploaded!");
   } catch(e) {
     status.textContent = e.message || "Upload failed";
     status.className = "vid-upload-st fail";
     progWrap.style.display = "none";
+    showToast(e.message || "Upload failed", true);
   }
 }
 
