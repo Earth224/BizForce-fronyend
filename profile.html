@@ -585,6 +585,32 @@
     .pf-video-desc { font-size: .76rem; color: var(--sub); line-height: 1.5; margin-top: 4px;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
+    /* ── VIDEO TOGGLE + PLAYER ─────────────────────────────────────────── */
+    .pf-vid-toggle { display: flex; gap: 0; background: rgba(255,255,255,.05); border-radius: 10px; padding: 3px; margin-bottom: 4px; }
+    .pf-vid-toggle-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s; background: transparent; color: rgba(255,255,255,.45); }
+    .pf-vid-toggle-btn.active { background: linear-gradient(90deg,#22d3ee,#a855f7); color: #050c1a; }
+    .pf-vid-player-overlay {
+      position: fixed; inset: 0; z-index: 160;
+      background: rgba(0,0,0,.94); backdrop-filter: blur(18px);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+      opacity: 0; pointer-events: none; transition: opacity .25s;
+    }
+    .pf-vid-player-overlay.open { opacity: 1; pointer-events: all; }
+    .pf-vid-player-inner {
+      max-width: 860px; width: 100%;
+      background: rgba(8,12,32,.98);
+      border: 1px solid rgba(34,211,238,.2); border-radius: 20px; overflow: hidden;
+    }
+    .pf-vid-player-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .pf-vid-player-title { font-size: .95rem; font-weight: 800; color: #fff; }
+    .pf-vid-player-close { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .pf-vid-player-wrap { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; }
+    .pf-vid-player-wrap iframe,
+    .pf-vid-player-wrap video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
     /* ── MUSIC ──────────────────────────────────────────────────────────── */
     .pf-music-list { display: flex; flex-direction: column; gap: 10px; }
     .pf-track-card {
@@ -1018,6 +1044,7 @@
 <input type="file" id="fi-mus-cover" accept="image/*"            style="display:none">
 <input type="file" id="fi-mus-audio" accept=".mp3,.wav,audio/mpeg,audio/wav" style="display:none">
 <input type="file" id="fi-vid-file"  accept="video/*"            style="display:none">
+<input type="file" id="fi-vid-thumb" accept="image/*"            style="display:none">
 
 <!-- ── Top nav ── -->
 <nav class="pf-nav">
@@ -1909,29 +1936,55 @@ loadAll();
       <input class="pf-form-input" id="vm-title" placeholder="Video title">
     </div>
     <div class="pf-form-group">
-      <label class="pf-form-label">Description</label>
-      <textarea class="pf-form-textarea" id="vm-desc" placeholder="Brief description…" rows="2"></textarea>
+      <label class="pf-form-label">Source</label>
+      <div class="pf-vid-toggle">
+        <button class="pf-vid-toggle-btn active" id="vm-tab-url" onclick="setVidTab('url')">YouTube URL</button>
+        <button class="pf-vid-toggle-btn" id="vm-tab-file" onclick="setVidTab('file')">Upload MP4</button>
+      </div>
     </div>
-    <div class="pf-form-group">
-      <label class="pf-form-label">YouTube / Vimeo URL</label>
+    <div id="vm-panel-url" class="pf-form-group">
       <input class="pf-form-input" id="vm-url" placeholder="https://www.youtube.com/watch?v=…">
-      <div style="font-size:.68rem;color:var(--sub);margin-top:5px">Paste a YouTube or Vimeo link — or upload a file below.</div>
+      <div style="font-size:.68rem;color:var(--sub);margin-top:5px">Paste a YouTube URL — the embed and thumbnail are extracted automatically.</div>
     </div>
-    <div class="pf-form-group">
-      <label class="pf-form-label">— or Upload Video File</label>
+    <div id="vm-panel-file" class="pf-form-group" style="display:none">
       <div class="pf-upload-row">
-        <button class="pf-upload-trigger" onclick="document.getElementById('fi-vid-file').click()">Choose File</button>
+        <button class="pf-upload-trigger" onclick="document.getElementById('fi-vid-file').click()">Choose MP4 / WebM</button>
         <span id="vm-file-name" style="font-size:.75rem;color:var(--sub)"></span>
         <input type="hidden" id="vm-file-url">
       </div>
       <div class="pf-upload-status" id="vm-file-status"></div>
       <div class="pf-upload-prog-wrap" id="vm-file-prog-wrap" style="display:none"><div class="pf-upload-prog-fill" id="vm-file-prog"></div></div>
     </div>
+    <div class="pf-form-group">
+      <label class="pf-form-label">Thumbnail Image</label>
+      <div class="pf-upload-row">
+        <button class="pf-upload-trigger" onclick="triggerFileUpload('fi-vid-thumb','videos','vm-thumb-url','vm-thumb-prev','vm-thumb-status')">Upload Thumbnail</button>
+        <img id="vm-thumb-prev" class="pf-upload-preview" src="" alt="" style="display:none">
+        <input type="hidden" id="vm-thumb-url">
+      </div>
+      <div class="pf-upload-status" id="vm-thumb-status"></div>
+      <div style="font-size:.68rem;color:var(--sub);margin-top:4px">Optional — YouTube thumbnails are auto-fetched if omitted.</div>
+    </div>
+    <div class="pf-form-group">
+      <label class="pf-form-label">Description</label>
+      <textarea class="pf-form-textarea" id="vm-desc" placeholder="Brief description…" rows="2"></textarea>
+    </div>
     <div class="pf-modal-foot">
       <span class="pf-modal-status" id="vidModalStatus"></span>
       <button class="pf-btn-cancel" onclick="closeModal('modalVideo')">Cancel</button>
       <button class="pf-btn-primary" id="vidSaveBtn" onclick="saveVideo()">Save</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ VIDEO PLAYER MODAL ══ -->
+<div class="pf-vid-player-overlay" id="vidPlayerOverlay" onclick="if(event.target===this)closeVideoPlayer()">
+  <div class="pf-vid-player-inner">
+    <div class="pf-vid-player-head">
+      <div class="pf-vid-player-title" id="vidPlayerTitle"></div>
+      <button class="pf-vid-player-close" onclick="closeVideoPlayer()">✕</button>
+    </div>
+    <div class="pf-vid-player-wrap" id="vidPlayerWrap"></div>
   </div>
 </div>
 
@@ -2138,93 +2191,166 @@ function getVideoThumb(v) {
   if (v.video_type==="youtube") { var id=getYouTubeId(v.video_url); return id?"https://img.youtube.com/vi/"+id+"/mqdefault.jpg":null; }
   return null;
 }
+function setVidTab(tab) {
+  var isUrl = tab === "url";
+  document.getElementById("vm-tab-url").classList.toggle("active", isUrl);
+  document.getElementById("vm-tab-file").classList.toggle("active", !isUrl);
+  document.getElementById("vm-panel-url").style.display  = isUrl ? "" : "none";
+  document.getElementById("vm-panel-file").style.display = isUrl ? "none" : "";
+}
+
 function renderVideos() {
-  var grid=document.getElementById("videosGrid");
+  var grid = document.getElementById("videosGrid");
   if (!videos.length) {
     grid.innerHTML = emptyState(
       '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
       'No videos yet',
-      'Paste a YouTube or Vimeo link, or upload a video file directly.',
+      'Paste a YouTube URL or upload an MP4 file.',
       isOwner && editMode ? 'Add Video' : null,
       isOwner && editMode ? 'openVideoModal(null)' : null
     );
     return;
   }
-  grid.innerHTML=videos.map(function(v) {
-    var thumb=getVideoThumb(v);
-    var platLabel=v.video_type==="youtube"?"YouTube":v.video_type==="vimeo"?"Vimeo":"Video";
-    var platSvg=v.video_type==="youtube"
-      ?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>'
-      :'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/></svg>';
-    var mediaArea = thumb
-      ? '<img class="pf-video-thumb" src="'+esc(thumb)+'" alt="" loading="lazy"><div class="pf-video-play-overlay" onclick="activateVideoEmbed(\''+v.id+'\')"><div class="pf-video-play-circle"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>'
-      : (v.video_type==="upload"
-          ? '<video controls preload="metadata" style="position:absolute;top:0;left:0;width:100%;height:100%"><source src="'+esc(v.video_url)+'"></video>'
-          : '<div class="pf-video-play-overlay" onclick="activateVideoEmbed(\''+v.id+'\')"><div class="pf-video-play-circle"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div></div>');
-    var acts=(isOwner&&editMode)
-      ?'<div style="position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:5px"><button class="pf-act-btn pf-act-edit" onclick="openVideoModal(\''+v.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="pf-act-btn pf-act-del" onclick="deleteVideo(\''+v.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>'
-      :'';
-    return '<div class="pf-video-card" data-vid-id="'+v.id+'">'
-      +'<div class="pf-video-embed-wrap" id="vw-'+v.id+'">'+mediaArea+'</div>'
+  var PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+  var EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var DEL_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+  var YT_SVG   = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 0 0 1.95-1.97A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>';
+
+  grid.innerHTML = videos.map(function(v) {
+    var thumb = getVideoThumb(v);
+    var platLabel = v.video_type==="youtube" ? "YouTube" : v.video_type==="vimeo" ? "Vimeo" : "Video";
+    var platSvg   = v.video_type==="youtube" ? YT_SVG : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+    var thumbArea = thumb
+      ? '<img class="pf-video-thumb" src="'+esc(thumb)+'" alt="'+esc(v.title)+'" loading="lazy">'
+      : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,16,38,.9)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,.4)" stroke-width="1.5" width="48" height="48"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>';
+    var acts = (isOwner && editMode)
+      ? '<div style="position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:5px;opacity:0" class="pf-vid-acts">'
+          +'<button class="pf-act-btn pf-act-edit" onclick="event.stopPropagation();openVideoModal(\''+v.id+'\')" title="Edit">'+EDIT_SVG+'</button>'
+          +'<button class="pf-act-btn pf-act-del"  onclick="event.stopPropagation();deleteVideo(\''+v.id+'\')" title="Delete">'+DEL_SVG+'</button>'
+        +'</div>'
+      : '';
+    return '<div class="pf-video-card" style="cursor:pointer" onclick="openVideoPlayer(\''+v.id+'\')">'
+      +'<div class="pf-video-embed-wrap" id="vw-'+v.id+'">'
+        +thumbArea
+        +'<div class="pf-video-play-overlay"><div class="pf-video-play-circle">'+PLAY_SVG+'</div></div>'
+      +'</div>'
       +'<div class="pf-video-body">'
-      +'<div class="pf-video-platform">'+platSvg+platLabel+'</div>'
-      +'<div class="pf-video-title">'+esc(v.title)+'</div>'
-      +(v.description?'<div class="pf-video-desc">'+esc(v.description)+'</div>':'')
-      +'</div>'+acts+'</div>';
+        +'<div class="pf-video-platform">'+platSvg+platLabel+'</div>'
+        +'<div class="pf-video-title">'+esc(v.title)+'</div>'
+        +(v.description ? '<div class="pf-video-desc">'+esc(v.description)+'</div>' : '')
+      +'</div>'
+      +acts+'</div>';
   }).join("");
+
+  grid.querySelectorAll(".pf-video-card").forEach(function(card) {
+    var a = card.querySelector(".pf-vid-acts");
+    if (!a) return;
+    card.addEventListener("mouseenter", function(){ a.style.opacity="1"; });
+    card.addEventListener("mouseleave", function(){ a.style.opacity="0"; });
+  });
 }
-function activateVideoEmbed(id) {
-  var v=videos.find(function(x){ return x.id===id; });
+
+function openVideoPlayer(id) {
+  var v = videos.find(function(x){ return x.id===id; });
   if (!v) return;
-  var wrap=document.getElementById("vw-"+id);
-  if (!wrap) return;
-  var src=getEmbedSrc(v);
-  if (src) { wrap.innerHTML='<iframe src="'+esc(src)+'" allowfullscreen allow="autoplay; picture-in-picture; encrypted-media"></iframe>'; }
-}
-function openVideoModal(id) {
-  editingVideoId=id;
-  document.getElementById("vidModalTitle").textContent=id?"Edit Video":"Add Video";
-  clearModalStatus("vidModalStatus");
-  document.getElementById("vm-file-url").value="";
-  document.getElementById("vm-file-name").textContent="";
-  document.getElementById("vm-file-status").textContent="";
-  document.getElementById("vm-file-prog-wrap").style.display="none";
-  if (id) {
-    var v=videos.find(function(x){ return x.id===id; }); if (!v) return;
-    document.getElementById("vm-title").value=v.title||"";
-    document.getElementById("vm-desc").value=v.description||"";
-    document.getElementById("vm-url").value=(v.video_type!=="upload"?v.video_url:"");
-    if (v.video_type==="upload") { document.getElementById("vm-file-url").value=v.video_url||""; document.getElementById("vm-file-name").textContent="(existing file)"; }
+  var wrap = document.getElementById("vidPlayerWrap");
+  document.getElementById("vidPlayerTitle").textContent = v.title || "";
+  if (v.video_type === "upload") {
+    wrap.innerHTML = '<video controls autoplay style="position:absolute;top:0;left:0;width:100%;height:100%"><source src="'+esc(v.video_url)+'"></video>';
   } else {
-    document.getElementById("vm-title").value="";
-    document.getElementById("vm-desc").value="";
-    document.getElementById("vm-url").value="";
+    var src = getEmbedSrc(v);
+    wrap.innerHTML = src
+      ? '<iframe src="'+esc(src)+'" allowfullscreen allow="autoplay; picture-in-picture; encrypted-media"></iframe>'
+      : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:.85rem">Unable to load video</div>';
+  }
+  document.getElementById("vidPlayerOverlay").classList.add("open");
+}
+function closeVideoPlayer() {
+  document.getElementById("vidPlayerOverlay").classList.remove("open");
+  document.getElementById("vidPlayerWrap").innerHTML = "";
+}
+document.addEventListener("keydown", function(e){ if (e.key==="Escape") closeVideoPlayer(); });
+
+function openVideoModal(id) {
+  editingVideoId = id;
+  document.getElementById("vidModalTitle").textContent = id ? "Edit Video" : "Add Video";
+  document.getElementById("vidSaveBtn").textContent = "Save";
+  clearModalStatus("vidModalStatus");
+  // reset file panel
+  document.getElementById("vm-file-url").value = "";
+  document.getElementById("vm-file-name").textContent = "";
+  document.getElementById("vm-file-status").textContent = "";
+  document.getElementById("vm-file-prog-wrap").style.display = "none";
+  // reset thumbnail
+  document.getElementById("vm-thumb-url").value = "";
+  document.getElementById("vm-thumb-prev").style.display = "none";
+  document.getElementById("vm-thumb-status").textContent = "";
+  if (id) {
+    var v = videos.find(function(x){ return x.id===id; });
+    if (!v) return;
+    document.getElementById("vm-title").value = v.title || "";
+    document.getElementById("vm-desc").value  = v.description || "";
+    if (v.video_type === "upload") {
+      setVidTab("file");
+      document.getElementById("vm-file-url").value = v.video_url || "";
+      document.getElementById("vm-file-name").textContent = "(existing file)";
+      document.getElementById("vm-url").value = "";
+    } else {
+      setVidTab("url");
+      document.getElementById("vm-url").value = v.video_url || "";
+    }
+    if (v.thumbnail_url) {
+      document.getElementById("vm-thumb-url").value = v.thumbnail_url;
+      document.getElementById("vm-thumb-prev").src = v.thumbnail_url;
+      document.getElementById("vm-thumb-prev").style.display = "block";
+    }
+  } else {
+    setVidTab("url");
+    document.getElementById("vm-title").value = "";
+    document.getElementById("vm-desc").value  = "";
+    document.getElementById("vm-url").value   = "";
   }
   openModal("modalVideo");
 }
+
 async function saveVideo() {
-  var btn=document.getElementById("vidSaveBtn"), status=document.getElementById("vidModalStatus");
-  var title=document.getElementById("vm-title").value.trim();
-  if (!title) { setModalStatus(status,"Title is required","err"); return; }
-  var urlVal=document.getElementById("vm-url").value.trim();
-  var fileUrl=document.getElementById("vm-file-url").value.trim();
-  var videoUrl=urlVal||fileUrl;
-  if (!videoUrl) { setModalStatus(status,"Provide a URL or upload a file","err"); return; }
-  btn.disabled=true; setModalStatus(status,"Saving…","");
+  var btn    = document.getElementById("vidSaveBtn");
+  var status = document.getElementById("vidModalStatus");
+  var title  = document.getElementById("vm-title").value.trim();
+  if (!title) { setModalStatus(status, "Title is required", "err"); return; }
+  var isUrlTab = document.getElementById("vm-tab-url").classList.contains("active");
+  var urlVal   = document.getElementById("vm-url").value.trim();
+  var fileUrl  = document.getElementById("vm-file-url").value.trim();
+  var videoUrl = isUrlTab ? urlVal : fileUrl;
+  if (!videoUrl) { setModalStatus(status, isUrlTab ? "Paste a YouTube URL" : "Upload a video file", "err"); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+  setModalStatus(status, "", "");
   try {
-    var vtype=detectVideoType(urlVal||"");
-    if (fileUrl&&!urlVal) vtype="upload";
-    var body={title, description:document.getElementById("vm-desc").value.trim(), video_url:videoUrl, video_type:vtype};
-    var path=editingVideoId?"/api/bfp/videos/"+editingVideoId:"/api/bfp/videos";
-    var method=editingVideoId?"PUT":"POST";
-    var res=await apiFetch(path,method,body);
-    if (!res.ok) throw new Error((await res.json()).error||"Save failed");
-    var d=await res.json();
-    if (editingVideoId) videos=videos.map(function(v){ return v.id===editingVideoId?d.video:v; });
+    var vtype = isUrlTab ? detectVideoType(urlVal) : "upload";
+    var body = {
+      title,
+      description:   document.getElementById("vm-desc").value.trim(),
+      video_url:     videoUrl,
+      video_type:    vtype,
+      thumbnail_url: document.getElementById("vm-thumb-url").value || null
+    };
+    var path   = editingVideoId ? "/api/bfp/videos/"+editingVideoId : "/api/bfp/videos";
+    var method = editingVideoId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+    var d = await res.json();
+    if (editingVideoId) videos = videos.map(function(v){ return v.id===editingVideoId ? d.video : v; });
     else videos.unshift(d.video);
-    renderVideos(); closeModal("modalVideo"); showToast(editingVideoId?"Video updated!":"Video added!");
-  } catch(e) { setModalStatus(status,e.message,"err"); }
-  btn.disabled=false;
+    renderVideos();
+    closeModal("modalVideo");
+    showToast(editingVideoId ? "Video updated!" : "Video added!");
+  } catch(e) {
+    setModalStatus(status, e.message, "err");
+    btn.innerHTML = "Save";
+  }
+  btn.disabled = false;
+  btn.innerHTML = "Save";
 }
 async function deleteVideo(id) {
   if (!confirm("Delete this video?")) return;
@@ -2251,6 +2377,9 @@ document.getElementById("fi-vid-file").addEventListener("change", async function
     setTimeout(function(){ progWrap.style.display="none"; prog.style.width="0%"; },1000);
   } catch(e) { status.textContent="Upload failed"; status.className="pf-upload-status fail"; progWrap.style.display="none"; }
   this.value="";
+});
+document.getElementById("fi-vid-thumb").addEventListener("change", function() {
+  handleGenericUpload(this);
 });
 
 // ── Music ─────────────────────────────────────────────────────────────────────
