@@ -933,6 +933,22 @@
     }
     .pf-empty-btn:hover { filter: brightness(1.12); }
 
+    /* ── Product buy button & spinner ───────────────────────────────────── */
+    .pf-product-buy-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 16px; border-radius: 9px;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      color: #050c1a; font-size: .76rem; font-weight: 900;
+      text-decoration: none; transition: filter .2s; white-space: nowrap;
+    }
+    .pf-product-buy-btn:hover { filter: brightness(1.1); }
+    @keyframes pfSpin { to { transform: rotate(360deg); } }
+    .pf-spinner {
+      width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+      border: 2px solid rgba(5,12,26,.25); border-top-color: #050c1a;
+      animation: pfSpin .55s linear infinite; vertical-align: middle;
+    }
+
     /* ── Responsive ──────────────────────────────────────────────────────── */
     @media (max-width: 680px) {
       .pf-banner { height: 200px; }
@@ -1212,32 +1228,16 @@
       <input class="pf-form-input" id="pm-name" placeholder="What are you selling?">
     </div>
     <div class="pf-form-group">
+      <label class="pf-form-label">Price</label>
+      <input class="pf-form-input" id="pm-price" type="number" min="0" step="0.01" placeholder="0.00 (leave blank for Free)">
+    </div>
+    <div class="pf-form-group">
       <label class="pf-form-label">Description</label>
       <textarea class="pf-form-textarea" id="pm-desc" placeholder="Describe your product…"></textarea>
     </div>
-    <div class="pf-form-row">
-      <div class="pf-form-group">
-        <label class="pf-form-label">Price</label>
-        <input class="pf-form-input" id="pm-price" type="number" min="0" step="0.01" placeholder="0.00">
-      </div>
-      <div class="pf-form-group">
-        <label class="pf-form-label">Currency</label>
-        <select class="pf-form-select" id="pm-currency">
-          <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>AUD</option>
-        </select>
-      </div>
-    </div>
-    <div class="pf-form-row">
-      <div class="pf-form-group">
-        <label class="pf-form-label">Category</label>
-        <input class="pf-form-input" id="pm-cat" placeholder="e.g. Digital, Service, Course">
-      </div>
-      <div class="pf-form-group">
-        <label class="pf-form-label">Status</label>
-        <select class="pf-form-select" id="pm-status">
-          <option value="active">Active</option><option value="draft">Draft</option>
-        </select>
-      </div>
+    <div class="pf-form-group">
+      <label class="pf-form-label">Buy Link</label>
+      <input class="pf-form-input" id="pm-buy-link" placeholder="https://… (checkout or sales page)">
     </div>
     <div class="pf-form-group">
       <label class="pf-form-label">Product Photo</label>
@@ -1345,7 +1345,7 @@ async function loadAll() {
   try {
     var [pRes, prodRes, portRes, vidRes, musRes] = await Promise.all([
       fetch(API_URL + (own ? "/api/bfp/profile/me" : "/api/bfp/profile/" + uid), { headers: hdr }),
-      fetch(API_URL + (own ? "/api/bfp/products"   : "/api/bfp/products/public/"   + uid), { headers: hdr }),
+      fetch(API_URL + (own ? "/api/bfp/pproducts"  : "/api/bfp/pproducts/public/"  + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/portfolio"  : "/api/bfp/portfolio/public/"  + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/videos"     : "/api/bfp/videos/public/"     + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/music"      : "/api/bfp/music/public/"      + uid), { headers: hdr })
@@ -1587,88 +1587,102 @@ function renderProducts() {
     );
     return;
   }
+  var EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  var DEL_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
   grid.innerHTML = products.map(function(p) {
     var photoHtml = p.image_url
-      ? '<img src="'+esc(p.image_url)+'" alt="" loading="lazy">'
+      ? '<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" loading="lazy">'
       : '<div class="pf-product-photo-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>No image</span></div>';
-    var catBadge  = p.category ? '<span class="pf-badge pf-badge-category">'+esc(p.category)+'</span>' : '<span></span>';
-    var draftBadge = p.status==="draft" ? '<span class="pf-badge pf-badge-draft">Draft</span>' : '';
-    var price = p.price != null
-      ? '<span class="pf-product-price">'+esc(p.currency||"USD")+' '+Number(p.price).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
+    var price = (p.price != null && p.price !== "")
+      ? '<span class="pf-product-price">$'+Number(p.price).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
       : '<span class="pf-product-free">Free</span>';
-    var acts = (isOwner && editMode)
-      ? '<div class="pf-card-actions"><button class="pf-act-btn pf-act-edit" onclick="openProductModal(\''+p.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="pf-act-btn pf-act-del" onclick="deleteProduct(\''+p.id+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div>'
+    var buyBtn = p.buy_link
+      ? '<a class="pf-product-buy-btn" href="'+esc(p.buy_link)+'" target="_blank" rel="noopener">Buy Now ↗</a>'
       : '';
-    return '<div class="pf-product-card">' +
-      '<div class="pf-product-photo"><div class="pf-product-badges">'+catBadge+draftBadge+'</div>'+photoHtml+'</div>' +
-      '<div class="pf-product-body"><div class="pf-product-name">'+esc(p.name)+'</div>' +
-      (p.description ? '<div class="pf-product-desc">'+esc(p.description)+'</div>' : '') +
-      '<div class="pf-product-footer">'+price+'</div></div>'+acts+
-      '</div>';
+    var acts = (isOwner && editMode)
+      ? '<div class="pf-card-actions">'
+          +'<button class="pf-act-btn pf-act-edit" onclick="openProductModal(\''+p.id+'\')" title="Edit">'+EDIT_SVG+'</button>'
+          +'<button class="pf-act-btn pf-act-del"  onclick="deleteProduct(\''+p.id+'\')" title="Delete">'+DEL_SVG+'</button>'
+        +'</div>'
+      : '';
+    return '<div class="pf-product-card">'
+      +'<div class="pf-product-photo">'+photoHtml+'</div>'
+      +'<div class="pf-product-body">'
+        +'<div class="pf-product-name">'+esc(p.name)+'</div>'
+        +(p.description ? '<div class="pf-product-desc">'+esc(p.description)+'</div>' : '')
+        +'<div class="pf-product-footer">'+price+buyBtn+'</div>'
+      +'</div>'
+      +acts
+      +'</div>';
   }).join("");
 }
 
 function openProductModal(id) {
   editingProductId = id;
   document.getElementById("productModalTitle").textContent = id ? "Edit Product" : "Add Product";
+  document.getElementById("productSaveBtn").textContent = "Save";
   clearModalStatus("productModalStatus");
+  var prev = document.getElementById("pm-img-prev");
   if (id) {
     var p = products.find(function(x){ return x.id===id; });
     if (p) {
-      document.getElementById("pm-name").value     = p.name        || "";
-      document.getElementById("pm-desc").value     = p.description || "";
-      document.getElementById("pm-price").value    = p.price!=null ? p.price : "";
-      document.getElementById("pm-currency").value = p.currency    || "USD";
-      document.getElementById("pm-cat").value      = p.category    || "";
-      document.getElementById("pm-status").value   = p.status      || "active";
-      document.getElementById("pm-img-url").value  = p.image_url   || "";
-      var prev = document.getElementById("pm-img-prev");
+      document.getElementById("pm-name").value     = p.name         || "";
+      document.getElementById("pm-price").value    = p.price != null ? p.price : "";
+      document.getElementById("pm-desc").value     = p.description  || "";
+      document.getElementById("pm-buy-link").value = p.buy_link     || "";
+      document.getElementById("pm-img-url").value  = p.image_url    || "";
       if (p.image_url) { prev.src = p.image_url; prev.style.display = "block"; }
-      else prev.style.display = "none";
+      else               prev.style.display = "none";
     }
   } else {
-    ["pm-name","pm-desc","pm-price","pm-cat"].forEach(function(i){ document.getElementById(i).value=""; });
-    document.getElementById("pm-currency").value = "USD";
-    document.getElementById("pm-status").value   = "active";
-    document.getElementById("pm-img-url").value  = "";
-    document.getElementById("pm-img-prev").style.display = "none";
+    ["pm-name","pm-price","pm-desc","pm-buy-link","pm-img-url"].forEach(function(i){ document.getElementById(i).value=""; });
+    prev.style.display = "none";
   }
   openModal("modalProduct");
 }
+
 async function saveProduct() {
   var btn    = document.getElementById("productSaveBtn");
   var status = document.getElementById("productModalStatus");
-  var name = document.getElementById("pm-name").value.trim();
-  if (!name) { setModalStatus(status,"Name is required","err"); return; }
-  btn.disabled = true; setModalStatus(status, "Saving…", "");
+  var name   = document.getElementById("pm-name").value.trim();
+  if (!name) { setModalStatus(status, "Name is required", "err"); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+  setModalStatus(status, "", "");
   try {
     var body = {
-      name, description: document.getElementById("pm-desc").value.trim(),
-      price:    document.getElementById("pm-price").value || null,
-      currency: document.getElementById("pm-currency").value,
-      category: document.getElementById("pm-cat").value.trim(),
-      status:   document.getElementById("pm-status").value,
-      image_url: document.getElementById("pm-img-url").value || null
+      name,
+      price:       document.getElementById("pm-price").value.trim() || null,
+      description: document.getElementById("pm-desc").value.trim(),
+      buy_link:    document.getElementById("pm-buy-link").value.trim() || null,
+      image_url:   document.getElementById("pm-img-url").value || null
     };
-    var url    = editingProductId ? API_URL+"/api/bfp/products/"+editingProductId : API_URL+"/api/bfp/products";
+    var path   = editingProductId ? "/api/bfp/pproducts/"+editingProductId : "/api/bfp/pproducts";
     var method = editingProductId ? "PUT" : "POST";
-    var res = await apiFetch(url.replace(API_URL,""), method, body);
+    var res = await apiFetch(path, method, body);
     if (!res.ok) throw new Error((await res.json()).error || "Save failed");
     var d = await res.json();
-    if (editingProductId) { products = products.map(function(p){ return p.id===editingProductId ? d.product : p; }); }
-    else                  { products.unshift(d.product); }
-    renderProducts(); closeModal("modalProduct");
+    if (editingProductId) products = products.map(function(p){ return p.id===editingProductId ? d.product : p; });
+    else                  products.unshift(d.product);
+    renderProducts();
+    closeModal("modalProduct");
     showToast(editingProductId ? "Product updated!" : "Product added!");
-  } catch(e) { setModalStatus(status, e.message, "err"); }
+  } catch(e) {
+    setModalStatus(status, e.message, "err");
+    btn.innerHTML = "Save";
+  }
   btn.disabled = false;
+  btn.innerHTML = "Save";
 }
+
 async function deleteProduct(id) {
   if (!confirm("Delete this product?")) return;
   try {
-    var res = await apiFetch("/api/bfp/products/"+id, "DELETE");
+    var res = await apiFetch("/api/bfp/pproducts/"+id, "DELETE");
     if (!res.ok) throw new Error("Delete failed");
     products = products.filter(function(p){ return p.id!==id; });
-    renderProducts(); showToast("Product deleted.");
+    renderProducts();
+    showToast("Product deleted.");
   } catch(e) { showToast(e.message, true); }
 }
 
