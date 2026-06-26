@@ -96,6 +96,43 @@
     .save-status.err{color:#f87171}
     .save-status.info{color:#8892b8}
 
+    /* Video Pitch section */
+    .form-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:20px 0 18px}
+    .form-section-lbl{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#f472b6;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+    .form-section-lbl svg{width:13px;height:13px;flex-shrink:0}
+    .vid-upload-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .vid-upload-btn{padding:8px 14px;background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);border-radius:9px;color:#f472b6;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .2s}
+    .vid-upload-btn:hover{background:rgba(244,114,182,.2)}
+    .vid-upload-name{font-size:.73rem;color:#8892b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+    .vid-upload-st{font-size:.72rem;min-height:18px;margin-bottom:4px}
+    .vid-upload-st.uploading{color:#f472b6}.vid-upload-st.done{color:#34d399}.vid-upload-st.fail{color:#f87171}
+    .vid-prog-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:12px;display:none}
+    .vid-prog-fill{height:100%;width:0%;background:linear-gradient(90deg,#f472b6,#a855f7);border-radius:2px;transition:width .3s}
+    .vid-mode-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .vid-mode-lbl{font-size:.8rem;font-weight:700;color:#e8e8ff}
+    .vid-mode-sub{font-size:.67rem;color:#8892b8;margin-top:2px}
+    .vid-sw-wrap{position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer;display:block}
+    .vid-sw-input{opacity:0;width:0;height:0;position:absolute}
+    .vid-sw-track{position:absolute;inset:0;border-radius:13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);transition:all .25s}
+    .vid-sw-input:checked + .vid-sw-track{background:linear-gradient(90deg,#f472b6,#a855f7);border-color:transparent}
+    .vid-sw-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4);transition:transform .25s;pointer-events:none}
+    .vid-sw-input:checked ~ .vid-sw-knob{transform:translateX(20px)}
+    /* Card video mode */
+    .card-video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1}
+    .card-video-overlay{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;z-index:2;pointer-events:none}
+    .card-video-grad{position:absolute;bottom:0;left:0;right:0;height:70%;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.45) 55%,transparent 100%)}
+    .card-video-text{position:relative;z-index:1;padding:14px 16px 12px;backdrop-filter:blur(0px)}
+    .card-video-glass{background:rgba(8,12,30,.38);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 14px;display:inline-block;max-width:100%}
+    .card-video-vname{font-size:clamp(.82rem,2.2vw,1.05rem);font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.1;margin-bottom:3px}
+    .card-video-vjob{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.04em}
+    .card-video-vco{font-size:.55rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
+    .card-video-qr-ov{display:none;position:absolute;bottom:10px;right:10px;z-index:3;background:rgba(8,12,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px;pointer-events:none}
+    .card-preview.video-mode .card-inner{display:none}
+    .card-preview.video-mode .card-watermark{display:none}
+    .card-preview.video-mode .card-video-el{display:block}
+    .card-preview.video-mode .card-video-overlay{display:flex}
+    .card-preview.video-mode .card-video-qr-ov{display:block}
+
     @media(max-width:760px){.builder{grid-template-columns:1fr}.card-preview{max-width:100%}}
   </style>
 </head>
@@ -146,6 +183,33 @@
         <label class="form-label">Website</label>
         <input class="form-input" id="fWebsite" type="url" placeholder="https://acme.com" maxlength="200">
       </div>
+
+      <hr class="form-divider">
+      <div class="form-section-lbl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        Video Pitch
+      </div>
+      <input type="file" id="fi-pitch-vid" accept="video/mp4,video/webm,video/*" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Elevator Pitch Video — 60 sec max</label>
+        <div class="vid-upload-row">
+          <button class="vid-upload-btn" onclick="document.getElementById('fi-pitch-vid').click()">Choose MP4</button>
+          <span class="vid-upload-name" id="pitchVidName">No file chosen</span>
+        </div>
+        <div class="vid-upload-st" id="pitchVidStatus"></div>
+        <div class="vid-prog-wrap" id="pitchVidProgWrap"><div class="vid-prog-fill" id="pitchVidProg"></div></div>
+      </div>
+      <div class="vid-mode-row">
+        <div>
+          <div class="vid-mode-lbl">Video Mode</div>
+          <div class="vid-mode-sub">Replace card preview with pitch video</div>
+        </div>
+        <label class="vid-sw-wrap">
+          <input type="checkbox" class="vid-sw-input" id="vidModeToggle" onchange="setVideoMode(this.checked)">
+          <div class="vid-sw-track"></div>
+          <div class="vid-sw-knob"></div>
+        </label>
+      </div>
     </div>
 
     <!-- Preview -->
@@ -174,6 +238,21 @@
           </div>
         </div>
         <div class="card-watermark">BIZFORCE AI</div>
+        <!-- Video Mode elements -->
+        <video class="card-video-el" id="cardVideoPitch" loop muted playsinline></video>
+        <div class="card-video-overlay" id="cardVideoOverlay">
+          <div class="card-video-grad"></div>
+          <div class="card-video-text">
+            <div class="card-video-glass">
+              <div class="card-video-vname" id="pvName"></div>
+              <div class="card-video-vjob" id="pvJob"></div>
+              <div class="card-video-vco" id="pvCompany"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card-video-qr-ov" id="cardVideoQR">
+          <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+        </div>
       </div>
 
       <div>
@@ -211,6 +290,8 @@ var token = localStorage.getItem("bf_token");
 var activeCardId = null;
 var activeTheme = "dark";
 var qrTimer = null;
+var videoUrl = null;
+var videoMode = false;
 
 var THEME_QR = {
   dark:     { dark: "#e8e8ff", light: "#070b18" },
@@ -227,8 +308,16 @@ function getFields() {
     email:     document.getElementById("fEmail").value.trim(),
     phone:     document.getElementById("fPhone").value.trim(),
     website:   document.getElementById("fWebsite").value.trim(),
-    theme:     activeTheme
+    theme:     activeTheme,
+    video_url: videoUrl || null
   };
+}
+
+function updateVideoOverlayText() {
+  var f = getFields();
+  document.getElementById("pvName").textContent    = f.full_name || "Your Name";
+  document.getElementById("pvJob").textContent     = f.job_title || "Job Title";
+  document.getElementById("pvCompany").textContent = (f.company || "COMPANY").toUpperCase();
 }
 
 function updatePreview() {
@@ -240,6 +329,7 @@ function updatePreview() {
   document.getElementById("pPhone").textContent   = f.phone   || "";
   var ws = f.website.replace(/^https?:\/\//, "");
   document.getElementById("pWebsite").textContent = ws || "";
+  if (videoMode) updateVideoOverlayText();
   clearTimeout(qrTimer);
   qrTimer = setTimeout(generateQR, 400);
 }
@@ -255,6 +345,10 @@ async function generateQR() {
         color: { dark: colors.dark, light: colors.light }
       }, function(err) { err ? rej(err) : res(); });
     });
+    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
+      width: 52, margin: 1, errorCorrectionLevel: "M",
+      color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
+    }, function() {});
   } catch(e) { /* silent */ }
 }
 
@@ -288,6 +382,11 @@ function fillForm(card) {
   document.getElementById("fPhone").value   = card.phone     || "";
   document.getElementById("fWebsite").value = card.website   || "";
   if (card.theme) setTheme(card.theme);
+  if (card.video_url) {
+    videoUrl = card.video_url;
+    document.getElementById("cardVideoPitch").src = card.video_url;
+    document.getElementById("pitchVidName").textContent = "(saved video)";
+  }
   updatePreview();
 }
 
@@ -392,6 +491,87 @@ function setStatus(msg, type) {
 
 ["fName","fTitle","fCompany","fEmail","fPhone","fWebsite"].forEach(function(id) {
   document.getElementById(id).addEventListener("input", updatePreview);
+});
+
+function setVideoMode(on) {
+  videoMode = on;
+  var card = document.getElementById("cardPreview");
+  card.classList.toggle("video-mode", on);
+  var vid = document.getElementById("cardVideoPitch");
+  if (on) {
+    updateVideoOverlayText();
+    if (vid.src && vid.src !== window.location.href) {
+      vid.play().catch(function() {});
+    }
+  } else {
+    vid.pause();
+  }
+}
+
+async function uploadPitchVideo(file) {
+  var status   = document.getElementById("pitchVidStatus");
+  var prog     = document.getElementById("pitchVidProg");
+  var progWrap = document.getElementById("pitchVidProgWrap");
+  var nameEl   = document.getElementById("pitchVidName");
+  status.textContent = "Uploading…";
+  status.className = "vid-upload-st uploading";
+  progWrap.style.display = "block";
+  prog.style.width = "25%";
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "pitch-videos", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    prog.style.width = "55%";
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    prog.style.width = "100%";
+    videoUrl = d.publicUrl;
+    var vid = document.getElementById("cardVideoPitch");
+    vid.src = videoUrl;
+    nameEl.textContent = file.name;
+    status.textContent = "Uploaded!";
+    status.className = "vid-upload-st done";
+    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; }, 1200);
+  } catch(e) {
+    status.textContent = e.message || "Upload failed";
+    status.className = "vid-upload-st fail";
+    progWrap.style.display = "none";
+  }
+}
+
+document.getElementById("fi-pitch-vid").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  var self = this;
+  var tmp = document.createElement("video");
+  tmp.preload = "metadata";
+  var objUrl = URL.createObjectURL(file);
+  tmp.src = objUrl;
+  tmp.onloadedmetadata = function() {
+    URL.revokeObjectURL(objUrl);
+    if (tmp.duration > 65) {
+      var st = document.getElementById("pitchVidStatus");
+      st.textContent = "Video must be 60 seconds or less";
+      st.className = "vid-upload-st fail";
+      self.value = "";
+      return;
+    }
+    uploadPitchVideo(file);
+    self.value = "";
+  };
+  tmp.onerror = function() {
+    URL.revokeObjectURL(objUrl);
+    uploadPitchVideo(file);
+    self.value = "";
+  };
 });
 
 loadCard();
