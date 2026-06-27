@@ -1,0 +1,1 @@
+ALTER TABLE digital_cards ADD COLUMN IF NOT EXISTS audio_url TEXT;

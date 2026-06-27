@@ -253,6 +253,13 @@
     .dc-toast.err{background:rgba(248,113,113,.18);border:1px solid rgba(248,113,113,.4);color:#fca5a5}
     .dc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+    /* ── Card audio bar ── */
+    .card-audio-bar{position:absolute;left:0;right:0;bottom:0;z-index:22;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(7,11,24,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(34,211,238,.18)}
+    .card-audio-btn{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:50%;cursor:pointer;color:#22d3ee;transition:background .2s;padding:0}
+    .card-audio-btn:hover{background:rgba(34,211,238,.22)}
+    .card-audio-btn svg{width:14px;height:14px}
+    .card-audio-track{flex:1;min-width:0;font-size:.68rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
+
     @media(max-width:760px){.builder{grid-template-columns:1fr}.card-preview{max-width:100%}}
   </style>
 </head>
@@ -397,6 +404,23 @@
           <div class="vid-sw-knob"></div>
         </label>
       </div>
+
+      <hr class="form-divider">
+      <div class="form-section-lbl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Music / Audio
+      </div>
+      <input type="file" id="fi-audio" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/*" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Background Track — MP3 / WAV / OGG</label>
+        <div class="vid-upload-row">
+          <button class="vid-upload-btn" onclick="document.getElementById('fi-audio').click()">Choose Audio</button>
+          <span class="vid-upload-name" id="audioFileName">No file chosen</span>
+          <button class="remove-btn" id="audioRemoveBtn" onclick="removeAudio()" style="display:none">Remove</button>
+        </div>
+        <div class="vid-upload-st" id="audioStatus"></div>
+        <div class="vid-prog-wrap" id="audioProgWrap"><div class="vid-prog-fill" id="audioProg"></div></div>
+      </div>
     </div>
 
     <!-- Preview -->
@@ -441,6 +465,14 @@
         </div>
         <div class="card-video-qr-ov" id="cardVideoQR">
           <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+        </div>
+        <audio id="cardAudio" preload="none"></audio>
+        <div id="cardAudioBar" class="card-audio-bar" style="display:none">
+          <button class="card-audio-btn" id="cardAudioBtn" onclick="toggleCardAudio()">
+            <svg id="audioPlayIco" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg id="audioPauseIco" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <div class="card-audio-track" id="cardAudioTrack">No track</div>
         </div>
       </div>
 
@@ -563,6 +595,7 @@ var bgPosX = 50, bgPosY = 50, bgZoom = 100, bgFit = "cover";
 var vidPosX = 50, vidPosY = 50, vidScale = 100;
 var cardFont = "default", cardTextColor = "", cardAccentColor = "";
 var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow";
+var audioUrl = null, audioTrackName = "";
 var _fontLinks = {};
 var _LAYOUTS = ["classic","centered","minimal"];
 var _BORDERS = ["none","glow","neon-pulse","gold","holo-rainbow"];
@@ -586,11 +619,13 @@ function getFields() {
     video_url:         videoUrl || null,
     holographic_style: holoStyle,
     bg_image_url:      bgImageUrl || null,
+    audio_url:         audioUrl || null,
     media_layout: {
       bg_pos_x: bgPosX, bg_pos_y: bgPosY, bg_zoom: bgZoom, bg_fit: bgFit,
       vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale,
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
-      card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle
+      card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
+      audio_track_name: audioTrackName
     }
   };
 }
@@ -696,6 +731,14 @@ function fillForm(card) {
     syncVidSliders();
     document.getElementById("vidPosControls").style.display = "block";
     applyVideoStyles();
+  }
+  if (card.audio_url) {
+    audioUrl = card.audio_url;
+    var aml = card.media_layout || {};
+    audioTrackName = aml.audio_track_name || "Audio Track";
+    setCardAudioBar(card.audio_url, audioTrackName);
+    document.getElementById("audioFileName").textContent = audioTrackName;
+    document.getElementById("audioRemoveBtn").style.display = "inline-flex";
   }
   updatePreview();
 }
@@ -1137,6 +1180,87 @@ async function uploadBgImage(file) {
   }
 }
 
+function setCardAudioBar(url, name) {
+  var audio = document.getElementById("cardAudio");
+  var bar   = document.getElementById("cardAudioBar");
+  if (url) {
+    audio.src = url;
+    document.getElementById("cardAudioTrack").textContent = name || "Audio Track";
+    bar.style.display = "flex";
+  } else {
+    audio.src = "";
+    audio.pause();
+    bar.style.display = "none";
+    document.getElementById("audioPlayIco").style.display = "";
+    document.getElementById("audioPauseIco").style.display = "none";
+  }
+}
+
+function toggleCardAudio() {
+  var audio = document.getElementById("cardAudio");
+  if (audio.paused) {
+    audio.play().catch(function() {});
+    document.getElementById("audioPlayIco").style.display = "none";
+    document.getElementById("audioPauseIco").style.display = "";
+  } else {
+    audio.pause();
+    document.getElementById("audioPlayIco").style.display = "";
+    document.getElementById("audioPauseIco").style.display = "none";
+  }
+}
+
+function removeAudio() {
+  audioUrl = null;
+  audioTrackName = "";
+  setCardAudioBar(null, null);
+  document.getElementById("audioFileName").textContent = "No file chosen";
+  document.getElementById("audioRemoveBtn").style.display = "none";
+  document.getElementById("audioStatus").textContent = "";
+  document.getElementById("audioStatus").className = "vid-upload-st";
+}
+
+async function uploadAudio(file) {
+  var status   = document.getElementById("audioStatus");
+  var prog     = document.getElementById("audioProg");
+  var progWrap = document.getElementById("audioProgWrap");
+  var nameEl   = document.getElementById("audioFileName");
+  status.textContent = "Uploading…";
+  status.className = "vid-upload-st uploading";
+  progWrap.style.display = "block";
+  prog.style.width = "25%";
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    prog.style.width = "55%";
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    prog.style.width = "100%";
+    audioUrl = d.publicUrl;
+    audioTrackName = file.name.replace(/\.[^.]+$/, "");
+    setCardAudioBar(audioUrl, audioTrackName);
+    nameEl.textContent = file.name;
+    document.getElementById("audioRemoveBtn").style.display = "inline-flex";
+    status.textContent = "Uploaded!";
+    status.className = "vid-upload-st done";
+    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
+    showToast("Audio uploaded!");
+  } catch(e) {
+    status.textContent = e.message || "Upload failed";
+    status.className = "vid-upload-st fail";
+    progWrap.style.display = "none";
+    showToast(e.message || "Upload failed", true);
+  }
+}
+
 function setVideoMode(on) {
   videoMode = on;
   var card = document.getElementById("cardPreview");
@@ -1228,6 +1352,13 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
     uploadPitchVideo(file);
     self.value = "";
   };
+});
+
+document.getElementById("fi-audio").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  uploadAudio(file);
 });
 
 loadCard();

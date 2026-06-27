@@ -157,6 +157,13 @@
     .cv-btn-create{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#8892b8}
     .cv-btn-create:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.25);color:#e8e8ff}
 
+    /* ── Card audio bar ── */
+    #cvAudioBar{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 72px);z-index:22;display:none;align-items:center;gap:10px;padding:10px 16px;background:rgba(7,11,24,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(34,211,238,.18)}
+    .cv-audio-btn{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:50%;cursor:pointer;color:#22d3ee;transition:background .2s;padding:0}
+    .cv-audio-btn:hover,.cv-audio-btn:active{background:rgba(34,211,238,.22)}
+    .cv-audio-btn svg{width:14px;height:14px}
+    .cv-audio-track{flex:1;min-width:0;font-size:.7rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
+
     /* ── BizForce watermark ── */
     .page-watermark{
       position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
@@ -218,6 +225,14 @@
     </div>
     <div class="card-video-qr-ov">
       <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+    </div>
+    <audio id="cvAudio" preload="none"></audio>
+    <div id="cvAudioBar">
+      <button class="cv-audio-btn" id="cvAudioBtn" onclick="toggleCvAudio()">
+        <svg id="cvAudioPlayIco" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg id="cvAudioPauseIco" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="cv-audio-track" id="cvAudioTrack">Audio Track</div>
     </div>
   </div>
 
@@ -299,9 +314,29 @@ function renderCard(c) {
     card.classList.add("video-mode");
   }
 
+  if (c.audio_url) {
+    var ml = c.media_layout || {};
+    document.getElementById("cvAudio").src = c.audio_url;
+    document.getElementById("cvAudioTrack").textContent = ml.audio_track_name || "Audio Track";
+    document.getElementById("cvAudioBar").style.display = "flex";
+  }
+
   document.getElementById("stateLoading").style.display = "none";
   card.style.display = "block";
   document.getElementById("cardActions").style.display = "flex";
+}
+
+function toggleCvAudio() {
+  var audio = document.getElementById("cvAudio");
+  if (audio.paused) {
+    audio.play().catch(function() {});
+    document.getElementById("cvAudioPlayIco").style.display = "none";
+    document.getElementById("cvAudioPauseIco").style.display = "";
+  } else {
+    audio.pause();
+    document.getElementById("cvAudioPlayIco").style.display = "";
+    document.getElementById("cvAudioPauseIco").style.display = "none";
+  }
 }
 
 function saveContact() {
