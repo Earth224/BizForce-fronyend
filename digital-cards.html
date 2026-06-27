@@ -136,8 +136,41 @@
     .card-preview.video-mode .card-video-overlay{display:flex}
     .card-preview.video-mode .card-video-qr-ov{display:block}
     #cardPreview{position:relative;overflow:hidden}
-    .card-preview.holographic::before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:linear-gradient(125deg,transparent 10%,rgba(255,0,200,.35) 25%,rgba(0,255,255,.35) 45%,rgba(200,0,255,.35) 65%,transparent 80%);background-size:300% 300%;animation:holoShift 3s ease infinite;mix-blend-mode:screen}
-    @keyframes holoShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .card-preview.holographic{--holo-x:50%;--holo-y:50%;--holo-angle:0deg;animation:holoGlow 3s ease-in-out infinite;transition:transform .08s ease-out;will-change:transform;cursor:pointer}
+    @keyframes holoGlow{
+      0%,100%{box-shadow:0 0 18px rgba(34,211,238,.55),0 0 55px rgba(168,85,247,.28),0 12px 40px rgba(0,0,0,.5)}
+      50%    {box-shadow:0 0 38px rgba(34,211,238,.85),0 0 95px rgba(168,85,247,.55),0 12px 40px rgba(0,0,0,.5)}
+    }
+    .card-preview.holographic::before{
+      content:"";position:absolute;inset:0;z-index:10;pointer-events:none;
+      background:linear-gradient(125deg,
+        transparent 5%,
+        rgba(255,0,200,.55) 20%,
+        rgba(0,255,255,.55) 38%,
+        rgba(100,0,255,.55) 55%,
+        rgba(255,200,0,.45) 72%,
+        transparent 88%
+      );
+      background-size:300% 300%;
+      background-position:var(--holo-x) var(--holo-y);
+      mix-blend-mode:screen;
+    }
+    .card-preview.holographic::after{
+      content:"";position:absolute;inset:0;z-index:11;pointer-events:none;
+      background:repeating-linear-gradient(
+        45deg,
+        hsla(0,  100%,70%,.42) 0px,  hsla(0,  100%,70%,0)  1px,
+        hsla(60, 100%,70%,.42) 3px,  hsla(60, 100%,70%,0)  4px,
+        hsla(120,100%,70%,.42) 6px,  hsla(120,100%,70%,0)  7px,
+        hsla(180,100%,70%,.42) 9px,  hsla(180,100%,70%,0)  10px,
+        hsla(240,100%,70%,.42) 12px, hsla(240,100%,70%,0)  13px,
+        hsla(300,100%,70%,.42) 15px, hsla(300,100%,70%,0)  16px,
+        hsla(360,100%,70%,.42) 18px, hsla(360,100%,70%,0)  19px
+      );
+      mix-blend-mode:color-dodge;
+      opacity:.35;
+      filter:hue-rotate(var(--holo-angle));
+    }
 
     /* Media position controls */
     .remove-btn{padding:5px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:7px;color:#f87171;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .2s;flex-shrink:0}
@@ -669,11 +702,67 @@ async function shareCard() {
   } catch(e) { showToast(e.message || "Share failed", true); }
 }
 
+var _holoHandlers = { mouse: null, leave: null, orient: null };
+
 function setHoloStyle(on) {
   holoStyle = on;
-  document.getElementById("cardPreview").classList.toggle("holographic", on);
+  var card = document.getElementById("cardPreview");
+  card.classList.toggle("holographic", on);
   var cb = document.getElementById("holoToggle");
   if (cb) cb.checked = on;
+  if (on) {
+    _holoAttach(card);
+  } else {
+    _holoDetach(card);
+    card.style.transform = "";
+    card.style.removeProperty("--holo-x");
+    card.style.removeProperty("--holo-y");
+    card.style.removeProperty("--holo-angle");
+  }
+}
+
+function _holoAttach(card) {
+  _holoDetach(card);
+
+  _holoHandlers.mouse = function(e) {
+    var rect = card.getBoundingClientRect();
+    var dx = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width  - 0.5) * 2));
+    var dy = Math.max(-1, Math.min(1, ((e.clientY - rect.top)  / rect.height - 0.5) * 2));
+    _holoApply(card, -dy * 15, dx * 15);
+  };
+
+  _holoHandlers.leave = function() {
+    card.style.transform = "perspective(800px) rotateX(0deg) rotateY(0deg)";
+    card.style.setProperty("--holo-x", "50%");
+    card.style.setProperty("--holo-y", "50%");
+    card.style.setProperty("--holo-angle", "0deg");
+  };
+
+  _holoHandlers.orient = function(e) {
+    var beta  = Math.max(-45, Math.min(45, e.beta  || 0));
+    var gamma = Math.max(-45, Math.min(45, e.gamma || 0));
+    _holoApply(card, -(beta / 45) * 15, (gamma / 45) * 15);
+  };
+
+  card.addEventListener("mousemove",   _holoHandlers.mouse);
+  card.addEventListener("mouseleave",  _holoHandlers.leave);
+  window.addEventListener("deviceorientation", _holoHandlers.orient);
+}
+
+function _holoDetach(card) {
+  if (_holoHandlers.mouse)  card.removeEventListener("mousemove",  _holoHandlers.mouse);
+  if (_holoHandlers.leave)  card.removeEventListener("mouseleave", _holoHandlers.leave);
+  if (_holoHandlers.orient) window.removeEventListener("deviceorientation", _holoHandlers.orient);
+  _holoHandlers = { mouse: null, leave: null, orient: null };
+}
+
+function _holoApply(card, rx, ry) {
+  card.style.transform = "perspective(800px) rotateX(" + rx.toFixed(2) + "deg) rotateY(" + ry.toFixed(2) + "deg)";
+  var hx = Math.max(0, Math.min(100, 50 + ry * (50 / 15))).toFixed(1);
+  var hy = Math.max(0, Math.min(100, 50 - rx * (50 / 15))).toFixed(1);
+  card.style.setProperty("--holo-x", hx + "%");
+  card.style.setProperty("--holo-y", hy + "%");
+  card.style.setProperty("--holo-angle", ((ry / 15) * 180).toFixed(1) + "deg");
 }
 
 function setBgImage(url) {
