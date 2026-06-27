@@ -2,276 +2,223 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>BizForce AI — Business Card</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
-    *,*::before,*::after{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
-    body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow-x:hidden;padding:40px 20px 72px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;background:#070b18;overflow:hidden;
+      font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff}
+    body{display:flex;align-items:center;justify-content:center}
 
-    /* ── Ambient orbs ───────────────────────────────────────────────────── */
-    .bg-orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;will-change:transform,opacity}
-    .bg-orb-1{width:700px;height:700px;top:-200px;left:-180px;
-      background:radial-gradient(circle,rgba(34,211,238,.20) 0%,transparent 68%);
-      animation:orbDrift 14s ease-in-out infinite alternate}
-    .bg-orb-2{width:800px;height:800px;bottom:-260px;right:-200px;
-      background:radial-gradient(circle,rgba(168,85,247,.22) 0%,transparent 68%);
-      animation:orbDrift 18s ease-in-out infinite alternate-reverse}
-    .bg-orb-3{width:400px;height:400px;top:55%;left:52%;
-      background:radial-gradient(circle,rgba(34,211,238,.10) 0%,transparent 68%);
-      animation:orbDrift 10s ease-in-out infinite alternate}
-    @keyframes orbDrift{
-      0%{transform:translate(0,0) scale(1);opacity:.7}
-      100%{transform:translate(30px,20px) scale(1.12);opacity:1}
-    }
-
-    /* ── Loading / Error ────────────────────────────────────────────────── */
-    .state-wrap{position:relative;z-index:2;text-align:center;
-      background:rgba(10,14,34,.72);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-      border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:44px 40px}
-    .spinner{width:42px;height:42px;border:2.5px solid rgba(34,211,238,.15);border-top-color:#22d3ee;
-      border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 18px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .state-msg{font-size:.9rem;color:#8892b8;line-height:1.6}
-    .state-err-ico{font-size:2.8rem;margin-bottom:14px;filter:drop-shadow(0 0 18px rgba(168,85,247,.4))}
-    .state-err-title{font-size:1.15rem;font-weight:900;color:#f4f7ff;margin-bottom:8px;
-      background:linear-gradient(135deg,#e8e8ff,#a0aec0);-webkit-background-clip:text;background-clip:text;color:transparent}
-
-    /* ── Panel (wraps header + frame + actions) ─────────────────────────── */
-    .card-panel{
-      position:relative;z-index:2;width:100%;max-width:640px;
-      background:rgba(8,12,30,.60);
-      backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
-      border:1px solid rgba(255,255,255,.07);
-      border-radius:26px;
-      padding:24px 24px 22px;
-      box-shadow:0 8px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
-      animation:panelIn .65s cubic-bezier(.22,1,.36,1) both
-    }
-    @keyframes panelIn{
-      from{opacity:0;transform:translateY(28px) scale(.97)}
-      to{opacity:1;transform:none}
-    }
-
-    /* ── Header badge ───────────────────────────────────────────────────── */
-    .cv-header{text-align:center;margin-bottom:20px}
-    .cv-badge{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:6px 16px 6px 12px;
-      background:rgba(34,211,238,.06);
-      border:1px solid rgba(34,211,238,.18);
-      border-radius:999px;
-      backdrop-filter:blur(12px);
-      font-size:.6rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
-      color:rgba(34,211,238,.75)
-    }
-    .cv-badge-dot{
-      width:6px;height:6px;border-radius:50%;flex-shrink:0;
-      background:#22d3ee;box-shadow:0 0 8px rgba(34,211,238,.9);
-      animation:dotPulse 2.2s ease-in-out infinite
-    }
-    @keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 8px rgba(34,211,238,.9)}50%{opacity:.25;box-shadow:0 0 4px rgba(34,211,238,.3)}}
-
-    /* ── Card frame (gradient border + ambient glow) ────────────────────── */
-    .card-frame{
+    /* ── Viewport container: phone-width centered on desktop ── */
+    #cardViewport{
       position:relative;
-      border-radius:19px;
-      padding:1.5px;
-      background:linear-gradient(135deg,rgba(34,211,238,.55) 0%,rgba(168,85,247,.40) 50%,rgba(34,211,238,.20) 100%);
-      box-shadow:
-        0 0 0 1px rgba(0,0,0,.4),
-        0 0 50px rgba(34,211,238,.12),
-        0 0 100px rgba(168,85,247,.10),
-        0 28px 80px rgba(0,0,0,.65)
+      width:100vw;max-width:430px;
+      height:100vh;height:100dvh;
+      overflow:hidden;background:#070b18;
+      flex-shrink:0;
     }
-    .card-frame::before{
-      content:"";position:absolute;inset:-18px;border-radius:32px;
-      background:inherit;filter:blur(28px);opacity:.45;z-index:-1
-    }
-    .card-frame-inner{border-radius:17.5px;overflow:hidden}
 
-    /* ── Card preview (same logic as digital-cards.html) ───────────────── */
-    .card-preview{width:100%;aspect-ratio:1.75;border-radius:0;position:relative;overflow:hidden;border:none}
-    .card-preview[data-theme="dark"]    {background:linear-gradient(135deg,#0c1228,#070b18)}
-    .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729)}
-    .card-preview[data-theme="forest"]  {background:linear-gradient(135deg,#0a1f14,#061a12)}
-    .card-preview[data-theme="ember"]   {background:linear-gradient(135deg,#220e06,#1a0a06)}
-    .card-inner{display:flex;height:100%;padding:28px 26px}
-    .card-left{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;padding-right:20px}
-    .card-company{font-size:.7rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:auto}
-    .card-preview[data-theme="dark"]    .card-company{color:#22d3ee}
-    .card-preview[data-theme="midnight"].card-company{color:#c084fc}
-    .card-preview[data-theme="forest"]  .card-company{color:#34d399}
-    .card-preview[data-theme="ember"]   .card-company{color:#fb923c}
-    .card-name-block{margin:auto 0}
-    .card-name{font-size:clamp(1rem,2.8vw,1.35rem);font-weight:900;line-height:1.1;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .card-preview[data-theme="dark"]    .card-name{background:linear-gradient(135deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .card-preview[data-theme="midnight"].card-name{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .card-preview[data-theme="forest"]  .card-name{background:linear-gradient(135deg,#34d399,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .card-preview[data-theme="ember"]   .card-name{background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .card-job{font-size:.72rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .card-contacts-block{display:flex;flex-direction:column;gap:4px;margin-top:auto}
-    .card-contact-line{font-size:.63rem;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-    .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.25)}
-    .card-right{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;flex-shrink:0}
-    .card-qr-wrap{
-      background:rgba(255,255,255,.07);border-radius:10px;padding:7px;
-      border:1px solid rgba(255,255,255,.1);
-      box-shadow:0 2px 12px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)
+    /* ── Loading / Error ── */
+    .state-wrap{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      background:#070b18;z-index:30;padding:40px 24px;text-align:center;
     }
+    .spinner{width:42px;height:42px;border:2.5px solid rgba(34,211,238,.15);
+      border-top-color:#22d3ee;border-radius:50%;
+      animation:cvSpin .75s linear infinite;margin:0 auto 18px}
+    @keyframes cvSpin{to{transform:rotate(360deg)}}
+    .state-msg{font-size:.9rem;color:#8892b8;line-height:1.6}
+    .state-err-ico{font-size:2.8rem;margin-bottom:14px}
+    .state-err-title{font-size:1.15rem;font-weight:900;color:#f4f7ff;margin-bottom:8px}
+
+    /* ── Card preview fills viewport ── */
+    #cardPreview{
+      position:absolute;inset:0;width:100%;height:100%;
+      overflow:hidden;display:none;
+    }
+    #cardPreview[data-theme="dark"]    {background:linear-gradient(160deg,#0c1228 0%,#070b18 100%)}
+    #cardPreview[data-theme="midnight"]{background:linear-gradient(160deg,#1a1040 0%,#0f1729 100%)}
+    #cardPreview[data-theme="forest"]  {background:linear-gradient(160deg,#0a1f14 0%,#061a12 100%)}
+    #cardPreview[data-theme="ember"]   {background:linear-gradient(160deg,#220e06 0%,#1a0a06 100%)}
+
+    /* ── Holographic overlay ── */
+    #cardPreview.holographic::before{
+      content:"";position:absolute;inset:0;pointer-events:none;z-index:4;
+      background:linear-gradient(105deg,
+        transparent 20%,
+        rgba(255,0,128,.09) 30%,
+        rgba(0,255,255,.10) 40%,
+        rgba(128,0,255,.09) 50%,
+        rgba(255,200,0,.07) 60%,
+        transparent 70%);
+      background-size:200% 200%;
+      animation:holoShift 3s linear infinite;
+      mix-blend-mode:screen;
+    }
+    @keyframes holoShift{
+      0%{background-position:0% 50%}
+      100%{background-position:200% 50%}
+    }
+
+    /* ── Card inner layout: vertical full-screen ── */
+    .card-inner{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;justify-content:space-between;
+      padding:env(safe-area-inset-top,44px) 28px calc(env(safe-area-inset-bottom,0px) + 128px) 28px;
+      z-index:2;
+    }
+
+    .card-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+
+    .card-company{font-size:.72rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;padding-top:2px}
+    #cardPreview[data-theme="dark"]    .card-company{color:#22d3ee}
+    #cardPreview[data-theme="midnight"].card-company{color:#c084fc}
+    #cardPreview[data-theme="forest"]  .card-company{color:#34d399}
+    #cardPreview[data-theme="ember"]   .card-company{color:#fb923c}
+
+    .card-qr-wrap{background:rgba(255,255,255,.07);border-radius:10px;padding:7px;
+      border:1px solid rgba(255,255,255,.1);flex-shrink:0}
     #qrCanvas{display:block;border-radius:5px}
-    .card-qr-label{font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);text-align:center;white-space:nowrap}
-    .card-watermark{position:absolute;bottom:8px;right:14px;font-size:.5rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.18)}
+    .card-qr-label{font-size:.45rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      color:rgba(255,255,255,.28);text-align:center;margin-top:3px;white-space:nowrap}
 
-    /* ── Video mode (identical to digital-cards.html) ───────────────────── */
-    .card-video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1}
-    .card-video-overlay{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;z-index:2;pointer-events:none}
-    .card-video-grad{position:absolute;bottom:0;left:0;right:0;height:70%;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.45) 55%,transparent 100%)}
-    .card-video-text{position:relative;z-index:1;padding:16px 18px 14px}
-    .card-video-glass{
-      background:rgba(8,12,30,.42);
-      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:12px;padding:11px 16px;
-      display:inline-block;max-width:100%;
-      box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)
+    .card-name-block{padding:0}
+    .card-name{font-size:clamp(2rem,9vw,3.2rem);font-weight:900;line-height:1.05;margin-bottom:8px;
+      overflow-wrap:break-word}
+    #cardPreview[data-theme="dark"]    .card-name{background:linear-gradient(135deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    #cardPreview[data-theme="midnight"].card-name{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+    #cardPreview[data-theme="forest"]  .card-name{background:linear-gradient(135deg,#34d399,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+    #cardPreview[data-theme="ember"]   .card-name{background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .card-job{font-size:.92rem;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:.03em}
+
+    .card-contacts-block{display:flex;flex-direction:column;gap:5px}
+    .card-contact-line{font-size:.82rem;color:rgba(255,255,255,.48);line-height:1.4;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.22)}
+
+    .card-watermark{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 108px);
+      left:50%;transform:translateX(-50%);
+      font-size:.44rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+      color:rgba(255,255,255,.12);white-space:nowrap;z-index:2}
+
+    /* ── Video mode ── */
+    .card-video-el{position:absolute;inset:0;width:100%;height:100%;
+      object-fit:cover;display:none;z-index:1}
+    .card-video-overlay{position:absolute;inset:0;display:none;
+      flex-direction:column;justify-content:flex-end;z-index:2;pointer-events:none}
+    .card-video-grad{position:absolute;bottom:0;left:0;right:0;height:75%;
+      background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.45) 60%,transparent 100%)}
+    .card-video-text{position:relative;z-index:1;
+      padding:16px 22px calc(env(safe-area-inset-bottom,0px) + 128px) 22px}
+    .card-video-glass{background:rgba(8,12,30,.42);backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);
+      border-radius:14px;padding:14px 18px;display:inline-block;max-width:100%;
+      box-shadow:0 4px 24px rgba(0,0,0,.4)}
+    .card-video-vname{font-size:clamp(1.1rem,5vw,1.7rem);font-weight:900;color:#fff;
+      text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.1;margin-bottom:4px}
+    .card-video-vjob{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.03em}
+    .card-video-vco{font-size:.62rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+      color:rgba(255,255,255,.5);margin-top:4px}
+    .card-video-qr-ov{display:none;position:absolute;
+      bottom:calc(env(safe-area-inset-bottom,0px) + 120px);right:16px;
+      z-index:3;background:rgba(8,12,30,.76);backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14);
+      border-radius:10px;padding:6px}
+
+    #cardPreview.video-mode .card-inner{display:none}
+    #cardPreview.video-mode .card-watermark{display:none}
+    #cardPreview.video-mode .card-video-el{display:block}
+    #cardPreview.video-mode .card-video-overlay{display:flex}
+    #cardPreview.video-mode .card-video-qr-ov{display:block}
+
+    /* ── Action buttons overlay at bottom ── */
+    .card-actions{
+      position:absolute;bottom:0;left:0;right:0;z-index:20;
+      padding:18px 20px calc(env(safe-area-inset-bottom,0px) + 14px);
+      background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.65) 55%,transparent 100%);
+      display:none;gap:10px;
     }
-    .card-video-vname{font-size:clamp(.9rem,2.5vw,1.2rem);font-weight:900;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.7);line-height:1.1;margin-bottom:3px}
-    .card-video-vjob{font-size:.66rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.04em}
-    .card-video-vco{font-size:.58rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
-    .card-video-qr-ov{
-      display:none;position:absolute;bottom:12px;right:12px;z-index:3;
-      background:rgba(8,12,30,.76);
-      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:10px;padding:6px;pointer-events:none;
-      box-shadow:0 4px 20px rgba(0,0,0,.5)
-    }
-    .card-preview.video-mode .card-inner{display:none}
-    .card-preview.video-mode .card-watermark{display:none}
-    .card-preview.video-mode .card-video-el{display:block}
-    .card-preview.video-mode .card-video-overlay{display:flex}
-    .card-preview.video-mode .card-video-qr-ov{display:block}
-
-    /* ── Theme glow (added via JS class on card-panel) ──────────────────── */
-    .card-panel.glow-dark     .card-frame{box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 60px rgba(34,211,238,.18),0 0 120px rgba(34,211,238,.08),0 28px 80px rgba(0,0,0,.65)}
-    .card-panel.glow-midnight .card-frame{box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 60px rgba(168,85,247,.22),0 0 120px rgba(168,85,247,.10),0 28px 80px rgba(0,0,0,.65)}
-    .card-panel.glow-forest   .card-frame{box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 60px rgba(52,211,153,.20),0 0 120px rgba(52,211,153,.08),0 28px 80px rgba(0,0,0,.65)}
-    .card-panel.glow-ember    .card-frame{box-shadow:0 0 0 1px rgba(0,0,0,.4),0 0 60px rgba(249,115,22,.22),0 0 120px rgba(249,115,22,.08),0 28px 80px rgba(0,0,0,.65)}
-    .card-panel.glow-dark     .card-frame::before,.card-panel.glow-midnight .card-frame::before,
-    .card-panel.glow-forest   .card-frame::before,.card-panel.glow-ember    .card-frame::before{opacity:.6}
-
-    /* ── Actions ─────────────────────────────────────────────────────────── */
-    .card-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
     .cv-btn{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:11px 20px;border-radius:12px;
-      font-size:.82rem;font-weight:700;font-family:inherit;
-      cursor:pointer;transition:all .22s;white-space:nowrap;text-decoration:none;
-      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-      border:1px solid
+      flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:13px 12px;border-radius:14px;
+      font-size:.83rem;font-weight:700;font-family:inherit;
+      cursor:pointer;transition:all .2s;white-space:nowrap;text-decoration:none;
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid;
     }
     .cv-btn svg{width:15px;height:15px;flex-shrink:0}
-    .cv-btn-vcf{
-      background:rgba(34,211,238,.10);border-color:rgba(34,211,238,.30);color:#22d3ee;
-      box-shadow:0 2px 16px rgba(34,211,238,.08),inset 0 1px 0 rgba(34,211,238,.12)
-    }
-    .cv-btn-vcf:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.50);box-shadow:0 4px 24px rgba(34,211,238,.18),inset 0 1px 0 rgba(34,211,238,.18)}
-    .cv-btn-create{
-      background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:#8892b8;
-      box-shadow:0 2px 12px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.07)
-    }
-    .cv-btn-create:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.22);color:#e8e8ff;box-shadow:0 4px 20px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.12)}
+    .cv-btn-vcf{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.35);color:#22d3ee}
+    .cv-btn-vcf:hover{background:rgba(34,211,238,.22);border-color:rgba(34,211,238,.55)}
+    .cv-btn-create{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#8892b8}
+    .cv-btn-create:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.25);color:#e8e8ff}
 
-    /* ── Page watermark ──────────────────────────────────────────────────── */
+    /* ── BizForce watermark ── */
     .page-watermark{
-      position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
-      font-size:.6rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
-      color:rgba(255,255,255,.18);white-space:nowrap;z-index:10;
-      text-shadow:0 0 20px rgba(34,211,238,.15)
-    }
-
-    @media(max-width:560px){
-      .card-panel{padding:18px 16px 18px;border-radius:22px}
-      .card-actions{justify-content:center}
+      position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
+      font-size:.44rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+      color:rgba(255,255,255,.14);white-space:nowrap;pointer-events:none;
     }
   </style>
 </head>
 <body>
+<div id="cardViewport">
 
-<!-- Ambient background orbs -->
-<div class="bg-orb bg-orb-1"></div>
-<div class="bg-orb bg-orb-2"></div>
-<div class="bg-orb bg-orb-3"></div>
-
-<!-- Loading -->
-<div id="stateLoading" class="state-wrap">
-  <div class="spinner"></div>
-  <div class="state-msg">Loading card…</div>
-</div>
-
-<!-- Error -->
-<div id="stateError" class="state-wrap" style="display:none">
-  <div class="state-err-ico">🪪</div>
-  <div class="state-err-title">Card not found</div>
-  <div class="state-msg">This link may be invalid or the card was removed.</div>
-</div>
-
-<!-- Card panel -->
-<div id="cardWrap" class="card-panel" style="display:none">
-
-  <div class="cv-header">
-    <div class="cv-badge">
-      <div class="cv-badge-dot"></div>
-      BizForce AI · Digital Card
-    </div>
+  <!-- Loading -->
+  <div id="stateLoading" class="state-wrap">
+    <div class="spinner"></div>
+    <div class="state-msg">Loading card…</div>
   </div>
 
-  <div class="card-frame">
-    <div class="card-frame-inner">
-      <div class="card-preview" id="cardPreview" data-theme="dark">
-        <div class="card-inner">
-          <div class="card-left">
-            <div class="card-company" id="pCompany"></div>
-            <div class="card-name-block">
-              <div class="card-name" id="pName"></div>
-              <div class="card-job"  id="pTitle"></div>
-            </div>
-            <div class="card-contacts-block">
-              <div class="card-contact-line" id="pEmail"></div>
-              <div class="card-contact-line" id="pPhone"></div>
-              <div class="card-contact-line" id="pWebsite"></div>
-            </div>
+  <!-- Error -->
+  <div id="stateError" class="state-wrap" style="display:none">
+    <div class="state-err-ico">🪪</div>
+    <div class="state-err-title">Card not found</div>
+    <div class="state-msg">This link may be invalid or the card was removed.</div>
+  </div>
+
+  <!-- Card preview — edge to edge -->
+  <div id="cardPreview" data-theme="dark">
+    <div class="card-inner">
+      <div class="card-top-row">
+        <div class="card-company" id="pCompany"></div>
+        <div>
+          <div class="card-qr-wrap">
+            <canvas id="qrCanvas" width="80" height="80"></canvas>
           </div>
-          <div class="card-right">
-            <div class="card-qr-wrap">
-              <canvas id="qrCanvas" width="110" height="110"></canvas>
-            </div>
-            <div class="card-qr-label">Scan to connect</div>
-          </div>
+          <div class="card-qr-label">Scan to connect</div>
         </div>
-        <div class="card-watermark">BIZFORCE AI</div>
-        <!-- Video Mode (identical structure to digital-cards.html) -->
-        <video class="card-video-el" id="cardVideo" autoplay loop muted playsinline></video>
-        <div class="card-video-overlay">
-          <div class="card-video-grad"></div>
-          <div class="card-video-text">
-            <div class="card-video-glass">
-              <div class="card-video-vname" id="pvName"></div>
-              <div class="card-video-vjob"  id="pvJob"></div>
-              <div class="card-video-vco"   id="pvCompany"></div>
-            </div>
-          </div>
-        </div>
-        <div class="card-video-qr-ov">
-          <canvas id="qrVideoCanvas" width="60" height="60"></canvas>
+      </div>
+      <div class="card-name-block">
+        <div class="card-name" id="pName"></div>
+        <div class="card-job"  id="pTitle"></div>
+      </div>
+      <div class="card-contacts-block">
+        <div class="card-contact-line" id="pEmail"></div>
+        <div class="card-contact-line" id="pPhone"></div>
+        <div class="card-contact-line" id="pWebsite"></div>
+      </div>
+    </div>
+    <div class="card-watermark">BIZFORCE AI</div>
+    <video class="card-video-el" id="cardVideo" autoplay loop muted playsinline></video>
+    <div class="card-video-overlay">
+      <div class="card-video-grad"></div>
+      <div class="card-video-text">
+        <div class="card-video-glass">
+          <div class="card-video-vname" id="pvName"></div>
+          <div class="card-video-vjob"  id="pvJob"></div>
+          <div class="card-video-vco"   id="pvCompany"></div>
         </div>
       </div>
     </div>
+    <div class="card-video-qr-ov">
+      <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+    </div>
   </div>
 
-  <div class="card-actions">
+  <!-- Action buttons pinned to bottom -->
+  <div class="card-actions" id="cardActions">
     <button class="cv-btn cv-btn-vcf" onclick="saveContact()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Save Contact
@@ -282,9 +229,8 @@
     </a>
   </div>
 
+  <div class="page-watermark">BIZFORCE AI</div>
 </div>
-
-<div class="page-watermark">BIZFORCE AI</div>
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -315,9 +261,7 @@ function renderCard(c) {
   var card  = document.getElementById("cardPreview");
   card.dataset.theme = theme;
 
-  // Apply theme-aware glow to the panel
-  var panel = document.getElementById("cardWrap");
-  panel.classList.add("glow-" + theme);
+  if (c.holographic_style) { card.classList.add("holographic"); }
 
   document.getElementById("pCompany").textContent = (c.company || "").toUpperCase();
   document.getElementById("pName").textContent    = c.full_name || "";
@@ -330,11 +274,11 @@ function renderCard(c) {
   var vcard  = buildVCard(c);
   var colors = THEME_QR[theme] || THEME_QR.dark;
   QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
-    width: 110, margin: 1, errorCorrectionLevel: "M",
+    width: 80, margin: 1, errorCorrectionLevel: "M",
     color: { dark: colors.dark, light: colors.light }
   }, function() {});
   QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
-    width: 60, margin: 1, errorCorrectionLevel: "M",
+    width: 52, margin: 1, errorCorrectionLevel: "M",
     color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
   }, function() {});
 
@@ -347,7 +291,8 @@ function renderCard(c) {
   }
 
   document.getElementById("stateLoading").style.display = "none";
-  document.getElementById("cardWrap").style.display     = "block";
+  card.style.display = "block";
+  document.getElementById("cardActions").style.display = "flex";
 }
 
 function saveContact() {
