@@ -185,6 +185,68 @@
     .fit-btn.active{background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.4);color:#f472b6}
     .fit-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#e8e8ff}
 
+    /* ── Card customization: fonts ── */
+    .card-preview.font-futuristic .card-name,.card-preview.font-futuristic .card-job,.card-preview.font-futuristic .card-company,.card-preview.font-futuristic .card-contact-line{font-family:'Orbitron',monospace!important}
+    .card-preview.font-elegant .card-name,.card-preview.font-elegant .card-job,.card-preview.font-elegant .card-company,.card-preview.font-elegant .card-contact-line{font-family:'Cormorant Garamond',Georgia,serif!important}
+    .card-preview.font-bold .card-name,.card-preview.font-bold .card-job,.card-preview.font-bold .card-company,.card-preview.font-bold .card-contact-line{font-family:'Oswald',Impact,sans-serif!important}
+    .card-preview.font-minimal .card-name,.card-preview.font-minimal .card-job,.card-preview.font-minimal .card-company,.card-preview.font-minimal .card-contact-line{font-family:'Inter',Helvetica,sans-serif!important}
+    .card-preview.font-retro .card-name,.card-preview.font-retro .card-job,.card-preview.font-retro .card-company,.card-preview.font-retro .card-contact-line{font-family:'Courier New',Courier,monospace!important}
+    .card-preview.font-neon .card-name,.card-preview.font-neon .card-job,.card-preview.font-neon .card-company,.card-preview.font-neon .card-contact-line{font-family:'Exo 2',sans-serif!important}
+    .card-preview.font-script .card-name,.card-preview.font-script .card-job,.card-preview.font-script .card-company,.card-preview.font-script .card-contact-line{font-family:'Dancing Script',cursive!important}
+    /* ── Text color override ── */
+    .card-preview.has-text-color .card-name{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--card-text-color)!important}
+    .card-preview.has-text-color .card-company{color:var(--card-text-color)!important}
+    .card-preview.has-text-color .card-job{color:var(--card-text-color)!important;opacity:.72}
+    .card-preview.has-text-color .card-contact-line{color:var(--card-text-color)!important;opacity:.48}
+    /* ── Accent color override ── */
+    .card-preview.has-accent{border-color:var(--card-accent-color)!important}
+    .card-preview.has-accent:not(.has-text-color) .card-company{color:var(--card-accent-color)!important}
+    /* ── Layouts ── */
+    .card-preview.layout-centered .card-left{align-items:center;text-align:center}
+    .card-preview.layout-centered .card-contacts-block{align-items:center}
+    .card-preview.layout-centered .card-contact-line::before{display:none}
+    .card-preview.layout-minimal .card-contacts-block{display:none!important}
+    .card-preview.layout-minimal .card-name{font-size:clamp(1.1rem,3.5vw,1.55rem)!important}
+    /* ── Background overlay ── */
+    .card-overlay-layer{position:absolute;inset:0;background:#000;pointer-events:none;z-index:1;opacity:0}
+    /* ── Border styles ── */
+    .card-preview.border-none{border:none!important;box-shadow:0 12px 40px rgba(0,0,0,.5)!important}
+    .card-preview.border-neon-pulse{border-color:var(--card-accent-color,#22d3ee)!important;animation:neonPulseBorder 1.5s ease-in-out infinite}
+    @keyframes neonPulseBorder{
+      0%,100%{box-shadow:0 0 8px var(--card-accent-color,#22d3ee),0 0 22px var(--card-accent-color,#22d3ee),0 12px 40px rgba(0,0,0,.5)}
+      50%    {box-shadow:0 0 18px var(--card-accent-color,#22d3ee),0 0 55px var(--card-accent-color,#22d3ee),0 12px 40px rgba(0,0,0,.5)}
+    }
+    .card-preview.border-gold{border:1.5px solid #ffd700!important;box-shadow:0 0 14px rgba(255,215,0,.45),0 0 38px rgba(255,165,0,.22),0 12px 40px rgba(0,0,0,.5)!important}
+    .card-preview.border-holo-rainbow{border-width:2px!important;border-style:solid!important;animation:rainbowBorder 3s linear infinite}
+    @keyframes rainbowBorder{
+      0%  {border-color:#ff0080;box-shadow:0 0 12px #ff0080,0 12px 40px rgba(0,0,0,.5)}
+      16% {border-color:#ff8c00;box-shadow:0 0 12px #ff8c00,0 12px 40px rgba(0,0,0,.5)}
+      33% {border-color:#ffd700;box-shadow:0 0 12px #ffd700,0 12px 40px rgba(0,0,0,.5)}
+      50% {border-color:#00ff8c;box-shadow:0 0 12px #00ff8c,0 12px 40px rgba(0,0,0,.5)}
+      66% {border-color:#00cfff;box-shadow:0 0 12px #00cfff,0 12px 40px rgba(0,0,0,.5)}
+      83% {border-color:#8c00ff;box-shadow:0 0 12px #8c00ff,0 12px 40px rgba(0,0,0,.5)}
+      100%{border-color:#ff0080;box-shadow:0 0 12px #ff0080,0 12px 40px rgba(0,0,0,.5)}
+    }
+    /* combined holographic + animated borders */
+    .card-preview.holographic.border-neon-pulse{animation:holoGlow 3s ease-in-out infinite,neonPulseBorder 1.5s ease-in-out infinite}
+    .card-preview.holographic.border-holo-rainbow{animation:holoGlow 3s ease-in-out infinite,rainbowBorder 3s linear infinite}
+    /* ── Customization panel UI ── */
+    .cust-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:16px 0}
+    .cust-wrap{display:flex;flex-direction:column;gap:14px}
+    .cust-lbl{font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+    .cust-val-badge{font-size:.6rem;font-weight:700;color:#f472b6;background:rgba(244,114,182,.1);padding:1px 7px;border-radius:4px;letter-spacing:0}
+    .cust-select{width:100%;padding:9px 32px 9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.85rem;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .2s}
+    .cust-select:focus{border-color:rgba(244,114,182,.45)}
+    .cust-color-row{display:flex;align-items:center;gap:8px}
+    .cust-color-inp{width:36px;height:30px;padding:2px 3px;border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(255,255,255,.05);cursor:pointer;flex-shrink:0}
+    .cust-color-val{font-size:.68rem;color:#8892b8;font-family:'Courier New',monospace;flex:1;min-width:0;overflow:hidden}
+    .cust-reset-btn{padding:4px 10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#8892b8;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .2s;flex-shrink:0}
+    .cust-reset-btn:hover{background:rgba(255,255,255,.1);color:#e8e8ff}
+    .cust-btn-row{display:flex;gap:5px;flex-wrap:wrap}
+    .cust-btn{flex:1;min-width:0;padding:7px 4px;border-radius:8px;font-size:.66rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#8892b8;font-family:inherit;transition:all .2s;text-align:center;white-space:nowrap}
+    .cust-btn.active{background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.4);color:#f472b6}
+    .cust-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#e8e8ff;border-color:rgba(255,255,255,.2)}
+
     /* Toast */
     .dc-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);padding:11px 22px;border-radius:12px;font-size:.84rem;font-weight:700;color:#fff;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.45)}
     .dc-toast.ok{background:linear-gradient(90deg,rgba(52,211,153,.22),rgba(34,211,238,.18));border:1px solid rgba(52,211,153,.4)}
@@ -343,6 +405,7 @@
 
       <div class="card-preview" id="cardPreview" data-theme="dark">
         <div id="cardBgLayer" class="card-bg-layer"></div>
+        <div id="cardOverlayLayer" class="card-overlay-layer"></div>
         <div class="card-inner">
           <div class="card-left">
             <div class="card-company" id="pCompany">YOUR COMPANY</div>
@@ -391,6 +454,75 @@
         </div>
       </div>
 
+      <hr class="cust-divider">
+      <div class="cust-wrap">
+
+        <!-- FONT STYLE -->
+        <div>
+          <div class="cust-lbl">Font Style</div>
+          <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)">
+            <option value="default">Default</option>
+            <option value="futuristic">Futuristic</option>
+            <option value="elegant">Elegant</option>
+            <option value="bold">Bold</option>
+            <option value="minimal">Minimal</option>
+            <option value="retro">Retro</option>
+            <option value="neon">Neon</option>
+            <option value="script">Script</option>
+          </select>
+        </div>
+
+        <!-- TEXT COLOR -->
+        <div>
+          <div class="cust-lbl">Text Color</div>
+          <div class="cust-color-row">
+            <input type="color" class="cust-color-inp" id="cardTextColorInp" value="#ffffff" oninput="applyTextColor(this.value)">
+            <span class="cust-color-val" id="cardTextColorVal">theme default</span>
+            <button class="cust-reset-btn" onclick="applyTextColor('')">Reset</button>
+          </div>
+        </div>
+
+        <!-- ACCENT COLOR -->
+        <div>
+          <div class="cust-lbl">Accent Color</div>
+          <div class="cust-color-row">
+            <input type="color" class="cust-color-inp" id="cardAccentColorInp" value="#22d3ee" oninput="applyAccentColor(this.value)">
+            <span class="cust-color-val" id="cardAccentColorVal">theme default</span>
+            <button class="cust-reset-btn" onclick="applyAccentColor('')">Reset</button>
+          </div>
+        </div>
+
+        <!-- CARD LAYOUT -->
+        <div>
+          <div class="cust-lbl">Card Layout</div>
+          <div class="cust-btn-row">
+            <button class="cust-btn active" data-layout="classic"  onclick="applyCardLayout('classic')">Classic</button>
+            <button class="cust-btn"        data-layout="centered" onclick="applyCardLayout('centered')">Centered</button>
+            <button class="cust-btn"        data-layout="minimal"  onclick="applyCardLayout('minimal')">Minimal</button>
+          </div>
+        </div>
+
+        <!-- BACKGROUND OVERLAY -->
+        <div>
+          <div class="cust-lbl">Background Overlay <span class="cust-val-badge" id="bgOverlayVal">0%</span></div>
+          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="bgOverlaySlider" min="0" max="100" value="0" oninput="applyBgOverlay(+this.value)">
+        </div>
+
+        <!-- BORDER STYLE -->
+        <div>
+          <div class="cust-lbl">Border Style</div>
+          <div class="cust-btn-row">
+            <button class="cust-btn active" data-border="glow"         onclick="applyBorderStyle('glow')">Glow</button>
+            <button class="cust-btn"        data-border="none"         onclick="applyBorderStyle('none')">None</button>
+            <button class="cust-btn"        data-border="neon-pulse"   onclick="applyBorderStyle('neon-pulse')">Neon Pulse</button>
+            <button class="cust-btn"        data-border="gold"         onclick="applyBorderStyle('gold')">Gold</button>
+            <button class="cust-btn"        data-border="holo-rainbow" onclick="applyBorderStyle('holo-rainbow')">Holo Rainbow</button>
+          </div>
+        </div>
+
+      </div>
+      <hr class="cust-divider">
+
       <div class="action-row">
         <button class="action-btn btn-save" id="saveBtn" onclick="saveCard()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
@@ -429,6 +561,11 @@ var holoStyle = false;
 var bgImageUrl = null;
 var bgPosX = 50, bgPosY = 50, bgZoom = 100, bgFit = "cover";
 var vidPosX = 50, vidPosY = 50, vidScale = 100;
+var cardFont = "default", cardTextColor = "", cardAccentColor = "";
+var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow";
+var _fontLinks = {};
+var _LAYOUTS = ["classic","centered","minimal"];
+var _BORDERS = ["none","glow","neon-pulse","gold","holo-rainbow"];
 
 var THEME_QR = {
   dark:     { dark: "#e8e8ff", light: "#070b18" },
@@ -451,7 +588,9 @@ function getFields() {
     bg_image_url:      bgImageUrl || null,
     media_layout: {
       bg_pos_x: bgPosX, bg_pos_y: bgPosY, bg_zoom: bgZoom, bg_fit: bgFit,
-      vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale
+      vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale,
+      card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
+      card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle
     }
   };
 }
@@ -540,6 +679,12 @@ function fillForm(card) {
     vidPosX = ml.vid_pos_x !== undefined ? +ml.vid_pos_x : 50;
     vidPosY = ml.vid_pos_y !== undefined ? +ml.vid_pos_y : 50;
     vidScale= ml.vid_scale !== undefined ? +ml.vid_scale : 100;
+    if (ml.card_font)    applyCardFont(ml.card_font);
+    if (ml.text_color)   applyTextColor(ml.text_color);
+    if (ml.accent_color) applyAccentColor(ml.accent_color);
+    if (ml.card_layout && ml.card_layout !== "classic") applyCardLayout(ml.card_layout);
+    if (ml.bg_overlay)   applyBgOverlay(+ml.bg_overlay);
+    if (ml.border_style && ml.border_style !== "glow") applyBorderStyle(ml.border_style);
   }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
@@ -763,6 +908,99 @@ function _holoApply(card, rx, ry) {
   card.style.setProperty("--holo-x", hx + "%");
   card.style.setProperty("--holo-y", hy + "%");
   card.style.setProperty("--holo-angle", ((ry / 15) * 180).toFixed(1) + "deg");
+}
+
+/* ── Card customization functions ── */
+
+var _GF = {
+  futuristic: "Orbitron:wght@400;700;900",
+  elegant:    "Cormorant+Garamond:ital,wght@0,400;0,600;1,400",
+  bold:       "Oswald:wght@400;600;700",
+  minimal:    "Inter:wght@400;600;700;900",
+  neon:       "Exo+2:wght@400;700;900",
+  script:     "Dancing+Script:wght@400;700"
+};
+
+function applyCardFont(font) {
+  cardFont = font || "default";
+  var card = document.getElementById("cardPreview");
+  var rem = [];
+  card.classList.forEach(function(c) { if (c.startsWith("font-")) rem.push(c); });
+  rem.forEach(function(c) { card.classList.remove(c); });
+  if (font && font !== "default") card.classList.add("font-" + font);
+  if (_GF[font] && !_fontLinks[font]) {
+    var lk = document.createElement("link");
+    lk.rel = "stylesheet";
+    lk.href = "https://fonts.googleapis.com/css2?family=" + _GF[font] + "&display=swap";
+    document.head.appendChild(lk);
+    _fontLinks[font] = true;
+  }
+  var sel = document.getElementById("cardFontSel");
+  if (sel) sel.value = cardFont;
+}
+
+function applyTextColor(color) {
+  cardTextColor = color || "";
+  var card = document.getElementById("cardPreview");
+  var valEl = document.getElementById("cardTextColorVal");
+  if (color) {
+    card.style.setProperty("--card-text-color", color);
+    card.classList.add("has-text-color");
+    if (valEl) valEl.textContent = color;
+    var inp = document.getElementById("cardTextColorInp");
+    if (inp) inp.value = color;
+  } else {
+    card.style.removeProperty("--card-text-color");
+    card.classList.remove("has-text-color");
+    if (valEl) valEl.textContent = "theme default";
+  }
+}
+
+function applyAccentColor(color) {
+  cardAccentColor = color || "";
+  var card = document.getElementById("cardPreview");
+  var valEl = document.getElementById("cardAccentColorVal");
+  if (color) {
+    card.style.setProperty("--card-accent-color", color);
+    card.classList.add("has-accent");
+    if (valEl) valEl.textContent = color;
+    var inp = document.getElementById("cardAccentColorInp");
+    if (inp) inp.value = color;
+  } else {
+    card.style.removeProperty("--card-accent-color");
+    card.classList.remove("has-accent");
+    if (valEl) valEl.textContent = "theme default";
+  }
+}
+
+function applyCardLayout(layout) {
+  cardLayout = layout || "classic";
+  var card = document.getElementById("cardPreview");
+  _LAYOUTS.forEach(function(l) { card.classList.remove("layout-" + l); });
+  if (cardLayout !== "classic") card.classList.add("layout-" + cardLayout);
+  document.querySelectorAll("[data-layout]").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.layout === cardLayout);
+  });
+}
+
+function applyBgOverlay(val) {
+  bgOverlay = +val || 0;
+  var layer = document.getElementById("cardOverlayLayer");
+  if (layer) layer.style.opacity = (bgOverlay / 100).toFixed(2);
+  var badge = document.getElementById("bgOverlayVal");
+  if (badge) badge.textContent = bgOverlay + "%";
+  var sl = document.getElementById("bgOverlaySlider");
+  if (sl) sl.value = bgOverlay;
+}
+
+function applyBorderStyle(style) {
+  borderStyle = style || "glow";
+  var card = document.getElementById("cardPreview");
+  _BORDERS.forEach(function(b) { card.classList.remove("border-" + b); });
+  if (borderStyle !== "glow") card.classList.add("border-" + borderStyle);
+  document.querySelectorAll("[data-border]").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.border === borderStyle);
+  });
 }
 
 function setBgImage(url) {
