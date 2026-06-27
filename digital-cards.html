@@ -43,7 +43,7 @@
     .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729);border:1.5px solid rgba(168,85,247,.35)}
     .card-preview[data-theme="forest"]{background:linear-gradient(135deg,#0a1f14,#061a12);border:1.5px solid rgba(52,211,153,.32)}
     .card-preview[data-theme="ember"]{background:linear-gradient(135deg,#220e06,#1a0a06);border:1.5px solid rgba(249,115,22,.32)}
-    .card-inner{display:flex;height:100%;padding:24px 22px}
+    .card-inner{display:flex;height:100%;padding:24px 22px;position:relative;z-index:20}
     .card-left{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;padding-right:16px}
     .card-company{font-size:.65rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:auto}
     .card-preview[data-theme="dark"] .card-company{color:#22d3ee}
@@ -64,7 +64,7 @@
     .card-qr-wrap{background:rgba(255,255,255,.06);border-radius:8px;padding:6px;border:1px solid rgba(255,255,255,.08)}
     #qrCanvas{display:block;border-radius:4px}
     .card-qr-label{font-size:.48rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.3);text-align:center;white-space:nowrap}
-    .card-watermark{position:absolute;bottom:8px;right:12px;font-size:.45rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.18)}
+    .card-watermark{position:absolute;bottom:8px;right:12px;font-size:.45rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.18);z-index:20}
 
     /* Theme selector */
     .theme-selector{display:flex;gap:10px;flex-wrap:wrap}
@@ -139,6 +139,19 @@
     .card-preview.holographic::before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:linear-gradient(125deg,transparent 10%,rgba(255,0,200,.35) 25%,rgba(0,255,255,.35) 45%,rgba(200,0,255,.35) 65%,transparent 80%);background-size:300% 300%;animation:holoShift 3s ease infinite;mix-blend-mode:screen}
     @keyframes holoShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
+    /* Media position controls */
+    .remove-btn{padding:5px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:7px;color:#f87171;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .2s;flex-shrink:0}
+    .remove-btn:hover{background:rgba(248,113,113,.2)}
+    .media-ctrl-block{margin-top:10px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px}
+    .media-ctrl-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+    .media-ctrl-lbl{font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8892b8;width:34px;flex-shrink:0}
+    .media-ctrl-sl{flex:1;accent-color:#f472b6;cursor:pointer;min-width:0}
+    .media-ctrl-val{font-size:.62rem;color:#8892b8;width:36px;text-align:right;flex-shrink:0}
+    .fit-btn-row{display:flex;gap:6px;margin-top:8px}
+    .fit-btn{flex:1;padding:5px 0;border-radius:7px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#8892b8;font-family:inherit;transition:all .2s;text-align:center}
+    .fit-btn.active{background:rgba(244,114,182,.15);border-color:rgba(244,114,182,.4);color:#f472b6}
+    .fit-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#e8e8ff}
+
     /* Toast */
     .dc-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);padding:11px 22px;border-radius:12px;font-size:.84rem;font-weight:700;color:#fff;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.45)}
     .dc-toast.ok{background:linear-gradient(90deg,rgba(52,211,153,.22),rgba(34,211,238,.18));border:1px solid rgba(52,211,153,.4)}
@@ -207,9 +220,32 @@
         <div class="vid-upload-row">
           <button class="vid-upload-btn" onclick="document.getElementById('fi-bg-img').click()">Choose Image</button>
           <span class="vid-upload-name" id="bgImgName">No file chosen</span>
+          <button class="remove-btn" id="bgRemoveBtn" onclick="removeBgImage()" style="display:none">Remove</button>
         </div>
         <div class="vid-upload-st" id="bgImgStatus"></div>
         <div class="vid-prog-wrap" id="bgImgProgWrap"><div class="vid-prog-fill" id="bgImgProg"></div></div>
+        <div id="bgPosControls" class="media-ctrl-block" style="display:none">
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">X Pos</span>
+            <input type="range" class="media-ctrl-sl" id="slBgX" min="0" max="100" value="50" oninput="onBgSliderChange('x',this.value)">
+            <span class="media-ctrl-val" id="slBgXVal">50%</span>
+          </div>
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">Y Pos</span>
+            <input type="range" class="media-ctrl-sl" id="slBgY" min="0" max="100" value="50" oninput="onBgSliderChange('y',this.value)">
+            <span class="media-ctrl-val" id="slBgYVal">50%</span>
+          </div>
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">Zoom</span>
+            <input type="range" class="media-ctrl-sl" id="slBgZoom" min="100" max="200" value="100" oninput="onBgSliderChange('zoom',this.value)">
+            <span class="media-ctrl-val" id="slBgZoomVal">100%</span>
+          </div>
+          <div class="fit-btn-row">
+            <button class="fit-btn active" data-fit="cover" onclick="onFitBtnClick(this,'cover')">Cover</button>
+            <button class="fit-btn" data-fit="contain" onclick="onFitBtnClick(this,'contain')">Contain</button>
+            <button class="fit-btn" data-fit="fill" onclick="onFitBtnClick(this,'fill')">Fill</button>
+          </div>
+        </div>
       </div>
 
       <hr class="form-divider">
@@ -226,6 +262,23 @@
         </div>
         <div class="vid-upload-st" id="pitchVidStatus"></div>
         <div class="vid-prog-wrap" id="pitchVidProgWrap"><div class="vid-prog-fill" id="pitchVidProg"></div></div>
+        <div id="vidPosControls" class="media-ctrl-block" style="display:none">
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">X</span>
+            <input type="range" class="media-ctrl-sl" id="slVidX" min="0" max="100" value="50" oninput="onVidSliderChange('x',this.value)">
+            <span class="media-ctrl-val" id="slVidXVal">50%</span>
+          </div>
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">Y</span>
+            <input type="range" class="media-ctrl-sl" id="slVidY" min="0" max="100" value="50" oninput="onVidSliderChange('y',this.value)">
+            <span class="media-ctrl-val" id="slVidYVal">50%</span>
+          </div>
+          <div class="media-ctrl-row">
+            <span class="media-ctrl-lbl">Scale</span>
+            <input type="range" class="media-ctrl-sl" id="slVidScale" min="100" max="200" value="100" oninput="onVidSliderChange('scale',this.value)">
+            <span class="media-ctrl-val" id="slVidScaleVal">100%</span>
+          </div>
+        </div>
       </div>
       <div class="vid-mode-row">
         <div>
@@ -341,6 +394,8 @@ var videoUrl = null;
 var videoMode = false;
 var holoStyle = false;
 var bgImageUrl = null;
+var bgPosX = 50, bgPosY = 50, bgZoom = 100, bgFit = "cover";
+var vidPosX = 50, vidPosY = 50, vidScale = 100;
 
 var THEME_QR = {
   dark:     { dark: "#e8e8ff", light: "#070b18" },
@@ -360,7 +415,11 @@ function getFields() {
     theme:             activeTheme,
     video_url:         videoUrl || null,
     holographic_style: holoStyle,
-    bg_image_url:      bgImageUrl || null
+    bg_image_url:      bgImageUrl || null,
+    media_layout: {
+      bg_pos_x: bgPosX, bg_pos_y: bgPosY, bg_zoom: bgZoom, bg_fit: bgFit,
+      vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale
+    }
   };
 }
 
@@ -439,10 +498,26 @@ function fillForm(card) {
     document.getElementById("pitchVidName").textContent = "(saved video)";
   }
   if (card.holographic_style) { setHoloStyle(true); }
+  if (card.media_layout) {
+    var ml = card.media_layout;
+    bgPosX  = ml.bg_pos_x  !== undefined ? +ml.bg_pos_x  : 50;
+    bgPosY  = ml.bg_pos_y  !== undefined ? +ml.bg_pos_y  : 50;
+    bgZoom  = ml.bg_zoom   !== undefined ? +ml.bg_zoom   : 100;
+    bgFit   = ml.bg_fit    || "cover";
+    vidPosX = ml.vid_pos_x !== undefined ? +ml.vid_pos_x : 50;
+    vidPosY = ml.vid_pos_y !== undefined ? +ml.vid_pos_y : 50;
+    vidScale= ml.vid_scale !== undefined ? +ml.vid_scale : 100;
+  }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
     setBgImage(card.bg_image_url);
     document.getElementById("bgImgName").textContent = "(saved image)";
+    syncBgSliders();
+  }
+  if (card.video_url) {
+    syncVidSliders();
+    document.getElementById("vidPosControls").style.display = "block";
+    applyVideoStyles();
   }
   updatePreview();
 }
@@ -608,10 +683,91 @@ function setBgImage(url) {
   if (url) {
     layer.style.backgroundImage = "url(" + url + ")";
     layer.style.display = "block";
+    applyBgImageStyles();
+    document.getElementById("bgPosControls").style.display = "block";
+    document.getElementById("bgRemoveBtn").style.display = "";
   } else {
     layer.style.backgroundImage = "";
     layer.style.display = "none";
+    document.getElementById("bgPosControls").style.display = "none";
+    document.getElementById("bgRemoveBtn").style.display = "none";
   }
+}
+
+function applyBgImageStyles() {
+  var layer = document.getElementById("cardBgLayer");
+  if (!layer || !bgImageUrl) return;
+  layer.style.backgroundPosition = bgPosX + "% " + bgPosY + "%";
+  if (bgFit === "zoom") {
+    layer.style.backgroundSize = bgZoom + "%";
+  } else if (bgFit === "fill") {
+    layer.style.backgroundSize = "100% 100%";
+  } else {
+    layer.style.backgroundSize = bgFit; // "cover" or "contain"
+  }
+}
+
+function applyVideoStyles() {
+  var vid = document.getElementById("cardVideoPitch");
+  if (!vid) return;
+  vid.style.objectPosition = vidPosX + "% " + vidPosY + "%";
+  vid.style.transform = "scale(" + (vidScale / 100) + ")";
+  vid.style.transformOrigin = "center center";
+}
+
+function removeBgImage() {
+  bgPosX = 50; bgPosY = 50; bgZoom = 100; bgFit = "cover";
+  setBgImage(null);
+  document.getElementById("bgImgName").textContent = "No file chosen";
+  syncBgSliders();
+}
+
+function syncBgSliders() {
+  document.getElementById("slBgX").value = bgPosX;
+  document.getElementById("slBgY").value = bgPosY;
+  document.getElementById("slBgZoom").value = bgZoom;
+  document.getElementById("slBgXVal").textContent = bgPosX + "%";
+  document.getElementById("slBgYVal").textContent = bgPosY + "%";
+  document.getElementById("slBgZoomVal").textContent = bgZoom + "%";
+  document.querySelectorAll(".fit-btn").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.fit === bgFit);
+  });
+}
+
+function syncVidSliders() {
+  document.getElementById("slVidX").value = vidPosX;
+  document.getElementById("slVidY").value = vidPosY;
+  document.getElementById("slVidScale").value = vidScale;
+  document.getElementById("slVidXVal").textContent = vidPosX + "%";
+  document.getElementById("slVidYVal").textContent = vidPosY + "%";
+  document.getElementById("slVidScaleVal").textContent = vidScale + "%";
+}
+
+function onBgSliderChange(type, val) {
+  val = +val;
+  if (type === "x")    { bgPosX = val; document.getElementById("slBgXVal").textContent    = val + "%"; }
+  if (type === "y")    { bgPosY = val; document.getElementById("slBgYVal").textContent    = val + "%"; }
+  if (type === "zoom") {
+    bgZoom = val; bgFit = "zoom";
+    document.getElementById("slBgZoomVal").textContent = val + "%";
+    document.querySelectorAll(".fit-btn").forEach(function(b) { b.classList.remove("active"); });
+  }
+  applyBgImageStyles();
+}
+
+function onVidSliderChange(type, val) {
+  val = +val;
+  if (type === "x")     { vidPosX  = val; document.getElementById("slVidXVal").textContent     = val + "%"; }
+  if (type === "y")     { vidPosY  = val; document.getElementById("slVidYVal").textContent     = val + "%"; }
+  if (type === "scale") { vidScale = val; document.getElementById("slVidScaleVal").textContent = val + "%"; }
+  applyVideoStyles();
+}
+
+function onFitBtnClick(btn, fit) {
+  bgFit = fit;
+  btn.closest(".fit-btn-row").querySelectorAll(".fit-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  applyBgImageStyles();
 }
 
 async function uploadBgImage(file) {
@@ -640,6 +796,7 @@ async function uploadBgImage(file) {
     if (!upRes.ok) throw new Error("Storage upload failed");
     prog.style.width = "100%";
     setBgImage(d.publicUrl);
+    syncBgSliders();
     nameEl.textContent = file.name;
     status.textContent = "Uploaded!";
     status.className = "vid-upload-st done";
@@ -696,6 +853,9 @@ async function uploadPitchVideo(file) {
     videoUrl = d.publicUrl;
     var vid = document.getElementById("cardVideoPitch");
     vid.src = videoUrl;
+    document.getElementById("vidPosControls").style.display = "block";
+    syncVidSliders();
+    applyVideoStyles();
     nameEl.textContent = file.name;
     status.textContent = "Uploaded!";
     status.className = "vid-upload-st done";
