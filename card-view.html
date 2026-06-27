@@ -44,6 +44,9 @@
     #cardPreview[data-theme="forest"]  {background:linear-gradient(160deg,#0a1f14 0%,#061a12 100%)}
     #cardPreview[data-theme="ember"]   {background:linear-gradient(160deg,#220e06 0%,#1a0a06 100%)}
 
+    /* ── Background image layer ── */
+    .card-bg-layer{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;display:none}
+
     /* ── Holographic overlay ── */
     #cardPreview.holographic::before{
       content:"";position:absolute;inset:0;pointer-events:none;z-index:4;
@@ -180,6 +183,7 @@
 
   <!-- Card preview — edge to edge -->
   <div id="cardPreview" data-theme="dark">
+    <div id="cvBgLayer" class="card-bg-layer"></div>
     <div class="card-inner">
       <div class="card-top-row">
         <div class="card-company" id="pCompany"></div>
@@ -262,6 +266,11 @@ function renderCard(c) {
   card.dataset.theme = theme;
 
   if (c.holographic_style) { card.classList.add("holographic"); }
+  if (c.bg_image_url) {
+    var bgLayer = document.getElementById("cvBgLayer");
+    bgLayer.style.backgroundImage = "url(" + c.bg_image_url + ")";
+    bgLayer.style.display = "block";
+  }
 
   document.getElementById("pCompany").textContent = (c.company || "").toUpperCase();
   document.getElementById("pName").textContent    = c.full_name || "";

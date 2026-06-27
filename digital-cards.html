@@ -129,6 +129,7 @@
     .card-video-vjob{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.04em}
     .card-video-vco{font-size:.55rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
     .card-video-qr-ov{display:none;position:absolute;bottom:10px;right:10px;z-index:3;background:rgba(8,12,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px;pointer-events:none}
+    .card-bg-layer{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;display:none}
     .card-preview.video-mode .card-inner{display:none}
     .card-preview.video-mode .card-watermark{display:none}
     .card-preview.video-mode .card-video-el{display:block}
@@ -196,6 +197,22 @@
 
       <hr class="form-divider">
       <div class="form-section-lbl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Card Background
+      </div>
+      <input type="file" id="fi-bg-img" accept="image/jpeg,image/png,image/webp,image/*" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Background Image — JPG / PNG / WebP</label>
+        <div class="vid-upload-row">
+          <button class="vid-upload-btn" onclick="document.getElementById('fi-bg-img').click()">Choose Image</button>
+          <span class="vid-upload-name" id="bgImgName">No file chosen</span>
+        </div>
+        <div class="vid-upload-st" id="bgImgStatus"></div>
+        <div class="vid-prog-wrap" id="bgImgProgWrap"><div class="vid-prog-fill" id="bgImgProg"></div></div>
+      </div>
+
+      <hr class="form-divider">
+      <div class="form-section-lbl">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         Video Pitch
       </div>
@@ -238,6 +255,7 @@
       <div class="preview-label">Live Preview</div>
 
       <div class="card-preview" id="cardPreview" data-theme="dark">
+        <div id="cardBgLayer" class="card-bg-layer"></div>
         <div class="card-inner">
           <div class="card-left">
             <div class="card-company" id="pCompany">YOUR COMPANY</div>
@@ -321,6 +339,7 @@ var qrTimer = null;
 var videoUrl = null;
 var videoMode = false;
 var holoStyle = false;
+var bgImageUrl = null;
 
 var THEME_QR = {
   dark:     { dark: "#e8e8ff", light: "#070b18" },
@@ -339,7 +358,8 @@ function getFields() {
     website:   document.getElementById("fWebsite").value.trim(),
     theme:             activeTheme,
     video_url:         videoUrl || null,
-    holographic_style: holoStyle
+    holographic_style: holoStyle,
+    bg_image_url:      bgImageUrl || null
   };
 }
 
@@ -418,6 +438,11 @@ function fillForm(card) {
     document.getElementById("pitchVidName").textContent = "(saved video)";
   }
   if (card.holographic_style) { setHoloStyle(true); }
+  if (card.bg_image_url) {
+    bgImageUrl = card.bg_image_url;
+    setBgImage(card.bg_image_url);
+    document.getElementById("bgImgName").textContent = "(saved image)";
+  }
   updatePreview();
 }
 
@@ -575,6 +600,58 @@ function setHoloStyle(on) {
   if (cb) cb.checked = on;
 }
 
+function setBgImage(url) {
+  bgImageUrl = url || null;
+  var layer = document.getElementById("cardBgLayer");
+  if (!layer) return;
+  if (url) {
+    layer.style.backgroundImage = "url(" + url + ")";
+    layer.style.display = "block";
+  } else {
+    layer.style.backgroundImage = "";
+    layer.style.display = "none";
+  }
+}
+
+async function uploadBgImage(file) {
+  var status   = document.getElementById("bgImgStatus");
+  var prog     = document.getElementById("bgImgProg");
+  var progWrap = document.getElementById("bgImgProgWrap");
+  var nameEl   = document.getElementById("bgImgName");
+  status.textContent = "Uploading…";
+  status.className = "vid-upload-st uploading";
+  progWrap.style.display = "block";
+  prog.style.width = "25%";
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    prog.style.width = "55%";
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    prog.style.width = "100%";
+    setBgImage(d.publicUrl);
+    nameEl.textContent = file.name;
+    status.textContent = "Uploaded!";
+    status.className = "vid-upload-st done";
+    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
+    showToast("Background uploaded!");
+  } catch(e) {
+    status.textContent = e.message || "Upload failed";
+    status.className = "vid-upload-st fail";
+    progWrap.style.display = "none";
+    showToast(e.message || "Upload failed", true);
+  }
+}
+
 function setVideoMode(on) {
   videoMode = on;
   var card = document.getElementById("cardPreview");
@@ -603,7 +680,7 @@ async function uploadPitchVideo(file) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "pitch-videos", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
     });
     if (!res.ok) throw new Error("Could not get upload URL");
     var d = await res.json();
@@ -630,6 +707,13 @@ async function uploadPitchVideo(file) {
     showToast(e.message || "Upload failed", true);
   }
 }
+
+document.getElementById("fi-bg-img").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  uploadBgImage(file);
+});
 
 document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   var file = this.files[0];
