@@ -302,6 +302,22 @@
     .cust-select{width:100%;padding:9px 32px 9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.85rem;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .2s}
     .cust-select:focus{border-color:rgba(244,114,182,.45)}
     .cust-select{color-scheme:dark}
+    /* ── Custom Font Picker ── */
+    .custom-font-picker{position:relative;width:100%}
+    .font-picker-selected{background:rgba(255,255,255,.05);border:1px solid rgba(244,114,182,.4);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:#e2e8f0;font-size:.85rem;transition:border-color .2s}
+    .font-picker-selected:hover{border-color:rgba(244,114,182,.7)}
+    .font-picker-arrow{color:#8892b8;font-size:.7rem;transition:transform .2s;flex-shrink:0}
+    .font-picker-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:320px;overflow-y:auto;background:#0d0d1a;border:1px solid rgba(124,58,237,.5);border-radius:8px;z-index:9999;scrollbar-width:thin;scrollbar-color:#7c3aed #0d0d1a}
+    .font-picker-dropdown.open{display:block}
+    .font-picker-dropdown::-webkit-scrollbar{width:5px}
+    .font-picker-dropdown::-webkit-scrollbar-track{background:#0d0d1a}
+    .font-picker-dropdown::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:4px}
+    .font-picker-dropdown.open ~ .font-picker-selected .font-picker-arrow,
+    .font-picker-selected.open .font-picker-arrow{transform:rotate(180deg)}
+    .font-option{padding:10px 16px;cursor:pointer;color:#e2e8f0;font-size:15px;transition:background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .font-option:hover{background:rgba(124,58,237,.3);color:#fff}
+    .font-option.selected{background:rgba(124,58,237,.5);color:#fff}
+    .font-group-label{padding:8px 14px 4px;font-size:.6rem;letter-spacing:.15em;color:#7c3aed;font-family:'Orbitron',sans-serif;pointer-events:none;border-top:1px solid rgba(124,58,237,.2);margin-top:4px}
     .cust-select option,.cust-select optgroup{background-color:#1a1a2e;color:#e2e8f0}
     .cust-select option:checked{background-color:#7c3aed;color:#ffffff}
     select{color-scheme:dark}
@@ -635,7 +651,7 @@
         <!-- FONT STYLE -->
         <div>
           <div class="cust-lbl">Font Style</div>
-          <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)">
+          <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)" style="display:none">
             <option value="default">Default</option>
             <optgroup label="— FUTURISTIC —">
               <option value="orbitron">Orbitron</option>
@@ -680,6 +696,13 @@
               <option value="bungee">Bungee</option>
             </optgroup>
           </select>
+          <div class="custom-font-picker" id="customFontPicker">
+            <div class="font-picker-selected" id="fontPickerSelected" onclick="toggleFontPicker()">
+              <span id="fontPickerLabel">Default</span>
+              <span class="font-picker-arrow">&#9662;</span>
+            </div>
+            <div class="font-picker-dropdown" id="fontPickerDropdown"></div>
+          </div>
         </div>
 
         <!-- DESIGN ELEMENTS -->
@@ -1493,6 +1516,7 @@ function applyCardFont(font) {
   }
   var sel = document.getElementById("cardFontSel");
   if (sel) sel.value = cardFont;
+  updateFontPickerDisplay(cardFont);
 }
 
 function applyTextColor(color) {
@@ -2236,6 +2260,146 @@ function onFpDragStart(e, key, el) {
   });
 })();
 
+/* ── Custom Font Picker ── */
+var _FONT_CSS = {
+  default:         "inherit",
+  orbitron:        "'Orbitron', sans-serif",
+  exo2:            "'Exo 2', sans-serif",
+  rajdhani:        "'Rajdhani', sans-serif",
+  audiowide:       "'Audiowide', sans-serif",
+  syncopate:       "'Syncopate', sans-serif",
+  cormorant:       "'Cormorant Garamond', serif",
+  playfair:        "'Playfair Display', serif",
+  cinzel:          "'Cinzel', serif",
+  imfell:          "'IM Fell English', serif",
+  baskerville:     "'Libre Baskerville', serif",
+  bebas:           "'Bebas Neue', sans-serif",
+  oswald:          "'Oswald', sans-serif",
+  anton:           "'Anton', sans-serif",
+  blackhan:        "'Black Han Sans', sans-serif",
+  righteous:       "'Righteous', sans-serif",
+  dancing:         "'Dancing Script', cursive",
+  pacifico:        "'Pacifico', cursive",
+  lobster:         "'Lobster', cursive",
+  satisfy:         "'Satisfy', cursive",
+  greatvibes:      "'Great Vibes', cursive",
+  montserrat:      "'Montserrat', sans-serif",
+  raleway:         "'Raleway', sans-serif",
+  poppins:         "'Poppins', sans-serif",
+  nunito:          "'Nunito', sans-serif",
+  lato:            "'Lato', sans-serif",
+  vt323:           "'VT323', monospace",
+  pressstart:      "'Press Start 2P', monospace",
+  permanentmarker: "'Permanent Marker', cursive",
+  russoone:        "'Russo One', sans-serif",
+  bungee:          "'Bungee', sans-serif"
+};
+
+var _FONT_GROUPS = [
+  { label: null, fonts: [{ value: "default", name: "Default" }] },
+  { label: "FUTURISTIC", fonts: [
+    { value: "orbitron",  name: "Orbitron" },
+    { value: "exo2",      name: "Exo 2" },
+    { value: "rajdhani",  name: "Rajdhani" },
+    { value: "audiowide", name: "Audiowide" },
+    { value: "syncopate", name: "Syncopate" }
+  ]},
+  { label: "ELEGANT", fonts: [
+    { value: "cormorant",   name: "Cormorant Garamond" },
+    { value: "playfair",    name: "Playfair Display" },
+    { value: "cinzel",      name: "Cinzel" },
+    { value: "imfell",      name: "IM Fell English" },
+    { value: "baskerville", name: "Libre Baskerville" }
+  ]},
+  { label: "BOLD", fonts: [
+    { value: "bebas",     name: "Bebas Neue" },
+    { value: "oswald",    name: "Oswald" },
+    { value: "anton",     name: "Anton" },
+    { value: "blackhan",  name: "Black Han Sans" },
+    { value: "righteous", name: "Righteous" }
+  ]},
+  { label: "SCRIPT", fonts: [
+    { value: "dancing",    name: "Dancing Script" },
+    { value: "pacifico",   name: "Pacifico" },
+    { value: "lobster",    name: "Lobster" },
+    { value: "satisfy",    name: "Satisfy" },
+    { value: "greatvibes", name: "Great Vibes" }
+  ]},
+  { label: "MODERN", fonts: [
+    { value: "montserrat", name: "Montserrat" },
+    { value: "raleway",    name: "Raleway" },
+    { value: "poppins",    name: "Poppins" },
+    { value: "nunito",     name: "Nunito" },
+    { value: "lato",       name: "Lato" }
+  ]},
+  { label: "STREET", fonts: [
+    { value: "vt323",           name: "VT323" },
+    { value: "pressstart",      name: "Press Start 2P" },
+    { value: "permanentmarker", name: "Permanent Marker" },
+    { value: "russoone",        name: "Russo One" },
+    { value: "bungee",          name: "Bungee" }
+  ]}
+];
+
+function buildFontPicker() {
+  var dd = document.getElementById("fontPickerDropdown");
+  if (!dd) return;
+  var html = "";
+  _FONT_GROUPS.forEach(function(group) {
+    if (group.label) {
+      html += '<div class="font-group-label">' + group.label + '</div>';
+    }
+    group.fonts.forEach(function(f) {
+      var ff = _FONT_CSS[f.value] || "inherit";
+      html += '<div class="font-option" data-value="' + f.value + '" style="font-family:' + ff + '" onclick="selectFontFromPicker(\'' + f.value + '\')">' + f.name + '</div>';
+    });
+  });
+  dd.innerHTML = html;
+}
+
+function toggleFontPicker() {
+  var dd = document.getElementById("fontPickerDropdown");
+  var arrow = document.querySelector(".font-picker-arrow");
+  if (!dd) return;
+  var isOpen = dd.classList.contains("open");
+  dd.classList.toggle("open", !isOpen);
+  if (arrow) arrow.style.transform = isOpen ? "" : "rotate(180deg)";
+}
+
+function closeFontPicker() {
+  var dd = document.getElementById("fontPickerDropdown");
+  var arrow = document.querySelector(".font-picker-arrow");
+  if (dd) dd.classList.remove("open");
+  if (arrow) arrow.style.transform = "";
+}
+
+function selectFontFromPicker(value) {
+  closeFontPicker();
+  applyCardFont(value);
+  updateFontPickerDisplay(value);
+}
+
+function updateFontPickerDisplay(value) {
+  var lbl = document.getElementById("fontPickerLabel");
+  if (!lbl) return;
+  var ff = _FONT_CSS[value] || "inherit";
+  var name = "Default";
+  _FONT_GROUPS.forEach(function(g) {
+    g.fonts.forEach(function(f) { if (f.value === value) name = f.name; });
+  });
+  lbl.textContent = name;
+  lbl.style.fontFamily = ff;
+  document.querySelectorAll("#fontPickerDropdown .font-option").forEach(function(el) {
+    el.classList.toggle("selected", el.dataset.value === value);
+  });
+}
+
+document.addEventListener("click", function(e) {
+  var picker = document.getElementById("customFontPicker");
+  if (picker && !picker.contains(e.target)) closeFontPicker();
+});
+
+buildFontPicker();
 loadCard();
 </script>
 </body>
