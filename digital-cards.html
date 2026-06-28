@@ -38,7 +38,7 @@
     /* Card preview */
     .preview-panel{display:flex;flex-direction:column;gap:20px}
     .preview-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:0}
-    .card-preview{width:100%;max-width:624px;aspect-ratio:1.75;border-radius:14px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+    .card-preview{width:100%;max-width:624px;aspect-ratio:1.75;border-radius:20px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5)}
     .card-preview[data-theme="dark"]{background:linear-gradient(135deg,#0c1228,#070b18);border:1.5px solid rgba(34,211,238,.3)}
     .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729);border:1.5px solid rgba(168,85,247,.35)}
     .card-preview[data-theme="forest"]{background:linear-gradient(135deg,#0a1f14,#061a12);border:1.5px solid rgba(52,211,153,.32)}
@@ -120,7 +120,7 @@
     .vid-sw-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4);transition:transform .25s;pointer-events:none}
     .vid-sw-input:checked ~ .vid-sw-knob{transform:translateX(20px)}
     /* Card video mode */
-    .card-video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1}
+    .card-video-el{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;border-radius:20px}
     .card-video-overlay{position:absolute;inset:0;display:none;flex-direction:column;justify-content:flex-end;z-index:2;pointer-events:none}
     .card-video-grad{position:absolute;bottom:0;left:0;right:0;height:70%;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.45) 55%,transparent 100%)}
     .card-video-text{position:relative;z-index:1;padding:14px 16px 12px;backdrop-filter:blur(0px)}
@@ -129,7 +129,7 @@
     .card-video-vjob{font-size:.62rem;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:.04em}
     .card-video-vco{font-size:.55rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:3px}
     .card-video-qr-ov{display:none;position:absolute;bottom:10px;right:10px;z-index:3;background:rgba(8,12,30,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:5px;pointer-events:none}
-    .card-bg-layer{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;display:none}
+    .card-bg-layer{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0;display:none;border-radius:20px}
     .card-preview.video-mode .card-inner{display:none}
     .card-preview.video-mode .card-watermark{display:none}
     .card-preview.video-mode .card-video-el{display:block}
@@ -279,6 +279,10 @@
     .card-audio-btn:hover{background:rgba(34,211,238,.22)}
     .card-audio-btn svg{width:14px;height:14px}
     .card-audio-track{flex:1;min-width:0;font-size:.68rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
+
+    /* ── Permanent branded gradient border ── */
+    .card-brand-border{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:20px;padding:5px;background:linear-gradient(135deg,#22d3ee,#a855f7,#ec4899,#22d3ee);background-size:300% 300%;animation:brandBorderFlow 4s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude}
+    @keyframes brandBorderFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
     /* ── Card orientation: vertical ── */
     .card-preview.orient-vertical{aspect-ratio:9/16;max-width:390px}
@@ -517,6 +521,7 @@
           </button>
           <div class="card-audio-track" id="cardAudioTrack">No track</div>
         </div>
+        <div class="card-brand-border"></div>
       </div>
 
       <div>
