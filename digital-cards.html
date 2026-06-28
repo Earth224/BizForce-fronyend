@@ -285,6 +285,10 @@
     .card-brand-border::before{content:"◆  ◆  ◆  ◆  ◆";position:absolute;top:0;left:0;right:0;height:var(--border-weight,16px);display:flex;align-items:center;justify-content:center;font-size:6px;color:#4fc3f7;letter-spacing:2px;text-shadow:0 0 6px rgba(79,195,247,.9)}
     .card-brand-border::after{content:"BIZFORCE AI";position:absolute;bottom:0;left:0;right:0;height:var(--border-weight,16px);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:3px;color:#4fc3f7;text-shadow:0 0 8px rgba(79,195,247,.9)}
 
+    /* ── Preview video control ── */
+    #previewVidCtrl{position:absolute;bottom:12px;right:12px;z-index:35;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.22);display:none;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.85);padding:0;transition:background .2s}
+    #previewVidCtrl:hover{background:rgba(0,0,0,.65)}
+    #previewVidCtrl svg{width:12px;height:12px}
     /* ── Card orientation: vertical ── */
     .card-preview.orient-vertical{aspect-ratio:9/16;max-width:390px}
     .card-preview.orient-vertical .card-inner{flex-direction:column;justify-content:space-between;padding:20px 22px}
@@ -523,6 +527,9 @@
           <div class="card-audio-track" id="cardAudioTrack">No track</div>
         </div>
         <div class="card-brand-border"></div>
+        <button id="previewVidCtrl" onclick="togglePreviewVid()" title="Play/Pause preview">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
       </div>
 
       <div>
@@ -1403,13 +1410,29 @@ function setVideoMode(on) {
   var card = document.getElementById("cardPreview");
   card.classList.toggle("video-mode", on);
   var vid = document.getElementById("cardVideoPitch");
+  var ctrl = document.getElementById("previewVidCtrl");
   if (on) {
     updateVideoOverlayText();
     if (vid.src && vid.src !== window.location.href) {
       vid.play().catch(function() {});
     }
+    ctrl.style.display = "flex";
+    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
   } else {
     vid.pause();
+    ctrl.style.display = "none";
+  }
+}
+
+function togglePreviewVid() {
+  var vid = document.getElementById("cardVideoPitch");
+  var ctrl = document.getElementById("previewVidCtrl");
+  if (vid.paused) {
+    vid.play().catch(function(){});
+    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  } else {
+    vid.pause();
+    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   }
 }
 

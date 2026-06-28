@@ -192,6 +192,11 @@
     @keyframes vtShatterOut{0%{clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%);transform:scale(1)}40%{clip-path:polygon(0% 10%,90% 0%,100% 90%,10% 100%);transform:scale(1.01)}70%{clip-path:polygon(10% 30%,80% 0%,100% 60%,40% 100%,0% 70%);transform:scale(1.04)}100%{clip-path:polygon(50% 50%,50% 50%,50% 50%,50% 50%);transform:scale(1.08)}}
     /* ── Mobile full screen ── */
     @media(max-width:430px){#cardPreview,#cvBgLayer,.card-video-el,.card-brand-border,#vidBox{border-radius:0!important}}
+    /* ── Tap-to-play ring ── */
+    #vtPlayRing{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:transparent;display:flex;align-items:center;justify-content:center;z-index:28;pointer-events:none;opacity:0;transition:opacity .4s ease}
+    #vtPlayRing svg{margin-left:2px}
+    #vtPlayRing.vpr-show{opacity:1;animation:vtRingPulse 2s ease-in-out infinite}
+    @keyframes vtRingPulse{0%,100%{border-color:rgba(255,255,255,.15);box-shadow:0 0 0 0 rgba(255,255,255,.08)}50%{border-color:rgba(255,255,255,.3);box-shadow:0 0 0 7px rgba(255,255,255,0)}}
 
     /* ── Action buttons overlay at bottom ── */
     .card-actions{
@@ -265,6 +270,9 @@
   <!-- Card preview — edge to edge -->
   <div id="cardPreview" data-theme="dark">
     <div id="cvBgLayer" class="card-bg-layer"></div>
+    <div id="vtPlayRing">
+      <svg viewBox="0 0 20 20" fill="rgba(255,255,255,0.9)" width="13" height="13"><polygon points="7,4 16,10 7,16"/></svg>
+    </div>
     <div class="card-inner">
       <div class="card-top-row">
         <div class="card-company" id="pCompany"></div>
@@ -427,6 +435,7 @@ function toggleCvAudio() {
 }
 
 var _vtStyle = "fade";
+var _vtState = "still"; // still | entering | playing | paused | exiting
 var _vtTimers = [];
 
 function _vtClear() { _vtTimers.forEach(clearTimeout); _vtTimers = []; }
@@ -435,17 +444,33 @@ function _vtDur(s) {
   return ({fade:800,"blur-dissolve":900,iris:700,glitch:600,"swipe-left":500,"swipe-up":500,"zoom-in":700,"color-burn":800,matrix:1000,shatter:900})[s] || 800;
 }
 
+function setRing(show) {
+  document.getElementById("vtPlayRing").classList.toggle("vpr-show", show);
+}
+
 function startVideoLoop(c) {
   _vtClear();
   var ml = c.media_layout || {};
   _vtStyle = ml.vid_transition || "fade";
   document.getElementById("cardPreview").dataset.vidTrans = _vtStyle;
-  _vtTimers.push(setTimeout(enterVideoMode, 2000));
+  _vtState = "still";
+  setRing(true);
+  document.getElementById("cardPreview").addEventListener("click", onCardTap);
+}
+
+function onCardTap(e) {
+  var audioBar = document.getElementById("cvAudioBar");
+  if (audioBar && audioBar.contains(e.target)) return;
+  if (_vtState === "still")   { enterVideoMode(); }
+  else if (_vtState === "playing") { pauseVideo(); }
+  else if (_vtState === "paused")  { resumeVideo(); }
 }
 
 function enterVideoMode() {
   var vb = document.getElementById("vidBox");
   var vid = document.getElementById("cardVideo");
+  _vtState = "entering";
+  setRing(false);
   if (vid.readyState < 2) {
     vid.addEventListener("canplay", enterVideoMode, {once:true});
     return;
@@ -458,10 +483,26 @@ function enterVideoMode() {
   _vtTimers.push(setTimeout(function() {
     vb.className = "vt-active";
     vb.style.opacity = "1";
+    _vtState = "playing";
   }, _vtDur(_vtStyle)));
 }
 
+function pauseVideo() {
+  _vtState = "paused";
+  document.getElementById("cardVideo").pause();
+  setRing(true);
+}
+
+function resumeVideo() {
+  _vtState = "playing";
+  setRing(false);
+  document.getElementById("cardVideo").play().catch(function(){});
+}
+
 function exitVideoMode() {
+  _vtClear();
+  _vtState = "exiting";
+  setRing(false);
   var vb = document.getElementById("vidBox");
   var vid = document.getElementById("cardVideo");
   vb.style.opacity = "1";
@@ -473,7 +514,8 @@ function exitVideoMode() {
     vb.style.display = "none";
     vb.style.opacity = "";
     vb.className = "";
-    _vtTimers.push(setTimeout(enterVideoMode, 2000));
+    _vtState = "still";
+    setRing(true);
   }, _vtDur(_vtStyle)));
 }
 
