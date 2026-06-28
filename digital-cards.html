@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
@@ -99,7 +100,13 @@
     .btn-vcf:hover{background:rgba(255,255,255,.1);color:#e8e8ff}
     .btn-share{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.4);color:#c084fc}
     .btn-share:hover{background:rgba(168,85,247,.22)}
+    .btn-print{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:#fbbf24}
+    .btn-print:hover{background:rgba(251,191,36,.18)}
+    .btn-print:disabled{opacity:.5;cursor:not-allowed}
     .action-btn svg{width:15px;height:15px}
+    .print-opts-row{display:flex;align-items:center;gap:8px;padding:6px 0 2px}
+    .bleed-check-label{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:rgba(255,255,255,.5);cursor:pointer;user-select:none}
+    .bleed-check-label input[type=checkbox]{accent-color:#fbbf24;width:13px;height:13px;cursor:pointer}
     .save-status{font-size:.8rem;padding:10px 0;min-height:24px}
     .save-status.ok{color:#34d399}
     .save-status.err{color:#f87171}
@@ -745,6 +752,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download PNG
         </button>
+        <button class="action-btn btn-print" id="printExportBtn" onclick="exportPrintFile()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Export Print File
+        </button>
         <button class="action-btn btn-vcf" onclick="copyVCard()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy vCard
@@ -753,6 +764,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           Share
         </button>
+      </div>
+      <div class="print-opts-row">
+        <label class="bleed-check-label">
+          <input type="checkbox" id="bleedCheck">
+          Add bleed guides (0.125")
+        </label>
       </div>
       <div class="save-status info" id="saveStatus"></div>
     </div>
@@ -1005,6 +1022,74 @@ async function downloadCard() {
   } catch(e) {
     setStatus("", "info");
     showToast("Download failed. Try again.", true);
+  }
+}
+
+async function exportPrintFile() {
+  var btn = document.getElementById("printExportBtn");
+  var addBleed = document.getElementById("bleedCheck").checked;
+  var isVertical = cardOrientation === "vertical";
+  btn.disabled = true;
+  setStatus("Generating print file...", "info");
+  try {
+    var el = document.getElementById("cardPreview");
+    /* Render at 3x (≈300 dpi equivalent for a standard screen-rendered card) */
+    var canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false });
+
+    var finalCanvas = canvas;
+    if (addBleed) {
+      /* 0.125" bleed at 300 dpi = 37.5 px → 38 px per side */
+      var bleedPx = 38;
+      var out = document.createElement("canvas");
+      out.width  = canvas.width  + bleedPx * 2;
+      out.height = canvas.height + bleedPx * 2;
+      var ctx = out.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, bleedPx, bleedPx);
+      /* Red dashed cut-line guide */
+      ctx.strokeStyle = "#ff0000";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 5]);
+      ctx.strokeRect(bleedPx, bleedPx, canvas.width, canvas.height);
+      finalCanvas = out;
+    }
+
+    /* ── PNG download ── */
+    var suffix = addBleed ? "-bleed" : "";
+    var pngLink = document.createElement("a");
+    pngLink.download = "bizforce-card-print" + suffix + ".png";
+    pngLink.href = finalCanvas.toDataURL("image/png");
+    pngLink.click();
+
+    /* ── PDF via jsPDF ── */
+    await new Promise(function(r) { setTimeout(r, 120); }); /* let PNG download start */
+    var jspdfLib = window.jspdf || window.jsPDF;
+    var JsPDF = jspdfLib ? (jspdfLib.jsPDF || jspdfLib) : null;
+    if (JsPDF) {
+      /* Business card dims in inches; bleed adds 0.25" total (0.125" each side) */
+      var W = (isVertical ? 2   : 3.5) + (addBleed ? 0.25 : 0);
+      var H = (isVertical ? 3.5 : 2  ) + (addBleed ? 0.25 : 0);
+      var doc = new JsPDF({ unit: "in", format: [W, H] });
+      var imgData = finalCanvas.toDataURL("image/png");
+      doc.addImage(imgData, "PNG", 0, 0, W, H);
+      if (addBleed) {
+        /* Draw red cut-line rect at 0.125" from each edge */
+        doc.setDrawColor(255, 0, 0);
+        doc.setLineWidth(0.008);
+        doc.rect(0.125, 0.125, W - 0.25, H - 0.25, "S");
+      }
+      doc.save("bizforce-card-print" + suffix + ".pdf");
+    }
+
+    setStatus("", "info");
+    showToast("Print-ready file exported. Send to any print shop or upload to Vistaprint, GotPrint, or Canva Print.");
+  } catch(e) {
+    setStatus("", "info");
+    showToast("Export failed. Try again.", true);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
   }
 }
 
