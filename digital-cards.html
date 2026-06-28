@@ -327,6 +327,12 @@
     .card-preview.orient-vertical .card-name{font-size:clamp(1.1rem,5vw,1.6rem)!important;white-space:normal}
 
     @media(max-width:760px){.builder{grid-template-columns:1fr}.card-preview{max-width:100%}}
+
+    /* ── Free Position Mode ── */
+    .card-preview.free-pos .card-company,
+    .card-preview.free-pos .card-name-block{opacity:0;pointer-events:none}
+    .fp-el{touch-action:none}
+    .fp-el.fp-selected{outline:1px dashed rgba(244,114,182,.55);outline-offset:2px}
   </style>
 </head>
 <body>
@@ -486,6 +492,17 @@
           <div class="vid-sw-knob"></div>
         </label>
       </div>
+      <div class="vid-mode-row">
+        <div>
+          <div class="vid-mode-lbl">Free Position Mode</div>
+          <div class="vid-mode-sub">Drag name, title &amp; company anywhere</div>
+        </div>
+        <label class="vid-sw-wrap">
+          <input type="checkbox" class="vid-sw-input" id="fpModeToggle" onchange="setFreePositionMode(this.checked)">
+          <div class="vid-sw-track"></div>
+          <div class="vid-sw-knob"></div>
+        </label>
+      </div>
 
       <hr class="form-divider">
       <div class="form-section-lbl">
@@ -558,6 +575,17 @@
             <svg id="audioPauseIco" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
           </button>
           <div class="card-audio-track" id="cardAudioTrack">No track</div>
+        </div>
+        <div id="fp-overlay" style="display:none;position:absolute;inset:0;z-index:25;pointer-events:none;">
+          <div id="fp-company" class="fp-el card-company" style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;margin:0;"></div>
+          <div id="fp-name"    class="fp-el card-name"    style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;overflow:visible;text-overflow:clip;margin:0;"></div>
+          <div id="fp-title"   class="fp-el card-job"     style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;margin:0;"></div>
+          <div id="fp-tagline" class="fp-el card-tagline"  style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;overflow:visible;text-overflow:clip;margin:0;"></div>
+          <div id="fp-size-ctrl" style="display:none;position:absolute;z-index:26;pointer-events:auto;background:rgba(7,11,24,.88);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:3px 6px;align-items:center;gap:5px;">
+            <button onclick="changeFpSize(-1)" style="background:none;border:none;color:rgba(255,255,255,.75);font-size:15px;cursor:pointer;padding:0 3px;line-height:1;font-family:inherit;">−</button>
+            <span id="fp-sz-val" style="font-size:9px;color:rgba(255,255,255,.5);min-width:26px;text-align:center;font-family:inherit;"></span>
+            <button onclick="changeFpSize(1)"  style="background:none;border:none;color:rgba(255,255,255,.75);font-size:15px;cursor:pointer;padding:0 3px;line-height:1;font-family:inherit;">+</button>
+          </div>
         </div>
         <div class="card-brand-border"></div>
         <button id="previewVidCtrl" onclick="togglePreviewVid()" title="Play/Pause preview">
@@ -797,6 +825,14 @@ var cardOrientation = "horizontal";
 var vidTransition = "fade";
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
+var freePositionMode = false;
+var textPositions = {};
+var textSizes = {};
+var _fpSelected = null;
+var FP_KEYS = ['company','name','title','tagline'];
+var FP_IDS  = {company:'fp-company',name:'fp-name',title:'fp-title',tagline:'fp-tagline'};
+var FP_ORIG = {company:'pCompany',name:'pName',title:'pTitle',tagline:'pTagline'};
+var FP_DEFAULT_SIZES = {company:10.4,name:16,title:10.4,tagline:8.3};
 var _fontLinks = {};
 var _LAYOUTS = ["classic","centered","minimal"];
 var _BORDERS = ["none","glow","neon-pulse","gold","holo-rainbow"];
@@ -828,7 +864,10 @@ function getFields() {
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
       border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation,
-      vid_transition: vidTransition, tagline: cardTagline
+      vid_transition: vidTransition, tagline: cardTagline,
+      text_positions: Object.keys(textPositions).length ? textPositions : undefined,
+      text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
+      free_position_mode: freePositionMode || undefined
     }
   };
 }
@@ -853,6 +892,7 @@ function updatePreview() {
   if (videoMode) updateVideoOverlayText();
   clearTimeout(qrTimer);
   qrTimer = setTimeout(generateQR, 400);
+  if (freePositionMode) syncFpOverlay();
 }
 
 async function generateQR() {
@@ -896,6 +936,7 @@ function setTheme(t) {
 }
 
 function fillForm(card) {
+  var _needFpMode = false;
   document.getElementById("fName").value    = card.full_name || "";
   document.getElementById("fTitle").value   = card.job_title || "";
   document.getElementById("fCompany").value = card.company   || "";
@@ -937,6 +978,9 @@ function fillForm(card) {
       if (tEl) tEl.value = cardTagline;
       document.getElementById("pTagline").textContent = cardTagline;
     }
+    if (ml.text_positions) textPositions = ml.text_positions;
+    if (ml.text_sizes)     textSizes     = ml.text_sizes;
+    _needFpMode = !!ml.free_position_mode;
   }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
@@ -958,6 +1002,7 @@ function fillForm(card) {
     document.getElementById("audioRemoveBtn").style.display = "inline-flex";
   }
   updatePreview();
+  if (_needFpMode) setFreePositionMode(true);
 }
 
 async function loadCard() {
@@ -1912,6 +1957,153 @@ document.getElementById("fi-audio").addEventListener("change", function() {
   this.value = "";
   uploadAudio(file);
 });
+
+/* ── Free Position Mode ── */
+function setFreePositionMode(on) {
+  freePositionMode = on;
+  var card = document.getElementById('cardPreview');
+  var overlay = document.getElementById('fp-overlay');
+  var cb = document.getElementById('fpModeToggle');
+  if (cb) cb.checked = on;
+  if (on) {
+    FP_KEYS.forEach(function(key) {
+      if (!textPositions[key]) {
+        var origEl  = document.getElementById(FP_ORIG[key]);
+        var cardRect = card.getBoundingClientRect();
+        var origRect = origEl.getBoundingClientRect();
+        textPositions[key] = {
+          x: Math.max(0, ((origRect.left - cardRect.left) / cardRect.width)  * 100),
+          y: Math.max(0, ((origRect.top  - cardRect.top)  / cardRect.height) * 100)
+        };
+      }
+    });
+    card.classList.add('free-pos');
+    syncFpOverlay();
+    overlay.style.display = 'block';
+  } else {
+    overlay.style.display = 'none';
+    card.classList.remove('free-pos');
+    hideFpSizeCtrl();
+  }
+}
+
+function syncFpOverlay() {
+  var textMap = {
+    company: document.getElementById('pCompany').textContent,
+    name:    document.getElementById('pName').textContent,
+    title:   document.getElementById('pTitle').textContent,
+    tagline: document.getElementById('pTagline').textContent
+  };
+  FP_KEYS.forEach(function(key) {
+    var el  = document.getElementById(FP_IDS[key]);
+    el.textContent = textMap[key];
+    var pos = textPositions[key] || {x: 5, y: 10};
+    el.style.left = pos.x.toFixed(2) + '%';
+    el.style.top  = pos.y.toFixed(2) + '%';
+    var sz = textSizes[key];
+    if (sz) el.style.fontSize = sz.toFixed(1) + 'px';
+    else    el.style.removeProperty('font-size');
+  });
+}
+
+function selectFpEl(key) {
+  _fpSelected = key;
+  FP_KEYS.forEach(function(k) {
+    document.getElementById(FP_IDS[k]).classList.toggle('fp-selected', k === key);
+  });
+  showFpSizeCtrl(key);
+}
+
+function showFpSizeCtrl(key) {
+  var ctrl = document.getElementById('fp-size-ctrl');
+  var sz = textSizes[key] || FP_DEFAULT_SIZES[key];
+  document.getElementById('fp-sz-val').textContent = Math.round(sz) + 'px';
+  ctrl.style.display = 'flex';
+  updateFpSizeCtrlPos();
+}
+
+function updateFpSizeCtrlPos() {
+  if (!_fpSelected) return;
+  var el   = document.getElementById(FP_IDS[_fpSelected]);
+  var ctrl = document.getElementById('fp-size-ctrl');
+  var card = document.getElementById('cardPreview');
+  var elRect   = el.getBoundingClientRect();
+  var cardRect = card.getBoundingClientRect();
+  var cx = Math.max(0, Math.min(72, ((elRect.left   - cardRect.left) / cardRect.width)  * 100));
+  var cy = Math.min(90, ((elRect.bottom - cardRect.top)  / cardRect.height) * 100 + 1);
+  ctrl.style.left = cx + '%';
+  ctrl.style.top  = cy + '%';
+}
+
+function hideFpSizeCtrl() {
+  var ctrl = document.getElementById('fp-size-ctrl');
+  if (ctrl) ctrl.style.display = 'none';
+  _fpSelected = null;
+  FP_KEYS.forEach(function(k) {
+    var el = document.getElementById(FP_IDS[k]);
+    if (el) el.classList.remove('fp-selected');
+  });
+}
+
+function changeFpSize(delta) {
+  if (!_fpSelected) return;
+  var key = _fpSelected;
+  var cur = textSizes[key] || FP_DEFAULT_SIZES[key];
+  var nxt = Math.max(6, Math.min(52, cur + delta));
+  textSizes[key] = nxt;
+  document.getElementById(FP_IDS[key]).style.fontSize = nxt.toFixed(1) + 'px';
+  document.getElementById('fp-sz-val').textContent = Math.round(nxt) + 'px';
+}
+
+function onFpDragStart(e, key, el) {
+  if (!freePositionMode) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectFpEl(key);
+  var card = document.getElementById('cardPreview');
+  var cardRect = card.getBoundingClientRect();
+  var startCX = e.touches ? e.touches[0].clientX : e.clientX;
+  var startCY = e.touches ? e.touches[0].clientY : e.clientY;
+  var pos = textPositions[key] || {x: 5, y: 5};
+  var startX = pos.x, startY = pos.y;
+  el.style.cursor = 'grabbing';
+
+  function onMove(ev) {
+    if (ev.cancelable) ev.preventDefault();
+    var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    var cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+    var newX = Math.max(0, Math.min(95, startX + ((cx - startCX) / cardRect.width)  * 100));
+    var newY = Math.max(0, Math.min(95, startY + ((cy - startCY) / cardRect.height) * 100));
+    textPositions[key] = {x: newX, y: newY};
+    el.style.left = newX.toFixed(2) + '%';
+    el.style.top  = newY.toFixed(2) + '%';
+    updateFpSizeCtrlPos();
+  }
+
+  function onUp() {
+    el.style.cursor = 'grab';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend',  onUp);
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+  document.addEventListener('touchmove', onMove, {passive: false});
+  document.addEventListener('touchend',  onUp);
+}
+
+(function initFpDrag() {
+  FP_KEYS.forEach(function(key) {
+    var el = document.getElementById(FP_IDS[key]);
+    el.addEventListener('mousedown', function(e) { onFpDragStart(e, key, el); });
+    el.addEventListener('touchstart', function(e) { onFpDragStart(e, key, el); }, {passive: false});
+  });
+  document.getElementById('fp-overlay').addEventListener('mousedown', function(e) {
+    if (e.target === this) hideFpSizeCtrl();
+  });
+})();
 
 loadCard();
 </script>
