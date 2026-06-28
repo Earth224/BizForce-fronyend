@@ -596,7 +596,7 @@
         </div>
         <div class="card-watermark">BIZFORCE AI</div>
         <!-- Video Mode elements -->
-        <video class="card-video-el" id="cardVideoPitch" loop muted playsinline autoplay></video>
+        <video class="card-video-el" id="cardVideoPitch" loop playsinline autoplay></video>
         <div class="card-video-overlay" id="cardVideoOverlay">
           <div class="card-video-grad"></div>
           <div class="card-video-text">
@@ -1023,8 +1023,6 @@ function fillForm(card) {
   if (card.video_url) {
     videoUrl = card.video_url;
     var fvid = document.getElementById("cardVideoPitch");
-    fvid.muted = true;
-    fvid.setAttribute("muted", "");
     fvid.setAttribute("playsinline", "");
     fvid.src = card.video_url;
     document.getElementById("pitchVidName").textContent = "(saved video)";
@@ -1831,9 +1829,6 @@ function setVideoMode(on) {
   var ctrl = document.getElementById("previewVidCtrl");
   if (on) {
     updateVideoOverlayText();
-    // iOS Safari requires both muted and playsinline as JS properties AND HTML attributes
-    vid.muted = true;
-    vid.setAttribute("muted", "");
     vid.setAttribute("playsinline", "");
     if (vid.src && vid.src !== window.location.href) {
       vid.load();
@@ -1849,15 +1844,26 @@ function setVideoMode(on) {
 }
 
 function togglePreviewVid() {
-  var vid = document.getElementById("cardVideoPitch");
+  var vid  = document.getElementById("cardVideoPitch");
   var ctrl = document.getElementById("previewVidCtrl");
+  var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  var ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   if (vid.paused) {
+    vid.load();
     var p = vid.play();
-    if (p !== undefined) p.catch(function(e) { console.error("[BF] togglePreviewVid play() failed:", e); });
-    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    if (p !== undefined) {
+      p.then(function() {
+        ctrl.innerHTML = ICON_PAUSE;
+      }).catch(function(e) {
+        console.error("[BF] togglePreviewVid play() failed:", e);
+        ctrl.innerHTML = ICON_PLAY;
+      });
+    } else {
+      ctrl.innerHTML = ICON_PAUSE;
+    }
   } else {
     vid.pause();
-    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    ctrl.innerHTML = ICON_PLAY;
   }
 }
 
@@ -1896,15 +1902,13 @@ async function uploadPitchVideo(file) {
     prog.style.width = "100%";
     videoUrl = d.publicUrl;
     var vid = document.getElementById("cardVideoPitch");
-    vid.muted = true;
     vid.loop = true;
     vid.autoplay = true;
-    vid.setAttribute("muted", "");
     vid.setAttribute("loop", "");
     vid.setAttribute("playsinline", "");
     vid.setAttribute("autoplay", "");
+    console.log("[BF] uploadPitchVideo: assigning CDN URL to vid.src:", videoUrl);
     vid.src = videoUrl;
-    console.log("[BF] uploadPitchVideo: vid.src set to CDN URL:", videoUrl);
     vid.load();
     console.log("[BF] uploadPitchVideo: vid.load() called");
     var vp = vid.play();
@@ -1954,11 +1958,9 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   // Preview blob immediately during user gesture so iOS Safari allows play()
   var blobUrl = URL.createObjectURL(file);
   var vid = document.getElementById("cardVideoPitch");
-  vid.muted = true;
   vid.loop = true;
   vid.playsInline = true;
   vid.autoplay = true;
-  vid.setAttribute("muted", "");
   vid.setAttribute("loop", "");
   vid.setAttribute("playsinline", "");
   vid.setAttribute("autoplay", "");
@@ -2091,6 +2093,7 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
         prog.style.width = "0%";
         status.textContent = "";
         status.className = "vid-upload-st";
+        console.log("[BF] compression onstop: compressed file ready:", compFile.name, compFile.size + " bytes, type:", compFile.type);
         uploadPitchVideo(compFile);
       };
 
