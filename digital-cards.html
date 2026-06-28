@@ -1904,9 +1904,14 @@ async function uploadPitchVideo(file) {
     vid.setAttribute("playsinline", "");
     vid.setAttribute("autoplay", "");
     vid.src = videoUrl;
+    console.log("[BF] uploadPitchVideo: vid.src set to CDN URL:", videoUrl);
     vid.load();
+    console.log("[BF] uploadPitchVideo: vid.load() called");
     var vp = vid.play();
-    if (vp !== undefined) vp.catch(function(e) { console.error("[BF] uploadPitchVideo play() failed:", e); });
+    if (vp !== undefined) {
+      vp.then(function() { console.log("[BF] uploadPitchVideo: vid.play() resolved"); })
+        .catch(function(e) { console.error("[BF] uploadPitchVideo: vid.play() failed:", e); });
+    }
     document.getElementById("vidPosControls").style.display = "block";
     syncVidSliders();
     applyVideoStyles();
@@ -1945,6 +1950,27 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   nameEl.textContent = file.name + " (" + fmtMB(file.size) + ")";
   status.textContent = "";
   status.className   = "vid-upload-st";
+
+  // Preview blob immediately during user gesture so iOS Safari allows play()
+  var blobUrl = URL.createObjectURL(file);
+  var vid = document.getElementById("cardVideoPitch");
+  vid.muted = true;
+  vid.loop = true;
+  vid.playsInline = true;
+  vid.autoplay = true;
+  vid.setAttribute("muted", "");
+  vid.setAttribute("loop", "");
+  vid.setAttribute("playsinline", "");
+  vid.setAttribute("autoplay", "");
+  vid.src = blobUrl;
+  console.log("[BF] vid.src set to blob URL:", blobUrl);
+  vid.load();
+  console.log("[BF] vid.load() called (blob)");
+  var _bvp = vid.play();
+  if (_bvp !== undefined) {
+    _bvp.then(function() { console.log("[BF] vid.play() resolved (blob)"); })
+        .catch(function(e) { console.error("[BF] Video play failed (blob):", e); });
+  }
 
   // No MediaRecorder → cannot compress; advise manual tool for large files
   if (!window.MediaRecorder) {
