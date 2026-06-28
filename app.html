@@ -485,9 +485,30 @@ if (loginForm) {
         }
 
         localStorage.setItem("bf_token", data.token);
-localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
-window.location.href = "/dashboard.html";
-return;
+        localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
+
+        var sub = data.subscription;
+        var isActive = sub && (sub.status === "active" || sub.status === "trialing");
+
+        if (isActive) {
+          window.location.href = "/dashboard.html";
+          return;
+        }
+
+        setStatus("Setting up billing...");
+        try {
+          var coResp = await fetch(API_URL + "/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + data.token }
+          });
+          var coData = await parseJson(coResp);
+          if (coData.url) {
+            window.location.href = coData.url;
+            return;
+          }
+        } catch (coErr) {}
+        window.location.href = "/dashboard.html";
+        return;
       } catch (error) {
         setStatus("");
         setError(error.message || "Login failed.");
@@ -539,8 +560,22 @@ return;
           localStorage.setItem("bf_token", data.token);
         }
 
-        setStatus("Account created.");
+        setStatus("Account created! Setting up billing...");
         setError("");
+
+        try {
+          var coResp = await fetch(API_URL + "/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (data.token || "") }
+          });
+          var coData = await parseJson(coResp);
+          if (coData.url) {
+            window.location.href = coData.url;
+            return;
+          }
+        } catch (coErr) {}
+        window.location.href = "/dashboard.html";
+        return;
       } catch (error) {
         setStatus("");
         setError(error.message || "Registration failed.");
