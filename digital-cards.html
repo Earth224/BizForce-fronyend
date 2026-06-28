@@ -60,6 +60,10 @@
     .card-preview[data-theme="forest"] .card-name{background:linear-gradient(135deg,#34d399,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
     .card-preview[data-theme="ember"] .card-name{background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
     .card-job{font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-tagline{font-size:.52rem;font-weight:500;color:rgba(255,255,255,.35);letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+    .sym-picker{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+    .sym-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:rgba(255,255,255,.75);width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;padding:0;transition:background .15s}
+    .sym-btn:hover{background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.4)}
     .card-contacts-block{display:flex;flex-direction:column;gap:4px;margin-top:auto}
     .card-contact-line{font-size:.58rem;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
     .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.25)}
@@ -201,26 +205,43 @@
     .fit-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#e8e8ff}
 
     /* ── Card customization: fonts ── */
-    .card-preview.font-orbitron   .card-name,.card-preview.font-orbitron   .card-job,.card-preview.font-orbitron   .card-company,.card-preview.font-orbitron   .card-contact-line{font-family:'Orbitron',monospace!important}
-    .card-preview.font-cormorant  .card-name,.card-preview.font-cormorant  .card-job,.card-preview.font-cormorant  .card-company,.card-preview.font-cormorant  .card-contact-line{font-family:'Cormorant Garamond',Georgia,serif!important}
-    .card-preview.font-oswald     .card-name,.card-preview.font-oswald     .card-job,.card-preview.font-oswald     .card-company,.card-preview.font-oswald     .card-contact-line{font-family:'Oswald',Impact,sans-serif!important}
-    .card-preview.font-raleway    .card-name,.card-preview.font-raleway    .card-job,.card-preview.font-raleway    .card-company,.card-preview.font-raleway    .card-contact-line{font-family:'Raleway',sans-serif!important}
-    .card-preview.font-courier    .card-name,.card-preview.font-courier    .card-job,.card-preview.font-courier    .card-company,.card-preview.font-courier    .card-contact-line{font-family:'Courier New',Courier,monospace!important}
-    .card-preview.font-vt323      .card-name,.card-preview.font-vt323      .card-job,.card-preview.font-vt323      .card-company,.card-preview.font-vt323      .card-contact-line{font-family:'VT323',monospace!important}
-    .card-preview.font-bebas      .card-name,.card-preview.font-bebas      .card-job,.card-preview.font-bebas      .card-company,.card-preview.font-bebas      .card-contact-line{font-family:'Bebas Neue',sans-serif!important}
-    .card-preview.font-dancing    .card-name,.card-preview.font-dancing    .card-job,.card-preview.font-dancing    .card-company,.card-preview.font-dancing    .card-contact-line{font-family:'Dancing Script',cursive!important}
-    .card-preview.font-playfair   .card-name,.card-preview.font-playfair   .card-job,.card-preview.font-playfair   .card-company,.card-preview.font-playfair   .card-contact-line{font-family:'Playfair Display',Georgia,serif!important}
-    .card-preview.font-montserrat .card-name,.card-preview.font-montserrat .card-job,.card-preview.font-montserrat .card-company,.card-preview.font-montserrat .card-contact-line{font-family:'Montserrat',Helvetica,sans-serif!important}
-    .card-preview.font-righteous  .card-name,.card-preview.font-righteous  .card-job,.card-preview.font-righteous  .card-company,.card-preview.font-righteous  .card-contact-line{font-family:'Righteous',sans-serif!important}
-    .card-preview.font-lobster    .card-name,.card-preview.font-lobster    .card-job,.card-preview.font-lobster    .card-company,.card-preview.font-lobster    .card-contact-line{font-family:'Lobster',cursive!important}
-    .card-preview.font-exo2       .card-name,.card-preview.font-exo2       .card-job,.card-preview.font-exo2       .card-company,.card-preview.font-exo2       .card-contact-line{font-family:'Exo 2',sans-serif!important}
-    .card-preview.font-cinzel     .card-name,.card-preview.font-cinzel     .card-job,.card-preview.font-cinzel     .card-company,.card-preview.font-cinzel     .card-contact-line{font-family:'Cinzel',serif!important}
-    .card-preview.font-pacifico   .card-name,.card-preview.font-pacifico   .card-job,.card-preview.font-pacifico   .card-company,.card-preview.font-pacifico   .card-contact-line{font-family:'Pacifico',cursive!important}
+    .card-preview.font-orbitron      .card-name,.card-preview.font-orbitron      .card-job,.card-preview.font-orbitron      .card-company,.card-preview.font-orbitron      .card-contact-line,.card-preview.font-orbitron      .card-tagline{font-family:'Orbitron',monospace!important}
+    .card-preview.font-cormorant     .card-name,.card-preview.font-cormorant     .card-job,.card-preview.font-cormorant     .card-company,.card-preview.font-cormorant     .card-contact-line,.card-preview.font-cormorant     .card-tagline{font-family:'Cormorant Garamond',Georgia,serif!important}
+    .card-preview.font-oswald        .card-name,.card-preview.font-oswald        .card-job,.card-preview.font-oswald        .card-company,.card-preview.font-oswald        .card-contact-line,.card-preview.font-oswald        .card-tagline{font-family:'Oswald',Impact,sans-serif!important}
+    .card-preview.font-raleway       .card-name,.card-preview.font-raleway       .card-job,.card-preview.font-raleway       .card-company,.card-preview.font-raleway       .card-contact-line,.card-preview.font-raleway       .card-tagline{font-family:'Raleway',sans-serif!important}
+    .card-preview.font-courier       .card-name,.card-preview.font-courier       .card-job,.card-preview.font-courier       .card-company,.card-preview.font-courier       .card-contact-line,.card-preview.font-courier       .card-tagline{font-family:'Courier New',Courier,monospace!important}
+    .card-preview.font-vt323         .card-name,.card-preview.font-vt323         .card-job,.card-preview.font-vt323         .card-company,.card-preview.font-vt323         .card-contact-line,.card-preview.font-vt323         .card-tagline{font-family:'VT323',monospace!important}
+    .card-preview.font-bebas         .card-name,.card-preview.font-bebas         .card-job,.card-preview.font-bebas         .card-company,.card-preview.font-bebas         .card-contact-line,.card-preview.font-bebas         .card-tagline{font-family:'Bebas Neue',sans-serif!important}
+    .card-preview.font-dancing       .card-name,.card-preview.font-dancing       .card-job,.card-preview.font-dancing       .card-company,.card-preview.font-dancing       .card-contact-line,.card-preview.font-dancing       .card-tagline{font-family:'Dancing Script',cursive!important}
+    .card-preview.font-playfair      .card-name,.card-preview.font-playfair      .card-job,.card-preview.font-playfair      .card-company,.card-preview.font-playfair      .card-contact-line,.card-preview.font-playfair      .card-tagline{font-family:'Playfair Display',Georgia,serif!important}
+    .card-preview.font-montserrat    .card-name,.card-preview.font-montserrat    .card-job,.card-preview.font-montserrat    .card-company,.card-preview.font-montserrat    .card-contact-line,.card-preview.font-montserrat    .card-tagline{font-family:'Montserrat',Helvetica,sans-serif!important}
+    .card-preview.font-righteous     .card-name,.card-preview.font-righteous     .card-job,.card-preview.font-righteous     .card-company,.card-preview.font-righteous     .card-contact-line,.card-preview.font-righteous     .card-tagline{font-family:'Righteous',sans-serif!important}
+    .card-preview.font-lobster       .card-name,.card-preview.font-lobster       .card-job,.card-preview.font-lobster       .card-company,.card-preview.font-lobster       .card-contact-line,.card-preview.font-lobster       .card-tagline{font-family:'Lobster',cursive!important}
+    .card-preview.font-exo2          .card-name,.card-preview.font-exo2          .card-job,.card-preview.font-exo2          .card-company,.card-preview.font-exo2          .card-contact-line,.card-preview.font-exo2          .card-tagline{font-family:'Exo 2',sans-serif!important}
+    .card-preview.font-cinzel        .card-name,.card-preview.font-cinzel        .card-job,.card-preview.font-cinzel        .card-company,.card-preview.font-cinzel        .card-contact-line,.card-preview.font-cinzel        .card-tagline{font-family:'Cinzel',serif!important}
+    .card-preview.font-pacifico      .card-name,.card-preview.font-pacifico      .card-job,.card-preview.font-pacifico      .card-company,.card-preview.font-pacifico      .card-contact-line,.card-preview.font-pacifico      .card-tagline{font-family:'Pacifico',cursive!important}
+    .card-preview.font-rajdhani      .card-name,.card-preview.font-rajdhani      .card-job,.card-preview.font-rajdhani      .card-company,.card-preview.font-rajdhani      .card-contact-line,.card-preview.font-rajdhani      .card-tagline{font-family:'Rajdhani',sans-serif!important}
+    .card-preview.font-audiowide     .card-name,.card-preview.font-audiowide     .card-job,.card-preview.font-audiowide     .card-company,.card-preview.font-audiowide     .card-contact-line,.card-preview.font-audiowide     .card-tagline{font-family:'Audiowide',monospace!important}
+    .card-preview.font-syncopate     .card-name,.card-preview.font-syncopate     .card-job,.card-preview.font-syncopate     .card-company,.card-preview.font-syncopate     .card-contact-line,.card-preview.font-syncopate     .card-tagline{font-family:'Syncopate',sans-serif!important}
+    .card-preview.font-imfell        .card-name,.card-preview.font-imfell        .card-job,.card-preview.font-imfell        .card-company,.card-preview.font-imfell        .card-contact-line,.card-preview.font-imfell        .card-tagline{font-family:'IM Fell English',Georgia,serif!important}
+    .card-preview.font-baskerville   .card-name,.card-preview.font-baskerville   .card-job,.card-preview.font-baskerville   .card-company,.card-preview.font-baskerville   .card-contact-line,.card-preview.font-baskerville   .card-tagline{font-family:'Libre Baskerville',Georgia,serif!important}
+    .card-preview.font-anton         .card-name,.card-preview.font-anton         .card-job,.card-preview.font-anton         .card-company,.card-preview.font-anton         .card-contact-line,.card-preview.font-anton         .card-tagline{font-family:'Anton',Impact,sans-serif!important}
+    .card-preview.font-blackhan      .card-name,.card-preview.font-blackhan      .card-job,.card-preview.font-blackhan      .card-company,.card-preview.font-blackhan      .card-contact-line,.card-preview.font-blackhan      .card-tagline{font-family:'Black Han Sans',sans-serif!important}
+    .card-preview.font-satisfy       .card-name,.card-preview.font-satisfy       .card-job,.card-preview.font-satisfy       .card-company,.card-preview.font-satisfy       .card-contact-line,.card-preview.font-satisfy       .card-tagline{font-family:'Satisfy',cursive!important}
+    .card-preview.font-greatvibes    .card-name,.card-preview.font-greatvibes    .card-job,.card-preview.font-greatvibes    .card-company,.card-preview.font-greatvibes    .card-contact-line,.card-preview.font-greatvibes    .card-tagline{font-family:'Great Vibes',cursive!important}
+    .card-preview.font-poppins       .card-name,.card-preview.font-poppins       .card-job,.card-preview.font-poppins       .card-company,.card-preview.font-poppins       .card-contact-line,.card-preview.font-poppins       .card-tagline{font-family:'Poppins',sans-serif!important}
+    .card-preview.font-nunito        .card-name,.card-preview.font-nunito        .card-job,.card-preview.font-nunito        .card-company,.card-preview.font-nunito        .card-contact-line,.card-preview.font-nunito        .card-tagline{font-family:'Nunito',sans-serif!important}
+    .card-preview.font-lato          .card-name,.card-preview.font-lato          .card-job,.card-preview.font-lato          .card-company,.card-preview.font-lato          .card-contact-line,.card-preview.font-lato          .card-tagline{font-family:'Lato',sans-serif!important}
+    .card-preview.font-pressstart    .card-name,.card-preview.font-pressstart    .card-job,.card-preview.font-pressstart    .card-company,.card-preview.font-pressstart    .card-contact-line,.card-preview.font-pressstart    .card-tagline{font-family:'Press Start 2P',monospace!important}
+    .card-preview.font-permanentmarker .card-name,.card-preview.font-permanentmarker .card-job,.card-preview.font-permanentmarker .card-company,.card-preview.font-permanentmarker .card-contact-line,.card-preview.font-permanentmarker .card-tagline{font-family:'Permanent Marker',cursive!important}
+    .card-preview.font-russoone      .card-name,.card-preview.font-russoone      .card-job,.card-preview.font-russoone      .card-company,.card-preview.font-russoone      .card-contact-line,.card-preview.font-russoone      .card-tagline{font-family:'Russo One',sans-serif!important}
+    .card-preview.font-bungee        .card-name,.card-preview.font-bungee        .card-job,.card-preview.font-bungee        .card-company,.card-preview.font-bungee        .card-contact-line,.card-preview.font-bungee        .card-tagline{font-family:'Bungee',sans-serif!important}
     /* ── Text color override ── */
     .card-preview.has-text-color .card-name{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--card-text-color)!important}
     .card-preview.has-text-color .card-company{color:var(--card-text-color)!important}
     .card-preview.has-text-color .card-job{color:var(--card-text-color)!important;opacity:.72}
     .card-preview.has-text-color .card-contact-line{color:var(--card-text-color)!important;opacity:.48}
+    .card-preview.has-text-color .card-tagline{color:var(--card-text-color)!important;opacity:.55}
     /* ── Accent color override ── */
     .card-preview.has-accent{border-color:var(--card-accent-color)!important}
     .card-preview.has-accent:not(.has-text-color) .card-company{color:var(--card-accent-color)!important}
@@ -343,6 +364,10 @@
       <div class="form-group">
         <label class="form-label">Job Title</label>
         <input class="form-input" id="fTitle" type="text" placeholder="Chief Executive Officer" maxlength="80">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Card Tagline</label>
+        <input class="form-input" id="fTagline" type="text" placeholder="Building the future · Est. 2024" maxlength="80">
       </div>
       <div class="form-group">
         <label class="form-label">Company</label>
@@ -488,6 +513,7 @@
             <div class="card-name-block">
               <div class="card-name" id="pName">Your Name</div>
               <div class="card-job" id="pTitle">Job Title</div>
+              <div class="card-tagline" id="pTagline"></div>
             </div>
             <div class="card-contacts-block">
               <div class="card-contact-line" id="pEmail"></div>
@@ -550,22 +576,85 @@
           <div class="cust-lbl">Font Style</div>
           <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)">
             <option value="default">Default</option>
-            <option value="orbitron">Orbitron</option>
-            <option value="cormorant">Cormorant Garamond</option>
-            <option value="oswald">Oswald</option>
-            <option value="raleway">Raleway</option>
-            <option value="courier">Courier New</option>
-            <option value="vt323">VT323</option>
-            <option value="bebas">Bebas Neue</option>
-            <option value="dancing">Dancing Script</option>
-            <option value="playfair">Playfair Display</option>
-            <option value="montserrat">Montserrat</option>
-            <option value="righteous">Righteous</option>
-            <option value="lobster">Lobster</option>
-            <option value="exo2">Exo 2</option>
-            <option value="cinzel">Cinzel</option>
-            <option value="pacifico">Pacifico</option>
+            <optgroup label="— FUTURISTIC —">
+              <option value="orbitron">Orbitron</option>
+              <option value="exo2">Exo 2</option>
+              <option value="rajdhani">Rajdhani</option>
+              <option value="audiowide">Audiowide</option>
+              <option value="syncopate">Syncopate</option>
+            </optgroup>
+            <optgroup label="— ELEGANT —">
+              <option value="cormorant">Cormorant Garamond</option>
+              <option value="playfair">Playfair Display</option>
+              <option value="cinzel">Cinzel</option>
+              <option value="imfell">IM Fell English</option>
+              <option value="baskerville">Libre Baskerville</option>
+            </optgroup>
+            <optgroup label="— BOLD —">
+              <option value="bebas">Bebas Neue</option>
+              <option value="oswald">Oswald</option>
+              <option value="anton">Anton</option>
+              <option value="blackhan">Black Han Sans</option>
+              <option value="righteous">Righteous</option>
+            </optgroup>
+            <optgroup label="— SCRIPT —">
+              <option value="dancing">Dancing Script</option>
+              <option value="pacifico">Pacifico</option>
+              <option value="lobster">Lobster</option>
+              <option value="satisfy">Satisfy</option>
+              <option value="greatvibes">Great Vibes</option>
+            </optgroup>
+            <optgroup label="— MODERN —">
+              <option value="montserrat">Montserrat</option>
+              <option value="raleway">Raleway</option>
+              <option value="poppins">Poppins</option>
+              <option value="nunito">Nunito</option>
+              <option value="lato">Lato</option>
+            </optgroup>
+            <optgroup label="— STREET —">
+              <option value="vt323">VT323</option>
+              <option value="pressstart">Press Start 2P</option>
+              <option value="permanentmarker">Permanent Marker</option>
+              <option value="russoone">Russo One</option>
+              <option value="bungee">Bungee</option>
+            </optgroup>
           </select>
+        </div>
+
+        <!-- SYMBOLS -->
+        <div>
+          <div class="cust-lbl">Symbols <span style="font-size:.65em;opacity:.55">click to insert</span></div>
+          <div class="sym-picker">
+            <button class="sym-btn" onclick="insertSymbol('★')" title="Black Star">★</button>
+            <button class="sym-btn" onclick="insertSymbol('☆')" title="White Star">☆</button>
+            <button class="sym-btn" onclick="insertSymbol('◆')" title="Black Diamond">◆</button>
+            <button class="sym-btn" onclick="insertSymbol('◇')" title="White Diamond">◇</button>
+            <button class="sym-btn" onclick="insertSymbol('●')" title="Black Circle">●</button>
+            <button class="sym-btn" onclick="insertSymbol('○')" title="White Circle">○</button>
+            <button class="sym-btn" onclick="insertSymbol('✦')" title="Four Point Star">✦</button>
+            <button class="sym-btn" onclick="insertSymbol('✧')" title="Four Point Star Outline">✧</button>
+            <button class="sym-btn" onclick="insertSymbol('⚡')" title="Lightning">⚡</button>
+            <button class="sym-btn" onclick="insertSymbol('✨')" title="Sparkles">✨</button>
+            <button class="sym-btn" onclick="insertSymbol('⚜')" title="Fleur-de-lis">⚜</button>
+            <button class="sym-btn" onclick="insertSymbol('♾')" title="Infinity">♾</button>
+            <button class="sym-btn" onclick="insertSymbol('☯')" title="Yin Yang">☯</button>
+            <button class="sym-btn" onclick="insertSymbol('👑')" title="Crown">👑</button>
+            <button class="sym-btn" onclick="insertSymbol('💎')" title="Diamond">💎</button>
+            <button class="sym-btn" onclick="insertSymbol('🔥')" title="Fire">🔥</button>
+            <button class="sym-btn" onclick="insertSymbol('⚔')" title="Crossed Swords">⚔</button>
+            <button class="sym-btn" onclick="insertSymbol('✴')" title="Eight Point Star">✴</button>
+            <button class="sym-btn" onclick="insertSymbol('❋')" title="Heavy Eight Petalled Flower">❋</button>
+            <button class="sym-btn" onclick="insertSymbol('⬡')" title="Hexagon">⬡</button>
+            <button class="sym-btn" onclick="insertSymbol('☥')" title="Ankh">☥</button>
+            <button class="sym-btn" onclick="insertSymbol('⊕')" title="Circled Plus">⊕</button>
+            <button class="sym-btn" onclick="insertSymbol('🔱')" title="Trident">🔱</button>
+            <button class="sym-btn" onclick="insertSymbol('✝')" title="Latin Cross">✝</button>
+            <button class="sym-btn" onclick="insertSymbol('⚫')" title="Black Circle">⚫</button>
+            <button class="sym-btn" onclick="insertSymbol('🌐')" title="Globe">🌐</button>
+            <button class="sym-btn" onclick="insertSymbol('❖')" title="Diamond Ornament">❖</button>
+            <button class="sym-btn" onclick="insertSymbol('✵')" title="Six Point Star">✵</button>
+            <button class="sym-btn" onclick="insertSymbol('✶')" title="Six Point Star Outline">✶</button>
+          </div>
         </div>
 
         <!-- TEXT COLOR -->
@@ -689,6 +778,7 @@ var cardFont = "default", cardTextColor = "", cardAccentColor = "";
 var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow", borderWeight = "16px";
 var cardOrientation = "horizontal";
 var vidTransition = "fade";
+var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var _fontLinks = {};
 var _LAYOUTS = ["classic","centered","minimal"];
@@ -702,6 +792,7 @@ var THEME_QR = {
 };
 
 function getFields() {
+  cardTagline = (document.getElementById("fTagline") || {}).value || "";
   return {
     full_name: document.getElementById("fName").value.trim(),
     job_title: document.getElementById("fTitle").value.trim(),
@@ -720,7 +811,7 @@ function getFields() {
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
       border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation,
-      vid_transition: vidTransition
+      vid_transition: vidTransition, tagline: cardTagline
     }
   };
 }
@@ -734,13 +825,14 @@ function updateVideoOverlayText() {
 
 function updatePreview() {
   var f = getFields();
-  document.getElementById("pCompany").textContent = (f.company || "YOUR COMPANY").toUpperCase();
-  document.getElementById("pName").textContent    = f.full_name || "Your Name";
-  document.getElementById("pTitle").textContent   = f.job_title || "Job Title";
-  document.getElementById("pEmail").textContent   = f.email   || "";
-  document.getElementById("pPhone").textContent   = f.phone   || "";
+  document.getElementById("pCompany").textContent  = (f.company || "YOUR COMPANY").toUpperCase();
+  document.getElementById("pName").textContent     = f.full_name || "Your Name";
+  document.getElementById("pTitle").textContent    = f.job_title || "Job Title";
+  document.getElementById("pTagline").textContent  = f.media_layout.tagline || "";
+  document.getElementById("pEmail").textContent    = f.email   || "";
+  document.getElementById("pPhone").textContent    = f.phone   || "";
   var ws = f.website.replace(/^https?:\/\//, "");
-  document.getElementById("pWebsite").textContent = ws || "";
+  document.getElementById("pWebsite").textContent  = ws || "";
   if (videoMode) updateVideoOverlayText();
   clearTimeout(qrTimer);
   qrTimer = setTimeout(generateQR, 400);
@@ -818,6 +910,12 @@ function fillForm(card) {
     if (ml.border_weight) applyBorderWeight(ml.border_weight);
     if (ml.orientation)  applyCardOrientation(ml.orientation);
     if (ml.vid_transition) applyVidTransition(ml.vid_transition);
+    if (ml.tagline !== undefined) {
+      cardTagline = ml.tagline || "";
+      var tEl = document.getElementById("fTagline");
+      if (tEl) tEl.value = cardTagline;
+      document.getElementById("pTagline").textContent = cardTagline;
+    }
   }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
@@ -957,9 +1055,24 @@ function setStatus(msg, type) {
   }
 }
 
-["fName","fTitle","fCompany","fEmail","fPhone","fWebsite"].forEach(function(id) {
+["fName","fTitle","fTagline","fCompany","fEmail","fPhone","fWebsite"].forEach(function(id) {
   document.getElementById(id).addEventListener("input", updatePreview);
 });
+
+var _lastFocus = null;
+document.addEventListener("focusin", function(e) {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") _lastFocus = e.target;
+});
+
+function insertSymbol(sym) {
+  var el = _lastFocus;
+  if (!el) return;
+  var s = el.selectionStart || 0, e2 = el.selectionEnd || 0;
+  el.value = el.value.slice(0, s) + sym + el.value.slice(e2);
+  el.selectionStart = el.selectionEnd = s + sym.length;
+  el.focus();
+  el.dispatchEvent(new Event("input", {bubbles: true}));
+}
 
 async function shareCard() {
   if (!activeCardId) { showToast("Save your card first", true); return; }
@@ -1060,20 +1173,36 @@ function _holoApply(card, rx, ry) {
 /* ── Card customization functions ── */
 
 var _GF = {
-  orbitron:   "Orbitron:wght@400;700;900",
-  cormorant:  "Cormorant+Garamond:ital,wght@0,400;0,600;1,400",
-  oswald:     "Oswald:wght@400;600;700",
-  raleway:    "Raleway:wght@400;600;700;900",
-  vt323:      "VT323",
-  bebas:      "Bebas+Neue",
-  dancing:    "Dancing+Script:wght@400;700",
-  playfair:   "Playfair+Display:ital,wght@0,400;0,700;1,400",
-  montserrat: "Montserrat:wght@400;600;700;900",
-  righteous:  "Righteous",
-  lobster:    "Lobster",
-  exo2:       "Exo+2:wght@400;700;900",
-  cinzel:     "Cinzel:wght@400;600;700",
-  pacifico:   "Pacifico"
+  orbitron:        "Orbitron:wght@400;700;900",
+  exo2:            "Exo+2:wght@400;700;900",
+  rajdhani:        "Rajdhani:wght@400;600;700",
+  audiowide:       "Audiowide",
+  syncopate:       "Syncopate:wght@400;700",
+  cormorant:       "Cormorant+Garamond:ital,wght@0,400;0,600;1,400",
+  playfair:        "Playfair+Display:ital,wght@0,400;0,700;1,400",
+  cinzel:          "Cinzel:wght@400;600;700",
+  imfell:          "IM+Fell+English:ital@0;1",
+  baskerville:     "Libre+Baskerville:ital,wght@0,400;0,700;1,400",
+  bebas:           "Bebas+Neue",
+  oswald:          "Oswald:wght@400;600;700",
+  anton:           "Anton",
+  blackhan:        "Black+Han+Sans",
+  righteous:       "Righteous",
+  dancing:         "Dancing+Script:wght@400;700",
+  pacifico:        "Pacifico",
+  lobster:         "Lobster",
+  satisfy:         "Satisfy",
+  greatvibes:      "Great+Vibes",
+  montserrat:      "Montserrat:wght@400;600;700;900",
+  raleway:         "Raleway:wght@400;600;700;900",
+  poppins:         "Poppins:wght@400;600;700;900",
+  nunito:          "Nunito:wght@400;600;700;900",
+  lato:            "Lato:wght@400;700;900",
+  vt323:           "VT323",
+  pressstart:      "Press+Start+2P",
+  permanentmarker: "Permanent+Marker",
+  russoone:        "Russo+One",
+  bungee:          "Bungee"
 };
 
 var _FONT_LEGACY = {
