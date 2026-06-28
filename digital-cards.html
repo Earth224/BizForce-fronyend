@@ -172,6 +172,18 @@
       filter:hue-rotate(var(--holo-angle));
     }
 
+    /* ── Holographic parallax depth layers ── */
+    .card-preview.holographic #cardBgLayer{transition:transform .08s ease-out;transform:translate(calc(var(--holo-tx,0) * -3px),calc(var(--holo-ty,0) * -3px))}
+    .card-preview.holographic .card-name-block,.card-preview.holographic .card-contacts-block{transition:transform .08s ease-out;will-change:transform;transform:translate(calc(var(--holo-tx,0) * 4px),calc(var(--holo-ty,0) * 4px))}
+    .card-preview.holographic .card-company{transition:transform .08s ease-out;will-change:transform;transform:translate(calc(var(--holo-tx,0) * 7px),calc(var(--holo-ty,0) * 7px))}
+    .card-preview.holographic .card-right{transition:transform .08s ease-out;will-change:transform;transform:translate(calc(var(--holo-tx,0) * 9px),calc(var(--holo-ty,0) * 9px))}
+    /* ── Depth fog ── */
+    .card-depth-fog{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;background:radial-gradient(ellipse 55% 45% at var(--holo-x,50%) var(--holo-y,50%),rgba(255,255,255,.07) 0%,transparent 65%);transition:opacity .3s}
+    .card-preview.holographic .card-depth-fog{opacity:1}
+    /* ── Specular highlight ── */
+    .card-specular{position:absolute;z-index:12;pointer-events:none;width:90px;height:55px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.44) 0%,rgba(255,255,255,.10) 38%,transparent 68%);filter:blur(9px);left:var(--holo-x,50%);top:var(--holo-y,50%);transform:translate(-50%,-50%);opacity:0;transition:left .08s ease-out,top .08s ease-out,opacity .3s}
+    .card-preview.holographic .card-specular{opacity:1}
+
     /* Media position controls */
     .remove-btn{padding:5px 12px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:7px;color:#f87171;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .2s;flex-shrink:0}
     .remove-btn:hover{background:rgba(248,113,113,.2)}
@@ -430,6 +442,8 @@
       <div class="card-preview" id="cardPreview" data-theme="dark">
         <div id="cardBgLayer" class="card-bg-layer"></div>
         <div id="cardOverlayLayer" class="card-overlay-layer"></div>
+        <div class="card-depth-fog" id="cardDepthFog"></div>
+        <div class="card-specular" id="cardSpecular"></div>
         <div class="card-inner">
           <div class="card-left">
             <div class="card-company" id="pCompany">YOUR COMPANY</div>
@@ -906,6 +920,8 @@ function setHoloStyle(on) {
     card.style.removeProperty("--holo-x");
     card.style.removeProperty("--holo-y");
     card.style.removeProperty("--holo-angle");
+    card.style.removeProperty("--holo-tx");
+    card.style.removeProperty("--holo-ty");
   }
 }
 
@@ -924,6 +940,8 @@ function _holoAttach(card) {
     card.style.setProperty("--holo-x", "50%");
     card.style.setProperty("--holo-y", "50%");
     card.style.setProperty("--holo-angle", "0deg");
+    card.style.setProperty("--holo-tx", "0");
+    card.style.setProperty("--holo-ty", "0");
   };
 
   _holoHandlers.orient = function(e) {
@@ -951,6 +969,8 @@ function _holoApply(card, rx, ry) {
   card.style.setProperty("--holo-x", hx + "%");
   card.style.setProperty("--holo-y", hy + "%");
   card.style.setProperty("--holo-angle", ((ry / 15) * 180).toFixed(1) + "deg");
+  card.style.setProperty("--holo-tx", (ry / 15).toFixed(3));
+  card.style.setProperty("--holo-ty", (-rx / 15).toFixed(3));
 }
 
 /* ── Card customization functions ── */
