@@ -4,6 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>BizForce AI — Business Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap"/>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -37,7 +40,7 @@
     /* ── Card preview fills viewport ── */
     #cardPreview{
       position:absolute;inset:0;width:100%;height:100%;
-      overflow:hidden;display:none;border-radius:20px;--border-weight:5px;
+      overflow:hidden;display:none;border-radius:20px;--border-weight:16px;
     }
     #cardPreview[data-theme="dark"]    {background:linear-gradient(160deg,#0c1228 0%,#070b18 100%)}
     #cardPreview[data-theme="midnight"]{background:linear-gradient(160deg,#1a1040 0%,#0f1729 100%)}
@@ -157,9 +160,12 @@
     .cv-btn-create{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#8892b8}
     .cv-btn-create:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.25);color:#e8e8ff}
 
-    /* ── Permanent branded gradient border ── */
-    .card-brand-border{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:20px;padding:var(--border-weight,5px);background:linear-gradient(135deg,#22d3ee,#a855f7,#ec4899,#22d3ee);background-size:300% 300%;animation:brandBorderFlow 4s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude}
+    /* ── Permanent branded gradient border — blue steel ── */
+    .card-brand-border{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:20px;padding:var(--border-weight,16px);background:linear-gradient(135deg,#1a3a5c,#4fc3f7,#0d47a1,#81d4fa,#1a3a5c);background-size:300% 300%;animation:brandBorderFlow 3s ease-in-out infinite;box-shadow:inset 0 1px 3px rgba(255,255,255,.35),inset 0 -1px 3px rgba(0,0,0,.5);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude}
     @keyframes brandBorderFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    /* ── Border stamp decorations ── */
+    .card-brand-border::before{content:"◆  ◆  ◆  ◆  ◆";position:absolute;top:0;left:0;right:0;height:var(--border-weight,16px);display:flex;align-items:center;justify-content:center;font-size:6px;color:#4fc3f7;letter-spacing:2px;text-shadow:0 0 6px rgba(79,195,247,.9)}
+    .card-brand-border::after{content:"BIZFORCE AI";position:absolute;bottom:0;left:0;right:0;height:var(--border-weight,16px);display:flex;align-items:center;justify-content:center;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:3px;color:#4fc3f7;text-shadow:0 0 8px rgba(79,195,247,.9)}
     /* ── Border styles ── */
     #cardPreview.border-glow{box-shadow:0 0 18px rgba(34,211,238,.55),0 0 40px rgba(34,211,238,.2),0 12px 40px rgba(0,0,0,.5)}
     #cardPreview.border-neon-pulse .card-brand-border{animation:brandBorderFlow 4s linear infinite,neonBorderPulse 1s ease-in-out infinite}
