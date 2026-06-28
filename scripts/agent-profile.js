@@ -230,7 +230,7 @@
     setMsg("Launching task…");
     setLive("running", "Launching…", "Sending to " + AGENT_LABEL);
 
-    fetch(API_URL + "/api/ai/tasks", {
+    fetch(API_URL + "/api/agents/run-task", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
