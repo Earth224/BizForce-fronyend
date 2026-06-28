@@ -38,7 +38,7 @@
     /* Card preview */
     .preview-panel{display:flex;flex-direction:column;gap:20px}
     .preview-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:0}
-    .card-preview{width:100%;max-width:624px;aspect-ratio:1.75;border-radius:20px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+    .card-preview{width:100%;max-width:624px;aspect-ratio:1.75;border-radius:20px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5);--border-weight:5px}
     .card-preview[data-theme="dark"]{background:linear-gradient(135deg,#0c1228,#070b18);border:1.5px solid rgba(34,211,238,.3)}
     .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729);border:1.5px solid rgba(168,85,247,.35)}
     .card-preview[data-theme="forest"]{background:linear-gradient(135deg,#0a1f14,#061a12);border:1.5px solid rgba(52,211,153,.32)}
@@ -229,27 +229,22 @@
     .card-preview.layout-minimal .card-name{font-size:clamp(1.1rem,3.5vw,1.55rem)!important}
     /* ── Background overlay ── */
     .card-overlay-layer{position:absolute;inset:0;background:#000;pointer-events:none;z-index:1;opacity:0}
-    /* ── Border styles ── */
-    .card-preview.border-none{border:none!important;box-shadow:0 12px 40px rgba(0,0,0,.5)!important}
-    .card-preview.border-neon-pulse{border-color:var(--card-accent-color,#22d3ee)!important;animation:neonPulseBorder 1.5s ease-in-out infinite}
-    @keyframes neonPulseBorder{
-      0%,100%{box-shadow:0 0 8px var(--card-accent-color,#22d3ee),0 0 22px var(--card-accent-color,#22d3ee),0 12px 40px rgba(0,0,0,.5)}
-      50%    {box-shadow:0 0 18px var(--card-accent-color,#22d3ee),0 0 55px var(--card-accent-color,#22d3ee),0 12px 40px rgba(0,0,0,.5)}
-    }
-    .card-preview.border-gold{border:1.5px solid #ffd700!important;box-shadow:0 0 14px rgba(255,215,0,.45),0 0 38px rgba(255,165,0,.22),0 12px 40px rgba(0,0,0,.5)!important}
-    .card-preview.border-holo-rainbow{border-width:2px!important;border-style:solid!important;animation:rainbowBorder 3s linear infinite}
-    @keyframes rainbowBorder{
-      0%  {border-color:#ff0080;box-shadow:0 0 12px #ff0080,0 12px 40px rgba(0,0,0,.5)}
-      16% {border-color:#ff8c00;box-shadow:0 0 12px #ff8c00,0 12px 40px rgba(0,0,0,.5)}
-      33% {border-color:#ffd700;box-shadow:0 0 12px #ffd700,0 12px 40px rgba(0,0,0,.5)}
-      50% {border-color:#00ff8c;box-shadow:0 0 12px #00ff8c,0 12px 40px rgba(0,0,0,.5)}
-      66% {border-color:#00cfff;box-shadow:0 0 12px #00cfff,0 12px 40px rgba(0,0,0,.5)}
-      83% {border-color:#8c00ff;box-shadow:0 0 12px #8c00ff,0 12px 40px rgba(0,0,0,.5)}
-      100%{border-color:#ff0080;box-shadow:0 0 12px #ff0080,0 12px 40px rgba(0,0,0,.5)}
-    }
-    /* combined holographic + animated borders */
-    .card-preview.holographic.border-neon-pulse{animation:holoGlow 3s ease-in-out infinite,neonPulseBorder 1.5s ease-in-out infinite}
-    .card-preview.holographic.border-holo-rainbow{animation:holoGlow 3s ease-in-out infinite,rainbowBorder 3s linear infinite}
+    /* ── Border styles (enhance the permanent brand border) ── */
+    /* glow: base border + cyan box-shadow */
+    .card-preview.border-glow{box-shadow:0 0 18px rgba(34,211,238,.55),0 0 40px rgba(34,211,238,.2),0 12px 40px rgba(0,0,0,.5)}
+    /* neon-pulse: border opacity pulses, box-shadow pulses */
+    .card-preview.border-neon-pulse .card-brand-border{animation:brandBorderFlow 4s linear infinite,neonBorderPulse 1s ease-in-out infinite}
+    @keyframes neonBorderPulse{0%,100%{opacity:1}50%{opacity:.25}}
+    .card-preview.border-neon-pulse{animation:neonPulseGlow 1s ease-in-out infinite}
+    @keyframes neonPulseGlow{0%,100%{box-shadow:0 0 8px rgba(34,211,238,.4),0 12px 40px rgba(0,0,0,.5)}50%{box-shadow:0 0 28px rgba(34,211,238,.9),0 0 55px rgba(34,211,238,.45),0 12px 40px rgba(0,0,0,.5)}}
+    /* gold: border becomes gold gradient */
+    .card-preview.border-gold .card-brand-border{background:linear-gradient(135deg,#ffd700,#ffb700,#ff8c00,#ffd700);background-size:300% 300%;animation:brandBorderFlow 4s linear infinite}
+    .card-preview.border-gold{box-shadow:0 0 14px rgba(255,215,0,.5),0 0 38px rgba(255,165,0,.25),0 12px 40px rgba(0,0,0,.5)}
+    /* holo-rainbow: border cycles full spectrum */
+    .card-preview.border-holo-rainbow .card-brand-border{background:linear-gradient(135deg,#ff0080,#ff8c00,#ffd700,#00ff8c,#00cfff,#8c00ff,#ff0080);background-size:400% 400%;animation:rainbowBorderFlow 3s linear infinite}
+    @keyframes rainbowBorderFlow{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+    /* combined holographic + neon-pulse */
+    .card-preview.holographic.border-neon-pulse{animation:holoGlow 3s ease-in-out infinite,neonPulseGlow 1s ease-in-out infinite}
     /* ── Customization panel UI ── */
     .cust-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:16px 0}
     .cust-wrap{display:flex;flex-direction:column;gap:14px}
@@ -281,7 +276,7 @@
     .card-audio-track{flex:1;min-width:0;font-size:.68rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
 
     /* ── Permanent branded gradient border ── */
-    .card-brand-border{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:20px;padding:5px;background:linear-gradient(135deg,#22d3ee,#a855f7,#ec4899,#22d3ee);background-size:300% 300%;animation:brandBorderFlow 4s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude}
+    .card-brand-border{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:20px;padding:var(--border-weight,5px);background:linear-gradient(135deg,#22d3ee,#a855f7,#ec4899,#22d3ee);background-size:300% 300%;animation:brandBorderFlow 4s linear infinite;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude}
     @keyframes brandBorderFlow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
     /* ── Card orientation: vertical ── */
@@ -472,7 +467,7 @@
     <div class="preview-panel">
       <div class="preview-label">Live Preview</div>
 
-      <div class="card-preview" id="cardPreview" data-theme="dark">
+      <div class="card-preview border-glow" id="cardPreview" data-theme="dark">
         <div id="cardBgLayer" class="card-bg-layer"></div>
         <div id="cardOverlayLayer" class="card-overlay-layer"></div>
         <div class="card-depth-fog" id="cardDepthFog"></div>
@@ -608,6 +603,17 @@
           </div>
         </div>
 
+        <!-- BORDER WEIGHT -->
+        <div>
+          <div class="cust-lbl">Border Weight</div>
+          <div class="cust-btn-row">
+            <button class="cust-btn"        data-bweight="2px" onclick="applyBorderWeight('2px')">Thin</button>
+            <button class="cust-btn"        data-bweight="3px" onclick="applyBorderWeight('3px')">Standard</button>
+            <button class="cust-btn active" data-bweight="5px" onclick="applyBorderWeight('5px')">Bold</button>
+            <button class="cust-btn"        data-bweight="8px" onclick="applyBorderWeight('8px')">Signature</button>
+          </div>
+        </div>
+
       </div>
       <hr class="cust-divider">
 
@@ -650,7 +656,7 @@ var bgImageUrl = null;
 var bgPosX = 50, bgPosY = 50, bgZoom = 100, bgFit = "cover";
 var vidPosX = 50, vidPosY = 50, vidScale = 100;
 var cardFont = "default", cardTextColor = "", cardAccentColor = "";
-var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow";
+var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow", borderWeight = "5px";
 var cardOrientation = "horizontal";
 var audioUrl = null, audioTrackName = "";
 var _fontLinks = {};
@@ -682,7 +688,7 @@ function getFields() {
       vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale,
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
-      audio_track_name: audioTrackName, orientation: cardOrientation
+      border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation
     }
   };
 }
@@ -776,7 +782,8 @@ function fillForm(card) {
     if (ml.accent_color) applyAccentColor(ml.accent_color);
     if (ml.card_layout && ml.card_layout !== "classic") applyCardLayout(ml.card_layout);
     if (ml.bg_overlay)   applyBgOverlay(+ml.bg_overlay);
-    if (ml.border_style && ml.border_style !== "glow") applyBorderStyle(ml.border_style);
+    if (ml.border_style) applyBorderStyle(ml.border_style);
+    if (ml.border_weight) applyBorderWeight(ml.border_weight);
     if (ml.orientation)  applyCardOrientation(ml.orientation);
   }
   if (card.bg_image_url) {
@@ -1119,9 +1126,18 @@ function applyBorderStyle(style) {
   borderStyle = style || "glow";
   var card = document.getElementById("cardPreview");
   _BORDERS.forEach(function(b) { card.classList.remove("border-" + b); });
-  if (borderStyle !== "glow") card.classList.add("border-" + borderStyle);
+  card.classList.add("border-" + borderStyle);
   document.querySelectorAll("[data-border]").forEach(function(b) {
     b.classList.toggle("active", b.dataset.border === borderStyle);
+  });
+}
+
+function applyBorderWeight(px) {
+  borderWeight = px || "5px";
+  var card = document.getElementById("cardPreview");
+  card.style.setProperty("--border-weight", borderWeight);
+  document.querySelectorAll("[data-bweight]").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.bweight === borderWeight);
   });
 }
 
