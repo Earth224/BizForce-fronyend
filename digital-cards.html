@@ -1866,74 +1866,6 @@ function togglePreviewVid() {
   }
 }
 
-async function uploadPitchVideo(file) {
-  var status   = document.getElementById("pitchVidStatus");
-  var prog     = document.getElementById("pitchVidProg");
-  var progWrap = document.getElementById("pitchVidProgWrap");
-  var nameEl   = document.getElementById("pitchVidName");
-  status.textContent = "Uploading…";
-  status.className = "vid-upload-st uploading";
-  progWrap.style.display = "block";
-  prog.style.width = "25%";
-  // Normalize content type: fallback to video/mp4 for empty, quicktime, or unrecognised
-  var ct = (file.type && file.type.startsWith("video/")) ? file.type : "video/mp4";
-  try {
-    var res = await fetch(API_URL + "/api/bfp/upload-url", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: ct })
-    });
-    if (!res.ok) {
-      var eb = ""; try { eb = await res.text(); } catch(_) {}
-      throw new Error("URL error " + res.status + (eb ? ": " + eb.slice(0, 140) : ""));
-    }
-    var d = await res.json();
-    prog.style.width = "55%";
-    var upRes = await fetch(d.signedUrl, {
-      method: "PUT",
-      headers: { "Content-Type": ct },
-      body: file
-    });
-    if (!upRes.ok) {
-      var ub = ""; try { ub = await upRes.text(); } catch(_) {}
-      throw new Error("Storage " + upRes.status + (ub ? ": " + ub.slice(0, 180) : ""));
-    }
-    prog.style.width = "100%";
-    videoUrl = d.publicUrl;
-    var vid = document.getElementById("cardVideoPitch");
-    vid.loop = true;
-    vid.autoplay = true;
-    vid.setAttribute("loop", "");
-    vid.setAttribute("playsinline", "");
-    vid.setAttribute("autoplay", "");
-    document.getElementById("vidPosControls").style.display = "block";
-    syncVidSliders();
-    applyVideoStyles();
-    nameEl.textContent = file.name;
-    status.textContent = "Uploaded!";
-    status.className = "vid-upload-st done";
-    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
-    showToast("Video uploaded!");
-    // 2s delay lets Supabase finish processing before src swap
-    setTimeout(function() {
-      var v = document.getElementById("cardVideoPitch");
-      console.log("[BF] uploadPitchVideo: assigning CDN URL to vid.src after 2s delay:", videoUrl);
-      v.src = videoUrl;
-      v.load();
-      console.log("[BF] uploadPitchVideo: vid.load() called");
-      var vp = v.play();
-      if (vp !== undefined) {
-        vp.then(function() { console.log("[BF] uploadPitchVideo: vid.play() resolved"); })
-          .catch(function(e) { console.error("[BF] uploadPitchVideo: vid.play() failed:", e); });
-      }
-    }, 2000);
-  } catch(e) {
-    status.textContent = e.message || "Upload failed";
-    status.className = "vid-upload-st fail";
-    progWrap.style.display = "none";
-    showToast(e.message || "Upload failed", true);
-  }
-}
 
 document.getElementById("fi-bg-img").addEventListener("change", function() {
   var file = this.files[0];
@@ -1945,21 +1877,16 @@ document.getElementById("fi-bg-img").addEventListener("change", function() {
 document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
-  var self = this;
-  self.value = "";
+  this.value = "";
 
-  var status  = document.getElementById("pitchVidStatus");
-  var nameEl  = document.getElementById("pitchVidName");
-
-  function fmtMB(bytes) { return (bytes / 1048576).toFixed(1) + " MB"; }
-
-  // Show filename + size immediately
-  nameEl.textContent = file.name + " (" + fmtMB(file.size) + ")";
+  var nameEl = document.getElementById("pitchVidName");
+  var status = document.getElementById("pitchVidStatus");
+  nameEl.textContent = file.name;
   status.textContent = "";
-  status.className   = "vid-upload-st";
+  status.className = "vid-upload-st";
 
-  // Preview blob immediately during user gesture so iOS Safari allows play()
   var blobUrl = URL.createObjectURL(file);
+  videoUrl = blobUrl;
   var vid = document.getElementById("cardVideoPitch");
   vid.loop = true;
   vid.playsInline = true;
@@ -1968,176 +1895,12 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   vid.setAttribute("playsinline", "");
   vid.setAttribute("autoplay", "");
   vid.src = blobUrl;
-  console.log("[BF] vid.src set to blob URL:", blobUrl);
   vid.load();
-  console.log("[BF] vid.load() called (blob)");
-  var _bvp = vid.play();
-  if (_bvp !== undefined) {
-    _bvp.then(function() { console.log("[BF] vid.play() resolved (blob)"); })
-        .catch(function(e) { console.error("[BF] Video play failed (blob):", e); });
-  }
+  vid.play().catch(function(e) { console.error("[BF] video play failed:", e); });
 
-  // No MediaRecorder → cannot compress; advise manual tool for large files
-  if (!window.MediaRecorder) {
-    if (file.size > 40 * 1048576) {
-      status.textContent = "Please compress your video before uploading — iPhone videos are too large. Use a free app like HandBrake or Video Compress.";
-      status.className   = "vid-upload-st fail";
-      nameEl.textContent = "No file chosen";
-      return;
-    }
-    checkDurationAndUpload(file);
-    return;
-  }
-
-  // Under 40 MB → upload directly
-  if (file.size <= 40 * 1048576) {
-    checkDurationAndUpload(file);
-    return;
-  }
-
-  // Over 40 MB → compress first
-  compressAndUpload(file);
-
-  function checkDurationAndUpload(f) {
-    var tmp    = document.createElement("video");
-    tmp.preload = "metadata";
-    var objUrl = URL.createObjectURL(f);
-    tmp.src    = objUrl;
-    tmp.onloadedmetadata = function() {
-      URL.revokeObjectURL(objUrl);
-      if (tmp.duration > 65) {
-        status.textContent = "Video must be 60 seconds or less";
-        status.className   = "vid-upload-st fail";
-        nameEl.textContent = "No file chosen";
-        return;
-      }
-      uploadPitchVideo(f);
-    };
-    tmp.onerror = function() { URL.revokeObjectURL(objUrl); uploadPitchVideo(f); };
-  }
-
-  function compressAndUpload(f) {
-    var prog     = document.getElementById("pitchVidProg");
-    var progWrap = document.getElementById("pitchVidProgWrap");
-
-    // Pick best supported codec
-    var mimeType = "";
-    var candidates = [
-      "video/webm;codecs=vp8",
-      "video/webm;codecs=vp9",
-      "video/webm",
-      "video/mp4"
-    ];
-    for (var i = 0; i < candidates.length; i++) {
-      if (MediaRecorder.isTypeSupported(candidates[i])) { mimeType = candidates[i]; break; }
-    }
-    if (!mimeType) {
-      // No supported codec — fall back to direct upload with warning
-      status.textContent = "Please compress your video before uploading — iPhone videos are too large. Use a free app like HandBrake or Video Compress.";
-      status.className   = "vid-upload-st fail";
-      nameEl.textContent = "No file chosen";
-      return;
-    }
-
-    status.textContent = "Compressing…";
-    status.className   = "vid-upload-st uploading";
-    progWrap.style.display = "block";
-    prog.style.width       = "0%";
-
-    var vid    = document.createElement("video");
-    vid.muted  = true;
-    vid.preload = "auto";
-    var srcUrl = URL.createObjectURL(f);
-    vid.src    = srcUrl;
-
-    vid.addEventListener("loadedmetadata", function() {
-      if (vid.duration > 65) {
-        URL.revokeObjectURL(srcUrl);
-        progWrap.style.display = "none";
-        status.textContent = "Video must be 60 seconds or less";
-        status.className   = "vid-upload-st fail";
-        nameEl.textContent = "No file chosen";
-        return;
-      }
-
-      var W = 854, H = 480;
-      // Preserve aspect ratio within 854×480 box
-      var aspect = vid.videoWidth / vid.videoHeight;
-      if (aspect > W / H) { H = Math.round(W / aspect); }
-      else                 { W = Math.round(H * aspect); }
-      // Round to even numbers (codec requirement)
-      W = W % 2 ? W - 1 : W;
-      H = H % 2 ? H - 1 : H;
-
-      var canvas  = document.createElement("canvas");
-      canvas.width  = W;
-      canvas.height = H;
-      var ctx = canvas.getContext("2d");
-
-      var stream   = canvas.captureStream(30);
-      var recorder = new MediaRecorder(stream, {
-        mimeType:        mimeType,
-        videoBitsPerSecond: 1500000   // 1.5 Mbps
-      });
-
-      var chunks = [];
-      recorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
-
-      recorder.onstop = function() {
-        URL.revokeObjectURL(srcUrl);
-        var ext      = mimeType.startsWith("video/mp4") ? "mp4" : "webm";
-        var outType  = mimeType.startsWith("video/mp4") ? "video/mp4" : "video/webm";
-        var blob     = new Blob(chunks, { type: outType });
-        var compFile = new File([blob], file.name.replace(/\.[^.]+$/, "") + "_compressed." + ext, { type: outType });
-        var origMB   = fmtMB(file.size);
-        var compMB   = fmtMB(compFile.size);
-        nameEl.textContent = file.name + " → " + compMB + " (was " + origMB + ")";
-        progWrap.style.display = "none";
-        prog.style.width = "0%";
-        status.textContent = "";
-        status.className = "vid-upload-st";
-        console.log("[BF] compression onstop: compressed file ready:", compFile.name, compFile.size + " bytes, type:", compFile.type);
-        uploadPitchVideo(compFile);
-      };
-
-      recorder.start(100); // collect chunks every 100ms
-
-      var duration  = vid.duration;
-      var startTime = null;
-      var raf;
-
-      function drawFrame(ts) {
-        if (!startTime) startTime = ts;
-        var elapsed = (ts - startTime) / 1000; // seconds
-        if (elapsed >= duration) {
-          cancelAnimationFrame(raf);
-          recorder.stop();
-          return;
-        }
-        ctx.drawImage(vid, 0, 0, W, H);
-        var pct = Math.min(95, Math.round((elapsed / duration) * 95));
-        prog.style.width = pct + "%";
-        raf = requestAnimationFrame(drawFrame);
-      }
-
-      vid.currentTime = 0;
-      vid.addEventListener("seeked", function onFirstSeek() {
-        vid.removeEventListener("seeked", onFirstSeek);
-        raf = requestAnimationFrame(drawFrame);
-        // Drive video playback in sync with rAF drawing
-        vid.playbackRate = 1;
-        vid.play().catch(function() {});
-      }, { once: true });
-    });
-
-    vid.addEventListener("error", function() {
-      URL.revokeObjectURL(srcUrl);
-      progWrap.style.display = "none";
-      status.textContent = "Could not read video file";
-      status.className   = "vid-upload-st fail";
-      nameEl.textContent = "No file chosen";
-    });
-  }
+  document.getElementById("vidPosControls").style.display = "block";
+  syncVidSliders();
+  applyVideoStyles();
 });
 
 document.getElementById("fi-audio").addEventListener("change", function() {
