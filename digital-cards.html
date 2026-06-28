@@ -62,9 +62,27 @@
     .card-preview[data-theme="ember"] .card-name{background:linear-gradient(135deg,#f97316,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
     .card-job{font-size:.65rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .card-tagline{font-size:.52rem;font-weight:500;color:rgba(255,255,255,.35);letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-    .sym-picker{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
-    .sym-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:4px;color:rgba(255,255,255,.75);width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;padding:0;transition:background .15s}
-    .sym-btn:hover{background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.4)}
+    /* ── Card Texture Layer ── */
+    .card-texture-layer{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:20px;display:none}
+    .texture-carbon  .card-texture-layer{display:block;background:repeating-linear-gradient(45deg,rgba(0,0,0,.3) 0px,rgba(0,0,0,.3) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(-45deg,rgba(0,0,0,.3) 0px,rgba(0,0,0,.3) 1px,transparent 1px,transparent 4px);background-size:4px 4px;opacity:.35}
+    .texture-metal   .card-texture-layer{display:block;background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0px,rgba(255,255,255,.07) 1px,transparent 1px,transparent 2px);opacity:.8}
+    .texture-leather .card-texture-layer{display:block;background:radial-gradient(ellipse 3px 3px at 1.5px 1.5px,rgba(0,0,0,.25) 0%,transparent 60%),radial-gradient(ellipse 3px 3px at 3px 4.5px,rgba(255,255,255,.04) 0%,transparent 60%);background-size:5px 5px;opacity:.6}
+    .texture-marble  .card-texture-layer{display:block;background:linear-gradient(132deg,rgba(255,255,255,.12) 0%,transparent 25%),linear-gradient(222deg,rgba(200,200,220,.08) 10%,transparent 35%),linear-gradient(47deg,rgba(255,255,255,.06) 20%,transparent 55%)}
+    .texture-circuit .card-texture-layer{display:block;background:linear-gradient(rgba(34,211,238,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.08) 1px,transparent 1px);background-size:14px 14px;opacity:.9}
+    .texture-holo    .card-texture-layer{display:block;background:linear-gradient(105deg,rgba(255,0,128,.12) 0%,rgba(0,255,255,.12) 25%,rgba(128,0,255,.12) 50%,rgba(255,200,0,.12) 75%,rgba(255,0,128,.12) 100%);background-size:300% 300%;animation:holoTexShift 3s linear infinite}
+    @keyframes holoTexShift{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+    .texture-linen   .card-texture-layer{display:block;background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0px,rgba(255,255,255,.05) 1px,transparent 1px,transparent 3px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0px,rgba(255,255,255,.05) 1px,transparent 1px,transparent 3px);background-size:3px 3px;opacity:.8}
+    .texture-glass   .card-texture-layer{display:block;background:radial-gradient(ellipse 90% 45% at 50% 0%,rgba(255,255,255,.14) 0%,transparent 100%),linear-gradient(180deg,rgba(255,255,255,.06) 0%,transparent 70%)}
+    /* ── Text Effects ── */
+    .text-fx-shadow  .card-name,.text-fx-shadow  .card-job,.text-fx-shadow  .card-company,.text-fx-shadow  .card-tagline,.text-fx-shadow  .card-contact-line{text-shadow:2px 2px 6px rgba(0,0,0,.9),0 1px 3px rgba(0,0,0,.7)}
+    .text-fx-outline .card-job,.text-fx-outline  .card-company,.text-fx-outline .card-tagline{-webkit-text-stroke:.5px rgba(255,255,255,.5);paint-order:stroke fill}
+    .text-fx-outline .card-name{-webkit-text-stroke:.5px rgba(255,255,255,.4);paint-order:stroke fill}
+    .text-fx-glow    .card-name,.text-fx-glow    .card-company{text-shadow:0 0 8px rgba(34,211,238,.7),0 0 20px rgba(34,211,238,.3)}
+    .text-fx-glow    .card-job,.text-fx-glow     .card-tagline,.text-fx-glow .card-contact-line{text-shadow:0 0 6px rgba(168,85,247,.6),0 0 16px rgba(168,85,247,.25)}
+    .text-fx-emboss  .card-name,.text-fx-emboss  .card-job,.text-fx-emboss  .card-company,.text-fx-emboss  .card-tagline{text-shadow:0 1px 0 rgba(255,255,255,.18),0 -1px 0 rgba(0,0,0,.6),1px 0 0 rgba(255,255,255,.08),-1px 0 0 rgba(0,0,0,.3)}
+    .text-fx-gradient .card-company,.text-fx-gradient .card-job,.text-fx-gradient .card-tagline,.text-fx-gradient .card-contact-line{background:linear-gradient(135deg,#ffd700 0%,#ff8c00 40%,#ff69b4 80%,#a78bfa 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+    /* ── Card divider ── */
+    .card-divider{width:100%;margin:3px 0;display:none}
     .card-contacts-block{display:flex;flex-direction:column;gap:4px;margin-top:auto}
     .card-contact-line{font-size:.58rem;color:rgba(255,255,255,.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
     .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.25)}
@@ -528,6 +546,7 @@
 
       <div class="card-preview border-glow" id="cardPreview" data-theme="dark">
         <div id="cardBgLayer" class="card-bg-layer"></div>
+        <div id="cardTextureLayer" class="card-texture-layer"></div>
         <div id="cardOverlayLayer" class="card-overlay-layer"></div>
         <div class="card-depth-fog" id="cardDepthFog"></div>
         <div class="card-specular" id="cardSpecular"></div>
@@ -535,6 +554,7 @@
           <div class="card-left">
             <div class="card-company" id="pCompany">YOUR COMPANY</div>
             <div class="card-name-block">
+              <div id="cardDivider" class="card-divider"></div>
               <div class="card-name" id="pName">Your Name</div>
               <div class="card-job" id="pTitle">Job Title</div>
               <div class="card-tagline" id="pTagline"></div>
@@ -656,40 +676,59 @@
           </select>
         </div>
 
-        <!-- SYMBOLS -->
+        <!-- DESIGN ELEMENTS -->
         <div>
-          <div class="cust-lbl">Symbols <span style="font-size:.65em;opacity:.55">click to insert</span></div>
-          <div class="sym-picker">
-            <button class="sym-btn" onclick="insertSymbol('★')" title="Black Star">★</button>
-            <button class="sym-btn" onclick="insertSymbol('☆')" title="White Star">☆</button>
-            <button class="sym-btn" onclick="insertSymbol('◆')" title="Black Diamond">◆</button>
-            <button class="sym-btn" onclick="insertSymbol('◇')" title="White Diamond">◇</button>
-            <button class="sym-btn" onclick="insertSymbol('●')" title="Black Circle">●</button>
-            <button class="sym-btn" onclick="insertSymbol('○')" title="White Circle">○</button>
-            <button class="sym-btn" onclick="insertSymbol('✦')" title="Four Point Star">✦</button>
-            <button class="sym-btn" onclick="insertSymbol('✧')" title="Four Point Star Outline">✧</button>
-            <button class="sym-btn" onclick="insertSymbol('⚡')" title="Lightning">⚡</button>
-            <button class="sym-btn" onclick="insertSymbol('✨')" title="Sparkles">✨</button>
-            <button class="sym-btn" onclick="insertSymbol('⚜')" title="Fleur-de-lis">⚜</button>
-            <button class="sym-btn" onclick="insertSymbol('♾')" title="Infinity">♾</button>
-            <button class="sym-btn" onclick="insertSymbol('☯')" title="Yin Yang">☯</button>
-            <button class="sym-btn" onclick="insertSymbol('👑')" title="Crown">👑</button>
-            <button class="sym-btn" onclick="insertSymbol('💎')" title="Diamond">💎</button>
-            <button class="sym-btn" onclick="insertSymbol('🔥')" title="Fire">🔥</button>
-            <button class="sym-btn" onclick="insertSymbol('⚔')" title="Crossed Swords">⚔</button>
-            <button class="sym-btn" onclick="insertSymbol('✴')" title="Eight Point Star">✴</button>
-            <button class="sym-btn" onclick="insertSymbol('❋')" title="Heavy Eight Petalled Flower">❋</button>
-            <button class="sym-btn" onclick="insertSymbol('⬡')" title="Hexagon">⬡</button>
-            <button class="sym-btn" onclick="insertSymbol('☥')" title="Ankh">☥</button>
-            <button class="sym-btn" onclick="insertSymbol('⊕')" title="Circled Plus">⊕</button>
-            <button class="sym-btn" onclick="insertSymbol('🔱')" title="Trident">🔱</button>
-            <button class="sym-btn" onclick="insertSymbol('✝')" title="Latin Cross">✝</button>
-            <button class="sym-btn" onclick="insertSymbol('⚫')" title="Black Circle">⚫</button>
-            <button class="sym-btn" onclick="insertSymbol('🌐')" title="Globe">🌐</button>
-            <button class="sym-btn" onclick="insertSymbol('❖')" title="Diamond Ornament">❖</button>
-            <button class="sym-btn" onclick="insertSymbol('✵')" title="Six Point Star">✵</button>
-            <button class="sym-btn" onclick="insertSymbol('✶')" title="Six Point Star Outline">✶</button>
-          </div>
+          <div class="cust-lbl">Decorative Divider</div>
+          <select class="cust-select" id="dividerSel" onchange="applyDivider(this.value)">
+            <option value="none">None</option>
+            <option value="straight">Straight Line</option>
+            <option value="double">Double Line</option>
+            <option value="dashed">Dashed</option>
+            <option value="dotted">Dotted</option>
+            <option value="diamond">Diamond Divider</option>
+            <option value="star">Star Divider</option>
+            <option value="ornate">Ornate Scroll</option>
+            <option value="wave">Wave Line</option>
+            <option value="zigzag">Zigzag</option>
+            <option value="arrow">Arrow Divider</option>
+            <option value="bracket">Bracket Divider</option>
+            <option value="fleur">Fleur Divider</option>
+          </select>
+        </div>
+        <div>
+          <div class="cust-lbl">Text Effect</div>
+          <select class="cust-select" id="textEffectSel" onchange="applyTextEffect(this.value)">
+            <option value="none">None</option>
+            <option value="shadow">Shadow</option>
+            <option value="outline">Outline</option>
+            <option value="glow">Glow</option>
+            <option value="emboss">Emboss</option>
+            <option value="gradient">Gradient Text</option>
+          </select>
+        </div>
+        <div>
+          <div class="cust-lbl">Card Texture</div>
+          <select class="cust-select" id="textureSel" onchange="applyTexture(this.value)">
+            <option value="none">None</option>
+            <option value="carbon">Carbon Fiber</option>
+            <option value="metal">Brushed Metal</option>
+            <option value="leather">Leather</option>
+            <option value="marble">Marble</option>
+            <option value="circuit">Circuit Board</option>
+            <option value="holo">Holographic Foil</option>
+            <option value="linen">Linen</option>
+            <option value="glass">Glass</option>
+          </select>
+        </div>
+        <div>
+          <div class="cust-lbl">Corner Style</div>
+          <select class="cust-select" id="cornerSel" onchange="applyCornerStyle(this.value)">
+            <option value="rounded">Rounded</option>
+            <option value="sharp">Sharp</option>
+            <option value="cut">Cut Corner</option>
+            <option value="scalloped">Scalloped</option>
+            <option value="pillow">Pillow</option>
+          </select>
         </div>
 
         <!-- TEXT COLOR -->
@@ -833,6 +872,10 @@ var FP_KEYS = ['company','name','title','tagline'];
 var FP_IDS  = {company:'fp-company',name:'fp-name',title:'fp-title',tagline:'fp-tagline'};
 var FP_ORIG = {company:'pCompany',name:'pName',title:'pTitle',tagline:'pTagline'};
 var FP_DEFAULT_SIZES = {company:10.4,name:16,title:10.4,tagline:8.3};
+var cardDividerStyle = "none";
+var cardTextEffect = "none";
+var cardTexture = "none";
+var cardCornerStyle = "rounded";
 var _fontLinks = {};
 var _LAYOUTS = ["classic","centered","minimal"];
 var _BORDERS = ["none","glow","neon-pulse","gold","holo-rainbow"];
@@ -867,7 +910,11 @@ function getFields() {
       vid_transition: vidTransition, tagline: cardTagline,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
-      free_position_mode: freePositionMode || undefined
+      free_position_mode: freePositionMode || undefined,
+      divider_style: cardDividerStyle !== "none"    ? cardDividerStyle  : undefined,
+      text_effect:   cardTextEffect   !== "none"    ? cardTextEffect    : undefined,
+      card_texture:  cardTexture      !== "none"    ? cardTexture       : undefined,
+      corner_style:  cardCornerStyle  !== "rounded" ? cardCornerStyle   : undefined
     }
   };
 }
@@ -981,6 +1028,10 @@ function fillForm(card) {
     if (ml.text_positions) textPositions = ml.text_positions;
     if (ml.text_sizes)     textSizes     = ml.text_sizes;
     _needFpMode = !!ml.free_position_mode;
+    if (ml.divider_style) applyDivider(ml.divider_style);
+    if (ml.text_effect)   applyTextEffect(ml.text_effect);
+    if (ml.card_texture)  applyTexture(ml.card_texture);
+    if (ml.corner_style)  applyCornerStyle(ml.corner_style);
   }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
@@ -1003,6 +1054,80 @@ function fillForm(card) {
   }
   updatePreview();
   if (_needFpMode) setFreePositionMode(true);
+}
+
+/* ── Design Elements ── */
+var DIVIDER_HTML = {
+  none:     '',
+  straight: '<div style="height:1px;background:rgba(255,255,255,.22)"></div>',
+  double:   '<div style="height:1px;background:rgba(255,255,255,.18)"></div><div style="height:3px"></div><div style="height:1px;background:rgba(255,255,255,.18)"></div>',
+  dashed:   '<div style="height:0;border-top:1px dashed rgba(255,255,255,.25)"></div>',
+  dotted:   '<div style="height:0;border-top:2px dotted rgba(255,255,255,.22)"></div>',
+  diamond:  '<div style="display:flex;align-items:center;gap:3px"><span style="flex:1;height:1px;background:rgba(255,255,255,.18)"></span><span style="color:rgba(255,255,255,.55);font-size:.48rem;line-height:1">◆</span><span style="flex:1;height:1px;background:rgba(255,255,255,.18)"></span></div>',
+  star:     '<div style="display:flex;align-items:center;gap:3px"><span style="flex:1;height:1px;background:rgba(255,255,255,.18)"></span><span style="color:rgba(255,255,255,.55);font-size:.48rem;line-height:1">✦</span><span style="flex:1;height:1px;background:rgba(255,255,255,.18)"></span></div>',
+  ornate:   '<div style="text-align:center;font-size:.44rem;color:rgba(255,255,255,.45);letter-spacing:2px;line-height:1">&#10086; &#10087; &#10086;</div>',
+  wave:     '<div style="text-align:center;font-size:.44rem;color:rgba(255,255,255,.38);letter-spacing:1px;line-height:1">&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;&#8767;</div>',
+  zigzag:   '<div style="text-align:center;font-size:.44rem;color:rgba(255,255,255,.38);letter-spacing:0;line-height:1">/\\/\\/\\/\\/\\/\\</div>',
+  arrow:    '<div style="display:flex;align-items:center;gap:3px"><span style="flex:1;height:1px;background:rgba(255,255,255,.15)"></span><span style="color:rgba(255,255,255,.5);font-size:.44rem;line-height:1;letter-spacing:3px">&#x203A; &#x203A; &#x203A;</span><span style="flex:1;height:1px;background:rgba(255,255,255,.15)"></span></div>',
+  bracket:  '<div style="display:flex;align-items:center;gap:2px"><span style="color:rgba(255,255,255,.45);font-size:.5rem;line-height:1">[</span><span style="flex:1;height:1px;background:rgba(255,255,255,.18)"></span><span style="color:rgba(255,255,255,.45);font-size:.5rem;line-height:1">]</span></div>',
+  fleur:    '<div style="display:flex;align-items:center;gap:3px"><span style="flex:1;height:1px;background:rgba(255,255,255,.15)"></span><span style="color:rgba(255,255,255,.5);font-size:.44rem;line-height:1;letter-spacing:4px">&#10038; &#10038; &#10038;</span><span style="flex:1;height:1px;background:rgba(255,255,255,.15)"></span></div>'
+};
+
+function applyDivider(style) {
+  cardDividerStyle = style || "none";
+  var el = document.getElementById("cardDivider");
+  if (!el) return;
+  if (cardDividerStyle === "none") {
+    el.style.display = "none";
+    el.innerHTML = "";
+  } else {
+    el.style.display = "block";
+    el.innerHTML = DIVIDER_HTML[cardDividerStyle] || "";
+  }
+  var sel = document.getElementById("dividerSel");
+  if (sel) sel.value = cardDividerStyle;
+}
+
+function applyTextEffect(effect) {
+  cardTextEffect = effect || "none";
+  var card = document.getElementById("cardPreview");
+  ["shadow","outline","glow","emboss","gradient"].forEach(function(e) {
+    card.classList.remove("text-fx-" + e);
+  });
+  if (cardTextEffect && cardTextEffect !== "none") card.classList.add("text-fx-" + cardTextEffect);
+  var sel = document.getElementById("textEffectSel");
+  if (sel) sel.value = cardTextEffect;
+}
+
+function applyTexture(texture) {
+  cardTexture = texture || "none";
+  var card = document.getElementById("cardPreview");
+  ["carbon","metal","leather","marble","circuit","holo","linen","glass"].forEach(function(t) {
+    card.classList.remove("texture-" + t);
+  });
+  if (cardTexture && cardTexture !== "none") card.classList.add("texture-" + cardTexture);
+  var sel = document.getElementById("textureSel");
+  if (sel) sel.value = cardTexture;
+}
+
+function applyCornerStyle(style) {
+  cardCornerStyle = style || "rounded";
+  var radMap = { rounded:"20px", sharp:"0", cut:"0", scalloped:"50px", pillow:"30px 30px 50px 50px" };
+  var radius = radMap[cardCornerStyle] || "20px";
+  var clip = cardCornerStyle === "cut" ?
+    "polygon(14px 0%,calc(100% - 14px) 0%,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px)" :
+    "none";
+  var card = document.getElementById("cardPreview");
+  card.style.borderRadius = radius;
+  card.style.clipPath = clip;
+  ["cardBgLayer","cardTextureLayer","cardOverlayLayer"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.borderRadius = radius;
+  });
+  var vidEl = document.getElementById("cardVideoPitch");
+  if (vidEl) vidEl.style.borderRadius = radius;
+  var sel = document.getElementById("cornerSel");
+  if (sel) sel.value = cardCornerStyle;
 }
 
 async function loadCard() {
