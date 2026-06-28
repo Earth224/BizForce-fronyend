@@ -306,7 +306,7 @@
     .custom-font-picker{position:relative;width:100%}
     .font-picker-selected{background:rgba(255,255,255,.03);border:1px solid rgba(226,232,240,.15);border-radius:8px;padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:#e2e8f0;font-size:.85rem;transition:border-color .2s}
     .font-picker-selected:hover{border-color:rgba(226,232,240,.3)}
-    .font-picker-arrow{color:rgba(226,232,240,.4);font-size:.7rem;transition:transform .2s;flex-shrink:0}
+    .font-picker-arrow{display:flex;align-items:center;transition:transform .2s;flex-shrink:0}
     .font-picker-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:320px;overflow-y:auto;background:#0a0a1a;border:1px solid rgba(226,232,240,.15);border-radius:8px;z-index:9999;scrollbar-width:thin;scrollbar-color:rgba(226,232,240,.2) transparent}
     .font-picker-dropdown.open{display:block}
     .font-picker-dropdown::-webkit-scrollbar{width:5px}
@@ -596,7 +596,7 @@
         </div>
         <div class="card-watermark">BIZFORCE AI</div>
         <!-- Video Mode elements -->
-        <video class="card-video-el" id="cardVideoPitch" loop muted playsinline></video>
+        <video class="card-video-el" id="cardVideoPitch" loop muted playsinline autoplay></video>
         <div class="card-video-overlay" id="cardVideoOverlay">
           <div class="card-video-grad"></div>
           <div class="card-video-text">
@@ -699,7 +699,7 @@
           <div class="custom-font-picker" id="customFontPicker">
             <div class="font-picker-selected" id="fontPickerSelected" onclick="toggleFontPicker()">
               <span id="fontPickerLabel">Default</span>
-              <span class="font-picker-arrow">&#9662;</span>
+              <span class="font-picker-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="#8892b8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             </div>
             <div class="font-picker-dropdown" id="fontPickerDropdown"></div>
           </div>
@@ -1897,14 +1897,16 @@ async function uploadPitchVideo(file) {
     videoUrl = d.publicUrl;
     var vid = document.getElementById("cardVideoPitch");
     vid.muted = true;
+    vid.loop = true;
+    vid.autoplay = true;
     vid.setAttribute("muted", "");
+    vid.setAttribute("loop", "");
     vid.setAttribute("playsinline", "");
+    vid.setAttribute("autoplay", "");
     vid.src = videoUrl;
-    if (videoMode) {
-      vid.load();
-      var vp = vid.play();
-      if (vp !== undefined) vp.catch(function(e) { console.error("[BF] uploadPitchVideo play() failed:", e); });
-    }
+    vid.load();
+    var vp = vid.play();
+    if (vp !== undefined) vp.catch(function(e) { console.error("[BF] uploadPitchVideo play() failed:", e); });
     document.getElementById("vidPosControls").style.display = "block";
     syncVidSliders();
     applyVideoStyles();
