@@ -367,7 +367,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
         Video Pitch
       </div>
-      <input type="file" id="fi-pitch-vid" accept="video/mp4,video/webm,video/*" style="display:none">
+      <input type="file" id="fi-pitch-vid" accept="video/mp4,video/quicktime,video/*" style="display:none">
       <div class="form-group">
         <label class="form-label">Elevator Pitch Video — 60 sec max</label>
         <div class="vid-upload-row">
@@ -1305,21 +1305,29 @@ async function uploadPitchVideo(file) {
   status.className = "vid-upload-st uploading";
   progWrap.style.display = "block";
   prog.style.width = "25%";
+  // Normalize content type: fallback to video/mp4 for empty, quicktime, or unrecognised
+  var ct = (file.type && file.type.startsWith("video/")) ? file.type : "video/mp4";
   try {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: ct })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) {
+      var eb = ""; try { eb = await res.text(); } catch(_) {}
+      throw new Error("URL error " + res.status + (eb ? ": " + eb.slice(0, 140) : ""));
+    }
     var d = await res.json();
     prog.style.width = "55%";
     var upRes = await fetch(d.signedUrl, {
       method: "PUT",
-      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      headers: { "Content-Type": ct },
       body: file
     });
-    if (!upRes.ok) throw new Error("Storage upload failed");
+    if (!upRes.ok) {
+      var ub = ""; try { ub = await upRes.text(); } catch(_) {}
+      throw new Error("Storage " + upRes.status + (ub ? ": " + ub.slice(0, 180) : ""));
+    }
     prog.style.width = "100%";
     videoUrl = d.publicUrl;
     var vid = document.getElementById("cardVideoPitch");
