@@ -1849,7 +1849,6 @@ function togglePreviewVid() {
   var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
   var ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   if (vid.paused) {
-    vid.load();
     var p = vid.play();
     if (p !== undefined) {
       p.then(function() {
@@ -1907,15 +1906,6 @@ async function uploadPitchVideo(file) {
     vid.setAttribute("loop", "");
     vid.setAttribute("playsinline", "");
     vid.setAttribute("autoplay", "");
-    console.log("[BF] uploadPitchVideo: assigning CDN URL to vid.src:", videoUrl);
-    vid.src = videoUrl;
-    vid.load();
-    console.log("[BF] uploadPitchVideo: vid.load() called");
-    var vp = vid.play();
-    if (vp !== undefined) {
-      vp.then(function() { console.log("[BF] uploadPitchVideo: vid.play() resolved"); })
-        .catch(function(e) { console.error("[BF] uploadPitchVideo: vid.play() failed:", e); });
-    }
     document.getElementById("vidPosControls").style.display = "block";
     syncVidSliders();
     applyVideoStyles();
@@ -1924,6 +1914,19 @@ async function uploadPitchVideo(file) {
     status.className = "vid-upload-st done";
     setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
     showToast("Video uploaded!");
+    // 2s delay lets Supabase finish processing before src swap
+    setTimeout(function() {
+      var v = document.getElementById("cardVideoPitch");
+      console.log("[BF] uploadPitchVideo: assigning CDN URL to vid.src after 2s delay:", videoUrl);
+      v.src = videoUrl;
+      v.load();
+      console.log("[BF] uploadPitchVideo: vid.load() called");
+      var vp = v.play();
+      if (vp !== undefined) {
+        vp.then(function() { console.log("[BF] uploadPitchVideo: vid.play() resolved"); })
+          .catch(function(e) { console.error("[BF] uploadPitchVideo: vid.play() failed:", e); });
+      }
+    }, 2000);
   } catch(e) {
     status.textContent = e.message || "Upload failed";
     status.className = "vid-upload-st fail";
