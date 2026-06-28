@@ -134,11 +134,64 @@
       -webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14);
       border-radius:10px;padding:6px}
 
-    #cardPreview.video-mode .card-inner{display:none}
-    #cardPreview.video-mode .card-watermark{display:none}
-    #cardPreview.video-mode .card-video-el{display:block}
-    #cardPreview.video-mode .card-video-overlay{display:flex}
-    #cardPreview.video-mode .card-video-qr-ov{display:block}
+    /* ── Video transition box ── */
+    #vidBox{position:absolute;inset:0;z-index:10;display:none;opacity:0;border-radius:20px;overflow:hidden;will-change:opacity,transform,clip-path,filter}
+    #vidBox.vt-active{opacity:1;pointer-events:auto}
+    #vidBox .card-video-el{display:block}
+    #vidBox .card-video-overlay{display:flex}
+    #vidBox .card-video-qr-ov{display:block}
+    /* Fade */
+    #cardPreview[data-vid-trans="fade"] #vidBox.vt-enter{animation:vtFadeIn .8s ease forwards}
+    #cardPreview[data-vid-trans="fade"] #vidBox.vt-exit{animation:vtFadeOut .8s ease forwards}
+    @keyframes vtFadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes vtFadeOut{from{opacity:1}to{opacity:0}}
+    /* Blur Dissolve */
+    #cardPreview[data-vid-trans="blur-dissolve"] #vidBox.vt-enter{animation:vtBlurIn .9s ease forwards}
+    #cardPreview[data-vid-trans="blur-dissolve"] #vidBox.vt-exit{animation:vtBlurOut .9s ease forwards}
+    @keyframes vtBlurIn{from{opacity:0;filter:blur(24px)}to{opacity:1;filter:blur(0)}}
+    @keyframes vtBlurOut{from{opacity:1;filter:blur(0)}to{opacity:0;filter:blur(24px)}}
+    /* Iris */
+    #cardPreview[data-vid-trans="iris"] #vidBox.vt-enter{animation:vtIrisIn .7s ease forwards;opacity:1}
+    #cardPreview[data-vid-trans="iris"] #vidBox.vt-exit{animation:vtIrisOut .7s ease forwards;opacity:1}
+    @keyframes vtIrisIn{from{clip-path:circle(0% at 50% 50%)}to{clip-path:circle(150% at 50% 50%)}}
+    @keyframes vtIrisOut{from{clip-path:circle(150% at 50% 50%)}to{clip-path:circle(0% at 50% 50%)}}
+    /* Glitch */
+    #cardPreview[data-vid-trans="glitch"] #vidBox.vt-enter{animation:vtGlitchIn .6s steps(8) forwards}
+    #cardPreview[data-vid-trans="glitch"] #vidBox.vt-exit{animation:vtGlitchOut .6s steps(8) forwards}
+    @keyframes vtGlitchIn{0%{opacity:0;transform:translateX(0) skewX(0)}20%{opacity:.9;transform:translateX(-8px) skewX(2deg);filter:hue-rotate(90deg)}40%{opacity:.4;transform:translateX(6px) skewX(-1deg);filter:hue-rotate(180deg)}60%{opacity:.8;transform:translateX(-3px) skewX(1deg);filter:hue-rotate(270deg)}80%{opacity:.7;transform:translateX(4px) skewX(-2deg);filter:none}100%{opacity:1;transform:translateX(0) skewX(0);filter:none}}
+    @keyframes vtGlitchOut{0%{opacity:1;transform:translateX(0);filter:none}25%{opacity:.8;transform:translateX(8px) skewX(-2deg);filter:hue-rotate(90deg)}50%{opacity:.3;transform:translateX(-6px) skewX(2deg);filter:hue-rotate(180deg)}75%{opacity:.6;transform:translateX(4px) skewX(-1deg);filter:hue-rotate(270deg)}100%{opacity:0;transform:translateX(-8px);filter:none}}
+    /* Swipe Left */
+    #cardPreview[data-vid-trans="swipe-left"] #vidBox.vt-enter{animation:vtSwipeLeftIn .5s cubic-bezier(.4,0,.2,1) forwards;opacity:1}
+    #cardPreview[data-vid-trans="swipe-left"] #vidBox.vt-exit{animation:vtSwipeLeftOut .5s cubic-bezier(.4,0,.2,1) forwards;opacity:1}
+    @keyframes vtSwipeLeftIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+    @keyframes vtSwipeLeftOut{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+    /* Swipe Up */
+    #cardPreview[data-vid-trans="swipe-up"] #vidBox.vt-enter{animation:vtSwipeUpIn .5s cubic-bezier(.4,0,.2,1) forwards;opacity:1}
+    #cardPreview[data-vid-trans="swipe-up"] #vidBox.vt-exit{animation:vtSwipeUpOut .5s cubic-bezier(.4,0,.2,1) forwards;opacity:1}
+    @keyframes vtSwipeUpIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    @keyframes vtSwipeUpOut{from{transform:translateY(0)}to{transform:translateY(100%)}}
+    /* Zoom In */
+    #cardPreview[data-vid-trans="zoom-in"] #vidBox.vt-enter{animation:vtZoomIn .7s cubic-bezier(.2,.8,.2,1) forwards}
+    #cardPreview[data-vid-trans="zoom-in"] #vidBox.vt-exit{animation:vtZoomOut .7s cubic-bezier(.2,.8,.2,1) forwards}
+    @keyframes vtZoomIn{from{opacity:0;transform:scale(.35)}to{opacity:1;transform:scale(1)}}
+    @keyframes vtZoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.35)}}
+    /* Color Burn */
+    #cardPreview[data-vid-trans="color-burn"] #vidBox.vt-enter{animation:vtBurnIn .8s ease forwards}
+    #cardPreview[data-vid-trans="color-burn"] #vidBox.vt-exit{animation:vtBurnOut .8s ease forwards}
+    @keyframes vtBurnIn{0%{opacity:0}40%{opacity:1;filter:brightness(4) saturate(0)}70%{opacity:1;filter:brightness(1.5) saturate(.5)}100%{opacity:1;filter:none}}
+    @keyframes vtBurnOut{0%{opacity:1;filter:none}30%{opacity:1;filter:brightness(1.5) saturate(.5)}60%{opacity:1;filter:brightness(4) saturate(0)}100%{opacity:0}}
+    /* Matrix */
+    #cardPreview[data-vid-trans="matrix"] #vidBox.vt-enter{animation:vtMatrixIn 1s steps(10) forwards}
+    #cardPreview[data-vid-trans="matrix"] #vidBox.vt-exit{animation:vtMatrixOut 1s steps(10) forwards}
+    @keyframes vtMatrixIn{0%{opacity:0;filter:hue-rotate(0deg) brightness(2) contrast(2) saturate(0)}40%{opacity:.7;filter:hue-rotate(120deg) brightness(2) contrast(2) saturate(5)}70%{opacity:.9;filter:hue-rotate(90deg) brightness(1.5) contrast(1.5) saturate(3)}100%{opacity:1;filter:none}}
+    @keyframes vtMatrixOut{0%{opacity:1;filter:none}30%{opacity:.9;filter:hue-rotate(90deg) brightness(1.5) contrast(1.5) saturate(3)}60%{opacity:.7;filter:hue-rotate(120deg) brightness(2) contrast(2) saturate(5)}100%{opacity:0;filter:hue-rotate(0deg) brightness(2) contrast(2) saturate(0)}}
+    /* Shatter */
+    #cardPreview[data-vid-trans="shatter"] #vidBox.vt-enter{animation:vtShatterIn .9s ease forwards;opacity:1}
+    #cardPreview[data-vid-trans="shatter"] #vidBox.vt-exit{animation:vtShatterOut .9s ease forwards;opacity:1}
+    @keyframes vtShatterIn{0%{clip-path:polygon(50% 50%,50% 50%,50% 50%,50% 50%);transform:scale(1.08)}30%{clip-path:polygon(10% 30%,80% 0%,100% 60%,40% 100%,0% 70%);transform:scale(1.04)}60%{clip-path:polygon(0% 10%,90% 0%,100% 90%,10% 100%);transform:scale(1.01)}100%{clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%);transform:scale(1)}}
+    @keyframes vtShatterOut{0%{clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%);transform:scale(1)}40%{clip-path:polygon(0% 10%,90% 0%,100% 90%,10% 100%);transform:scale(1.01)}70%{clip-path:polygon(10% 30%,80% 0%,100% 60%,40% 100%,0% 70%);transform:scale(1.04)}100%{clip-path:polygon(50% 50%,50% 50%,50% 50%,50% 50%);transform:scale(1.08)}}
+    /* ── Mobile full screen ── */
+    @media(max-width:430px){#cardPreview,#cvBgLayer,.card-video-el,.card-brand-border,#vidBox{border-radius:0!important}}
 
     /* ── Action buttons overlay at bottom ── */
     .card-actions{
@@ -233,19 +286,21 @@
       </div>
     </div>
     <div class="card-watermark">BIZFORCE AI</div>
-    <video class="card-video-el" id="cardVideo" autoplay loop muted playsinline></video>
-    <div class="card-video-overlay">
-      <div class="card-video-grad"></div>
-      <div class="card-video-text">
-        <div class="card-video-glass">
-          <div class="card-video-vname" id="pvName"></div>
-          <div class="card-video-vjob"  id="pvJob"></div>
-          <div class="card-video-vco"   id="pvCompany"></div>
+    <div id="vidBox">
+      <video class="card-video-el" id="cardVideo" muted playsinline onended="exitVideoMode()"></video>
+      <div class="card-video-overlay">
+        <div class="card-video-grad"></div>
+        <div class="card-video-text">
+          <div class="card-video-glass">
+            <div class="card-video-vname" id="pvName"></div>
+            <div class="card-video-vjob"  id="pvJob"></div>
+            <div class="card-video-vco"   id="pvCompany"></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="card-video-qr-ov">
-      <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+      <div class="card-video-qr-ov">
+        <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
+      </div>
     </div>
     <audio id="cvAudio" preload="none"></audio>
     <div id="cvAudioBar">
@@ -343,7 +398,7 @@ function renderCard(c) {
     document.getElementById("pvName").textContent    = c.full_name || "";
     document.getElementById("pvJob").textContent     = c.job_title || "";
     document.getElementById("pvCompany").textContent = (c.company  || "").toUpperCase();
-    card.classList.add("video-mode");
+    startVideoLoop(c);
   }
 
   if (c.audio_url) {
@@ -369,6 +424,57 @@ function toggleCvAudio() {
     document.getElementById("cvAudioPlayIco").style.display = "";
     document.getElementById("cvAudioPauseIco").style.display = "none";
   }
+}
+
+var _vtStyle = "fade";
+var _vtTimers = [];
+
+function _vtClear() { _vtTimers.forEach(clearTimeout); _vtTimers = []; }
+
+function _vtDur(s) {
+  return ({fade:800,"blur-dissolve":900,iris:700,glitch:600,"swipe-left":500,"swipe-up":500,"zoom-in":700,"color-burn":800,matrix:1000,shatter:900})[s] || 800;
+}
+
+function startVideoLoop(c) {
+  _vtClear();
+  var ml = c.media_layout || {};
+  _vtStyle = ml.vid_transition || "fade";
+  document.getElementById("cardPreview").dataset.vidTrans = _vtStyle;
+  _vtTimers.push(setTimeout(enterVideoMode, 2000));
+}
+
+function enterVideoMode() {
+  var vb = document.getElementById("vidBox");
+  var vid = document.getElementById("cardVideo");
+  if (vid.readyState < 2) {
+    vid.addEventListener("canplay", enterVideoMode, {once:true});
+    return;
+  }
+  vb.style.display = "block";
+  void vb.offsetWidth;
+  vid.currentTime = 0;
+  vid.play().catch(function(){});
+  vb.className = "vt-enter";
+  _vtTimers.push(setTimeout(function() {
+    vb.className = "vt-active";
+    vb.style.opacity = "1";
+  }, _vtDur(_vtStyle)));
+}
+
+function exitVideoMode() {
+  var vb = document.getElementById("vidBox");
+  var vid = document.getElementById("cardVideo");
+  vb.style.opacity = "1";
+  void vb.offsetWidth;
+  vb.className = "vt-exit";
+  _vtTimers.push(setTimeout(function() {
+    vid.pause();
+    vid.currentTime = 0;
+    vb.style.display = "none";
+    vb.style.opacity = "";
+    vb.className = "";
+    _vtTimers.push(setTimeout(enterVideoMode, 2000));
+  }, _vtDur(_vtStyle)));
 }
 
 function saveContact() {

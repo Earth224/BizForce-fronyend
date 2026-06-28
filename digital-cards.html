@@ -620,6 +620,23 @@
           </div>
         </div>
 
+        <!-- TRANSITION STYLE -->
+        <div>
+          <div class="cust-lbl">Transition Style <span style="font-size:.55rem;font-weight:500;color:#4a5380;text-transform:none;letter-spacing:0">— video dissolve on card-view</span></div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">
+            <button class="cust-btn active" data-vtrans="fade"         onclick="applyVidTransition('fade')">Fade</button>
+            <button class="cust-btn"        data-vtrans="blur-dissolve" onclick="applyVidTransition('blur-dissolve')">Blur</button>
+            <button class="cust-btn"        data-vtrans="iris"          onclick="applyVidTransition('iris')">Iris</button>
+            <button class="cust-btn"        data-vtrans="glitch"        onclick="applyVidTransition('glitch')">Glitch</button>
+            <button class="cust-btn"        data-vtrans="swipe-left"    onclick="applyVidTransition('swipe-left')">Swipe ←</button>
+            <button class="cust-btn"        data-vtrans="swipe-up"      onclick="applyVidTransition('swipe-up')">Swipe ↑</button>
+            <button class="cust-btn"        data-vtrans="zoom-in"       onclick="applyVidTransition('zoom-in')">Zoom</button>
+            <button class="cust-btn"        data-vtrans="color-burn"    onclick="applyVidTransition('color-burn')">Burn</button>
+            <button class="cust-btn"        data-vtrans="matrix"        onclick="applyVidTransition('matrix')">Matrix</button>
+            <button class="cust-btn"        data-vtrans="shatter"       onclick="applyVidTransition('shatter')">Shatter</button>
+          </div>
+        </div>
+
       </div>
       <hr class="cust-divider">
 
@@ -664,6 +681,7 @@ var vidPosX = 50, vidPosY = 50, vidScale = 100;
 var cardFont = "default", cardTextColor = "", cardAccentColor = "";
 var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow", borderWeight = "16px";
 var cardOrientation = "horizontal";
+var vidTransition = "fade";
 var audioUrl = null, audioTrackName = "";
 var _fontLinks = {};
 var _LAYOUTS = ["classic","centered","minimal"];
@@ -694,7 +712,8 @@ function getFields() {
       vid_pos_x: vidPosX, vid_pos_y: vidPosY, vid_scale: vidScale,
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
-      border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation
+      border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation,
+      vid_transition: vidTransition
     }
   };
 }
@@ -791,6 +810,7 @@ function fillForm(card) {
     if (ml.border_style) applyBorderStyle(ml.border_style);
     if (ml.border_weight) applyBorderWeight(ml.border_weight);
     if (ml.orientation)  applyCardOrientation(ml.orientation);
+    if (ml.vid_transition) applyVidTransition(ml.vid_transition);
   }
   if (card.bg_image_url) {
     bgImageUrl = card.bg_image_url;
@@ -1144,6 +1164,13 @@ function applyBorderWeight(px) {
   card.style.setProperty("--border-weight", borderWeight);
   document.querySelectorAll("[data-bweight]").forEach(function(b) {
     b.classList.toggle("active", b.dataset.bweight === borderWeight);
+  });
+}
+
+function applyVidTransition(style) {
+  vidTransition = style || "fade";
+  document.querySelectorAll("[data-vtrans]").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.vtrans === vidTransition);
   });
 }
 
