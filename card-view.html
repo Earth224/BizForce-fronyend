@@ -465,7 +465,12 @@ function renderCard(c) {
   }, function() {});
 
   if (c.video_url) {
-    document.getElementById("cardVideo").src = c.video_url;
+    var cvid = document.getElementById("cardVideo");
+    cvid.muted = true;
+    cvid.setAttribute("muted", "");
+    cvid.setAttribute("playsinline", "");
+    cvid.src = c.video_url;
+    cvid.load();
     document.getElementById("pvName").textContent    = c.full_name || "";
     document.getElementById("pvJob").textContent     = c.job_title || "";
     document.getElementById("pvCompany").textContent = (c.company  || "").toUpperCase();
@@ -541,7 +546,8 @@ function enterVideoMode() {
   vb.style.display = "block";
   void vb.offsetWidth;
   vid.currentTime = 0;
-  vid.play().catch(function(){});
+  var ep = vid.play();
+  if (ep !== undefined) ep.catch(function(e) { console.error("[BF] enterVideoMode play() failed:", e); });
   vb.className = "vt-enter";
   _vtTimers.push(setTimeout(function() {
     vb.className = "vt-active";
@@ -559,7 +565,8 @@ function pauseVideo() {
 function resumeVideo() {
   _vtState = "playing";
   setRing(false);
-  document.getElementById("cardVideo").play().catch(function(){});
+  var rp = document.getElementById("cardVideo").play();
+  if (rp !== undefined) rp.catch(function(e) { console.error("[BF] resumeVideo play() failed:", e); });
 }
 
 function exitVideoMode() {
