@@ -639,6 +639,20 @@
         <video class="card-video-el" id="cardVideoPitch" playsinline autoplay></video>
         <img id="cardPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:4;border-radius:20px;display:none;pointer-events:none;background:#000">
         <div id="cardPosterOverlay" style="position:absolute;inset:0;z-index:5;border-radius:20px;pointer-events:none;display:none"></div>
+        <div id="posterTextLayer" style="position:absolute;inset:0;z-index:9;border-radius:20px;pointer-events:none;display:none;overflow:hidden">
+          <div style="position:absolute;bottom:0;left:0;right:0;height:72%;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.52) 45%,transparent 100%);border-radius:0 0 20px 20px"></div>
+          <div style="position:absolute;top:0;left:0;right:0;height:28%;background:linear-gradient(to bottom,rgba(0,0,0,.62) 0%,transparent 100%);border-radius:20px 20px 0 0"></div>
+          <div style="position:absolute;top:13px;left:16px;right:16px">
+            <div id="ptlCompany" style="font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--card-accent-color,#22d3ee);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          </div>
+          <div style="position:absolute;bottom:13px;left:16px;right:16px">
+            <div id="ptlName" style="font-size:1.1rem;font-weight:800;line-height:1.15;margin-bottom:2px;color:var(--card-text-color,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="ptlTitle" style="font-size:.68rem;font-weight:400;opacity:.82;margin-bottom:5px;color:var(--card-text-color,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="ptlTagline" style="font-size:.6rem;font-style:italic;opacity:.65;margin-bottom:7px;display:none;color:var(--card-text-color,#fff);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+            <div id="ptlDivider" style="height:1px;background:rgba(255,255,255,.22);margin-bottom:7px;display:none"></div>
+            <div id="ptlContact" style="display:flex;flex-direction:column;gap:3px;color:var(--card-text-color,#fff)"></div>
+          </div>
+        </div>
         <div class="card-video-overlay" id="cardVideoOverlay">
           <div class="card-video-grad"></div>
           <div class="card-video-text">
@@ -887,6 +901,10 @@
           </div>
           <div class="cust-lbl" style="margin-top:8px">Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
           <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillOverlaySlider" min="0" max="100" value="0" oninput="applyStillOverlay(+this.value)">
+          <div class="media-ctrl-row" style="margin-top:10px">
+            <span class="media-ctrl-lbl">Text Overlay</span>
+            <label class="vid-sw-wrap"><input type="checkbox" class="vid-sw-input" id="stillTextToggle" onchange="setStillTextOverlay(this.checked)"></label>
+          </div>
         </div>
 
         <!-- TRANSITION STYLE -->
@@ -974,6 +992,7 @@ var _ssDragging = false, _ssDragMoved = false;
 var _ssDragX = 0, _ssDragY = 0, _ssDragStartPX = 50, _ssDragStartPY = 50;
 var vidDuration = 0, vidTrimStart = 0, vidTrimEnd = null;
 var _vlDragging = null, _vlLooping = false, _vlLoopCallback = null, _editorPlaying = false;
+var stillTextVisible = false;
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -1028,6 +1047,7 @@ function getFields() {
       still_img_mode:  stillImgMode  !== 'fill' ? stillImgMode : undefined,
       trim_start: vidTrimStart > 0 ? vidTrimStart : undefined,
       trim_end:   vidTrimEnd !== null ? vidTrimEnd : undefined,
+      still_text_visible: stillTextVisible || undefined,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1060,6 +1080,7 @@ function updatePreview() {
   clearTimeout(qrTimer);
   qrTimer = setTimeout(generateQR, 400);
   if (freePositionMode) syncFpOverlay();
+  syncStillText();
 }
 
 async function generateQR() {
@@ -1146,6 +1167,7 @@ function fillForm(card) {
     if (ml.still_img_zoom  !== undefined) stillImgZoom  = +ml.still_img_zoom;
     if (ml.trim_start !== undefined) vidTrimStart = +ml.trim_start; else vidTrimStart = 0;
     if (ml.trim_end   !== undefined) vidTrimEnd   = +ml.trim_end;   else vidTrimEnd   = null;
+    if (ml.still_text_visible) setStillTextOverlay(true);
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
@@ -2008,6 +2030,12 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
       vid.currentTime = 0;
       var inner = card.querySelector('.card-inner');
       if (inner) inner.style.display = 'flex';
+      if (stillTextVisible) {
+        var ptl3 = document.getElementById("posterTextLayer");
+        syncStillText();
+        if (ptl3) ptl3.style.display = "block";
+        if (inner) inner.style.display = "none";
+      }
       cardState = 'still';
       document.getElementById("vidEditorPanel").style.display = "block";
       vlUpdateUI();
@@ -2450,6 +2478,8 @@ function startTransitionIn() {
   var dur   = Math.round(transitionDuration * 1000);
 
   if (inner) inner.style.display = 'none';
+  var ptl = document.getElementById("posterTextLayer");
+  if (ptl) ptl.style.display = "none";
   _syncOverlay(false);
 
   // Snap poster to clean fully-visible state, clear all leftover inline styles
@@ -2505,7 +2535,14 @@ function startTransitionOut() {
 
   setTimeout(function() {
     pImg.style.transition = 'none';
-    if (inner) inner.style.display = 'flex';
+    if (stillTextVisible) {
+      var ptl2 = document.getElementById("posterTextLayer");
+      syncStillText();
+      if (ptl2) ptl2.style.display = "block";
+      if (inner) inner.style.display = "none";
+    } else {
+      if (inner) inner.style.display = 'flex';
+    }
     _syncOverlay(true);
     cardState = 'still';
     if (_vlLoopCallback) { var cb = _vlLoopCallback; _vlLoopCallback = null; cb(); }
@@ -2567,6 +2604,52 @@ document.addEventListener("touchmove", function(e) {
   applyStillImgStyle();
 }, {passive: true});
 document.addEventListener("touchend", function() { _ssDragging = false; });
+
+/* ── Poster Text Overlay ── */
+function syncStillText() {
+  if (!stillTextVisible) return;
+  var name    = (document.getElementById("fName")    || {}).value || "";
+  var title   = (document.getElementById("fTitle")   || {}).value || "";
+  var company = (document.getElementById("fCompany") || {}).value || "";
+  var email   = (document.getElementById("fEmail")   || {}).value || "";
+  var phone   = (document.getElementById("fPhone")   || {}).value || "";
+  var website = (document.getElementById("fWebsite") || {}).value || "";
+  var tg      = cardTagline || "";
+  document.getElementById("ptlCompany").textContent = company ? company.toUpperCase() : "";
+  document.getElementById("ptlName").textContent    = name || "Your Name";
+  document.getElementById("ptlTitle").textContent   = title;
+  var tagEl = document.getElementById("ptlTagline");
+  if (tg) { tagEl.textContent = tg; tagEl.style.display = "block"; }
+  else     { tagEl.style.display = "none"; }
+  var contact = document.getElementById("ptlContact");
+  contact.innerHTML = "";
+  [email, phone, website].filter(Boolean).forEach(function(v) {
+    var d = document.createElement("div");
+    d.style.cssText = "font-size:.58rem;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+    d.textContent = v;
+    contact.appendChild(d);
+  });
+  var divEl = document.getElementById("ptlDivider");
+  if (divEl) divEl.style.display = (email || phone || website) ? "block" : "none";
+}
+
+function setStillTextOverlay(on) {
+  stillTextVisible = on;
+  var cb    = document.getElementById("stillTextToggle");
+  var layer = document.getElementById("posterTextLayer");
+  var inner = document.getElementById("cardPreview").querySelector(".card-inner");
+  if (cb) cb.checked = on;
+  if (cardState === "still") {
+    if (on) {
+      syncStillText();
+      if (layer) layer.style.display = "block";
+      if (inner) inner.style.display = "none";
+    } else {
+      if (layer) layer.style.display = "none";
+      if (inner) inner.style.display = "flex";
+    }
+  }
+}
 
 /* ── Video Editor ── */
 function vlFmt(sec) {
