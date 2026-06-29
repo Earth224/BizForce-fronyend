@@ -6,6 +6,9 @@
   <title>BizForce AI — Flyer Generator</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700;900&family=Dancing+Script:wght@700&family=Montserrat:wght@700;800;900&family=Oswald:wght@600;700&family=Playfair+Display:wght@700;800;900&family=Raleway:wght@700;800;900&family=Roboto:wght@700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -58,9 +61,32 @@
 
     /* Preview panel */
     .preview-panel{display:flex;flex-direction:column;gap:18px}
-    .preview-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-    .ctrl-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8}
+    .preview-controls{display:flex;flex-direction:column;gap:14px}
+    .ctrl-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:0}
+    .ctrl-group{display:flex;flex-direction:column;gap:8px}
     .color-btns{display:flex;gap:8px}
+
+    /* Font picker */
+    .font-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .font-row::-webkit-scrollbar{display:none}
+    .font-btn{flex-shrink:0;padding:6px 11px;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);color:#8892b8;transition:all .2s;white-space:nowrap;line-height:1}
+    .font-btn:hover{border-color:rgba(0,229,255,.25);color:#e8e8ff}
+    .font-btn.active{border-color:rgba(0,229,255,.5);background:rgba(0,229,255,.08);color:#22d3ee}
+
+    /* Color overrides */
+    .two-col-ctrl{display:flex;gap:16px;flex-wrap:wrap}
+    .two-col-ctrl>div{flex:1;min-width:120px}
+    .color-override-row{display:flex;align-items:center;gap:8px}
+    .color-swatch-btn{display:inline-block;width:30px;height:30px;border-radius:7px;border:1.5px solid rgba(255,255,255,.15);cursor:pointer;position:relative;overflow:hidden;flex-shrink:0}
+    .color-swatch-btn input[type=color]{position:absolute;inset:-4px;width:calc(100% + 8px);height:calc(100% + 8px);opacity:0;cursor:pointer;border:none;padding:0}
+    .reset-btn{padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#8892b8;font-size:.7rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .reset-btn:hover{border-color:rgba(0,229,255,.25);color:#e8e8ff}
+
+    /* Size picker */
+    .size-btns{display:flex;gap:6px;flex-wrap:wrap}
+    .size-btn{padding:6px 12px;border-radius:7px;font-size:.73rem;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);color:#8892b8;transition:all .2s}
+    .size-btn:hover{border-color:rgba(0,229,255,.25);color:#e8e8ff}
+    .size-btn.active{border-color:rgba(0,229,255,.5);background:rgba(0,229,255,.08);color:#22d3ee}
     .color-btn{padding:7px 14px;border-radius:8px;font-size:.75rem;font-weight:800;letter-spacing:.06em;cursor:pointer;font-family:inherit;border:1.5px solid transparent;transition:all .2s;text-transform:uppercase}
     .color-btn[data-color="neon"]{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.25);color:#22d3ee}
     .color-btn[data-color="neon"].active{border-color:#22d3ee;box-shadow:0 0 12px rgba(34,211,238,.25)}
@@ -482,8 +508,10 @@
     <!-- Preview panel -->
     <div class="preview-panel">
       <div class="preview-controls">
-        <div>
-          <div class="ctrl-label" style="margin-bottom:10px">Color Theme</div>
+
+        <!-- Color Theme -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">Color Theme</div>
           <div class="color-btns">
             <button class="color-btn active" data-color="neon"    onclick="setColor(this,'neon')">Neon</button>
             <button class="color-btn"        data-color="crimson" onclick="setColor(this,'crimson')">Crimson</button>
@@ -491,6 +519,56 @@
             <button class="color-btn"        data-color="gold"    onclick="setColor(this,'gold')">Gold</button>
           </div>
         </div>
+
+        <!-- Font Family -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">Font Family</div>
+          <div class="font-row">
+            <button class="font-btn active" data-font="" onclick="setFont(this)">Default</button>
+            <button class="font-btn" data-font="Montserrat,sans-serif" style="font-family:Montserrat,sans-serif" onclick="setFont(this)">Montserrat</button>
+            <button class="font-btn" data-font="'Playfair Display',serif" style="font-family:'Playfair Display',serif" onclick="setFont(this)">Playfair</button>
+            <button class="font-btn" data-font="Oswald,sans-serif" style="font-family:Oswald,sans-serif" onclick="setFont(this)">Oswald</button>
+            <button class="font-btn" data-font="Raleway,sans-serif" style="font-family:Raleway,sans-serif" onclick="setFont(this)">Raleway</button>
+            <button class="font-btn" data-font="'Bebas Neue',sans-serif" style="font-family:'Bebas Neue',sans-serif" onclick="setFont(this)">Bebas Neue</button>
+            <button class="font-btn" data-font="Roboto,sans-serif" style="font-family:Roboto,sans-serif" onclick="setFont(this)">Roboto</button>
+            <button class="font-btn" data-font="Cinzel,serif" style="font-family:Cinzel,serif" onclick="setFont(this)">Cinzel</button>
+            <button class="font-btn" data-font="'Dancing Script',cursive" style="font-family:'Dancing Script',cursive" onclick="setFont(this)">Dancing Script</button>
+          </div>
+        </div>
+
+        <!-- Text + Accent color overrides -->
+        <div class="two-col-ctrl">
+          <div class="ctrl-group">
+            <div class="ctrl-label">Text Color</div>
+            <div class="color-override-row">
+              <label class="color-swatch-btn" id="textSwatch" style="background:#f4f7ff">
+                <input type="color" id="textColorPick" value="#f4f7ff" oninput="setTextColor(this.value)">
+              </label>
+              <button class="reset-btn" onclick="resetTextColor()">Reset</button>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <div class="ctrl-label">Accent Color</div>
+            <div class="color-override-row">
+              <label class="color-swatch-btn" id="accentSwatch" style="background:#22d3ee">
+                <input type="color" id="accentColorPick" value="#22d3ee" oninput="setAccentColor(this.value)">
+              </label>
+              <button class="reset-btn" onclick="resetAccentColor()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flyer Size -->
+        <div class="ctrl-group">
+          <div class="ctrl-label">Flyer Size</div>
+          <div class="size-btns">
+            <button class="size-btn" data-size="square"    onclick="setSize(this)">Square 1:1</button>
+            <button class="size-btn active" data-size="portrait"  onclick="setSize(this)">Portrait A4</button>
+            <button class="size-btn" data-size="story"     onclick="setSize(this)">Story 9:16</button>
+            <button class="size-btn" data-size="landscape" onclick="setSize(this)">Landscape</button>
+          </div>
+        </div>
+
       </div>
 
       <div class="flyer-frame">
@@ -538,6 +616,12 @@ var activeTpl   = "event-night";
 var activeColor = "neon";
 var activeFlyerId = null;
 var updateTimer = null;
+
+var activeFont         = "";
+var overrideTextColor  = null;
+var overrideAccentColor = null;
+var activeSize = "portrait";
+var SIZES = { square:"1/1", portrait:"1/1.414", story:"9/16", landscape:"16/9" };
 
 /* ── Color palettes ── */
 var COLORS = {
@@ -909,7 +993,8 @@ function renderPolitical(f, c) {
 /* ── Render dispatcher ── */
 function renderFlyer() {
   var f = getF();
-  var c = COLORS[activeColor];
+  var c = Object.assign({}, COLORS[activeColor]);
+  if (overrideAccentColor) c.accent = overrideAccentColor;
   var html = "";
   if      (activeTpl === "event-night")          html = renderEventNight(f, c);
   else if (activeTpl === "grand-opening")        html = renderGrandOpening(f, c);
@@ -923,7 +1008,22 @@ function renderFlyer() {
   else if (activeTpl === "job-hiring")           html = renderJobHiring(f, c);
   else if (activeTpl === "digital-announcement") html = renderDigitalAnnouncement(f, c);
   else                                            html = renderPolitical(f, c);
-  document.getElementById("flyerPreview").innerHTML = html;
+  var el = document.getElementById("flyerPreview");
+  el.innerHTML = html;
+  // Post-process: apply font and text-color overrides
+  var inner = el.firstElementChild;
+  if (inner) {
+    if (activeFont) inner.style.fontFamily = activeFont;
+    if (overrideTextColor) {
+      inner.querySelectorAll("h1").forEach(function(h) {
+        h.style.background = "none";
+        h.style.webkitBackgroundClip = "unset";
+        h.style.backgroundClip = "unset";
+        h.style.webkitTextFillColor = overrideTextColor;
+        h.style.color = overrideTextColor;
+      });
+    }
+  }
 }
 
 /* ── Controls ── */
@@ -938,7 +1038,53 @@ function setColor(btn, color) {
   document.querySelectorAll(".color-btn").forEach(function(b) { b.classList.remove("active"); });
   btn.classList.add("active");
   activeColor = color;
+  if (!overrideAccentColor) {
+    var def = COLORS[color].accent;
+    document.getElementById("accentColorPick").value = def;
+    document.getElementById("accentSwatch").style.background = def;
+  }
   renderFlyer();
+}
+
+function setFont(btn) {
+  document.querySelectorAll(".font-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  activeFont = btn.dataset.font || "";
+  renderFlyer();
+}
+
+function setTextColor(val) {
+  overrideTextColor = val;
+  document.getElementById("textSwatch").style.background = val;
+  renderFlyer();
+}
+
+function resetTextColor() {
+  overrideTextColor = null;
+  document.getElementById("textColorPick").value = "#f4f7ff";
+  document.getElementById("textSwatch").style.background = "#f4f7ff";
+  renderFlyer();
+}
+
+function setAccentColor(val) {
+  overrideAccentColor = val;
+  document.getElementById("accentSwatch").style.background = val;
+  renderFlyer();
+}
+
+function resetAccentColor() {
+  overrideAccentColor = null;
+  var def = COLORS[activeColor].accent;
+  document.getElementById("accentColorPick").value = def;
+  document.getElementById("accentSwatch").style.background = def;
+  renderFlyer();
+}
+
+function setSize(btn) {
+  document.querySelectorAll(".size-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  activeSize = btn.dataset.size;
+  document.getElementById("flyerPreview").style.aspectRatio = SIZES[activeSize];
 }
 
 /* ── Input listeners ── */
