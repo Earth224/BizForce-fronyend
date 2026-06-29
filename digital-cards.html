@@ -340,7 +340,7 @@
     .dc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
     /* ── Card audio bar ── */
-    .card-audio-bar{position:absolute;left:0;right:0;bottom:0;z-index:22;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(7,11,24,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(34,211,238,.18)}
+    .card-audio-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 14px;background:rgba(7,11,24,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(34,211,238,.18);border-radius:10px;margin-top:10px}
     .card-audio-btn{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:50%;cursor:pointer;color:#22d3ee;transition:background .2s;padding:0}
     .card-audio-btn:hover{background:rgba(34,211,238,.22)}
     .card-audio-btn svg{width:14px;height:14px}
@@ -391,6 +391,9 @@
     .card-preview.free-pos .card-name-block{opacity:0;pointer-events:none}
     .fp-el{touch-action:none}
     .fp-el.fp-selected{outline:1px dashed rgba(244,114,182,.55);outline-offset:2px}
+    #cardVideoPitch::-webkit-media-controls,
+    #cardVideoPitch::-webkit-media-controls-enclosure,
+    #cardVideoPitch::-webkit-media-controls-panel{display:none !important;opacity:0 !important}
   </style>
 </head>
 <body>
@@ -630,14 +633,6 @@
         <div class="card-video-qr-ov" id="cardVideoQR">
           <canvas id="qrVideoCanvas" width="52" height="52"></canvas>
         </div>
-        <audio id="cardAudio" preload="none"></audio>
-        <div id="cardAudioBar" class="card-audio-bar" style="display:none">
-          <button class="card-audio-btn" id="cardAudioBtn" onclick="toggleCardAudio()">
-            <svg id="audioPlayIco" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <svg id="audioPauseIco" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          </button>
-          <div class="card-audio-track" id="cardAudioTrack">No track</div>
-        </div>
         <div id="fp-overlay" style="display:none;position:absolute;inset:0;z-index:25;pointer-events:none;">
           <div id="fp-company" class="fp-el card-company" style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;margin:0;"></div>
           <div id="fp-name"    class="fp-el card-name"    style="position:absolute;pointer-events:auto;cursor:grab;touch-action:none;user-select:none;white-space:nowrap;overflow:visible;text-overflow:clip;margin:0;"></div>
@@ -650,6 +645,15 @@
           </div>
         </div>
         <div class="card-brand-border"></div>
+      </div>
+
+      <audio id="cardAudio" preload="none"></audio>
+      <div id="cardAudioBar" class="card-audio-bar" style="display:none">
+        <button class="card-audio-btn" id="cardAudioBtn" onclick="toggleCardAudio()">
+          <svg id="audioPlayIco" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="audioPauseIco" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <div class="card-audio-track" id="cardAudioTrack">No track</div>
       </div>
 
       <div>
@@ -1069,6 +1073,7 @@ function fillForm(card) {
   if (card.video_url) {
     videoUrl = card.video_url;
     var fvid = document.getElementById("cardVideoPitch");
+    fvid.controls = false;
     fvid.setAttribute("playsinline", "");
     fvid.src = card.video_url;
     document.getElementById("pitchVidName").textContent = "(saved video)";
@@ -1200,7 +1205,7 @@ function applyCornerStyle(style) {
     if (el) el.style.borderRadius = radius;
   });
   var vidEl = document.getElementById("cardVideoPitch");
-  if (vidEl) vidEl.style.borderRadius = radius;
+  if (vidEl) { vidEl.controls = false; vidEl.style.borderRadius = radius; }
   var sel = document.getElementById("cornerSel");
   if (sel) sel.value = cardCornerStyle;
 }
@@ -1693,6 +1698,7 @@ function applyBgImageStyles() {
 function applyVideoStyles() {
   var vid = document.getElementById("cardVideoPitch");
   if (!vid) return;
+  vid.controls = false;
   vid.style.objectPosition = vidPosX + "% " + vidPosY + "%";
   vid.style.transform = "scale(" + (vidScale / 100) + ")";
   vid.style.transformOrigin = "center center";
@@ -1878,6 +1884,7 @@ function setVideoMode(on) {
   videoMode = on;
   var card  = document.getElementById("cardPreview");
   var vid   = document.getElementById("cardVideoPitch");
+  vid.controls = false;
   var pImg  = document.getElementById("cardPoster");
   var inner = card.querySelector(".card-inner");
   card.classList.toggle("video-mode", on);
@@ -1923,6 +1930,7 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   var blobUrl = URL.createObjectURL(file);
   videoUrl = blobUrl;
   var vid = document.getElementById("cardVideoPitch");
+  vid.controls = false;
   vid.loop = true;
   vid.playsInline = true;
   vid.autoplay = true;
@@ -2341,6 +2349,7 @@ function clearStillImage() {
 
 function startTransitionIn() {
   var vid   = document.getElementById("cardVideoPitch");
+  vid.controls = false;
   var pImg  = document.getElementById("cardPoster");
   var inner = document.getElementById("cardPreview").querySelector(".card-inner");
   var dur   = Math.round(transitionDuration * 1000);
@@ -2348,20 +2357,26 @@ function startTransitionIn() {
   if (inner) inner.style.display = 'none';
   _syncOverlay(false);
 
-  // Snap poster to fully visible with no transition, then force a reflow so
-  // the browser commits this as the animation start state before we fire the exit.
+  // Snap poster to clean fully-visible state, clear all leftover inline styles
   pImg.style.transition = 'none';
-  pImg.style.display = 'block';
-  _posterVisible(pImg);
-  void pImg.offsetWidth; // commit start state
+  pImg.style.display    = 'block';
+  pImg.style.opacity    = '1';
+  pImg.style.transform  = 'none';
+  pImg.style.filter     = 'none';
+  pImg.style.clipPath   = 'circle(150% at 50% 50%)';
+  void pImg.offsetWidth; // force reflow — commits visible state as animation start
 
+  // Set transition then apply the selected exit state — browser animates from start
   _posterTrans(pImg, dur, 'ease-in');
   (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
 
   setTimeout(function() {
     pImg.style.transition = 'none';
-    pImg.style.display = 'none';
-    _posterVisible(pImg);
+    pImg.style.display    = 'none';
+    pImg.style.opacity    = '1';
+    pImg.style.transform  = 'none';
+    pImg.style.filter     = 'none';
+    pImg.style.clipPath   = '';
     vid.style.opacity = '1';
     vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
     cardState = 'playing';
@@ -2370,6 +2385,7 @@ function startTransitionIn() {
 
 function startTransitionOut() {
   var vid   = document.getElementById("cardVideoPitch");
+  vid.controls = false;
   var pImg  = document.getElementById("cardPoster");
   var inner = document.getElementById("cardPreview").querySelector(".card-inner");
   var dur   = Math.round(transitionDuration * 1000);
@@ -2378,15 +2394,18 @@ function startTransitionOut() {
   vid.currentTime = 0;
   vid.style.opacity = '0';
 
-  // Set poster to invisible start state, show it, then force a reflow so the
-  // browser commits this as the animation start state before we fire the enter.
+  // Reset poster to invisible, clear all transforms, show it, commit with reflow
   pImg.style.transition = 'none';
-  (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
-  pImg.style.display = 'block';
-  void pImg.offsetWidth; // commit start state
+  pImg.style.opacity    = '0';
+  pImg.style.transform  = 'none';
+  pImg.style.filter     = 'none';
+  pImg.style.clipPath   = '';
+  pImg.style.display    = 'block';
+  void pImg.offsetWidth; // force reflow — commits opacity:0 as animation start
 
-  _posterTrans(pImg, dur, 'ease-out');
-  _posterVisible(pImg);
+  // Fade poster in — simple opacity transition
+  pImg.style.transition = 'opacity ' + dur + 'ms ease-out';
+  pImg.style.opacity    = '1';
 
   setTimeout(function() {
     pImg.style.transition = 'none';
@@ -2398,6 +2417,7 @@ function startTransitionOut() {
 
 document.getElementById("cardPreview").addEventListener("click", function() {
   var vid = document.getElementById("cardVideoPitch");
+  vid.controls = false;
   if (cardState === 'still') {
     cardState = 'entering';
     startTransitionIn();
