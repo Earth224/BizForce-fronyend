@@ -849,6 +849,17 @@
             <span class="vid-upload-name" id="stillImgName">No file chosen</span>
             <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
           </div>
+          <div id="stillImgCropControls" style="display:none;margin-top:8px">
+            <div class="cust-lbl">Image Fit</div>
+            <div class="cust-btn-row">
+              <button class="cust-btn active" data-still-mode="fill" onclick="setStillImgMode('fill')">Fill</button>
+              <button class="cust-btn" data-still-mode="fit"  onclick="setStillImgMode('fit')">Fit</button>
+              <button class="cust-btn" data-still-mode="center" onclick="setStillImgMode('center')">Center</button>
+            </div>
+            <div class="cust-lbl" style="margin-top:8px">Zoom <span class="cust-val-badge" id="stillImgZoomVal">100%</span></div>
+            <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillImgZoomSlider" min="100" max="300" value="100" oninput="applyStillImgZoom(+this.value)">
+            <div style="font-size:.6rem;color:#4a5380;margin-top:5px;text-align:center;letter-spacing:.04em">drag preview to reposition</div>
+          </div>
           <div class="cust-lbl" style="margin-top:8px">Background Color</div>
           <div class="cust-color-row">
             <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
@@ -939,6 +950,9 @@ var transitionDuration = 0.8;
 var stillBgColor = '#000000';
 var stillImageUrl = null;
 var stillOverlay = 0;
+var stillImgPosX = 50, stillImgPosY = 50, stillImgZoom = 100, stillImgMode = 'fill';
+var _ssDragging = false, _ssDragMoved = false;
+var _ssDragX = 0, _ssDragY = 0, _ssDragStartPX = 50, _ssDragStartPY = 50;
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -987,6 +1001,10 @@ function getFields() {
       vid_transition: vidTransition, tagline: cardTagline,
       still_bg_color: stillBgColor !== '#000000' ? stillBgColor : undefined,
       still_overlay: stillOverlay || undefined,
+      still_img_pos_x: stillImgPosX !== 50  ? stillImgPosX : undefined,
+      still_img_pos_y: stillImgPosY !== 50  ? stillImgPosY : undefined,
+      still_img_zoom:  stillImgZoom  !== 100 ? stillImgZoom  : undefined,
+      still_img_mode:  stillImgMode  !== 'fill' ? stillImgMode : undefined,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1099,6 +1117,10 @@ function fillForm(card) {
     if (ml.vid_transition) applyVidTransition(ml.vid_transition);
     if (ml.still_bg_color) applyStillBgColor(ml.still_bg_color);
     if (ml.still_overlay)  applyStillOverlay(+ml.still_overlay);
+    if (ml.still_img_mode)  stillImgMode  = ml.still_img_mode;
+    if (ml.still_img_pos_x !== undefined) stillImgPosX = +ml.still_img_pos_x;
+    if (ml.still_img_pos_y !== undefined) stillImgPosY = +ml.still_img_pos_y;
+    if (ml.still_img_zoom  !== undefined) stillImgZoom  = +ml.still_img_zoom;
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
@@ -1973,8 +1995,10 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
   this.value = "";
   if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
   stillImageUrl = URL.createObjectURL(file);
+  stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
   document.getElementById("stillImgName").textContent = file.name;
   document.getElementById("stillImgRemoveBtn").style.display = "inline-block";
+  document.getElementById("stillImgCropControls").style.display = "block";
   var pImg = document.getElementById("cardPoster");
   updatePosterDisplay();
   if (videoMode) {
@@ -2318,10 +2342,15 @@ function updatePosterDisplay() {
   pImg.style.backgroundColor = stillBgColor;
   if (stillImageUrl) {
     pImg.src = stillImageUrl;
+    applyStillImgStyle();
   } else if (posterDataUrl) {
     pImg.src = posterDataUrl;
+    pImg.style.objectFit = 'cover'; pImg.style.objectPosition = '50% 50%';
+    pImg.style.transform = 'none';  pImg.style.transformOrigin = '50% 50%';
   } else {
     pImg.src = '';
+    pImg.style.objectFit = 'cover'; pImg.style.objectPosition = 'center';
+    pImg.style.transform = 'none';  pImg.style.transformOrigin = '50% 50%';
   }
 }
 
@@ -2339,11 +2368,47 @@ function applyStillOverlay(val) {
   _syncOverlay(videoMode && cardState === 'still');
 }
 
+function applyStillImgStyle() {
+  var pImg = document.getElementById('cardPoster');
+  if (!pImg) return;
+  var zv = document.getElementById('stillImgZoomVal');
+  if (zv) zv.textContent = stillImgZoom + '%';
+  var sl = document.getElementById('stillImgZoomSlider');
+  if (sl) sl.value = stillImgZoom;
+  document.querySelectorAll('[data-still-mode]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.stillMode === stillImgMode);
+  });
+  if (stillImgMode === 'fit') {
+    pImg.style.objectFit       = 'contain';
+    pImg.style.objectPosition  = 'center';
+    pImg.style.transform       = 'none';
+    pImg.style.transformOrigin = '50% 50%';
+  } else {
+    pImg.style.objectFit       = stillImgMode === 'center' ? 'none' : 'cover';
+    pImg.style.objectPosition  = stillImgPosX + '% ' + stillImgPosY + '%';
+    pImg.style.transform       = stillImgZoom !== 100 ? 'scale(' + (stillImgZoom / 100) + ')' : 'none';
+    pImg.style.transformOrigin = stillImgPosX + '% ' + stillImgPosY + '%';
+  }
+}
+
+function setStillImgMode(mode) {
+  stillImgMode = mode;
+  if (mode === 'fit') stillImgZoom = 100;
+  applyStillImgStyle();
+}
+
+function applyStillImgZoom(val) {
+  stillImgZoom = val;
+  applyStillImgStyle();
+}
+
 function clearStillImage() {
   if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
   stillImageUrl = null;
+  stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
   document.getElementById('stillImgName').textContent = 'No file chosen';
   document.getElementById('stillImgRemoveBtn').style.display = 'none';
+  document.getElementById('stillImgCropControls').style.display = 'none';
   updatePosterDisplay();
 }
 
@@ -2416,6 +2481,7 @@ function startTransitionOut() {
 }
 
 document.getElementById("cardPreview").addEventListener("click", function() {
+  if (_ssDragMoved) { _ssDragMoved = false; return; }
   var vid = document.getElementById("cardVideoPitch");
   vid.controls = false;
   if (cardState === 'still') {
@@ -2429,6 +2495,45 @@ document.getElementById("cardPreview").addEventListener("click", function() {
     vid.play().catch(function(e) { console.error("[BF] resume play() failed:", e); });
   }
 });
+
+// Drag-to-reposition for dissolving card image
+document.getElementById("cardPreview").addEventListener("mousedown", function(e) {
+  if (cardState !== 'still' || !stillImageUrl || stillImgMode === 'fit') return;
+  _ssDragging = true; _ssDragMoved = false;
+  _ssDragX = e.clientX; _ssDragY = e.clientY;
+  _ssDragStartPX = stillImgPosX; _ssDragStartPY = stillImgPosY;
+  e.preventDefault();
+});
+document.getElementById("cardPreview").addEventListener("touchstart", function(e) {
+  if (cardState !== 'still' || !stillImageUrl || stillImgMode === 'fit') return;
+  var t = e.touches[0];
+  _ssDragging = true; _ssDragMoved = false;
+  _ssDragX = t.clientX; _ssDragY = t.clientY;
+  _ssDragStartPX = stillImgPosX; _ssDragStartPY = stillImgPosY;
+}, {passive: true});
+document.addEventListener("mousemove", function(e) {
+  if (!_ssDragging) return;
+  var rect = document.getElementById('cardPreview').getBoundingClientRect();
+  var dx = (e.clientX - _ssDragX) / rect.width * 100;
+  var dy = (e.clientY - _ssDragY) / rect.height * 100;
+  if (Math.abs(e.clientX - _ssDragX) > 3 || Math.abs(e.clientY - _ssDragY) > 3) _ssDragMoved = true;
+  stillImgPosX = Math.max(0, Math.min(100, _ssDragStartPX - dx));
+  stillImgPosY = Math.max(0, Math.min(100, _ssDragStartPY - dy));
+  applyStillImgStyle();
+});
+document.addEventListener("mouseup", function() { _ssDragging = false; });
+document.addEventListener("touchmove", function(e) {
+  if (!_ssDragging) return;
+  var t = e.touches[0];
+  var rect = document.getElementById('cardPreview').getBoundingClientRect();
+  var dx = (t.clientX - _ssDragX) / rect.width * 100;
+  var dy = (t.clientY - _ssDragY) / rect.height * 100;
+  if (Math.abs(t.clientX - _ssDragX) > 3 || Math.abs(t.clientY - _ssDragY) > 3) _ssDragMoved = true;
+  stillImgPosX = Math.max(0, Math.min(100, _ssDragStartPX - dx));
+  stillImgPosY = Math.max(0, Math.min(100, _ssDragStartPY - dy));
+  applyStillImgStyle();
+}, {passive: true});
+document.addEventListener("touchend", function() { _ssDragging = false; });
 
 document.getElementById("cardVideoPitch").addEventListener("ended", function() {
   if (cardState === "playing") {
