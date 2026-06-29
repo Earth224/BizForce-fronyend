@@ -1337,6 +1337,7 @@ async function saveCard() {
   btn.disabled = true;
   setStatus("Saving...", "info");
   var body = getFields();
+  console.log("[BF] saveCard payload:", JSON.stringify(body, null, 2));
   try {
     var url, method;
     if (activeCardId) {
@@ -1862,9 +1863,11 @@ function onFitBtnClick(btn, fit) {
 }
 
 async function uploadStillImage(file) {
+  console.log("[BF] uploadStillImage: start", file.name);
   var nameEl = document.getElementById("stillImgName");
   nameEl.textContent = "Uploading…";
   try {
+    console.log("[BF] uploadStillImage: requesting signed URL");
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
@@ -1872,6 +1875,7 @@ async function uploadStillImage(file) {
     });
     if (!res.ok) throw new Error("Could not get upload URL");
     var d = await res.json();
+    console.log("[BF] uploadStillImage: signed URL received, uploading to storage");
     var upRes = await fetch(d.signedUrl, {
       method: "PUT",
       headers: { "Content-Type": file.type, "x-upsert": "true" },
@@ -1879,9 +1883,11 @@ async function uploadStillImage(file) {
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
     stillImageUrl = d.publicUrl;
+    console.log("[BF] uploadStillImage: complete. stillImageUrl =", stillImageUrl);
     nameEl.textContent = file.name;
     showToast("Still image uploaded!");
   } catch(e) {
+    console.error("[BF] uploadStillImage: failed", e);
     nameEl.textContent = file.name;
     showToast(e.message || "Upload failed", true);
   }
@@ -2148,6 +2154,7 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
   this.value = "";
+  console.log("[BF] still-img file picked:", file.name, file.type, file.size, "bytes");
   if (stillImageUrl && stillImageUrl.startsWith("blob:")) { URL.revokeObjectURL(stillImageUrl); }
   stillImageUrl = URL.createObjectURL(file);
   stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
