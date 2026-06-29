@@ -1037,6 +1037,7 @@ function getFields() {
     video_url:         videoUrl || null,
     holographic_style: holoStyle,
     bg_image_url:      bgImageUrl || null,
+    still_image_url:   stillImageUrl && !stillImageUrl.startsWith("blob:") ? stillImageUrl : null,
     audio_url:         audioUrl || null,
     media_layout: {
       bg_pos_x: bgPosX, bg_pos_y: bgPosY, bg_zoom: bgZoom, bg_fit: bgFit,
@@ -1860,6 +1861,32 @@ function onFitBtnClick(btn, fit) {
   applyBgImageStyles();
 }
 
+async function uploadStillImage(file) {
+  var nameEl = document.getElementById("stillImgName");
+  nameEl.textContent = "Uploading…";
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    stillImageUrl = d.publicUrl;
+    nameEl.textContent = file.name;
+    showToast("Still image uploaded!");
+  } catch(e) {
+    nameEl.textContent = file.name;
+    showToast(e.message || "Upload failed", true);
+  }
+}
+
 async function uploadBgImage(file) {
   var status   = document.getElementById("bgImgStatus");
   var prog     = document.getElementById("bgImgProg");
@@ -2121,7 +2148,7 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
   this.value = "";
-  if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
+  if (stillImageUrl && stillImageUrl.startsWith("blob:")) { URL.revokeObjectURL(stillImageUrl); }
   stillImageUrl = URL.createObjectURL(file);
   stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
   document.getElementById("stillImgName").textContent = file.name;
@@ -2134,6 +2161,7 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
     pImg.style.display = 'block';
     _syncOverlay(true);
   }
+  uploadStillImage(file);
 });
 
 document.getElementById("fi-audio").addEventListener("change", function() {
