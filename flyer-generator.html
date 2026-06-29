@@ -23,25 +23,14 @@
     .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
     .hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}
 
-    /* Template selector */
-    .tpl-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:36px}
-    .tpl-card{background:rgba(10,15,35,.78);border:1.5px solid rgba(255,255,255,.08);border-radius:16px;padding:18px 16px;cursor:pointer;transition:all .22s;text-align:left;font-family:inherit;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+    /* Template selector — horizontal scroll row */
+    .tpl-selector{display:flex;gap:14px;margin-bottom:36px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+    .tpl-selector::-webkit-scrollbar{height:4px}.tpl-selector::-webkit-scrollbar-track{background:transparent}.tpl-selector::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+    .tpl-card{background:rgba(10,15,35,.78);border:1.5px solid rgba(255,255,255,.08);border-radius:16px;padding:18px 16px;cursor:pointer;transition:all .22s;text-align:left;font-family:inherit;display:flex;flex-direction:column;gap:10px;align-items:flex-start;flex-shrink:0;width:152px}
     .tpl-card:hover{border-color:rgba(0,229,255,.28);transform:translateY(-2px)}
     .tpl-card.active{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.06);box-shadow:0 0 24px rgba(0,229,255,.1)}
     .tpl-thumb-wrap{width:100%;display:flex;justify-content:center}
     .tpl-thumb{width:58px;height:82px;border-radius:4px;overflow:hidden;flex-shrink:0;position:relative}
-    /* Professional thumb */
-    .tth-pro{background:#0c1228;display:flex;flex-direction:column}
-    .tth-pro-hdr{height:14px;background:#0a0f2a;border-bottom:1px solid rgba(34,211,238,.35);display:flex;align-items:center;padding:0 5px;flex-shrink:0}
-    .tth-pro-body{flex:1;padding:6px 5px;display:flex;flex-direction:column;gap:3px}
-    .tth-pro-ftr{height:15px;background:rgba(34,211,238,.1);border-top:1px solid rgba(34,211,238,.2);flex-shrink:0}
-    /* Bold thumb */
-    .tth-bold{background:#0a0820;display:flex;flex-direction:column}
-    .tth-bold-bar{height:4px;background:linear-gradient(90deg,#22d3ee,#a855f7);flex-shrink:0}
-    .tth-bold-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:4px}
-    .tth-bold-ftr{height:13px;background:rgba(10,8,28,.9);border-top:1px solid rgba(168,85,247,.2);flex-shrink:0}
-    /* Minimal thumb */
-    .tth-min{background:#070b18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:6px 5px;border:1px solid rgba(255,255,255,.08)}
     .tpl-name{font-size:.92rem;font-weight:800;color:#f4f7ff}
     .tpl-desc{font-size:.72rem;color:#8892b8;line-height:1.4}
     .tpl-check{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(0,229,255,.4);background:rgba(0,229,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:flex-start;opacity:0;transition:opacity .2s}
@@ -118,8 +107,7 @@
     .si-del:hover{background:rgba(248,113,113,.16)}
     .empty-modal{text-align:center;padding:36px 20px;color:#8892b8;font-size:.88rem}
 
-    @media(max-width:820px){.builder{grid-template-columns:1fr}.tpl-selector{grid-template-columns:1fr 1fr 1fr}.preview-controls{flex-direction:column;align-items:flex-start}}
-    @media(max-width:540px){.tpl-selector{grid-template-columns:1fr}}
+    @media(max-width:820px){.builder{grid-template-columns:1fr}.preview-controls{flex-direction:column;align-items:flex-start}}
   </style>
 </head>
 <body>
@@ -138,81 +126,145 @@
     <p class="hero-sub">Choose a layout, fill in your content, and download a print-ready PNG.</p>
   </div>
 
-  <!-- Template selector -->
+  <!-- Template selector — horizontal scroll -->
   <div class="tpl-selector">
-    <button class="tpl-card active" data-tpl="professional" onclick="selectTemplate(this,'professional')">
+
+    <!-- 1. Event Night -->
+    <button class="tpl-card active" data-tpl="event-night" onclick="selectTemplate(this,'event-night')">
       <div class="tpl-thumb-wrap">
-        <div class="tpl-thumb tth-pro">
-          <div class="tth-pro-hdr">
-            <div style="width:22px;height:2px;background:#22d3ee;border-radius:1px"></div>
-            <div style="flex:1"></div>
-            <div style="width:10px;height:2px;background:rgba(255,255,255,.2);border-radius:1px"></div>
+        <div class="tpl-thumb" style="background:#080612;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="position:absolute;top:-14px;right:-14px;width:40px;height:40px;background:radial-gradient(circle,rgba(168,85,247,.55),transparent 70%)"></div>
+          <div style="height:3px;background:linear-gradient(90deg,#a855f7,#22d3ee);flex-shrink:0"></div>
+          <div style="flex:1;padding:5px;display:flex;flex-direction:column;justify-content:center;gap:3px;position:relative;z-index:1">
+            <div style="width:22px;height:1.5px;background:rgba(168,85,247,.7);border-radius:1px"></div>
+            <div style="width:90%;height:7px;background:linear-gradient(90deg,#a855f7,#22d3ee);border-radius:2px;opacity:.9"></div>
+            <div style="width:70%;height:4px;background:linear-gradient(90deg,#7c3aed,#06b6d4);border-radius:1px;opacity:.65"></div>
+            <div style="width:50%;height:2px;background:rgba(255,255,255,.2);border-radius:1px;margin-top:3px"></div>
+            <div style="width:38%;height:2px;background:rgba(255,255,255,.13);border-radius:1px"></div>
           </div>
-          <div class="tth-pro-body">
-            <div style="width:85%;height:5px;background:#f4f7ff;border-radius:1px;opacity:.9"></div>
-            <div style="width:3px;height:10px;background:#22d3ee;border-radius:1px;margin:2px 0"></div>
-            <div style="display:flex;flex-direction:column;gap:2px">
-              <div style="width:100%;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px"></div>
-              <div style="width:80%;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px"></div>
+          <div style="height:12px;background:linear-gradient(90deg,rgba(168,85,247,.35),rgba(34,211,238,.25));border-top:1px solid rgba(168,85,247,.25);display:flex;align-items:center;padding:0 5px;flex-shrink:0">
+            <div style="width:28px;height:2px;background:rgba(168,85,247,.75);border-radius:1px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Event Night</div>
+      <div class="tpl-desc">Dark concert poster, gradient headline</div>
+    </button>
+
+    <!-- 2. Grand Opening -->
+    <button class="tpl-card" data-tpl="grand-opening" onclick="selectTemplate(this,'grand-opening')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#030b1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 5px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:4px;left:4px;width:8px;height:8px;border-top:1.5px solid rgba(251,191,36,.6);border-left:1.5px solid rgba(251,191,36,.6)"></div>
+          <div style="position:absolute;top:4px;right:4px;width:8px;height:8px;border-top:1.5px solid rgba(251,191,36,.6);border-right:1.5px solid rgba(251,191,36,.6)"></div>
+          <div style="position:absolute;bottom:4px;left:4px;width:8px;height:8px;border-bottom:1.5px solid rgba(251,191,36,.6);border-left:1.5px solid rgba(251,191,36,.6)"></div>
+          <div style="position:absolute;bottom:4px;right:4px;width:8px;height:8px;border-bottom:1.5px solid rgba(251,191,36,.6);border-right:1.5px solid rgba(251,191,36,.6)"></div>
+          <div style="border:1px solid rgba(251,191,36,.55);border-radius:2px;padding:2px 4px;font-size:4px;font-weight:900;color:rgba(251,191,36,.9);letter-spacing:.1em;white-space:nowrap;background:rgba(251,191,36,.1)">GRAND OPENING</div>
+          <div style="width:80%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div>
+          <div style="width:60%;height:3px;background:rgba(255,255,255,.45);border-radius:1px"></div>
+          <div style="display:flex;align-items:center;gap:3px"><div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div><div style="width:3px;height:3px;border-radius:50%;background:rgba(251,191,36,.7)"></div><div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div></div>
+          <div style="width:38px;height:7px;background:rgba(251,191,36,.25);border:1px solid rgba(251,191,36,.45);border-radius:2px"></div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Grand Opening</div>
+      <div class="tpl-desc">Celebratory, corner accents, badge</div>
+    </button>
+
+    <!-- 3. Business Promo -->
+    <button class="tpl-card" data-tpl="business-promo" onclick="selectTemplate(this,'business-promo')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#060c1e;display:flex;flex-direction:row;overflow:hidden">
+          <div style="width:3px;background:linear-gradient(180deg,#22d3ee,#a855f7);flex-shrink:0"></div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div style="height:12px;background:rgba(4,8,20,.85);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 5px;flex-shrink:0">
+              <div style="width:28px;height:2px;background:rgba(34,211,238,.7);border-radius:1px"></div>
+            </div>
+            <div style="flex:1;padding:5px;display:flex;flex-direction:column;gap:2.5px">
+              <div style="width:85%;height:5px;background:rgba(255,255,255,.82);border-radius:1px"></div>
+              <div style="width:65%;height:3px;background:rgba(34,211,238,.55);border-radius:1px"></div>
+              <div style="width:24px;height:1.5px;background:linear-gradient(90deg,#22d3ee,#a855f7);border-radius:1px;margin:1px 0"></div>
               <div style="width:90%;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px"></div>
               <div style="width:75%;height:1.5px;background:rgba(255,255,255,.12);border-radius:1px"></div>
-            </div>
-          </div>
-          <div class="tth-pro-ftr">
-            <div style="padding:0 5px;display:flex;align-items:center;height:100%;gap:4px">
-              <div style="width:22px;height:2px;background:rgba(34,211,238,.6);border-radius:1px"></div>
-              <div style="width:14px;height:2px;background:rgba(255,255,255,.2);border-radius:1px"></div>
+              <div style="width:80%;height:1.5px;background:rgba(255,255,255,.1);border-radius:1px"></div>
+              <div style="margin-top:3px;width:32px;height:7px;border:1px solid rgba(34,211,238,.5);border-radius:2px"></div>
             </div>
           </div>
         </div>
       </div>
       <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <div class="tpl-name">Professional</div>
-      <div class="tpl-desc">Header, structured body, call-to-action footer</div>
+      <div class="tpl-name">Business Promo</div>
+      <div class="tpl-desc">Clean corporate, left accent bar</div>
     </button>
 
-    <button class="tpl-card" data-tpl="bold" onclick="selectTemplate(this,'bold')">
+    <!-- 4. Real Estate -->
+    <button class="tpl-card" data-tpl="real-estate" onclick="selectTemplate(this,'real-estate')">
       <div class="tpl-thumb-wrap">
-        <div class="tpl-thumb tth-bold">
-          <div class="tth-bold-bar"></div>
-          <div class="tth-bold-body">
-            <div style="width:44px;height:8px;background:linear-gradient(90deg,#22d3ee,#a855f7);border-radius:2px;opacity:.9"></div>
-            <div style="width:36px;height:5px;background:linear-gradient(90deg,#22d3ee,#a855f7);border-radius:1px;opacity:.7"></div>
-            <div style="width:38px;height:2px;background:rgba(255,255,255,.12);border-radius:1px;margin-top:2px"></div>
-            <div style="width:32px;height:2px;background:rgba(255,255,255,.1);border-radius:1px"></div>
-            <div style="margin-top:5px;width:40px;height:9px;background:linear-gradient(90deg,#22d3ee,#a855f7);border-radius:2px"></div>
+        <div class="tpl-thumb" style="background:#07050d;display:flex;flex-direction:column;padding:5px;position:relative;overflow:hidden">
+          <div style="position:absolute;inset:4px;border:1px solid rgba(251,191,36,.22);pointer-events:none"></div>
+          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent);margin-bottom:4px"></div>
+          <div style="text-align:center;font-size:4px;font-weight:900;color:rgba(251,191,36,.8);letter-spacing:.15em;margin-bottom:3px">LISTING</div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <div style="width:80%;height:5px;background:rgba(255,255,255,.82);border-radius:1px"></div>
+            <div style="width:55%;height:3px;background:rgba(255,255,255,.45);border-radius:1px"></div>
+            <div style="display:flex;align-items:center;gap:3px;margin:3px 0"><div style="width:14px;height:1px;background:rgba(251,191,36,.5)"></div><div style="width:3px;height:3px;border:1px solid rgba(251,191,36,.7);transform:rotate(45deg)"></div><div style="width:14px;height:1px;background:rgba(251,191,36,.5)"></div></div>
+            <div style="width:65%;height:1.5px;background:rgba(255,255,255,.18);border-radius:1px"></div>
+            <div style="width:48%;height:1.5px;background:rgba(255,255,255,.12);border-radius:1px"></div>
           </div>
-          <div class="tth-bold-ftr">
-            <div style="padding:0 5px;display:flex;justify-content:center;align-items:center;height:100%;gap:6px">
-              <div style="width:14px;height:1.5px;background:rgba(255,255,255,.2);border-radius:1px"></div>
-              <div style="width:10px;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px"></div>
-            </div>
-          </div>
+          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent);margin-top:4px"></div>
         </div>
       </div>
       <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <div class="tpl-name">Bold</div>
-      <div class="tpl-desc">Centered gradient headline, full-width CTA button</div>
+      <div class="tpl-name">Real Estate</div>
+      <div class="tpl-desc">Luxury listing, gold accents, border frame</div>
     </button>
 
-    <button class="tpl-card" data-tpl="minimal" onclick="selectTemplate(this,'minimal')">
+    <!-- 5. Fitness / Gym -->
+    <button class="tpl-card" data-tpl="fitness" onclick="selectTemplate(this,'fitness')">
       <div class="tpl-thumb-wrap">
-        <div class="tpl-thumb tth-min">
-          <div style="width:30px;height:1.5px;background:rgba(34,211,238,.5);margin-bottom:6px"></div>
-          <div style="width:40px;height:5px;background:rgba(255,255,255,.85);border-radius:1px;margin-bottom:3px"></div>
-          <div style="width:44px;height:3px;background:rgba(255,255,255,.6);border-radius:1px;margin-bottom:5px"></div>
-          <div style="width:20px;height:1px;background:rgba(34,211,238,.6);margin-bottom:5px"></div>
-          <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
-            <div style="width:38px;height:1.5px;background:rgba(255,255,255,.12);border-radius:1px"></div>
-            <div style="width:30px;height:1.5px;background:rgba(255,255,255,.1);border-radius:1px"></div>
+        <div class="tpl-thumb" style="background:#050505;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(249,115,22,.07) 4px,rgba(249,115,22,.07) 5px)"></div>
+          <div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:60px;height:40px;background:radial-gradient(circle,rgba(249,115,22,.25),transparent 70%)"></div>
+          <div style="height:4px;background:linear-gradient(90deg,#f97316,#ef4444);flex-shrink:0"></div>
+          <div style="flex:1;padding:5px;display:flex;flex-direction:column;justify-content:center;gap:3px;position:relative;z-index:1">
+            <div style="width:90%;height:9px;background:rgba(255,255,255,.9);border-radius:1px"></div>
+            <div style="width:65%;height:5px;background:linear-gradient(90deg,#f97316,#ef4444);border-radius:1px;opacity:.85"></div>
+            <div style="width:48%;height:2px;background:rgba(255,255,255,.22);border-radius:1px;margin-top:2px"></div>
           </div>
-          <div style="margin-top:6px;width:28px;height:2px;background:rgba(34,211,238,.5);border-bottom:none"></div>
+          <div style="height:13px;background:linear-gradient(90deg,#f97316,#ef4444);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1">
+            <div style="width:32px;height:2.5px;background:rgba(255,255,255,.82);border-radius:1px"></div>
+          </div>
         </div>
       </div>
       <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <div class="tpl-name">Minimal</div>
-      <div class="tpl-desc">Clean, centered typography with generous whitespace</div>
+      <div class="tpl-name">Fitness / Gym</div>
+      <div class="tpl-desc">High energy, diagonal stripes, bold CTA bar</div>
     </button>
+
+    <!-- 6. Food & Restaurant -->
+    <button class="tpl-card" data-tpl="food-restaurant" onclick="selectTemplate(this,'food-restaurant')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#0c0805;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 5px;position:relative;overflow:hidden">
+          <div style="position:absolute;inset:5px;border:1px solid rgba(251,191,36,.2);border-radius:2px;pointer-events:none"></div>
+          <div style="display:flex;align-items:center;gap:3px;margin-bottom:4px">
+            <div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div>
+            <div style="width:3px;height:3px;border-radius:50%;background:rgba(251,191,36,.7)"></div>
+            <div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div>
+          </div>
+          <div style="font-size:4px;font-weight:900;color:rgba(251,191,36,.85);letter-spacing:.12em;margin-bottom:3px;text-align:center">SPECIAL</div>
+          <div style="width:76%;height:5px;background:rgba(255,255,255,.82);border-radius:1px;margin-bottom:2px"></div>
+          <div style="width:55%;height:3px;background:rgba(255,255,255,.45);border-radius:1px;margin-bottom:4px"></div>
+          <div style="display:flex;align-items:center;gap:3px;margin-bottom:4px"><div style="width:10px;height:1px;background:rgba(251,191,36,.4)"></div><span style="font-size:5px;color:rgba(251,191,36,.6)">◆</span><div style="width:10px;height:1px;background:rgba(251,191,36,.4)"></div></div>
+          <div style="width:40px;height:1.5px;background:rgba(255,255,255,.15);border-radius:1px;margin-bottom:2px"></div>
+          <div style="width:30px;height:1.5px;background:rgba(255,255,255,.1);border-radius:1px"></div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Food &amp; Restaurant</div>
+      <div class="tpl-desc">Menu special, ornamental border frame</div>
+    </button>
+
   </div>
 
   <!-- Builder -->
@@ -314,7 +366,7 @@
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
 
-var activeTpl   = "professional";
+var activeTpl   = "event-night";
 var activeColor = "neon";
 var activeFlyerId = null;
 var updateTimer = null;
@@ -349,88 +401,175 @@ function esc(str) {
 }
 
 /* ─────────────────────────────────
-   TEMPLATE: PROFESSIONAL
+   TEMPLATE: EVENT NIGHT
 ───────────────────────────────── */
-function renderProfessional(f, c) {
+function renderEventNight(f, c) {
   var hasContact = f.email || f.phone || f.website;
   var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
-  return '<div style="width:100%;height:100%;background:' + c.bg + ';display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:' + c.text + ';position:relative;overflow:hidden">' +
-    /* header */
-    '<div style="padding:20px 26px 14px;background:' + c.bg2 + ';border-bottom:1px solid ' + c.line + ';display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
-      '<span style="font-size:9px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:' + c.accent + '">' + esc(f.biz || "BIZFORCE AI") + '</span>' +
-      (f.date ? '<span style="font-size:8px;color:' + c.sub + ';font-weight:600">' + esc(f.date) + '</span>' : '') +
-    '</div>' +
-    /* body */
-    '<div style="flex:1;padding:24px 26px 18px;display:flex;flex-direction:column">' +
-      '<div style="font-size:8px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:12px;display:flex;align-items:center;gap:8px"><span>' + (f.cta ? "SPECIAL OFFER" : "ANNOUNCEMENT") + '</span></div>' +
-      '<h1 style="font-size:clamp(18px,3.6vw,28px);font-weight:900;line-height:1.1;margin:0 0 10px;color:' + c.text + ';word-break:break-word">' + esc(f.headline || "Your Headline") + '</h1>' +
-      (f.sub ? '<p style="font-size:11px;color:' + c.accent2 + ';margin:0 0 12px;font-style:italic;font-weight:600;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
-      '<div style="width:40px;height:3px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');margin-bottom:14px;border-radius:2px;flex-shrink:0"></div>' +
-      (f.body ? '<p style="font-size:10px;line-height:1.75;color:' + c.sub + ';margin:0 0 auto;word-break:break-word">' + esc(f.body) + '</p>' : '<div style="flex:1"></div>') +
-      ((f.location) ? '<div style="margin-top:14px;display:flex;flex-direction:column;gap:6px;flex-shrink:0">' +
-        (f.location ? '<div style="display:flex;align-items:center;gap:7px;font-size:9.5px;color:' + c.text + ';font-weight:600"><span style="width:16px;height:16px;border-radius:4px;background:' + c.accent + '22;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px">&#x1F4CD;</span>' + esc(f.location) + '</div>' : '') +
+  return '<div style="width:100%;height:100%;background:#080612;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;top:-100px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,' + c.accent2 + '1a,transparent 65%);pointer-events:none"></div>' +
+    '<div style="position:absolute;bottom:-60px;left:-40px;width:220px;height:220px;background:radial-gradient(circle,' + c.accent + '14,transparent 65%);pointer-events:none"></div>' +
+    '<div style="height:4px;background:linear-gradient(90deg,' + c.accent2 + ',' + c.accent + ');flex-shrink:0"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px 28px 20px;position:relative;z-index:1">' +
+      (f.biz ? '<div style="font-size:7.5px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:16px">' + esc(f.biz) + '</div>' : '') +
+      '<div style="font-size:7px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:' + c.accent2 + ';margin-bottom:10px">LIVE EVENT</div>' +
+      '<h1 style="font-size:clamp(24px,4.8vw,40px);font-weight:900;line-height:1.0;margin:0 0 16px;word-break:break-word;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:' + c.accent + '">' + esc(f.headline || "EVENT NIGHT") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:rgba(255,255,255,.75);margin:0 0 16px;font-weight:600;line-height:1.45">' + esc(f.sub) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:18px">' +
+        (f.date ? '<div style="display:flex;align-items:center;gap:8px"><div style="width:18px;height:1.5px;background:' + c.accent + '"></div><span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.85);letter-spacing:.04em">' + esc(f.date) + '</span></div>' : '') +
+        (f.location ? '<div style="display:flex;align-items:center;gap:8px"><div style="width:18px;height:1.5px;background:' + c.accent2 + '"></div><span style="font-size:10px;font-weight:600;color:rgba(255,255,255,.6)">' + esc(f.location) + '</span></div>' : '') +
       '</div>' : '') +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.7;color:rgba(255,255,255,.48);margin:0 0 18px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:11px 28px;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');border-radius:6px;font-size:11px;font-weight:900;color:#050c1a;letter-spacing:.1em;text-transform:uppercase;align-self:flex-start">' + esc(f.cta) + '</div>' : '') +
     '</div>' +
-    /* footer */
-    '<div style="background:linear-gradient(135deg,' + c.accent + '18,' + c.accent2 + '14);border-top:1px solid ' + c.line + ';padding:14px 26px;flex-shrink:0">' +
-      (f.cta ? '<div style="font-size:13px;font-weight:900;color:' + c.accent + ';margin-bottom:8px;letter-spacing:.05em;text-transform:uppercase">' + esc(f.cta) + '</div>' : '') +
-      (hasContact ? '<div style="display:flex;flex-wrap:wrap;gap:12px">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:' + c.sub + '">' + p + '</span>'; }).join("") + '</div>' : '') +
-    '</div>' +
+    (hasContact ? '<div style="border-top:1px solid rgba(255,255,255,.08);padding:12px 28px;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
   '</div>';
 }
 
 /* ─────────────────────────────────
-   TEMPLATE: BOLD
+   TEMPLATE: GRAND OPENING
 ───────────────────────────────── */
-function renderBold(f, c) {
+function renderGrandOpening(f, c) {
   var hasContact = f.email || f.phone || f.website;
   var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
-  return '<div style="width:100%;height:100%;background:' + c.bg + ';display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:' + c.text + ';position:relative;overflow:hidden">' +
-    /* top gradient bar */
-    '<div style="height:5px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');flex-shrink:0"></div>' +
-    /* decorative glow circles */
-    '<div style="position:absolute;top:-80px;right:-80px;width:280px;height:280px;background:radial-gradient(circle,' + c.accent + '14,transparent 70%);pointer-events:none"></div>' +
-    '<div style="position:absolute;bottom:-40px;left:-40px;width:200px;height:200px;background:radial-gradient(circle,' + c.accent2 + '10,transparent 70%);pointer-events:none"></div>' +
-    /* main body */
-    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 30px;position:relative;z-index:1">' +
-      (f.biz ? '<div style="font-size:7.5px;font-weight:900;letter-spacing:.24em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:18px">' + esc(f.biz) + '</div>' : '') +
-      '<h1 style="font-size:clamp(22px,4.5vw,38px);font-weight:900;line-height:1.05;margin:0 0 14px;word-break:break-word;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:' + c.accent + '">' + esc(f.headline || "YOUR HEADLINE") + '</h1>' +
-      (f.sub ? '<p style="font-size:12px;color:' + c.text + ';opacity:.85;margin:0 0 16px;font-weight:600;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
-      '<div style="width:48px;height:2.5px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');margin:0 auto 16px;border-radius:2px;flex-shrink:0"></div>' +
-      (f.body ? '<p style="font-size:10px;line-height:1.75;color:' + c.sub + ';margin:0 auto 18px;max-width:320px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
-      ((f.date || f.location) ? '<div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:20px">' +
-        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:' + c.text + '">' + esc(f.date) + '</span>' : '') +
-        (f.location ? '<span style="font-size:9.5px;font-weight:700;color:' + c.text + '">' + esc(f.location) + '</span>' : '') +
+  return '<div style="width:100%;height:100%;background:#030b1a;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;top:14px;left:14px;width:22px;height:22px;border-top:2px solid ' + c.accent + ';border-left:2px solid ' + c.accent + ';opacity:.55;pointer-events:none"></div>' +
+    '<div style="position:absolute;top:14px;right:14px;width:22px;height:22px;border-top:2px solid ' + c.accent + ';border-right:2px solid ' + c.accent + ';opacity:.55;pointer-events:none"></div>' +
+    '<div style="position:absolute;bottom:14px;left:14px;width:22px;height:22px;border-bottom:2px solid ' + c.accent + ';border-left:2px solid ' + c.accent + ';opacity:.55;pointer-events:none"></div>' +
+    '<div style="position:absolute;bottom:14px;right:14px;width:22px;height:22px;border-bottom:2px solid ' + c.accent + ';border-right:2px solid ' + c.accent + ';opacity:.55;pointer-events:none"></div>' +
+    '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:360px;height:360px;background:radial-gradient(circle,' + c.accent + '0c,transparent 60%);pointer-events:none"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 28px 24px;position:relative;z-index:1">' +
+      (f.biz ? '<div style="font-size:7px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:14px">' + esc(f.biz) + '</div>' : '') +
+      '<div style="display:inline-flex;align-items:center;padding:6px 18px;border:1.5px solid ' + c.accent + ';border-radius:4px;margin-bottom:18px;background:' + c.accent + '14">' +
+        '<span style="font-size:8px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:' + c.accent + '">GRAND OPENING</span>' +
+      '</div>' +
+      '<h1 style="font-size:clamp(20px,4vw,34px);font-weight:900;line-height:1.1;margin:0 0 12px;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "We\'re Open!") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 14px;font-weight:700;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
+      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:14px"><div style="flex:1;height:1px;background:' + c.accent + '2a"></div><div style="width:5px;height:5px;border-radius:50%;background:' + c.accent + '"></div><div style="flex:1;height:1px;background:' + c.accent + '2a"></div></div>' +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.75;color:rgba(255,255,255,.55);margin:0 0 14px;max-width:300px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">' +
+        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.8)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.5)">' + esc(f.location) + '</span>' : '') +
       '</div>' : '') +
-      (f.cta ? '<div style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');border-radius:8px;font-size:12px;font-weight:900;color:' + c.ctaText + ';letter-spacing:.08em;text-transform:uppercase">' + esc(f.cta) + '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:11px 26px;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');border-radius:6px;font-size:11px;font-weight:900;color:' + c.ctaText + ';letter-spacing:.08em;text-transform:uppercase">' + esc(f.cta) + '</div>' : '') +
     '</div>' +
-    /* footer contact */
-    (hasContact ? '<div style="background:' + c.bg2 + ';border-top:1px solid ' + c.line + ';padding:11px 26px;display:flex;justify-content:center;gap:20px;flex-wrap:wrap;flex-shrink:0">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:' + c.sub + '">' + p + '</span>'; }).join("") + '</div>' : '') +
+    (hasContact ? '<div style="border-top:1px solid rgba(255,255,255,.07);padding:12px 28px;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
   '</div>';
 }
 
 /* ─────────────────────────────────
-   TEMPLATE: MINIMAL
+   TEMPLATE: BUSINESS PROMO
 ───────────────────────────────── */
-function renderMinimal(f, c) {
+function renderBusinessPromo(f, c) {
   var hasContact = f.email || f.phone || f.website;
-  return '<div style="width:100%;height:100%;background:' + c.bg + ';display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 36px;font-family:system-ui,-apple-system,sans-serif;color:' + c.text + ';position:relative;overflow:hidden">' +
-    /* top/bottom accent lines */
-    '<div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,' + c.accent + ',transparent)"></div>' +
-    '<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,' + c.accent + ',transparent)"></div>' +
-    /* content */
-    (f.biz ? '<div style="font-size:7px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:28px">' + esc(f.biz) + '</div>' : '<div style="margin-bottom:28px"></div>') +
-    '<h1 style="font-size:clamp(20px,3.8vw,30px);font-weight:800;line-height:1.15;margin:0 0 14px;color:' + c.text + ';max-width:320px;word-break:break-word">' + esc(f.headline || "Your Headline") + '</h1>' +
-    '<div style="width:32px;height:1px;background:' + c.accent + ';margin:0 auto 14px;flex-shrink:0"></div>' +
-    (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 16px;font-weight:700;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
-    (f.body ? '<p style="font-size:10px;line-height:1.8;color:' + c.sub + ';margin:0 0 20px;max-width:290px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
-    ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;margin-bottom:20px">' +
-      (f.date ? '<span style="font-size:9.5px;letter-spacing:.06em;color:' + c.text + '">' + esc(f.date) + '</span>' : '') +
-      (f.location ? '<span style="font-size:9.5px;color:' + c.sub + '">' + esc(f.location) + '</span>' : '') +
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#060c1e;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="padding:18px 24px 14px;background:rgba(4,8,20,.88);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
+      '<span style="font-size:8px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;color:' + c.accent + '">' + esc(f.biz || "PROFESSIONAL SERVICES") + '</span>' +
+      (f.date ? '<span style="font-size:7.5px;color:rgba(255,255,255,.38);font-weight:600">' + esc(f.date) + '</span>' : '') +
+    '</div>' +
+    '<div style="flex:1;display:flex;flex-direction:row;overflow:hidden">' +
+      '<div style="width:3px;background:linear-gradient(180deg,' + c.accent + ',' + c.accent2 + ');flex-shrink:0"></div>' +
+      '<div style="flex:1;padding:22px 22px 18px;display:flex;flex-direction:column">' +
+        '<div style="font-size:7px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:10px">PROFESSIONAL SERVICES</div>' +
+        '<h1 style="font-size:clamp(18px,3.5vw,28px);font-weight:900;line-height:1.1;margin:0 0 10px;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "Your Headline") + '</h1>' +
+        (f.sub ? '<p style="font-size:10.5px;color:' + c.accent2 + ';margin:0 0 12px;font-weight:600;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
+        '<div style="width:32px;height:2px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');margin-bottom:12px;border-radius:1px;flex-shrink:0"></div>' +
+        (f.body ? '<p style="font-size:9.5px;line-height:1.75;color:rgba(255,255,255,.52);margin:0 0 auto;word-break:break-word">' + esc(f.body) + '</p>' : '<div style="flex:1"></div>') +
+        ((f.location || f.cta) ? '<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">' +
+          (f.location ? '<div style="font-size:9px;color:rgba(255,255,255,.55);font-weight:600">' + esc(f.location) + '</div>' : '') +
+          (f.cta ? '<div style="display:inline-block;padding:9px 22px;border:1.5px solid ' + c.accent + ';border-radius:6px;font-size:10px;font-weight:900;color:' + c.accent + ';letter-spacing:.08em;text-transform:uppercase;align-self:flex-start">' + esc(f.cta) + '</div>' : '') +
+        '</div>' : '') +
+      '</div>' +
+    '</div>' +
+    (hasContact ? '<div style="background:rgba(4,8,20,.75);border-top:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: REAL ESTATE
+───────────────────────────────── */
+function renderRealEstate(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#07050d;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden;padding:18px">' +
+    '<div style="position:absolute;inset:10px;border:1px solid ' + c.accent + '30;pointer-events:none"></div>' +
+    '<div style="text-align:center;margin-bottom:12px;position:relative;z-index:1;flex-shrink:0">' +
+      '<div style="font-size:6.5px;font-weight:900;letter-spacing:.32em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:7px">' + esc(f.biz || "EXCLUSIVE LISTING") + '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px"><div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,' + c.accent + '4a)"></div><div style="width:5px;height:5px;border:1px solid ' + c.accent + ';transform:rotate(45deg)"></div><div style="flex:1;height:1px;background:linear-gradient(90deg,' + c.accent + '4a,transparent)"></div></div>' +
+    '</div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 10px;position:relative;z-index:1">' +
+      '<h1 style="font-size:clamp(20px,3.8vw,32px);font-weight:800;line-height:1.15;margin:0 0 8px;color:#f4f7ff;word-break:break-word;text-align:center">' + esc(f.headline || "Property Name") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';text-align:center;font-weight:600;margin:0 0 14px;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:14px"><div style="flex:1;height:1px;background:' + c.accent + '2a"></div><span style="font-size:7px;color:' + c.accent + ';padding:0 6px">◆</span><div style="flex:1;height:1px;background:' + c.accent + '2a"></div></div>' +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.8;color:rgba(255,255,255,.48);text-align:center;margin:0 0 14px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.location || f.date) ? '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;margin-bottom:16px">' +
+        (f.location ? '<div style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.78);text-align:center">' + esc(f.location) + '</div>' : '') +
+        (f.date ? '<div style="font-size:9px;color:rgba(255,255,255,.45);text-align:center">' + esc(f.date) + '</div>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="text-align:center"><span style="display:inline-block;padding:10px 28px;border:1.5px solid ' + c.accent + ';font-size:10px;font-weight:900;color:' + c.accent + ';letter-spacing:.14em;text-transform:uppercase">' + esc(f.cta) + '</span></div>' : '') +
+    '</div>' +
+    (hasContact ? '<div style="position:relative;z-index:1;margin-top:12px;flex-shrink:0">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div style="flex:1;height:1px;background:' + c.accent + '38"></div><div style="flex:1;height:1px;background:' + c.accent + '38"></div></div>' +
+      '<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' +
     '</div>' : '') +
-    (f.cta ? '<div style="font-size:11px;font-weight:900;color:' + c.accent + ';letter-spacing:.12em;text-transform:uppercase;border-bottom:1.5px solid ' + c.accent + ';padding-bottom:3px;margin-bottom:20px">' + esc(f.cta) + '</div>' : '') +
-    (hasContact ? '<div style="display:flex;flex-direction:column;gap:4px;align-items:center">' +
-      [f.email, f.phone, f.website].filter(Boolean).map(function(p){ return '<span style="font-size:8.5px;color:' + c.sub + '">' + esc(p) + '</span>'; }).join("") +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: FITNESS / GYM
+───────────────────────────────── */
+function renderFitness(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#050505;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 20px,' + c.accent + '07 20px,' + c.accent + '07 21px);pointer-events:none"></div>' +
+    '<div style="position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:340px;height:260px;background:radial-gradient(circle,' + c.accent + '18,transparent 60%);pointer-events:none"></div>' +
+    '<div style="height:5px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');flex-shrink:0"></div>' +
+    (f.biz ? '<div style="padding:10px 26px 0;position:relative;z-index:1;flex-shrink:0"><span style="font-size:7px;font-weight:900;letter-spacing:.3em;text-transform:uppercase;color:' + c.accent + '">' + esc(f.biz) + '</span></div>' : '') +
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:16px 26px;position:relative;z-index:1">' +
+      '<h1 style="font-size:clamp(28px,5.5vw,48px);font-weight:900;line-height:.95;margin:0 0 12px;text-transform:uppercase;word-break:break-word;color:#f4f7ff;text-shadow:0 0 40px ' + c.accent + '40">' + esc(f.headline || "PUSH YOUR LIMITS") + '</h1>' +
+      (f.sub ? '<p style="font-size:12px;color:' + c.accent + ';margin:0 0 14px;font-weight:800;line-height:1.3;text-transform:uppercase;letter-spacing:.06em">' + esc(f.sub) + '</p>' : '') +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.65;color:rgba(255,255,255,.48);margin:0 0 14px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">' +
+        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.8)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.48)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+    '</div>' +
+    (f.cta ? '<div style="background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');padding:14px 26px;text-align:center;flex-shrink:0;position:relative;z-index:1"><span style="font-size:13px;font-weight:900;color:#050505;letter-spacing:.12em;text-transform:uppercase">' + esc(f.cta) + '</span></div>' : '') +
+    (hasContact ? '<div style="background:rgba(0,0,0,.65);padding:10px 26px;display:flex;gap:14px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: FOOD & RESTAURANT
+───────────────────────────────── */
+function renderFoodRestaurant(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#0c0805;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden;padding:16px">' +
+    '<div style="position:absolute;inset:9px;border:1px solid ' + c.accent + '38;pointer-events:none"></div>' +
+    '<div style="position:absolute;inset:12px;border:1px solid ' + c.accent + '18;pointer-events:none"></div>' +
+    '<div style="text-align:center;padding:10px 0 7px;position:relative;z-index:1;flex-shrink:0">' +
+      '<div style="font-size:7.5px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:7px">' + esc(f.biz || "RESTAURANT") + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:6px"><div style="width:32px;height:1px;background:' + c.accent + '50"></div><span style="font-size:8px;color:' + c.accent + ';opacity:.75">✦</span><div style="width:32px;height:1px;background:' + c.accent + '50"></div></div>' +
+    '</div>' +
+    '<div style="text-align:center;margin-bottom:10px;position:relative;z-index:1;flex-shrink:0">' +
+      '<span style="font-size:7px;letter-spacing:.2em;color:' + c.accent + ';text-transform:uppercase;font-style:italic;font-weight:700">' + esc(f.cta || "TONIGHT\'S SPECIAL") + '</span>' +
+    '</div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 18px;position:relative;z-index:1">' +
+      '<h1 style="font-size:clamp(18px,3.6vw,30px);font-weight:800;line-height:1.15;margin:0 0 10px;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "Chef\'s Signature Dish") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 10px;font-style:italic;font-weight:600;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><div style="width:22px;height:1px;background:' + c.accent + '50"></div><span style="font-size:8px;color:' + c.accent + ';opacity:.6">◆</span><div style="width:22px;height:1px;background:' + c.accent + '50"></div></div>' +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.8;color:rgba(255,255,255,.52);margin:0 0 12px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:5px;align-items:center">' +
+        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.75)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9px;color:rgba(255,255,255,.42)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+    '</div>' +
+    (hasContact ? '<div style="position:relative;z-index:1;text-align:center;padding:8px 0 6px;flex-shrink:0">' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px"><div style="width:22px;height:1px;background:' + c.accent + '40"></div><span style="font-size:7px;color:' + c.accent + ';opacity:.5">✦</span><div style="width:22px;height:1px;background:' + c.accent + '40"></div></div>' +
+      '<div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' +
     '</div>' : '') +
   '</div>';
 }
@@ -440,9 +579,12 @@ function renderFlyer() {
   var f = getF();
   var c = COLORS[activeColor];
   var html = "";
-  if      (activeTpl === "professional") html = renderProfessional(f, c);
-  else if (activeTpl === "bold")         html = renderBold(f, c);
-  else                                   html = renderMinimal(f, c);
+  if      (activeTpl === "event-night")    html = renderEventNight(f, c);
+  else if (activeTpl === "grand-opening")  html = renderGrandOpening(f, c);
+  else if (activeTpl === "business-promo") html = renderBusinessPromo(f, c);
+  else if (activeTpl === "real-estate")    html = renderRealEstate(f, c);
+  else if (activeTpl === "fitness")        html = renderFitness(f, c);
+  else                                      html = renderFoodRestaurant(f, c);
   document.getElementById("flyerPreview").innerHTML = html;
 }
 
