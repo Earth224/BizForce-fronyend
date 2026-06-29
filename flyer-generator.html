@@ -85,10 +85,21 @@
     .status-msg.ok{color:#34d399}
     .status-msg.err{color:#f87171}
 
-    /* Saved flyers modal */
+    /* Modals */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
     .modal-overlay.open{opacity:1;pointer-events:all}
     .modal{background:rgba(10,15,35,.97);border:1px solid rgba(0,229,255,.2);border-radius:20px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto}
+
+    /* Template grid modal */
+    .tpl-modal{max-width:720px}
+    .tpl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    @media(max-width:600px){.tpl-grid{grid-template-columns:repeat(2,1fr)}}
+    .tpl-grid-card{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 12px;cursor:pointer;transition:all .22s;text-align:left;font-family:inherit;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+    .tpl-grid-card:hover{border-color:rgba(0,229,255,.3);transform:translateY(-2px)}
+    .tpl-grid-card.active{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.06);box-shadow:0 0 20px rgba(0,229,255,.1)}
+    .tpl-grid-thumb{width:100%;height:70px;border-radius:4px;overflow:hidden;position:relative}
+    .tpl-grid-name{font-size:.82rem;font-weight:800;color:#f4f7ff}
+    .tpl-grid-desc{font-size:.68rem;color:#8892b8;line-height:1.35}
     .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
     .modal-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0}
     .modal-close{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
@@ -265,6 +276,152 @@
       <div class="tpl-desc">Menu special, ornamental border frame</div>
     </button>
 
+    <!-- 7. Sale / Discount -->
+    <button class="tpl-card" data-tpl="sale-discount" onclick="selectTemplate(this,'sale-discount')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#0f0202;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(239,68,68,.06) 6px,rgba(239,68,68,.06) 7px)"></div>
+          <div style="height:3px;background:#ef4444;flex-shrink:0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;position:relative;z-index:1">
+            <div style="font-size:5px;font-weight:900;color:rgba(239,68,68,.85);letter-spacing:.12em">SALE</div>
+            <div style="width:82%;height:8px;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:2px;opacity:.9"></div>
+            <div style="width:55%;height:4px;background:rgba(255,255,255,.7);border-radius:1px"></div>
+            <div style="background:#ef4444;border-radius:2px;padding:1.5px 5px;margin-top:2px"><div style="width:26px;height:3px;background:rgba(255,255,255,.9);border-radius:1px"></div></div>
+          </div>
+          <div style="height:3px;background:#ef4444;flex-shrink:0"></div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Sale / Discount</div>
+      <div class="tpl-desc">Urgent retail, bold price, striped</div>
+    </button>
+
+    <!-- 8. Community / Church -->
+    <button class="tpl-card" data-tpl="community" onclick="selectTemplate(this,'community')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#050c0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;overflow:hidden;position:relative">
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;background:radial-gradient(circle,rgba(52,211,153,.18),transparent 70%)"></div>
+          <div style="display:flex;align-items:center;gap:3px;position:relative;z-index:1">
+            <div style="width:12px;height:1px;background:rgba(52,211,153,.5)"></div>
+            <span style="font-size:7px;color:rgba(52,211,153,.8)">✦</span>
+            <div style="width:12px;height:1px;background:rgba(52,211,153,.5)"></div>
+          </div>
+          <div style="width:76%;height:5px;background:rgba(255,255,255,.82);border-radius:1px;position:relative;z-index:1"></div>
+          <div style="width:55%;height:3px;background:rgba(255,255,255,.45);border-radius:1px;position:relative;z-index:1"></div>
+          <div style="width:65%;height:2px;background:rgba(52,211,153,.4);border-radius:1px;position:relative;z-index:1"></div>
+          <div style="width:42%;height:2px;background:rgba(255,255,255,.2);border-radius:1px;position:relative;z-index:1"></div>
+          <div style="display:flex;align-items:center;gap:3px;margin-top:2px;position:relative;z-index:1">
+            <div style="width:10px;height:1px;background:rgba(52,211,153,.4)"></div>
+            <span style="font-size:5px;color:rgba(52,211,153,.6)">♥</span>
+            <div style="width:10px;height:1px;background:rgba(52,211,153,.4)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Community</div>
+      <div class="tpl-desc">Warm, welcoming, church &amp; events</div>
+    </button>
+
+    <!-- 9. Music / Concert -->
+    <button class="tpl-card" data-tpl="music-concert" onclick="selectTemplate(this,'music-concert')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#060010;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(168,85,247,.18) 0%,transparent 55%)"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(180deg,transparent,rgba(168,85,247,.15))"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 4px 3px;position:relative;z-index:1;gap:2px">
+            <div style="font-size:4.5px;font-weight:900;color:rgba(168,85,247,.8);letter-spacing:.14em">LIVE MUSIC</div>
+            <div style="width:86%;height:9px;background:linear-gradient(90deg,#a855f7,#ec4899,#f97316);border-radius:2px;opacity:.95"></div>
+            <div style="width:62%;height:4px;background:rgba(255,255,255,.65);border-radius:1px"></div>
+            <div style="display:flex;gap:2px;align-items:flex-end;margin-top:2px">
+              <div style="width:4px;height:5px;background:rgba(168,85,247,.6);border-radius:1px"></div>
+              <div style="width:4px;height:8px;background:rgba(236,72,153,.6);border-radius:1px"></div>
+              <div style="width:4px;height:6px;background:rgba(249,115,22,.6);border-radius:1px"></div>
+              <div style="width:4px;height:10px;background:rgba(168,85,247,.6);border-radius:1px"></div>
+              <div style="width:4px;height:7px;background:rgba(236,72,153,.5);border-radius:1px"></div>
+              <div style="width:4px;height:4px;background:rgba(249,115,22,.5);border-radius:1px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Music / Concert</div>
+      <div class="tpl-desc">Festival poster, EQ bars, vibrant</div>
+    </button>
+
+    <!-- 10. Job Hiring -->
+    <button class="tpl-card" data-tpl="job-hiring" onclick="selectTemplate(this,'job-hiring')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#040a1a;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="height:12px;background:linear-gradient(90deg,rgba(34,211,238,.9),rgba(99,102,241,.9));display:flex;align-items:center;padding:0 5px;flex-shrink:0">
+            <div style="font-size:4px;font-weight:900;color:#fff;letter-spacing:.1em">NOW HIRING</div>
+          </div>
+          <div style="flex:1;padding:5px;display:flex;flex-direction:column;gap:2.5px">
+            <div style="width:80%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div>
+            <div style="width:60%;height:3px;background:rgba(34,211,238,.6);border-radius:1px"></div>
+            <div style="width:1px;height:1px;margin:1px 0"></div>
+            <div style="display:flex;gap:2px;align-items:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.5)"></div><div style="width:30px;height:2px;background:rgba(255,255,255,.3);border-radius:1px"></div></div>
+            <div style="display:flex;gap:2px;align-items:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.5)"></div><div style="width:24px;height:2px;background:rgba(255,255,255,.3);border-radius:1px"></div></div>
+            <div style="display:flex;gap:2px;align-items:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.5)"></div><div style="width:28px;height:2px;background:rgba(255,255,255,.3);border-radius:1px"></div></div>
+            <div style="margin-top:2px;width:34px;height:7px;background:rgba(34,211,238,.18);border:1px solid rgba(34,211,238,.5);border-radius:2px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Job Hiring</div>
+      <div class="tpl-desc">Opportunity-focused, bullet perks</div>
+    </button>
+
+    <!-- 11. Digital Announcement -->
+    <button class="tpl-card" data-tpl="digital-announcement" onclick="selectTemplate(this,'digital-announcement')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#07081a;display:flex;flex-direction:column;overflow:hidden;position:relative;border-radius:4px">
+          <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(99,102,241,.22) 0%,transparent 60%)"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;position:relative;z-index:1">
+            <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);display:flex;align-items:center;justify-content:center;margin-bottom:2px">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.9)"></div>
+            </div>
+            <div style="width:72%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div>
+            <div style="width:52%;height:3px;background:rgba(99,102,241,.7);border-radius:1px"></div>
+            <div style="width:60%;height:2px;background:rgba(255,255,255,.25);border-radius:1px"></div>
+            <div style="width:40%;height:7px;background:linear-gradient(90deg,#6366f1,#a855f7);border-radius:3px;margin-top:2px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Announcement</div>
+      <div class="tpl-desc">Social story format, centered icon</div>
+    </button>
+
+    <!-- 12. Political / Campaign -->
+    <button class="tpl-card" data-tpl="political" onclick="selectTemplate(this,'political')">
+      <div class="tpl-thumb-wrap">
+        <div class="tpl-thumb" style="background:#060209;display:flex;flex-direction:column;overflow:hidden;position:relative">
+          <div style="height:5px;background:linear-gradient(90deg,#dc2626,#dc2626 50%,#1d4ed8 50%);flex-shrink:0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:4px 5px;gap:2.5px;position:relative;z-index:1">
+            <div style="width:22px;height:2px;background:rgba(220,38,38,.7);border-radius:1px"></div>
+            <div style="width:88%;height:8px;background:rgba(255,255,255,.9);border-radius:1px"></div>
+            <div style="width:65%;height:5px;background:rgba(255,255,255,.6);border-radius:1px"></div>
+            <div style="width:44px;height:1px;background:rgba(255,255,255,.15);margin:1px 0"></div>
+            <div style="width:55%;height:2px;background:rgba(255,255,255,.28);border-radius:1px"></div>
+            <div style="width:44%;height:2px;background:rgba(255,255,255,.18);border-radius:1px"></div>
+          </div>
+          <div style="height:4px;background:linear-gradient(90deg,#1d4ed8,#1d4ed8 50%,#dc2626 50%);flex-shrink:0"></div>
+        </div>
+      </div>
+      <div class="tpl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="tpl-name">Political</div>
+      <div class="tpl-desc">Bold campaign stance, red &amp; blue</div>
+    </button>
+
+    <!-- View All button -->
+    <button class="tpl-card" style="align-items:center;justify-content:center;min-height:160px;border-style:dashed;gap:8px" onclick="openTemplateModal()">
+      <div style="width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(0,229,255,.35);display:flex;align-items:center;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      </div>
+      <div class="tpl-name" style="text-align:center">View All</div>
+      <div class="tpl-desc" style="text-align:center">Browse all 12 templates</div>
+    </button>
+
   </div>
 
   <!-- Builder -->
@@ -348,6 +505,17 @@
         <span class="status-msg" id="dlStatus"></span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Template picker modal -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal tpl-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">All Templates</h2>
+      <button class="modal-close" onclick="closeTemplateModal()">✕</button>
+    </div>
+    <div class="tpl-grid" id="tplGrid"></div>
   </div>
 </div>
 
@@ -574,17 +742,187 @@ function renderFoodRestaurant(f, c) {
   '</div>';
 }
 
+/* ─────────────────────────────────
+   TEMPLATE: SALE / DISCOUNT
+───────────────────────────────── */
+function renderSaleDiscount(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#0f0202;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#fff4f4;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 22px,' + c.accent + '06 22px,' + c.accent + '06 23px);pointer-events:none"></div>' +
+    '<div style="height:5px;background:' + c.accent + ';flex-shrink:0"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 28px;position:relative;z-index:1">' +
+      (f.biz ? '<div style="font-size:7.5px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:10px">' + esc(f.biz) + '</div>' : '') +
+      '<div style="display:inline-block;background:' + c.accent + ';color:#fff;font-size:9px;font-weight:900;letter-spacing:.18em;padding:5px 14px;border-radius:4px;margin-bottom:14px;text-transform:uppercase;align-self:flex-start">LIMITED TIME OFFER</div>' +
+      '<h1 style="font-size:clamp(26px,5.2vw,44px);font-weight:900;line-height:.98;margin:0 0 10px;word-break:break-word;color:#fff">' + esc(f.headline || "50% OFF TODAY") + '</h1>' +
+      (f.sub ? '<p style="font-size:12px;color:' + c.accent + ';margin:0 0 12px;font-weight:800;line-height:1.3">' + esc(f.sub) + '</p>' : '') +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.65;color:rgba(255,255,255,.52);margin:0 0 16px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">' +
+        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.78)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.48)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:12px 30px;background:' + c.accent + ';border-radius:8px;font-size:12px;font-weight:900;color:#fff;letter-spacing:.1em;text-transform:uppercase;align-self:flex-start">' + esc(f.cta) + '</div>' : '') +
+    '</div>' +
+    '<div style="height:5px;background:' + c.accent + ';flex-shrink:0"></div>' +
+    (hasContact ? '<div style="background:rgba(0,0,0,.5);padding:10px 28px;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: COMMUNITY / CHURCH
+───────────────────────────────── */
+function renderCommunity(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#03100a;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f0fff8;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;height:380px;background:radial-gradient(circle,' + c.accent + '0c,transparent 60%);pointer-events:none"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 28px 20px;position:relative;z-index:1">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:18px"><div style="flex:1;height:1px;background:' + c.accent + '30"></div><span style="font-size:14px;color:' + c.accent + ';opacity:.7">✦</span><div style="flex:1;height:1px;background:' + c.accent + '30"></div></div>' +
+      (f.biz ? '<div style="font-size:7.5px;font-weight:900;letter-spacing:.24em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:14px">' + esc(f.biz) + '</div>' : '') +
+      '<h1 style="font-size:clamp(20px,4vw,34px);font-weight:800;line-height:1.15;margin:0 0 12px;color:#f0fff8;word-break:break-word">' + esc(f.headline || "You\'re Invited") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 12px;font-weight:600;line-height:1.5;font-style:italic">' + esc(f.sub) + '</p>' : '') +
+      '<div style="width:40px;height:2px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');margin:0 auto 14px;border-radius:1px"></div>' +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.8;color:rgba(255,255,255,.5);margin:0 0 16px;max-width:300px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;margin-bottom:16px">' +
+        (f.date ? '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.82)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.5)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:11px 28px;border:1.5px solid ' + c.accent + ';border-radius:24px;font-size:11px;font-weight:800;color:' + c.accent + ';letter-spacing:.06em">' + esc(f.cta) + '</div>' : '') +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:18px"><div style="flex:1;height:1px;background:' + c.accent + '30"></div><span style="font-size:10px;color:' + c.accent + ';opacity:.5">♥</span><div style="flex:1;height:1px;background:' + c.accent + '30"></div></div>' +
+    '</div>' +
+    (hasContact ? '<div style="border-top:1px solid rgba(255,255,255,.07);padding:12px 28px;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: MUSIC / CONCERT
+───────────────────────────────── */
+function renderMusicConcert(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#060010;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;top:0;left:0;right:0;height:55%;background:linear-gradient(180deg,' + c.accent2 + '20,transparent);pointer-events:none"></div>' +
+    '<div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(180deg,transparent,' + c.accent + '14);pointer-events:none"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px 16px;position:relative;z-index:1">' +
+      (f.biz ? '<div style="font-size:7px;font-weight:900;letter-spacing:.28em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:12px">' + esc(f.biz) + '</div>' : '') +
+      '<div style="font-size:7.5px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:' + c.accent2 + ';margin-bottom:10px">LIVE PERFORMANCE</div>' +
+      '<h1 style="font-size:clamp(22px,4.5vw,38px);font-weight:900;line-height:1.05;margin:0 0 10px;word-break:break-word;background:linear-gradient(135deg,' + c.accent2 + ',#ec4899,' + c.accent + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:' + c.accent + '">' + esc(f.headline || "MAIN STAGE") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:rgba(255,255,255,.72);margin:0 0 14px;font-weight:600;line-height:1.4">' + esc(f.sub) + '</p>' : '') +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.7;color:rgba(255,255,255,.42);margin:0 0 14px;max-width:300px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">' +
+        (f.date ? '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.85)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:10px;color:rgba(255,255,255,.5)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:11px 28px;background:linear-gradient(135deg,' + c.accent2 + ',#ec4899);border-radius:6px;font-size:11px;font-weight:900;color:#fff;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px">' + esc(f.cta) + '</div>' : '') +
+    '</div>' +
+    '<div style="display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:0 20px 16px;flex-shrink:0;position:relative;z-index:1">' +
+      ['14px','22px','18px','28px','16px','24px','12px','20px','26px','15px'].map(function(h,i){var cols=['#a855f7','#ec4899','#f97316','#a855f7','#ec4899','#f97316','#a855f7','#ec4899','#f97316','#a855f7'];return '<div style="width:6px;height:'+h+';background:'+cols[i]+';border-radius:3px 3px 0 0;opacity:.65"></div>';}).join("") +
+    '</div>' +
+    (hasContact ? '<div style="border-top:1px solid rgba(255,255,255,.08);padding:11px 24px;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: JOB HIRING
+───────────────────────────────── */
+function renderJobHiring(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  var bullets = f.body ? f.body.split(/[\n,]+/).map(function(s){return s.trim();}).filter(Boolean).slice(0,5) : [];
+  return '<div style="width:100%;height:100%;background:#040a1a;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="padding:16px 24px 12px;background:linear-gradient(90deg,' + c.accent + ',' + c.accent2 + ');flex-shrink:0;display:flex;align-items:center;justify-content:space-between">' +
+      '<span style="font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#fff">NOW HIRING</span>' +
+      (f.biz ? '<span style="font-size:8px;font-weight:700;color:rgba(255,255,255,.8)">' + esc(f.biz) + '</span>' : '') +
+    '</div>' +
+    '<div style="flex:1;padding:22px 24px 16px;display:flex;flex-direction:column;position:relative;z-index:1">' +
+      '<h1 style="font-size:clamp(18px,3.5vw,28px);font-weight:900;line-height:1.1;margin:0 0 8px;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "We\'re Hiring!") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 14px;font-weight:700;line-height:1.35">' + esc(f.sub) + '</p>' : '<div style="margin-bottom:14px"></div>') +
+      (bullets.length ? '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">' + bullets.map(function(b){ return '<div style="display:flex;align-items:flex-start;gap:9px"><div style="width:7px;height:7px;border-radius:50%;background:' + c.accent + ';flex-shrink:0;margin-top:3px"></div><span style="font-size:10px;color:rgba(255,255,255,.72);line-height:1.4">' + esc(b) + '</span></div>'; }).join("") + '</div>' :
+        (f.body ? '<p style="font-size:9.5px;line-height:1.7;color:rgba(255,255,255,.52);margin:0 0 16px;word-break:break-word">' + esc(f.body) + '</p>' : '')) +
+      ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">' +
+        (f.date ? '<span style="font-size:9px;color:rgba(255,255,255,.55);font-weight:600">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9px;color:rgba(255,255,255,.45)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:10px 24px;border:1.5px solid ' + c.accent + ';border-radius:8px;font-size:10.5px;font-weight:900;color:' + c.accent + ';letter-spacing:.08em;text-transform:uppercase;align-self:flex-start">' + esc(f.cta) + '</div>' : '') +
+    '</div>' +
+    (hasContact ? '<div style="background:rgba(4,8,20,.8);border-top:1px solid rgba(255,255,255,.07);padding:12px 24px;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: DIGITAL ANNOUNCEMENT
+───────────────────────────────── */
+function renderDigitalAnnouncement(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#07081a;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(160deg,rgba(99,102,241,.18) 0%,transparent 55%),linear-gradient(340deg,rgba(168,85,247,.12) 0%,transparent 55%);pointer-events:none"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 24px;position:relative;z-index:1">' +
+      '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 0 30px ' + c.accent + '30">' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
+      '</div>' +
+      (f.biz ? '<div style="font-size:7px;font-weight:900;letter-spacing:.26em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:10px">' + esc(f.biz) + '</div>' : '') +
+      '<h1 style="font-size:clamp(20px,4vw,34px);font-weight:900;line-height:1.1;margin:0 0 12px;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "Big Announcement") + '</h1>' +
+      (f.sub ? '<p style="font-size:11px;color:' + c.accent + ';margin:0 0 14px;font-weight:600;line-height:1.45">' + esc(f.sub) + '</p>' : '') +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.75;color:rgba(255,255,255,.5);margin:0 0 18px;max-width:300px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;margin-bottom:18px">' +
+        (f.date ? '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.82)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.48)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:12px 30px;background:linear-gradient(135deg,' + c.accent + ',' + c.accent2 + ');border-radius:24px;font-size:11px;font-weight:900;color:#fff;letter-spacing:.08em;text-transform:uppercase">' + esc(f.cta) + '</div>' : '') +
+    '</div>' +
+    (hasContact ? '<div style="border-top:1px solid rgba(255,255,255,.08);padding:12px 24px;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
+/* ─────────────────────────────────
+   TEMPLATE: POLITICAL / CAMPAIGN
+───────────────────────────────── */
+function renderPolitical(f, c) {
+  var hasContact = f.email || f.phone || f.website;
+  var contactParts = [f.email, f.phone, f.website].filter(Boolean).map(esc);
+  return '<div style="width:100%;height:100%;background:#060209;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;color:#f4f7ff;position:relative;overflow:hidden">' +
+    '<div style="height:6px;background:linear-gradient(90deg,#dc2626 50%,#1d4ed8 50%);flex-shrink:0"></div>' +
+    '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 28px;position:relative;z-index:1">' +
+      (f.biz ? '<div style="font-size:7.5px;font-weight:900;letter-spacing:.26em;text-transform:uppercase;color:' + c.accent + ';margin-bottom:12px">' + esc(f.biz) + '</div>' : '') +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+        '<div style="width:4px;height:44px;background:linear-gradient(180deg,#dc2626,#1d4ed8);flex-shrink:0;border-radius:2px"></div>' +
+        '<div>' +
+          '<div style="font-size:7px;font-weight:900;letter-spacing:.2em;text-transform:uppercase;color:#dc2626;margin-bottom:4px">VOTE</div>' +
+          '<h1 style="font-size:clamp(22px,4.5vw,38px);font-weight:900;line-height:1.0;margin:0;color:#f4f7ff;word-break:break-word">' + esc(f.headline || "YOUR NAME") + '</h1>' +
+        '</div>' +
+      '</div>' +
+      (f.sub ? '<p style="font-size:11px;color:rgba(255,255,255,.72);margin:0 0 14px;font-weight:700;line-height:1.35">' + esc(f.sub) + '</p>' : '') +
+      '<div style="width:100%;height:1px;background:rgba(255,255,255,.1);margin-bottom:14px"></div>' +
+      (f.body ? '<p style="font-size:9.5px;line-height:1.7;color:rgba(255,255,255,.5);margin:0 0 16px;word-break:break-word">' + esc(f.body) + '</p>' : '') +
+      ((f.date || f.location) ? '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">' +
+        (f.date ? '<span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.75)">' + esc(f.date) + '</span>' : '') +
+        (f.location ? '<span style="font-size:9.5px;color:rgba(255,255,255,.45)">' + esc(f.location) + '</span>' : '') +
+      '</div>' : '') +
+      (f.cta ? '<div style="display:inline-block;padding:10px 24px;background:linear-gradient(90deg,#dc2626,#1d4ed8);border-radius:6px;font-size:11px;font-weight:900;color:#fff;letter-spacing:.1em;text-transform:uppercase;align-self:flex-start">' + esc(f.cta) + '</div>' : '') +
+    '</div>' +
+    '<div style="height:6px;background:linear-gradient(90deg,#1d4ed8 50%,#dc2626 50%);flex-shrink:0"></div>' +
+    (hasContact ? '<div style="background:rgba(0,0,0,.5);padding:10px 28px;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:1">' + contactParts.map(function(p){ return '<span style="font-size:8.5px;color:rgba(255,255,255,.38)">' + p + '</span>'; }).join("") + '</div>' : '') +
+  '</div>';
+}
+
 /* ── Render dispatcher ── */
 function renderFlyer() {
   var f = getF();
   var c = COLORS[activeColor];
   var html = "";
-  if      (activeTpl === "event-night")    html = renderEventNight(f, c);
-  else if (activeTpl === "grand-opening")  html = renderGrandOpening(f, c);
-  else if (activeTpl === "business-promo") html = renderBusinessPromo(f, c);
-  else if (activeTpl === "real-estate")    html = renderRealEstate(f, c);
-  else if (activeTpl === "fitness")        html = renderFitness(f, c);
-  else                                      html = renderFoodRestaurant(f, c);
+  if      (activeTpl === "event-night")          html = renderEventNight(f, c);
+  else if (activeTpl === "grand-opening")        html = renderGrandOpening(f, c);
+  else if (activeTpl === "business-promo")       html = renderBusinessPromo(f, c);
+  else if (activeTpl === "real-estate")          html = renderRealEstate(f, c);
+  else if (activeTpl === "fitness")              html = renderFitness(f, c);
+  else if (activeTpl === "food-restaurant")      html = renderFoodRestaurant(f, c);
+  else if (activeTpl === "sale-discount")        html = renderSaleDiscount(f, c);
+  else if (activeTpl === "community")            html = renderCommunity(f, c);
+  else if (activeTpl === "music-concert")        html = renderMusicConcert(f, c);
+  else if (activeTpl === "job-hiring")           html = renderJobHiring(f, c);
+  else if (activeTpl === "digital-announcement") html = renderDigitalAnnouncement(f, c);
+  else                                            html = renderPolitical(f, c);
   document.getElementById("flyerPreview").innerHTML = html;
 }
 
@@ -774,6 +1112,55 @@ async function deleteFlyer(id, btn) {
     alert("Delete failed.");
   }
 }
+
+/* ── Template picker modal ── */
+var ALL_TEMPLATES = [
+  { tpl:"event-night",          name:"Event Night",       desc:"Dark concert poster",       thumb:function(){ return '<div style="width:100%;height:100%;background:#080612;position:relative;overflow:hidden"><div style="position:absolute;top:-10px;right:-10px;width:50px;height:50px;background:radial-gradient(circle,rgba(168,85,247,.5),transparent 70%)"></div><div style="height:3px;background:linear-gradient(90deg,#a855f7,#22d3ee)"></div><div style="flex:1;padding:6px;display:flex;flex-direction:column;justify-content:center;gap:3px"><div style="width:22px;height:1.5px;background:rgba(168,85,247,.7)"></div><div style="width:88%;height:7px;background:linear-gradient(90deg,#a855f7,#22d3ee);border-radius:1px;opacity:.9"></div><div style="width:65%;height:4px;background:rgba(124,58,237,.7);border-radius:1px"></div><div style="width:48%;height:2px;background:rgba(255,255,255,.18);border-radius:1px;margin-top:3px"></div></div><div style="height:10px;background:linear-gradient(90deg,rgba(168,85,247,.3),rgba(34,211,238,.2));margin-top:auto"></div></div>'; } },
+  { tpl:"grand-opening",        name:"Grand Opening",     desc:"Celebratory, badge style",  thumb:function(){ return '<div style="width:100%;height:100%;background:#030b1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;position:relative;overflow:hidden"><div style="position:absolute;top:4px;left:4px;width:8px;height:8px;border-top:1.5px solid rgba(251,191,36,.6);border-left:1.5px solid rgba(251,191,36,.6)"></div><div style="position:absolute;top:4px;right:4px;width:8px;height:8px;border-top:1.5px solid rgba(251,191,36,.6);border-right:1.5px solid rgba(251,191,36,.6)"></div><div style="position:absolute;bottom:4px;left:4px;width:8px;height:8px;border-bottom:1.5px solid rgba(251,191,36,.6);border-left:1.5px solid rgba(251,191,36,.6)"></div><div style="position:absolute;bottom:4px;right:4px;width:8px;height:8px;border-bottom:1.5px solid rgba(251,191,36,.6);border-right:1.5px solid rgba(251,191,36,.6)"></div><div style="border:1px solid rgba(251,191,36,.55);border-radius:2px;padding:2px 4px;font-size:4px;font-weight:900;color:rgba(251,191,36,.9);letter-spacing:.1em;background:rgba(251,191,36,.1)">GRAND OPENING</div><div style="width:78%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div><div style="width:55%;height:3px;background:rgba(255,255,255,.45);border-radius:1px"></div><div style="width:36px;height:7px;background:rgba(251,191,36,.25);border:1px solid rgba(251,191,36,.45);border-radius:2px"></div></div>'; } },
+  { tpl:"business-promo",       name:"Business Promo",    desc:"Corporate, left accent bar", thumb:function(){ return '<div style="width:100%;height:100%;background:#060c1e;display:flex;flex-direction:row;overflow:hidden"><div style="width:3px;background:linear-gradient(180deg,#22d3ee,#a855f7);flex-shrink:0"></div><div style="flex:1;display:flex;flex-direction:column"><div style="height:12px;background:rgba(4,8,20,.85);border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;padding:0 5px;flex-shrink:0"><div style="width:28px;height:2px;background:rgba(34,211,238,.7);border-radius:1px"></div></div><div style="flex:1;padding:5px;display:flex;flex-direction:column;gap:2px"><div style="width:82%;height:5px;background:rgba(255,255,255,.82);border-radius:1px"></div><div style="width:60%;height:3px;background:rgba(34,211,238,.55);border-radius:1px"></div><div style="width:24px;height:1.5px;background:linear-gradient(90deg,#22d3ee,#a855f7);border-radius:1px;margin:1px 0"></div><div style="width:86%;height:1.5px;background:rgba(255,255,255,.14);border-radius:1px"></div><div style="width:72%;height:1.5px;background:rgba(255,255,255,.1);border-radius:1px"></div><div style="margin-top:3px;width:32px;height:7px;border:1px solid rgba(34,211,238,.5);border-radius:2px"></div></div></div></div>'; } },
+  { tpl:"real-estate",          name:"Real Estate",       desc:"Luxury listing, gold frame", thumb:function(){ return '<div style="width:100%;height:100%;background:#07050d;display:flex;flex-direction:column;padding:5px;position:relative;overflow:hidden"><div style="position:absolute;inset:4px;border:1px solid rgba(251,191,36,.22)"></div><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent);margin-bottom:4px"></div><div style="text-align:center;font-size:4px;font-weight:900;color:rgba(251,191,36,.8);letter-spacing:.15em;margin-bottom:3px">LISTING</div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><div style="width:78%;height:5px;background:rgba(255,255,255,.82);border-radius:1px"></div><div style="width:52%;height:3px;background:rgba(255,255,255,.45);border-radius:1px"></div><div style="display:flex;align-items:center;gap:3px;margin:3px 0"><div style="width:14px;height:1px;background:rgba(251,191,36,.5)"></div><div style="width:3px;height:3px;border:1px solid rgba(251,191,36,.7);transform:rotate(45deg)"></div><div style="width:14px;height:1px;background:rgba(251,191,36,.5)"></div></div><div style="width:62%;height:1.5px;background:rgba(255,255,255,.18);border-radius:1px"></div></div><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.6),transparent);margin-top:4px"></div></div>'; } },
+  { tpl:"fitness",              name:"Fitness / Gym",     desc:"High energy, bold CTA",     thumb:function(){ return '<div style="width:100%;height:100%;background:#050505;display:flex;flex-direction:column;overflow:hidden;position:relative"><div style="position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(249,115,22,.07) 4px,rgba(249,115,22,.07) 5px)"></div><div style="height:4px;background:linear-gradient(90deg,#f97316,#ef4444);flex-shrink:0"></div><div style="flex:1;padding:5px;display:flex;flex-direction:column;justify-content:center;gap:3px;position:relative;z-index:1"><div style="width:88%;height:9px;background:rgba(255,255,255,.9);border-radius:1px"></div><div style="width:62%;height:5px;background:linear-gradient(90deg,#f97316,#ef4444);border-radius:1px;opacity:.85"></div><div style="width:46%;height:2px;background:rgba(255,255,255,.2);border-radius:1px;margin-top:2px"></div></div><div style="height:12px;background:linear-gradient(90deg,#f97316,#ef4444);display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:32px;height:2px;background:rgba(255,255,255,.82);border-radius:1px"></div></div></div>'; } },
+  { tpl:"food-restaurant",      name:"Food & Restaurant", desc:"Menu special, ornate frame", thumb:function(){ return '<div style="width:100%;height:100%;background:#0c0805;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 5px;position:relative;overflow:hidden"><div style="position:absolute;inset:5px;border:1px solid rgba(251,191,36,.2);border-radius:2px"></div><div style="display:flex;align-items:center;gap:3px;margin-bottom:3px"><div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div><div style="width:3px;height:3px;border-radius:50%;background:rgba(251,191,36,.7)"></div><div style="width:12px;height:1px;background:rgba(251,191,36,.5)"></div></div><div style="font-size:4px;font-weight:900;color:rgba(251,191,36,.85);letter-spacing:.12em;margin-bottom:2px">SPECIAL</div><div style="width:72%;height:5px;background:rgba(255,255,255,.82);border-radius:1px;margin-bottom:2px"></div><div style="width:52%;height:3px;background:rgba(255,255,255,.45);border-radius:1px;margin-bottom:3px"></div><div style="display:flex;align-items:center;gap:3px"><div style="width:10px;height:1px;background:rgba(251,191,36,.4)"></div><span style="font-size:5px;color:rgba(251,191,36,.6)">◆</span><div style="width:10px;height:1px;background:rgba(251,191,36,.4)"></div></div></div>'; } },
+  { tpl:"sale-discount",        name:"Sale / Discount",   desc:"Urgent retail, striped",    thumb:function(){ return '<div style="width:100%;height:100%;background:#0f0202;display:flex;flex-direction:column;overflow:hidden;position:relative"><div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(239,68,68,.06) 6px,rgba(239,68,68,.06) 7px)"></div><div style="height:3px;background:#ef4444;flex-shrink:0"></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;position:relative;z-index:1"><div style="font-size:5px;font-weight:900;color:rgba(239,68,68,.85);letter-spacing:.12em">SALE</div><div style="width:82%;height:8px;background:linear-gradient(90deg,#ef4444,#f97316);border-radius:2px;opacity:.9"></div><div style="width:55%;height:4px;background:rgba(255,255,255,.7);border-radius:1px"></div><div style="background:#ef4444;border-radius:2px;padding:1.5px 5px;margin-top:2px"><div style="width:26px;height:3px;background:rgba(255,255,255,.9);border-radius:1px"></div></div></div><div style="height:3px;background:#ef4444;flex-shrink:0"></div></div>'; } },
+  { tpl:"community",            name:"Community",         desc:"Warm, welcoming events",    thumb:function(){ return '<div style="width:100%;height:100%;background:#050c0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px;overflow:hidden;position:relative"><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;background:radial-gradient(circle,rgba(52,211,153,.18),transparent 70%)"></div><div style="display:flex;align-items:center;gap:3px"><div style="width:12px;height:1px;background:rgba(52,211,153,.5)"></div><span style="font-size:7px;color:rgba(52,211,153,.8)">✦</span><div style="width:12px;height:1px;background:rgba(52,211,153,.5)"></div></div><div style="width:74%;height:5px;background:rgba(255,255,255,.82);border-radius:1px"></div><div style="width:52%;height:3px;background:rgba(255,255,255,.45);border-radius:1px"></div><div style="width:62%;height:2px;background:rgba(52,211,153,.4);border-radius:1px"></div><div style="display:flex;align-items:center;gap:3px;margin-top:2px"><div style="width:10px;height:1px;background:rgba(52,211,153,.4)"></div><span style="font-size:5px;color:rgba(52,211,153,.6)">♥</span><div style="width:10px;height:1px;background:rgba(52,211,153,.4)"></div></div></div>'; } },
+  { tpl:"music-concert",        name:"Music / Concert",   desc:"Festival, EQ bars",         thumb:function(){ return '<div style="width:100%;height:100%;background:#060010;display:flex;flex-direction:column;overflow:hidden;position:relative"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(168,85,247,.18) 0%,transparent 55%)"></div><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 4px 3px;position:relative;z-index:1;gap:2px"><div style="font-size:4.5px;font-weight:900;color:rgba(168,85,247,.8);letter-spacing:.14em">LIVE MUSIC</div><div style="width:84%;height:9px;background:linear-gradient(90deg,#a855f7,#ec4899,#f97316);border-radius:2px;opacity:.95"></div><div style="width:60%;height:4px;background:rgba(255,255,255,.65);border-radius:1px"></div><div style="display:flex;gap:2px;align-items:flex-end;margin-top:2px"><div style="width:4px;height:5px;background:rgba(168,85,247,.6);border-radius:1px"></div><div style="width:4px;height:8px;background:rgba(236,72,153,.6);border-radius:1px"></div><div style="width:4px;height:6px;background:rgba(249,115,22,.6);border-radius:1px"></div><div style="width:4px;height:10px;background:rgba(168,85,247,.6);border-radius:1px"></div><div style="width:4px;height:7px;background:rgba(236,72,153,.5);border-radius:1px"></div></div></div></div>'; } },
+  { tpl:"job-hiring",           name:"Job Hiring",        desc:"Opportunity-focused",       thumb:function(){ return '<div style="width:100%;height:100%;background:#040a1a;display:flex;flex-direction:column;overflow:hidden"><div style="height:12px;background:linear-gradient(90deg,rgba(34,211,238,.9),rgba(99,102,241,.9));display:flex;align-items:center;padding:0 5px;flex-shrink:0"><div style="font-size:4px;font-weight:900;color:#fff;letter-spacing:.1em">NOW HIRING</div></div><div style="flex:1;padding:5px;display:flex;flex-direction:column;gap:2.5px"><div style="width:78%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div><div style="width:58%;height:3px;background:rgba(34,211,238,.6);border-radius:1px"></div><div style="height:2px"></div><div style="display:flex;gap:2px;align-items:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.5)"></div><div style="width:28px;height:2px;background:rgba(255,255,255,.3);border-radius:1px"></div></div><div style="display:flex;gap:2px;align-items:center"><div style="width:4px;height:4px;border-radius:50%;background:rgba(34,211,238,.5)"></div><div style="width:22px;height:2px;background:rgba(255,255,255,.3);border-radius:1px"></div></div><div style="margin-top:2px;width:32px;height:7px;background:rgba(34,211,238,.18);border:1px solid rgba(34,211,238,.5);border-radius:2px"></div></div></div>'; } },
+  { tpl:"digital-announcement", name:"Announcement",      desc:"Social story format",       thumb:function(){ return '<div style="width:100%;height:100%;background:#07081a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px;position:relative;overflow:hidden"><div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(99,102,241,.18),transparent 55%)"></div><div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);display:flex;align-items:center;justify-content:center;margin-bottom:2px"><div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.9)"></div></div><div style="width:70%;height:5px;background:rgba(255,255,255,.85);border-radius:1px"></div><div style="width:50%;height:3px;background:rgba(99,102,241,.7);border-radius:1px"></div><div style="width:58%;height:2px;background:rgba(255,255,255,.22);border-radius:1px"></div><div style="width:38%;height:7px;background:linear-gradient(90deg,#6366f1,#a855f7);border-radius:3px;margin-top:2px"></div></div>'; } },
+  { tpl:"political",            name:"Political",         desc:"Bold campaign stance",      thumb:function(){ return '<div style="width:100%;height:100%;background:#060209;display:flex;flex-direction:column;overflow:hidden"><div style="height:4px;background:linear-gradient(90deg,#dc2626 50%,#1d4ed8 50%);flex-shrink:0"></div><div style="flex:1;padding:4px 5px;display:flex;flex-direction:column;gap:2.5px"><div style="width:20px;height:2px;background:rgba(220,38,38,.7);border-radius:1px"></div><div style="width:86%;height:8px;background:rgba(255,255,255,.9);border-radius:1px"></div><div style="width:62%;height:5px;background:rgba(255,255,255,.55);border-radius:1px"></div><div style="width:43px;height:1px;background:rgba(255,255,255,.15);margin:2px 0"></div><div style="width:52%;height:2px;background:rgba(255,255,255,.25);border-radius:1px"></div></div><div style="height:4px;background:linear-gradient(90deg,#1d4ed8 50%,#dc2626 50%);flex-shrink:0"></div></div>'; } }
+];
+
+function openTemplateModal() {
+  var grid = document.getElementById("tplGrid");
+  grid.innerHTML = ALL_TEMPLATES.map(function(t) {
+    var isActive = activeTpl === t.tpl;
+    return '<button class="tpl-grid-card' + (isActive ? ' active' : '') + '" onclick="selectTemplateFromModal(this,\'' + t.tpl + '\')">' +
+      '<div class="tpl-grid-thumb">' + t.thumb() + '</div>' +
+      '<div class="tpl-grid-name">' + t.name + '</div>' +
+      '<div class="tpl-grid-desc">' + t.desc + '</div>' +
+    '</button>';
+  }).join("");
+  document.getElementById("templateModal").classList.add("open");
+}
+
+function closeTemplateModal() {
+  document.getElementById("templateModal").classList.remove("open");
+}
+
+function selectTemplateFromModal(btn, tpl) {
+  document.querySelectorAll(".tpl-grid-card").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+  activeTpl = tpl;
+  // sync the scrollable row
+  document.querySelectorAll(".tpl-card").forEach(function(b) { b.classList.remove("active"); });
+  var rowBtn = document.querySelector('.tpl-card[data-tpl="' + tpl + '"]');
+  if (rowBtn) rowBtn.classList.add("active");
+  renderFlyer();
+  setTimeout(closeTemplateModal, 260);
+}
+
+document.getElementById("templateModal").addEventListener("click", function(e) {
+  if (e.target === this) closeTemplateModal();
+});
 
 /* ── Init ── */
 renderFlyer();
