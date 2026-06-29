@@ -618,6 +618,7 @@
         <div class="card-watermark">BIZFORCE AI</div>
         <!-- Video Mode elements -->
         <video class="card-video-el" id="cardVideoPitch" loop playsinline autoplay></video>
+        <img id="cardVideoPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:4;border-radius:20px;display:none;pointer-events:none">
         <div class="card-video-overlay" id="cardVideoOverlay">
           <div class="card-video-grad"></div>
           <div class="card-video-text">
@@ -855,6 +856,21 @@
             <button class="cust-btn"        data-vtrans="matrix"        onclick="applyVidTransition('matrix')">Matrix</button>
             <button class="cust-btn"        data-vtrans="shatter"       onclick="applyVidTransition('shatter')">Shatter</button>
           </div>
+          <div class="cust-lbl" style="margin-top:8px">Exit Transition Style <span style="font-size:.55rem;font-weight:500;color:#4a5380;text-transform:none;letter-spacing:0">— poster return on video end</span></div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">
+            <button class="cust-btn active" data-vtrans-exit="fade"          onclick="applyVidExitTransition('fade')">Fade</button>
+            <button class="cust-btn"        data-vtrans-exit="blur-dissolve"  onclick="applyVidExitTransition('blur-dissolve')">Blur</button>
+            <button class="cust-btn"        data-vtrans-exit="iris"           onclick="applyVidExitTransition('iris')">Iris</button>
+            <button class="cust-btn"        data-vtrans-exit="glitch"         onclick="applyVidExitTransition('glitch')">Glitch</button>
+            <button class="cust-btn"        data-vtrans-exit="swipe-left"     onclick="applyVidExitTransition('swipe-left')">Swipe ←</button>
+            <button class="cust-btn"        data-vtrans-exit="swipe-up"       onclick="applyVidExitTransition('swipe-up')">Swipe ↑</button>
+            <button class="cust-btn"        data-vtrans-exit="zoom-in"        onclick="applyVidExitTransition('zoom-in')">Zoom</button>
+            <button class="cust-btn"        data-vtrans-exit="color-burn"     onclick="applyVidExitTransition('color-burn')">Burn</button>
+            <button class="cust-btn"        data-vtrans-exit="matrix"         onclick="applyVidExitTransition('matrix')">Matrix</button>
+            <button class="cust-btn"        data-vtrans-exit="shatter"        onclick="applyVidExitTransition('shatter')">Shatter</button>
+          </div>
+          <div class="cust-lbl" style="margin-top:8px">Transition Duration <span class="cust-val-badge" id="transitionDurVal">0.8s</span></div>
+          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="transitionDurSlider" min="0.3" max="3.0" step="0.1" value="0.8" oninput="applyTransitionDuration(+this.value)">
         </div>
 
       </div>
@@ -913,6 +929,9 @@ var cardFont = "default", cardTextColor = "", cardAccentColor = "";
 var cardLayout = "classic", bgOverlay = 0, borderStyle = "glow", borderWeight = "16px";
 var cardOrientation = "horizontal";
 var vidTransition = "fade";
+var vidExitTransition = "fade";
+var posterDataUrl = null;
+var transitionDuration = 0.8;
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -958,7 +977,7 @@ function getFields() {
       card_font: cardFont, text_color: cardTextColor, accent_color: cardAccentColor,
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
       border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation,
-      vid_transition: vidTransition, tagline: cardTagline,
+      vid_transition: vidTransition, vid_exit_transition: vidExitTransition !== "fade" ? vidExitTransition : undefined, tagline: cardTagline,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1068,6 +1087,7 @@ function fillForm(card) {
     if (ml.border_weight) applyBorderWeight(ml.border_weight);
     if (ml.orientation)  applyCardOrientation(ml.orientation);
     if (ml.vid_transition) applyVidTransition(ml.vid_transition);
+    if (ml.vid_exit_transition) applyVidExitTransition(ml.vid_exit_transition);
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
@@ -1619,6 +1639,18 @@ function applyVidTransition(style) {
   });
 }
 
+function applyVidExitTransition(style) {
+  vidExitTransition = style || "fade";
+  document.querySelectorAll("[data-vtrans-exit]").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.vtransExit === vidExitTransition);
+  });
+}
+
+function applyTransitionDuration(v) {
+  transitionDuration = v;
+  document.getElementById("transitionDurVal").textContent = v.toFixed(1) + "s";
+}
+
 function applyCardOrientation(orient) {
   cardOrientation = orient || "horizontal";
   var card = document.getElementById("cardPreview");
@@ -1871,20 +1903,18 @@ function togglePreviewVid() {
   var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
   var ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   if (vid.paused) {
+    if (cardState === 'still' && posterDataUrl) {
+      document.getElementById("cardVideoPoster").style.display = "none";
+    }
     var p = vid.play();
     if (p !== undefined) {
-      p.then(function() {
-        ctrl.innerHTML = ICON_PAUSE;
-      }).catch(function(e) {
-        console.error("[BF] togglePreviewVid play() failed:", e);
-        ctrl.innerHTML = ICON_PLAY;
-      });
-    } else {
-      ctrl.innerHTML = ICON_PAUSE;
-    }
+      p.then(function() { ctrl.innerHTML = ICON_PAUSE; cardState = 'playing'; })
+       .catch(function(e) { console.error("[BF] togglePreviewVid play() failed:", e); ctrl.innerHTML = ICON_PLAY; });
+    } else { ctrl.innerHTML = ICON_PAUSE; cardState = 'playing'; }
   } else {
     vid.pause();
     ctrl.innerHTML = ICON_PLAY;
+    if (cardState === 'playing') cardState = 'paused';
   }
 }
 
@@ -1918,6 +1948,19 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   vid.setAttribute("autoplay", "");
   vid.src = blobUrl;
   vid.load();
+  vid.addEventListener('loadeddata', function() {
+    var cvs = document.createElement('canvas');
+    cvs.width  = vid.videoWidth  || 640;
+    cvs.height = vid.videoHeight || 360;
+    cvs.getContext('2d').drawImage(vid, 0, 0, cvs.width, cvs.height);
+    posterDataUrl = cvs.toDataURL('image/jpeg', 0.85);
+    var pImg = document.getElementById('cardVideoPoster');
+    pImg.src = posterDataUrl;
+    pImg.style.display = 'block';
+    cardState = 'still';
+    vid.pause();
+    vid.currentTime = 0;
+  }, {once: true});
   vid.play().catch(function(e) { console.error("[BF] video play failed:", e); });
 
   document.getElementById("vidPosControls").style.display = "block";
@@ -2232,38 +2275,45 @@ var _VT_MAP = {
 };
 
 function startTransitionIn() {
-  var card = document.getElementById("cardPreview");
   var vid  = document.getElementById("cardVideoPitch");
+  var pImg = document.getElementById("cardVideoPoster");
   var vt   = _VT_MAP[vidTransition] || _VT_MAP["fade"];
-  card.style.animation = vt.in + " " + vt.dur + "ms ease-out forwards";
+  var dur  = Math.round(transitionDuration * 1000);
+  pImg.style.animation = vt.out + " " + dur + "ms ease-in forwards";
   setTimeout(function() {
-    card.style.animation = "";
+    pImg.style.animation = "";
+    pImg.style.display = "none";
     vid.play().catch(function(e) { console.error("[BF] startTransitionIn play() failed:", e); });
     cardState = "playing";
-  }, vt.dur);
+  }, dur);
 }
 
 function startTransitionOut() {
-  var card = document.getElementById("cardPreview");
   var vid  = document.getElementById("cardVideoPitch");
-  var vt   = _VT_MAP[vidTransition] || _VT_MAP["fade"];
-  card.style.animation = vt.out + " " + vt.dur + "ms ease-in forwards";
+  var pImg = document.getElementById("cardVideoPoster");
+  var vt   = _VT_MAP[vidExitTransition] || _VT_MAP["fade"];
+  var dur  = Math.round(transitionDuration * 1000);
+  vid.pause();
+  vid.currentTime = 0;
+  pImg.style.display = "block";
+  pImg.style.animation = vt.in + " " + dur + "ms ease-out forwards";
   setTimeout(function() {
-    card.style.animation = "";
-    vid.pause();
-    vid.currentTime = 0;
+    pImg.style.animation = "";
     cardState = "still";
-  }, vt.dur);
+  }, dur);
 }
 
 document.getElementById("cardPreview").addEventListener("click", function() {
   var vid = document.getElementById("cardVideoPitch");
-  if (cardState === 'still' || cardState === 'paused') {
+  if (cardState === 'still') {
     cardState = 'entering';
     startTransitionIn();
   } else if (cardState === 'playing') {
     cardState = 'paused';
     vid.pause();
+  } else if (cardState === 'paused') {
+    cardState = 'playing';
+    vid.play().catch(function(e) { console.error("[BF] resume play() failed:", e); });
   }
 });
 
