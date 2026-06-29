@@ -330,7 +330,7 @@
     </div>
     <div class="card-watermark">BIZFORCE AI</div>
     <div id="vidBox">
-      <video class="card-video-el" id="cardVideo" muted playsinline onended="exitVideoMode()"></video>
+      <video class="card-video-el" id="cardVideo" playsinline onended="exitVideoMode()"></video>
       <div class="card-video-overlay">
         <div class="card-video-grad"></div>
         <div class="card-video-text">
@@ -468,8 +468,8 @@ function renderCard(c) {
 
   if (c.video_url) {
     var cvid = document.getElementById("cardVideo");
-    cvid.muted = true;
-    cvid.setAttribute("muted", "");
+    cvid.muted = false;
+    cvid.removeAttribute("muted");
     cvid.setAttribute("playsinline", "");
     cvid.src = c.video_url;
     cvid.load();
