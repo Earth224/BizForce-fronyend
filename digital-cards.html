@@ -1350,7 +1350,7 @@ async function saveCard() {
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Save failed"); }
+    if (!res.ok) { var e = await res.json(); throw new Error(e.db_message || e.error || "Save failed"); }
     var d = await res.json();
     var saved = d.card;
     if (saved) { activeCardId = saved.id; if (saved.share_token) activeShareToken = saved.share_token; }
