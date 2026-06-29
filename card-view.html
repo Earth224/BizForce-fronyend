@@ -462,11 +462,12 @@ function renderCard(c) {
     var bgLayer = document.getElementById("cvBgLayer");
     bgLayer.style.backgroundImage = "url(" + c.bg_image_url + ")";
     bgLayer.style.display = "block";
-
+  }
+  if (c.still_image_url) {
     var poster = document.getElementById("cardPoster");
     var pov    = document.getElementById("cardPosterOverlay");
     var ml2    = c.media_layout || {};
-    poster.src = c.bg_image_url;
+    poster.src = c.still_image_url;
     var posMode = ml2.still_img_mode || "fill";
     if (posMode === "fit") {
       poster.style.objectFit      = "contain";
