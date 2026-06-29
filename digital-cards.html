@@ -530,6 +530,25 @@
             <span class="media-ctrl-val" id="slVidScaleVal">100%</span>
           </div>
         </div>
+        <div id="vidEditorPanel" class="media-ctrl-block" style="display:none;margin-top:8px">
+          <div class="cust-lbl">VIDEO EDITOR</div>
+          <div id="vlTimeline" style="position:relative;height:32px;margin:8px 0 4px;touch-action:none;user-select:none;-webkit-user-select:none">
+            <div style="position:absolute;top:12px;left:0;right:0;height:8px;background:rgba(255,255,255,0.12);border-radius:4px"></div>
+            <div id="vlTrimRegion" style="position:absolute;top:12px;height:8px;background:rgba(34,211,238,0.35);border-radius:2px;left:0%;width:100%"></div>
+            <div id="vlPlayhead" style="position:absolute;top:6px;width:2px;height:20px;background:#22d3ee;border-radius:1px;left:0%;pointer-events:none"></div>
+            <div id="vlHandleS" style="position:absolute;top:5px;width:10px;height:22px;background:#a855f7;border-radius:3px;cursor:ew-resize;transform:translateX(-5px);left:0%;touch-action:none"></div>
+            <div id="vlHandleE" style="position:absolute;top:5px;width:10px;height:22px;background:#a855f7;border-radius:3px;cursor:ew-resize;transform:translateX(-5px);left:100%;touch-action:none"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.6rem;color:#8892b8;margin-bottom:8px">
+            <span id="vlTimeS">0:00</span>
+            <span id="vlTimeCur">0:00</span>
+            <span id="vlTimeE">0:00</span>
+          </div>
+          <div class="cust-btn-row">
+            <button class="cust-btn" id="vlPlayBtn" onclick="vlTogglePlay()">Play</button>
+            <button class="cust-btn" id="vlLoopBtn" onclick="vlLoopPreview()">Loop Preview</button>
+          </div>
+        </div>
       </div>
       <div class="vid-mode-row">
         <div>
@@ -953,6 +972,8 @@ var stillOverlay = 0;
 var stillImgPosX = 50, stillImgPosY = 50, stillImgZoom = 100, stillImgMode = 'fill';
 var _ssDragging = false, _ssDragMoved = false;
 var _ssDragX = 0, _ssDragY = 0, _ssDragStartPX = 50, _ssDragStartPY = 50;
+var vidDuration = 0, vidTrimStart = 0, vidTrimEnd = null;
+var _vlDragging = null, _vlLooping = false, _vlLoopCallback = null, _editorPlaying = false;
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -1005,6 +1026,8 @@ function getFields() {
       still_img_pos_y: stillImgPosY !== 50  ? stillImgPosY : undefined,
       still_img_zoom:  stillImgZoom  !== 100 ? stillImgZoom  : undefined,
       still_img_mode:  stillImgMode  !== 'fill' ? stillImgMode : undefined,
+      trim_start: vidTrimStart > 0 ? vidTrimStart : undefined,
+      trim_end:   vidTrimEnd !== null ? vidTrimEnd : undefined,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1121,6 +1144,8 @@ function fillForm(card) {
     if (ml.still_img_pos_x !== undefined) stillImgPosX = +ml.still_img_pos_x;
     if (ml.still_img_pos_y !== undefined) stillImgPosY = +ml.still_img_pos_y;
     if (ml.still_img_zoom  !== undefined) stillImgZoom  = +ml.still_img_zoom;
+    if (ml.trim_start !== undefined) vidTrimStart = +ml.trim_start; else vidTrimStart = 0;
+    if (ml.trim_end   !== undefined) vidTrimEnd   = +ml.trim_end;   else vidTrimEnd   = null;
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
@@ -1963,6 +1988,9 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   vid.load();
   vid.style.opacity = '0';
   vid.addEventListener('loadedmetadata', function() {
+    vidDuration = vid.duration || 0;
+    vidTrimStart = 0;
+    vidTrimEnd = null;
     vid.currentTime = 0;
     vid.addEventListener('seeked', function() {
       var card = document.getElementById('cardPreview');
@@ -1981,6 +2009,8 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
       var inner = card.querySelector('.card-inner');
       if (inner) inner.style.display = 'flex';
       cardState = 'still';
+      document.getElementById("vidEditorPanel").style.display = "block";
+      vlUpdateUI();
     }, {once: true});
   }, {once: true});
 
@@ -2443,6 +2473,7 @@ function startTransitionIn() {
     pImg.style.filter     = 'none';
     pImg.style.clipPath   = '';
     vid.style.opacity = '1';
+    if (vidTrimStart > 0) { vid.currentTime = vidTrimStart; }
     vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
     cardState = 'playing';
   }, dur);
@@ -2477,11 +2508,13 @@ function startTransitionOut() {
     if (inner) inner.style.display = 'flex';
     _syncOverlay(true);
     cardState = 'still';
+    if (_vlLoopCallback) { var cb = _vlLoopCallback; _vlLoopCallback = null; cb(); }
   }, dur);
 }
 
 document.getElementById("cardPreview").addEventListener("click", function() {
   if (_ssDragMoved) { _ssDragMoved = false; return; }
+  if (_editorPlaying) { vlTogglePlay(); return; }
   var vid = document.getElementById("cardVideoPitch");
   vid.controls = false;
   if (cardState === 'still') {
@@ -2535,10 +2568,192 @@ document.addEventListener("touchmove", function(e) {
 }, {passive: true});
 document.addEventListener("touchend", function() { _ssDragging = false; });
 
+/* ── Video Editor ── */
+function vlFmt(sec) {
+  var s = Math.max(0, Math.floor(sec));
+  return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2);
+}
+
+function vlUpdateUI() {
+  var vid = document.getElementById("cardVideoPitch");
+  var dur = vidDuration || 0;
+  if (!dur) return;
+  var ts  = vidTrimStart;
+  var te  = vidTrimEnd !== null ? vidTrimEnd : dur;
+  var cur = vid.currentTime || 0;
+  var sPct = (ts  / dur) * 100;
+  var ePct = (te  / dur) * 100;
+  var cPct = Math.min((cur / dur) * 100, 100);
+  var hs = document.getElementById("vlHandleS");
+  var he = document.getElementById("vlHandleE");
+  var ph = document.getElementById("vlPlayhead");
+  var tr = document.getElementById("vlTrimRegion");
+  if (hs) hs.style.left = sPct + "%";
+  if (he) he.style.left = ePct + "%";
+  if (ph) ph.style.left = cPct + "%";
+  if (tr) { tr.style.left = sPct + "%"; tr.style.width = (ePct - sPct) + "%"; }
+  var vs = document.getElementById("vlTimeS");
+  var vc = document.getElementById("vlTimeCur");
+  var ve = document.getElementById("vlTimeE");
+  if (vs) vs.textContent = vlFmt(ts);
+  if (vc) vc.textContent = vlFmt(cur);
+  if (ve) ve.textContent = vlFmt(te);
+}
+
+function vlGetPct(clientX) {
+  var rect = document.getElementById("vlTimeline").getBoundingClientRect();
+  return Math.max(0, Math.min(100, (clientX - rect.left) / rect.width * 100));
+}
+
+function vlTogglePlay() {
+  if (cardState !== "still") return;
+  var vid  = document.getElementById("cardVideoPitch");
+  var pImg = document.getElementById("cardPoster");
+  var btn  = document.getElementById("vlPlayBtn");
+  if (_editorPlaying) {
+    vid.pause();
+    _editorPlaying = false;
+    vid.style.opacity = "0";
+    if (pImg) { pImg.style.display = "block"; _posterVisible(pImg); _syncOverlay(true); }
+    if (btn) btn.textContent = "Play";
+  } else {
+    if (!vidDuration) return;
+    vid.currentTime = vidTrimStart;
+    vid.style.opacity = "1";
+    if (pImg) { pImg.style.display = "none"; }
+    _syncOverlay(false);
+    vid.play().catch(function(e) { console.error("[BF] editor play failed:", e); });
+    _editorPlaying = true;
+    if (btn) btn.textContent = "Pause";
+  }
+}
+
+function vlLoopPreview() {
+  var btn = document.getElementById("vlLoopBtn");
+  if (_vlLooping) {
+    _vlLooping = false;
+    _vlLoopCallback = null;
+    if (btn) btn.textContent = "Loop Preview";
+    if (cardState !== "still") {
+      var vid  = document.getElementById("cardVideoPitch");
+      var pImg = document.getElementById("cardPoster");
+      var inner = document.getElementById("cardPreview").querySelector(".card-inner");
+      vid.pause();
+      vid.style.opacity = "0";
+      if (pImg) { pImg.style.transition = "none"; pImg.style.display = "block"; _posterVisible(pImg); _syncOverlay(true); }
+      if (inner) inner.style.display = "flex";
+      cardState = "still";
+    }
+    return;
+  }
+  var vid = document.getElementById("cardVideoPitch");
+  if (!vid.src && !videoUrl) return;
+  _vlLooping = true;
+  if (btn) btn.textContent = "Stop";
+  function doLoop() {
+    if (!_vlLooping) return;
+    _vlLoopCallback = function() { if (_vlLooping) { setTimeout(doLoop, 300); } };
+    cardState = "entering";
+    startTransitionIn();
+  }
+  doLoop();
+}
+
+// Timeline handle drag
+document.getElementById("vlHandleS").addEventListener("mousedown", function(e) {
+  _vlDragging = "start"; e.preventDefault(); e.stopPropagation();
+});
+document.getElementById("vlHandleE").addEventListener("mousedown", function(e) {
+  _vlDragging = "end"; e.preventDefault(); e.stopPropagation();
+});
+document.getElementById("vlTimeline").addEventListener("mousedown", function(e) {
+  if (e.target.id === "vlHandleS" || e.target.id === "vlHandleE") return;
+  var dur = vidDuration; if (!dur) return;
+  var pct = vlGetPct(e.clientX);
+  document.getElementById("cardVideoPitch").currentTime = (pct / 100) * dur;
+  vlUpdateUI();
+  e.preventDefault();
+});
+document.addEventListener("mousemove", function(e) {
+  if (!_vlDragging) return;
+  var dur = vidDuration; if (!dur) return;
+  var pct = vlGetPct(e.clientX);
+  var newTime = (pct / 100) * dur;
+  var vid = document.getElementById("cardVideoPitch");
+  if (_vlDragging === "start") {
+    var te = vidTrimEnd !== null ? vidTrimEnd : dur;
+    vidTrimStart = Math.max(0, Math.min(newTime, te - 0.5));
+    vid.currentTime = vidTrimStart;
+  } else if (_vlDragging === "end") {
+    vidTrimEnd = Math.max(vidTrimStart + 0.5, Math.min(newTime, dur));
+    if (vidTrimEnd >= dur - 0.1) vidTrimEnd = null;
+    vid.currentTime = vidTrimEnd !== null ? vidTrimEnd : dur - 0.05;
+  }
+  vlUpdateUI();
+});
+document.addEventListener("mouseup", function() { if (_vlDragging) _vlDragging = null; });
+
+document.getElementById("vlHandleS").addEventListener("touchstart", function(e) {
+  _vlDragging = "start"; e.stopPropagation();
+}, {passive: true});
+document.getElementById("vlHandleE").addEventListener("touchstart", function(e) {
+  _vlDragging = "end"; e.stopPropagation();
+}, {passive: true});
+document.getElementById("vlHandleS").addEventListener("touchmove", function(e) {
+  var dur = vidDuration; if (!dur) return;
+  var pct = vlGetPct(e.touches[0].clientX);
+  var te = vidTrimEnd !== null ? vidTrimEnd : dur;
+  vidTrimStart = Math.max(0, Math.min((pct / 100) * dur, te - 0.5));
+  document.getElementById("cardVideoPitch").currentTime = vidTrimStart;
+  vlUpdateUI();
+}, {passive: true});
+document.getElementById("vlHandleE").addEventListener("touchmove", function(e) {
+  var dur = vidDuration; if (!dur) return;
+  var pct = vlGetPct(e.touches[0].clientX);
+  vidTrimEnd = Math.max(vidTrimStart + 0.5, Math.min((pct / 100) * dur, dur));
+  if (vidTrimEnd >= dur - 0.1) vidTrimEnd = null;
+  var vid = document.getElementById("cardVideoPitch");
+  vid.currentTime = vidTrimEnd !== null ? vidTrimEnd : dur - 0.05;
+  vlUpdateUI();
+}, {passive: true});
+document.getElementById("vlHandleS").addEventListener("touchend", function() { _vlDragging = null; });
+document.getElementById("vlHandleE").addEventListener("touchend", function() { _vlDragging = null; });
+
+// timeupdate: enforce trim end + update timeline UI
+document.getElementById("cardVideoPitch").addEventListener("timeupdate", function() {
+  var vid = this;
+  if (cardState === "playing" && vidTrimEnd !== null && vid.currentTime >= vidTrimEnd) {
+    cardState = "exiting";
+    startTransitionOut();
+  }
+  if (_editorPlaying) {
+    if (vidTrimEnd !== null && vid.currentTime >= vidTrimEnd) {
+      vid.pause();
+      vid.currentTime = vidTrimStart;
+      _editorPlaying = false;
+      vid.style.opacity = "0";
+      var pImg = document.getElementById("cardPoster");
+      if (pImg) { pImg.style.display = "block"; _posterVisible(pImg); _syncOverlay(true); }
+      var btn = document.getElementById("vlPlayBtn");
+      if (btn) btn.textContent = "Play";
+    }
+  }
+  vlUpdateUI();
+});
+
 document.getElementById("cardVideoPitch").addEventListener("ended", function() {
   if (cardState === "playing") {
     cardState = "exiting";
     startTransitionOut();
+  }
+  if (_editorPlaying) {
+    var vid = this;
+    _editorPlaying = false;
+    vid.style.opacity = "0";
+    var pImg = document.getElementById("cardPoster");
+    if (pImg) { pImg.style.display = "block"; _posterVisible(pImg); _syncOverlay(true); }
+    var btn = document.getElementById("vlPlayBtn");
+    if (btn) btn.textContent = "Play";
   }
 });
 
