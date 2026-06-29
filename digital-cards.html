@@ -991,6 +991,7 @@ var posterDataUrl = null;
 var transitionDuration = 0.8;
 var stillBgColor = '#000000';
 var stillImageUrl = null;
+var _stillUploading = false;
 var stillOverlay = 0;
 var stillImgPosX = 50, stillImgPosY = 50, stillImgZoom = 100, stillImgMode = 'fill';
 var _ssDragging = false, _ssDragMoved = false;
@@ -1333,6 +1334,7 @@ async function loadCard() {
 }
 
 async function saveCard() {
+  if (_stillUploading) return;
   var btn = document.getElementById("saveBtn");
   btn.disabled = true;
   setStatus("Saving...", "info");
@@ -1865,7 +1867,12 @@ function onFitBtnClick(btn, fit) {
 async function uploadStillImage(file) {
   console.log("[BF] uploadStillImage: start", file.name);
   var nameEl = document.getElementById("stillImgName");
+  var saveBtn = document.getElementById("saveBtn");
+  var saveBtnPrev = saveBtn.textContent;
   nameEl.textContent = "Uploading…";
+  _stillUploading = true;
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Uploading image…";
   try {
     console.log("[BF] uploadStillImage: requesting signed URL");
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
@@ -1890,6 +1897,10 @@ async function uploadStillImage(file) {
     console.error("[BF] uploadStillImage: failed", e);
     nameEl.textContent = file.name;
     showToast(e.message || "Upload failed", true);
+  } finally {
+    _stillUploading = false;
+    saveBtn.disabled = false;
+    saveBtn.textContent = saveBtnPrev;
   }
 }
 
