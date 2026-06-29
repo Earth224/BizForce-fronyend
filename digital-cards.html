@@ -618,7 +618,8 @@
         <div class="card-watermark">BIZFORCE AI</div>
         <!-- Video Mode elements -->
         <video class="card-video-el" id="cardVideoPitch" loop playsinline autoplay></video>
-        <img id="cardPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:4;border-radius:20px;display:none;pointer-events:none">
+        <img id="cardPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:4;border-radius:20px;display:none;pointer-events:none;background:#000">
+        <div id="cardPosterOverlay" style="position:absolute;inset:0;z-index:5;border-radius:20px;pointer-events:none;display:none"></div>
         <div class="card-video-overlay" id="cardVideoOverlay">
           <div class="card-video-grad"></div>
           <div class="card-video-text">
@@ -841,6 +842,29 @@
           </div>
         </div>
 
+        <!-- STILL CARD CUSTOMIZATION -->
+        <div>
+          <div class="cust-lbl">Still Card Background</div>
+          <div class="cust-color-row">
+            <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
+            <span class="cust-color-val" id="stillBgColorVal">#000000</span>
+            <button class="cust-reset-btn" onclick="applyStillBgColor('#000000')">Reset</button>
+          </div>
+        </div>
+        <div>
+          <div class="cust-lbl">Still Card Image</div>
+          <input type="file" id="fi-still-img" accept="image/jpeg,image/png,image/*" style="display:none">
+          <div class="vid-upload-row">
+            <button class="vid-upload-btn" onclick="document.getElementById('fi-still-img').click()">Choose Image</button>
+            <span class="vid-upload-name" id="stillImgName">No file chosen</span>
+            <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
+          </div>
+        </div>
+        <div>
+          <div class="cust-lbl">Still Card Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
+          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillOverlaySlider" min="0" max="100" value="0" oninput="applyStillOverlay(+this.value)">
+        </div>
+
         <!-- TRANSITION STYLE -->
         <div>
           <div class="cust-lbl">Transition Style <span style="font-size:.55rem;font-weight:500;color:#4a5380;text-transform:none;letter-spacing:0">— video dissolve on card-view</span></div>
@@ -918,6 +942,9 @@ var cardOrientation = "horizontal";
 var vidTransition = "fade";
 var posterDataUrl = null;
 var transitionDuration = 0.8;
+var stillBgColor = '#000000';
+var stillImageUrl = null;
+var stillOverlay = 0;
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -964,6 +991,8 @@ function getFields() {
       card_layout: cardLayout, bg_overlay: bgOverlay, border_style: borderStyle,
       border_weight: borderWeight, audio_track_name: audioTrackName, orientation: cardOrientation,
       vid_transition: vidTransition, tagline: cardTagline,
+      still_bg_color: stillBgColor !== '#000000' ? stillBgColor : undefined,
+      still_overlay: stillOverlay || undefined,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1073,6 +1102,8 @@ function fillForm(card) {
     if (ml.border_weight) applyBorderWeight(ml.border_weight);
     if (ml.orientation)  applyCardOrientation(ml.orientation);
     if (ml.vid_transition) applyVidTransition(ml.vid_transition);
+    if (ml.still_bg_color) applyStillBgColor(ml.still_bg_color);
+    if (ml.still_overlay)  applyStillOverlay(+ml.still_overlay);
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
@@ -1855,23 +1886,31 @@ async function uploadAudio(file) {
 
 function setVideoMode(on) {
   videoMode = on;
-  var card = document.getElementById("cardPreview");
+  var card  = document.getElementById("cardPreview");
+  var vid   = document.getElementById("cardVideoPitch");
+  var ctrl  = document.getElementById("previewVidCtrl");
+  var pImg  = document.getElementById("cardPoster");
+  var inner = card.querySelector(".card-inner");
   card.classList.toggle("video-mode", on);
-  var vid = document.getElementById("cardVideoPitch");
-  var ctrl = document.getElementById("previewVidCtrl");
   if (on) {
     updateVideoOverlayText();
     vid.setAttribute("playsinline", "");
-    if (vid.src && vid.src !== window.location.href) {
-      vid.load();
-      var p = vid.play();
-      if (p !== undefined) p.catch(function(e) { console.error("[BF] builder preview play() failed:", e); });
-    }
+    vid.style.opacity = '0';
+    if (vid.src && vid.src !== window.location.href) { vid.load(); }
+    pImg.style.display = 'block';
+    if (inner) inner.style.display = 'flex';
+    _syncOverlay(true);
     ctrl.style.display = "flex";
-    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    cardState = 'still';
   } else {
     vid.pause();
+    vid.style.opacity = '';
+    pImg.style.display = 'none';
+    if (inner) inner.style.display = '';
+    _syncOverlay(false);
     ctrl.style.display = "none";
+    cardState = 'still';
   }
 }
 
@@ -1938,10 +1977,14 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
       cvs.getContext('2d').drawImage(vid, 0, 0, cvs.width, cvs.height);
       posterDataUrl = cvs.toDataURL('image/jpeg', 0.9);
       var pImg = document.getElementById('cardPoster');
-      pImg.src = posterDataUrl;
+      updatePosterDisplay();
+      _posterVisible(pImg);
       pImg.style.display = 'block';
+      _syncOverlay(true);
       vid.pause();
       vid.currentTime = 0;
+      var inner = card.querySelector('.card-inner');
+      if (inner) inner.style.display = 'flex';
       cardState = 'still';
     }, {once: true});
   }, {once: true});
@@ -1949,6 +1992,23 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   document.getElementById("vidPosControls").style.display = "block";
   syncVidSliders();
   applyVideoStyles();
+});
+
+document.getElementById("fi-still-img").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
+  stillImageUrl = URL.createObjectURL(file);
+  document.getElementById("stillImgName").textContent = file.name;
+  document.getElementById("stillImgRemoveBtn").style.display = "inline-block";
+  var pImg = document.getElementById("cardPoster");
+  updatePosterDisplay();
+  if (videoMode) {
+    _posterVisible(pImg);
+    pImg.style.display = 'block';
+    _syncOverlay(true);
+  }
 });
 
 document.getElementById("fi-audio").addEventListener("change", function() {
@@ -2269,43 +2329,105 @@ function _posterTrans(el, dur, ease) {
   el.style.transition = 'opacity '+t+', transform '+t+', filter '+t+', clip-path '+t;
 }
 
+function _syncOverlay(show) {
+  var ov = document.getElementById("cardPosterOverlay");
+  if (!ov) return;
+  if (show && stillOverlay > 0) {
+    ov.style.display = 'block';
+    ov.style.background = 'rgba(0,0,0,' + (stillOverlay / 100).toFixed(2) + ')';
+  } else {
+    ov.style.display = 'none';
+  }
+}
+
+function updatePosterDisplay() {
+  var pImg = document.getElementById('cardPoster');
+  pImg.style.backgroundColor = stillBgColor;
+  if (stillImageUrl) {
+    pImg.src = stillImageUrl;
+  } else if (posterDataUrl) {
+    pImg.src = posterDataUrl;
+  } else {
+    pImg.src = '';
+  }
+}
+
+function applyStillBgColor(color) {
+  stillBgColor = color || '#000000';
+  document.getElementById('stillBgColorInp').value = stillBgColor;
+  document.getElementById('stillBgColorVal').textContent = stillBgColor;
+  document.getElementById('cardPoster').style.backgroundColor = stillBgColor;
+}
+
+function applyStillOverlay(val) {
+  stillOverlay = val;
+  document.getElementById('stillOverlayVal').textContent = val + '%';
+  document.getElementById('stillOverlaySlider').value = val;
+  _syncOverlay(videoMode && cardState === 'still');
+}
+
+function clearStillImage() {
+  if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
+  stillImageUrl = null;
+  document.getElementById('stillImgName').textContent = 'No file chosen';
+  document.getElementById('stillImgRemoveBtn').style.display = 'none';
+  updatePosterDisplay();
+}
+
 function startTransitionIn() {
-  var vid  = document.getElementById("cardVideoPitch");
-  var pImg = document.getElementById("cardPoster");
-  var dur  = Math.round(transitionDuration * 1000);
+  var vid   = document.getElementById("cardVideoPitch");
+  var pImg  = document.getElementById("cardPoster");
+  var inner = document.getElementById("cardPreview").querySelector(".card-inner");
+  var dur   = Math.round(transitionDuration * 1000);
+  // Hide card text and overlay before poster animates out
+  if (inner) inner.style.display = 'none';
+  _syncOverlay(false);
+  // Snap poster to clean visible state with no transition
   pImg.style.transition = 'none';
   _posterVisible(pImg);
-  pImg.offsetHeight;
-  _posterTrans(pImg, dur, 'ease-in');
-  (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
-  setTimeout(function() {
-    pImg.style.transition = '';
-    pImg.style.display = 'none';
-    _posterVisible(pImg);
-    vid.style.opacity = '1';
-    vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
-    cardState = 'playing';
-  }, dur);
+  // Double RAF: ensure visible state is painted before transition fires
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      _posterTrans(pImg, dur, 'ease-in');
+      (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
+      setTimeout(function() {
+        pImg.style.transition = 'none';
+        pImg.style.display = 'none';
+        _posterVisible(pImg);
+        vid.style.opacity = '1';
+        vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
+        cardState = 'playing';
+      }, dur);
+    });
+  });
 }
 
 function startTransitionOut() {
-  var vid  = document.getElementById("cardVideoPitch");
-  var pImg = document.getElementById("cardPoster");
-  var dur  = Math.round(transitionDuration * 1000);
+  var vid   = document.getElementById("cardVideoPitch");
+  var pImg  = document.getElementById("cardPoster");
+  var inner = document.getElementById("cardPreview").querySelector(".card-inner");
+  var dur   = Math.round(transitionDuration * 1000);
   vid.pause();
   vid.currentTime = 0;
   vid.style.opacity = '0';
+  // Snap poster to invisible initial state, make it visible in DOM
   pImg.style.transition = 'none';
-  _posterVisible(pImg);
   (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
   pImg.style.display = 'block';
-  pImg.offsetHeight;
-  _posterTrans(pImg, dur, 'ease-out');
-  _posterVisible(pImg);
-  setTimeout(function() {
-    pImg.style.transition = '';
-    cardState = 'still';
-  }, dur);
+  // Double RAF: ensure invisible state is painted before transition fires
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      _posterTrans(pImg, dur, 'ease-out');
+      _posterVisible(pImg);
+      setTimeout(function() {
+        pImg.style.transition = 'none';
+        // Restore card text and overlay over still card
+        if (inner) inner.style.display = 'flex';
+        _syncOverlay(true);
+        cardState = 'still';
+      }, dur);
+    });
+  });
 }
 
 document.getElementById("cardPreview").addEventListener("click", function() {
