@@ -697,6 +697,11 @@
           <button class="theme-btn" data-theme="forest" onclick="setTheme('forest')" title="Forest"></button>
           <button class="theme-btn" data-theme="ember" onclick="setTheme('ember')" title="Ember"></button>
         </div>
+        <div class="cust-color-row" style="margin-top:10px">
+          <input type="color" class="cust-color-inp" id="cardBgColorInp" value="#070b18" oninput="applyCardBgColor(this.value)">
+          <span class="cust-color-val" id="cardBgColorVal">theme</span>
+          <button class="cust-reset-btn" onclick="applyCardBgColor('')">Reset</button>
+        </div>
       </div>
 
       <hr class="cust-divider">
@@ -993,6 +998,7 @@ var _ssDragX = 0, _ssDragY = 0, _ssDragStartPX = 50, _ssDragStartPY = 50;
 var vidDuration = 0, vidTrimStart = 0, vidTrimEnd = null;
 var _vlDragging = null, _vlLooping = false, _vlLoopCallback = null, _editorPlaying = false;
 var stillTextVisible = false;
+var cardBgColor = "";
 var cardTagline = "";
 var audioUrl = null, audioTrackName = "";
 var freePositionMode = false;
@@ -1048,6 +1054,7 @@ function getFields() {
       trim_start: vidTrimStart > 0 ? vidTrimStart : undefined,
       trim_end:   vidTrimEnd !== null ? vidTrimEnd : undefined,
       still_text_visible: stillTextVisible || undefined,
+      card_bg_color: cardBgColor || undefined,
       text_positions: Object.keys(textPositions).length ? textPositions : undefined,
       text_sizes:     Object.keys(textSizes).length     ? textSizes     : undefined,
       free_position_mode: freePositionMode || undefined,
@@ -1116,11 +1123,35 @@ function buildVCard(f) {
 
 function setTheme(t) {
   activeTheme = t;
-  document.getElementById("cardPreview").dataset.theme = t;
+  cardBgColor = "";
+  var card = document.getElementById("cardPreview");
+  card.dataset.theme = t;
+  card.style.background = "";
+  var val = document.getElementById("cardBgColorVal");
+  if (val) val.textContent = "theme";
   document.querySelectorAll(".theme-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.theme === t);
   });
   generateQR();
+}
+
+function applyCardBgColor(color) {
+  cardBgColor = color || "";
+  var card = document.getElementById("cardPreview");
+  var inp  = document.getElementById("cardBgColorInp");
+  var val  = document.getElementById("cardBgColorVal");
+  if (color) {
+    card.style.background = color;
+    if (inp) inp.value = color;
+    if (val) val.textContent = color;
+    document.querySelectorAll(".theme-btn").forEach(function(b) { b.classList.remove("active"); });
+  } else {
+    card.style.background = "";
+    if (val) val.textContent = "theme";
+    document.querySelectorAll(".theme-btn").forEach(function(b) {
+      b.classList.toggle("active", b.dataset.theme === activeTheme);
+    });
+  }
 }
 
 function fillForm(card) {
@@ -1168,6 +1199,7 @@ function fillForm(card) {
     if (ml.trim_start !== undefined) vidTrimStart = +ml.trim_start; else vidTrimStart = 0;
     if (ml.trim_end   !== undefined) vidTrimEnd   = +ml.trim_end;   else vidTrimEnd   = null;
     if (ml.still_text_visible) setStillTextOverlay(true);
+    if (ml.card_bg_color) applyCardBgColor(ml.card_bg_color);
     if (ml.tagline !== undefined) {
       cardTagline = ml.tagline || "";
       var tEl = document.getElementById("fTagline");
