@@ -375,9 +375,6 @@
     @keyframes tf-matrix-in{0%{filter:hue-rotate(120deg) brightness(0) contrast(3);opacity:0}40%{filter:hue-rotate(80deg) brightness(.4) contrast(2);opacity:.5}70%{filter:hue-rotate(40deg) brightness(.8) contrast(1.3);opacity:.8}100%{filter:hue-rotate(0deg) brightness(1) contrast(1);opacity:1}}
     @keyframes tf-matrix-out{0%{filter:hue-rotate(0deg) brightness(1) contrast(1);opacity:1}30%{filter:hue-rotate(40deg) brightness(.8) contrast(1.3);opacity:.8}60%{filter:hue-rotate(80deg) brightness(.4) contrast(2);opacity:.4}100%{filter:hue-rotate(120deg) brightness(0) contrast(3);opacity:0}}
     /* ── Preview video control ── */
-    #previewVidCtrl{position:absolute;bottom:12px;right:12px;z-index:35;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.22);display:none;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.85);padding:0;transition:background .2s}
-    #previewVidCtrl:hover{background:rgba(0,0,0,.65)}
-    #previewVidCtrl svg{width:12px;height:12px}
     /* ── Card orientation: vertical ── */
     .card-preview.orient-vertical{aspect-ratio:9/16;max-width:390px}
     .card-preview.orient-vertical .card-inner{flex-direction:column;justify-content:space-between;padding:20px 22px}
@@ -653,9 +650,6 @@
           </div>
         </div>
         <div class="card-brand-border"></div>
-        <button id="previewVidCtrl" onclick="togglePreviewVid()" title="Play/Pause preview">
-          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </button>
       </div>
 
       <div>
@@ -842,26 +836,22 @@
           </div>
         </div>
 
-        <!-- STILL CARD CUSTOMIZATION -->
+        <!-- STILL CARD -->
         <div>
-          <div class="cust-lbl">Still Card Background</div>
-          <div class="cust-color-row">
-            <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
-            <span class="cust-color-val" id="stillBgColorVal">#000000</span>
-            <button class="cust-reset-btn" onclick="applyStillBgColor('#000000')">Reset</button>
-          </div>
-        </div>
-        <div>
-          <div class="cust-lbl">Still Card Image</div>
+          <div class="cust-lbl">STILL CARD</div>
           <input type="file" id="fi-still-img" accept="image/jpeg,image/png,image/*" style="display:none">
           <div class="vid-upload-row">
             <button class="vid-upload-btn" onclick="document.getElementById('fi-still-img').click()">Choose Image</button>
             <span class="vid-upload-name" id="stillImgName">No file chosen</span>
             <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
           </div>
-        </div>
-        <div>
-          <div class="cust-lbl">Still Card Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
+          <div class="cust-lbl" style="margin-top:8px">Background Color</div>
+          <div class="cust-color-row">
+            <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
+            <span class="cust-color-val" id="stillBgColorVal">#000000</span>
+            <button class="cust-reset-btn" onclick="applyStillBgColor('#000000')">Reset</button>
+          </div>
+          <div class="cust-lbl" style="margin-top:8px">Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
           <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillOverlaySlider" min="0" max="100" value="0" oninput="applyStillOverlay(+this.value)">
         </div>
 
@@ -1888,7 +1878,6 @@ function setVideoMode(on) {
   videoMode = on;
   var card  = document.getElementById("cardPreview");
   var vid   = document.getElementById("cardVideoPitch");
-  var ctrl  = document.getElementById("previewVidCtrl");
   var pImg  = document.getElementById("cardPoster");
   var inner = card.querySelector(".card-inner");
   card.classList.toggle("video-mode", on);
@@ -1900,8 +1889,6 @@ function setVideoMode(on) {
     pImg.style.display = 'block';
     if (inner) inner.style.display = 'flex';
     _syncOverlay(true);
-    ctrl.style.display = "flex";
-    ctrl.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
     cardState = 'still';
   } else {
     vid.pause();
@@ -1909,32 +1896,10 @@ function setVideoMode(on) {
     pImg.style.display = 'none';
     if (inner) inner.style.display = '';
     _syncOverlay(false);
-    ctrl.style.display = "none";
     cardState = 'still';
   }
 }
 
-function togglePreviewVid() {
-  var vid  = document.getElementById("cardVideoPitch");
-  var ctrl = document.getElementById("previewVidCtrl");
-  var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-  var ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
-  if (vid.paused) {
-    if (cardState === 'still' && posterDataUrl) {
-      document.getElementById("cardPoster").style.display = "none";
-    }
-    vid.style.opacity = '1';
-    var p = vid.play();
-    if (p !== undefined) {
-      p.then(function() { ctrl.innerHTML = ICON_PAUSE; cardState = 'playing'; })
-       .catch(function(e) { console.error("[BF] togglePreviewVid play() failed:", e); ctrl.innerHTML = ICON_PLAY; });
-    } else { ctrl.innerHTML = ICON_PAUSE; cardState = 'playing'; }
-  } else {
-    vid.pause();
-    ctrl.innerHTML = ICON_PLAY;
-    if (cardState === 'playing') cardState = 'paused';
-  }
-}
 
 
 document.getElementById("fi-bg-img").addEventListener("change", function() {
@@ -2379,27 +2344,28 @@ function startTransitionIn() {
   var pImg  = document.getElementById("cardPoster");
   var inner = document.getElementById("cardPreview").querySelector(".card-inner");
   var dur   = Math.round(transitionDuration * 1000);
-  // Hide card text and overlay before poster animates out
+
   if (inner) inner.style.display = 'none';
   _syncOverlay(false);
-  // Snap poster to clean visible state with no transition
+
+  // Snap poster to fully visible with no transition, then force a reflow so
+  // the browser commits this as the animation start state before we fire the exit.
   pImg.style.transition = 'none';
+  pImg.style.display = 'block';
   _posterVisible(pImg);
-  // Double RAF: ensure visible state is painted before transition fires
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      _posterTrans(pImg, dur, 'ease-in');
-      (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
-      setTimeout(function() {
-        pImg.style.transition = 'none';
-        pImg.style.display = 'none';
-        _posterVisible(pImg);
-        vid.style.opacity = '1';
-        vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
-        cardState = 'playing';
-      }, dur);
-    });
-  });
+  void pImg.offsetWidth; // commit start state
+
+  _posterTrans(pImg, dur, 'ease-in');
+  (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
+
+  setTimeout(function() {
+    pImg.style.transition = 'none';
+    pImg.style.display = 'none';
+    _posterVisible(pImg);
+    vid.style.opacity = '1';
+    vid.play().catch(function(e){ console.error("[BF] startTransitionIn play() failed:", e); });
+    cardState = 'playing';
+  }, dur);
 }
 
 function startTransitionOut() {
@@ -2407,27 +2373,27 @@ function startTransitionOut() {
   var pImg  = document.getElementById("cardPoster");
   var inner = document.getElementById("cardPreview").querySelector(".card-inner");
   var dur   = Math.round(transitionDuration * 1000);
+
   vid.pause();
   vid.currentTime = 0;
   vid.style.opacity = '0';
-  // Snap poster to invisible initial state, make it visible in DOM
+
+  // Set poster to invisible start state, show it, then force a reflow so the
+  // browser commits this as the animation start state before we fire the enter.
   pImg.style.transition = 'none';
   (_VT_APPLY[vidTransition] || _VT_APPLY['fade'])(pImg);
   pImg.style.display = 'block';
-  // Double RAF: ensure invisible state is painted before transition fires
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      _posterTrans(pImg, dur, 'ease-out');
-      _posterVisible(pImg);
-      setTimeout(function() {
-        pImg.style.transition = 'none';
-        // Restore card text and overlay over still card
-        if (inner) inner.style.display = 'flex';
-        _syncOverlay(true);
-        cardState = 'still';
-      }, dur);
-    });
-  });
+  void pImg.offsetWidth; // commit start state
+
+  _posterTrans(pImg, dur, 'ease-out');
+  _posterVisible(pImg);
+
+  setTimeout(function() {
+    pImg.style.transition = 'none';
+    if (inner) inner.style.display = 'flex';
+    _syncOverlay(true);
+    cardState = 'still';
+  }, dur);
 }
 
 document.getElementById("cardPreview").addEventListener("click", function() {
