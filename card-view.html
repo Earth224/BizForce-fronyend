@@ -74,7 +74,7 @@
       position:absolute;inset:0;
       display:flex;flex-direction:column;justify-content:space-between;
       padding:env(safe-area-inset-top,44px) 28px calc(env(safe-area-inset-bottom,0px) + 128px) 28px;
-      z-index:2;
+      z-index:7;
     }
 
     .card-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
@@ -578,7 +578,7 @@ function startVideoLoop(c) {
   _vtStyle = ml.vid_transition || "fade";
   document.getElementById("cardPreview").dataset.vidTrans = _vtStyle;
   _vtState = "still";
-  setRing(true);
+  setRing(false);
   document.getElementById("cardPreview").addEventListener("click", onCardTap);
 }
 
@@ -604,6 +604,7 @@ function enterVideoMode() {
   if (_cvHasPoster) {
     var poster = document.getElementById("cardPoster");
     var pov    = document.getElementById("cardPosterOverlay");
+    var inner  = document.getElementById("cardPreview").querySelector(".card-inner");
     var dur    = _vtDur(_vtStyle);
     var tr     = "opacity " + dur + "ms ease-in, filter " + dur + "ms ease-in, clip-path " + dur + "ms ease-in, transform " + dur + "ms ease-in";
     poster.style.transition = "none";
@@ -612,9 +613,11 @@ function enterVideoMode() {
     poster.style.filter     = "none";
     poster.style.clipPath   = "";
     if (_cvOverlayOpacity > 0) { pov.style.transition = "none"; pov.style.opacity = String(_cvOverlayOpacity); }
+    if (inner) { inner.style.transition = "none"; inner.style.opacity = "1"; }
     void poster.offsetWidth;
     poster.style.transition = tr;
     if (_cvOverlayOpacity > 0) { pov.style.transition = "opacity " + dur + "ms ease-in"; pov.style.opacity = "0"; }
+    if (inner) { inner.style.transition = "opacity " + dur + "ms ease-in"; inner.style.opacity = "0"; }
     _applyPosterExit(poster, _vtStyle);
     _vtTimers.push(setTimeout(function() {
       poster.style.transition = "none";
@@ -624,6 +627,7 @@ function enterVideoMode() {
       poster.style.filter     = "none";
       poster.style.clipPath   = "";
       if (_cvOverlayOpacity > 0) { pov.style.display = "none"; pov.style.transition = "none"; pov.style.opacity = ""; }
+      if (inner) { inner.style.transition = "none"; inner.style.display = "none"; inner.style.opacity = ""; }
       vb.style.display = "block";
       vb.className     = "vt-active";
       vb.style.opacity = "1";
@@ -669,6 +673,7 @@ function exitVideoMode() {
   if (_cvHasPoster) {
     var poster = document.getElementById("cardPoster");
     var pov    = document.getElementById("cardPosterOverlay");
+    var inner  = document.getElementById("cardPreview").querySelector(".card-inner");
     var dur    = _vtDur(_vtStyle);
     vid.pause();
     vid.currentTime = 0;
@@ -696,9 +701,9 @@ function exitVideoMode() {
     _vtTimers.push(setTimeout(function() {
       poster.style.transition = "none";
       if (_cvOverlayOpacity > 0) { pov.style.transition = "none"; }
+      if (inner) { inner.style.display = ""; inner.style.opacity = ""; inner.style.transition = "none"; }
       _tapReady = false;
       _vtState = "still";
-      setRing(true);
     }, dur));
   } else {
     vb.style.opacity = "1";
@@ -712,7 +717,6 @@ function exitVideoMode() {
       vb.className = "";
       _tapReady = false;
       _vtState = "still";
-      setRing(true);
     }, _vtDur(_vtStyle)));
   }
 }
