@@ -225,7 +225,7 @@
     @keyframes vtShatterIn{0%{clip-path:polygon(50% 50%,50% 50%,50% 50%,50% 50%);transform:scale(1.08)}30%{clip-path:polygon(10% 30%,80% 0%,100% 60%,40% 100%,0% 70%);transform:scale(1.04)}60%{clip-path:polygon(0% 10%,90% 0%,100% 90%,10% 100%);transform:scale(1.01)}100%{clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%);transform:scale(1)}}
     @keyframes vtShatterOut{0%{clip-path:polygon(0% 0%,100% 0%,100% 100%,0% 100%);transform:scale(1)}40%{clip-path:polygon(0% 10%,90% 0%,100% 90%,10% 100%);transform:scale(1.01)}70%{clip-path:polygon(10% 30%,80% 0%,100% 60%,40% 100%,0% 70%);transform:scale(1.04)}100%{clip-path:polygon(50% 50%,50% 50%,50% 50%,50% 50%);transform:scale(1.08)}}
     /* ── Mobile full screen ── */
-    @media(max-width:430px){#cardPreview,#cvBgLayer,.card-video-el,.card-brand-border,#vidBox{border-radius:0!important}}
+    @media(max-width:430px){#cardPreview,#cvBgLayer,.card-video-el,.card-brand-border,#vidBox,#cardPoster,#cardPosterOverlay{border-radius:0!important}}
     /* ── Tap-to-play ring ── */
     #vtPlayRing{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:transparent;display:flex;align-items:center;justify-content:center;z-index:28;pointer-events:none;opacity:0;transition:opacity .4s ease}
     #vtPlayRing svg{margin-left:2px}
@@ -304,6 +304,8 @@
   <!-- Card preview — edge to edge -->
   <div id="cardPreview" data-theme="dark">
     <div id="cvBgLayer" class="card-bg-layer"></div>
+    <img id="cardPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;border-radius:20px;display:none;pointer-events:none;background:#000">
+    <div id="cardPosterOverlay" style="position:absolute;inset:0;z-index:6;border-radius:20px;pointer-events:none;display:none"></div>
     <div id="vtPlayRing">
       <svg viewBox="0 0 20 20" fill="rgba(255,255,255,0.9)" width="13" height="13"><polygon points="7,4 16,10 7,16"/></svg>
     </div>
@@ -374,6 +376,8 @@
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var cardData = null;
+var _cvHasPoster = false;
+var _cvOverlayOpacity = 0;
 
 var THEME_QR = {
   dark:     { dark: "#e8e8ff", light: "#070b18" },
@@ -381,6 +385,22 @@ var THEME_QR = {
   forest:   { dark: "#e8e8ff", light: "#061a12" },
   ember:    { dark: "#e8e8ff", light: "#1a0a06" }
 };
+
+function _applyPosterExit(el, style) {
+  var exits = {
+    "fade":          function(e) { e.style.opacity = '0'; },
+    "blur-dissolve": function(e) { e.style.opacity = '0'; e.style.filter = 'blur(24px)'; },
+    "iris":          function(e) { e.style.clipPath = 'circle(0% at 50% 50%)'; },
+    "glitch":        function(e) { e.style.opacity = '0'; e.style.transform = 'translateX(-8px) skewX(2deg)'; e.style.filter = 'hue-rotate(90deg)'; },
+    "swipe-left":    function(e) { e.style.transform = 'translateX(-100%)'; },
+    "swipe-up":      function(e) { e.style.transform = 'translateY(-100%)'; },
+    "zoom-in":       function(e) { e.style.opacity = '0'; e.style.transform = 'scale(0.35)'; },
+    "color-burn":    function(e) { e.style.opacity = '0'; e.style.filter = 'brightness(4) saturate(0)'; },
+    "matrix":        function(e) { e.style.opacity = '0'; e.style.filter = 'hue-rotate(120deg) brightness(2) saturate(5)'; },
+    "shatter":       function(e) { e.style.clipPath = 'polygon(50% 50%,50% 50%,50% 50%,50% 50%)'; e.style.transform = 'scale(1.08)'; }
+  };
+  (exits[style] || exits['fade'])(el);
+}
 
 function buildVCard(c) {
   return [
@@ -442,6 +462,36 @@ function renderCard(c) {
     var bgLayer = document.getElementById("cvBgLayer");
     bgLayer.style.backgroundImage = "url(" + c.bg_image_url + ")";
     bgLayer.style.display = "block";
+
+    var poster = document.getElementById("cardPoster");
+    var pov    = document.getElementById("cardPosterOverlay");
+    var ml2    = c.media_layout || {};
+    poster.src = c.bg_image_url;
+    var posMode = ml2.still_img_mode || "fill";
+    if (posMode === "fit") {
+      poster.style.objectFit      = "contain";
+      poster.style.objectPosition = "center";
+      poster.style.transform      = "none";
+      poster.style.transformOrigin = "50% 50%";
+    } else {
+      var posX = ml2.still_img_pos_x !== undefined ? +ml2.still_img_pos_x : 50;
+      var posY = ml2.still_img_pos_y !== undefined ? +ml2.still_img_pos_y : 50;
+      var zoom = ml2.still_img_zoom  !== undefined ? +ml2.still_img_zoom  : 100;
+      poster.style.objectFit       = posMode === "center" ? "none" : "cover";
+      poster.style.objectPosition  = posX + "% " + posY + "%";
+      poster.style.transform       = zoom !== 100 ? "scale(" + (zoom / 100) + ")" : "none";
+      poster.style.transformOrigin = posX + "% " + posY + "%";
+    }
+    if (ml2.still_bg_color && ml2.still_bg_color !== "#000000") {
+      poster.style.background = ml2.still_bg_color;
+    }
+    if (ml2.still_overlay && +ml2.still_overlay > 0) {
+      _cvOverlayOpacity = +ml2.still_overlay / 100;
+      pov.style.background = "rgba(0,0,0," + _cvOverlayOpacity.toFixed(2) + ")";
+      pov.style.display    = "block";
+    }
+    poster.style.display = "block";
+    _cvHasPoster = true;
   }
 
   document.getElementById("pCompany").textContent  = (c.company || "").toUpperCase();
@@ -537,7 +587,7 @@ function onCardTap(e) {
 }
 
 function enterVideoMode() {
-  var vb = document.getElementById("vidBox");
+  var vb  = document.getElementById("vidBox");
   var vid = document.getElementById("cardVideo");
   _vtState = "entering";
   setRing(false);
@@ -545,17 +595,50 @@ function enterVideoMode() {
     vid.addEventListener("canplay", enterVideoMode, {once:true});
     return;
   }
-  vb.style.display = "block";
-  void vb.offsetWidth;
-  vid.currentTime = 0;
-  var ep = vid.play();
-  if (ep !== undefined) ep.catch(function(e) { console.error("[BF] enterVideoMode play() failed:", e); });
-  vb.className = "vt-enter";
-  _vtTimers.push(setTimeout(function() {
-    vb.className = "vt-active";
-    vb.style.opacity = "1";
-    _vtState = "playing";
-  }, _vtDur(_vtStyle)));
+  if (_cvHasPoster) {
+    var poster = document.getElementById("cardPoster");
+    var pov    = document.getElementById("cardPosterOverlay");
+    var dur    = _vtDur(_vtStyle);
+    var tr     = "opacity " + dur + "ms ease-in, filter " + dur + "ms ease-in, clip-path " + dur + "ms ease-in, transform " + dur + "ms ease-in";
+    poster.style.transition = "none";
+    poster.style.opacity    = "1";
+    poster.style.transform  = "none";
+    poster.style.filter     = "none";
+    poster.style.clipPath   = "";
+    if (_cvOverlayOpacity > 0) { pov.style.transition = "none"; pov.style.opacity = String(_cvOverlayOpacity); }
+    void poster.offsetWidth;
+    poster.style.transition = tr;
+    if (_cvOverlayOpacity > 0) { pov.style.transition = "opacity " + dur + "ms ease-in"; pov.style.opacity = "0"; }
+    _applyPosterExit(poster, _vtStyle);
+    _vtTimers.push(setTimeout(function() {
+      poster.style.transition = "none";
+      poster.style.display    = "none";
+      poster.style.opacity    = "1";
+      poster.style.transform  = "none";
+      poster.style.filter     = "none";
+      poster.style.clipPath   = "";
+      if (_cvOverlayOpacity > 0) { pov.style.display = "none"; pov.style.transition = "none"; pov.style.opacity = ""; }
+      vb.style.display = "block";
+      vb.className     = "vt-active";
+      vb.style.opacity = "1";
+      vid.currentTime  = 0;
+      var ep = vid.play();
+      if (ep !== undefined) ep.catch(function(e) { console.error("[BF] enterVideoMode play() failed:", e); });
+      _vtState = "playing";
+    }, dur));
+  } else {
+    vb.style.display = "block";
+    void vb.offsetWidth;
+    vid.currentTime = 0;
+    var ep = vid.play();
+    if (ep !== undefined) ep.catch(function(e) { console.error("[BF] enterVideoMode play() failed:", e); });
+    vb.className = "vt-enter";
+    _vtTimers.push(setTimeout(function() {
+      vb.className = "vt-active";
+      vb.style.opacity = "1";
+      _vtState = "playing";
+    }, _vtDur(_vtStyle)));
+  }
 }
 
 function pauseVideo() {
@@ -575,20 +658,55 @@ function exitVideoMode() {
   _vtClear();
   _vtState = "exiting";
   setRing(false);
-  var vb = document.getElementById("vidBox");
+  var vb  = document.getElementById("vidBox");
   var vid = document.getElementById("cardVideo");
-  vb.style.opacity = "1";
-  void vb.offsetWidth;
-  vb.className = "vt-exit";
-  _vtTimers.push(setTimeout(function() {
+  if (_cvHasPoster) {
+    var poster = document.getElementById("cardPoster");
+    var pov    = document.getElementById("cardPosterOverlay");
+    var dur    = _vtDur(_vtStyle);
     vid.pause();
     vid.currentTime = 0;
     vb.style.display = "none";
     vb.style.opacity = "";
-    vb.className = "";
-    _vtState = "still";
-    setRing(true);
-  }, _vtDur(_vtStyle)));
+    vb.className     = "";
+    poster.style.transition = "none";
+    poster.style.opacity    = "0";
+    poster.style.transform  = "none";
+    poster.style.filter     = "none";
+    poster.style.clipPath   = "";
+    poster.style.display    = "block";
+    if (_cvOverlayOpacity > 0) {
+      pov.style.transition = "none";
+      pov.style.opacity    = "0";
+      pov.style.display    = "block";
+    }
+    void poster.offsetWidth;
+    poster.style.transition = "opacity " + dur + "ms ease-out";
+    poster.style.opacity    = "1";
+    if (_cvOverlayOpacity > 0) {
+      pov.style.transition = "opacity " + dur + "ms ease-out";
+      pov.style.opacity    = String(_cvOverlayOpacity);
+    }
+    _vtTimers.push(setTimeout(function() {
+      poster.style.transition = "none";
+      if (_cvOverlayOpacity > 0) { pov.style.transition = "none"; }
+      _vtState = "still";
+      setRing(true);
+    }, dur));
+  } else {
+    vb.style.opacity = "1";
+    void vb.offsetWidth;
+    vb.className = "vt-exit";
+    _vtTimers.push(setTimeout(function() {
+      vid.pause();
+      vid.currentTime = 0;
+      vb.style.display = "none";
+      vb.style.opacity = "";
+      vb.className = "";
+      _vtState = "still";
+      setRing(true);
+    }, _vtDur(_vtStyle)));
+  }
 }
 
 function saveContact() {
