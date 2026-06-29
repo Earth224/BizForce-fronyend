@@ -455,14 +455,16 @@ function renderCard(c) {
 
   var vcard  = buildVCard(c);
   var colors = THEME_QR[theme] || THEME_QR.dark;
-  QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
-    width: 80, margin: 1, errorCorrectionLevel: "M",
-    color: { dark: colors.dark, light: colors.light }
-  }, function() {});
-  QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
-    width: 52, margin: 1, errorCorrectionLevel: "M",
-    color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
-  }, function() {});
+  try {
+    QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
+      width: 80, margin: 1, errorCorrectionLevel: "M",
+      color: { dark: colors.dark, light: colors.light }
+    }, function() {});
+    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
+      width: 52, margin: 1, errorCorrectionLevel: "M",
+      color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
+    }, function() {});
+  } catch(e) {}
 
   if (c.video_url) {
     var cvid = document.getElementById("cardVideo");
@@ -474,7 +476,7 @@ function renderCard(c) {
     document.getElementById("pvName").textContent    = c.full_name || "";
     document.getElementById("pvJob").textContent     = c.job_title || "";
     document.getElementById("pvCompany").textContent = (c.company  || "").toUpperCase();
-    startVideoLoop(c);
+    try { startVideoLoop(c); } catch(e) {}
   }
 
   if (c.audio_url) {
