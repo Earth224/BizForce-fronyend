@@ -1981,6 +1981,43 @@ async function uploadAudio(file) {
   }
 }
 
+async function uploadPitchVideo(file) {
+  var status   = document.getElementById("pitchVidStatus");
+  var prog     = document.getElementById("pitchVidProg");
+  var progWrap = document.getElementById("pitchVidProgWrap");
+  status.textContent = "Uploading…";
+  status.className = "vid-upload-st uploading";
+  progWrap.style.display = "block";
+  prog.style.width = "25%";
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    prog.style.width = "55%";
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    prog.style.width = "100%";
+    videoUrl = d.publicUrl;
+    status.textContent = "Uploaded!";
+    status.className = "vid-upload-st done";
+    setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
+    showToast("Video uploaded!");
+  } catch(e) {
+    status.textContent = e.message || "Upload failed";
+    status.className = "vid-upload-st fail";
+    progWrap.style.display = "none";
+    showToast(e.message || "Upload failed", true);
+  }
+}
+
 function setVideoMode(on) {
   videoMode = on;
   var card  = document.getElementById("cardPreview");
@@ -2030,6 +2067,7 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
 
   var blobUrl = URL.createObjectURL(file);
   videoUrl = blobUrl;
+  uploadPitchVideo(file);
   var vid = document.getElementById("cardVideoPitch");
   vid.controls = false;
   vid.loop = false;
