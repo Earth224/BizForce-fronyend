@@ -558,6 +558,7 @@ function toggleCvAudio() {
 var _vtStyle = "fade";
 var _vtState = "still"; // still | entering | playing | paused | exiting
 var _vtTimers = [];
+var _tapReady = false; // set true only by an explicit user tap; cleared when video returns to still
 
 function _vtClear() { _vtTimers.forEach(clearTimeout); _vtTimers = []; }
 
@@ -582,12 +583,14 @@ function startVideoLoop(c) {
 function onCardTap(e) {
   var audioBar = document.getElementById("cvAudioBar");
   if (audioBar && audioBar.contains(e.target)) return;
+  _tapReady = true;
   if (_vtState === "still")   { enterVideoMode(); }
   else if (_vtState === "playing") { pauseVideo(); }
   else if (_vtState === "paused")  { resumeVideo(); }
 }
 
 function enterVideoMode() {
+  if (!_tapReady) return;
   var vb  = document.getElementById("vidBox");
   var vid = document.getElementById("cardVideo");
   _vtState = "entering";
@@ -691,6 +694,7 @@ function exitVideoMode() {
     _vtTimers.push(setTimeout(function() {
       poster.style.transition = "none";
       if (_cvOverlayOpacity > 0) { pov.style.transition = "none"; }
+      _tapReady = false;
       _vtState = "still";
       setRing(true);
     }, dur));
@@ -704,6 +708,7 @@ function exitVideoMode() {
       vb.style.display = "none";
       vb.style.opacity = "";
       vb.className = "";
+      _tapReady = false;
       _vtState = "still";
       setRing(true);
     }, _vtDur(_vtStyle)));
