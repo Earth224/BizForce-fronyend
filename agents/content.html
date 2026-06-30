@@ -444,6 +444,8 @@
   .ca-copy-btn:hover{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.12)}
   .ca-signup-btn{display:inline-flex;align-items:center;gap:7px;padding:12px 22px;border-radius:13px;background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:all .25s;box-shadow:0 4px 20px rgba(0,198,255,.25)}
   .ca-signup-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35),0 0 20px rgba(168,85,247,.25)}
+  .ca-checkbox-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.85rem;color:#c4b5fd;font-weight:600;user-select:none}
+  .ca-checkbox-label input[type=checkbox]{width:16px;height:16px;accent-color:#22d3ee;cursor:pointer;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -1004,14 +1006,25 @@ window.AGENT_PROFILE_CONFIG = {
         Go to Signup ↗
       </a>
     </div>
+    <div style="margin-top:16px">
+      <label class="ca-checkbox-label">
+        <input type="checkbox" id="caCreatedCheck" onchange="caToggleConnect(this)">
+        <span>I created my account</span>
+      </label>
+    </div>
+    <div id="caConnectReveal" style="display:none;margin-top:14px;padding:14px 16px;border-radius:12px;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.14)">
+      <p style="font-size:.78rem;color:#8892b8;margin:0 0 12px;line-height:1.5">Your account is ready to link. Connect it to BizForce now.</p>
+      <button type="button" class="connect-btn" id="caModalConnectBtn" style="font-size:.75rem;width:auto;padding:9px 22px" onclick="caModalConnect(this)">Connect Account</button>
+    </div>
   </div>
 </div>
 <script>
 (function () {
-  var PLATFORM_LABELS = { instagram:"Instagram", facebook:"Facebook", tiktok:"TikTok", youtube:"YouTube", linkedin:"LinkedIn", x:"X" };
-  var USER_LIMITS     = { instagram:30, facebook:50, tiktok:24, youtube:30, linkedin:50, x:15 };
-  var BIO_LIMITS      = { instagram:150, facebook:255, tiktok:80, youtube:1000, linkedin:2000, x:160 };
-  var SIGNUP_URLS     = {
+  var PLATFORM_LABELS  = { instagram:"Instagram", facebook:"Facebook", tiktok:"TikTok", youtube:"YouTube", linkedin:"LinkedIn", x:"X" };
+  var USER_LIMITS      = { instagram:30, facebook:50, tiktok:24, youtube:30, linkedin:50, x:15 };
+  var BIO_LIMITS       = { instagram:150, facebook:255, tiktok:80, youtube:1000, linkedin:2000, x:160 };
+  var currentPlatform  = "";
+  var SIGNUP_URLS      = {
     instagram: "https://www.instagram.com/accounts/emailsignup",
     facebook:  "https://www.facebook.com/reg",
     tiktok:    "https://www.tiktok.com/signup",
@@ -1021,6 +1034,8 @@ window.AGENT_PROFILE_CONFIG = {
   };
 
   window.openCreateAccount = function (platform) {
+    currentPlatform = platform;
+
     var profile = window._bpProfile || {};
     var bName   = profile.business_name || "";
     var voice   = profile.brand_voice   || "";
@@ -1052,7 +1067,25 @@ window.AGENT_PROFILE_CONFIG = {
       signupLink.textContent = "Go to " + label + " Signup ↗";
     }
 
+    var check = document.getElementById("caCreatedCheck");
+    if (check) check.checked = false;
+    var reveal = document.getElementById("caConnectReveal");
+    if (reveal) reveal.style.display = "none";
+    var connectBtn = document.getElementById("caModalConnectBtn");
+    if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = "Connect Account"; }
+
     document.getElementById("caModalOverlay").classList.add("open");
+  };
+
+  window.caToggleConnect = function (cb) {
+    var reveal = document.getElementById("caConnectReveal");
+    if (reveal) reveal.style.display = cb.checked ? "block" : "none";
+  };
+
+  window.caModalConnect = function (btn) {
+    if (currentPlatform && typeof window.connectPlatform === "function") {
+      window.connectPlatform(currentPlatform, btn);
+    }
   };
 
   window.closeCreateAccount = function () {
