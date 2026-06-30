@@ -9,6 +9,7 @@
   var AGENT_LABEL = String(cfg.agentLabel || "Agent");
   var ACCENT      = String(cfg.accentColor || "#22d3ee");
   var TASK_TYPES  = Array.isArray(cfg.taskTypes) ? cfg.taskTypes : [{ value: "general", label: "General Task" }];
+  var HAS_SOCIAL_DRAFTS = TASK_TYPES.some(function(t) { return t.value === "social_media_drafts"; });
 
   var pollTimer     = null;
   var activeTaskId  = null;
@@ -135,7 +136,35 @@
     ".ap-md-table tr:nth-child(even) td{background:rgba(255,255,255,.03)}",
     ".ap-md-pre{background:rgba(8,12,28,.9);border:1px solid rgba(0,229,255,.15);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto}",
     ".ap-md-pre code{font-family:monospace;font-size:.78rem;color:#a5f3fc;line-height:1.55}",
-    ".ap-md-code{font-family:monospace;font-size:.82em;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:1px 5px;color:#a5f3fc}"
+    ".ap-md-code{font-family:monospace;font-size:.82em;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:1px 5px;color:#a5f3fc}",
+    /* approve / reject on result card */
+    ".ap-approve-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:10px;",
+      "font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;",
+      "background:linear-gradient(135deg,#059669,#10b981);cursor:pointer;transition:all .2s;",
+      "box-shadow:0 2px 12px rgba(16,185,129,.3);font-family:inherit}",
+    ".ap-approve-btn:hover{transform:translateY(-1px);box-shadow:0 4px 18px rgba(16,185,129,.45)}",
+    ".ap-approve-btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important}",
+    ".ap-reject-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;",
+      "border:1px solid rgba(248,113,113,.35);border-radius:10px;",
+      "font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;",
+      "color:#f87171;background:rgba(248,113,113,.06);cursor:pointer;transition:all .2s;font-family:inherit}",
+    ".ap-reject-btn:hover{border-color:rgba(248,113,113,.65);background:rgba(248,113,113,.12)}",
+    ".ap-reject-btn:disabled{opacity:.45;cursor:not-allowed}",
+    /* approval queue */
+    ".ap-queue-empty{padding:18px;text-align:center;font-size:.85rem;color:#8888aa;",
+      "border:1px dashed rgba(74,222,128,.25);border-radius:12px;background:rgba(74,222,128,.04)}",
+    ".ap-queue-list{display:flex;flex-direction:column;gap:10px}",
+    ".ap-queue-item{padding:14px 16px;border-radius:12px;background:rgba(8,12,28,.65);",
+      "border:1px solid rgba(74,222,128,.18);transition:border-color .2s,transform .2s}",
+    ".ap-queue-item:hover{border-color:rgba(74,222,128,.4);transform:translateY(-1px)}",
+    ".ap-queue-item-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}",
+    ".ap-queue-platform{padding:3px 9px;border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.08em;",
+      "text-transform:uppercase;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);color:#22d3ee}",
+    ".ap-queue-status{padding:3px 9px;border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.08em;",
+      "text-transform:uppercase;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80}",
+    ".ap-queue-time{font-size:.68rem;color:#8888aa;margin-left:auto}",
+    ".ap-queue-preview{font-size:.82rem;color:#8892b8;line-height:1.55;",
+      "display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}"
   ].join("");
 
   var styleEl = document.createElement("style");
@@ -228,7 +257,17 @@
           '<h2 class="ap-section-label">Task History</h2>',
           '<div id="apHistory"><div class="ap-empty-state">Loading history…</div></div>',
         '</div>',
-      '</div>'
+      '</div>',
+
+      /* ── 5. Approval queue (social drafts only) ── */
+      HAS_SOCIAL_DRAFTS ? (
+        '<div class="ap-section">' +
+          '<div class="ap-card">' +
+            '<h2 class="ap-section-label">Approval Queue</h2>' +
+            '<div id="apApprovalQueue"><div class="ap-queue-empty">No drafts in queue yet. Approve a Social Media Drafts result to add one.</div></div>' +
+          '</div>' +
+        '</div>'
+      ) : ""
     ].join("");
 
     var reportsGrid = document.getElementById("reportsGrid");
@@ -261,6 +300,7 @@
 
     document.getElementById("apLaunchBtn").addEventListener("click", launchTask);
     loadHistory();
+    if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
   }
 
   /* ── button loading state ── */
@@ -411,20 +451,123 @@
     var result    = task.result || "";
     var timestamp = fmt(task.updated_at || task.created_at || new Date().toISOString());
     var taskType  = task.task_type || "general";
+    var isSocial  = (taskType === "social_media_drafts");
 
     var card = document.createElement("div");
     card.className = "ap-result-card";
     card.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
-        '<div style="font-size:.9rem;font-weight:800;color:#4ade80">✓ Task Completed</div>' +
+        '<div class="ap-result-status" style="font-size:.9rem;font-weight:800;color:' + (isSocial ? "#22d3ee" : "#4ade80") + '">' +
+          (isSocial ? "✦ Drafts Ready — Review Below" : "✓ Task Completed") +
+        '</div>' +
         '<div style="font-size:.72rem;color:#8888aa">' + esc(timestamp) + ' · ' + esc(taskType) + '</div>' +
       '</div>' +
       '<div class="ap-result-sublabel" style="color:#c4b5fd">Your Request</div>' +
       '<div class="ap-result-input">' + esc(prompt) + '</div>' +
       '<div class="ap-result-sublabel">AI Response</div>' +
-      '<div class="ap-result-body">' + renderMarkdown(result || "No result returned.") + '</div>';
+      '<div class="ap-result-body">' + renderMarkdown(result || "No result returned.") + '</div>' +
+      (isSocial
+        ? '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
+            '<button type="button" class="ap-approve-btn">✓ Approve &amp; Schedule</button>' +
+            '<button type="button" class="ap-reject-btn">✕ Reject</button>' +
+          '</div>' +
+          '<div class="ap-approve-msg" style="margin-top:8px;font-size:.8rem;min-height:16px;color:#8892b8"></div>'
+        : "");
+
+    if (isSocial) {
+      var approveBtn = card.querySelector(".ap-approve-btn");
+      var rejectBtn  = card.querySelector(".ap-reject-btn");
+      if (approveBtn) approveBtn.addEventListener("click", function() { approveDraft(result, card); });
+      if (rejectBtn)  rejectBtn.addEventListener("click",  function() { rejectDraft(card); });
+    }
 
     wrapper.insertBefore(card, wrapper.firstChild);
+  }
+
+  /* ── approve draft → POST /api/social-drafts ── */
+  function approveDraft(result, card) {
+    var approveBtn = card.querySelector(".ap-approve-btn");
+    var rejectBtn  = card.querySelector(".ap-reject-btn");
+    var msgEl      = card.querySelector(".ap-approve-msg");
+    var token = tok();
+    if (!token) {
+      if (msgEl) { msgEl.textContent = "Not signed in."; msgEl.style.color = "#f87171"; }
+      return;
+    }
+    if (approveBtn) { approveBtn.disabled = true; approveBtn.innerHTML = '<span class="ap-spinner"></span>Saving…'; }
+    if (rejectBtn)  rejectBtn.disabled = true;
+
+    fetch(API_URL + "/api/social-drafts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ platform: "instagram", content: result, status: "pending" })
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+    .then(function(res) {
+      if (!res.ok) throw new Error(res.data.error || "Save failed");
+      var actionRow = card.querySelector(".ap-approve-btn") && card.querySelector(".ap-approve-btn").parentNode;
+      if (actionRow) actionRow.style.display = "none";
+      var statusEl = card.querySelector(".ap-result-status");
+      if (statusEl) { statusEl.textContent = "✓ Approved"; statusEl.style.color = "#4ade80"; }
+      if (msgEl) { msgEl.textContent = "Added to Approval Queue."; msgEl.style.color = "#4ade80"; }
+      loadApprovalQueue();
+    })
+    .catch(function(e) {
+      if (approveBtn) { approveBtn.disabled = false; approveBtn.innerHTML = "✓ Approve &amp; Schedule"; }
+      if (rejectBtn)  rejectBtn.disabled = false;
+      if (msgEl) { msgEl.textContent = e.message || "Save failed."; msgEl.style.color = "#f87171"; }
+    });
+  }
+
+  /* ── reject draft → fade-remove card ── */
+  function rejectDraft(card) {
+    card.style.transition = "opacity .3s ease, transform .3s ease";
+    card.style.opacity = "0";
+    card.style.transform = "translateY(-6px)";
+    setTimeout(function() { if (card.parentNode) card.parentNode.removeChild(card); }, 320);
+  }
+
+  /* ── load & render approval queue ── */
+  function loadApprovalQueue() {
+    var el = document.getElementById("apApprovalQueue");
+    if (!el) return;
+    var token = tok();
+    if (!token) return;
+    fetch(API_URL + "/api/social-drafts", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) {
+      var drafts = (data && Array.isArray(data.drafts)) ? data.drafts : [];
+      renderApprovalQueue(drafts);
+    })
+    .catch(function() {});
+  }
+
+  function renderApprovalQueue(drafts) {
+    var el = document.getElementById("apApprovalQueue");
+    if (!el) return;
+    if (!drafts.length) {
+      el.innerHTML = '<div class="ap-queue-empty">No drafts in queue yet. Approve a Social Media Drafts result to add one.</div>';
+      return;
+    }
+    var html = '<div class="ap-queue-list">';
+    drafts.slice(0, 20).forEach(function(d) {
+      var preview  = d.content ? (d.content.length > 220 ? d.content.slice(0, 220) + "…" : d.content) : "—";
+      var platform = d.platform || "general";
+      var status   = d.status   || "pending";
+      html +=
+        '<div class="ap-queue-item">' +
+          '<div class="ap-queue-item-head">' +
+            '<span class="ap-queue-platform">' + esc(platform) + '</span>' +
+            '<span class="ap-queue-status">'   + esc(status)   + '</span>' +
+            '<span class="ap-queue-time">'     + esc(fmt(d.created_at)) + '</span>' +
+          '</div>' +
+          '<div class="ap-queue-preview">' + esc(preview) + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
   }
 
   /* ── task submission ── */
