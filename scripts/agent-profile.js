@@ -330,6 +330,7 @@
       setMsg("Loading business profile…");
       setLive("running", "Preparing…", "Fetching business context");
 
+      console.log("[Content Agent] Fetching business profile:", API_URL + "/api/business-profile", "| Auth: Bearer " + token.slice(0, 12) + "…");
       fetch(API_URL + "/api/business-profile", {
         headers: { "Authorization": "Bearer " + token }
       })
