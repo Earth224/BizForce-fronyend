@@ -378,10 +378,10 @@
     return lines.join("\n");
   }
 
-  /* sends prompt to /api/agents/run-task; displayPrompt is shown in the result card */
+  /* sends prompt to /api/ai/tasks; displayPrompt is shown in the result card */
   function doSubmit(finalPrompt, taskType, displayPrompt, promptEl) {
     var token = tok();
-    fetch(API_URL + "/api/agents/run-task", {
+    fetch(API_URL + "/api/ai/tasks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
