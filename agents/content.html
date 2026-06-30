@@ -392,6 +392,25 @@
     }
   
     .agent-avatar{border-color:rgba(52,211,153,0.5);background:linear-gradient(135deg,rgba(0,229,255,0.18),rgba(168,85,247,0.22));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
+  .bp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .bp-modal-overlay.open{opacity:1;pointer-events:all}
+  .bp-modal{background:rgba(10,15,35,.97);border:1px solid rgba(0,229,255,.2);border-radius:20px;padding:28px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto}
+  .bp-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .bp-modal-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0}
+  .bp-modal-close{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+  .bp-modal-close:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+  .bp-field{margin-bottom:14px}
+  .bp-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8888aa;margin-bottom:5px}
+  .bp-input,.bp-textarea,.bp-select{width:100%;padding:10px 13px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#e8e8ff;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .2s;box-sizing:border-box}
+  .bp-input:focus,.bp-textarea:focus,.bp-select:focus{border-color:rgba(0,229,255,.4)}
+  .bp-input::placeholder,.bp-textarea::placeholder{color:#3a4268}
+  .bp-textarea{resize:vertical;min-height:72px;line-height:1.5}
+  .bp-select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .bp-save-btn{display:inline-flex;align-items:center;padding:13px 28px;border:none;border-radius:14px;font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#06b6d4,#8b5cf6);cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(0,198,255,.25);font-family:inherit}
+  .bp-save-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35)}
+  .bp-save-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .bp-status{margin-top:12px;font-size:.82rem;min-height:18px;color:#8892b8}
+  .bp-status.ok{color:#4ade80}.bp-status.err{color:#f87171}
   </style>
 </head>
 <body>
@@ -409,8 +428,11 @@
       </div>
     </header>
     <section class="context-card" aria-label="Business Profile Context">
-      <h2 class="section-label">Business Profile Context</h2>
-      <div class="context-grid" id="businessContextGrid"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+        <h2 class="section-label" style="margin:0">Business Profile Context</h2>
+        <button class="action-btn action-btn--ghost" id="editProfileBtn" onclick="openProfileModal()" style="padding:7px 14px;font-size:.72rem">Edit Profile</button>
+      </div>
+      <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0">Loading…</p></div>
       
       <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
     </section>
@@ -592,15 +614,216 @@
       }
     }
     function refreshPage() {
-      var profile = loadUserProfile();
       var memory = loadExecutiveMemory();
       var store = getAgentStore(memory);
-      renderBusinessContext(buildBusinessContext(profile, store));
       renderReports(store, AGENT_LABEL);
+      if (typeof window.loadBusinessProfile === "function") window.loadBusinessProfile();
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
     refreshPage();
   </script>
+<div class="bp-modal-overlay" id="bpModalOverlay" onclick="bpOverlayClick(event)">
+  <div class="bp-modal">
+    <div class="bp-modal-header">
+      <h2 class="bp-modal-title">Business Profile</h2>
+      <button class="bp-modal-close" onclick="closeProfileModal()">&#x2715;</button>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpBusinessName">Business Name</label>
+      <input class="bp-input" id="bpBusinessName" type="text" placeholder="Acme Corp" maxlength="120">
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpIndustry">Industry</label>
+      <input class="bp-input" id="bpIndustry" type="text" placeholder="e.g. Real Estate, E-commerce, Fitness" maxlength="120">
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpWebsite">Website</label>
+      <input class="bp-input" id="bpWebsite" type="url" placeholder="https://yoursite.com" maxlength="500">
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpLocation">Location</label>
+      <input class="bp-input" id="bpLocation" type="text" placeholder="City, State or Remote" maxlength="200">
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpTargetAudience">Target Audience</label>
+      <textarea class="bp-textarea" id="bpTargetAudience" placeholder="Who is your ideal customer?" maxlength="500"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpBrandVoice">Brand Voice</label>
+      <input class="bp-input" id="bpBrandVoice" type="text" placeholder="e.g. Professional, Playful, Authoritative" maxlength="500">
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpBrandValues">Brand Values</label>
+      <textarea class="bp-textarea" id="bpBrandValues" placeholder="Core values that guide your brand..." maxlength="1000"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpBusinessGoals">Business Goals</label>
+      <textarea class="bp-textarea" id="bpBusinessGoals" placeholder="What are you trying to achieve?" maxlength="1000"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpBannedTopics">Banned Topics</label>
+      <textarea class="bp-textarea" id="bpBannedTopics" placeholder="Topics or messaging to avoid..." maxlength="1000"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpCompetitors">Competitors</label>
+      <textarea class="bp-textarea" id="bpCompetitors" placeholder="List main competitors..." maxlength="500"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpDescription">Description</label>
+      <textarea class="bp-textarea" id="bpDescription" placeholder="Describe your business in a few sentences..." maxlength="2000"></textarea>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="bpPostingFrequency">Posting Frequency</label>
+      <select class="bp-select" id="bpPostingFrequency">
+        <option value="">-- Select --</option>
+        <option value="Daily">Daily</option>
+        <option value="3x/week">3x/week</option>
+        <option value="Weekly">Weekly</option>
+        <option value="Custom">Custom</option>
+      </select>
+    </div>
+    <button class="bp-save-btn" id="bpSaveBtn" onclick="saveProfile()">Save Profile</button>
+    <div class="bp-status" id="bpStatus"></div>
+  </div>
+</div>
+<script>
+(function () {
+  var BP_API = "https://dynamic-prosperity-production-5382.up.railway.app";
+  var currentProfile = null;
+
+  function bpTok() { return localStorage.getItem("bf_token") || ""; }
+
+  function escHtml(v) {
+    return String(v == null ? "" : v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function renderProfileDisplay(profile) {
+    var grid = document.getElementById("businessContextGrid");
+    if (!grid) return;
+    if (!profile) {
+      grid.innerHTML = '<p style="color:#8892b8;font-size:.85rem;margin:0">No business profile yet. Click <strong style="color:#22d3ee">Edit Profile</strong> to add your business context.</p>';
+      return;
+    }
+    var rows = [
+      { label: "Business", value: profile.business_name },
+      { label: "Industry",  value: profile.industry },
+      { label: "Website",   value: profile.website },
+      { label: "Location",  value: profile.location },
+      { label: "Brand Voice", value: profile.brand_voice },
+      { label: "Competitors", value: profile.competitors },
+      { label: "Posting", value: profile.posting_frequency },
+      { label: "Target Audience", value: profile.target_audience }
+    ];
+    var html = "";
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].value) {
+        html += '<div class="context-item"><label>' + escHtml(rows[i].label) + '</label><span>' + escHtml(rows[i].value) + '</span></div>';
+      }
+    }
+    grid.innerHTML = html || '<p style="color:#8892b8;font-size:.85rem;margin:0">Profile saved. Click <strong style="color:#22d3ee">Edit Profile</strong> to fill in your details.</p>';
+  }
+
+  function fillModalFields(p) {
+    p = p || {};
+    document.getElementById("bpBusinessName").value     = p.business_name     || "";
+    document.getElementById("bpIndustry").value         = p.industry          || "";
+    document.getElementById("bpWebsite").value          = p.website           || "";
+    document.getElementById("bpLocation").value         = p.location          || "";
+    document.getElementById("bpTargetAudience").value   = p.target_audience   || "";
+    document.getElementById("bpBrandVoice").value       = p.brand_voice       || "";
+    document.getElementById("bpBrandValues").value      = p.brand_values      || "";
+    document.getElementById("bpBusinessGoals").value    = p.business_goals    || "";
+    document.getElementById("bpBannedTopics").value     = p.banned_topics     || "";
+    document.getElementById("bpCompetitors").value      = p.competitors       || "";
+    document.getElementById("bpDescription").value      = p.description       || "";
+    document.getElementById("bpPostingFrequency").value = p.posting_frequency || "";
+  }
+
+  window.loadBusinessProfile = function () {
+    fetch(BP_API + "/api/business-profile", {
+      headers: { "Authorization": "Bearer " + bpTok() }
+    })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (d) {
+      currentProfile = d.profile;
+      renderProfileDisplay(d.profile);
+      if (d.profile) fillModalFields(d.profile);
+    })
+    .catch(function () {
+      var grid = document.getElementById("businessContextGrid");
+      if (grid) grid.innerHTML = '<p style="color:#8892b8;font-size:.85rem;margin:0">Could not load profile. Check connection or log in again.</p>';
+    });
+  };
+
+  window.openProfileModal = function () {
+    document.getElementById("bpModalOverlay").classList.add("open");
+    document.getElementById("bpStatus").textContent = "";
+    document.getElementById("bpStatus").className = "bp-status";
+  };
+
+  window.closeProfileModal = function () {
+    document.getElementById("bpModalOverlay").classList.remove("open");
+  };
+
+  window.bpOverlayClick = function (e) {
+    if (e.target === document.getElementById("bpModalOverlay")) window.closeProfileModal();
+  };
+
+  function setBpStatus(text, cls) {
+    var el = document.getElementById("bpStatus");
+    el.textContent = text;
+    el.className = "bp-status" + (cls ? " " + cls : "");
+  }
+
+  window.saveProfile = async function () {
+    var btn = document.getElementById("bpSaveBtn");
+    btn.disabled = true;
+    setBpStatus("Saving…");
+    var payload = {
+      business_name:     document.getElementById("bpBusinessName").value.trim(),
+      industry:          document.getElementById("bpIndustry").value.trim(),
+      website:           document.getElementById("bpWebsite").value.trim(),
+      location:          document.getElementById("bpLocation").value.trim(),
+      target_audience:   document.getElementById("bpTargetAudience").value.trim(),
+      brand_voice:       document.getElementById("bpBrandVoice").value.trim(),
+      brand_values:      document.getElementById("bpBrandValues").value.trim(),
+      business_goals:    document.getElementById("bpBusinessGoals").value.trim(),
+      banned_topics:     document.getElementById("bpBannedTopics").value.trim(),
+      competitors:       document.getElementById("bpCompetitors").value.trim(),
+      description:       document.getElementById("bpDescription").value.trim(),
+      posting_frequency: document.getElementById("bpPostingFrequency").value
+    };
+    var method = currentProfile ? "PUT" : "POST";
+    try {
+      var res = await fetch(BP_API + "/api/business-profile", {
+        method: method,
+        headers: { "Authorization": "Bearer " + bpTok(), "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        var errData = await res.json().catch(function () { return {}; });
+        throw new Error(errData.error || errData.db_message || ("HTTP " + res.status));
+      }
+      var d = await res.json();
+      currentProfile = d.profile;
+      renderProfileDisplay(d.profile);
+      setBpStatus("Saved!", "ok");
+      setTimeout(function () { window.closeProfileModal(); setBpStatus(""); }, 1400);
+    } catch (e) {
+      setBpStatus(e.message || "Save failed", "err");
+    }
+    btn.disabled = false;
+  };
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && document.getElementById("bpModalOverlay").classList.contains("open")) {
+      window.closeProfileModal();
+    }
+  });
+
+  window.loadBusinessProfile();
+}());
+</script>
 <script>
 window.AGENT_PROFILE_CONFIG = {
   agentType:   "content",
