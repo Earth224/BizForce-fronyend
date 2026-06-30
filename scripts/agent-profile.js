@@ -164,7 +164,13 @@
       "text-transform:uppercase;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:#4ade80}",
     ".ap-queue-time{font-size:.68rem;color:#8888aa;margin-left:auto}",
     ".ap-queue-preview{font-size:.82rem;color:#8892b8;line-height:1.55;",
-      "display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}"
+      "display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}",
+    /* individual post cards inside a social drafts result */
+    ".ap-social-post{padding:14px 16px;border-radius:12px;background:rgba(0,229,255,.03);",
+      "border:1px solid rgba(0,229,255,.1);margin-bottom:10px}",
+    ".ap-social-post:last-child{margin-bottom:0}",
+    ".ap-social-post-num{font-size:.63rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;",
+      "color:#22d3ee;margin-bottom:8px}"
   ].join("");
 
   var styleEl = document.createElement("style");
@@ -455,6 +461,8 @@
 
     var card = document.createElement("div");
     card.className = "ap-result-card";
+
+    /* common header — same for all task types */
     card.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
         '<div class="ap-result-status" style="font-size:.9rem;font-weight:800;color:' + (isSocial ? "#22d3ee" : "#4ade80") + '">' +
@@ -463,22 +471,65 @@
         '<div style="font-size:.72rem;color:#8888aa">' + esc(timestamp) + ' · ' + esc(taskType) + '</div>' +
       '</div>' +
       '<div class="ap-result-sublabel" style="color:#c4b5fd">Your Request</div>' +
-      '<div class="ap-result-input">' + esc(prompt) + '</div>' +
-      '<div class="ap-result-sublabel">AI Response</div>' +
-      '<div class="ap-result-body">' + renderMarkdown(result || "No result returned.") + '</div>' +
-      (isSocial
-        ? '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">' +
-            '<button type="button" class="ap-approve-btn">✓ Approve &amp; Schedule</button>' +
-            '<button type="button" class="ap-reject-btn">✕ Reject</button>' +
-          '</div>' +
-          '<div class="ap-approve-msg" style="margin-top:8px;font-size:.8rem;min-height:16px;color:#8892b8"></div>'
-        : "");
+      '<div class="ap-result-input">' + esc(prompt) + '</div>';
 
     if (isSocial) {
-      var approveBtn = card.querySelector(".ap-approve-btn");
-      var rejectBtn  = card.querySelector(".ap-reject-btn");
-      if (approveBtn) approveBtn.addEventListener("click", function() { approveDraft(result, card); });
-      if (rejectBtn)  rejectBtn.addEventListener("click",  function() { rejectDraft(card); });
+      /* split on the machine-parseable delimiter the prompt builder uses */
+      var posts = result.split(/\n?---POST---\n?/).map(function(s) { return s.trim(); }).filter(Boolean);
+      if (!posts.length) posts = result ? [result] : ["No result returned."];
+
+      var draftsLabel = document.createElement("div");
+      draftsLabel.className = "ap-result-sublabel";
+      draftsLabel.textContent = posts.length + (posts.length === 1 ? " Draft" : " Drafts") + " — Approve individually";
+      card.appendChild(draftsLabel);
+
+      posts.forEach(function(postContent, idx) {
+        var postCard = document.createElement("div");
+        postCard.className = "ap-social-post";
+
+        var postNum = document.createElement("div");
+        postNum.className = "ap-social-post-num";
+        postNum.textContent = "Post " + (idx + 1) + " of " + posts.length;
+        postCard.appendChild(postNum);
+
+        var contentEl = document.createElement("div");
+        contentEl.className = "ap-result-body";
+        contentEl.innerHTML = renderMarkdown(postContent);
+        postCard.appendChild(contentEl);
+
+        var actions = document.createElement("div");
+        actions.style.cssText = "display:flex;gap:10px;margin-top:10px;flex-wrap:wrap";
+        var approveBtn = document.createElement("button");
+        approveBtn.type = "button";
+        approveBtn.className = "ap-approve-btn";
+        approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+        var rejectBtn = document.createElement("button");
+        rejectBtn.type = "button";
+        rejectBtn.className = "ap-reject-btn";
+        rejectBtn.textContent = "✕ Reject";
+        var msgEl = document.createElement("div");
+        msgEl.className = "ap-approve-msg";
+        msgEl.style.cssText = "margin-top:6px;font-size:.78rem;min-height:14px;color:#8892b8";
+
+        approveBtn.addEventListener("click", function() { approveDraft(postContent, postCard); });
+        rejectBtn.addEventListener("click",  function() { rejectDraft(postCard); });
+
+        actions.appendChild(approveBtn);
+        actions.appendChild(rejectBtn);
+        postCard.appendChild(actions);
+        postCard.appendChild(msgEl);
+        card.appendChild(postCard);
+      });
+    } else {
+      /* non-social: render full result as one block */
+      var respLabel = document.createElement("div");
+      respLabel.className = "ap-result-sublabel";
+      respLabel.textContent = "AI Response";
+      var respBody = document.createElement("div");
+      respBody.className = "ap-result-body";
+      respBody.innerHTML = renderMarkdown(result || "No result returned.");
+      card.appendChild(respLabel);
+      card.appendChild(respBody);
     }
 
     wrapper.insertBefore(card, wrapper.firstChild);
@@ -615,11 +666,17 @@
     }
   }
 
-  /* builds enriched prompt from business profile + user request */
+  /* builds enriched prompt that produces exactly 5 discrete posts separated by ---POST--- */
   function buildSocialPrompt(profile, userPrompt) {
     var p = profile || {};
     var lines = [
-      "You are a social media content strategist. Use the business context below to write on-brand content.",
+      "You are a social media copywriter. Produce exactly 5 ready-to-post social media posts.",
+      "",
+      "STRICT RULES:",
+      "- Each post must be self-contained: full caption and relevant hashtags only.",
+      "- Do NOT write a strategy, content calendar, plan, section headers, commentary, or any intro/outro text.",
+      "- Separate every post with this exact delimiter on its own line: ---POST---",
+      "- No text before the first post. No text after the last post. Only the 5 posts and the 4 delimiters between them.",
       "",
       "BUSINESS CONTEXT:"
     ];
@@ -632,7 +689,12 @@
     if (p.products_services) lines.push("Products & Services: " + p.products_services);
     if (p.description)       lines.push("About the Business: "  + p.description);
     if (p.banned_topics)     lines.push("Topics to Avoid: "     + p.banned_topics);
-    lines.push("", "USER REQUEST:", userPrompt);
+    lines.push(
+      "",
+      "USER REQUEST:", userPrompt,
+      "",
+      "OUTPUT — exactly 5 posts, each separated by ---POST--- (the delimiter must appear on its own line):"
+    );
     return lines.join("\n");
   }
 
