@@ -1175,5 +1175,199 @@ window.AGENT_PROFILE_CONFIG = {
   });
 }());
 </script>
+<script>
+/* ── Social Drafts post-processor ──────────────────────────────────────────
+   renderHistory() in agent-profile.js replaces #apHistory with .ap-hist-item
+   elements every time history loads, wiping the split cards that
+   prependResultCard() briefly showed.  This observer re-processes those items
+   and injects per-post cards with working Approve / Reject buttons.
+   textContent is used instead of innerText so display:none on .ap-hist-full
+   does not produce empty strings.
+──────────────────────────────────────────────────────────────────────────── */
+(function () {
+  var API      = "https://dynamic-prosperity-production-5382.up.railway.app";
+  var DELIM    = "---POST---";
+  var SPLIT_RE = /\n?---POST---\n?/;
+
+  function tok() { return localStorage.getItem("bf_token") || ""; }
+
+  function escH(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* Refresh the Approval Queue section after an approve action */
+  function refreshQueue() {
+    var el = document.getElementById("apApprovalQueue");
+    if (!el) return;
+    var token = tok();
+    if (!token) return;
+    fetch(API + "/api/social-drafts", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      var drafts = data && Array.isArray(data.drafts) ? data.drafts : [];
+      if (!drafts.length) {
+        el.innerHTML = '<div class="ap-queue-empty">No drafts in queue yet. Approve a Social Media Drafts result to add one.</div>';
+        return;
+      }
+      function fmtDate(v) {
+        try { return new Date(v).toLocaleString(); } catch (e) { return String(v || "—"); }
+      }
+      var html = '<div class="ap-queue-list">';
+      drafts.slice(0, 20).forEach(function (d) {
+        var preview = d.content ? (d.content.length > 220 ? d.content.slice(0, 220) + "…" : d.content) : "—";
+        html +=
+          '<div class="ap-queue-item">' +
+            '<div class="ap-queue-item-head">' +
+              '<span class="ap-queue-platform">' + escH(d.platform || "general") + '</span>' +
+              '<span class="ap-queue-status">'   + escH(d.status   || "pending")  + '</span>' +
+              '<span class="ap-queue-time">'     + escH(fmtDate(d.created_at))   + '</span>' +
+            '</div>' +
+            '<div class="ap-queue-preview">' + escH(preview) + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    })
+    .catch(function () {});
+  }
+
+  /* POST one approved draft to the backend */
+  function doApprove(content, approveBtn, rejectBtn, msgEl) {
+    var token = tok();
+    if (!token) {
+      if (msgEl) { msgEl.textContent = "Not signed in."; msgEl.style.color = "#f87171"; }
+      return;
+    }
+    approveBtn.disabled = true;
+    approveBtn.innerHTML = '<span class="ap-spinner"></span>Saving…';
+    if (rejectBtn) rejectBtn.disabled = true;
+
+    fetch(API + "/api/social-drafts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ platform: "instagram", content: content, status: "pending" })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (res) {
+      if (!res.ok) throw new Error(res.data.error || "Save failed");
+      approveBtn.parentNode.style.display = "none";
+      if (msgEl) { msgEl.textContent = "Added to queue."; msgEl.style.color = "#4ade80"; }
+      refreshQueue();
+    })
+    .catch(function (e) {
+      approveBtn.disabled = false;
+      approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+      if (rejectBtn) rejectBtn.disabled = false;
+      if (msgEl) { msgEl.textContent = e.message || "Failed."; msgEl.style.color = "#f87171"; }
+    });
+  }
+
+  /* Fade-remove the rejected post card */
+  function doReject(card) {
+    card.style.transition = "opacity .3s ease, transform .3s ease";
+    card.style.opacity = "0";
+    card.style.transform = "translateY(-6px)";
+    setTimeout(function () { if (card.parentNode) card.parentNode.removeChild(card); }, 320);
+  }
+
+  /* Build one post mini-card */
+  function buildPostCard(content, idx, total) {
+    var div = document.createElement("div");
+    div.className = "ap-social-post";
+
+    var num = document.createElement("div");
+    num.className = "ap-social-post-num";
+    num.textContent = "Post " + (idx + 1) + " of " + total;
+    div.appendChild(num);
+
+    var body = document.createElement("div");
+    body.className = "ap-result-body";
+    body.style.cssText = "margin-bottom:10px;white-space:pre-wrap";
+    body.textContent = content;
+    div.appendChild(body);
+
+    var actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:10px;margin-top:10px;flex-wrap:wrap";
+
+    var approveBtn = document.createElement("button");
+    approveBtn.type = "button";
+    approveBtn.className = "ap-approve-btn";
+    approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+
+    var rejectBtn = document.createElement("button");
+    rejectBtn.type = "button";
+    rejectBtn.className = "ap-reject-btn";
+    rejectBtn.textContent = "✕ Reject";
+
+    var msgEl = document.createElement("div");
+    msgEl.className = "ap-approve-msg";
+    msgEl.style.cssText = "margin-top:6px;font-size:.78rem;min-height:14px;color:#8892b8";
+
+    approveBtn.addEventListener("click", function () { doApprove(content, approveBtn, rejectBtn, msgEl); });
+    rejectBtn.addEventListener("click",  function () { doReject(div); });
+
+    actions.appendChild(approveBtn);
+    actions.appendChild(rejectBtn);
+    div.appendChild(actions);
+    div.appendChild(msgEl);
+    return div;
+  }
+
+  /* Transform a .ap-hist-item for social_media_drafts into per-post cards */
+  function processHistItem(item) {
+    if (item._sdSplit) return;
+    var metaEl = item.querySelector(".ap-hist-meta");
+    if (!metaEl || metaEl.textContent.indexOf("social_media_drafts") === -1) return;
+
+    var fullEl = item.querySelector(".ap-hist-full");
+    if (!fullEl) return;
+
+    /* textContent bypasses display:none; innerText would return "" */
+    var raw = (fullEl.textContent || "").replace(/\r/g, "");
+    if (raw.indexOf(DELIM) === -1) return;
+
+    var posts = raw.split(SPLIT_RE).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (posts.length < 2) return;
+
+    item._sdSplit = true;
+
+    fullEl.style.display = "none";
+    var expandBtn = item.querySelector(".ap-hist-expand");
+    if (expandBtn) expandBtn.parentNode.removeChild(expandBtn);
+
+    var label = document.createElement("div");
+    label.style.cssText = "font-size:.75rem;color:#a855f7;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:10px 0 6px";
+    label.textContent = posts.length + " Drafts — Approve individually";
+    item.appendChild(label);
+
+    posts.forEach(function (content, idx) {
+      item.appendChild(buildPostCard(content, idx, posts.length));
+    });
+  }
+
+  function scan() {
+    var histEl = document.getElementById("apHistory");
+    if (!histEl) return;
+    histEl.querySelectorAll(".ap-hist-item").forEach(processHistItem);
+  }
+
+  function watchHistory() {
+    var histEl = document.getElementById("apHistory");
+    if (!histEl) { setTimeout(watchHistory, 300); return; }
+    var obs = new MutationObserver(function () { setTimeout(scan, 40); });
+    obs.observe(histEl, { childList: true, subtree: true });
+    scan();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { setTimeout(watchHistory, 700); });
+  } else {
+    setTimeout(watchHistory, 700);
+  }
+}());
+</script>
 </body>
 </html>
