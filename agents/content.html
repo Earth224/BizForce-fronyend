@@ -426,6 +426,22 @@
   /* ── Toast ── */
   .cn-toast{position:fixed;bottom:28px;right:28px;z-index:9999;padding:14px 20px;border-radius:14px;background:rgba(10,15,35,.97);border:1px solid rgba(0,229,255,.35);box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 24px rgba(0,229,255,.1);color:#e8e8ff;font-size:.875rem;line-height:1.5;max-width:340px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);opacity:0;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease;pointer-events:none}
   .cn-toast.show{opacity:1;transform:translateY(0)}
+
+  /* ── Create New Account button ── */
+  .create-acct-btn{padding:7px 16px;border-radius:8px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.06);color:#c4b5fd;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .2s;width:100%}
+  .create-acct-btn:hover{border-color:rgba(168,85,247,.55);background:rgba(168,85,247,.12)}
+
+  /* ── Create Account modal ── */
+  .ca-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:310;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .ca-modal-overlay.open{opacity:1;pointer-events:all}
+  .ca-modal{background:rgba(10,15,35,.97);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:28px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto}
+  .ca-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .ca-modal-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0}
+  .ca-modal-sub{font-size:.8rem;color:#8892b8;margin:0 0 20px;line-height:1.5}
+  .ca-copy-row{display:flex;gap:8px;align-items:flex-start}
+  .ca-copy-row .bp-input,.ca-copy-row .bp-textarea{flex:1;min-width:0}
+  .ca-copy-btn{padding:9px 14px;border-radius:9px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.06);color:#22d3ee;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;flex-shrink:0;align-self:flex-start}
+  .ca-copy-btn:hover{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.12)}
   </style>
 </head>
 <body>
@@ -470,6 +486,7 @@
           </div>
           <div class="connect-name">Instagram</div>
           <button class="connect-btn" onclick="connectPlatform('instagram', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('instagram')">Create New Account</button>
         </div>
         <div class="connect-card">
           <div class="connect-icon" style="background:#1877f2">
@@ -477,6 +494,7 @@
           </div>
           <div class="connect-name">Facebook</div>
           <button class="connect-btn" onclick="connectPlatform('facebook', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('facebook')">Create New Account</button>
         </div>
         <div class="connect-card">
           <div class="connect-icon" style="background:#010101;border:1px solid rgba(255,255,255,.15)">
@@ -484,6 +502,7 @@
           </div>
           <div class="connect-name">TikTok</div>
           <button class="connect-btn" onclick="connectPlatform('tiktok', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('tiktok')">Create New Account</button>
         </div>
         <div class="connect-card">
           <div class="connect-icon" style="background:#ff0000">
@@ -491,6 +510,7 @@
           </div>
           <div class="connect-name">YouTube</div>
           <button class="connect-btn" onclick="connectPlatform('youtube', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('youtube')">Create New Account</button>
         </div>
         <div class="connect-card">
           <div class="connect-icon" style="background:#0a66c2">
@@ -498,6 +518,7 @@
           </div>
           <div class="connect-name">LinkedIn</div>
           <button class="connect-btn" onclick="connectPlatform('linkedin', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('linkedin')">Create New Account</button>
         </div>
         <div class="connect-card">
           <div class="connect-icon" style="background:#111;border:1px solid rgba(255,255,255,.18)">
@@ -505,6 +526,7 @@
           </div>
           <div class="connect-name">X</div>
           <button class="connect-btn" onclick="connectPlatform('x', this)">Connect</button>
+          <button class="create-acct-btn" onclick="openCreateAccount('x')">Create New Account</button>
         </div>
       </div>
     </section>
@@ -810,6 +832,7 @@
     .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function (d) {
       currentProfile = d.profile;
+      window._bpProfile = d.profile;
       renderProfileDisplay(d.profile);
       if (d.profile) fillModalFields(d.profile);
     })
@@ -870,6 +893,7 @@
       }
       var d = await res.json();
       currentProfile = d.profile;
+      window._bpProfile = d.profile;
       renderProfileDisplay(d.profile);
       setBpStatus("Saved!", "ok");
       setTimeout(function () { window.closeProfileModal(); setBpStatus(""); }, 1400);
@@ -950,5 +974,106 @@ window.AGENT_PROFILE_CONFIG = {
 };
 </script>
 <script src="/scripts/agent-profile.js"></script>
+
+<!-- ── Create New Account modal ── -->
+<div class="ca-modal-overlay" id="caModalOverlay" onclick="caOverlayClick(event)">
+  <div class="ca-modal">
+    <div class="ca-modal-header">
+      <h2 class="ca-modal-title" id="caModalTitle">New Account</h2>
+      <button class="bp-modal-close" onclick="closeCreateAccount()">&#x2715;</button>
+    </div>
+    <p class="ca-modal-sub" id="caModalSub"></p>
+    <div class="bp-field">
+      <label class="bp-label" for="caUsername">Suggested Username</label>
+      <div class="ca-copy-row">
+        <input class="bp-input" id="caUsername" type="text">
+        <button class="ca-copy-btn" type="button" onclick="copyField('caUsername', this)">Copy</button>
+      </div>
+    </div>
+    <div class="bp-field">
+      <label class="bp-label" for="caBio">Suggested Bio</label>
+      <div class="ca-copy-row">
+        <textarea class="bp-textarea" id="caBio" style="min-height:90px"></textarea>
+        <button class="ca-copy-btn" type="button" onclick="copyField('caBio', this)">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var PLATFORM_LABELS = { instagram:"Instagram", facebook:"Facebook", tiktok:"TikTok", youtube:"YouTube", linkedin:"LinkedIn", x:"X" };
+  var USER_LIMITS     = { instagram:30, facebook:50, tiktok:24, youtube:30, linkedin:50, x:15 };
+  var BIO_LIMITS      = { instagram:150, facebook:255, tiktok:80, youtube:1000, linkedin:2000, x:160 };
+
+  window.openCreateAccount = function (platform) {
+    var profile = window._bpProfile || {};
+    var bName   = profile.business_name || "";
+    var voice   = profile.brand_voice   || "";
+    var desc    = profile.description   || "";
+    var maxU    = USER_LIMITS[platform] || 30;
+    var maxB    = BIO_LIMITS[platform]  || 160;
+    var label   = PLATFORM_LABELS[platform] || platform;
+
+    var slug     = bName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, maxU) || "yourbusiness";
+    var username = "@" + slug;
+
+    var bio = "";
+    if (voice && desc) {
+      bio = voice + " | " + desc;
+    } else {
+      bio = voice || desc || "Follow us for updates!";
+    }
+    if (bio.length > maxB) bio = bio.slice(0, maxB - 1) + "…";
+
+    document.getElementById("caModalTitle").textContent = label + " — New Account";
+    document.getElementById("caModalSub").textContent   =
+      "Suggestions based on your Business Profile (username ≤ " + maxU + " chars, bio ≤ " + maxB + " chars). Edit before copying.";
+    document.getElementById("caUsername").value = username;
+    document.getElementById("caBio").value      = bio;
+    document.getElementById("caModalOverlay").classList.add("open");
+  };
+
+  window.closeCreateAccount = function () {
+    document.getElementById("caModalOverlay").classList.remove("open");
+  };
+
+  window.caOverlayClick = function (e) {
+    if (e.target === document.getElementById("caModalOverlay")) window.closeCreateAccount();
+  };
+
+  window.copyField = function (fieldId, btn) {
+    var el = document.getElementById(fieldId);
+    if (!el) return;
+    var text = el.value;
+    var orig = btn.textContent;
+    function flash() {
+      btn.textContent      = "Copied!";
+      btn.style.color      = "#4ade80";
+      btn.style.borderColor = "rgba(74,222,128,.5)";
+      btn.style.background  = "rgba(74,222,128,.08)";
+      setTimeout(function () {
+        btn.textContent       = orig;
+        btn.style.color       = "";
+        btn.style.borderColor = "";
+        btn.style.background  = "";
+      }, 1800);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(flash).catch(function () {
+        el.select(); document.execCommand("copy"); flash();
+      });
+    } else {
+      el.select(); document.execCommand("copy"); flash();
+    }
+  };
+
+  document.addEventListener("keydown", function (e) {
+    var overlay = document.getElementById("caModalOverlay");
+    if (e.key === "Escape" && overlay && overlay.classList.contains("open")) {
+      window.closeCreateAccount();
+    }
+  });
+}());
+</script>
 </body>
 </html>
