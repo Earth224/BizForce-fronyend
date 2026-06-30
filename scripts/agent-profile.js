@@ -89,7 +89,7 @@
     ".ap-result-input{font-size:.82rem;color:#c4b5fd;line-height:1.55;padding:10px 14px;border-radius:10px;",
       "background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.22);",
       "margin-bottom:14px;word-break:break-word}",
-    ".ap-result-body{font-size:.875rem;color:#e8e8ff;line-height:1.7;white-space:pre-wrap;word-break:break-word;",
+    ".ap-result-body{font-size:.875rem;color:#e8e8ff;line-height:1.7;word-break:break-word;",
       "max-height:420px;overflow-y:auto;padding:12px 14px;border-radius:10px;",
       "background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.1)}",
     /* history list */
@@ -115,11 +115,27 @@
     ".ap-hist-expand:hover{border-color:rgba(0,229,255,.55)}",
     /* full response in history item */
     ".ap-hist-full{display:none;margin-top:10px;font-size:.82rem;color:#e8e8ff;line-height:1.65;",
-      "white-space:pre-wrap;word-break:break-word;max-height:320px;overflow-y:auto;",
+      "word-break:break-word;max-height:320px;overflow-y:auto;",
       "padding:10px 12px;border-radius:10px;",
       "background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.1)}",
     ".ap-empty-state{padding:22px;text-align:center;font-size:.875rem;color:#8888aa;",
-      "border:1px dashed rgba(168,85,247,.3);border-radius:14px;background:rgba(168,85,247,.05)}"
+      "border:1px dashed rgba(168,85,247,.3);border-radius:14px;background:rgba(168,85,247,.05)}",
+    /* markdown rendered output */
+    ".ap-md-h1,.ap-md-h2{font-size:1rem;font-weight:800;color:#e8e8ff;margin:12px 0 5px}",
+    ".ap-md-h3,.ap-md-h4{font-size:.9rem;font-weight:700;color:#22d3ee;margin:10px 0 4px}",
+    ".ap-md-h5,.ap-md-h6{font-size:.82rem;font-weight:700;color:#c4b5fd;margin:8px 0 3px}",
+    ".ap-md-p{margin:0 0 5px;line-height:1.65}",
+    ".ap-md-gap{height:5px}",
+    ".ap-md-ul,.ap-md-ol{margin:3px 0 8px;padding-left:18px}",
+    ".ap-md-ul li,.ap-md-ol li{margin-bottom:3px;line-height:1.6}",
+    ".ap-md-hr{border:none;border-top:1px solid rgba(0,229,255,.18);margin:10px 0}",
+    ".ap-md-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:.8rem}",
+    ".ap-md-table th,.ap-md-table td{padding:6px 10px;border:1px solid rgba(255,255,255,.1);text-align:left;line-height:1.45}",
+    ".ap-md-table th{background:rgba(0,229,255,.08);color:#22d3ee;font-weight:700;font-size:.72rem;letter-spacing:.04em}",
+    ".ap-md-table tr:nth-child(even) td{background:rgba(255,255,255,.03)}",
+    ".ap-md-pre{background:rgba(8,12,28,.9);border:1px solid rgba(0,229,255,.15);border-radius:8px;padding:10px 12px;margin:8px 0;overflow-x:auto}",
+    ".ap-md-pre code{font-family:monospace;font-size:.78rem;color:#a5f3fc;line-height:1.55}",
+    ".ap-md-code{font-family:monospace;font-size:.82em;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:1px 5px;color:#a5f3fc}"
   ].join("");
 
   var styleEl = document.createElement("style");
@@ -277,6 +293,105 @@
     if (meta2) meta2.textContent = meta || "";
   }
 
+  /* ── lightweight markdown → HTML renderer ── */
+  function renderMarkdown(raw) {
+    if (!raw) return "";
+    function escH(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function inline(s) {
+      return s
+        .replace(/`([^`\n]+)`/g, '<code class="ap-md-code">$1</code>')
+        .replace(/\*\*\*([^*\n]+)\*\*\*/g, "<strong><em>$1</em></strong>")
+        .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+        .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+        .replace(/_([^_\n]+)_/g, "<em>$1</em>");
+    }
+    var lines = raw.split("\n");
+    var out = [], inUl = false, inOl = false, inTable = false, tableHeadDone = false, inCode = false, codeBuf = [];
+    function closeLists() {
+      if (inUl) { out.push("</ul>"); inUl = false; }
+      if (inOl) { out.push("</ol>"); inOl = false; }
+    }
+    function closeTable() {
+      if (!inTable) return;
+      out.push(tableHeadDone ? "</tbody></table>" : "</thead></table>");
+      inTable = false; tableHeadDone = false;
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (/^[ \t]*```/.test(line)) {
+        if (!inCode) { closeLists(); closeTable(); inCode = true; codeBuf = []; }
+        else { inCode = false; out.push('<pre class="ap-md-pre"><code>' + escH(codeBuf.join("\n")) + "</code></pre>"); }
+        continue;
+      }
+      if (inCode) { codeBuf.push(line); continue; }
+      if (/^(\*{3,}|-{3,}|_{3,})\s*$/.test(line.trim())) {
+        closeLists(); closeTable();
+        out.push('<hr class="ap-md-hr">'); continue;
+      }
+      if (/^\|/.test(line)) {
+        closeLists();
+        if (/^\|[\s:|-]+\|$/.test(line)) {
+          if (inTable && !tableHeadDone) { out.push("</thead><tbody>"); tableHeadDone = true; }
+          continue;
+        }
+        var cells = line.replace(/^\||\|$/g, "").split("|");
+        if (!inTable) { inTable = true; tableHeadDone = false; out.push('<table class="ap-md-table"><thead>'); }
+        var tag = tableHeadDone ? "td" : "th";
+        out.push("<tr>" + cells.map(function(c){ return "<" + tag + ">" + inline(escH(c.trim())) + "</" + tag + ">"; }).join("") + "</tr>");
+        continue;
+      }
+      if (inTable) closeTable();
+      var hm = line.match(/^(#{1,6})\s+(.*)/);
+      if (hm) {
+        closeLists();
+        out.push('<div class="ap-md-h' + hm[1].length + '">' + inline(escH(hm[2])) + '</div>'); continue;
+      }
+      if (/^[-*+] /.test(line)) {
+        if (inOl) { out.push("</ol>"); inOl = false; }
+        if (!inUl) { out.push('<ul class="ap-md-ul">'); inUl = true; }
+        out.push("<li>" + inline(escH(line.slice(2))) + "</li>"); continue;
+      }
+      if (/^\d+\. /.test(line)) {
+        if (inUl) { out.push("</ul>"); inUl = false; }
+        if (!inOl) { out.push('<ol class="ap-md-ol">'); inOl = true; }
+        out.push("<li>" + inline(escH(line.replace(/^\d+\. /,""))) + "</li>"); continue;
+      }
+      if (/^\s*$/.test(line)) {
+        closeLists(); closeTable();
+        out.push('<div class="ap-md-gap"></div>'); continue;
+      }
+      closeLists(); closeTable();
+      out.push('<p class="ap-md-p">' + inline(escH(line)) + '</p>');
+    }
+    closeLists(); closeTable();
+    if (inCode) out.push('<pre class="ap-md-pre"><code>' + escH(codeBuf.join("\n")) + "</code></pre>");
+    return out.join("");
+  }
+
+  /* strips markdown symbols for plain-text preview snippets */
+  function stripMarkdown(raw) {
+    if (!raw) return "";
+    return raw
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/^#{1,6}\s+/gm, "")
+      .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/_(.+?)_/g, "$1")
+      .replace(/^[-*+] /gm, "")
+      .replace(/^\d+\. /gm, "")
+      .replace(/^\|.+\|$/gm, "")
+      .replace(/^[\s\-:|]+$/gm, "")
+      .replace(/^\s*[-*_]{3,}\s*$/gm, "")
+      .replace(/\n+/g, " ")
+      .trim();
+  }
+
   /* ── prepend fresh result card into Task History ── */
   function prependResultCard(task) {
     var histEl = document.getElementById("apHistory");
@@ -307,7 +422,7 @@
       '<div class="ap-result-sublabel" style="color:#c4b5fd">Your Request</div>' +
       '<div class="ap-result-input">' + esc(prompt) + '</div>' +
       '<div class="ap-result-sublabel">AI Response</div>' +
-      '<div class="ap-result-body">' + esc(result || "No result returned.") + '</div>';
+      '<div class="ap-result-body">' + renderMarkdown(result || "No result returned.") + '</div>';
 
     wrapper.insertBefore(card, wrapper.firstChild);
   }
@@ -559,9 +674,8 @@
       var promptText = t.prompt || t.task_type || "Task";
       var title      = promptText.length > 90 ? promptText.slice(0, 90) + "…" : promptText;
       var hasResult  = !!(t.result);
-      var preview    = hasResult
-        ? (t.result.length > 180 ? t.result.slice(0, 180) + "…" : t.result)
-        : "Processing…";
+      var plainPreview = hasResult ? stripMarkdown(t.result) : "Processing…";
+      var preview = plainPreview.length > 180 ? plainPreview.slice(0, 180) + "…" : plainPreview;
       var statusCls  = (t.status === "completed") ? "completed"
         : (t.status === "failed") ? "failed"
         : "processing";
@@ -571,7 +685,7 @@
           '<div class="ap-hist-title">' + esc(title) + '</div>' +
           '<div class="ap-hist-meta">' + esc(fmt(t.created_at)) + ' · ' + esc(t.task_type || "general") + '</div>' +
           '<div class="ap-hist-preview">' + esc(preview) + '</div>' +
-          (hasResult ? '<div class="ap-hist-full">' + esc(t.result) + '</div>' : '') +
+          (hasResult ? '<div class="ap-hist-full">' + renderMarkdown(t.result) + '</div>' : '') +
           '<span class="ap-hist-tag ' + statusCls + '">' + esc(t.status || "unknown") + '</span>' +
           (hasResult ? '<button class="ap-hist-expand" type="button">Show full response ▾</button>' : '') +
         '</div>';
