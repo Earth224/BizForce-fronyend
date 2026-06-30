@@ -88,6 +88,13 @@
     .size-btn:hover{border-color:rgba(0,229,255,.25);color:#e8e8ff}
     .size-btn.active{border-color:rgba(0,229,255,.5);background:rgba(0,229,255,.08);color:#22d3ee}
 
+    /* Audio bar (matches digital-cards.html pattern) */
+    .card-audio-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(7,11,24,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(34,211,238,.18);border-radius:8px}
+    .card-audio-btn{width:30px;height:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);border-radius:50%;cursor:pointer;color:#22d3ee;transition:background .2s;padding:0}
+    .card-audio-btn:hover{background:rgba(34,211,238,.22)}
+    .card-audio-btn svg{width:13px;height:13px}
+    .card-audio-track{flex:1;min-width:0;font-size:.65rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
+
     /* Background image upload */
     .bg-upload-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .bg-upload-btn{flex-shrink:0;padding:7px 14px;border-radius:8px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.08);color:#22d3ee;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
@@ -544,6 +551,26 @@
         </div>
         <div class="bg-upload-status" id="flyerVidUploadStatus"></div>
       </div>
+      <div class="form-section">Still Image</div>
+      <input type="file" id="fiFlyerStill" accept="image/jpeg,image/png,image/webp" style="display:none">
+      <div class="form-group">
+        <div class="bg-upload-row">
+          <button class="bg-upload-btn" onclick="document.getElementById('fiFlyerStill').click()">Choose Image</button>
+          <span class="bg-upload-name" id="flyerStillName">No file chosen</span>
+          <button class="reset-btn" id="flyerStillRemoveBtn" onclick="removeFlyerStill()" style="display:none">Remove</button>
+        </div>
+        <div class="bg-upload-status" id="flyerStillUploadStatus"></div>
+      </div>
+      <div class="form-section">Audio Pitch</div>
+      <input type="file" id="fiFlyerAudio" accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/*" style="display:none">
+      <div class="form-group">
+        <div class="bg-upload-row">
+          <button class="bg-upload-btn" onclick="document.getElementById('fiFlyerAudio').click()">Choose Audio</button>
+          <span class="bg-upload-name" id="flyerAudioName">No file chosen</span>
+          <button class="reset-btn" id="flyerAudioRemoveBtn" onclick="removeFlyerAudio()" style="display:none">Remove</button>
+        </div>
+        <div class="bg-upload-status" id="flyerAudioUploadStatus"></div>
+      </div>
       <div class="form-name-row">
         <input class="form-input" id="flyerName" type="text" placeholder="Flyer name (for saving)..." maxlength="80">
         <button class="btn-save-flyer" id="saveBtn" onclick="saveFlyer()">Save</button>
@@ -621,6 +648,7 @@
       <div class="flyer-frame">
         <div id="flyerPreview">
           <div id="flyerTplSlot"></div>
+          <img id="flyerStillImg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;opacity:0;z-index:20;border-radius:4px">
           <video id="flyerVid" playsinline onended="flyerExitVideo()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;opacity:0;z-index:20;border-radius:4px"></video>
           <div id="flyerVidRing" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;pointer-events:none;opacity:0;transition:opacity .25s">
             <div style="width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.7)">
@@ -630,6 +658,15 @@
         </div>
       </div>
 
+      <audio id="flyerAudio" preload="none" style="display:none" onended="flyerAudioEnded()"></audio>
+      <div id="flyerAudioBar" style="display:none">
+        <div class="card-audio-bar">
+          <button class="card-audio-btn" id="flyerAudioBtn" onclick="toggleFlyerAudio()">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><polygon points="5,3 18,10 5,17"/></svg>
+          </button>
+          <div class="card-audio-track" id="flyerAudioTrack">Audio pitch</div>
+        </div>
+      </div>
       <div class="dl-row">
         <button class="btn-dl-png" id="dlBtn" onclick="downloadPNG()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1098,11 +1135,15 @@ function _fvSetRing(show) {
 }
 
 document.getElementById("flyerPreview").addEventListener("click", function() {
-  if (!flyerVideoUrl) return;
-  _fvTapReady = true;
-  if      (_fvState === "still")   flyerEnterVideo();
-  else if (_fvState === "playing") { _fvState = "paused";  document.getElementById("flyerVid").pause(); _fvSetRing(true); }
-  else if (_fvState === "paused")  { _fvState = "playing"; _fvSetRing(false); document.getElementById("flyerVid").play().catch(function(){}); }
+  if (flyerVideoUrl) {
+    _fvTapReady = true;
+    if      (_fvState === "still")   flyerEnterVideo();
+    else if (_fvState === "playing") { _fvState = "paused";  document.getElementById("flyerVid").pause(); _fvSetRing(true); }
+    else if (_fvState === "paused")  { _fvState = "playing"; _fvSetRing(false); document.getElementById("flyerVid").play().catch(function(){}); }
+  } else if (stillImageUrl) {
+    if (_fiState === "hidden") flyerEnterStill();
+    else flyerExitStill();
+  }
 });
 
 function flyerEnterVideo() {
@@ -1216,10 +1257,190 @@ function removeFlyerVideo() {
   slot.style.opacity  = "1";
   slot.style.transition = "none";
   _fvSetRing(false);
-  document.getElementById("flyerPreview").classList.remove("vid-ready");
+  if (!stillImageUrl) document.getElementById("flyerPreview").classList.remove("vid-ready");
   document.getElementById("flyerVidName").textContent        = "No file chosen";
   document.getElementById("flyerVidRemoveBtn").style.display = "none";
   document.getElementById("flyerVidUploadStatus").textContent = "";
+}
+
+/* ── Still image upload + dissolve ── */
+var stillImageUrl = null;
+var _fiState      = "hidden"; // hidden | visible
+
+function flyerEnterStill() {
+  var img  = document.getElementById("flyerStillImg");
+  var slot = document.getElementById("flyerTplSlot");
+  var dur  = 600;
+  _fiState = "visible";
+  slot.style.transition = "opacity " + dur + "ms ease-in";
+  slot.style.opacity    = "0";
+  img.style.display    = "block";
+  img.style.opacity    = "0";
+  img.style.transition = "none";
+  void img.offsetWidth;
+  img.style.transition = "opacity " + dur + "ms ease-in";
+  img.style.opacity    = "1";
+}
+
+function flyerExitStill() {
+  var img  = document.getElementById("flyerStillImg");
+  var slot = document.getElementById("flyerTplSlot");
+  var dur  = 600;
+  _fiState = "hidden";
+  img.style.transition  = "opacity " + dur + "ms ease-in";
+  img.style.opacity     = "0";
+  slot.style.transition = "opacity " + dur + "ms ease-in";
+  slot.style.opacity    = "1";
+  setTimeout(function() {
+    img.style.display    = "none";
+    img.style.transition = "none";
+    slot.style.transition = "none";
+  }, dur);
+}
+
+document.getElementById("fiFlyerStill").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  uploadFlyerStill(file);
+});
+
+async function uploadFlyerStill(file) {
+  var nameEl   = document.getElementById("flyerStillName");
+  var statusEl = document.getElementById("flyerStillUploadStatus");
+  var saveBtn  = document.getElementById("saveBtn");
+  nameEl.textContent   = file.name;
+  statusEl.textContent = "Uploading…";
+  saveBtn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Upload failed");
+    stillImageUrl = d.publicUrl;
+    document.getElementById("flyerStillImg").src = stillImageUrl;
+    document.getElementById("flyerPreview").classList.add("vid-ready");
+    document.getElementById("flyerStillRemoveBtn").style.display = "inline-block";
+    statusEl.textContent = "Uploaded! Tap preview to reveal.";
+    setTimeout(function() { statusEl.textContent = ""; }, 3000);
+  } catch(e) {
+    statusEl.textContent = e.message || "Upload failed";
+    stillImageUrl = null;
+  }
+  saveBtn.disabled = false;
+}
+
+function removeFlyerStill() {
+  stillImageUrl = null;
+  _fiState = "hidden";
+  var img  = document.getElementById("flyerStillImg");
+  var slot = document.getElementById("flyerTplSlot");
+  img.src              = "";
+  img.style.display    = "none";
+  img.style.opacity    = "0";
+  img.style.transition = "none";
+  slot.style.opacity   = "1";
+  slot.style.transition = "none";
+  if (!flyerVideoUrl) document.getElementById("flyerPreview").classList.remove("vid-ready");
+  document.getElementById("flyerStillName").textContent         = "No file chosen";
+  document.getElementById("flyerStillRemoveBtn").style.display  = "none";
+  document.getElementById("flyerStillUploadStatus").textContent = "";
+}
+
+/* ── Audio upload + bar ── */
+var audioUrl      = null;
+var _audioPlaying = false;
+
+function _setAudioBtn(playing) {
+  document.getElementById("flyerAudioBtn").innerHTML = playing
+    ? '<svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><rect x="4" y="3" width="4" height="14"/><rect x="12" y="3" width="4" height="14"/></svg>'
+    : '<svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><polygon points="5,3 18,10 5,17"/></svg>';
+}
+
+function toggleFlyerAudio() {
+  var aud = document.getElementById("flyerAudio");
+  if (_audioPlaying) {
+    aud.pause();
+    _audioPlaying = false;
+    _setAudioBtn(false);
+  } else {
+    aud.play().catch(function(){});
+    _audioPlaying = true;
+    _setAudioBtn(true);
+  }
+}
+
+function flyerAudioEnded() {
+  _audioPlaying = false;
+  _setAudioBtn(false);
+}
+
+document.getElementById("fiFlyerAudio").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  uploadFlyerAudio(file);
+});
+
+async function uploadFlyerAudio(file) {
+  var nameEl   = document.getElementById("flyerAudioName");
+  var statusEl = document.getElementById("flyerAudioUploadStatus");
+  var saveBtn  = document.getElementById("saveBtn");
+  nameEl.textContent   = file.name;
+  statusEl.textContent = "Uploading…";
+  saveBtn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Upload failed");
+    audioUrl = d.publicUrl;
+    var aud = document.getElementById("flyerAudio");
+    aud.src = audioUrl;
+    aud.load();
+    var trackName = file.name.replace(/\.[^.]+$/, "");
+    document.getElementById("flyerAudioTrack").textContent     = trackName;
+    document.getElementById("flyerAudioBar").style.display     = "block";
+    document.getElementById("flyerAudioRemoveBtn").style.display = "inline-block";
+    statusEl.textContent = "Uploaded!";
+    setTimeout(function() { statusEl.textContent = ""; }, 2000);
+  } catch(e) {
+    statusEl.textContent = e.message || "Upload failed";
+    audioUrl = null;
+  }
+  saveBtn.disabled = false;
+}
+
+function removeFlyerAudio() {
+  audioUrl = null;
+  _audioPlaying = false;
+  var aud = document.getElementById("flyerAudio");
+  aud.pause();
+  aud.src = "";
+  _setAudioBtn(false);
+  document.getElementById("flyerAudioBar").style.display      = "none";
+  document.getElementById("flyerAudioTrack").textContent      = "Audio pitch";
+  document.getElementById("flyerAudioName").textContent       = "No file chosen";
+  document.getElementById("flyerAudioRemoveBtn").style.display = "none";
+  document.getElementById("flyerAudioUploadStatus").textContent = "";
 }
 
 /* ── Background image upload ── */
@@ -1402,7 +1623,12 @@ async function saveFlyer() {
   status.className = "status-msg";
   var f = getF();
   var name = document.getElementById("flyerName").value.trim() || f.headline || "Untitled Flyer";
-  var body = { name: name, template: activeTpl, color_theme: activeColor, content: f };
+  var body = { name: name, template: activeTpl, color_theme: activeColor, content: f,
+    bg_image_url:    bgImageUrl    || null,
+    still_image_url: stillImageUrl || null,
+    video_url:       flyerVideoUrl || null,
+    audio_url:       audioUrl      || null
+  };
   try {
     var url    = activeFlyerId ? API_URL + "/api/flyers/" + activeFlyerId : API_URL + "/api/flyers";
     var method = activeFlyerId ? "PUT" : "POST";
