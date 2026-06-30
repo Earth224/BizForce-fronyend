@@ -319,16 +319,67 @@
     var token    = tok();
 
     if (!token)  { setMsg("Not signed in.", "err"); return; }
-    var prompt = promptEl ? promptEl.value.trim() : "";
-    if (!prompt) { setMsg("Enter a task prompt first.", "err"); return; }
+    var userPrompt = promptEl ? promptEl.value.trim() : "";
+    if (!userPrompt) { setMsg("Enter a task prompt first.", "err"); return; }
 
     var taskType  = typeEl ? typeEl.value : "general";
-    pendingPrompt = prompt;
+    pendingPrompt = userPrompt;
 
-    setBtnLoading(true);
-    setMsg("Launching task…");
-    setLive("running", "Launching…", "Sending to " + AGENT_LABEL);
+    if (taskType === "social_media_drafts") {
+      setBtnLoading(true);
+      setMsg("Loading business profile…");
+      setLive("running", "Preparing…", "Fetching business context");
 
+      fetch(API_URL + "/api/business-profile", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Could not load business profile (HTTP " + r.status + ")");
+        return r.json();
+      })
+      .then(function (d) {
+        var finalPrompt = buildSocialPrompt(d.profile, userPrompt);
+        setMsg("Launching task…");
+        setLive("running", "Launching…", "Sending to " + AGENT_LABEL);
+        doSubmit(finalPrompt, taskType, userPrompt, promptEl);
+      })
+      .catch(function (e) {
+        setBtnLoading(false);
+        setMsg(e.message || "Could not load profile.", "err");
+        setLive("err", "Error", e.message || "");
+      });
+    } else {
+      setBtnLoading(true);
+      setMsg("Launching task…");
+      setLive("running", "Launching…", "Sending to " + AGENT_LABEL);
+      doSubmit(userPrompt, taskType, userPrompt, promptEl);
+    }
+  }
+
+  /* builds enriched prompt from business profile + user request */
+  function buildSocialPrompt(profile, userPrompt) {
+    var p = profile || {};
+    var lines = [
+      "You are a social media content strategist. Use the business context below to write on-brand content.",
+      "",
+      "BUSINESS CONTEXT:"
+    ];
+    if (p.business_name)     lines.push("Business Name: "       + p.business_name);
+    if (p.industry)          lines.push("Industry: "            + p.industry);
+    if (p.brand_voice)       lines.push("Brand Voice: "         + p.brand_voice);
+    if (p.brand_values)      lines.push("Brand Values: "        + p.brand_values);
+    if (p.target_audience)   lines.push("Target Audience: "     + p.target_audience);
+    if (p.business_goals)    lines.push("Business Goals: "      + p.business_goals);
+    if (p.products_services) lines.push("Products & Services: " + p.products_services);
+    if (p.description)       lines.push("About the Business: "  + p.description);
+    if (p.banned_topics)     lines.push("Topics to Avoid: "     + p.banned_topics);
+    lines.push("", "USER REQUEST:", userPrompt);
+    return lines.join("\n");
+  }
+
+  /* sends prompt to /api/agents/run-task; displayPrompt is shown in the result card */
+  function doSubmit(finalPrompt, taskType, displayPrompt, promptEl) {
+    var token = tok();
     fetch(API_URL + "/api/agents/run-task", {
       method: "POST",
       headers: {
@@ -338,7 +389,7 @@
       body: JSON.stringify({
         agent_type: AGENT_TYPE,
         task_type:  taskType,
-        prompt:     prompt
+        prompt:     finalPrompt
       })
     })
     .then(function (r) {
@@ -353,21 +404,19 @@
       if (promptEl) promptEl.value = "";
 
       if (directResult) {
-        /* synchronous result — show immediately */
         setBtnLoading(false);
         setMsg("Task completed!", "ok");
         setLive("ok", "Completed", fmt(new Date().toISOString()));
         prependResultCard({
-          prompt: prompt, result: directResult,
+          prompt: displayPrompt, result: directResult,
           task_type: taskType, created_at: new Date().toISOString(), status: "completed"
         });
         loadHistory();
       } else if (taskId) {
-        /* async — keep spinner, poll until done */
         activeTaskId = taskId;
         setMsg("Task running — waiting for result…", "ok");
         setLive("running", "Running", "Task ID: " + taskId);
-        startPoll(taskId, prompt);
+        startPoll(taskId, displayPrompt);
       } else {
         setBtnLoading(false);
         setMsg("Task accepted.", "ok");
