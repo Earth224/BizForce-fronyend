@@ -930,9 +930,15 @@
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
     })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      showToast(d.message || "Connected!");
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+    .then(function (res) {
+      var d = res.data;
+      if (d.url) {
+        window.open(d.url, "_blank", "noopener,noreferrer");
+        showToast("Authorize " + platform + " in the new tab to complete setup.");
+      } else {
+        showToast(d.error || d.message || (res.ok ? "Connected!" : "Connection failed."));
+      }
       btn.disabled = false;
       btn.textContent = orig;
     })
