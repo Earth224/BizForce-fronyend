@@ -442,6 +442,8 @@
   .ca-copy-row .bp-input,.ca-copy-row .bp-textarea{flex:1;min-width:0}
   .ca-copy-btn{padding:9px 14px;border-radius:9px;border:1px solid rgba(0,229,255,.3);background:rgba(0,229,255,.06);color:#22d3ee;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap;flex-shrink:0;align-self:flex-start}
   .ca-copy-btn:hover{border-color:rgba(0,229,255,.55);background:rgba(0,229,255,.12)}
+  .ca-signup-btn{display:inline-flex;align-items:center;gap:7px;padding:12px 22px;border-radius:13px;background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;transition:all .25s;box-shadow:0 4px 20px rgba(0,198,255,.25)}
+  .ca-signup-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35),0 0 20px rgba(168,85,247,.25)}
   </style>
 </head>
 <body>
@@ -997,6 +999,11 @@ window.AGENT_PROFILE_CONFIG = {
         <button class="ca-copy-btn" type="button" onclick="copyField('caBio', this)">Copy</button>
       </div>
     </div>
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.07)">
+      <a id="caSignupLink" class="ca-signup-btn" href="#" target="_blank" rel="noopener noreferrer">
+        Go to Signup ↗
+      </a>
+    </div>
   </div>
 </div>
 <script>
@@ -1004,6 +1011,14 @@ window.AGENT_PROFILE_CONFIG = {
   var PLATFORM_LABELS = { instagram:"Instagram", facebook:"Facebook", tiktok:"TikTok", youtube:"YouTube", linkedin:"LinkedIn", x:"X" };
   var USER_LIMITS     = { instagram:30, facebook:50, tiktok:24, youtube:30, linkedin:50, x:15 };
   var BIO_LIMITS      = { instagram:150, facebook:255, tiktok:80, youtube:1000, linkedin:2000, x:160 };
+  var SIGNUP_URLS     = {
+    instagram: "https://www.instagram.com/accounts/emailsignup",
+    facebook:  "https://www.facebook.com/reg",
+    tiktok:    "https://www.tiktok.com/signup",
+    youtube:   "https://accounts.google.com/signup",
+    linkedin:  "https://www.linkedin.com/signup",
+    x:         "https://x.com/i/flow/signup"
+  };
 
   window.openCreateAccount = function (platform) {
     var profile = window._bpProfile || {};
@@ -1030,6 +1045,13 @@ window.AGENT_PROFILE_CONFIG = {
       "Suggestions based on your Business Profile (username ≤ " + maxU + " chars, bio ≤ " + maxB + " chars). Edit before copying.";
     document.getElementById("caUsername").value = username;
     document.getElementById("caBio").value      = bio;
+
+    var signupLink = document.getElementById("caSignupLink");
+    if (signupLink) {
+      signupLink.href        = SIGNUP_URLS[platform] || "#";
+      signupLink.textContent = "Go to " + label + " Signup ↗";
+    }
+
     document.getElementById("caModalOverlay").classList.add("open");
   };
 
