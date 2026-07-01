@@ -453,6 +453,180 @@
       color: #f87171;
     }
 
+    .sms-create-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .sms-create-row input {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(8, 12, 28, 0.85);
+      color: #f4f7ff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .sms-create-row input::placeholder {
+      color: #8892b8;
+      font-weight: 500;
+    }
+
+    .sms-create-row input:focus {
+      border-color: rgba(0, 229, 255, 0.6);
+    }
+
+    .sms-camp-list-empty {
+      font-size: 0.88rem;
+      color: #8892b8;
+      font-weight: 500;
+      padding: 12px 0 4px;
+    }
+
+    .sms-msg-block {
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sms-msg-camp-name {
+      margin: 0 0 12px;
+      font-size: 0.78rem;
+      color: #8892b8;
+      font-weight: 600;
+    }
+
+    .sms-msg-inputs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sms-msg-inputs input[type="number"] {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(8, 12, 28, 0.85);
+      color: #f4f7ff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .sms-msg-inputs input[type="number"].sms-step {
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .sms-msg-inputs input[type="number"].sms-delay {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .sms-msg-inputs input[type="number"]:focus {
+      border-color: rgba(0, 229, 255, 0.6);
+    }
+
+    .sms-msg-inputs input[type="number"]::placeholder {
+      color: #8892b8;
+      font-weight: 500;
+    }
+
+    .sms-msg-block textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(8, 12, 28, 0.85);
+      color: #f4f7ff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      resize: vertical;
+      outline: none;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      transition: border-color 0.2s ease;
+    }
+
+    .sms-msg-block textarea::placeholder {
+      color: #8892b8;
+      font-weight: 500;
+    }
+
+    .sms-msg-block textarea:focus {
+      border-color: rgba(0, 229, 255, 0.6);
+    }
+
+    .sms-msg-list {
+      margin-top: 14px;
+    }
+
+    .sms-msg-list-empty {
+      font-size: 0.88rem;
+      color: #8892b8;
+      font-weight: 500;
+      padding: 4px 0;
+    }
+
+    .sms-msg-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .sms-msg-item:last-child {
+      border-bottom: none;
+    }
+
+    .sms-msg-step-badge {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      color: #22d3ee;
+      font-size: 0.72rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sms-msg-item-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sms-msg-item-text {
+      margin: 0 0 4px;
+      font-size: 0.85rem;
+      color: #e8e8ff;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .sms-msg-item-delay {
+      margin: 0;
+      font-size: 0.72rem;
+      color: #8892b8;
+      font-weight: 600;
+    }
+
     @media (max-width: 600px) {
       .page { padding: 24px 16px 48px; }
       .agent-header { gap: 16px; }
@@ -460,6 +634,7 @@
       .sms-bulk-consent-row { flex-direction: column; align-items: flex-start; }
       .sms-table th:nth-child(3),
       .sms-table td:nth-child(3) { display: none; }
+      .sms-create-row { flex-direction: column; }
     }
   </style>
 </head>
@@ -530,9 +705,32 @@
     </section>
 
     <section class="context-card" aria-label="Campaigns">
-      <h2 class="section-label">Campaigns</h2>
-      <div class="empty-state">
-        <p>Your SMS drip campaigns will appear here. Create sequences, set delays, and track delivery performance.</p>
+      <div class="sms-section-header">
+        <div class="sms-section-header-copy">
+          <h2 class="sms-section-title">Campaigns</h2>
+          <p class="sms-section-sub">Drip sequences</p>
+        </div>
+        <span class="sms-count-pill" id="sms-camp-count">0</span>
+      </div>
+      <div class="sms-create-row">
+        <input type="text" id="sms-camp-name" placeholder="Campaign name" autocomplete="off" />
+        <button type="button" id="sms-camp-create-btn" class="sms-add-btn">Create</button>
+      </div>
+      <div id="sms-camp-list">
+        <p class="sms-camp-list-empty">No campaigns yet</p>
+      </div>
+
+      <div id="sms-msg-block" class="sms-msg-block" style="display:none">
+        <p class="sms-msg-camp-name">Messages for: <span id="sms-msg-camp-name"></span></p>
+        <div class="sms-msg-inputs">
+          <input type="number" id="sms-msg-step"  class="sms-step"  value="1" min="1" />
+          <input type="number" id="sms-msg-delay" class="sms-delay" value="0" min="0" placeholder="Delay (hrs)" />
+        </div>
+        <textarea id="sms-msg-body" rows="3" placeholder="Message text"></textarea>
+        <button type="button" id="sms-msg-add-btn" class="sms-add-btn">Add Message</button>
+        <div id="sms-msg-list" class="sms-msg-list">
+          <p class="sms-msg-list-empty">No messages yet</p>
+        </div>
       </div>
     </section>
 
@@ -734,10 +932,163 @@
       });
     }
 
+    function renderCampaigns(campaigns) {
+      var listEl  = document.getElementById("sms-camp-list");
+      var countEl = document.getElementById("sms-camp-count");
+
+      if (countEl) countEl.textContent = campaigns.length;
+
+      if (!campaigns.length) {
+        listEl.innerHTML = "<p class=\"sms-camp-list-empty\">No campaigns yet</p>";
+        return;
+      }
+
+      listEl.innerHTML = campaigns.map(function (c) {
+        return "<div class=\"sms-camp-row\" data-id=\"" + c.id + "\" style=\"" +
+          "display:flex;align-items:center;justify-content:space-between;gap:12px;" +
+          "padding:10px 12px;border-radius:10px;margin-bottom:8px;cursor:pointer;" +
+          "background:rgba(8,12,28,0.6);border:1px solid rgba(0,229,255,0.12);" +
+          "transition:border-color 0.2s ease;\">" +
+          "<span style=\"font-size:0.88rem;font-weight:600;color:#e8e8ff;\">" + c.name + "</span>" +
+          "<span style=\"font-size:0.7rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;" +
+            "color:" + (c.status === "active" ? "#34d399" : "#8892b8") + ";\">" + c.status + "</span>" +
+          "</div>";
+      }).join("");
+
+      listEl.querySelectorAll(".sms-camp-row").forEach(function (row) {
+        row.addEventListener("mouseenter", function () {
+          row.style.borderColor = "rgba(0,229,255,0.35)";
+        });
+        row.addEventListener("mouseleave", function () {
+          row.style.borderColor = "rgba(0,229,255,0.12)";
+        });
+        row.addEventListener("click", function () {
+          selectCampaign(row.dataset.id, row.querySelector("span").textContent);
+        });
+      });
+    }
+
+    function loadCampaigns() {
+      fetch(API + "/api/sms/campaigns", {
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderCampaigns(data.campaigns || []); })
+        .catch(function (err) { console.error("[sms] loadCampaigns error:", err); });
+    }
+
+    function renderMessages(messages) {
+      var listEl = document.getElementById("sms-msg-list");
+      if (!messages.length) {
+        listEl.innerHTML = "<p class=\"sms-msg-list-empty\">No messages yet</p>";
+        return;
+      }
+      listEl.innerHTML = messages.map(function (m) {
+        var delayText = m.delay_hours === 0
+          ? "Send immediately"
+          : "After " + m.delay_hours + " hr" + (m.delay_hours === 1 ? "" : "s");
+        return "<div class=\"sms-msg-item\">" +
+          "<div class=\"sms-msg-step-badge\">" + m.step_number + "</div>" +
+          "<div class=\"sms-msg-item-body\">" +
+            "<p class=\"sms-msg-item-text\">" + m.body + "</p>" +
+            "<p class=\"sms-msg-item-delay\">" + delayText + "</p>" +
+          "</div>" +
+          "</div>";
+      }).join("");
+    }
+
+    function loadMessages(campaignId) {
+      fetch(API + "/api/sms/campaigns/" + campaignId + "/messages", {
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderMessages(data.messages || []); })
+        .catch(function (err) { console.error("[sms] loadMessages error:", err); });
+    }
+
+    function selectCampaign(id, name) {
+      var block  = document.getElementById("sms-msg-block");
+      var nameEl = document.getElementById("sms-msg-camp-name");
+      block.dataset.campId = id;
+      if (nameEl) nameEl.textContent = name;
+      block.style.display = "block";
+      loadMessages(id);
+    }
+
+    function wireCampCreateBtn() {
+      var btn = document.getElementById("sms-camp-create-btn");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var nameEl = document.getElementById("sms-camp-name");
+        var name   = (nameEl.value || "").trim();
+        if (!name) return;
+
+        btn.disabled = true;
+
+        fetch(API + "/api/sms/campaigns", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + tok(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name: name })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function () {
+            nameEl.value = "";
+            loadCampaigns();
+          })
+          .catch(function (err) { console.error("[sms] createCampaign error:", err); })
+          .finally(function () { btn.disabled = false; });
+      });
+    }
+
+    function wireMsgAddBtn() {
+      var btn = document.getElementById("sms-msg-add-btn");
+      if (!btn) return;
+      btn.addEventListener("click", function () {
+        var block      = document.getElementById("sms-msg-block");
+        var campaignId = block.dataset.campId;
+        var bodyEl     = document.getElementById("sms-msg-body");
+        var stepEl     = document.getElementById("sms-msg-step");
+        var delayEl    = document.getElementById("sms-msg-delay");
+
+        if (!campaignId) return;
+        var bodyText = (bodyEl.value || "").trim();
+        if (!bodyText) return;
+
+        var stepNumber = parseInt(stepEl.value, 10);
+        var delayHours = parseInt(delayEl.value, 10);
+        if (isNaN(stepNumber) || stepNumber < 1) stepNumber = 1;
+        if (isNaN(delayHours) || delayHours < 0) delayHours = 0;
+
+        btn.disabled = true;
+
+        fetch(API + "/api/sms/campaigns/" + campaignId + "/messages", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + tok(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ step_number: stepNumber, body: bodyText, delay_hours: delayHours })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function () {
+            bodyEl.value = "";
+            loadMessages(campaignId);
+          })
+          .catch(function (err) { console.error("[sms] addMessage error:", err); })
+          .finally(function () { btn.disabled = false; });
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       loadSubscribers();
       wireAddBtn();
       wireBulkBtn();
+      loadCampaigns();
+      wireCampCreateBtn();
+      wireMsgAddBtn();
     });
   </script>
 </body>
