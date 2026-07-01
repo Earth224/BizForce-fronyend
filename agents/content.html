@@ -1297,7 +1297,7 @@ window.AGENT_PROFILE_CONFIG = {
     var body = document.createElement("div");
     body.className = "ap-result-body";
     body.style.cssText = "margin-bottom:10px;white-space:pre-wrap";
-    body.textContent = content;
+    body.textContent = stripJunk(content);
     div.appendChild(body);
 
     var actions = document.createElement("div");
@@ -1344,6 +1344,11 @@ window.AGENT_PROFILE_CONFIG = {
     if (posts.length < 2) return;
 
     item._sdSplit = true;
+
+    var titleEl = item.querySelector(".ap-hist-title");
+    if (titleEl) titleEl.textContent = stripJunk(titleEl.textContent);
+    var previewEl = item.querySelector(".ap-hist-preview");
+    if (previewEl) previewEl.textContent = stripJunk(previewEl.textContent);
 
     fullEl.style.display = "none";
     var expandBtn = item.querySelector(".ap-hist-expand");
