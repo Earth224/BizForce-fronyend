@@ -559,6 +559,17 @@
       if (!value) return "—";
       try { return new Date(value).toLocaleString(); } catch (e) { return String(value); }
     }
+    function stripJunk(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/---POST---/g, "")
+        .replace(/\p{Extended_Pictographic}/gu, "")
+        .replace(/[\u2600-\u27BF]/g, "")
+        .replace(/[\uFE00-\uFE0F]/g, "")
+        .replace(/[\u{E0100}-\u{E01EF}]/gu, "")
+        .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
+        .trim();
+    }
     function loadUserProfile() {
       try { return JSON.parse(localStorage.getItem("bf_user") || "null") || {}; } catch (e) { return {}; }
     }
