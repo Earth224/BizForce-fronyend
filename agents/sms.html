@@ -511,6 +511,21 @@
       flex-wrap: wrap;
     }
 
+    .sms-msg-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sms-msg-field-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8892b8;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    }
+
     .sms-msg-inputs input[type="number"] {
       padding: 10px 14px;
       border-radius: 10px;
@@ -723,8 +738,14 @@
       <div id="sms-msg-block" class="sms-msg-block" style="display:none">
         <p class="sms-msg-camp-name">Messages for: <span id="sms-msg-camp-name"></span></p>
         <div class="sms-msg-inputs">
-          <input type="number" id="sms-msg-step"  class="sms-step"  value="1" min="1" />
-          <input type="number" id="sms-msg-delay" class="sms-delay" value="0" min="0" placeholder="Delay (hrs)" />
+          <div class="sms-msg-field">
+            <span class="sms-msg-field-label">Step #</span>
+            <input type="number" id="sms-msg-step" class="sms-step" value="1" min="1" />
+          </div>
+          <div class="sms-msg-field">
+            <span class="sms-msg-field-label">Delay (hours)</span>
+            <input type="number" id="sms-msg-delay" class="sms-delay" value="0" min="0" />
+          </div>
         </div>
         <textarea id="sms-msg-body" rows="3" placeholder="Message text"></textarea>
         <button type="button" id="sms-msg-add-btn" class="sms-add-btn">Add Message</button>
