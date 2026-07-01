@@ -343,16 +343,43 @@
     }
 
     .sms-bulk-block input[type="file"] {
-      flex: 1;
-      min-width: 0;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(0, 229, 255, 0.3);
-      background: rgba(8, 12, 28, 0.85);
-      color: #8892b8;
-      font-size: 0.82rem;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .sms-file-label {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #00d9ff, #7d5cff);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 700;
       font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
       cursor: pointer;
+      white-space: nowrap;
+      transition: filter 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .sms-file-label:hover {
+      filter: brightness(1.1);
+    }
+
+    .sms-file-name {
+      font-size: 0.82rem;
+      color: #8892b8;
+      font-weight: 500;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
     }
 
     .sms-bulk-consent-row {
@@ -705,7 +732,9 @@
         <p class="sms-bulk-hint">Paste one per line as <code>phone,name</code> — or upload a CSV with columns <code>phone,name</code>.</p>
         <textarea id="sms-bulk-text" rows="6" placeholder="+15551234567,John Doe"></textarea>
         <div class="sms-bulk-file-row">
+          <label for="sms-bulk-file" class="sms-file-label">Choose CSV</label>
           <input type="file" id="sms-bulk-file" accept=".csv" />
+          <span class="sms-file-name" id="sms-bulk-file-name">No file chosen</span>
         </div>
         <div class="sms-bulk-consent-row">
           <span class="sms-bulk-consent-label">Consent for this import</span>
@@ -928,6 +957,8 @@
               statusEl.textContent = "Imported " + (data.inserted || 0) + ", skipped " + (data.skipped || 0);
               textEl.value = "";
               fileEl.value = "";
+              var fn = document.getElementById("sms-bulk-file-name");
+              if (fn) fn.textContent = "No file chosen";
               loadSubscribers();
             })
             .catch(function (err) {
@@ -1110,6 +1141,16 @@
       loadCampaigns();
       wireCampCreateBtn();
       wireMsgAddBtn();
+
+      var fileEl    = document.getElementById("sms-bulk-file");
+      var fileNameEl = document.getElementById("sms-bulk-file-name");
+      if (fileEl && fileNameEl) {
+        fileEl.addEventListener("change", function () {
+          fileNameEl.textContent = fileEl.files && fileEl.files[0]
+            ? fileEl.files[0].name
+            : "No file chosen";
+        });
+      }
     });
   </script>
 </body>
