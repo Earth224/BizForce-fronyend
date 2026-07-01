@@ -669,6 +669,37 @@
       font-weight: 600;
     }
 
+    .sms-sub-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sms-sub-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .sms-sub-title {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #22d3ee;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    }
+
+    .sms-enrollment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
     .sms-ghost-btn {
       display: inline-flex;
       align-items: center;
@@ -831,6 +862,14 @@
         <div id="sms-msg-list" class="sms-msg-list">
           <p class="sms-msg-list-empty">No messages yet</p>
         </div>
+
+        <div class="sms-sub-section">
+          <div class="sms-sub-section-header">
+            <h3 class="sms-sub-title">Enrollment</h3>
+            <button type="button" id="enroll-all-btn" class="sms-ghost-btn">Enroll All Subscribers</button>
+          </div>
+          <div id="enrollment-list" class="sms-enrollment-list"></div>
+        </div>
       </div>
     </section>
 
@@ -865,6 +904,7 @@
 
   <script>
     var API = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var _loadedSubscriberIds = [];
 
     function tok() { return localStorage.getItem("bf_token") || ""; }
 
@@ -884,6 +924,7 @@
       var countEl  = document.getElementById("sms-sub-count");
 
       if (countEl) countEl.textContent = subscribers.length;
+      _loadedSubscriberIds = subscribers.map(function (s) { return s.id; });
 
       if (!subscribers.length) {
         tableEl.className = "empty-state";
@@ -1128,6 +1169,7 @@
       if (nameEl) nameEl.textContent = name;
       block.style.display = "block";
       loadMessages(id);
+      loadEnrollments();
     }
 
     function wireCampCreateBtn() {
@@ -1194,6 +1236,71 @@
         .catch(function (err) { console.error("[sms] loadSendLog error:", err); });
     }
 
+    function enrollAllSubscribers() {
+      var block      = document.getElementById("sms-msg-block");
+      var campaignId = block && block.dataset.campId;
+      if (!campaignId) return;
+
+      var ids = _loadedSubscriberIds.slice();
+      if (!ids.length) {
+        alert("No subscribers loaded yet.");
+        return;
+      }
+
+      fetch(API + "/api/sms/campaigns/" + campaignId + "/enroll", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + tok(),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ subscriber_ids: ids })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          alert("Enrolled: " + (data.enrolled || 0));
+          loadEnrollments();
+        })
+        .catch(function (err) { console.error("[sms] enrollAllSubscribers error:", err); });
+    }
+
+    function loadEnrollments() {
+      var block      = document.getElementById("sms-msg-block");
+      var campaignId = block && block.dataset.campId;
+      if (!campaignId) return;
+
+      fetch(API + "/api/sms/campaigns/" + campaignId + "/enrollments", {
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var listEl = document.getElementById("enrollment-list");
+          if (!listEl) return;
+          var entries = data.enrollments || [];
+          if (!entries.length) {
+            listEl.innerHTML = "<p class=\"sms-camp-list-empty\">No one enrolled yet.</p>";
+            return;
+          }
+          listEl.innerHTML = entries.map(function (e) {
+            var subId  = e.subscriber_id  || "—";
+            var step   = e.current_step   != null ? e.current_step : "—";
+            var status = e.status         || "—";
+            return "<div style=\"display:flex;gap:16px;padding:8px 0;" +
+              "border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.85rem;\">" +
+              "<span style=\"color:#8892b8;font-size:0.7rem;font-weight:700;" +
+                "text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;padding-top:2px;\">ID</span>" +
+              "<span style=\"color:#e8e8ff;font-weight:500;flex:1;min-width:0;" +
+                "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">" + subId + "</span>" +
+              "<span style=\"color:#8892b8;font-size:0.78rem;font-weight:600;" +
+                "white-space:nowrap;\">Step " + step + "</span>" +
+              "<span style=\"color:" + (status === "active" ? "#34d399" : "#8892b8") + ";" +
+                "font-size:0.7rem;font-weight:700;text-transform:uppercase;" +
+                "letter-spacing:0.06em;white-space:nowrap;\">" + status + "</span>" +
+              "</div>";
+          }).join("");
+        })
+        .catch(function (err) { console.error("[sms] loadEnrollments error:", err); });
+    }
+
     function wireMsgAddBtn() {
       var btn = document.getElementById("sms-msg-add-btn");
       if (!btn) return;
@@ -1240,6 +1347,11 @@
       loadCampaigns();
       wireCampCreateBtn();
       wireMsgAddBtn();
+
+      var enrollBtn = document.getElementById("enroll-all-btn");
+      if (enrollBtn) {
+        enrollBtn.addEventListener("click", enrollAllSubscribers);
+      }
 
       var fileEl    = document.getElementById("sms-bulk-file");
       var fileNameEl = document.getElementById("sms-bulk-file-name");
