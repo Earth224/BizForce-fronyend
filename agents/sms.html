@@ -886,6 +886,7 @@
           <h2 class="sms-section-title">Send Log</h2>
         </div>
         <button type="button" id="send-log-refresh" class="sms-ghost-btn">Refresh</button>
+        <button type="button" id="run-engine-btn" class="sms-ghost-btn">Run Drip Engine (Dry Run)</button>
       </div>
       <table class="sms-log-table">
         <thead>
@@ -1369,7 +1370,34 @@
       if (refreshBtn) {
         refreshBtn.addEventListener("click", loadSendLog);
       }
+
+      var engineBtn = document.getElementById("run-engine-btn");
+      if (engineBtn) {
+        engineBtn.addEventListener("click", runDripEngine);
+      }
     });
+
+    function runDripEngine() {
+      fetch(API + "/api/sms/run-engine", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var r = data.result || {};
+          alert(
+            "Processed: " + (r.processed  || 0) + "\n" +
+            "Sent: "      + (r.sent       || 0) + "\n" +
+            "Skipped: "   + (r.skipped    || 0) + "\n" +
+            "Completed: " + (r.completed  || 0)
+          );
+          loadSendLog();
+        })
+        .catch(function (err) {
+          console.error("[sms] runDripEngine error:", err);
+          alert("Engine error — see console");
+        });
+    }
   </script>
 </body>
 </html>
