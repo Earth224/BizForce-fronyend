@@ -669,6 +669,56 @@
       font-weight: 600;
     }
 
+    .sms-ghost-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(8, 8, 18, 0.85);
+      color: #00e5ff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .sms-ghost-btn:hover {
+      border-color: rgba(0, 255, 255, 0.45);
+      box-shadow: 0 0 18px rgba(0, 217, 255, 0.12);
+    }
+
+    .sms-log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .sms-log-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8892b8;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sms-log-table td {
+      padding: 10px 12px;
+      color: #e8e8ff;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      vertical-align: middle;
+    }
+
+    .sms-log-table tr:last-child td {
+      border-bottom: none;
+    }
+
     @media (max-width: 600px) {
       .page { padding: 24px 16px 48px; }
       .agent-header { gap: 16px; }
@@ -792,10 +842,23 @@
     </section>
 
     <section class="context-card" aria-label="Send Log">
-      <h2 class="section-label">Send Log</h2>
-      <div class="empty-state">
-        <p>A chronological log of every message sent — recipient, content, timestamp, and Twilio delivery status.</p>
+      <div class="sms-section-header">
+        <div class="sms-section-header-copy">
+          <h2 class="sms-section-title">Send Log</h2>
+        </div>
+        <button type="button" id="send-log-refresh" class="sms-ghost-btn">Refresh</button>
       </div>
+      <table class="sms-log-table">
+        <thead>
+          <tr>
+            <th>To</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Sent At</th>
+          </tr>
+        </thead>
+        <tbody id="send-log-body"></tbody>
+      </table>
     </section>
 
   </div>
@@ -1095,6 +1158,42 @@
       });
     }
 
+    function loadSendLog() {
+      fetch(API + "/api/sms/send-log", {
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var tbody = document.getElementById("send-log-body");
+          if (!tbody) return;
+          var entries = data.log || [];
+          if (!entries.length) {
+            tbody.innerHTML =
+              "<tr><td colspan=\"4\" style=\"text-align:center;color:#8892b8;" +
+              "font-size:0.85rem;padding:16px 12px;\">No messages sent yet.</td></tr>";
+            return;
+          }
+          tbody.innerHTML = entries.map(function (row) {
+            var to      = row.phone        || row.to           || "—";
+            var msg     = row.message_body || row.body         || "—";
+            var status  = row.status                           || "—";
+            var sentAt  = row.created_at
+              ? new Date(row.created_at).toLocaleString(undefined, {
+                  year: "numeric", month: "short", day: "numeric",
+                  hour: "2-digit", minute: "2-digit"
+                })
+              : "—";
+            return "<tr>" +
+              "<td>" + to     + "</td>" +
+              "<td>" + msg    + "</td>" +
+              "<td>" + status + "</td>" +
+              "<td>" + sentAt + "</td>" +
+              "</tr>";
+          }).join("");
+        })
+        .catch(function (err) { console.error("[sms] loadSendLog error:", err); });
+    }
+
     function wireMsgAddBtn() {
       var btn = document.getElementById("sms-msg-add-btn");
       if (!btn) return;
@@ -1150,6 +1249,13 @@
             ? fileEl.files[0].name
             : "No file chosen";
         });
+      }
+
+      loadSendLog();
+
+      var refreshBtn = document.getElementById("send-log-refresh");
+      if (refreshBtn) {
+        refreshBtn.addEventListener("click", loadSendLog);
       }
     });
   </script>
