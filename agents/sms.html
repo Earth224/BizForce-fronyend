@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — SMS Drip Campaigns</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(168, 85, 247, 0.22));
+      border: 2px solid rgba(16, 185, 129, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+      flex-shrink: 0;
+    }
+
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.85;
+    }
+
+    .agent-header-text { flex: 1; min-width: 220px; }
+
+    .agent-title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-subtitle {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
+
+    .capability-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .capability-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      background: rgba(168, 85, 247, 0.1);
+      color: #c4b5fd;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .context-card {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      margin-bottom: 24px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .context-card:hover {
+      border-color: rgba(0, 229, 255, 0.25);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 0 30px rgba(0, 229, 255, 0.08);
+    }
+
+    .section-label {
+      margin: 0 0 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #22d3ee;
+    }
+
+    .empty-state {
+      padding: 24px;
+      border-radius: 14px;
+      border: 1px dashed rgba(168, 85, 247, 0.35);
+      background: rgba(168, 85, 247, 0.06);
+      text-align: center;
+    }
+
+    .empty-state p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #8892b8;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .page { padding: 24px 16px 48px; }
+      .agent-header { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <nav class="top-nav">
+      <a class="back-link" href="../ai-agents.html">← Agent Directory</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <header class="agent-header">
+      <div class="agent-avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">SMS Drip Campaigns</h1>
+        <p class="agent-subtitle">Reach customers directly with targeted SMS sequences, subscriber management, and automated drip campaigns.</p>
+        <div class="capability-pills">
+          <span class="capability-pill">Subscribers</span>
+          <span class="capability-pill">Drip Campaigns</span>
+          <span class="capability-pill">Enrollment</span>
+          <span class="capability-pill">Send Log</span>
+          <span class="capability-pill">Consent Management</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="context-card" aria-label="Subscribers">
+      <h2 class="section-label">Subscribers</h2>
+      <div class="empty-state">
+        <p>Your opted-in subscriber list will appear here. Add contacts, view consent status, and manage your audience.</p>
+      </div>
+    </section>
+
+    <section class="context-card" aria-label="Campaigns">
+      <h2 class="section-label">Campaigns</h2>
+      <div class="empty-state">
+        <p>Your SMS drip campaigns will appear here. Create sequences, set delays, and track delivery performance.</p>
+      </div>
+    </section>
+
+    <section class="context-card" aria-label="Enrollment">
+      <h2 class="section-label">Enrollment</h2>
+      <div class="empty-state">
+        <p>Enroll subscribers into campaigns here. Choose a campaign, select your audience, and trigger the drip sequence.</p>
+      </div>
+    </section>
+
+    <section class="context-card" aria-label="Send Log">
+      <h2 class="section-label">Send Log</h2>
+      <div class="empty-state">
+        <p>A chronological log of every message sent — recipient, content, timestamp, and Twilio delivery status.</p>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
