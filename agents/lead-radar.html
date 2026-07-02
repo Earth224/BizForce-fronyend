@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BizForce AI — Lead Radar</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -348,6 +349,78 @@
       color: #34d399;
       border-color: rgba(16, 185, 129, 0.45);
     }
+
+    #intel-header {
+      margin-bottom: 24px;
+    }
+
+    .stat-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      text-align: center;
+    }
+
+    .stat-number {
+      display: block;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #00e5ff 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8892b8;
+    }
+
+    .charts-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .chart-panel {
+      flex: 1;
+      min-width: 280px;
+      padding: 20px 20px 16px;
+      border-radius: 18px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .chart-title {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8892b8;
+      margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
@@ -373,8 +446,11 @@
       </div>
     </header>
 
+    <div id="intel-header"></div>
+
     <div class="toolbar">
       <span class="toolbar-label" id="leadsCount">Loading leads...</span>
+      <button class="btn-primary" id="noiseBtn" onclick="toggleNoise()" style="display:none">Show Noise</button>
       <button class="btn-primary" id="refreshBtn" onclick="loadLeads()">Refresh</button>
     </div>
 
@@ -385,6 +461,225 @@
   <script>
     var API = "https://dynamic-prosperity-production-5382.up.railway.app";
     function tok() { return localStorage.getItem("bf_token") || ""; }
+
+    function toggleNoise() {
+      var btn = document.getElementById("noiseBtn");
+      var showing = btn.dataset.showing === "1";
+      showing = !showing;
+      btn.dataset.showing = showing ? "1" : "0";
+      var noiseCount = (window._currentLeads || []).filter(function (l) { return (l.intent_score || 0) < 15; }).length;
+      btn.textContent = showing ? "Hide Noise (" + noiseCount + ")" : "Show Noise (" + noiseCount + ")";
+      window._visibleCount = 25;
+      if (window._renderCards) window._renderCards(showing, 25);
+    }
+
+    function renderStatStrip(leads) {
+      try {
+        var todayStr = new Date().toISOString().slice(0, 10);
+        var total      = leads.length;
+        var scoredToday = leads.filter(function (l) {
+          return (l.created_at || "").slice(0, 10) === todayStr;
+        }).length;
+        var highIntent = leads.filter(function (l) {
+          return (l.intent_score || 0) >= 60;
+        }).length;
+        var buyers = leads.filter(function (l) {
+          return l.suggested_product && l.suggested_product !== "none" && (l.intent_score || 0) >= 40;
+        }).length;
+        var competitors = leads.filter(function (l) {
+          return l.suggested_product && l.suggested_product !== "none" && (l.intent_score || 0) < 40;
+        }).length;
+
+        var stats = [
+          { number: total,                      label: "Total Tracked"      },
+          { number: scoredToday,                label: "Scored Today"       },
+          { number: highIntent,                 label: "High-Intent"        },
+          { number: buyers + " / " + competitors, label: "Buyers / Competitors" }
+        ];
+
+        var html = "<div class=\"stat-strip\">" +
+          stats.map(function (s) {
+            return "<div class=\"stat-card\">" +
+              "<span class=\"stat-number\">" + s.number + "</span>" +
+              "<span class=\"stat-label\">" + s.label + "</span>" +
+              "</div>";
+          }).join("") +
+          "</div>";
+
+        document.getElementById("intel-header").innerHTML = html;
+      } catch (err) {
+        console.error("[LeadRadar] renderStatStrip error:", err);
+      }
+    }
+
+    var chartScoresInstance   = null;
+    var chartProductsInstance = null;
+    var chartTimelineInstance = null;
+
+    function renderCharts(leads) {
+      try {
+        var header = document.getElementById("intel-header");
+
+        var existingRow = document.getElementById("charts-row");
+        if (existingRow) existingRow.remove();
+
+        var rowDiv = document.createElement("div");
+        rowDiv.className = "charts-row";
+        rowDiv.id = "charts-row";
+        rowDiv.innerHTML =
+          "<div class=\"chart-panel\">" +
+            "<span class=\"chart-title\">Score Distribution</span>" +
+            "<canvas id=\"chartScores\"></canvas>" +
+          "</div>" +
+          "<div class=\"chart-panel\">" +
+            "<span class=\"chart-title\">Product Breakdown</span>" +
+            "<canvas id=\"chartProducts\"></canvas>" +
+          "</div>" +
+          "<div class=\"chart-panel\">" +
+            "<span class=\"chart-title\">Captures Over Time</span>" +
+            "<canvas id=\"chartTimeline\"></canvas>" +
+          "</div>";
+        header.appendChild(rowDiv);
+
+        var bands     = ["0-15", "16-29", "30-44", "45-59", "60-74", "75-100"];
+        var bandColors = [
+          "rgba(148,163,184,0.7)",
+          "rgba(148,163,184,0.5)",
+          "rgba(251,191,36,0.7)",
+          "rgba(251,191,36,0.9)",
+          "rgba(52,211,153,0.8)",
+          "rgba(0,229,255,0.85)"
+        ];
+        var counts = [0, 0, 0, 0, 0, 0];
+        leads.forEach(function (l) {
+          var s = l.intent_score || 0;
+          if      (s <= 15) counts[0]++;
+          else if (s <= 29) counts[1]++;
+          else if (s <= 44) counts[2]++;
+          else if (s <= 59) counts[3]++;
+          else if (s <= 74) counts[4]++;
+          else              counts[5]++;
+        });
+
+        if (chartScoresInstance) { chartScoresInstance.destroy(); chartScoresInstance = null; }
+
+        chartScoresInstance = new Chart(
+          document.getElementById("chartScores"),
+          {
+            type: "bar",
+            data: {
+              labels: bands,
+              datasets: [{
+                data:            counts,
+                backgroundColor: bandColors,
+                borderRadius:    6,
+                borderSkipped:   false
+              }]
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { color: "#8892b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
+                y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
+              }
+            }
+          }
+        );
+
+        // Product breakdown doughnut
+        var productCounts = {};
+        leads.forEach(function (l) {
+          var p = (l.suggested_product && l.suggested_product.trim()) || "none";
+          productCounts[p] = (productCounts[p] || 0) + 1;
+        });
+        var productLabels = Object.keys(productCounts);
+        var productData   = productLabels.map(function (k) { return productCounts[k]; });
+        var productPalette = [
+          "rgba(0,229,255,0.8)",
+          "rgba(168,85,247,0.8)",
+          "rgba(52,211,153,0.8)",
+          "rgba(251,191,36,0.8)",
+          "rgba(148,163,184,0.55)"
+        ];
+        var productColors = productLabels.map(function (_, i) {
+          return productPalette[i % productPalette.length];
+        });
+
+        if (chartProductsInstance) { chartProductsInstance.destroy(); chartProductsInstance = null; }
+
+        chartProductsInstance = new Chart(
+          document.getElementById("chartProducts"),
+          {
+            type: "doughnut",
+            data: {
+              labels: productLabels,
+              datasets: [{
+                data:            productData,
+                backgroundColor: productColors,
+                borderWidth:     2,
+                borderColor:     "rgba(7,11,24,0.9)"
+              }]
+            },
+            options: {
+              plugins: {
+                legend: {
+                  display: true,
+                  position: "bottom",
+                  labels: { color: "#8892b8", font: { size: 11 }, padding: 12 }
+                }
+              },
+              cutout: "62%"
+            }
+          }
+        );
+
+        // Captures over time — last 14 days
+        var dayLabels = [];
+        var dayCounts = {};
+        for (var d = 13; d >= 0; d--) {
+          var dt = new Date();
+          dt.setDate(dt.getDate() - d);
+          var dayStr = dt.toISOString().slice(0, 10);
+          dayLabels.push(dayStr.slice(5)); // MM-DD
+          dayCounts[dayStr] = 0;
+        }
+        leads.forEach(function (l) {
+          var day = (l.created_at || "").slice(0, 10);
+          if (dayCounts.hasOwnProperty(day)) dayCounts[day]++;
+        });
+        var timelineData = Object.keys(dayCounts).map(function (k) { return dayCounts[k]; });
+
+        if (chartTimelineInstance) { chartTimelineInstance.destroy(); chartTimelineInstance = null; }
+
+        chartTimelineInstance = new Chart(
+          document.getElementById("chartTimeline"),
+          {
+            type: "line",
+            data: {
+              labels: dayLabels,
+              datasets: [{
+                data:            timelineData,
+                borderColor:     "rgba(0,229,255,0.85)",
+                backgroundColor: "rgba(0,229,255,0.08)",
+                pointBackgroundColor: "rgba(0,229,255,0.9)",
+                pointRadius:     4,
+                tension:         0.35,
+                fill:            true
+              }]
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { color: "#8892b8", maxRotation: 45 }, grid: { color: "rgba(255,255,255,0.05)" } },
+                y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
+              }
+            }
+          }
+        );
+      } catch (err) {
+        console.error("[LeadRadar] renderCharts error:", err);
+      }
+    }
 
     function loadLeads() {
       var refreshBtn = document.getElementById("refreshBtn");
@@ -403,21 +698,37 @@
           var leads = data.leads || [];
           countEl.textContent = leads.length + " competitor" + (leads.length !== 1 ? "s" : "") + " tracked";
 
+          renderStatStrip(leads);
+          renderCharts(leads);
+
           if (!leads.length) {
             list.innerHTML = "<div class=\"empty-state\">No scored leads yet. The radar runs every 5 minutes.</div>";
             return;
           }
 
-          list.innerHTML = leads.map(function (lead, idx) {
-            var score   = typeof lead.intent_score === "number" ? lead.intent_score : 0;
-            var handle  = lead.author_handle ? "@" + lead.author_handle : lead.author_did || "unknown";
-            var keyword = lead.matched_keyword || "";
-            var text    = lead.post_text || "";
-            var product = lead.suggested_product || "none";
-            var reason  = lead.intent_reason || "";
+          // Sort by score descending
+          leads.sort(function (a, b) { return (b.intent_score || 0) - (a.intent_score || 0); });
 
+          var noiseCount = leads.filter(function (l) { return (l.intent_score || 0) < 15; }).length;
+          var noiseBtn = document.getElementById("noiseBtn");
+          if (noiseCount > 0) {
+            noiseBtn.textContent = "Show Noise (" + noiseCount + ")";
+            noiseBtn.style.display = "inline-flex";
+            noiseBtn.dataset.showing = "0";
+          } else {
+            noiseBtn.style.display = "none";
+          }
+
+          var PAGE_SIZE = 25;
+
+          function buildCard(lead, idx) {
+            var score      = typeof lead.intent_score === "number" ? lead.intent_score : 0;
+            var handle     = lead.author_handle ? "@" + lead.author_handle : lead.author_did || "unknown";
+            var keyword    = lead.matched_keyword || "";
+            var text       = lead.post_text || "";
+            var product    = lead.suggested_product || "none";
+            var reason     = lead.intent_reason || "";
             var scoreClass = score >= 60 ? "score-green" : score >= 30 ? "score-amber" : "score-gray";
-
             return [
               "<div class=\"lead-card\" id=\"card-" + idx + "\">",
               "  <div class=\"lead-card-top\">",
@@ -437,7 +748,36 @@
               "  </div>",
               "</div>"
             ].join("\n");
-          }).join("\n");
+          }
+
+          function renderCards(showNoise, visibleCount) {
+            var filtered = showNoise ? leads : leads.filter(function (l) { return (l.intent_score || 0) >= 15; });
+            var count    = visibleCount || PAGE_SIZE;
+            var page     = filtered.slice(0, count);
+            var remaining = filtered.length - page.length;
+
+            var html = page.map(function (lead, idx) { return buildCard(lead, idx); }).join("\n");
+
+            if (remaining > 0) {
+              html += "<button class=\"btn-primary\" id=\"loadMoreBtn\" " +
+                "style=\"width:100%;margin-top:12px;justify-content:center;\" " +
+                "onclick=\"loadMore()\">Load More (" + remaining + " remaining)</button>";
+            }
+
+            list.innerHTML = html;
+            window._visibleCount = count;
+          }
+
+          window.loadMore = function () {
+            var showing   = document.getElementById("noiseBtn").dataset.showing === "1";
+            window._visibleCount = (window._visibleCount || PAGE_SIZE) + PAGE_SIZE;
+            renderCards(showing, window._visibleCount);
+          };
+
+          renderCards(false, PAGE_SIZE);
+
+          window._currentLeads = leads;
+          window._renderCards  = renderCards;
         })
         .catch(function (err) {
           console.error("[LeadRadar] loadLeads error:", err);
