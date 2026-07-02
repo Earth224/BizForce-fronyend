@@ -741,10 +741,10 @@
               "    <span class=\"lead-product\">" + escHtml(product) + "</span>",
               "    <span class=\"lead-reason\">" + escHtml(reason) + "</span>",
               "  </div>",
-              "  <button class=\"draft-btn\" onclick=\"draftReply(" + idx + ", " + JSON.stringify(text) + ", " + JSON.stringify(product) + ")\">Draft Engagement</button>",
+              "  <button class=\"draft-btn\" data-idx=\"" + idx + "\">Draft Engagement</button>",
               "  <div class=\"draft-area\" id=\"draft-area-" + idx + "\">",
               "    <div class=\"draft-box\" id=\"draft-" + idx + "\"></div>",
-              "    <button class=\"copy-btn\" id=\"copy-" + idx + "\" onclick=\"copyReply(" + idx + ")\">Copy</button>",
+              "    <button class=\"copy-btn\" id=\"copy-" + idx + "\" data-idx=\"" + idx + "\">Copy</button>",
               "  </div>",
               "</div>"
             ].join("\n");
@@ -766,6 +766,7 @@
 
             list.innerHTML = html;
             window._visibleCount = count;
+            window._renderedLeads = page;
           }
 
           window.loadMore = function () {
@@ -862,6 +863,22 @@
     }
 
     loadLeads();
+
+    document.getElementById("leadsList").addEventListener("click", function (e) {
+      var draftBtn = e.target.closest(".draft-btn");
+      if (draftBtn) {
+        var idx  = parseInt(draftBtn.dataset.idx, 10);
+        var lead = (window._renderedLeads || [])[idx];
+        if (!lead) return;
+        draftReply(idx, lead.post_text || "", lead.suggested_product || "none");
+        return;
+      }
+      var copyBtn = e.target.closest(".copy-btn");
+      if (copyBtn) {
+        var idx = parseInt(copyBtn.dataset.idx, 10);
+        copyReply(idx);
+      }
+    });
   </script>
 </body>
 </html>
