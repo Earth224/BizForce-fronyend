@@ -453,6 +453,32 @@
   .ca-signup-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35),0 0 20px rgba(168,85,247,.25)}
   .ca-checkbox-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.85rem;color:#c4b5fd;font-weight:600;user-select:none}
   .ca-checkbox-label input[type=checkbox]{width:16px;height:16px;accent-color:#22d3ee;cursor:pointer;flex-shrink:0}
+    #contentOutput {
+      margin-top: 18px;
+      padding: 20px 22px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(0, 229, 255, 0.12);
+      border-radius: 14px;
+      color: #e8e8ff;
+      font-size: .9rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .content-loading {
+      color: #00e5ff;
+      font-size: .88rem;
+      letter-spacing: .03em;
+      animation: contentPulse 1.4s ease-in-out infinite;
+    }
+    @keyframes contentPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .45; }
+    }
+    .content-error {
+      color: #f87171;
+      font-size: .88rem;
+    }
   </style>
 </head>
 <body>
@@ -485,6 +511,13 @@
         <a class="action-btn" href="../dashboard.html">Run on Dashboard</a>
       </div>
     </div>
+    <section class="context-card" id="contentLaunchPanel" aria-label="Generate SEO Article">
+      <h2 class="section-label">Generate SEO Article</h2>
+      <input class="bp-input" id="contentKeyword" type="text" placeholder="Enter keyword or topic (e.g. natural energy supplement)" maxlength="300" style="margin-top:14px">
+      <input class="bp-input" id="contentProductUrl" type="text" placeholder="Product URL (optional)" maxlength="500" style="margin-top:10px">
+      <button type="button" class="action-btn" id="contentLaunchBtn" style="margin-top:14px">Launch Task</button>
+      <div id="contentOutput" style="display:none"></div>
+    </section>
     <div class="reports-grid" id="reportsGrid"></div>
 
     <section class="context-card" style="margin-top:32px" aria-label="Connect Social Accounts">
@@ -729,6 +762,163 @@
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
     refreshPage();
+
+    function renderArticle(result) {
+      var outputEl = document.getElementById("contentOutput");
+      outputEl.style.display = "block";
+
+      try {
+        var html = "";
+
+        if (typeof result === "string") {
+          var lines = result.split("\n");
+          html = lines.map(function (line) {
+            var t = line.trim();
+            if (!t) return "<br>";
+            if (t.startsWith("### ")) return "<h3 style=\"color:#00e5ff;font-size:.95rem;margin:14px 0 4px\">" + escapeHtml(t.slice(4)) + "</h3>";
+            if (t.startsWith("## "))  return "<h2 style=\"color:#a855f7;font-size:1rem;margin:18px 0 6px\">"  + escapeHtml(t.slice(3)) + "</h2>";
+            if (t.startsWith("# "))   return "<h1 style=\"color:#e8e8ff;font-size:1.1rem;font-weight:700;margin:0 0 10px\">" + escapeHtml(t.slice(2)) + "</h1>";
+            if (t.startsWith("**") && t.endsWith("**")) return "<p style=\"color:#e8e8ff;font-weight:600;margin:6px 0\">" + escapeHtml(t.slice(2, -2)) + "</p>";
+            return "<p style=\"margin:6px 0\">" + escapeHtml(t) + "</p>";
+          }).join("");
+
+        } else if (result && typeof result === "object") {
+          var title = result.title || result.seo_title || "";
+          var meta  = result.meta  || result.meta_description || "";
+          var slug  = result.slug  || result.url_slug || "";
+          var body  = result.body  || result.content || result.article || "";
+
+          if (title) html += "<h1 style=\"color:#e8e8ff;font-size:1.1rem;font-weight:700;margin:0 0 8px\">"                              + escapeHtml(title) + "</h1>";
+          if (meta)  html += "<p style=\"color:#8892b8;font-size:.82rem;margin:0 0 4px\"><strong>Meta:</strong> "                        + escapeHtml(meta)  + "</p>";
+          if (slug)  html += "<p style=\"color:#8892b8;font-size:.82rem;margin:0 0 14px\"><strong>Slug:</strong> "                       + escapeHtml(slug)  + "</p>";
+          if (body)  html += "<div style=\"margin-top:10px\">" + renderArticle._bodyToHtml(String(body)) + "</div>";
+
+        } else {
+          html = "<span class=\"content-error\">No content returned.</span>";
+        }
+
+        var copyBar = "<div style=\"margin-bottom:14px\">" +
+          "<button type=\"button\" class=\"action-btn action-btn--ghost\" id=\"contentCopyBtn\" style=\"font-size:.75rem;padding:6px 14px\">Copy</button>" +
+          "</div>";
+        outputEl.innerHTML = (html ? copyBar + html : "<span class=\"content-error\">No content returned.</span>");
+
+        var copyBtn = document.getElementById("contentCopyBtn");
+        if (copyBtn) {
+          copyBtn.addEventListener("click", function () {
+            var text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+            navigator.clipboard.writeText(text).then(function () {
+              copyBtn.textContent = "Copied!";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            }).catch(function () {
+              copyBtn.textContent = "Failed";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            });
+          });
+        }
+
+      } catch (err) {
+        outputEl.innerHTML = "<span class=\"content-error\">Render error: " + escapeHtml(err.message || "unknown") + "</span>";
+      }
+    }
+
+    renderArticle._bodyToHtml = function (text) {
+      return text.split("\n").map(function (line) {
+        var t = line.trim();
+        if (!t) return "<br>";
+        if (t.startsWith("### ")) return "<h3 style=\"color:#00e5ff;font-size:.95rem;margin:14px 0 4px\">" + escapeHtml(t.slice(4)) + "</h3>";
+        if (t.startsWith("## "))  return "<h2 style=\"color:#a855f7;font-size:1rem;margin:18px 0 6px\">"  + escapeHtml(t.slice(3)) + "</h2>";
+        if (t.startsWith("# "))   return "<h1 style=\"color:#e8e8ff;font-size:1.1rem;font-weight:700;margin:0 0 10px\">" + escapeHtml(t.slice(2)) + "</h1>";
+        return "<p style=\"margin:6px 0\">" + escapeHtml(t) + "</p>";
+      }).join("");
+    };
+
+    function pollForResult(taskId) {
+      var MAX_ATTEMPTS = 40;
+      var attempt = 0;
+      var outputEl = document.getElementById("contentOutput");
+      var btn      = document.getElementById("contentLaunchBtn");
+
+      function resetBtn() {
+        btn.disabled = false;
+        btn.textContent = "Launch Task";
+      }
+
+      function poll() {
+        attempt++;
+        if (attempt > MAX_ATTEMPTS) {
+          outputEl.innerHTML = "<span class=\"content-error\">Article is taking longer than expected — check back shortly.</span>";
+          resetBtn();
+          return;
+        }
+
+        fetch(API + "/api/ai/tasks/" + taskId, {
+          headers: { "Authorization": "Bearer " + tok() }
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var task   = data.task || data;
+            var status = (task.status || "").toLowerCase();
+            var result = task.result || null;
+
+            if ((status === "done" || status === "complete" || status === "completed") && result) {
+              renderArticle(result);
+              resetBtn();
+            } else if (status === "failed" || status === "error") {
+              outputEl.innerHTML = "<span class=\"content-error\">Task failed. Please try again.</span>";
+              resetBtn();
+            } else {
+              setTimeout(poll, 3000);
+            }
+          })
+          .catch(function (err) {
+            outputEl.innerHTML = "<span class=\"content-error\">Poll error: " + (err.message || "Request failed") + "</span>";
+            resetBtn();
+          });
+      }
+
+      setTimeout(poll, 3000);
+    }
+
+    document.getElementById("contentLaunchBtn").addEventListener("click", function () {
+      var keyword    = document.getElementById("contentKeyword").value.trim();
+      var productUrl = document.getElementById("contentProductUrl").value.trim();
+      var outputEl   = document.getElementById("contentOutput");
+
+      if (!keyword) {
+        outputEl.style.display = "block";
+        outputEl.innerHTML = "<span class=\"content-error\">Please enter a keyword.</span>";
+        return;
+      }
+
+      var prompt = keyword;
+      if (productUrl) prompt += "\n\nProduct URL: " + productUrl;
+
+      var btn = document.getElementById("contentLaunchBtn");
+      btn.disabled = true;
+      btn.textContent = "Generating...";
+
+      outputEl.style.display = "block";
+      outputEl.innerHTML = "<span class=\"content-loading\">Generating article...</span>";
+
+      fetch(API + "/api/ai/tasks", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + tok(),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ agent_type: "content", task_type: "content_plan", prompt: prompt })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.task || !data.task.id) throw new Error(data.error || "No task ID returned");
+          pollForResult(data.task.id);
+        })
+        .catch(function (err) {
+          outputEl.innerHTML = "<span class=\"content-error\">Error: " + (err.message || "Request failed") + "</span>";
+          btn.disabled = false;
+          btn.textContent = "Launch Task";
+        });
+    });
   </script>
 <div class="bp-modal-overlay" id="bpModalOverlay" onclick="bpOverlayClick(event)">
   <div class="bp-modal">
