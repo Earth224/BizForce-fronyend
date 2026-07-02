@@ -368,8 +368,8 @@
         </svg>
       </div>
       <div class="agent-header-text">
-        <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Real-time buying-intent leads from Bluesky</p>
+        <h1 class="agent-title">Competitor Radar</h1>
+        <p class="agent-subtitle">Live intelligence on competitors and sellers in your market — captured from Bluesky every 5 minutes.</p>
       </div>
     </header>
 
@@ -401,7 +401,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var leads = data.leads || [];
-          countEl.textContent = leads.length + " scored lead" + (leads.length !== 1 ? "s" : "");
+          countEl.textContent = leads.length + " competitor" + (leads.length !== 1 ? "s" : "") + " tracked";
 
           if (!leads.length) {
             list.innerHTML = "<div class=\"empty-state\">No scored leads yet. The radar runs every 5 minutes.</div>";
@@ -430,7 +430,7 @@
               "    <span class=\"lead-product\">" + escHtml(product) + "</span>",
               "    <span class=\"lead-reason\">" + escHtml(reason) + "</span>",
               "  </div>",
-              "  <button class=\"draft-btn\" onclick=\"draftReply(" + idx + ", " + JSON.stringify(text) + ", " + JSON.stringify(product) + ")\">Draft Reply</button>",
+              "  <button class=\"draft-btn\" onclick=\"draftReply(" + idx + ", " + JSON.stringify(text) + ", " + JSON.stringify(product) + ")\">Draft Engagement</button>",
               "  <div class=\"draft-area\" id=\"draft-area-" + idx + "\">",
               "    <div class=\"draft-box\" id=\"draft-" + idx + "\"></div>",
               "    <button class=\"copy-btn\" id=\"copy-" + idx + "\" onclick=\"copyReply(" + idx + ")\">Copy</button>",
@@ -491,7 +491,7 @@
         })
         .finally(function () {
           btn.disabled = false;
-          btn.textContent = "Draft Reply";
+          btn.textContent = "Draft Engagement";
         });
     }
 
