@@ -374,10 +374,10 @@
 
     /* ── shooting star ── */
     "@keyframes tmx-shoot-fly {",
-    "  0%   { opacity: 0;    transform: translateX(0);      }",
-    "  8%   { opacity: 0.60;                                }",
-    "  75%  { opacity: 0.50;                                }",
-    "  100% { opacity: 0;    transform: translateX(168px);  }",
+    "  0%   { opacity: 0;    transform: translateX(0);                       }",
+    "  8%   { opacity: 0.60;                                                 }",
+    "  75%  { opacity: 0.50;                                                 }",
+    "  100% { opacity: 0;    transform: translateX(var(--shoot-dist,168px)); }",
     "}",
     "#tmx-shoot {",
     "  position: absolute;",
@@ -492,12 +492,20 @@
       angle = -35 + Math.random() * 70;
     }
 
+    /* t=0 → fast+short, t=1 → slow+long */
+    var t    = Math.random();
+    var dur  = (0.6 + t * 0.8).toFixed(2);
+    var len  = Math.round(22 + t * 32);
+    var dist = Math.round(110 + t * 100);
+
     shoot.style.animation = "none";
     shoot.offsetHeight;   /* force reflow to restart */
     shoot.style.top    = top   + "px";
     shoot.style.left   = left  + "px";
     shoot.style.rotate = angle + "deg";
-    shoot.style.animation = "tmx-shoot-fly " + (0.9 + Math.random() * 0.4) + "s ease-out forwards";
+    shoot.style.width  = len   + "px";
+    shoot.style.setProperty("--shoot-dist", dist + "px");
+    shoot.style.animation = "tmx-shoot-fly " + dur + "s ease-out forwards";
 
     /* next shot: 8-14s from now */
     setTimeout(fireShoot, 8000 + Math.random() * 6000);
