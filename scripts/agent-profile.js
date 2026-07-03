@@ -533,6 +533,7 @@
     }
 
     wrapper.insertBefore(card, wrapper.firstChild);
+    try { saveToLibrary(task); } catch(e) {}
   }
 
   /* ── approve draft → POST /api/social-drafts ── */
@@ -897,6 +898,27 @@
     });
     html += '</div>';
     el.innerHTML = html;
+  }
+
+  /* ── save completed task result to Content Library ── */
+  function saveToLibrary(task) {
+    if (!task || !task.result) return;
+    try {
+      fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/content-library", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + (localStorage.getItem("bf_token") || ""),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type:       "blog",
+          title:      AGENT_TYPE + " task",
+          keyword:    task.task_type || "",
+          source_url: "",
+          body:       task.result || ""
+        })
+      }).catch(function () {});
+    } catch (e) {}
   }
 
   /* ── boot ── */
