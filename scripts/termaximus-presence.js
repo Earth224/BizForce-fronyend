@@ -124,6 +124,26 @@
     "  filter: blur(14px);",
     "}",
 
+    /* soul-color cycle: box-shadow halo drifts through dark mystical tones */
+    "@keyframes tmx-soul-cycle {",
+    "  0%   { box-shadow: 0 0 42px 22px rgba(80,15,110,0.46);  }",
+    "  20%  { box-shadow: 0 0 42px 22px rgba(90,6,22,0.43);    }",
+    "  40%  { box-shadow: 0 0 42px 22px rgba(12,6,85,0.48);    }",
+    "  60%  { box-shadow: 0 0 42px 22px rgba(0,32,48,0.42);    }",
+    "  80%  { box-shadow: 0 0 42px 22px rgba(70,16,4,0.44);    }",
+    "  100% { box-shadow: 0 0 42px 22px rgba(80,15,110,0.46);  }",
+    "}",
+    "#tmx-soul {",
+    "  position: absolute;",
+    "  width: 67px;",
+    "  height: 67px;",
+    "  top: 22px;",
+    "  left: 22px;",
+    "  border-radius: 50%;",
+    "  pointer-events: none;",
+    "  animation: tmx-soul-cycle 80s ease-in-out infinite;",
+    "}",
+
     ".tmx-blob {",
     "  position: absolute;",
     "  pointer-events: auto;",
@@ -406,6 +426,10 @@
   var core = document.createElement("div");
   core.id = "tmx-core";
   root.appendChild(core);
+
+  var soul = document.createElement("div");
+  soul.id = "tmx-soul";
+  root.appendChild(soul);
 
   var STARS = [
     /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    motion,          mdur,   mdel   */
