@@ -84,6 +84,16 @@
     "  width: 110px;",
     "  height: 110px;",
     "  overflow: visible;",
+    "  -webkit-mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
+    "    black 0%, black 32%,",
+    "    rgba(0,0,0,0.78) 50%,",
+    "    rgba(0,0,0,0.32) 70%,",
+    "    transparent 100%);",
+    "  mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
+    "    black 0%, black 32%,",
+    "    rgba(0,0,0,0.78) 50%,",
+    "    rgba(0,0,0,0.32) 70%,",
+    "    transparent 100%);",
     "}",
 
     /* star-heart: burning white-blue sun with gold outer bloom */
