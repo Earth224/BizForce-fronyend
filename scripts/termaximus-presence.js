@@ -415,6 +415,25 @@
     "    rgba(210,220,255,0.14)   82%,",
     "    transparent             100%",
     "  );",
+    "}",
+
+    /* ghost whisper text */
+    "#tmx-whisper {",
+    "  position: absolute;",
+    "  top: 50px;",
+    "  left: 50%;",
+    "  transform: translateX(-50%);",
+    "  pointer-events: none;",
+    "  white-space: nowrap;",
+    "  font-size: 9px;",
+    "  font-family: Georgia, 'Palatino Linotype', serif;",
+    "  letter-spacing: 0.18em;",
+    "  text-transform: uppercase;",
+    "  color: rgba(215,205,245,1);",
+    "  opacity: 0;",
+    "  transition: opacity 3s ease-in-out;",
+    "  -webkit-user-select: none;",
+    "  user-select: none;",
     "}"
 
   ].join("\n");
@@ -572,4 +591,23 @@
       el.style.left = pts[i][1] + "px";
     });
   }, 35000);
+
+  /* ── ghost whisper ── */
+  var whisper = document.createElement("div");
+  whisper.id = "tmx-whisper";
+  whisper.textContent = "Ask Termaximus";
+  root.appendChild(whisper);
+
+  function surfaceWhisper() {
+    /* drift slightly each time so it never feels like a fixed label */
+    whisper.style.top = (44 + Math.round(Math.random() * 14)) + "px";
+    whisper.style.opacity = "0.19";
+    /* hold briefly then sink back */
+    setTimeout(function () { whisper.style.opacity = "0"; }, 5000);
+    /* next surfacing: 55-120s from now */
+    setTimeout(surfaceWhisper, 55000 + Math.random() * 65000);
+  }
+
+  /* first whisper after 40-70s */
+  setTimeout(surfaceWhisper, 40000 + Math.random() * 30000);
 }());
