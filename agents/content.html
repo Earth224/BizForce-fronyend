@@ -852,7 +852,7 @@
         }
 
         fetch("https://dynamic-prosperity-production-5382.up.railway.app" + "/api/ai/tasks/" + taskId, {
-          headers: { "Authorization": "Bearer " + tok() }
+          headers: { "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") }
         })
           .then(function (r) { return r.json(); })
           .then(function (data) {
@@ -903,7 +903,7 @@
       fetch("https://dynamic-prosperity-production-5382.up.railway.app" + "/api/ai/tasks", {
         method: "POST",
         headers: {
-          "Authorization": "Bearer " + tok(),
+          "Authorization": "Bearer " + (localStorage.getItem("bf_token") || ""),
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ agent_type: "content", task_type: "content_plan", prompt: prompt })
