@@ -920,6 +920,26 @@
         <label for="birthDateInput">Birth Date</label>
         <input type="date" id="birthDateInput" />
       </div>
+      <div class="oracle-field">
+        <label for="birthTimeInput">Birth Time</label>
+        <input type="time" id="birthTimeInput" />
+      </div>
+      <div class="oracle-field">
+        <label for="birthPlaceInput">Birth Place</label>
+        <input type="text" id="birthPlaceInput" placeholder="City, State, Country of birth" />
+      </div>
+      <div class="oracle-field">
+        <label for="currentLocationInput">Current Location</label>
+        <input type="text" id="currentLocationInput" placeholder="Where you live now" />
+      </div>
+      <div class="oracle-field">
+        <label for="pathFocusInput">Path &amp; Focus</label>
+        <input type="text" id="pathFocusInput" placeholder="Your calling, work, and what you're building" />
+      </div>
+      <div class="oracle-field">
+        <label for="lifeDetailsInput">The Book of You</label>
+        <textarea id="lifeDetailsInput" rows="6" placeholder="Tell the Oracle everything it should know about you — your history, worldview, struggles, victories, beliefs, goals, and anything else that defines your path. The more you share, the deeper it sees you." style="width:100%;padding:13px 16px;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:12px;color:inherit;font-family:inherit;font-size:inherit;line-height:1.6;resize:vertical;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);"></textarea>
+      </div>
       <p class="oracle-error" id="syncError" style="display:none"></p>
       <button class="oracle-sync-btn" id="syncBtn">SYNCHRONIZE</button>
     </div>
@@ -1256,23 +1276,20 @@
       chatHistory.push({ role: "user", content: text });
       setLoading(true);
 
-      fetch(API_URL + "/api/oracle/chat", {
+      fetch(API_URL + "/api/oracle", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer " + token
         },
         body: JSON.stringify({
-          birthName: birthName,
-          birthDate: birthDate,
-          message:   text,
-          history:   chatHistory.slice(-14)
+          message: text
         })
       })
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (data) {
         setLoading(false);
-        var reply = (data && data.response) ? data.response : "The channel fell silent. Ask again.";
+        var reply = (data && data.reply) ? data.reply : "The channel fell silent. Ask again.";
         chatHistory.push({ role: "assistant", content: reply });
         appendMsg("oracle", reply);
       })
