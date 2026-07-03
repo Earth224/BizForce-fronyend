@@ -649,5 +649,20 @@
     }
     /* first shapeshift after 20-40s */
     setTimeout(shapeShift, 20000 + Math.random() * 20000);
+
+  } else if (TMX_MODE === "shapeshift-test") {
+    /* fast loop for visual confirmation — pour in, hold 2s, dissolve, wait 2s, repeat */
+    function shapeShiftTest() {
+      root.style.setProperty("-webkit-mask-size", "100% 100%");
+      root.style.setProperty("mask-size",         "100% 100%");
+      /* transition (5s) + hold (2s) → dissolve */
+      setTimeout(function () {
+        root.style.setProperty("-webkit-mask-size", "400% 400%");
+        root.style.setProperty("mask-size",         "400% 400%");
+        /* transition (5s) + wait (2s) → repeat */
+        setTimeout(shapeShiftTest, 7000);
+      }, 7000);
+    }
+    shapeShiftTest();
   }
 }());
