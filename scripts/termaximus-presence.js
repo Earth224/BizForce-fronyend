@@ -231,6 +231,45 @@
     "  100% { translate: 0px  0px;  }",
     "}",
 
+    /* swirl — graceful arc sweeps, wider range than drift */
+    "@keyframes tmx-sswirl-1 {",
+    "  0%   { translate:  0px   0px; }",
+    "  18%  { translate:  6px  -5px; }",
+    "  40%  { translate:  9px   2px; }",
+    "  62%  { translate:  4px   7px; }",
+    "  82%  { translate: -3px   4px; }",
+    "  100% { translate:  0px   0px; }",
+    "}",
+    "@keyframes tmx-sswirl-2 {",
+    "  0%   { translate:  0px   0px; }",
+    "  22%  { translate: -5px  -6px; }",
+    "  45%  { translate: -8px   2px; }",
+    "  68%  { translate: -2px   7px; }",
+    "  85%  { translate:  4px   3px; }",
+    "  100% { translate:  0px   0px; }",
+    "}",
+
+    /* orbit — four-waypoint circular path around base position */
+    "@keyframes tmx-sorbit-1 {",
+    "  0%   { translate:  0px   5px; }",
+    "  25%  { translate:  5px   0px; }",
+    "  50%  { translate:  0px  -5px; }",
+    "  75%  { translate: -5px   0px; }",
+    "  100% { translate:  0px   5px; }",
+    "}",
+    "@keyframes tmx-sorbit-2 {",
+    "  0%   { translate:  0px   4px; }",
+    "  25%  { translate: -5px   1px; }",
+    "  50%  { translate: -1px  -4px; }",
+    "  75%  { translate:  5px  -1px; }",
+    "  100% { translate:  0px   4px; }",
+    "}",
+
+    /* still — blink only, no spatial motion */
+    "@keyframes tmx-snone {",
+    "  0%, 100% { translate: 0px 0px; }",
+    "}",
+
     /* each star: bright radial core + cross rays via ::before / ::after */
     ".tmx-star {",
     "  position: absolute;",
@@ -369,19 +408,22 @@
   root.appendChild(core);
 
   var STARS = [
-    /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    drift,           ddur,   ddel   */
-    [  7,   17,   4, "#ffffff", "rgba(200,220,255,0.70)",   0.12, 1.00, "6.0s", "0.0s", "tmx-sdrift-1", "19s",  "0.0s" ],
-    [  5,   65,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.10, 0.95, "4.5s", "0.7s", "tmx-sdrift-2", "23s",  "2.1s" ],
-    [ 20,   96,   4, "#ffffff", "rgba(200,220,255,0.65)",   0.14, 1.00, "7.0s", "1.4s", "tmx-sdrift-3", "17s",  "4.5s" ],
-    [ 42,    6,   6, "#ffe896", "rgba(255,220,100,0.70)",   0.08, 0.92, "5.5s", "2.1s", "tmx-sdrift-4", "25s",  "1.3s" ],
-    [ 30,   50,   7, "#ffffff", "rgba(200,220,255,0.80)",   0.10, 1.00, "3.8s", "0.4s", "tmx-sdrift-5", "21s",  "6.0s" ],
-    [ 62,   89,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.5s", "2.9s", "tmx-sdrift-6", "15s",  "3.7s" ],
-    [ 76,   24,   5, "#ffffff", "rgba(200,220,255,0.68)",   0.10, 0.95, "4.2s", "1.8s", "tmx-sdrift-2", "22s",  "8.2s" ],
-    [ 68,  102,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.08, 0.88, "7.5s", "3.5s", "tmx-sdrift-3", "18s",  "0.8s" ],
-    [ 90,   55,   4, "#ffffff", "rgba(200,220,255,0.62)",   0.14, 1.00, "5.0s", "1.1s", "tmx-sdrift-1", "24s",  "5.5s" ],
-    [100,   11,   6, "#ffe896", "rgba(255,220,100,0.72)",   0.08, 0.92, "8.0s", "4.2s", "tmx-sdrift-5", "16s",  "2.9s" ],
-    [ 95,   82,   5, "#ffffff", "rgba(200,220,255,0.70)",   0.10, 0.96, "3.5s", "2.6s", "tmx-sdrift-4", "20s",  "7.1s" ],
-    [ 49,   38,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.0s", "3.2s", "tmx-sdrift-6", "25s",  "4.0s" ]
+    /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    motion,          mdur,   mdel   */
+    /* ── swirl ── */
+    [  7,   17,   4, "#ffffff", "rgba(200,220,255,0.70)",   0.12, 1.00, "6.0s", "0.0s", "tmx-sswirl-1", "28s",  "0.0s" ],
+    [ 42,    6,   6, "#ffe896", "rgba(255,220,100,0.70)",   0.08, 0.92, "5.5s", "2.1s", "tmx-sswirl-2", "24s",  "1.3s" ],
+    [ 76,   24,   5, "#ffffff", "rgba(200,220,255,0.68)",   0.10, 0.95, "4.2s", "1.8s", "tmx-sswirl-1", "26s",  "8.2s" ],
+    [ 95,   82,   5, "#ffffff", "rgba(200,220,255,0.70)",   0.10, 0.96, "3.5s", "2.6s", "tmx-sswirl-2", "32s",  "7.1s" ],
+    /* ── orbit ── */
+    [  5,   65,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.10, 0.95, "4.5s", "0.7s", "tmx-sorbit-1", "22s",  "2.1s" ],
+    [ 30,   50,   7, "#ffffff", "rgba(200,220,255,0.80)",   0.10, 1.00, "3.8s", "0.4s", "tmx-sorbit-2", "30s",  "6.0s" ],
+    [ 68,  102,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.08, 0.88, "7.5s", "3.5s", "tmx-sorbit-1", "18s",  "0.8s" ],
+    [100,   11,   6, "#ffe896", "rgba(255,220,100,0.72)",   0.08, 0.92, "8.0s", "4.2s", "tmx-sorbit-2", "25s",  "2.9s" ],
+    /* ── blink only ── */
+    [ 20,   96,   4, "#ffffff", "rgba(200,220,255,0.65)",   0.14, 1.00, "7.0s", "1.4s", "tmx-snone",    "60s",  "4.5s" ],
+    [ 62,   89,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.5s", "2.9s", "tmx-snone",    "60s",  "3.7s" ],
+    [ 90,   55,   4, "#ffffff", "rgba(200,220,255,0.62)",   0.14, 1.00, "5.0s", "1.1s", "tmx-snone",    "60s",  "5.5s" ],
+    [ 49,   38,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.0s", "3.2s", "tmx-snone",    "60s",  "4.0s" ]
   ];
 
   STARS.forEach(function (s) {
