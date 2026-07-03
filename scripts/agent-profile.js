@@ -307,6 +307,7 @@
     document.getElementById("apLaunchBtn").addEventListener("click", launchTask);
     loadHistory();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
+    loadBusinessContext();
   }
 
   /* ── button loading state ── */
@@ -918,6 +919,53 @@
           body:       task.result || ""
         })
       }).catch(function () {});
+    } catch (e) {}
+  }
+
+  /* ── populate business context grid from live API ── */
+  function loadBusinessContext() {
+    var grid = document.getElementById("businessContextGrid");
+    if (!grid) return;
+    var token = tok();
+    if (!token) return;
+    try {
+      fetch(API_URL + "/api/business-profile", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        if (!d || !d.profile) return;
+        var store = {};
+        try {
+          if (typeof window.loadExecutiveMemory === "function" &&
+              typeof window.getAgentStore === "function") {
+            store = window.getAgentStore(window.loadExecutiveMemory());
+          }
+        } catch (e) {}
+        if (typeof window.buildBusinessContext === "function" &&
+            typeof window.renderBusinessContext === "function") {
+          var context = window.buildBusinessContext(d.profile, store);
+          window.renderBusinessContext(context);
+          if (typeof window.renderReports === "function") {
+            try { window.renderReports(store, AGENT_LABEL); } catch (e) {}
+          }
+        } else {
+          var p = d.profile;
+          var fields = [
+            { label: "Business",    value: p.business_name   || "—" },
+            { label: "Industry",    value: p.industry        || "—" },
+            { label: "Website",     value: p.website         || "—" },
+            { label: "Location",    value: p.location        || "—" },
+            { label: "Competitors", value: p.top_competitors || "—" }
+          ];
+          var html = "";
+          for (var i = 0; i < fields.length; i++) {
+            html += '<div class="context-item"><label>' + esc(fields[i].label) + '</label><span>' + esc(String(fields[i].value)) + '</span></div>';
+          }
+          grid.innerHTML = html;
+        }
+      })
+      .catch(function() {});
     } catch (e) {}
   }
 
