@@ -85,15 +85,24 @@
     "  height: 110px;",
     "  overflow: visible;",
     "  -webkit-mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
-    "    black 0%, black 32%,",
-    "    rgba(0,0,0,0.78) 50%,",
-    "    rgba(0,0,0,0.32) 70%,",
+    "    black 0%, black 38%,",
+    "    rgba(0,0,0,0.88) 55%,",
+    "    rgba(0,0,0,0.55) 72%,",
+    "    rgba(0,0,0,0.15) 88%,",
     "    transparent 100%);",
     "  mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
-    "    black 0%, black 32%,",
-    "    rgba(0,0,0,0.78) 50%,",
-    "    rgba(0,0,0,0.32) 70%,",
+    "    black 0%, black 38%,",
+    "    rgba(0,0,0,0.88) 55%,",
+    "    rgba(0,0,0,0.55) 72%,",
+    "    rgba(0,0,0,0.15) 88%,",
     "    transparent 100%);",
+    "  -webkit-mask-size: 400% 400%;",
+    "  mask-size: 400% 400%;",
+    "  -webkit-mask-position: center;",
+    "  mask-position: center;",
+    "  -webkit-mask-repeat: no-repeat;",
+    "  mask-repeat: no-repeat;",
+    "  transition: -webkit-mask-size 5s ease-in-out, mask-size 5s ease-in-out;",
     "}",
 
     /* star-heart: burning white-blue sun with gold outer bloom */
@@ -620,4 +629,25 @@
 
   /* first whisper after 40-70s */
   setTimeout(surfaceWhisper, 40000 + Math.random() * 30000);
+
+  /* ── mode: "amorphous" (default) | "shapeshift" ── */
+  /* stored in localStorage key "tmx_mode"            */
+  var TMX_MODE = localStorage.getItem("tmx_mode") || "amorphous";
+
+  if (TMX_MODE === "shapeshift") {
+    function shapeShift() {
+      /* pour into oval — CSS transition handles the gradual change */
+      root.style.setProperty("-webkit-mask-size", "100% 100%");
+      root.style.setProperty("mask-size",         "100% 100%");
+      /* hold, then dissolve back to amorphous blob */
+      setTimeout(function () {
+        root.style.setProperty("-webkit-mask-size", "400% 400%");
+        root.style.setProperty("mask-size",         "400% 400%");
+        /* rest before next shapeshift: 40-80s */
+        setTimeout(shapeShift, 40000 + Math.random() * 40000);
+      }, 12000);
+    }
+    /* first shapeshift after 20-40s */
+    setTimeout(shapeShift, 20000 + Math.random() * 20000);
+  }
 }());
