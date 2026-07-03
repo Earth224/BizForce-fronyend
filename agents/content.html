@@ -816,6 +816,38 @@
           });
         }
 
+        if (html) {
+          try {
+            var saveKeyword    = (document.getElementById("contentKeyword")    || {}).value || "";
+            var saveProductUrl = (document.getElementById("contentProductUrl") || {}).value || "";
+            var saveTitle      = typeof result === "object" && result
+              ? (result.title || result.seo_title || "")
+              : "";
+            var saveBody       = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+
+            fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/content-library", {
+              method: "POST",
+              headers: {
+                "Authorization": "Bearer " + (localStorage.getItem("bf_token") || ""),
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                type:       "blog",
+                keyword:    saveKeyword.trim(),
+                source_url: saveProductUrl.trim() || null,
+                title:      saveTitle || null,
+                body:       saveBody
+              })
+            }).then(function () {
+              console.log("[ContentAgent] Article saved to library.");
+            }).catch(function (err) {
+              console.warn("[ContentAgent] Library save failed (non-fatal):", err.message || err);
+            });
+          } catch (saveErr) {
+            console.warn("[ContentAgent] Library save setup failed (non-fatal):", saveErr.message || saveErr);
+          }
+        }
+
       } catch (err) {
         outputEl.innerHTML = "<span class=\"content-error\">Render error: " + escapeHtml(err.message || "unknown") + "</span>";
       }
