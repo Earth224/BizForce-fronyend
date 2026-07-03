@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — Integrations</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22));
+      border: 2px solid rgba(0, 229, 255, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+      flex-shrink: 0;
+    }
+
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.85;
+    }
+
+    .agent-header-text { flex: 1; min-width: 220px; }
+
+    .agent-title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-subtitle {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
+
+    .integrations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .int-card {
+      padding: 22px 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .int-card:hover {
+      border-color: rgba(0, 229, 255, 0.2);
+    }
+
+    .int-card-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e8e8ff;
+      margin: 0;
+    }
+
+    .int-card-desc {
+      font-size: 0.85rem;
+      color: #8892b8;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .int-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+      align-self: flex-start;
+    }
+
+    .int-card-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .int-connect-btn {
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #555c78;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: not-allowed;
+      font-family: inherit;
+    }
+
+    .int-coming-soon {
+      font-size: 0.72rem;
+      color: #555c78;
+      font-style: italic;
+    }
+
+    /* Semantic aliases — same visuals, forward-compatible class names */
+    .integration-card {
+      padding: 22px 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .integration-card:hover {
+      border-color: rgba(0, 229, 255, 0.2);
+    }
+
+    .integration-status {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #94a3b8;
+      align-self: flex-start;
+    }
+
+    .integration-status.connected {
+      background: rgba(52, 211, 153, 0.12);
+      border-color: rgba(52, 211, 153, 0.4);
+      color: #34d399;
+    }
+
+    .integration-connect-btn {
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s;
+      box-shadow: 0 4px 16px rgba(0, 198, 255, 0.2);
+    }
+
+    .integration-connect-btn:hover {
+      opacity: 0.88;
+      transform: translateY(-1px);
+    }
+
+    .integration-connect-btn:disabled {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #555c78;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <nav class="top-nav">
+      <a class="back-link" href="/dashboard.html">&#8592; Dashboard</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <header class="agent-header">
+      <div class="agent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">Integrations Hub</h1>
+        <p class="agent-subtitle">Connect your business tools.</p>
+      </div>
+    </header>
+
+    <div id="integrationsBody">
+      <div class="integrations-grid" id="integrationsGrid">
+
+        <div class="int-card">
+          <p class="int-card-name">Stripe</p>
+          <p class="int-card-desc">Accept payments, manage subscriptions, and track revenue.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">Twilio</p>
+          <p class="int-card-desc">Send SMS campaigns and alerts to your customers.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">GoDaddy</p>
+          <p class="int-card-desc">Publish blog posts and manage your business website.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">Zernio</p>
+          <p class="int-card-desc">Auto-post AI-generated content to your social channels.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">Facebook</p>
+          <p class="int-card-desc">Schedule posts and manage your Facebook business page.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">Instagram</p>
+          <p class="int-card-desc">Publish photos, reels, and stories to your audience.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">TikTok</p>
+          <p class="int-card-desc">Distribute short-form video content to your TikTok profile.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+        <div class="int-card">
+          <p class="int-card-name">X / Twitter</p>
+          <p class="int-card-desc">Post updates, threads, and announcements to your X account.</p>
+          <span class="int-status">Not Connected</span>
+          <div class="int-card-footer">
+            <button class="int-connect-btn" disabled>Connect</button>
+            <span class="int-coming-soon">Coming soon</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
