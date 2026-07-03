@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — Analytics</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22));
+      border: 2px solid rgba(0, 229, 255, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+      flex-shrink: 0;
+    }
+
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.85;
+    }
+
+    .agent-header-text { flex: 1; min-width: 220px; }
+
+    .agent-title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-subtitle {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: #8892b8;
+      font-size: 0.95rem;
+    }
+
+    .stat-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 120px;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      text-align: center;
+    }
+
+    .stat-number {
+      display: block;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, #00e5ff 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8892b8;
+    }
+
+    .charts-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .chart-panel {
+      flex: 1;
+      min-width: 280px;
+      padding: 20px 20px 16px;
+      border-radius: 18px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .chart-title {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8892b8;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <nav class="top-nav">
+      <a class="back-link" href="/dashboard.html">&#8592; Dashboard</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <header class="agent-header">
+      <div class="agent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+          <polyline points="2 20 22 20"/>
+        </svg>
+      </div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">Analytics Command Center</h1>
+        <p class="agent-subtitle">Your real-time business intelligence.</p>
+      </div>
+    </header>
+
+    <div id="dashboardBody">
+
+      <div class="stat-strip">
+        <div class="stat-card">
+          <span class="stat-number" id="statTasksRun">—</span>
+          <span class="stat-label">Tasks Run</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="statTasksCompleted">—</span>
+          <span class="stat-label">Tasks Completed</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="statContentItems">—</span>
+          <span class="stat-label">Content Items</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="statSubscribers">—</span>
+          <span class="stat-label">Subscribers</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="statOptedIn">—</span>
+          <span class="stat-label">Opted-In</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="statCampaigns">—</span>
+          <span class="stat-label">Campaigns</span>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-panel">
+          <span class="chart-title">Content Breakdown</span>
+          <canvas id="chartContent"></canvas>
+        </div>
+        <div class="chart-panel">
+          <span class="chart-title">Tasks by Agent</span>
+          <canvas id="chartAgents"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  <script>
+    var API = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var _chartContent = null;
+    var _chartAgents  = null;
+
+    function renderCharts(s) {
+      try {
+        if (_chartContent) { _chartContent.destroy(); _chartContent = null; }
+        _chartContent = new Chart(document.getElementById("chartContent"), {
+          type: "doughnut",
+          data: {
+            labels: ["Blog", "SMS"],
+            datasets: [{
+              data: [s.blogItems || 0, s.smsItems || 0],
+              backgroundColor: ["rgba(0,229,255,0.75)", "rgba(168,85,247,0.75)"],
+              borderColor:     ["rgba(0,229,255,0.4)",  "rgba(168,85,247,0.4)"],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            plugins: {
+              legend: {
+                display: true,
+                position: "bottom",
+                labels: { color: "#8892b8", font: { size: 11 }, padding: 12 }
+              }
+            },
+            cutout: "62%"
+          }
+        });
+      } catch (e) {
+        console.error("[Analytics] chartContent error:", e);
+      }
+
+      try {
+        var byAgent = s.byAgent || {};
+        var agentLabels = Object.keys(byAgent);
+        var agentCounts = agentLabels.map(function(k) { return byAgent[k]; });
+        var palette = [
+          "rgba(0,229,255,0.75)",
+          "rgba(168,85,247,0.75)",
+          "rgba(52,211,153,0.75)",
+          "rgba(251,191,36,0.75)",
+          "rgba(96,165,250,0.75)",
+          "rgba(244,114,182,0.75)",
+          "rgba(167,243,208,0.65)",
+          "rgba(196,181,253,0.65)"
+        ];
+        var barColors = agentLabels.map(function(_, i) { return palette[i % palette.length]; });
+
+        if (_chartAgents) { _chartAgents.destroy(); _chartAgents = null; }
+        _chartAgents = new Chart(document.getElementById("chartAgents"), {
+          type: "bar",
+          data: {
+            labels: agentLabels.length ? agentLabels : ["—"],
+            datasets: [{
+              data: agentCounts.length ? agentCounts : [0],
+              backgroundColor: barColors,
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: "#8892b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
+              y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("[Analytics] chartAgents error:", e);
+      }
+    }
+
+    function loadAnalytics() {
+      try {
+        fetch(API + "/api/analytics/summary", {
+          headers: { "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") }
+        })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(data) {
+          var s = data.stats || {};
+          document.getElementById("statTasksRun").textContent      = s.tasksRun      != null ? s.tasksRun      : "—";
+          document.getElementById("statTasksCompleted").textContent = s.tasksCompleted != null ? s.tasksCompleted : "—";
+          document.getElementById("statContentItems").textContent   = s.contentItems   != null ? s.contentItems   : "—";
+          document.getElementById("statSubscribers").textContent    = s.subscribers    != null ? s.subscribers    : "—";
+          document.getElementById("statOptedIn").textContent        = s.optedIn        != null ? s.optedIn        : "—";
+          document.getElementById("statCampaigns").textContent      = s.campaigns      != null ? s.campaigns      : "—";
+          renderCharts(s);
+        })
+        .catch(function(err) {
+          console.error("[Analytics] fetch failed:", err);
+          document.getElementById("dashboardBody").insertAdjacentHTML(
+            "afterbegin",
+            "<div class=\"empty-state\" style=\"margin-bottom:24px\">Could not load analytics data. Please try refreshing.</div>"
+          );
+        });
+      } catch (e) {
+        console.error("[Analytics] loadAnalytics error:", e);
+      }
+    }
+
+    loadAnalytics();
+  </script>
+
+  </div>
+</body>
+</html>
