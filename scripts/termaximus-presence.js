@@ -470,15 +470,32 @@
   root.appendChild(shoot);
 
   function fireShoot() {
-    /* random angle 22-52 deg, start scattered across upper/left of container */
-    var angle = 22 + Math.random() * 30;
-    var top   = -12 + Math.random() * 72;
-    var left  = -36 + Math.random() * 48;
+    var W    = 110; /* container size px */
+    var edge = Math.floor(Math.random() * 4);
+    var top, left, angle;
+
+    if (edge === 0) {        /* top edge — travel downward, 55-125° */
+      top   = -4;
+      left  = -10 + Math.random() * (W + 20);
+      angle = 55 + Math.random() * 70;
+    } else if (edge === 1) { /* right edge — travel leftward, 145-215° */
+      top   = -10 + Math.random() * (W + 20);
+      left  = W + 4;
+      angle = 145 + Math.random() * 70;
+    } else if (edge === 2) { /* bottom edge — travel upward, 235-305° */
+      top   = W + 4;
+      left  = -10 + Math.random() * (W + 20);
+      angle = 235 + Math.random() * 70;
+    } else {                 /* left edge — travel rightward, -35 to 35° */
+      top   = -10 + Math.random() * (W + 20);
+      left  = -4;
+      angle = -35 + Math.random() * 70;
+    }
 
     shoot.style.animation = "none";
     shoot.offsetHeight;   /* force reflow to restart */
-    shoot.style.top    = top  + "px";
-    shoot.style.left   = left + "px";
+    shoot.style.top    = top   + "px";
+    shoot.style.left   = left  + "px";
     shoot.style.rotate = angle + "deg";
     shoot.style.animation = "tmx-shoot-fly " + (0.9 + Math.random() * 0.4) + "s ease-out forwards";
 
