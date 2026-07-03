@@ -296,6 +296,7 @@
     "  border-radius: 50%;",
     "  pointer-events: none;",
     "  overflow: visible;",
+    "  transition: top 18s ease-in-out, left 18s ease-in-out;",
     "  animation:",
     "    tmx-spark var(--sp-dur,5s) ease-in-out infinite var(--sp-del,0s),",
     "    var(--sd-name,tmx-sdrift-1) var(--sd-dur,20s) ease-in-out infinite var(--sd-del,0s);",
@@ -431,6 +432,8 @@
   soul.id = "tmx-soul";
   root.appendChild(soul);
 
+  var starEls = [];
+
   var STARS = [
     /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    motion,          mdur,   mdel   */
     /* ── swirl ── */
@@ -472,6 +475,7 @@
     el.style.setProperty("--sd-dur",  s[10]);
     el.style.setProperty("--sd-del",  s[11]);
     root.appendChild(el);
+    starEls.push(el);
   });
 
   ["a", "b", "c"].forEach(function (id) {
@@ -537,4 +541,35 @@
 
   /* first shot after a short random delay */
   setTimeout(fireShoot, 2500 + Math.random() * 3500);
+
+  /* ── starfield cluster cycling ── */
+  /* 4 patterns — each entry maps to the same star index in STARS */
+  var PATTERNS = [
+    /* A — scattered wide (starting positions) */
+    [[ 7,17],[42, 6],[76,24],[95,82],
+     [ 5,65],[30,50],[68,102],[100,11],
+     [20,96],[62,89],[90,55],[49,38]],
+    /* B — loose ring around the center */
+    [[ 8,50],[18,88],[42,108],[65,108],
+     [88,96],[102,68],[105,42],[90,12],
+     [68, 0],[40,  2],[ 18,18],[45,58]],
+    /* C — dense core cluster */
+    [[30,42],[25,60],[42,35],[48,72],
+     [56,46],[60,62],[38,56],[66,40],
+     [72,68],[38,72],[52,28],[68,52]],
+    /* D — twin clusters: upper-left + lower-right */
+    [[ 5, 8],[ 8,30],[20,10],[28,28],
+     [15,42],[35, 5],[68,72],[78,96],
+     [90,70],[98,88],[82,80],[102,75]]
+  ];
+  var patternIdx = 0;
+
+  setInterval(function () {
+    patternIdx = (patternIdx + 1) % PATTERNS.length;
+    var pts = PATTERNS[patternIdx];
+    starEls.forEach(function (el, i) {
+      el.style.top  = pts[i][0] + "px";
+      el.style.left = pts[i][1] + "px";
+    });
+  }, 35000);
 }());
