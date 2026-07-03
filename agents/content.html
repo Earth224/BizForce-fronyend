@@ -453,7 +453,7 @@
   .ca-signup-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35),0 0 20px rgba(168,85,247,.25)}
   .ca-checkbox-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.85rem;color:#c4b5fd;font-weight:600;user-select:none}
   .ca-checkbox-label input[type=checkbox]{width:16px;height:16px;accent-color:#22d3ee;cursor:pointer;flex-shrink:0}
-    #contentOutput {
+    #contentOutput, #smsOutput {
       margin-top: 18px;
       padding: 20px 22px;
       background: rgba(12, 18, 38, 0.72);
@@ -517,6 +517,12 @@
       <input class="bp-input" id="contentProductUrl" type="text" placeholder="Product URL (optional)" maxlength="500" style="margin-top:10px">
       <button type="button" class="action-btn" id="contentLaunchBtn" style="margin-top:14px">Launch Task</button>
       <div id="contentOutput" style="display:none"></div>
+    </section>
+    <section class="context-card" id="smsLaunchPanel" aria-label="Generate SMS Campaign" style="margin-top:18px">
+      <h2 class="section-label">Generate SMS Campaign</h2>
+      <input class="bp-input" id="smsPurpose" type="text" placeholder="Campaign purpose, e.g. reactivate past customers with a comeback offer" maxlength="300" style="margin-top:14px">
+      <button type="button" class="action-btn" id="smsLaunchBtn" style="margin-top:14px">Generate SMS</button>
+      <div id="smsOutput" style="display:none"></div>
     </section>
     <div class="reports-grid" id="reportsGrid"></div>
 
@@ -864,6 +870,112 @@
       }).join("");
     };
 
+    function pollForSmsResult(taskId) {
+      var MAX_ATTEMPTS = 40;
+      var attempt  = 0;
+      var outputEl = document.getElementById("smsOutput");
+      var btn      = document.getElementById("smsLaunchBtn");
+
+      function resetBtn() {
+        btn.disabled = false;
+        btn.textContent = "Generate SMS";
+      }
+
+      function poll() {
+        attempt++;
+        if (attempt > MAX_ATTEMPTS) {
+          outputEl.innerHTML = "<span class=\"content-error\">SMS generation is taking longer than expected — check back shortly.</span>";
+          resetBtn();
+          return;
+        }
+
+        fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/ai/tasks/" + taskId, {
+          headers: { "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") }
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var task   = data.task || data;
+            var status = (task.status || "").toLowerCase();
+            var result = task.result || null;
+
+            if ((status === "done" || status === "complete" || status === "completed") && result) {
+              renderSms(result);
+              resetBtn();
+            } else if (status === "failed" || status === "error") {
+              outputEl.innerHTML = "<span class=\"content-error\">SMS generation failed. Please try again.</span>";
+              resetBtn();
+            } else {
+              setTimeout(poll, 3000);
+            }
+          })
+          .catch(function (err) {
+            outputEl.innerHTML = "<span class=\"content-error\">Poll error: " + (err.message || "Request failed") + "</span>";
+            resetBtn();
+          });
+      }
+
+      setTimeout(poll, 3000);
+    }
+
+    function renderSms(result) {
+      var outputEl = document.getElementById("smsOutput");
+      outputEl.style.display = "block";
+      try {
+        var text = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+        var lines = text.split("\n");
+        var html = lines.map(function (line) {
+          var t = line.trim();
+          if (!t) return "<br>";
+          if (t.startsWith("## ")) return "<h2 style=\"color:#a855f7;font-size:1rem;margin:18px 0 6px\">" + escapeHtml(t.slice(3)) + "</h2>";
+          if (t.startsWith("# "))  return "<h1 style=\"color:#e8e8ff;font-size:1.05rem;font-weight:700;margin:0 0 10px\">" + escapeHtml(t.slice(2)) + "</h1>";
+          return "<p style=\"margin:6px 0\">" + escapeHtml(t) + "</p>";
+        }).join("");
+
+        var copyBar = "<div style=\"margin-bottom:14px\">" +
+          "<button type=\"button\" class=\"action-btn action-btn--ghost\" id=\"smsCopyBtn\" style=\"font-size:.75rem;padding:6px 14px\">Copy</button>" +
+          "</div>";
+        outputEl.innerHTML = html ? copyBar + html : "<span class=\"content-error\">No content returned.</span>";
+
+        var copyBtn = document.getElementById("smsCopyBtn");
+        if (copyBtn) {
+          copyBtn.addEventListener("click", function () {
+            navigator.clipboard.writeText(text).then(function () {
+              copyBtn.textContent = "Copied!";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            }).catch(function () {
+              copyBtn.textContent = "Failed";
+              setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+            });
+          });
+        }
+
+        if (html) {
+          try {
+            fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/content-library", {
+              method: "POST",
+              headers: {
+                "Authorization": "Bearer " + (localStorage.getItem("bf_token") || ""),
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                type:    "sms",
+                keyword: (document.getElementById("smsPurpose") || {}).value || "",
+                body:    text
+              })
+            }).then(function () {
+              console.log("[ContentAgent] SMS saved to library.");
+            }).catch(function (err) {
+              console.warn("[ContentAgent] SMS library save failed (non-fatal):", err.message || err);
+            });
+          } catch (saveErr) {
+            console.warn("[ContentAgent] SMS save setup failed (non-fatal):", saveErr.message || saveErr);
+          }
+        }
+      } catch (err) {
+        outputEl.innerHTML = "<span class=\"content-error\">Render error: " + escapeHtml(err.message || "unknown") + "</span>";
+      }
+    }
+
     function pollForResult(taskId) {
       var MAX_ATTEMPTS = 40;
       var attempt = 0;
@@ -949,6 +1061,47 @@
           outputEl.innerHTML = "<span class=\"content-error\">Error: " + (err.message || "Request failed") + "</span>";
           btn.disabled = false;
           btn.textContent = "Launch Task";
+        });
+    });
+
+    document.getElementById("smsLaunchBtn").addEventListener("click", function () {
+      var purpose   = document.getElementById("smsPurpose").value.trim();
+      var outputEl  = document.getElementById("smsOutput");
+      var btn       = document.getElementById("smsLaunchBtn");
+
+      if (!purpose) {
+        outputEl.style.display = "block";
+        outputEl.innerHTML = "<span class=\"content-error\">Please enter a campaign purpose.</span>";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Generating...";
+      outputEl.style.display = "block";
+      outputEl.innerHTML = "<span class=\"content-loading\">Generating SMS campaign...</span>";
+
+      var smsPrompt = purpose +
+        "\n\nWrite a short SMS marketing sequence for this campaign: an opener message, an offer message, and a follow-up message. " +
+        "Each message must be under 160 characters, conversational, non-spammy, and compliant. " +
+        "End the sequence with a STOP opt-out line: 'Reply STOP to unsubscribe.'";
+
+      fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/ai/tasks", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + (localStorage.getItem("bf_token") || ""),
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ agent_type: "content", task_type: "sms_campaign", prompt: smsPrompt })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.task || !data.task.id) throw new Error(data.error || "No task ID returned");
+          pollForSmsResult(data.task.id);
+        })
+        .catch(function (err) {
+          outputEl.innerHTML = "<span class=\"content-error\">Error: " + (err.message || "Request failed") + "</span>";
+          btn.disabled = false;
+          btn.textContent = "Generate SMS";
         });
     });
   </script>
