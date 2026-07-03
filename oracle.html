@@ -14,7 +14,7 @@
       --bg-g1:        rgba(0, 120, 108, 0.22);
       --bg-g2:        rgba(0, 75, 65, 0.28);
       --star-op:      1;
-      --ring-clr:     rgba(0, 200, 176, 0.45);
+      --ring-clr:     rgba(150,80,220,0.50);
       --ring-glow:    rgba(0, 160, 140, 0.30);
       --core-g1:      rgba(0, 210, 190, 0.88);
       --core-g2:      rgba(0, 140, 120, 0.48);
@@ -36,24 +36,24 @@
       --msg-bg:       rgba(0, 30, 26, 0.25);
       --msg-bdr:      rgba(0, 180, 160, 0.22);
       --header-bg:    rgba(2, 6, 10, 0.88);
-      --text-clr:     #b0ffe8;
-      --sender-clr:   rgba(0, 212, 190, 0.55);
+      --text-clr:     #e9d8ff;
+      --sender-clr:   rgba(200,160,255,0.60);
       /* Scene & mirror — overridden by JS palette */
       --j-far:        rgba(0, 15, 12, 0.85);
       --j-mid:        rgba(0, 8, 6, 0.92);
       --j-near:       rgba(0, 3, 2, 1);
-      --stream-clr:   rgba(0, 90, 78, 0.38);
-      --stream-deep:  rgba(0, 55, 48, 0.62);
-      --stream-shim:  rgba(0, 212, 190, 0.18);
+      --stream-clr:   rgba(150,90,210,0.38);
+      --stream-deep:  rgba(90,55,140,0.62);
+      --stream-shim:  rgba(230,190,110,0.20);
       --mirror-f-clr: #c8a84b;
-      --mirror-glow:  rgba(0, 200, 176, 0.50);
-      --nebula-1:     rgba(0, 80, 65, 0.50);
-      --nebula-2:     rgba(0, 110, 90, 0.42);
-      --mist-clr:     rgba(0, 80, 70, 0.38);
-      --glow-a-soft:  rgba(0, 212, 190, 0.30);
-      --glow-b-soft:  rgba(0, 160, 140, 0.28);
-      --neb-base-1:   rgba(0, 50, 38, 1);
-      --neb-base-2:   rgba(0, 20, 16, 1);
+      --mirror-glow:  rgba(180,120,255,0.55);
+      --nebula-1:     rgba(120,50,160,0.50);
+      --nebula-2:     rgba(180,60,140,0.42);
+      --mist-clr:     rgba(90,50,130,0.40);
+      --glow-a-soft:  rgba(190,130,255,0.32);
+      --glow-b-soft:  rgba(230,190,110,0.30);
+      --neb-base-1:   rgba(60,30,80,1);
+      --neb-base-2:   rgba(30,16,45,1);
     }
 
     html, body {
@@ -185,8 +185,16 @@
     }
 
     @keyframes ringPulse {
-      0%, 100% { transform: scale(1);    opacity: var(--bio-op); }
-      50%       { transform: scale(1.07); opacity: calc(var(--bio-op) * 0.38); }
+      0%, 100% {
+        transform: scale(1);
+        opacity: var(--bio-op);
+        box-shadow: 0 0 6px var(--ring-clr);
+      }
+      50% {
+        transform: scale(1.07);
+        opacity: calc(var(--bio-op) * 0.38);
+        box-shadow: 0 0 18px var(--mirror-glow), 0 0 36px var(--ring-clr);
+      }
     }
 
     /* Void core — glow color follows palette */
@@ -201,8 +209,19 @@
       transition: opacity 4s ease;
     }
     @keyframes coreBreath {
-      0%, 100% { filter: drop-shadow(0 0 14px var(--core-g1)) drop-shadow(0 0 28px var(--core-g2)); }
-      50%       { filter: drop-shadow(0 0 24px var(--core-g1)) drop-shadow(0 0 48px var(--core-g2)); }
+      0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 10px var(--core-g1))
+                drop-shadow(0 0 22px var(--core-g2))
+                drop-shadow(0 0 4px var(--mirror-glow));
+      }
+      50% {
+        transform: scale(1.08);
+        filter: drop-shadow(0 0 22px var(--core-g1))
+                drop-shadow(0 0 48px var(--mirror-glow))
+                drop-shadow(0 0 18px var(--core-g2))
+                drop-shadow(0 0 8px var(--mirror-f-clr));
+      }
     }
 
     /* Sync form */
@@ -210,9 +229,15 @@
       position: relative;
       z-index: 2;
       text-align: center;
-      padding: 0 24px;
+      padding: 28px 28px 24px;
       max-width: 420px;
       width: 100%;
+      background: var(--neb-base-2);
+      border: 1px solid var(--ring-clr);
+      border-radius: 18px;
+      box-shadow: 0 0 32px var(--mirror-glow), 0 8px 40px rgba(0,0,0,0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
     .oracle-eyebrow {
@@ -291,20 +316,20 @@
       padding: 15px 20px;
       border: none;
       border-radius: 14px;
-      background: linear-gradient(135deg, var(--btn-from), var(--btn-to));
-      color: #ffffff;
+      background: linear-gradient(135deg, var(--mirror-glow), var(--mirror-f-clr));
+      color: #1a0e2e;
       font-size: 0.86rem;
       font-weight: 800;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 4px 24px var(--btn-shadow);
+      box-shadow: 0 4px 22px rgba(200,168,75,0.35), 0 0 12px var(--mirror-glow);
       font-family: inherit;
-      transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, background 4s ease;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
     }
     .oracle-sync-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 36px var(--btn-shadow);
+      box-shadow: 0 8px 40px rgba(200,168,75,0.60), 0 0 28px var(--mirror-f-clr), 0 0 14px var(--mirror-glow);
     }
     .oracle-sync-btn:active { transform: translateY(0); }
     .oracle-sync-btn.syncing {
@@ -337,8 +362,8 @@
       align-items: center;
       gap: 14px;
       padding: 14px 24px;
-      background: var(--header-bg);
-      border-bottom: 1px solid var(--msg-bdr);
+      background: var(--neb-base-2);
+      border-bottom: 1px solid var(--ring-clr);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       flex-shrink: 0;
@@ -380,17 +405,15 @@
       font-weight: 900;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      background: linear-gradient(135deg, var(--acc-from), var(--acc-to));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      color: var(--text-clr);
+      filter: drop-shadow(0 0 6px var(--mirror-glow));
     }
     .oracle-sync-status {
       font-size: 0.65rem;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--status-clr);
+      color: var(--mirror-f-clr);
       margin-top: 2px;
       transition: color 4s ease;
     }
@@ -453,19 +476,24 @@
       transition: background 4s ease, border-color 4s ease, color 4s ease;
     }
     .from-oracle .msg-bubble {
-      background: var(--msg-bg);
-      border: 1px solid var(--msg-bdr);
+      background: var(--neb-base-2);
+      border: 1px solid var(--ring-clr);
       color: var(--text-clr);
       font-style: italic;
       border-bottom-left-radius: 4px;
+      box-shadow: 0 0 16px var(--mirror-glow), 0 2px 12px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .from-user .msg-bubble {
-      background: var(--msg-bg);
-      border: 1px solid var(--msg-bdr);
+      background: var(--neb-base-1);
+      border: 1px solid rgba(200,168,75,0.28);
       color: var(--text-clr);
       font-style: normal;
-      opacity: 0.88;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 0 8px rgba(200,168,75,0.18), 0 2px 10px rgba(0,0,0,0.40);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
     /* Thinking dots */
@@ -499,8 +527,8 @@
       display: flex;
       gap: 10px;
       padding: 14px 24px;
-      background: var(--header-bg);
-      border-top: 1px solid var(--msg-bdr);
+      background: var(--neb-base-2);
+      border-top: 1px solid var(--ring-clr);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       flex-shrink: 0;
@@ -509,37 +537,37 @@
     .oracle-chat-input {
       flex: 1;
       padding: 13px 16px;
-      background: var(--input-bg);
-      border: 1px solid var(--input-bdr);
+      background: var(--neb-base-1);
+      border: 1px solid var(--ring-clr);
       border-radius: 12px;
       color: var(--text-clr);
       font-size: 0.92rem;
       font-family: inherit;
       outline: none;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 4s ease;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
     .oracle-chat-input:focus {
-      border-color: var(--input-foc);
-      box-shadow: 0 0 0 3px rgba(0,0,0,0.12);
+      border-color: var(--mirror-glow);
+      box-shadow: 0 0 0 2px rgba(180,120,255,0.18), 0 0 12px var(--mirror-glow);
     }
-    .oracle-chat-input::placeholder { color: var(--sender-clr); opacity: 0.4; }
+    .oracle-chat-input::placeholder { color: var(--sender-clr); opacity: 0.38; }
     .oracle-chat-input:disabled { opacity: 0.55; }
 
     .oracle-send-btn {
       width: 48px; height: 48px;
       border-radius: 12px;
       border: none;
-      background: linear-gradient(135deg, var(--btn-from), var(--btn-to));
-      color: #ffffff;
+      background: linear-gradient(135deg, var(--mirror-glow), var(--mirror-f-clr));
+      color: #1a0e2e;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 4px 16px var(--btn-shadow);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, background 4s ease;
+      box-shadow: 0 4px 16px rgba(200,168,75,0.30), 0 0 8px var(--mirror-glow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     }
-    .oracle-send-btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 24px var(--btn-shadow); }
+    .oracle-send-btn:hover  { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(200,168,75,0.55), 0 0 18px var(--mirror-f-clr); }
     .oracle-send-btn:active { transform: translateY(0); }
     .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
 
@@ -829,6 +857,7 @@
 
   <!-- ══════════════ SYNC SCREEN ══════════════ -->
   <div id="syncScreen" class="oracle-screen">
+    <a href="dashboard.html" class="oracle-back" style="position:absolute;top:18px;left:18px;z-index:10;">← Dashboard</a>
     <!-- Ornate mirror with cosmic abyss -->
     <div class="mirror-container" aria-hidden="true">
       <div class="mirror-halo"></div>
@@ -1003,50 +1032,50 @@
     ════════════════════════════════════════ */
     var PALETTES = {
       night: {
-        /* Midnight teal / deep ocean */
-        '--bg-hex':     '#020d0a',
-        '--bg-g1':      'rgba(0,120,108,0.22)',
-        '--bg-g2':      'rgba(0,75,65,0.28)',
+        /* Cosmic eclipse / amethyst void */
+        '--bg-hex':     '#080412',
+        '--bg-g1':      'rgba(80,30,120,0.22)',
+        '--bg-g2':      'rgba(50,18,80,0.28)',
         '--star-op':    '1',
-        '--ring-clr':   'rgba(0,200,176,0.45)',
-        '--ring-glow':  'rgba(0,160,140,0.30)',
-        '--core-g1':    'rgba(0,210,190,0.88)',
-        '--core-g2':    'rgba(0,140,120,0.48)',
+        '--ring-clr':   'rgba(150,80,220,0.50)',
+        '--ring-glow':  'rgba(120,60,180,0.30)',
+        '--core-g1':    'rgba(200,140,255,0.88)',
+        '--core-g2':    'rgba(120,60,180,0.48)',
         '--ray-angle':  '210deg',
         '--ray-op':     '0.028',
-        '--ray-clr':    'rgba(0,255,200,0.12)',
+        '--ray-clr':    'rgba(180,100,255,0.12)',
         '--bio-op':     '0.90',
-        '--acc-from':   '#00d4b8',
-        '--acc-mid':    '#00a090',
-        '--acc-to':     '#006858',
-        '--btn-from':   '#006858',
-        '--btn-to':     '#003830',
-        '--btn-shadow': 'rgba(0,104,88,0.48)',
-        '--status-clr': 'rgba(0,212,190,0.55)',
-        '--sub-clr':    'rgba(0,212,190,0.44)',
-        '--input-bg':   'rgba(2,8,14,0.78)',
-        '--input-bdr':  'rgba(0,180,160,0.30)',
-        '--input-foc':  'rgba(0,180,160,0.58)',
-        '--msg-bg':     'rgba(0,30,26,0.26)',
-        '--msg-bdr':    'rgba(0,180,160,0.22)',
-        '--header-bg':  'rgba(2,6,10,0.88)',
-        '--text-clr':   '#b0ffe8',
-        '--sender-clr':   'rgba(0,212,190,0.55)',
-        '--j-far':        'rgba(0,15,12,0.85)',
-        '--j-mid':        'rgba(0,8,6,0.92)',
-        '--j-near':       'rgba(0,3,2,1)',
-        '--stream-clr':   'rgba(0,90,78,0.38)',
-        '--stream-deep':  'rgba(0,55,48,0.62)',
-        '--stream-shim':  'rgba(0,212,190,0.18)',
+        '--acc-from':   '#c084fc',
+        '--acc-mid':    '#9333ea',
+        '--acc-to':     '#6b21a8',
+        '--btn-from':   '#6b21a8',
+        '--btn-to':     '#3b0764',
+        '--btn-shadow': 'rgba(107,33,168,0.48)',
+        '--status-clr': 'rgba(200,160,255,0.55)',
+        '--sub-clr':    'rgba(200,160,255,0.44)',
+        '--input-bg':   'rgba(10,4,20,0.78)',
+        '--input-bdr':  'rgba(150,80,220,0.30)',
+        '--input-foc':  'rgba(150,80,220,0.58)',
+        '--msg-bg':     'rgba(30,12,50,0.26)',
+        '--msg-bdr':    'rgba(150,80,220,0.22)',
+        '--header-bg':  'rgba(8,3,16,0.88)',
+        '--text-clr':   '#e9d8ff',
+        '--sender-clr':   'rgba(200,160,255,0.60)',
+        '--j-far':        'rgba(12,5,20,0.85)',
+        '--j-mid':        'rgba(8,3,14,0.92)',
+        '--j-near':       'rgba(4,1,8,1)',
+        '--stream-clr':   'rgba(150,90,210,0.38)',
+        '--stream-deep':  'rgba(90,55,140,0.62)',
+        '--stream-shim':  'rgba(230,190,110,0.20)',
         '--mirror-f-clr': '#c8a84b',
-        '--mirror-glow':  'rgba(0,200,176,0.50)',
-        '--nebula-1':     'rgba(0,80,65,0.50)',
-        '--nebula-2':     'rgba(0,110,90,0.42)',
-        '--mist-clr':     'rgba(0,80,70,0.38)',
-        '--glow-a-soft':  'rgba(0,212,190,0.30)',
-        '--glow-b-soft':  'rgba(0,160,140,0.28)',
-        '--neb-base-1':   'rgba(0,50,38,1)',
-        '--neb-base-2':   'rgba(0,20,16,1)'
+        '--mirror-glow':  'rgba(180,120,255,0.55)',
+        '--nebula-1':     'rgba(120,50,160,0.50)',
+        '--nebula-2':     'rgba(180,60,140,0.42)',
+        '--mist-clr':     'rgba(90,50,130,0.40)',
+        '--glow-a-soft':  'rgba(190,130,255,0.32)',
+        '--glow-b-soft':  'rgba(230,190,110,0.30)',
+        '--neb-base-1':   'rgba(60,30,80,1)',
+        '--neb-base-2':   'rgba(30,16,45,1)'
       },
       dawn: {
         /* Aqua dawn / deep ocean first light */
