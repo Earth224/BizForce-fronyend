@@ -81,18 +81,18 @@
     "  right: 28px;",
     "  z-index: 2147483647;",
     "  pointer-events: none;",
-    "  width: 92px;",
-    "  height: 92px;",
+    "  width: 110px;",
+    "  height: 110px;",
     "  overflow: visible;",
     "}",
 
     /* star-heart: burning white-blue sun with gold outer bloom */
     "#tmx-core {",
     "  position: absolute;",
-    "  width: 56px;",
-    "  height: 56px;",
-    "  top: 18px;",
-    "  left: 18px;",
+    "  width: 67px;",
+    "  height: 67px;",
+    "  top: 22px;",
+    "  left: 22px;",
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
@@ -113,7 +113,7 @@
     "#tmx-core::after {",
     "  content: '';",
     "  position: absolute;",
-    "  inset: -18px;",
+    "  inset: -22px;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
     "    rgba(140,180,255,0.28)  0%,",
@@ -121,7 +121,7 @@
     "    rgba(220,168,60,0.08)   65%,",
     "    transparent             100%",
     "  );",
-    "  filter: blur(12px);",
+    "  filter: blur(14px);",
     "}",
 
     ".tmx-blob {",
@@ -130,126 +130,137 @@
     "  cursor: default;",
     "}",
 
-    /* blob A — deep indigo / violet */
+    /* blob A — near-black indigo / dark void */
     ".tmx-blob-a {",
-    "  width: 72px;",
-    "  height: 72px;",
-    "  top: 10px;",
-    "  left: 10px;",
+    "  width: 86px;",
+    "  height: 86px;",
+    "  top: 12px;",
+    "  left: 12px;",
     "  background: radial-gradient(ellipse at 42% 40%,",
-    "    rgba(130,60,255,0.68)  0%,",
-    "    rgba(80,20,200,0.50)   45%,",
-    "    rgba(40,8,120,0.10)    100%",
+    "    rgba(48,12,150,0.88)   0%,",
+    "    rgba(16,4,68,0.74)     45%,",
+    "    rgba(4,0,24,0.16)      100%",
     "  );",
-    "  filter: blur(16px);",
+    "  filter: blur(19px);",
     "  animation:",
     "    tmx-pulse-a  4.2s ease-in-out infinite,",
     "    tmx-drift-a  9s   ease-in-out infinite,",
     "    tmx-morph-a  8s   ease-in-out infinite;",
     "}",
 
-    /* blob B — magenta / hot pink */
+    /* blob B — dark abyss violet / near-black magenta */
     ".tmx-blob-b {",
-    "  width: 60px;",
-    "  height: 60px;",
+    "  width: 72px;",
+    "  height: 72px;",
     "  top: 0px;",
-    "  left: 26px;",
+    "  left: 31px;",
     "  background: radial-gradient(ellipse at 48% 44%,",
-    "    rgba(240,50,180,0.62)  0%,",
-    "    rgba(180,20,130,0.42)  48%,",
-    "    rgba(100,6,80,0.06)    100%",
+    "    rgba(88,8,95,0.84)     0%,",
+    "    rgba(45,4,60,0.66)     48%,",
+    "    rgba(16,1,28,0.12)     100%",
     "  );",
-    "  filter: blur(20px);",
+    "  filter: blur(24px);",
     "  animation:",
     "    tmx-pulse-b  5s    ease-in-out infinite 1.1s,",
     "    tmx-drift-b  11s   ease-in-out infinite 0.7s,",
     "    tmx-morph-b  10s   ease-in-out infinite 1.2s;",
     "}",
 
-    /* blob C — royal blue / deep violet */
+    /* blob C — deep space navy / dark blue-black */
     ".tmx-blob-c {",
-    "  width: 64px;",
-    "  height: 64px;",
-    "  top: 26px;",
+    "  width: 77px;",
+    "  height: 77px;",
+    "  top: 31px;",
     "  left: 0px;",
     "  background: radial-gradient(ellipse at 44% 46%,",
-    "    rgba(80,40,220,0.65)   0%,",
-    "    rgba(50,10,180,0.44)   50%,",
-    "    rgba(20,4,100,0.06)    100%",
+    "    rgba(12,6,100,0.90)    0%,",
+    "    rgba(6,2,55,0.70)      50%,",
+    "    rgba(2,0,22,0.14)      100%",
     "  );",
-    "  filter: blur(18px);",
+    "  filter: blur(22px);",
     "  animation:",
     "    tmx-pulse-c  3.7s  ease-in-out infinite 2.2s,",
     "    tmx-drift-c  13s   ease-in-out infinite 1.8s,",
     "    tmx-morph-c  7s    ease-in-out infinite 2.5s;",
     "}",
 
-    /* ── star field — 4 groups, staggered twinkle ── */
-    "@keyframes tmx-twinkle-a {",
-    "  0%,100% { opacity: 0.90; } 50% { opacity: 0.18; }",
-    "}",
-    "@keyframes tmx-twinkle-b {",
-    "  0%,100% { opacity: 0.75; } 50% { opacity: 0.12; }",
-    "}",
-    "@keyframes tmx-twinkle-c {",
-    "  0%,100% { opacity: 0.82; } 50% { opacity: 0.22; }",
-    "}",
-    "@keyframes tmx-twinkle-d {",
-    "  0%,100% { opacity: 0.70; } 50% { opacity: 0.08; }",
+    /* ── sparkle stars ── */
+    "@keyframes tmx-spark {",
+    "  0%,100% { opacity: var(--sp-lo, 0.15); }",
+    "  50%      { opacity: var(--sp-hi, 1.00); }",
     "}",
 
-    ".tmx-sg {",
+    /* star drift — 6 path variants, 15-25s, subtle translate */
+    "@keyframes tmx-sdrift-1 {",
+    "  0%   { translate: 0px 0px;   }",
+    "  25%  { translate: 3px -2px;  }",
+    "  50%  { translate: 5px  2px;  }",
+    "  75%  { translate: 2px  4px;  }",
+    "  100% { translate: 0px  0px;  }",
+    "}",
+    "@keyframes tmx-sdrift-2 {",
+    "  0%   { translate:  0px  0px; }",
+    "  30%  { translate: -4px  3px; }",
+    "  60%  { translate: -2px -3px; }",
+    "  100% { translate:  0px  0px; }",
+    "}",
+    "@keyframes tmx-sdrift-3 {",
+    "  0%   { translate: 0px  0px;  }",
+    "  20%  { translate: 4px  3px;  }",
+    "  55%  { translate: 2px -4px;  }",
+    "  80%  { translate: -3px 2px;  }",
+    "  100% { translate: 0px  0px;  }",
+    "}",
+    "@keyframes tmx-sdrift-4 {",
+    "  0%   { translate:  0px 0px;  }",
+    "  35%  { translate: -3px -4px; }",
+    "  70%  { translate:  4px -2px; }",
+    "  100% { translate:  0px  0px; }",
+    "}",
+    "@keyframes tmx-sdrift-5 {",
+    "  0%   { translate: 0px  0px;  }",
+    "  40%  { translate: -5px 2px;  }",
+    "  65%  { translate: -2px -3px; }",
+    "  100% { translate: 0px  0px;  }",
+    "}",
+    "@keyframes tmx-sdrift-6 {",
+    "  0%   { translate: 0px 0px;   }",
+    "  25%  { translate: 3px  4px;  }",
+    "  50%  { translate: -3px 3px;  }",
+    "  80%  { translate: 2px -4px;  }",
+    "  100% { translate: 0px  0px;  }",
+    "}",
+
+    /* each star: bright radial core + cross rays via ::before / ::after */
+    ".tmx-star {",
     "  position: absolute;",
-    "  top: 0; left: 0;",
-    "  width: 1px; height: 1px;",
     "  border-radius: 50%;",
     "  pointer-events: none;",
+    "  overflow: visible;",
+    "  animation:",
+    "    tmx-spark var(--sp-dur,5s) ease-in-out infinite var(--sp-del,0s),",
+    "    var(--sd-name,tmx-sdrift-1) var(--sd-dur,20s) ease-in-out infinite var(--sd-del,0s);",
     "}",
-
-    /* group A — 4 stars, white + gold */
-    ".tmx-sg-a {",
-    "  background: rgba(255,255,255,0.92);",
-    "  box-shadow:",
-    "    14px 11px 0 0.5px rgba(255,255,255,0.90),",
-    "    54px  7px 0 1.0px rgba(255,235,160,0.82),",
-    "    73px 34px 0 0.5px rgba(255,255,255,0.86),",
-    "    27px 57px 0 1.0px rgba(255,255,255,0.78);",
-    "  animation: tmx-twinkle-a 6s ease-in-out infinite 0s;",
+    ".tmx-star::before, .tmx-star::after {",
+    "  content: '';",
+    "  position: absolute;",
+    "  top: 50%; left: 50%;",
+    "  border-radius: 1px;",
+    "  opacity: 0.55;",
     "}",
-
-    /* group B — 4 stars */
-    ".tmx-sg-b {",
-    "  background: rgba(255,235,160,0.85);",
-    "  box-shadow:",
-    "     7px 39px 0 1.0px rgba(255,235,160,0.72),",
-    "    43px 21px 0 0.5px rgba(255,255,255,0.88),",
-    "    81px 17px 0 0.5px rgba(255,255,255,0.82),",
-    "    61px 67px 0 1.0px rgba(255,235,160,0.76);",
-    "  animation: tmx-twinkle-b 7s ease-in-out infinite 1.4s;",
+    /* horizontal ray */
+    ".tmx-star::before {",
+    "  width: 520%; height: 1px;",
+    "  transform: translate(-50%,-50%);",
+    "  background: linear-gradient(90deg,",
+    "    transparent 0%, currentColor 50%, transparent 100%);",
     "}",
-
-    /* group C — 5 stars */
-    ".tmx-sg-c {",
-    "  background: rgba(255,255,255,0.88);",
-    "  box-shadow:",
-    "    21px 79px 0 0.5px rgba(255,255,255,0.90),",
-    "    69px 51px 0 1.0px rgba(255,255,255,0.74),",
-    "    37px 41px 0 0.5px rgba(255,235,160,0.82),",
-    "    86px 74px 0 0.5px rgba(255,255,255,0.80),",
-    "    11px 24px 0 1.0px rgba(255,235,160,0.70);",
-    "  animation: tmx-twinkle-c 5.5s ease-in-out infinite 2.8s;",
-    "}",
-
-    /* group D — 5 stars */
-    ".tmx-sg-d {",
-    "  background: rgba(255,255,255,0.80);",
-    "  box-shadow:",
-    "    49px 77px 0 1.0px rgba(255,255,255,0.84),",
-    "    88px 44px 0 0.5px rgba(255,255,255,0.72),",
-    "    31px 14px 0 0.5px rgba(255,235,160,0.80),",
-    "    66px 87px 0 0.5px rgba(255,255,255,0.68),",
-    "    78px 58px 0 1.0px rgba(255,235,160,0.76);",
-    "  animation: tmx-twinkle-d 8s ease-in-out infinite 4.2s;",
+    /* vertical ray */
+    ".tmx-star::after {",
+    "  width: 1px; height: 520%;",
+    "  transform: translate(-50%,-50%);",
+    "  background: linear-gradient(180deg,",
+    "    transparent 0%, currentColor 50%, transparent 100%);",
     "}",
 
     /* ── gold dust & streaks ── */
@@ -271,10 +282,10 @@
     /* streak A — thin diagonal slash, upper-left region */
     "#tmx-gold-a {",
     "  position: absolute;",
-    "  width: 7px;",
-    "  height: 44px;",
-    "  top: 8px;",
-    "  left: 18px;",
+    "  width: 8px;",
+    "  height: 53px;",
+    "  top: 10px;",
+    "  left: 22px;",
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
@@ -282,17 +293,17 @@
     "    rgba(220,170,50,0.28) 40%,",
     "    transparent           100%",
     "  );",
-    "  filter: blur(8px);",
+    "  filter: blur(10px);",
     "  animation: tmx-gold-drift-a 11s ease-in-out infinite 0.6s;",
     "}",
 
     /* streak B — wider slash, lower-right region */
     "#tmx-gold-b {",
     "  position: absolute;",
-    "  width: 8px;",
-    "  height: 36px;",
-    "  top: 44px;",
-    "  left: 52px;",
+    "  width: 10px;",
+    "  height: 43px;",
+    "  top: 53px;",
+    "  left: 62px;",
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
@@ -300,17 +311,17 @@
     "    rgba(220,165,45,0.22) 45%,",
     "    transparent           100%",
     "  );",
-    "  filter: blur(10px);",
+    "  filter: blur(12px);",
     "  animation: tmx-gold-drift-b 9s ease-in-out infinite 2.3s;",
     "}",
 
     /* dust C — soft shapeless gold bloom, center-left */
     "#tmx-gold-c {",
     "  position: absolute;",
-    "  width: 34px;",
-    "  height: 22px;",
-    "  top: 34px;",
-    "  left: 10px;",
+    "  width: 41px;",
+    "  height: 26px;",
+    "  top: 41px;",
+    "  left: 12px;",
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
@@ -318,8 +329,33 @@
     "    rgba(210,160,40,0.12) 55%,",
     "    transparent           100%",
     "  );",
-    "  filter: blur(13px);",
+    "  filter: blur(16px);",
     "  animation: tmx-gold-drift-c 13s ease-in-out infinite 4.8s;",
+    "}",
+
+    /* ── shooting star ── */
+    "@keyframes tmx-shoot-fly {",
+    "  0%   { opacity: 0;    transform: translateX(0);      }",
+    "  6%   { opacity: 0.95;                                }",
+    "  80%  { opacity: 0.75;                                }",
+    "  100% { opacity: 0;    transform: translateX(168px);  }",
+    "}",
+    "#tmx-shoot {",
+    "  position: absolute;",
+    "  width: 36px;",
+    "  height: 2px;",
+    "  border-radius: 0 1px 1px 0;",
+    "  pointer-events: none;",
+    "  opacity: 0;",
+    "  transform-origin: right center;",
+    "  background: linear-gradient(90deg,",
+    "    transparent                  0%,",
+    "    rgba(200,220,255,0.20)       30%,",
+    "    rgba(220,235,255,0.75)       70%,",
+    "    rgba(255,255,255,1.00)      100%",
+    "  );",
+    "  box-shadow: 3px 0 5px 1px rgba(200,220,255,0.80),",
+    "              6px 0 10px 2px rgba(180,200,255,0.35);",
     "}"
 
   ].join("\n");
@@ -333,10 +369,44 @@
   core.id = "tmx-core";
   root.appendChild(core);
 
-  ["a", "b", "c", "d"].forEach(function (id) {
-    var sg = document.createElement("div");
-    sg.className = "tmx-sg tmx-sg-" + id;
-    root.appendChild(sg);
+  var STARS = [
+    /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    drift,           ddur,   ddel   */
+    [  7,   17,   4, "#ffffff", "rgba(200,220,255,0.70)",   0.12, 1.00, "6.0s", "0.0s", "tmx-sdrift-1", "19s",  "0.0s" ],
+    [  5,   65,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.10, 0.95, "4.5s", "0.7s", "tmx-sdrift-2", "23s",  "2.1s" ],
+    [ 20,   96,   4, "#ffffff", "rgba(200,220,255,0.65)",   0.14, 1.00, "7.0s", "1.4s", "tmx-sdrift-3", "17s",  "4.5s" ],
+    [ 42,    6,   6, "#ffe896", "rgba(255,220,100,0.70)",   0.08, 0.92, "5.5s", "2.1s", "tmx-sdrift-4", "25s",  "1.3s" ],
+    [ 30,   50,   7, "#ffffff", "rgba(200,220,255,0.80)",   0.10, 1.00, "3.8s", "0.4s", "tmx-sdrift-5", "21s",  "6.0s" ],
+    [ 62,   89,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.5s", "2.9s", "tmx-sdrift-6", "15s",  "3.7s" ],
+    [ 76,   24,   5, "#ffffff", "rgba(200,220,255,0.68)",   0.10, 0.95, "4.2s", "1.8s", "tmx-sdrift-2", "22s",  "8.2s" ],
+    [ 68,  102,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.08, 0.88, "7.5s", "3.5s", "tmx-sdrift-3", "18s",  "0.8s" ],
+    [ 90,   55,   4, "#ffffff", "rgba(200,220,255,0.62)",   0.14, 1.00, "5.0s", "1.1s", "tmx-sdrift-1", "24s",  "5.5s" ],
+    [100,   11,   6, "#ffe896", "rgba(255,220,100,0.72)",   0.08, 0.92, "8.0s", "4.2s", "tmx-sdrift-5", "16s",  "2.9s" ],
+    [ 95,   82,   5, "#ffffff", "rgba(200,220,255,0.70)",   0.10, 0.96, "3.5s", "2.6s", "tmx-sdrift-4", "20s",  "7.1s" ],
+    [ 49,   38,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.0s", "3.2s", "tmx-sdrift-6", "25s",  "4.0s" ]
+  ];
+
+  STARS.forEach(function (s) {
+    var el = document.createElement("div");
+    el.className = "tmx-star";
+    var sz = s[2];
+    el.style.cssText = [
+      "top:"    + s[0] + "px",
+      "left:"   + s[1] + "px",
+      "width:"  + sz   + "px",
+      "height:" + sz   + "px",
+      "color:"  + s[3],
+      "background:radial-gradient(ellipse at 50% 50%," +
+        s[3] + " 0%," + s[4] + " 45%,transparent 100%)",
+      "box-shadow:0 0 " + (sz*1.2) + "px " + (sz*0.4) + "px " + s[4]
+    ].join(";");
+    el.style.setProperty("--sp-lo",   String(s[5]));
+    el.style.setProperty("--sp-hi",   String(s[6]));
+    el.style.setProperty("--sp-dur",  s[7]);
+    el.style.setProperty("--sp-del",  s[8]);
+    el.style.setProperty("--sd-name", s[9]);
+    el.style.setProperty("--sd-dur",  s[10]);
+    el.style.setProperty("--sd-del",  s[11]);
+    root.appendChild(el);
   });
 
   ["a", "b", "c"].forEach(function (id) {
@@ -352,4 +422,29 @@
   });
 
   document.body.appendChild(root);
+
+  /* ── shooting star ── */
+  var shoot = document.createElement("div");
+  shoot.id = "tmx-shoot";
+  root.appendChild(shoot);
+
+  function fireShoot() {
+    /* random angle 22-52 deg, start scattered across upper/left of container */
+    var angle = 22 + Math.random() * 30;
+    var top   = -12 + Math.random() * 72;
+    var left  = -36 + Math.random() * 48;
+
+    shoot.style.animation = "none";
+    shoot.offsetHeight;   /* force reflow to restart */
+    shoot.style.top    = top  + "px";
+    shoot.style.left   = left + "px";
+    shoot.style.rotate = angle + "deg";
+    shoot.style.animation = "tmx-shoot-fly " + (0.9 + Math.random() * 0.4) + "s ease-out forwards";
+
+    /* next shot: 8-14s from now */
+    setTimeout(fireShoot, 8000 + Math.random() * 6000);
+  }
+
+  /* first shot after a short random delay */
+  setTimeout(fireShoot, 2500 + Math.random() * 3500);
 }());
