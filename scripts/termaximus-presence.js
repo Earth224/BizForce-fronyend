@@ -636,33 +636,18 @@
 
   if (TMX_MODE === "shapeshift") {
     function shapeShift() {
-      /* pour into oval — CSS transition handles the gradual change */
+      /* pour into oval — 5s CSS transition handles the gradual change */
       root.style.setProperty("-webkit-mask-size", "100% 100%");
       root.style.setProperty("mask-size",         "100% 100%");
-      /* hold, then dissolve back to amorphous blob */
+      /* hold 12s (5s pour + 7s fully shaped), then dissolve back */
       setTimeout(function () {
         root.style.setProperty("-webkit-mask-size", "400% 400%");
         root.style.setProperty("mask-size",         "400% 400%");
-        /* rest before next shapeshift: 40-80s */
-        setTimeout(shapeShift, 40000 + Math.random() * 40000);
+        /* rest 3-7 minutes before next sacred morph */
+        setTimeout(shapeShift, 180000 + Math.random() * 240000);
       }, 12000);
     }
-    /* first shapeshift after 20-40s */
-    setTimeout(shapeShift, 20000 + Math.random() * 20000);
-
-  } else if (TMX_MODE === "shapeshift-test") {
-    /* fast loop for visual confirmation — pour in, hold 2s, dissolve, wait 2s, repeat */
-    function shapeShiftTest() {
-      root.style.setProperty("-webkit-mask-size", "100% 100%");
-      root.style.setProperty("mask-size",         "100% 100%");
-      /* transition (5s) + hold (2s) → dissolve */
-      setTimeout(function () {
-        root.style.setProperty("-webkit-mask-size", "400% 400%");
-        root.style.setProperty("mask-size",         "400% 400%");
-        /* transition (5s) + wait (2s) → repeat */
-        setTimeout(shapeShiftTest, 7000);
-      }, 7000);
-    }
-    shapeShiftTest();
+    /* first morph 2-4 minutes after load */
+    setTimeout(shapeShift, 120000 + Math.random() * 120000);
   }
 }());
