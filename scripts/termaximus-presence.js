@@ -155,23 +155,26 @@
     "  filter: blur(14px);",
     "}",
 
-    /* soul-color cycle: box-shadow halo drifts through dark mystical tones */
+    /* soul-color cycle: clip-path circle → filter:blur dissolves it into a
+       formless glow with no ring or halo; background-color is smoothly
+       interpolated by the browser between stops                           */
     "@keyframes tmx-soul-cycle {",
-    "  0%   { box-shadow: 0 0 42px 22px rgba(80,15,110,0.46);  }",
-    "  20%  { box-shadow: 0 0 42px 22px rgba(90,6,22,0.43);    }",
-    "  40%  { box-shadow: 0 0 42px 22px rgba(12,6,85,0.48);    }",
-    "  60%  { box-shadow: 0 0 42px 22px rgba(0,32,48,0.42);    }",
-    "  80%  { box-shadow: 0 0 42px 22px rgba(70,16,4,0.44);    }",
-    "  100% { box-shadow: 0 0 42px 22px rgba(80,15,110,0.46);  }",
+    "  0%   { background-color: rgba(80,15,110,0.62);  }",
+    "  20%  { background-color: rgba(90,6,22,0.58);    }",
+    "  40%  { background-color: rgba(12,6,85,0.65);    }",
+    "  60%  { background-color: rgba(0,32,48,0.55);    }",
+    "  80%  { background-color: rgba(70,16,4,0.60);    }",
+    "  100% { background-color: rgba(80,15,110,0.62);  }",
     "}",
     "#tmx-soul {",
     "  position: absolute;",
-    "  width: 67px;",
-    "  height: 67px;",
-    "  top: 22px;",
-    "  left: 22px;",
-    "  border-radius: 50%;",
+    "  width: 90px;",
+    "  height: 90px;",
+    "  top: 10px;",
+    "  left: 10px;",
     "  pointer-events: none;",
+    "  clip-path: circle(35px at 50% 50%);",
+    "  filter: blur(22px);",
     "  animation: tmx-soul-cycle 80s ease-in-out infinite;",
     "}",
 
