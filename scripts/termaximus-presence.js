@@ -427,7 +427,8 @@
     "  transform: translateX(-50%);",
     "  pointer-events: none;",
     "  white-space: nowrap;",
-    "  font-size: 9px;",
+    "  font-size: 11px;",
+    "  font-weight: 600;",
     "  font-family: Georgia, 'Palatino Linotype', serif;",
     "  letter-spacing: 0.18em;",
     "  text-transform: uppercase;",
@@ -904,7 +905,7 @@
   function surfaceWhisper() {
     /* drift slightly each time so it never feels like a fixed label */
     whisper.style.top = (44 + Math.round(Math.random() * 14)) + "px";
-    whisper.style.opacity = "0.19";
+    whisper.style.opacity = "0.58";
     /* hold briefly then sink back */
     setTimeout(function () { whisper.style.opacity = "0"; }, 5000);
     /* next surfacing: 55-120s from now */
