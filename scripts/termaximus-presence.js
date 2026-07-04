@@ -705,6 +705,7 @@
 
   var _chatOpen  = false;
   var _firstOpen = true;
+  var _sending   = false;
 
   function addMsg(role, text) {
     var div = document.createElement("div");
@@ -740,10 +741,45 @@
 
   function sendMsg() {
     var txt = chatInput.value.trim();
-    if (!txt) return;
+    if (!txt || _sending) return;
+    _sending = true;
+
     addMsg("user", txt);
-    chatInput.value = "";
-    chatInput.focus();
+    chatInput.value        = "";
+    chatInput.style.opacity = "0.5";
+    chatSend.style.opacity  = "0.5";
+
+    var thinking = document.createElement("div");
+    thinking.className   = "tmx-msg tmx-msg-oracle";
+    thinking.textContent = "Termaximus contemplates your words…";
+    chatMsgs.appendChild(thinking);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+    var token = localStorage.getItem("bf_token") || "";
+
+    fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ message: txt })
+    })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+    .then(function (data) {
+      thinking.remove();
+      addMsg("oracle", (data && data.reply) ? data.reply : "The channel fell silent… speak once more.");
+    })
+    .catch(function () {
+      thinking.remove();
+      addMsg("oracle", "The abyss does not answer in this moment… cast your question again.");
+    })
+    .then(function () {
+      _sending = false;
+      chatInput.style.opacity = "";
+      chatSend.style.opacity  = "";
+      chatInput.focus();
+    });
   }
 
   chatSend.addEventListener("click", function (e) {
