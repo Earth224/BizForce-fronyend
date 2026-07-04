@@ -3,6 +3,28 @@
 
   if (document.getElementById("tmx-presence-root")) return;
 
+  /* ── Tahuti bust mask: ibis-headed silhouette for shapeshift mode ──
+     Right-facing ibis head (long sickle beak curving down), round cranium,
+     human shoulders — bust framed from chest up.
+     feGaussianBlur keeps edges feathered so the mist pours in softly.      */
+  var _bustSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">'
+    + '<defs><filter id="sf" x="-20%" y="-20%" width="140%" height="140%">'
+    + '<feGaussianBlur stdDeviation="6"/></filter></defs>'
+    + '<path filter="url(#sf)" fill="black" d="'
+    + 'M 8,104 L 8,78 '
+    + 'C 16,74 30,66 40,56 '
+    + 'C 40,50 40,40 40,30 '
+    + 'C 38,16 46,4 58,6 '
+    + 'C 66,8 70,18 70,28 '
+    + 'C 78,30 98,52 100,72 '
+    + 'Q 100,78 94,76 '
+    + 'C 92,72 78,54 70,36 '
+    + 'C 66,42 64,50 64,54 '
+    + 'C 66,60 70,70 72,78 '
+    + 'C 84,74 96,74 98,78 '
+    + 'L 98,104 Z"/></svg>';
+  var _bustMask = "url('data:image/svg+xml," + encodeURIComponent(_bustSVG) + "')";
+
   /* ── Styles ── */
   var style = document.createElement("style");
   style.textContent = [
@@ -84,18 +106,8 @@
     "  width: 110px;",
     "  height: 110px;",
     "  overflow: visible;",
-    "  -webkit-mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
-    "    black 0%, black 38%,",
-    "    rgba(0,0,0,0.88) 55%,",
-    "    rgba(0,0,0,0.55) 72%,",
-    "    rgba(0,0,0,0.15) 88%,",
-    "    transparent 100%);",
-    "  mask-image: radial-gradient(ellipse 44px 55px at 50% 50%,",
-    "    black 0%, black 38%,",
-    "    rgba(0,0,0,0.88) 55%,",
-    "    rgba(0,0,0,0.55) 72%,",
-    "    rgba(0,0,0,0.15) 88%,",
-    "    transparent 100%);",
+    "  -webkit-mask-image: " + _bustMask + ";",
+    "  mask-image: " + _bustMask + ";",
     "  -webkit-mask-size: 400% 400%;",
     "  mask-size: 400% 400%;",
     "  -webkit-mask-position: center;",
