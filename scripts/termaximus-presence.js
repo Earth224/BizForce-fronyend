@@ -649,7 +649,7 @@
   chat.id = "tmx-chat";
   chat.innerHTML =
     '<div id="tmx-chat-header">' +
-      '<span id="tmx-chat-title">✦ Termaximus</span>' +
+      '<span id="tmx-chat-title">Ask Termaximus</span>' +
       '<button id="tmx-chat-close" aria-label="Close">&#x2715;</button>' +
     '</div>' +
     '<div id="tmx-chat-msgs"></div>' +
