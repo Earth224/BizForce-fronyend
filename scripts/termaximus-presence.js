@@ -149,7 +149,7 @@
     ".tmx-blob {",
     "  position: absolute;",
     "  pointer-events: auto;",
-    "  cursor: default;",
+    "  cursor: pointer;",
     "}",
 
     /* blob A — near-black indigo / dark void */
@@ -512,6 +512,7 @@
   });
 
   document.body.appendChild(root);
+  root.addEventListener("click", function () { window.location.href = "/oracle.html"; });
 
   /* ── shooting star ── */
   var shoot = document.createElement("div");
