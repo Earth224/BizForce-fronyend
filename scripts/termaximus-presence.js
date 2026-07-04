@@ -493,6 +493,17 @@
     "  text-transform: uppercase;",
     "  color: rgba(200,185,255,0.82);",
     "}",
+    "#tmx-chat-title-name {",
+    "  transition: color 0.6s ease, text-shadow 0.6s ease;",
+    "}",
+    "@keyframes tmx-title-glow {",
+    "  0%,100% { text-shadow: 0 0 6px rgba(180,130,255,0.75), 0 0 14px rgba(150,90,255,0.55), 0 0 24px rgba(130,70,255,0.35); }",
+    "  50%      { text-shadow: 0 0 10px rgba(205,160,255,1), 0 0 22px rgba(175,115,255,0.85), 0 0 38px rgba(150,90,255,0.6); }",
+    "}",
+    "#tmx-chat-title-name.tmx-thinking {",
+    "  color: rgba(228,210,255,0.98);",
+    "  animation: tmx-title-glow 1.6s ease-in-out infinite;",
+    "}",
     "#tmx-chat-close {",
     "  background: none;",
     "  border: none;",
@@ -682,7 +693,7 @@
   chat.id = "tmx-chat";
   chat.innerHTML =
     '<div id="tmx-chat-header">' +
-      '<span id="tmx-chat-title">Ask Termaximus</span>' +
+      '<span id="tmx-chat-title">Ask <span id="tmx-chat-title-name">Termaximus</span></span>' +
       '<button id="tmx-chat-close" aria-label="Close">&#x2715;</button>' +
     '</div>' +
     '<div id="tmx-chat-msgs"></div>' +
@@ -700,6 +711,7 @@
   var chatInput = document.getElementById("tmx-chat-input");
   var chatSend  = document.getElementById("tmx-chat-send");
   var chatClose = document.getElementById("tmx-chat-close");
+  var chatTitleName = document.getElementById("tmx-chat-title-name");
 
   var _chatOpen     = false;
   var _firstOpen    = true;
@@ -897,6 +909,8 @@
     chatMsgs.appendChild(thinking);
     chatMsgs.scrollTop = chatMsgs.scrollHeight;
 
+    chatTitleName.classList.add("tmx-thinking");
+
     var token = localStorage.getItem("bf_token") || "";
 
     fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
@@ -918,6 +932,7 @@
     })
     .then(function () {
       _sending = false;
+      chatTitleName.classList.remove("tmx-thinking");
       chatInput.style.opacity = "";
       chatSend.style.opacity  = "";
       chatInput.focus();
