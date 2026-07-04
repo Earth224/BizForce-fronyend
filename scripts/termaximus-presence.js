@@ -635,6 +635,37 @@
   /* first whisper after 40-70s */
   setTimeout(surfaceWhisper, 40000 + Math.random() * 30000);
 
+  /* ── console preview trigger: tmxForceMorph() ──
+     fires one immediate morph sequence regardless of mode or timer */
+  window.tmxForceMorph = function () {
+    root.style.setProperty("-webkit-mask-image",    _bustMask);
+    root.style.setProperty("mask-image",            _bustMask);
+    root.style.setProperty("-webkit-mask-size",     "400% 400%");
+    root.style.setProperty("mask-size",             "400% 400%");
+    root.style.setProperty("-webkit-mask-position", "center");
+    root.style.setProperty("mask-position",         "center");
+    root.style.setProperty("-webkit-mask-repeat",   "no-repeat");
+    root.style.setProperty("mask-repeat",           "no-repeat");
+    requestAnimationFrame(function () {
+      root.style.setProperty("-webkit-mask-size", "100% 100%");
+      root.style.setProperty("mask-size",         "100% 100%");
+    });
+    setTimeout(function () {
+      root.style.setProperty("-webkit-mask-size", "400% 400%");
+      root.style.setProperty("mask-size",         "400% 400%");
+      setTimeout(function () {
+        root.style.removeProperty("-webkit-mask-image");
+        root.style.removeProperty("mask-image");
+        root.style.removeProperty("-webkit-mask-size");
+        root.style.removeProperty("mask-size");
+        root.style.removeProperty("-webkit-mask-position");
+        root.style.removeProperty("mask-position");
+        root.style.removeProperty("-webkit-mask-repeat");
+        root.style.removeProperty("mask-repeat");
+      }, 5200);
+    }, 12000);
+  };
+
   /* ── mode: "amorphous" (default) | "shapeshift" ── */
   /* stored in localStorage key "tmx_mode"            */
   var TMX_MODE = localStorage.getItem("tmx_mode") || "amorphous";
