@@ -462,10 +462,10 @@
     "  flex-direction: column;",
     "  border-radius: 16px;",
     "  background:",
-    "    radial-gradient(ellipse at 50% 50%, rgba(48,12,150,0.30) 0%, transparent 58%),",
-    "    radial-gradient(ellipse at 50% 50%, rgba(72,8,82,0.26)   0%, transparent 54%),",
-    "    radial-gradient(ellipse at 50% 50%, rgba(10,5,82,0.32)   0%, transparent 64%),",
-    "    rgba(4,2,18,0.96);",
+    "    radial-gradient(ellipse at 50% 50%, rgba(22,5,65,0.14)  0%, transparent 58%),",
+    "    radial-gradient(ellipse at 50% 50%, rgba(35,3,40,0.10)  0%, transparent 54%),",
+    "    radial-gradient(ellipse at 50% 50%, rgba(4,2,48,0.16)   0%, transparent 64%),",
+    "    rgba(2,1,10,0.98);",
     "  background-size: 200% 200%, 200% 200%, 200% 200%;",
     "  border: 1px solid rgba(100,70,200,0.35);",
     "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 16px rgba(90,40,200,0.20), 0 0 36px rgba(70,20,180,0.10);",
@@ -475,9 +475,7 @@
     "  overflow: hidden;",
     "  opacity: 0;",
     "  pointer-events: none;",
-    "  transform: scale(0.92) translateY(8px);",
     "  transform-origin: bottom right;",
-    "  transition: opacity 0.25s ease, transform 0.25s ease;",
     "}",
     "#tmx-chat-header, #tmx-chat-msgs, #tmx-chat-foot { position: relative; z-index: 1; }",
     "#tmx-chat-header {",
@@ -703,9 +701,78 @@
   var chatSend  = document.getElementById("tmx-chat-send");
   var chatClose = document.getElementById("tmx-chat-close");
 
-  var _chatOpen  = false;
-  var _firstOpen = true;
-  var _sending   = false;
+  var _chatOpen     = false;
+  var _firstOpen    = true;
+  var _sending      = false;
+  var _currentStyle = 0;
+  var _closeToken   = 0;
+
+  /* 10 open/close transition styles — one picked at random each open */
+  var TMX_STYLES = [
+    /* 0 — scale bloom */
+    { os: { opacity:"0", transform:"scale(0.88) translateY(6px)" },
+      oe: { opacity:"1", transform:"scale(1) translateY(0)" },
+      ce: { opacity:"0", transform:"scale(0.92) translateY(8px)" },
+      tr: "opacity 0.38s ease, transform 0.38s cubic-bezier(0.34,1.56,0.64,1)", dur: 420 },
+    /* 1 — rise from below */
+    { os: { opacity:"0", transform:"translateY(28px)" },
+      oe: { opacity:"1", transform:"translateY(0)" },
+      ce: { opacity:"0", transform:"translateY(24px)" },
+      tr: "opacity 0.42s ease, transform 0.42s cubic-bezier(0.22,1.2,0.36,1)", dur: 460 },
+    /* 2 — iris portal */
+    { os: { clipPath:"circle(0% at 100% 100%)", opacity:"1" },
+      oe: { clipPath:"circle(150% at 100% 100%)", opacity:"1" },
+      ce: { clipPath:"circle(0% at 100% 100%)", opacity:"1" },
+      tr: "clip-path 0.52s cubic-bezier(0.22,1,0.36,1)", dur: 560 },
+    /* 3 — slide from right */
+    { os: { opacity:"0", transform:"translateX(38px)" },
+      oe: { opacity:"1", transform:"translateX(0)" },
+      ce: { opacity:"0", transform:"translateX(30px)" },
+      tr: "opacity 0.36s ease, transform 0.36s cubic-bezier(0.22,1,0.36,1)", dur: 400 },
+    /* 4 — mist dissolve */
+    { os: { opacity:"0", transform:"scale(1.05)", filter:"blur(14px)" },
+      oe: { opacity:"1", transform:"scale(1)",    filter:"blur(0px)" },
+      ce: { opacity:"0", transform:"scale(1.04)", filter:"blur(12px)" },
+      tr: "opacity 0.5s ease, transform 0.5s ease, filter 0.5s ease", dur: 540 },
+    /* 5 — unfold from corner */
+    { os: { opacity:"0", transform:"scale(0.04)" },
+      oe: { opacity:"1", transform:"scale(1)" },
+      ce: { opacity:"0", transform:"scale(0.05)" },
+      tr: "opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.4,0.64,1)", dur: 440 },
+    /* 6 — shimmer reveal */
+    { os: { opacity:"0", transform:"scale(0.96)", filter:"brightness(4) saturate(0.2)" },
+      oe: { opacity:"1", transform:"scale(1)",    filter:"brightness(1) saturate(1)" },
+      ce: { opacity:"0", transform:"scale(1.04)", filter:"brightness(2.5)" },
+      tr: "opacity 0.45s ease, transform 0.45s ease, filter 0.45s ease", dur: 480 },
+    /* 7 — cosmic float down */
+    { os: { opacity:"0", transform:"translateY(-24px) rotate(-1.5deg)" },
+      oe: { opacity:"1", transform:"translateY(0) rotate(0deg)" },
+      ce: { opacity:"0", transform:"translateY(-18px) rotate(1deg)" },
+      tr: "opacity 0.4s ease, transform 0.4s cubic-bezier(0.22,1,0.36,1)", dur: 440 },
+    /* 8 — void collapse in */
+    { os: { opacity:"0", transform:"scale(1.14)", filter:"blur(10px)" },
+      oe: { opacity:"1", transform:"scale(1)",    filter:"blur(0px)" },
+      ce: { opacity:"0", transform:"scale(1.12)", filter:"blur(8px)" },
+      tr: "opacity 0.48s ease, transform 0.48s cubic-bezier(0.22,1,0.36,1), filter 0.48s ease", dur: 520 },
+    /* 9 — glitch assemble (JS-driven, see _openGlitch/_closeGlitch) */
+    { os:{}, oe:{}, ce:{}, tr:"", dur: 310 }
+  ];
+
+  function _applyS(obj) {
+    /* apply clipPath/filter before opacity to prevent single-frame flash */
+    if (obj.clipPath  !== undefined) chat.style.clipPath  = obj.clipPath;
+    if (obj.filter    !== undefined) chat.style.filter    = obj.filter;
+    if (obj.transform !== undefined) chat.style.transform = obj.transform;
+    if (obj.opacity   !== undefined) chat.style.opacity   = obj.opacity;
+  }
+
+  function _clearFX() {
+    chat.style.transition = "none";
+    chat.style.opacity    = "0";
+    chat.style.transform  = "";
+    chat.style.clipPath   = "";
+    chat.style.filter     = "";
+  }
 
   function addMsg(role, text) {
     var div = document.createElement("div");
@@ -717,21 +784,96 @@
 
   function openChat() {
     _chatOpen = true;
-    chat.style.opacity       = "1";
+    _closeToken++;
+    _currentStyle = Math.floor(Math.random() * 10);
     chat.style.pointerEvents = "auto";
-    chat.style.transform     = "scale(1) translateY(0)";
+
+    if (_currentStyle === 9) { _openGlitch(); return; }
+
+    var s = TMX_STYLES[_currentStyle];
+    chat.style.transition = "none";
+    _applyS(s.os);
+    chat.offsetHeight;
+    chat.style.transition = s.tr;
+    _applyS(s.oe);
+
     if (_firstOpen) {
       _firstOpen = false;
       addMsg("oracle", "The Oracle stirs… speak your question into the void.");
     }
-    setTimeout(function () { chatInput.focus(); }, 260);
+    setTimeout(function () { chatInput.focus(); }, Math.max(260, s.dur));
   }
 
   function closeChat() {
     _chatOpen = false;
-    chat.style.opacity       = "0";
     chat.style.pointerEvents = "none";
-    chat.style.transform     = "scale(0.92) translateY(8px)";
+    var token = ++_closeToken;
+
+    if (_currentStyle === 9) { _closeGlitch(token); return; }
+
+    var s = TMX_STYLES[_currentStyle];
+    chat.style.transition = s.tr;
+    _applyS(s.ce);
+
+    setTimeout(function () {
+      if (token !== _closeToken) return;
+      _clearFX();
+    }, s.dur + 60);
+  }
+
+  function _openGlitch() {
+    var tok = _closeToken;
+    chat.style.transition = "none";
+    chat.style.opacity    = "0";
+    chat.style.transform  = "translateX(-10px) skewX(6deg)";
+    chat.style.filter     = "brightness(2.5)";
+    chat.offsetHeight;
+    setTimeout(function () {
+      if (tok !== _closeToken) return;
+      chat.style.opacity   = "0.65";
+      chat.style.transform = "translateX(7px) skewX(-4deg)";
+      chat.style.filter    = "brightness(1.8)";
+      setTimeout(function () {
+        if (tok !== _closeToken) return;
+        chat.style.opacity   = "0.88";
+        chat.style.transform = "translateX(-3px) skewX(2deg)";
+        chat.style.filter    = "brightness(1.3)";
+        setTimeout(function () {
+          if (tok !== _closeToken) return;
+          chat.style.transition = "opacity 0.12s ease, transform 0.12s ease, filter 0.12s ease";
+          chat.style.opacity   = "1";
+          chat.style.transform = "translateX(0) skewX(0)";
+          chat.style.filter    = "brightness(1)";
+          if (_firstOpen) {
+            _firstOpen = false;
+            addMsg("oracle", "The Oracle stirs… speak your question into the void.");
+          }
+          setTimeout(function () { chatInput.focus(); }, 160);
+        }, 60);
+      }, 70);
+    }, 80);
+  }
+
+  function _closeGlitch(token) {
+    chat.style.transition = "none";
+    chat.style.transform  = "translateX(5px) skewX(-3deg)";
+    chat.style.filter     = "brightness(1.8)";
+    setTimeout(function () {
+      if (token !== _closeToken) return;
+      chat.style.opacity   = "0.55";
+      chat.style.transform = "translateX(-8px) skewX(4deg)";
+      chat.style.filter    = "brightness(2.2)";
+      setTimeout(function () {
+        if (token !== _closeToken) return;
+        chat.style.opacity   = "0";
+        chat.style.transform = "translateX(12px)";
+        chat.style.filter    = "brightness(1)";
+        setTimeout(function () {
+          if (token !== _closeToken) return;
+          _clearFX();
+        }, 80);
+      }, 80);
+    }, 80);
   }
 
   chatClose.addEventListener("click", function (e) {
