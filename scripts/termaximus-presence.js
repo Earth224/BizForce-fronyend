@@ -3,26 +3,65 @@
 
   if (document.getElementById("tmx-presence-root")) return;
 
-  /* ── Tahuti bust mask: ibis-headed silhouette for shapeshift mode ──
-     Right-facing ibis head (long sickle beak curving down), round cranium,
-     human shoulders — bust framed from chest up.
-     feGaussianBlur keeps edges feathered so the mist pours in softly.      */
+  /* ── Tahuti kneeling silhouette mask ──
+     Classic Egyptian right-facing side-profile: ibis head with long drooping
+     beak, sun-disk crown, kneeling body, front arm extended holding a scroll,
+     back arm reaching to an ankh-topped staff on the left.
+     Single solid filled path; feGaussianBlur keeps edges soft so the mist
+     bleeds gently at the form boundary.                                      */
   var _bustSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">'
     + '<defs><filter id="sf" x="-20%" y="-20%" width="140%" height="140%">'
     + '<feGaussianBlur stdDeviation="6"/></filter></defs>'
     + '<path filter="url(#sf)" fill="black" d="'
-    + 'M 8,104 L 8,78 '
-    + 'C 16,74 30,66 40,56 '
-    + 'C 40,50 40,40 40,30 '
-    + 'C 38,16 46,4 58,6 '
-    + 'C 66,8 70,18 70,28 '
-    + 'C 78,30 98,52 100,72 '
-    + 'Q 100,78 94,76 '
-    + 'C 92,72 78,54 70,36 '
-    + 'C 66,42 64,50 64,54 '
-    + 'C 66,60 70,70 72,78 '
-    + 'C 84,74 96,74 98,78 '
-    + 'L 98,104 Z"/></svg>';
+    /* ankh loop top → right side of loop → crossbar right → shaft right → back arm top */
+    + 'M 20,4 '
+    + 'Q 28,4 29,16 '
+    + 'Q 30,22 27,24 '
+    + 'L 32,24 32,26 25,26 25,40 '
+    /* back arm crosses to back shoulder */
+    + 'C 28,40 36,44 42,44 '
+    /* back of neck rising toward crown */
+    + 'C 44,42 46,38 46,32 '
+    /* back of ibis head sweeping toward sun-disk */
+    + 'C 44,22 48,16 54,14 '
+    /* sun-disk crown: rises, arcs over top, descends front */
+    + 'C 52,10 52,4 56,2 '
+    + 'C 62,2 66,8 64,16 '
+    /* front of head descending to beak root */
+    + 'C 64,20 64,24 66,28 '
+    /* ibis beak: long sickle sweeping right and down */
+    + 'C 76,32 104,56 104,66 '
+    /* beak tip */
+    + 'Q 104,72 98,70 '
+    /* beak underside returning */
+    + 'C 92,66 78,50 68,36 '
+    /* chin / throat / front shoulder */
+    + 'C 64,42 62,50 62,54 '
+    /* front arm extending forward */
+    + 'L 80,52 '
+    /* scroll block top and right */
+    + 'C 86,50 94,50 96,54 '
+    /* scroll bottom-right and return */
+    + 'C 96,60 90,62 80,60 '
+    /* arm returns; front of torso going down */
+    + 'L 60,62 58,78 '
+    /* kneeling thigh extending right */
+    + 'C 68,80 84,78 92,82 '
+    /* calf going down */
+    + 'L 94,100 '
+    /* feet and ground line sweeping left */
+    + 'C 92,104 88,104 26,104 '
+    /* back of lower body and torso rising */
+    + 'L 24,80 22,52 '
+    /* underside of back arm curving to staff */
+    + 'C 20,50 17,46 17,40 '
+    /* left shaft wall up, crossbar left, back to shaft, up to loop base */
+    + 'L 17,26 11,26 11,24 17,24 17,14 '
+    /* left side of ankh loop */
+    + 'Q 14,8 14,4 '
+    /* back to top */
+    + 'Q 17,2 20,4 '
+    + 'Z"/></svg>';
   var _bustMask = "url('data:image/svg+xml," + encodeURIComponent(_bustSVG) + "')";
 
   /* ── Styles ── */
