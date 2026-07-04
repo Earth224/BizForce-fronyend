@@ -733,6 +733,7 @@
   });
 
   document.body.appendChild(root);
+  _tmxRestorePosition();
 
   /* ── chat panel back-glow DOM ── */
   var chatGlowWrap = document.createElement("div");
@@ -1007,18 +1008,80 @@
     }
   });
 
-  /* click the mist to toggle chat; ignore pointer drags */
+  /* ── drag the whole presence anywhere on screen; a quick tap still opens the chat ── */
+  var TMX_POS_KEY       = "tmx_presence_pos";
+  var TMX_DRAG_THRESHOLD = 6;
   var _tmxPressX = 0, _tmxPressY = 0;
+  var _tmxDragging   = false;
+  var _tmxDragMoved  = false;
+  var _tmxStartLeft  = 0;
+  var _tmxStartTop   = 0;
+
+  function _tmxClampPosition(left, top) {
+    var maxLeft = Math.max(window.innerWidth  - root.offsetWidth,  0);
+    var maxTop  = Math.max(window.innerHeight - root.offsetHeight, 0);
+    return {
+      left: Math.min(Math.max(left, 0), maxLeft),
+      top:  Math.min(Math.max(top,  0), maxTop)
+    };
+  }
+
+  function _tmxRestorePosition() {
+    var raw;
+    try { raw = localStorage.getItem(TMX_POS_KEY); } catch (e) { return; }
+    if (!raw) return;
+    var pos;
+    try { pos = JSON.parse(raw); } catch (e) { return; }
+    if (typeof pos.left !== "number" || typeof pos.top !== "number") return;
+    var c = _tmxClampPosition(pos.left, pos.top);
+    root.style.left   = c.left + "px";
+    root.style.top    = c.top  + "px";
+    root.style.right  = "auto";
+    root.style.bottom = "auto";
+  }
 
   root.addEventListener("pointerdown", function (e) {
-    _tmxPressX = e.clientX;
-    _tmxPressY = e.clientY;
+    _tmxPressX    = e.clientX;
+    _tmxPressY    = e.clientY;
+    _tmxDragMoved = false;
+    _tmxDragging  = true;
+    var rect = root.getBoundingClientRect();
+    _tmxStartLeft = rect.left;
+    _tmxStartTop  = rect.top;
+    if (e.target.setPointerCapture) {
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+    }
   });
 
-  root.addEventListener("click", function (e) {
+  root.addEventListener("pointermove", function (e) {
+    if (!_tmxDragging) return;
     var dx = e.clientX - _tmxPressX;
     var dy = e.clientY - _tmxPressY;
-    if (Math.sqrt(dx * dx + dy * dy) > 6) return;
+    if (!_tmxDragMoved && Math.sqrt(dx * dx + dy * dy) < TMX_DRAG_THRESHOLD) return;
+    _tmxDragMoved = true;
+    var c = _tmxClampPosition(_tmxStartLeft + dx, _tmxStartTop + dy);
+    root.style.left   = c.left + "px";
+    root.style.top    = c.top  + "px";
+    root.style.right  = "auto";
+    root.style.bottom = "auto";
+  });
+
+  function _tmxEndDrag() {
+    if (!_tmxDragging) return;
+    _tmxDragging = false;
+    if (_tmxDragMoved) {
+      var rect = root.getBoundingClientRect();
+      try {
+        localStorage.setItem(TMX_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+      } catch (err) {}
+    }
+  }
+
+  root.addEventListener("pointerup", _tmxEndDrag);
+  root.addEventListener("pointercancel", _tmxEndDrag);
+
+  root.addEventListener("click", function (e) {
+    if (_tmxDragMoved) return;
     if (_chatOpen) { closeChat(); } else { openChat(); }
   });
 
