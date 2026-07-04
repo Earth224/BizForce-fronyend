@@ -436,6 +436,137 @@
     "  transition: opacity 3s ease-in-out;",
     "  -webkit-user-select: none;",
     "  user-select: none;",
+    "}",
+
+    /* ── chat panel ── */
+    "#tmx-chat {",
+    "  position: fixed;",
+    "  bottom: 148px;",
+    "  right: 8px;",
+    "  width: min(288px, calc(100vw - 16px));",
+    "  height: 340px;",
+    "  z-index: 2147483647;",
+    "  display: flex;",
+    "  flex-direction: column;",
+    "  border-radius: 16px;",
+    "  background: rgba(6,4,20,0.94);",
+    "  border: 1px solid rgba(100,70,200,0.35);",
+    "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 60px rgba(60,10,160,0.18);",
+    "  backdrop-filter: blur(24px);",
+    "  -webkit-backdrop-filter: blur(24px);",
+    "  overflow: hidden;",
+    "  opacity: 0;",
+    "  pointer-events: none;",
+    "  transform: scale(0.92) translateY(8px);",
+    "  transform-origin: bottom right;",
+    "  transition: opacity 0.25s ease, transform 0.25s ease;",
+    "}",
+    "#tmx-chat-header {",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: space-between;",
+    "  padding: 12px 16px 10px;",
+    "  border-bottom: 1px solid rgba(100,70,200,0.18);",
+    "  flex-shrink: 0;",
+    "}",
+    "#tmx-chat-title {",
+    "  font-family: Georgia, 'Palatino Linotype', serif;",
+    "  font-size: 11px;",
+    "  letter-spacing: 0.22em;",
+    "  text-transform: uppercase;",
+    "  color: rgba(200,185,255,0.82);",
+    "}",
+    "#tmx-chat-close {",
+    "  background: none;",
+    "  border: none;",
+    "  color: rgba(160,140,220,0.55);",
+    "  font-size: 12px;",
+    "  cursor: pointer;",
+    "  padding: 2px 6px;",
+    "  line-height: 1;",
+    "  font-family: inherit;",
+    "  transition: color 0.15s;",
+    "}",
+    "#tmx-chat-close:hover { color: rgba(200,180,255,0.9); }",
+    "#tmx-chat-msgs {",
+    "  flex: 1;",
+    "  overflow-y: auto;",
+    "  padding: 14px 14px 8px;",
+    "  display: flex;",
+    "  flex-direction: column;",
+    "  gap: 10px;",
+    "  scrollbar-width: thin;",
+    "  scrollbar-color: rgba(100,70,200,0.3) transparent;",
+    "}",
+    "#tmx-chat-msgs::-webkit-scrollbar { width: 3px; }",
+    "#tmx-chat-msgs::-webkit-scrollbar-thumb {",
+    "  background: rgba(100,70,200,0.35);",
+    "  border-radius: 2px;",
+    "}",
+    ".tmx-msg {",
+    "  max-width: 88%;",
+    "  font-family: Georgia, 'Palatino Linotype', serif;",
+    "  font-size: 12px;",
+    "  line-height: 1.6;",
+    "  padding: 8px 12px;",
+    "  border-radius: 10px;",
+    "  word-break: break-word;",
+    "}",
+    ".tmx-msg-user {",
+    "  align-self: flex-end;",
+    "  background: rgba(80,40,180,0.38);",
+    "  border: 1px solid rgba(120,80,220,0.3);",
+    "  color: rgba(220,210,255,0.92);",
+    "}",
+    ".tmx-msg-oracle {",
+    "  align-self: flex-start;",
+    "  background: rgba(20,10,50,0.6);",
+    "  border: 1px solid rgba(80,60,160,0.22);",
+    "  color: rgba(190,175,240,0.82);",
+    "  font-style: italic;",
+    "}",
+    "#tmx-chat-foot {",
+    "  display: flex;",
+    "  align-items: center;",
+    "  gap: 8px;",
+    "  padding: 10px 14px 12px;",
+    "  border-top: 1px solid rgba(100,70,200,0.18);",
+    "  flex-shrink: 0;",
+    "}",
+    "#tmx-chat-input {",
+    "  flex: 1;",
+    "  background: rgba(255,255,255,0.05);",
+    "  border: 1px solid rgba(100,70,200,0.28);",
+    "  border-radius: 8px;",
+    "  padding: 7px 11px;",
+    "  color: rgba(220,210,255,0.9);",
+    "  font-family: Georgia, 'Palatino Linotype', serif;",
+    "  font-size: 12px;",
+    "  outline: none;",
+    "  transition: border-color 0.2s;",
+    "}",
+    "#tmx-chat-input::placeholder { color: rgba(140,120,200,0.45); font-style: italic; }",
+    "#tmx-chat-input:focus { border-color: rgba(140,100,240,0.55); }",
+    "#tmx-chat-send {",
+    "  width: 30px;",
+    "  height: 30px;",
+    "  border-radius: 8px;",
+    "  border: 1px solid rgba(120,80,220,0.4);",
+    "  background: rgba(80,40,180,0.32);",
+    "  color: rgba(200,180,255,0.8);",
+    "  font-size: 14px;",
+    "  cursor: pointer;",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  flex-shrink: 0;",
+    "  transition: background 0.15s, border-color 0.15s;",
+    "  font-family: inherit;",
+    "  line-height: 1;",
+    "}",
+    "#tmx-chat-send:hover {",
+    "  background: rgba(100,55,220,0.5);",
+    "  border-color: rgba(150,110,255,0.55);",
     "}"
 
   ].join("\n");
@@ -512,7 +643,96 @@
   });
 
   document.body.appendChild(root);
-  root.addEventListener("click", function () { window.location.href = "/oracle.html"; });
+
+  /* ── chat panel DOM ── */
+  var chat = document.createElement("div");
+  chat.id = "tmx-chat";
+  chat.innerHTML =
+    '<div id="tmx-chat-header">' +
+      '<span id="tmx-chat-title">✦ Termaximus</span>' +
+      '<button id="tmx-chat-close" aria-label="Close">&#x2715;</button>' +
+    '</div>' +
+    '<div id="tmx-chat-msgs"></div>' +
+    '<div id="tmx-chat-foot">' +
+      '<input id="tmx-chat-input" type="text" placeholder="Ask the Oracle…" autocomplete="off" />' +
+      '<button id="tmx-chat-send" aria-label="Send">&#x2191;</button>' +
+    '</div>';
+  document.body.appendChild(chat);
+
+  var chatMsgs  = document.getElementById("tmx-chat-msgs");
+  var chatInput = document.getElementById("tmx-chat-input");
+  var chatSend  = document.getElementById("tmx-chat-send");
+  var chatClose = document.getElementById("tmx-chat-close");
+
+  var _chatOpen  = false;
+  var _firstOpen = true;
+
+  function addMsg(role, text) {
+    var div = document.createElement("div");
+    div.className = "tmx-msg tmx-msg-" + role;
+    div.textContent = text;
+    chatMsgs.appendChild(div);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  }
+
+  function openChat() {
+    _chatOpen = true;
+    chat.style.opacity       = "1";
+    chat.style.pointerEvents = "auto";
+    chat.style.transform     = "scale(1) translateY(0)";
+    if (_firstOpen) {
+      _firstOpen = false;
+      addMsg("oracle", "The Oracle stirs… speak your question into the void.");
+    }
+    setTimeout(function () { chatInput.focus(); }, 260);
+  }
+
+  function closeChat() {
+    _chatOpen = false;
+    chat.style.opacity       = "0";
+    chat.style.pointerEvents = "none";
+    chat.style.transform     = "scale(0.92) translateY(8px)";
+  }
+
+  chatClose.addEventListener("click", function (e) {
+    e.stopPropagation();
+    closeChat();
+  });
+
+  function sendMsg() {
+    var txt = chatInput.value.trim();
+    if (!txt) return;
+    addMsg("user", txt);
+    chatInput.value = "";
+    chatInput.focus();
+  }
+
+  chatSend.addEventListener("click", function (e) {
+    e.stopPropagation();
+    sendMsg();
+  });
+
+  chatInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMsg();
+    }
+  });
+
+  /* click the mist to toggle chat; ignore pointer drags */
+  var _tmxPressX = 0, _tmxPressY = 0;
+
+  root.addEventListener("pointerdown", function (e) {
+    _tmxPressX = e.clientX;
+    _tmxPressY = e.clientY;
+  });
+
+  root.addEventListener("click", function (e) {
+    var dx = e.clientX - _tmxPressX;
+    var dy = e.clientY - _tmxPressY;
+    if (Math.sqrt(dx * dx + dy * dy) > 6) return;
+    if (_chatOpen) { closeChat(); } else { openChat(); }
+  });
 
   /* ── shooting star ── */
   var shoot = document.createElement("div");
