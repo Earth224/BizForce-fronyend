@@ -106,14 +106,6 @@
     "  width: 110px;",
     "  height: 110px;",
     "  overflow: visible;",
-    "  -webkit-mask-image: " + _bustMask + ";",
-    "  mask-image: " + _bustMask + ";",
-    "  -webkit-mask-size: 400% 400%;",
-    "  mask-size: 400% 400%;",
-    "  -webkit-mask-position: center;",
-    "  mask-position: center;",
-    "  -webkit-mask-repeat: no-repeat;",
-    "  mask-repeat: no-repeat;",
     "  transition: -webkit-mask-size 5s ease-in-out, mask-size 5s ease-in-out;",
     "}",
 
@@ -649,15 +641,38 @@
 
   if (TMX_MODE === "shapeshift") {
     function shapeShift() {
-      /* pour into oval — 5s CSS transition handles the gradual change */
-      root.style.setProperty("-webkit-mask-size", "100% 100%");
-      root.style.setProperty("mask-size",         "100% 100%");
-      /* hold 12s (5s pour + 7s fully shaped), then dissolve back */
+      /* 1 — mount mask silently at 400% (fully open — visually identical to no mask) */
+      root.style.setProperty("-webkit-mask-image",    _bustMask);
+      root.style.setProperty("mask-image",            _bustMask);
+      root.style.setProperty("-webkit-mask-size",     "400% 400%");
+      root.style.setProperty("mask-size",             "400% 400%");
+      root.style.setProperty("-webkit-mask-position", "center");
+      root.style.setProperty("mask-position",         "center");
+      root.style.setProperty("-webkit-mask-repeat",   "no-repeat");
+      root.style.setProperty("mask-repeat",           "no-repeat");
+      /* 2 — next frame: let the browser register 400% before starting the pour */
+      requestAnimationFrame(function () {
+        root.style.setProperty("-webkit-mask-size", "100% 100%");
+        root.style.setProperty("mask-size",         "100% 100%");
+      });
+      /* 3 — hold 12s (5s pour + 7s fully shaped), then begin dissolve */
       setTimeout(function () {
         root.style.setProperty("-webkit-mask-size", "400% 400%");
         root.style.setProperty("mask-size",         "400% 400%");
-        /* rest 3-7 minutes before next sacred morph */
-        setTimeout(shapeShift, 180000 + Math.random() * 240000);
+        /* 4 — once the 5s dissolve transition finishes, strip mask entirely
+               so the mist blur bleeds freely with no rectangular clip surface */
+        setTimeout(function () {
+          root.style.removeProperty("-webkit-mask-image");
+          root.style.removeProperty("mask-image");
+          root.style.removeProperty("-webkit-mask-size");
+          root.style.removeProperty("mask-size");
+          root.style.removeProperty("-webkit-mask-position");
+          root.style.removeProperty("mask-position");
+          root.style.removeProperty("-webkit-mask-repeat");
+          root.style.removeProperty("mask-repeat");
+          /* rest 3-7 minutes before next sacred morph */
+          setTimeout(shapeShift, 180000 + Math.random() * 240000);
+        }, 5200);
       }, 12000);
     }
     /* first morph 2-4 minutes after load */
