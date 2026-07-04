@@ -5,22 +5,107 @@
 
   /* per-page "Page Guidance" text, keyed by the page's filename */
   var PAGE_GUIDANCE = {
-    "dashboard.html": "This is your Executive HQ — the control center for every agent, metric, and workflow across your business.",
-    "agents-hub.html": "Browse and open any of your AI agents from this hub. Each card leads to that agent's dedicated workspace.",
-    "ai-agents.html": "The full agent directory — explore capabilities and assign work across your entire AI team.",
-    "analytics-dashboard.html": "Track the performance signals that matter most across your business in one place.",
-    "billing.html": "Manage your plan, payment details, and subscription history here.",
-    "profile.html": "Review and update your business profile and account details.",
-    "integrations.html": "Connect BizForce AI to the other tools and platforms your business already runs on.",
-    "marketplace.html": "Discover services, agents, and offers available to your business.",
-    "wallet.html": "View balances, transactions, and payouts tied to your BizForce account.",
-    "certifications.html": "Track credentials and certifications earned by your business and its agents.",
-    "digital-cards.html": "Create and manage the digital business cards representing your brand.",
-    "business-id.html": "Manage the verified identity record for your business.",
-    "business-chat.html": "Message your team and agents directly from this workspace.",
-    "card-view.html": "View and share your business card details.",
-    "flyer-generator.html": "Generate marketing flyers for your business in a few clicks.",
-    "app.html": "Sign in or create an account to enter BizForce AI.",
+    "dashboard.html": [
+      "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Flyer Generator, Profile, and Lead Radar.",
+      "Your business name and profile summary shown here come from what you set up on the Content Agent's Edit Profile and the Business Identity page — keep both current so this hub reflects who you actually are.",
+      "Use the Active Queue card and Recent Activity feed to see what's actually running before you dig into any single tool.",
+      "Treat the AI Agent Directory preview as your starting point for delegating work — jump into Agent Hub for a curated set or Full Directory for everything.",
+      "Revisit this page often; it's built to surface what needs your attention, not just to look impressive."
+    ],
+    "agents-hub.html": [
+      "Browse and launch any of your AI agents from one place — each card opens that agent's dedicated workspace.",
+      "The agents themselves pull from your Business Profile (set via the Content Agent), so get that right before expecting sharp output from any card here.",
+      "Don't run every agent at once — open the ones tied to your current priority and check back after each finishes a task.",
+      "Use this as your map, not your workbench; the real work — task launching, reports, history — happens on each agent's own page."
+    ],
+    "ai-agents.html": [
+      "The full directory of all 15 AI agents, each with a one-line description of what it actually specializes in.",
+      "No setup happens here — it's pure navigation; your Business Profile (set via the Content Agent) is what every agent behind these cards reads from.",
+      "Use this page when you're not sure which agent fits a task — the descriptions are specific enough to point you to the right specialist fast.",
+      "Bookmark the agents you use most; with 15 to choose from, a shortlist beats browsing the full list every time."
+    ],
+    "analytics-dashboard.html": [
+      "Your real-time business intelligence command center — Tasks Run, Tasks Completed, Content Items, Subscribers, Opted-In, and Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
+      "Nothing to configure here — it's a live read-only summary; the numbers only get interesting once you're actually running agents and generating content elsewhere.",
+      "Check the Tasks by Agent chart to see which agents you're actually leaning on — it's a fast way to spot which parts of your AI team are underused.",
+      "If the tiles show \"—\", it means data hasn't loaded or hasn't been generated yet — go run some agent tasks first, then come back."
+    ],
+    "billing.html": [
+      "Manage your subscription and payment details — Starter, Pro, or Enterprise plan, current status, renewal date, and the full \"All Access Plan Includes\" feature list.",
+      "Nothing to fill in directly here — subscribing or updating payment happens through Stripe's own checkout and billing portal, launched from this page's buttons.",
+      "Watch for the cancellation warning banner — if it's showing, your access has an end date, and you'll want to resubscribe before it hits.",
+      "Use \"Manage / Cancel Subscription\" for any plan change; you don't need to contact anyone to upgrade, downgrade, or cancel."
+    ],
+    "profile.html": [
+      "Your public business profile and portfolio — bio, skills, products, portfolio pieces, videos, music, and a shareable digital card, all in one branded page.",
+      "Fill in About (bio, industry, skills) first, then add Products, Portfolio pieces, Videos, and Music through their own \"Add\" modals — each has its own required fields.",
+      "Use the Customize panel to set your accent color, font, and which sections are visible — a focused profile beats a cluttered one.",
+      "Once it's built, use Share or Copy Profile Link to actually put it in front of people; a great profile does nothing sitting unshared.",
+      "Keep Products and Portfolio current — stale entries undercut the credibility this page is built to establish."
+    ],
+    "integrations.html": [
+      "A preview of every third-party connection planned for the platform — Stripe, Twilio, GoDaddy, Zernio, and every major social channel — 13 in total.",
+      "Nothing to connect yet; every \"Connect\" button here is intentionally disabled (\"Coming soon\") — there's no setup to do on this page today.",
+      "Use this page to see what's coming, not to configure anything right now — check back as connections go live.",
+      "If you need a tool connected today, use the platform's built-in equivalents (the Content Agent's social account connections, for instance) rather than waiting on this page."
+    ],
+    "marketplace.html": [
+      "A peer-to-peer service marketplace — browse other members' listings by category, or list your own services for BFC.",
+      "To sell, use \"List a Service\" and fill in Title, Description, Category, Price in BFC, and optional Tags — a complete listing gets found faster than a bare one.",
+      "Check \"My Listings\" regularly to manage status (Active/Paused/Sold) — a listing left stale looks abandoned.",
+      "Use the category tabs and search before creating a duplicate service someone else already offers well."
+    ],
+    "wallet.html": [
+      "Your BFC Wallet — Available Balance, Total Earned, Total Spent, and full Transaction History for your BizForce Credits.",
+      "Nothing to configure — it's a read-only ledger; credits accumulate automatically as you use the platform.",
+      "Check \"How to Earn BFC\" — certifications (+100), agent tasks (+50), marketplace listings (+25), and the welcome bonus (+200) are all real, stackable ways to build balance.",
+      "Treat your BFC balance as a signal of how actively you're using the platform, not just spending money — it rewards real engagement."
+    ],
+    "certifications.html": [
+      "Earn real, quiz-based platform badges across Sales, Marketing, Analytics, and Leadership — 12 certifications across 3 difficulty tiers, each with 10 questions and an 80% pass threshold.",
+      "Nothing to configure — just pick a certification and start; there's no profile data required to take an assessment.",
+      "Start with Beginner-tier certs in the category closest to your actual work before attempting Advanced ones — the questions get genuinely harder.",
+      "Passing pays out BFC to your Wallet, so treat certifications as a way to both sharpen skills and build balance, not just collect badges.",
+      "Use \"Retake Assessment\" if you don't pass the first time — there's no penalty for trying again."
+    ],
+    "digital-cards.html": [
+      "A full multimedia digital business card studio — video pitch, background audio, dozens of fonts/textures/borders, holographic effects, and free-position text, all live-previewed.",
+      "Fill in Full Name, Job Title, Tagline, Company, Email, Phone, and Website first, then layer on media (background image, video pitch, audio track) and styling.",
+      "Use Save Card and Share to generate a public link (viewable via the card viewer page) — the card only earns its keep once it's actually being shared.",
+      "Don't over-stack effects; pick one Theme, one Border Style, and one Transition, or the card reads busy instead of premium.",
+      "Export Print File with bleed guides if you're printing physical cards, not just Download PNG for digital use."
+    ],
+    "business-id.html": [
+      "Builds your official Business ID Card — a live-rendered identity card with your name, industry, bio, and contact details, plus a \"verified member\" badge.",
+      "Fill in Business Name, Industry, Tagline/Bio, Website, Phone, Location, and Contact Email — every field maps directly onto the card preview above the form.",
+      "Write the bio like a real pitch, not a placeholder — it's the one line that renders as an italicized quote on the card itself.",
+      "Keep this current alongside your Content Agent business profile; this card is often the first impression other members get of your business."
+    ],
+    "business-chat.html": [
+      "A persistent, business-aware AI chat — ask it anything about your business and it remembers the conversation across sessions.",
+      "Nothing to configure here directly, but the more complete your Business Profile is elsewhere, the more specific and useful its answers will be.",
+      "Use it for quick strategic questions between agent tasks — it's built for conversation, not for generating deliverables the way the agents do.",
+      "Revisit past threads; your history is saved, so build on previous answers instead of re-explaining context every time."
+    ],
+    "card-view.html": [
+      "The public, read-only viewer for a shared digital business card — opened via a shared link or QR code, not something you edit here.",
+      "There's nothing to set up on this page; the card was designed elsewhere (Digital Cards) and this page just renders it for whoever receives the link.",
+      "If you're viewing someone else's card, use Save Contact to pull it straight into your contacts as a vCard.",
+      "If this page renders one of your own cards and it looks wrong, the fix happens back on Digital Cards, not here."
+    ],
+    "flyer-generator.html": [
+      "Design print-ready marketing flyers — 12 templates, full content and media fields, and one-click PNG export.",
+      "Pick a template first, then fill in Headline (required), Subheadline, Body Text, Call to Action, Date & Time, Location, and Contact Info.",
+      "Use Save and \"My Flyers\" so you're not rebuilding the same flyer from scratch for recurring events.",
+      "Match Color Theme and Font Family to your brand, not just whatever looks good in the moment — consistency across flyers builds recognition.",
+      "Download PNG only once everything's set; try different Flyer Sizes (Square, Portrait, Story, Landscape) for wherever you're actually posting it."
+    ],
+    "app.html": [
+      "The front door — sign in or create an account here; this is the paywall/onboarding gateway to the entire platform.",
+      "Creating an account only asks for Business Name, Email, and Password — your real Business Profile setup happens after this, on the Content Agent's Edit Profile.",
+      "The all-access subscription unlocks every AI agent and platform tool at once — there's no reason to hold back on exploring once you're in.",
+      "If you already have an account, use Sign In directly rather than creating a duplicate — your data and agent history live under one account."
+    ],
 
     "seo.html": [
       "This agent turns your business profile and executive memory into concrete SEO deliverables — audits, keyword research, rankings, and forecasts.",
