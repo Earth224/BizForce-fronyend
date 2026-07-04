@@ -478,6 +478,7 @@
     "  transform-origin: bottom right;",
     "  transition: opacity 0.25s ease, transform 0.25s ease;",
     "}",
+    "#tmx-chat-header, #tmx-chat-msgs, #tmx-chat-foot { position: relative; z-index: 1; }",
     "#tmx-chat-header {",
     "  display: flex;",
     "  align-items: center;",
@@ -584,6 +585,22 @@
     "#tmx-chat-send:hover {",
     "  background: rgba(100,55,220,0.5);",
     "  border-color: rgba(150,110,255,0.55);",
+    "}",
+    "#tmx-chat-shoot {",
+    "  position: absolute;",
+    "  height: 1px;",
+    "  border-radius: 1px;",
+    "  pointer-events: none;",
+    "  opacity: 0;",
+    "  z-index: 0;",
+    "  transform-origin: right center;",
+    "  background: linear-gradient(90deg,",
+    "    transparent              0%,",
+    "    rgba(190,210,255,0.05)   18%,",
+    "    rgba(205,218,255,0.22)   52%,",
+    "    rgba(210,220,255,0.08)   82%,",
+    "    transparent             100%",
+    "  );",
     "}"
 
   ].join("\n");
@@ -675,6 +692,10 @@
       '<button id="tmx-chat-send" aria-label="Send">&#x2191;</button>' +
     '</div>';
   document.body.appendChild(chat);
+
+  var chatShoot = document.createElement("div");
+  chatShoot.id = "tmx-chat-shoot";
+  chat.insertBefore(chatShoot, chat.firstChild);
 
   var chatMsgs  = document.getElementById("tmx-chat-msgs");
   var chatInput = document.getElementById("tmx-chat-input");
@@ -800,6 +821,48 @@
 
   /* first shot after a short random delay */
   setTimeout(fireShoot, 2500 + Math.random() * 3500);
+
+  /* ── chat shooting stars ── */
+  function fireChatShoot() {
+    if (!_chatOpen) {
+      setTimeout(fireChatShoot, 6000 + Math.random() * 8000);
+      return;
+    }
+    var CW = 288, CH = 340;
+    var edge = Math.floor(Math.random() * 4);
+    var top, left, angle;
+    if (edge === 0) {
+      top   = -2;
+      left  = Math.random() * CW;
+      angle = 55 + Math.random() * 70;
+    } else if (edge === 1) {
+      top   = Math.random() * CH;
+      left  = CW + 2;
+      angle = 145 + Math.random() * 70;
+    } else if (edge === 2) {
+      top   = CH + 2;
+      left  = Math.random() * CW;
+      angle = 235 + Math.random() * 70;
+    } else {
+      top   = Math.random() * CH;
+      left  = -2;
+      angle = -35 + Math.random() * 70;
+    }
+    var t    = Math.random();
+    var dur  = (0.5 + t * 0.7).toFixed(2);
+    var len  = Math.round(20 + t * 40);
+    var dist = Math.round(100 + t * 160);
+    chatShoot.style.animation = "none";
+    chatShoot.offsetHeight;
+    chatShoot.style.top    = top   + "px";
+    chatShoot.style.left   = left  + "px";
+    chatShoot.style.rotate = angle + "deg";
+    chatShoot.style.width  = len   + "px";
+    chatShoot.style.setProperty("--shoot-dist", dist + "px");
+    chatShoot.style.animation = "tmx-shoot-fly " + dur + "s ease-out forwards";
+    setTimeout(fireChatShoot, 7000 + Math.random() * 9000);
+  }
+  setTimeout(fireChatShoot, 5000 + Math.random() * 5000);
 
   /* ── starfield cluster cycling ── */
   /* 4 patterns — each entry maps to the same star index in STARS */
