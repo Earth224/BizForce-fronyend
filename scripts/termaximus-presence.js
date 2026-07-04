@@ -155,16 +155,15 @@
     "  filter: blur(14px);",
     "}",
 
-    /* soul-color cycle: clip-path circle → filter:blur dissolves it into a
-       formless glow with no ring or halo; background-color is smoothly
-       interpolated by the browser between stops                           */
+    /* soul-color cycle: radial-gradient reaches transparent before element
+       edges — corners are fully empty, blur has nothing to spread outward  */
     "@keyframes tmx-soul-cycle {",
-    "  0%   { background-color: rgba(80,15,110,0.62);  }",
-    "  20%  { background-color: rgba(90,6,22,0.58);    }",
-    "  40%  { background-color: rgba(12,6,85,0.65);    }",
-    "  60%  { background-color: rgba(0,32,48,0.55);    }",
-    "  80%  { background-color: rgba(70,16,4,0.60);    }",
-    "  100% { background-color: rgba(80,15,110,0.62);  }",
+    "  0%   { background: radial-gradient(circle at 50% 50%, rgba(80,15,110,0.62) 0%, rgba(80,15,110,0)  55%); }",
+    "  20%  { background: radial-gradient(circle at 50% 50%, rgba(90,6,22,0.58)   0%, rgba(90,6,22,0)    55%); }",
+    "  40%  { background: radial-gradient(circle at 50% 50%, rgba(12,6,85,0.65)   0%, rgba(12,6,85,0)    55%); }",
+    "  60%  { background: radial-gradient(circle at 50% 50%, rgba(0,32,48,0.55)   0%, rgba(0,32,48,0)    55%); }",
+    "  80%  { background: radial-gradient(circle at 50% 50%, rgba(70,16,4,0.60)   0%, rgba(70,16,4,0)    55%); }",
+    "  100% { background: radial-gradient(circle at 50% 50%, rgba(80,15,110,0.62) 0%, rgba(80,15,110,0)  55%); }",
     "}",
     "#tmx-soul {",
     "  position: absolute;",
@@ -173,7 +172,6 @@
     "  top: 10px;",
     "  left: 10px;",
     "  pointer-events: none;",
-    "  clip-path: circle(35px at 50% 50%);",
     "  filter: blur(22px);",
     "  animation: tmx-soul-cycle 80s ease-in-out infinite;",
     "}",
