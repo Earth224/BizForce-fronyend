@@ -497,6 +497,18 @@
     "  transition: opacity 3s ease-in-out;",
     "  -webkit-user-select: none;",
     "  user-select: none;",
+    "}",
+
+    /* ── Tahuti figure overlay ── */
+    "#tmx-tahuti {",
+    "  position: absolute;",
+    "  top: 0;",
+    "  left: 0;",
+    "  width: 110px;",
+    "  height: 110px;",
+    "  pointer-events: none;",
+    "  opacity: 0;",
+    "  transition: opacity 3s ease-in-out;",
     "}"
 
   ].join("\n");
@@ -654,6 +666,43 @@
       el.style.left = pts[i][1] + "px";
     });
   }, 35000);
+
+  /* ── Tahuti figure overlay ──
+     Left-facing kneeling side-profile: ibis head, long drooping sickle beak,
+     sun-disk crown, front arm holding scroll, back arm reaching to an
+     ankh-topped staff on the right.  Single <path> with sub-paths — one
+     filled shape, all parts share fill-rule="nonzero".
+     Hidden by default (opacity 0); reveal via opacity transition when ready. */
+  var _tahutiFrag = document.createElement("div");
+  _tahutiFrag.innerHTML = '<svg id="tmx-tahuti" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">'
+    + '<path fill-rule="nonzero" fill="rgba(215,200,255,0.82)" stroke="none" d="'
+    /* sun disk crown — bezier circle cx=54 cy=12 r=9 */
+    + 'M 54,3 C 59,3 63,7 63,12 C 63,17 59,21 54,21 C 49,21 45,17 45,12 C 45,7 49,3 54,3 Z '
+    /* main body: back leg → back torso → back of neck → back of head → crown →
+       front of head → ibis beak → chin → front arm + scroll block →
+       front of torso → kneeling front leg                                   */
+    + 'M 76,102 L 76,86 '
+    + 'C 74,78 72,68 70,56 '
+    + 'C 68,52 66,48 64,44 '
+    + 'C 62,36 62,24 58,18 '
+    + 'C 56,14 52,14 48,18 '
+    + 'C 46,22 44,28 44,34 '
+    + 'C 36,38 14,56 8,64 '
+    + 'Q 6,70 10,70 '
+    + 'C 14,66 36,50 46,42 '
+    + 'C 48,46 48,52 46,56 '
+    + 'L 16,54 C 12,52 8,52 8,56 C 8,62 12,64 16,62 L 44,62 '
+    + 'L 42,82 C 36,86 28,92 24,98 L 20,102 Z '
+    /* back arm bridging torso to staff */
+    + 'M 70,54 C 76,52 84,50 90,50 L 90,58 C 84,58 76,58 70,60 Z '
+    /* ankh loop at top of staff — bezier ellipse cx=91 cy=16 rx=7 ry=8 */
+    + 'M 91,8 C 95,8 98,11 98,16 C 98,21 95,24 91,24 C 87,24 84,21 84,16 C 84,11 87,8 91,8 Z '
+    /* ankh crossbar */
+    + 'M 82,23 L 100,23 L 100,27 L 82,27 Z '
+    /* staff shaft */
+    + 'M 88,26 L 94,26 L 94,102 L 88,102 Z '
+    + '"/></svg>';
+  root.appendChild(_tahutiFrag.firstChild);
 
   /* ── ghost whisper ── */
   var whisper = document.createElement("div");
