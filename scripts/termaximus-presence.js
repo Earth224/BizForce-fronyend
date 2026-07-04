@@ -3,67 +3,6 @@
 
   if (document.getElementById("tmx-presence-root")) return;
 
-  /* ── Tahuti kneeling silhouette mask ──
-     Classic Egyptian right-facing side-profile: ibis head with long drooping
-     beak, sun-disk crown, kneeling body, front arm extended holding a scroll,
-     back arm reaching to an ankh-topped staff on the left.
-     Single solid filled path; feGaussianBlur keeps edges soft so the mist
-     bleeds gently at the form boundary.                                      */
-  var _bustSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">'
-    + '<defs><filter id="sf" x="-20%" y="-20%" width="140%" height="140%">'
-    + '<feGaussianBlur stdDeviation="6"/></filter></defs>'
-    + '<path filter="url(#sf)" fill="black" d="'
-    /* ankh loop top → right side of loop → crossbar right → shaft right → back arm top */
-    + 'M 20,4 '
-    + 'Q 28,4 29,16 '
-    + 'Q 30,22 27,24 '
-    + 'L 32,24 32,26 25,26 25,40 '
-    /* back arm crosses to back shoulder */
-    + 'C 28,40 36,44 42,44 '
-    /* back of neck rising toward crown */
-    + 'C 44,42 46,38 46,32 '
-    /* back of ibis head sweeping toward sun-disk */
-    + 'C 44,22 48,16 54,14 '
-    /* sun-disk crown: rises, arcs over top, descends front */
-    + 'C 52,10 52,4 56,2 '
-    + 'C 62,2 66,8 64,16 '
-    /* front of head descending to beak root */
-    + 'C 64,20 64,24 66,28 '
-    /* ibis beak: long sickle sweeping right and down */
-    + 'C 76,32 104,56 104,66 '
-    /* beak tip */
-    + 'Q 104,72 98,70 '
-    /* beak underside returning */
-    + 'C 92,66 78,50 68,36 '
-    /* chin / throat / front shoulder */
-    + 'C 64,42 62,50 62,54 '
-    /* front arm extending forward */
-    + 'L 80,52 '
-    /* scroll block top and right */
-    + 'C 86,50 94,50 96,54 '
-    /* scroll bottom-right and return */
-    + 'C 96,60 90,62 80,60 '
-    /* arm returns; front of torso going down */
-    + 'L 60,62 58,78 '
-    /* kneeling thigh extending right */
-    + 'C 68,80 84,78 92,82 '
-    /* calf going down */
-    + 'L 94,100 '
-    /* feet and ground line sweeping left */
-    + 'C 92,104 88,104 26,104 '
-    /* back of lower body and torso rising */
-    + 'L 24,80 22,52 '
-    /* underside of back arm curving to staff */
-    + 'C 20,50 17,46 17,40 '
-    /* left shaft wall up, crossbar left, back to shaft, up to loop base */
-    + 'L 17,26 11,26 11,24 17,24 17,14 '
-    /* left side of ankh loop */
-    + 'Q 14,8 14,4 '
-    /* back to top */
-    + 'Q 17,2 20,4 '
-    + 'Z"/></svg>';
-  var _bustMask = "url('data:image/svg+xml," + encodeURIComponent(_bustSVG) + "')";
-
   /* ── Styles ── */
   var style = document.createElement("style");
   style.textContent = [
@@ -497,18 +436,6 @@
     "  transition: opacity 3s ease-in-out;",
     "  -webkit-user-select: none;",
     "  user-select: none;",
-    "}",
-
-    /* ── Tahuti figure overlay ── */
-    "#tmx-tahuti {",
-    "  position: absolute;",
-    "  top: 0;",
-    "  left: 0;",
-    "  width: 110px;",
-    "  height: 110px;",
-    "  pointer-events: none;",
-    "  opacity: 0;",
-    "  transition: opacity 3s ease-in-out;",
     "}"
 
   ].join("\n");
@@ -667,43 +594,6 @@
     });
   }, 35000);
 
-  /* ── Tahuti figure overlay ──
-     Left-facing kneeling side-profile: ibis head, long drooping sickle beak,
-     sun-disk crown, front arm holding scroll, back arm reaching to an
-     ankh-topped staff on the right.  Single <path> with sub-paths — one
-     filled shape, all parts share fill-rule="nonzero".
-     Hidden by default (opacity 0); reveal via opacity transition when ready. */
-  var _tahutiFrag = document.createElement("div");
-  _tahutiFrag.innerHTML = '<svg id="tmx-tahuti" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">'
-    + '<path fill-rule="nonzero" fill="rgba(215,200,255,0.82)" stroke="none" d="'
-    /* sun disk crown — bezier circle cx=54 cy=12 r=9 */
-    + 'M 54,3 C 59,3 63,7 63,12 C 63,17 59,21 54,21 C 49,21 45,17 45,12 C 45,7 49,3 54,3 Z '
-    /* main body: back leg → back torso → back of neck → back of head → crown →
-       front of head → ibis beak → chin → front arm + scroll block →
-       front of torso → kneeling front leg                                   */
-    + 'M 76,102 L 76,86 '
-    + 'C 74,78 72,68 70,56 '
-    + 'C 68,52 66,48 64,44 '
-    + 'C 62,36 62,24 58,18 '
-    + 'C 56,14 52,14 48,18 '
-    + 'C 46,22 44,28 44,34 '
-    + 'C 36,38 14,56 8,64 '
-    + 'Q 6,70 10,70 '
-    + 'C 14,66 36,50 46,42 '
-    + 'C 48,46 48,52 46,56 '
-    + 'L 16,54 C 12,52 8,52 8,56 C 8,62 12,64 16,62 L 44,62 '
-    + 'L 42,82 C 36,86 28,92 24,98 L 20,102 Z '
-    /* back arm bridging torso to staff */
-    + 'M 70,54 C 76,52 84,50 90,50 L 90,58 C 84,58 76,58 70,60 Z '
-    /* ankh loop at top of staff — bezier ellipse cx=91 cy=16 rx=7 ry=8 */
-    + 'M 91,8 C 95,8 98,11 98,16 C 98,21 95,24 91,24 C 87,24 84,21 84,16 C 84,11 87,8 91,8 Z '
-    /* ankh crossbar */
-    + 'M 82,23 L 100,23 L 100,27 L 82,27 Z '
-    /* staff shaft */
-    + 'M 88,26 L 94,26 L 94,102 L 88,102 Z '
-    + '"/></svg>';
-  root.appendChild(_tahutiFrag.firstChild);
-
   /* ── ghost whisper ── */
   var whisper = document.createElement("div");
   whisper.id = "tmx-whisper";
@@ -723,78 +613,4 @@
   /* first whisper after 40-70s */
   setTimeout(surfaceWhisper, 40000 + Math.random() * 30000);
 
-  /* ── console preview trigger: tmxForceMorph() ──
-     fires one immediate morph sequence regardless of mode or timer */
-  window.tmxForceMorph = function () {
-    root.style.setProperty("-webkit-mask-image",    _bustMask);
-    root.style.setProperty("mask-image",            _bustMask);
-    root.style.setProperty("-webkit-mask-size",     "400% 400%");
-    root.style.setProperty("mask-size",             "400% 400%");
-    root.style.setProperty("-webkit-mask-position", "center");
-    root.style.setProperty("mask-position",         "center");
-    root.style.setProperty("-webkit-mask-repeat",   "no-repeat");
-    root.style.setProperty("mask-repeat",           "no-repeat");
-    requestAnimationFrame(function () {
-      root.style.setProperty("-webkit-mask-size", "100% 100%");
-      root.style.setProperty("mask-size",         "100% 100%");
-    });
-    setTimeout(function () {
-      root.style.setProperty("-webkit-mask-size", "400% 400%");
-      root.style.setProperty("mask-size",         "400% 400%");
-      setTimeout(function () {
-        root.style.removeProperty("-webkit-mask-image");
-        root.style.removeProperty("mask-image");
-        root.style.removeProperty("-webkit-mask-size");
-        root.style.removeProperty("mask-size");
-        root.style.removeProperty("-webkit-mask-position");
-        root.style.removeProperty("mask-position");
-        root.style.removeProperty("-webkit-mask-repeat");
-        root.style.removeProperty("mask-repeat");
-      }, 5200);
-    }, 12000);
-  };
-
-  /* ── mode: "amorphous" (default) | "shapeshift" ── */
-  /* stored in localStorage key "tmx_mode"            */
-  var TMX_MODE = localStorage.getItem("tmx_mode") || "amorphous";
-
-  if (TMX_MODE === "shapeshift") {
-    function shapeShift() {
-      /* 1 — mount mask silently at 400% (fully open — visually identical to no mask) */
-      root.style.setProperty("-webkit-mask-image",    _bustMask);
-      root.style.setProperty("mask-image",            _bustMask);
-      root.style.setProperty("-webkit-mask-size",     "400% 400%");
-      root.style.setProperty("mask-size",             "400% 400%");
-      root.style.setProperty("-webkit-mask-position", "center");
-      root.style.setProperty("mask-position",         "center");
-      root.style.setProperty("-webkit-mask-repeat",   "no-repeat");
-      root.style.setProperty("mask-repeat",           "no-repeat");
-      /* 2 — next frame: let the browser register 400% before starting the pour */
-      requestAnimationFrame(function () {
-        root.style.setProperty("-webkit-mask-size", "100% 100%");
-        root.style.setProperty("mask-size",         "100% 100%");
-      });
-      /* 3 — hold 12s (5s pour + 7s fully shaped), then begin dissolve */
-      setTimeout(function () {
-        root.style.setProperty("-webkit-mask-size", "400% 400%");
-        root.style.setProperty("mask-size",         "400% 400%");
-        /* 4 — once the 5s dissolve transition finishes, strip mask entirely
-               so the mist blur bleeds freely with no rectangular clip surface */
-        setTimeout(function () {
-          root.style.removeProperty("-webkit-mask-image");
-          root.style.removeProperty("mask-image");
-          root.style.removeProperty("-webkit-mask-size");
-          root.style.removeProperty("mask-size");
-          root.style.removeProperty("-webkit-mask-position");
-          root.style.removeProperty("mask-position");
-          root.style.removeProperty("-webkit-mask-repeat");
-          root.style.removeProperty("mask-repeat");
-          /* rest 3-7 minutes before next sacred morph */
-          setTimeout(shapeShift, 180000 + Math.random() * 240000);
-        }, 5200);
-      }, 12000);
-    }
-    /* first morph 2-4 minutes after load */
-    setTimeout(shapeShift, 120000 + Math.random() * 120000);
-  }
 }());
