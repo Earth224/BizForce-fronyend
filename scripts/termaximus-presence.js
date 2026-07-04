@@ -439,7 +439,7 @@
     "  user-select: none;",
     "}",
 
-    /* ── chat panel back-glow: bold aura + breathing pulse + slow theme rotation ── */
+    /* ── chat panel back-glow: compact brand-gradient aura + breathing pulse ── */
     "#tmx-chat-glow-wrap {",
     "  position: fixed;",
     "  bottom: 148px;",
@@ -454,34 +454,17 @@
     "#tmx-chat-glow-wrap.tmx-glow-active { opacity: 1; }",
     "#tmx-chat-glow {",
     "  position: absolute;",
-    "  inset: -64px;",
-    "  border-radius: 46px;",
-    "  filter: blur(30px);",
+    "  inset: -32px;",
+    "  border-radius: 30px;",
+    "  filter: blur(15px);",
     "  transform-origin: 50% 50%;",
-    "  animation: tmx-chat-glow-breathe 5s ease-in-out infinite, tmx-chat-glow-cycle 108s ease-in-out infinite;",
+    "  background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,0.80) 0%, rgba(123,47,247,0.48) 45%, rgba(168,85,247,0.24) 75%, transparent 100%);",
+    "  box-shadow: 0 0 30px 7px rgba(0,229,255,0.45), 0 0 60px 13px rgba(123,47,247,0.32), 0 0 100px 18px rgba(168,85,247,0.18);",
+    "  animation: tmx-chat-glow-breathe 5s ease-in-out infinite;",
     "}",
     "@keyframes tmx-chat-glow-breathe {",
-    "  0%,100% { transform: scale(1);     opacity: 0.82; }",
-    "  50%      { transform: scale(1.10); opacity: 1;    }",
-    "}",
-    /* theme order: amethyst → BizForce brand (turquoise/indigo/purple) → blacklight UV → back to amethyst */
-    "@keyframes tmx-chat-glow-cycle {",
-    "  0%   {",
-    "    background: radial-gradient(ellipse at 50% 50%, rgba(165,95,255,0.95) 0%, rgba(140,70,240,0.55) 45%, rgba(105,35,225,0.26) 75%, transparent 100%);",
-    "    box-shadow: 0 0 60px 14px rgba(165,95,255,0.60), 0 0 120px 26px rgba(140,70,240,0.40), 0 0 200px 36px rgba(105,35,225,0.24);",
-    "  }",
-    "  33%  {",
-    "    background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,0.90) 0%, rgba(123,47,247,0.55) 45%, rgba(168,85,247,0.28) 75%, transparent 100%);",
-    "    box-shadow: 0 0 60px 14px rgba(0,229,255,0.55), 0 0 120px 26px rgba(123,47,247,0.40), 0 0 200px 36px rgba(168,85,247,0.24);",
-    "  }",
-    "  66%  {",
-    "    background: radial-gradient(ellipse at 50% 50%, rgba(200,0,255,0.95) 0%, rgba(120,0,255,0.55) 45%, rgba(60,0,170,0.28) 75%, transparent 100%);",
-    "    box-shadow: 0 0 60px 14px rgba(200,0,255,0.60), 0 0 120px 26px rgba(120,0,255,0.40), 0 0 200px 36px rgba(60,0,170,0.24);",
-    "  }",
-    "  100% {",
-    "    background: radial-gradient(ellipse at 50% 50%, rgba(165,95,255,0.95) 0%, rgba(140,70,240,0.55) 45%, rgba(105,35,225,0.26) 75%, transparent 100%);",
-    "    box-shadow: 0 0 60px 14px rgba(165,95,255,0.60), 0 0 120px 26px rgba(140,70,240,0.40), 0 0 200px 36px rgba(105,35,225,0.24);",
-    "  }",
+    "  0%,100% { transform: scale(1);     opacity: 0.78; }",
+    "  50%      { transform: scale(1.06); opacity: 0.96; }",
     "}",
     "@keyframes tmx-chat-void {",
     "  0%   { background-position: 15% 20%, 85% 80%, 50% 50%; }",
@@ -841,23 +824,11 @@
     chatMsgs.scrollTop = chatMsgs.scrollHeight;
   }
 
-  function _randomizeGlowTheme() {
-    /* restart the back-glow's theme-cycle at a random phase so each opening
-       favors a different point in the amethyst → brand → blacklight rotation */
-    var delay = -(Math.random() * 108).toFixed(1);
-    chatGlow.style.animation = "none";
-    chatGlow.offsetHeight;
-    chatGlow.style.animation =
-      "tmx-chat-glow-breathe 5s ease-in-out infinite, " +
-      "tmx-chat-glow-cycle 108s ease-in-out " + delay + "s infinite";
-  }
-
   function openChat() {
     _chatOpen = true;
     _closeToken++;
     _currentStyle = Math.floor(Math.random() * 10);
     chat.style.pointerEvents = "auto";
-    _randomizeGlowTheme();
     chatGlowWrap.classList.add("tmx-glow-active");
 
     if (_currentStyle === 9) { _openGlitch(); return; }
