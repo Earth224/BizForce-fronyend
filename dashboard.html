@@ -23,6 +23,15 @@ if (!token) {
     .topbar-agents-pill:hover{border-color:rgba(168,85,247,.7);box-shadow:0 0 18px rgba(168,85,247,.2)}
     .topbar-agents-num{font-size:1.05rem;font-weight:800;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.1}
     .topbar-agents-lbl{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8888aa;margin-top:1px}
+    .topbar-tmx-toggle{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(12,18,38,.7);cursor:pointer;user-select:none;backdrop-filter:blur(10px);transition:border-color .25s,box-shadow .25s}
+    .topbar-tmx-toggle:hover{border-color:rgba(168,85,247,.6);box-shadow:0 0 14px rgba(168,85,247,.18)}
+    .topbar-tmx-toggle-label{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c9c9f0;white-space:nowrap}
+    .topbar-tmx-switch{position:relative;display:inline-block;width:34px;height:18px;flex-shrink:0}
+    .topbar-tmx-switch input{position:absolute;opacity:0;width:0;height:0}
+    .topbar-tmx-slider{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.1);transition:background .25s,border-color .25s}
+    .topbar-tmx-slider::before{content:"";position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:#cfd3ea;transition:transform .25s,background .25s,box-shadow .25s}
+    .topbar-tmx-switch input:checked + .topbar-tmx-slider{background:linear-gradient(90deg,#00d9ff,#a855f7);border-color:rgba(168,85,247,.5)}
+    .topbar-tmx-switch input:checked + .topbar-tmx-slider::before{transform:translateX(16px);background:#fff;box-shadow:0 0 8px rgba(168,85,247,.6)}
 </style>
 </head>
 <body class="app-shell">
@@ -41,6 +50,13 @@ if (!token) {
     </a>
     <a href="oracle.html" class="topbar-icon-btn" id="oracleNavBtn" aria-label="The Oracle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="10" ry="5"/><circle cx="12" cy="12" r="2.5"/></svg></a>
     <button type="button" class="topbar-icon-btn" id="notificationBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+    <label class="topbar-tmx-toggle" id="tmxPresenceToggle" title="Toggle the roaming Termaximus presence site-wide">
+      <span class="topbar-tmx-toggle-label">Termaximus</span>
+      <span class="topbar-tmx-switch">
+        <input type="checkbox" id="tmxPresenceCheckbox">
+        <span class="topbar-tmx-slider"></span>
+      </span>
+    </label>
     <div class="topbar-user">
       <div class="topbar-avatar" id="userAvatar">ER</div>
       <div class="topbar-user-meta">
@@ -51,6 +67,17 @@ if (!token) {
     <button class="logout bf-btn bf-btn-ghost" type="button" onclick="logout()">Sign Out</button>
   </div>
 </header>
+<script>
+(function () {
+  var TMX_KEY = "tmx_presence_active";
+  var checkbox = document.getElementById("tmxPresenceCheckbox");
+  if (!checkbox) return;
+  checkbox.checked = localStorage.getItem(TMX_KEY) !== "0";
+  checkbox.addEventListener("change", function () {
+    localStorage.setItem(TMX_KEY, checkbox.checked ? "1" : "0");
+  });
+}());
+</script>
 <div class="app-main">
 <header class="hero hq-hero">
   <span class="hq-eyebrow hero-pill">BIZFORCE AI</span>
