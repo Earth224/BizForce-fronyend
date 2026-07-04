@@ -439,6 +439,10 @@
     "}",
 
     /* ── chat panel ── */
+    "@keyframes tmx-chat-breathe {",
+    "  0%,100% { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 16px rgba(90,40,200,0.20), 0 0 36px rgba(70,20,180,0.10); }",
+    "  50%      { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 30px rgba(115,55,225,0.42), 0 0 55px rgba(85,25,205,0.22); }",
+    "}",
     "#tmx-chat {",
     "  position: fixed;",
     "  bottom: 148px;",
@@ -451,7 +455,8 @@
     "  border-radius: 16px;",
     "  background: rgba(6,4,20,0.94);",
     "  border: 1px solid rgba(100,70,200,0.35);",
-    "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 60px rgba(60,10,160,0.18);",
+    "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 16px rgba(90,40,200,0.20), 0 0 36px rgba(70,20,180,0.10);",
+    "  animation: tmx-chat-breathe 5s ease-in-out infinite;",
     "  backdrop-filter: blur(24px);",
     "  -webkit-backdrop-filter: blur(24px);",
     "  overflow: hidden;",
