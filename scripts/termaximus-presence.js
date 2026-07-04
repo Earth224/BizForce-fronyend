@@ -441,8 +441,8 @@
 
     /* ── chat panel ── */
     "@keyframes tmx-chat-breathe {",
-    "  0%,100% { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 16px rgba(90,40,200,0.20), 0 0 36px rgba(70,20,180,0.10); }",
-    "  50%      { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 30px rgba(115,55,225,0.42), 0 0 55px rgba(85,25,205,0.22); }",
+    "  0%,100% { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 34px rgba(140,70,240,0.60), 0 0 68px rgba(120,50,230,0.42), 0 0 118px rgba(95,30,210,0.26); }",
+    "  50%      { box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 52px rgba(165,95,255,0.85), 0 0 100px rgba(140,70,245,0.58), 0 0 170px rgba(105,35,225,0.36); }",
     "}",
     "@keyframes tmx-chat-void {",
     "  0%   { background-position: 15% 20%, 85% 80%, 50% 50%; }",
@@ -467,8 +467,8 @@
     "    radial-gradient(ellipse at 50% 50%, rgba(4,2,48,0.16)   0%, transparent 64%),",
     "    rgba(2,1,10,0.98);",
     "  background-size: 200% 200%, 200% 200%, 200% 200%;",
-    "  border: 1px solid rgba(100,70,200,0.35);",
-    "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 16px rgba(90,40,200,0.20), 0 0 36px rgba(70,20,180,0.10);",
+    "  border: 1px solid rgba(150,105,240,0.55);",
+    "  box-shadow: 0 8px 40px rgba(0,0,0,0.65), 0 0 34px rgba(140,70,240,0.60), 0 0 68px rgba(120,50,230,0.42), 0 0 118px rgba(95,30,210,0.26);",
     "  animation: tmx-chat-breathe 5s ease-in-out infinite, tmx-chat-void 22s ease-in-out infinite;",
     "  backdrop-filter: blur(24px);",
     "  -webkit-backdrop-filter: blur(24px);",
