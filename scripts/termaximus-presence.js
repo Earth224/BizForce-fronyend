@@ -3,6 +3,11 @@
 
   if (document.getElementById("tmx-presence-root")) return;
 
+  /* controlled from elsewhere (e.g. a settings toggle); default to active/shown */
+  try {
+    if (localStorage.getItem("tmx_presence_active") === "0") return;
+  } catch (e) {}
+
   /* ── Styles ── */
   var style = document.createElement("style");
   style.textContent = [
@@ -84,75 +89,7 @@
     "  width: 110px;",
     "  height: 110px;",
     "  overflow: visible;",
-    "  transition: -webkit-mask-size 5s ease-in-out, mask-size 5s ease-in-out, opacity 0.5s ease, transform 0.5s ease;",
-    "}",
-    "#tmx-presence-root.tmx-hidden {",
-    "  opacity: 0;",
-    "  transform: scale(0.6);",
-    "}",
-    /* small dismiss control — appears on hover, hides the whole presence */
-    "#tmx-dismiss {",
-    "  position: absolute;",
-    "  top: -4px;",
-    "  right: -4px;",
-    "  width: 18px;",
-    "  height: 18px;",
-    "  border-radius: 50%;",
-    "  background: rgba(8,3,20,0.88);",
-    "  border: 1px solid rgba(150,105,240,0.4);",
-    "  color: rgba(200,185,255,0.7);",
-    "  font-size: 10px;",
-    "  line-height: 1;",
-    "  display: flex;",
-    "  align-items: center;",
-    "  justify-content: center;",
-    "  cursor: pointer;",
-    "  opacity: 0;",
-    "  pointer-events: none;",
-    "  transition: opacity 0.25s ease, transform 0.2s ease, color 0.2s ease;",
-    "  z-index: 5;",
-    "  font-family: Georgia, 'Palatino Linotype', serif;",
-    "}",
-    "#tmx-presence-root:hover #tmx-dismiss {",
-    "  opacity: 0.8;",
-    "  pointer-events: auto;",
-    "}",
-    "#tmx-dismiss:hover {",
-    "  opacity: 1;",
-    "  color: rgba(230,215,255,0.95);",
-    "  transform: scale(1.12);",
-    "}",
-    /* small unobtrusive tab to bring the presence back once hidden */
-    "#tmx-restore {",
-    "  position: fixed;",
-    "  bottom: 22px;",
-    "  right: 22px;",
-    "  width: 30px;",
-    "  height: 30px;",
-    "  border-radius: 50%;",
-    "  background: radial-gradient(circle at 35% 35%, rgba(60,20,110,0.92), rgba(8,3,20,0.94) 72%);",
-    "  border: 1px solid rgba(150,105,240,0.4);",
-    "  box-shadow: 0 0 12px rgba(120,60,220,0.32);",
-    "  display: flex;",
-    "  align-items: center;",
-    "  justify-content: center;",
-    "  color: rgba(210,195,255,0.75);",
-    "  font-size: 13px;",
-    "  cursor: pointer;",
-    "  z-index: 2147483647;",
-    "  opacity: 0;",
-    "  pointer-events: none;",
-    "  transform: scale(0.8);",
-    "  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.25s ease;",
-    "}",
-    "#tmx-restore.tmx-restore-visible {",
-    "  opacity: 0.8;",
-    "  pointer-events: auto;",
-    "  transform: scale(1);",
-    "}",
-    "#tmx-restore:hover {",
-    "  opacity: 1;",
-    "  box-shadow: 0 0 18px rgba(140,80,240,0.48);",
+    "  transition: -webkit-mask-size 5s ease-in-out, mask-size 5s ease-in-out;",
     "}",
 
     /* star-heart: burning white-blue sun with gold outer bloom */
@@ -842,22 +779,8 @@
     root.appendChild(blob);
   });
 
-  var dismissBtn = document.createElement("button");
-  dismissBtn.id = "tmx-dismiss";
-  dismissBtn.type = "button";
-  dismissBtn.setAttribute("aria-label", "Hide Termaximus");
-  dismissBtn.innerHTML = "&#x2715;";
-  root.appendChild(dismissBtn);
-
   document.body.appendChild(root);
   _tmxRestorePosition();
-
-  var restoreBtn = document.createElement("button");
-  restoreBtn.id = "tmx-restore";
-  restoreBtn.type = "button";
-  restoreBtn.setAttribute("aria-label", "Show Termaximus");
-  restoreBtn.innerHTML = "&#x2726;";
-  document.body.appendChild(restoreBtn);
 
   /* ── chat panel back-glow DOM ── */
   var chatGlowWrap = document.createElement("div");
@@ -1208,60 +1131,6 @@
     if (_tmxDragMoved) return;
     if (_chatOpen) { closeChat(); } else { openChat(); }
   });
-
-  /* ── hide / show the whole presence ── */
-  var TMX_HIDDEN_KEY = "tmx_presence_hidden";
-  var _tmxHidden = false;
-
-  function _tmxHidePresence() {
-    if (_tmxHidden) return;
-    _tmxHidden = true;
-    if (_chatOpen) { closeChat(); }
-    root.classList.add("tmx-hidden");
-    restoreBtn.classList.add("tmx-restore-visible");
-    setTimeout(function () {
-      if (!_tmxHidden) return;
-      root.style.display         = "none";
-      chat.style.display         = "none";
-      chatGlowWrap.style.display = "none";
-    }, 520);
-    try { localStorage.setItem(TMX_HIDDEN_KEY, "1"); } catch (e) {}
-  }
-
-  function _tmxShowPresence() {
-    if (!_tmxHidden) return;
-    _tmxHidden = false;
-    root.style.display         = "";
-    chat.style.display         = "";
-    chatGlowWrap.style.display = "";
-    root.offsetHeight; /* force reflow so the fade-in transition runs */
-    root.classList.remove("tmx-hidden");
-    restoreBtn.classList.remove("tmx-restore-visible");
-    try { localStorage.setItem(TMX_HIDDEN_KEY, "0"); } catch (e) {}
-  }
-
-  dismissBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    _tmxHidePresence();
-  });
-
-  restoreBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    _tmxShowPresence();
-  });
-
-  /* apply a previously hidden state instantly, no fade, before first paint settles */
-  (function () {
-    var wasHidden = false;
-    try { wasHidden = localStorage.getItem(TMX_HIDDEN_KEY) === "1"; } catch (e) {}
-    if (!wasHidden) return;
-    _tmxHidden = true;
-    root.classList.add("tmx-hidden");
-    root.style.display         = "none";
-    chat.style.display         = "none";
-    chatGlowWrap.style.display = "none";
-    restoreBtn.classList.add("tmx-restore-visible");
-  }());
 
   /* ── shooting star ── */
   var shoot = document.createElement("div");
