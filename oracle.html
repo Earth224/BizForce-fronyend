@@ -654,6 +654,31 @@
       100% { background-position: 0px -520px, 0px -520px; }
     }
 
+    /* ── Per-star twinkle — a few points quietly catch light and fade,
+       layered on top of the drifting parallax, each at its own slow rate ── */
+    .star-twinkle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(circle, rgba(230,230,255,0.9) 0%, rgba(200,190,240,0.4) 45%, transparent 100%);
+    }
+    .tw1 { top:14%; left:22%; width:1.6px; height:1.6px; animation: twinkle-slow   7.5s  ease-in-out infinite 0s;    }
+    .tw2 { top:62%; left:8%;  width:1.2px; height:1.2px; animation: twinkle-slow   9.2s  ease-in-out infinite 1.4s;  }
+    .tw3 { top:28%; left:76%; width:1.8px; height:1.8px; animation: twinkle-bright 11s   ease-in-out infinite 2.6s;  }
+    .tw4 { top:80%; left:64%; width:1.2px; height:1.2px; animation: twinkle-slow   6.4s  ease-in-out infinite 0.8s;  }
+    .tw5 { top:45%; left:48%; width:1.4px; height:1.4px; animation: twinkle-bright 13.5s ease-in-out infinite 4.2s;  }
+    .tw6 { top:10%; left:58%; width:1.1px; height:1.1px; animation: twinkle-slow   8.6s  ease-in-out infinite 3.1s;  }
+    @keyframes twinkle-slow {
+      0%, 100% { opacity: 0.12; transform: scale(1);   }
+      50%       { opacity: 0.35; transform: scale(1.1); }
+    }
+    @keyframes twinkle-bright {
+      0%, 100% { opacity: 0.15; transform: scale(1);   }
+      45%       { opacity: 0.85; transform: scale(1.3); }
+      60%       { opacity: 0.5;  transform: scale(1.1); }
+    }
+
     /* ── Alternate starfield drift directions — defined only, not yet wired up.
        Each direction keeps the same far/mid/near tile sizes and relative speed
        ratio (far slowest, near fastest) as the existing drift so the parallax
@@ -915,6 +940,14 @@
     <div class="star-layer star-far"></div>
     <div class="star-layer star-mid"></div>
     <div class="star-layer star-near"></div>
+
+    <!-- Per-star twinkle — independent slow flicker on top of the drift -->
+    <div class="star-twinkle tw1"></div>
+    <div class="star-twinkle tw2"></div>
+    <div class="star-twinkle tw3"></div>
+    <div class="star-twinkle tw4"></div>
+    <div class="star-twinkle tw5"></div>
+    <div class="star-twinkle tw6"></div>
 
     <!-- Occasional shooting star -->
     <div class="shoot-star" id="sceneShootStar"></div>
