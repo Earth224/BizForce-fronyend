@@ -141,6 +141,13 @@
       "Run KPI Review and Revenue Forecast on a schedule, not just once, so trend lines actually mean something.",
       "Refresh Data before big decisions so the Executive Reports you're reading reflect current numbers."
     ],
+    "lead-radar.html": [
+      "This is a live Bluesky lead-capture radar — it scans for buying-intent posts every 5 minutes, scores them, and separates real buyers from competitors by matched keyword and suggested product.",
+      "It tracks against your Business Profile's Competitors and Industry — keep those current so the radar is watching the conversations that actually matter to you.",
+      "Sort by score and act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it straight to Bluesky.",
+      "Check the Product Breakdown and Score Distribution charts to see which products are pulling the most buying intent, not just which leads came in.",
+      "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
+    ],
     "email-agent.html": [
       "This agent builds campaigns, sequences, and win-back/nurture flows, with a specific eye on deliverability, not just copy.",
       "It draws on your shared Business Profile — Website and Brand Voice matter most here, since email tone should match how you actually talk to customers.",
