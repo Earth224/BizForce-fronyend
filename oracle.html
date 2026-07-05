@@ -917,6 +917,169 @@
       50%       { transform: translate(-50%,-50%) scale(1.22); opacity: 0.80; }
     }
 
+    /* ── Corner star — a lone breathing point of light, its own presence ── */
+    .corner-star {
+      position: fixed;
+      right: 20px;
+      bottom: 100px;
+      width: 14px;
+      height: 14px;
+      z-index: 5;
+      pointer-events: auto;
+      cursor: grab;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255,255,255,0.95) 0%,
+        rgba(225,220,255,0.55) 30%,
+        rgba(180,140,255,0.22) 55%,
+        rgba(220,180,110,0.10) 75%,
+        transparent 100%
+      );
+      box-shadow:
+        0 0 10px 3px rgba(220,215,255,0.35),
+        0 0 22px 8px rgba(170,130,255,0.20),
+        0 0 40px 14px rgba(215,175,110,0.10);
+      animation: corner-star-breathe 6s ease-in-out infinite;
+    }
+    @keyframes corner-star-breathe {
+      0%, 100% { opacity: 0.65; transform: scale(0.9);  }
+      50%       { opacity: 1;    transform: scale(1.15); }
+    }
+    /* Star collapses away as the profile panel opens */
+    @keyframes corner-star-collapse {
+      0%   { opacity: 0.65; transform: scale(0.9);  }
+      100% { opacity: 0.05; transform: scale(0.15); }
+    }
+    /* Star fades back in, briefly overshoots, then recedes into the
+       distance before settling back into its normal breathing frame */
+    @keyframes corner-star-settle {
+      0%   { opacity: 0.05; transform: scale(0.15); }
+      55%  { opacity: 0.9;  transform: scale(1.25); }
+      75%  { opacity: 0.55; transform: scale(0.8);  }
+      100% { opacity: 0.65; transform: scale(0.9);  }
+    }
+
+    /* ── Your Oracle Profile — floating panel ── */
+    .oracle-profile-panel {
+      position: fixed;
+      right: 20px;
+      bottom: 130px;
+      width: 300px;
+      max-height: 70vh;
+      overflow-y: auto;
+      z-index: 6;
+      background: rgba(6,3,12,0.94);
+      border: 1.5px solid rgba(200,168,75,0.55);
+      border-radius: 18px;
+      box-shadow:
+        0 8px 32px rgba(0,0,0,0.6),
+        0 0 24px rgba(200,168,75,0.22),
+        0 0 42px rgba(120,60,200,0.14);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 18px 20px 22px;
+      opacity: 0;
+      transform: scale(0.85) translateY(10px);
+      transform-origin: bottom right;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.4,0.64,1);
+    }
+    .oracle-profile-panel.is-open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+    .oracle-profile-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #e8c874;
+      text-shadow: 0 0 10px rgba(232,200,116,0.45);
+      margin-bottom: 4px;
+    }
+    .oracle-profile-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: rgba(232,200,116,0.6);
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s ease;
+    }
+    .oracle-profile-close:hover { color: rgba(232,200,116,0.95); }
+    .oracle-profile-field { margin-bottom: 13px; text-align: left; }
+    .oracle-profile-field label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #e8c874;
+      margin-bottom: 6px;
+    }
+    .oracle-profile-field input,
+    .oracle-profile-field textarea {
+      width: 100%;
+      padding: 11px 14px;
+      background: rgba(10,4,20,0.7);
+      border: 1px solid rgba(200,168,75,0.30);
+      border-radius: 10px;
+      color: #e9d8ff;
+      font-family: inherit;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .oracle-profile-field input:focus,
+    .oracle-profile-field textarea:focus {
+      border-color: rgba(200,168,75,0.65);
+    }
+    .oracle-profile-field textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+    .oracle-profile-save {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      padding: 11px 16px;
+      border: 1px solid rgba(200,168,75,0.55);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(200,168,75,0.28), rgba(120,60,200,0.20));
+      color: #f4e4b8;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .oracle-profile-save:hover {
+      border-color: rgba(200,168,75,0.85);
+      background: linear-gradient(135deg, rgba(200,168,75,0.4), rgba(120,60,200,0.28));
+    }
+    .oracle-profile-save-status {
+      display: block;
+      text-align: center;
+      margin-top: 8px;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #e8c874;
+      text-shadow: 0 0 8px rgba(232,200,116,0.45);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .oracle-profile-save-status.is-visible { opacity: 1; }
+
     @media (max-width: 600px) {
       .mirror-container { width: 200px; height: 280px; margin-bottom: -80px; }
       .mirror-face { width: 130px; height: 184px; }
@@ -960,6 +1123,47 @@
       <div class="mist m4"></div>
       <div class="mist m5"></div>
       <div class="mist m6"></div>
+    </div>
+  </div>
+
+  <!-- Corner star — a separate, lone presence, always visible -->
+  <div class="corner-star" id="oracleCornerStar" aria-hidden="true"></div>
+
+  <!-- Your Oracle Profile — floating panel, opens/closes via the corner star -->
+  <div class="oracle-profile-panel" id="oracleProfilePanel" aria-hidden="true">
+    <button type="button" class="oracle-profile-close" id="oracleProfileClose" aria-label="Close">&#x2715;</button>
+    <div class="oracle-profile-title">Your Oracle Profile</div>
+    <div class="oracle-profile-body" id="oracleProfileBody">
+      <div class="oracle-profile-field">
+        <label for="birthNameInput">Birth Name</label>
+        <input type="text" id="birthNameInput" placeholder="Your full birth name" autocomplete="name" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="birthDateInput">Birth Date</label>
+        <input type="date" id="birthDateInput" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="birthTimeInput">Birth Time</label>
+        <input type="time" id="birthTimeInput" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="birthPlaceInput">Birth Place</label>
+        <input type="text" id="birthPlaceInput" placeholder="City, State, Country of birth" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="currentLocationInput">Current Location</label>
+        <input type="text" id="currentLocationInput" placeholder="Where you live now" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="pathFocusInput">Path &amp; Focus</label>
+        <input type="text" id="pathFocusInput" placeholder="Your calling, work, and what you're building" />
+      </div>
+      <div class="oracle-profile-field">
+        <label for="lifeDetailsInput">The Book of You</label>
+        <textarea id="lifeDetailsInput" rows="6" placeholder="Tell the Oracle everything it should know about you — your history, worldview, struggles, victories, beliefs, goals, and anything else that defines your path. The more you share, the deeper it sees you."></textarea>
+      </div>
+      <button type="button" class="oracle-profile-save" id="oracleProfileSave">Save</button>
+      <span class="oracle-profile-save-status" id="oracleProfileSaveStatus">Saved</span>
     </div>
   </div>
 
@@ -1049,34 +1253,6 @@
       <p class="oracle-eyebrow">Synchronization Required</p>
       <h1 class="oracle-title">THE ORACLE</h1>
       <p class="oracle-sub">Enter your birth name and date to open the channel.</p>
-      <div class="oracle-field">
-        <label for="birthNameInput">Birth Name</label>
-        <input type="text" id="birthNameInput" placeholder="Your full birth name" autocomplete="name" />
-      </div>
-      <div class="oracle-field">
-        <label for="birthDateInput">Birth Date</label>
-        <input type="date" id="birthDateInput" />
-      </div>
-      <div class="oracle-field">
-        <label for="birthTimeInput">Birth Time</label>
-        <input type="time" id="birthTimeInput" />
-      </div>
-      <div class="oracle-field">
-        <label for="birthPlaceInput">Birth Place</label>
-        <input type="text" id="birthPlaceInput" placeholder="City, State, Country of birth" />
-      </div>
-      <div class="oracle-field">
-        <label for="currentLocationInput">Current Location</label>
-        <input type="text" id="currentLocationInput" placeholder="Where you live now" />
-      </div>
-      <div class="oracle-field">
-        <label for="pathFocusInput">Path &amp; Focus</label>
-        <input type="text" id="pathFocusInput" placeholder="Your calling, work, and what you're building" />
-      </div>
-      <div class="oracle-field">
-        <label for="lifeDetailsInput">The Book of You</label>
-        <textarea id="lifeDetailsInput" rows="6" placeholder="Tell the Oracle everything it should know about you — your history, worldview, struggles, victories, beliefs, goals, and anything else that defines your path. The more you share, the deeper it sees you." style="width:100%;padding:13px 16px;background:var(--input-bg);border:1px solid var(--input-bdr);border-radius:12px;color:inherit;font-family:inherit;font-size:inherit;line-height:1.6;resize:vertical;outline:none;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);"></textarea>
-      </div>
       <p class="oracle-error" id="syncError" style="display:none"></p>
       <button class="oracle-sync-btn" id="syncBtn">SYNCHRONIZE</button>
     </div>
@@ -1610,6 +1786,216 @@
     applyDrift(calmDir, 1);
     scheduleNextShift();
     scheduleNextBurst();
+  }());
+  </script>
+
+  <!-- Independent corner-star drag driver — position only, no tap behavior yet -->
+  <script>
+  (function () {
+    var star = document.getElementById("oracleCornerStar");
+    if (!star) return;
+
+    var POS_KEY        = "oracle_corner_star_pos";
+    var DRAG_THRESHOLD  = 6;
+    var pressX = 0, pressY = 0;
+    var startLeft = 0, startTop = 0;
+    var dragging  = false;
+    var dragMoved = false;
+
+    function clampPosition(left, top) {
+      var maxLeft = Math.max(window.innerWidth  - star.offsetWidth,  0);
+      var maxTop  = Math.max(window.innerHeight - star.offsetHeight, 0);
+      return {
+        left: Math.min(Math.max(left, 0), maxLeft),
+        top:  Math.min(Math.max(top,  0), maxTop)
+      };
+    }
+
+    function restorePosition() {
+      var raw;
+      try { raw = localStorage.getItem(POS_KEY); } catch (e) { return; }
+      if (!raw) return;
+      var pos;
+      try { pos = JSON.parse(raw); } catch (e) { return; }
+      if (typeof pos.left !== "number" || typeof pos.top !== "number") return;
+      var c = clampPosition(pos.left, pos.top);
+      star.style.left   = c.left + "px";
+      star.style.top    = c.top  + "px";
+      star.style.right  = "auto";
+      star.style.bottom = "auto";
+    }
+
+    star.addEventListener("pointerdown", function (e) {
+      pressX     = e.clientX;
+      pressY     = e.clientY;
+      dragMoved  = false;
+      dragging   = true;
+      var rect   = star.getBoundingClientRect();
+      startLeft  = rect.left;
+      startTop   = rect.top;
+      if (star.setPointerCapture) {
+        try { star.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+    });
+
+    star.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - pressX;
+      var dy = e.clientY - pressY;
+      if (!dragMoved && Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+      dragMoved = true;
+      var c = clampPosition(startLeft + dx, startTop + dy);
+      star.style.left   = c.left + "px";
+      star.style.top    = c.top  + "px";
+      star.style.right  = "auto";
+      star.style.bottom = "auto";
+    });
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      if (dragMoved) {
+        var rect = star.getBoundingClientRect();
+        try {
+          localStorage.setItem(POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+        } catch (err) {}
+      }
+    }
+
+    star.addEventListener("pointerup", endDrag);
+    star.addEventListener("pointercancel", endDrag);
+
+    restorePosition();
+
+    /* ── Tap to open/close the profile panel; drags never open it ── */
+    var panel    = document.getElementById("oracleProfilePanel");
+    var closeBtn = document.getElementById("oracleProfileClose");
+    var isOpen   = false;
+
+    function collapseStar() {
+      star.style.animation = "corner-star-collapse 0.45s ease forwards";
+    }
+
+    function settleStar() {
+      star.style.animation = "corner-star-settle 0.6s ease forwards";
+      setTimeout(function () {
+        star.style.animation = ""; /* hand control back to the base breathing animation */
+      }, 620);
+    }
+
+    function prefillProfile() {
+      if (typeof API_URL === "undefined" || typeof token === "undefined") return;
+      fetch(API_URL + "/api/oracle/sync", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (result) {
+          if (!result || !result.synced || !result.data) return;
+          var d        = result.data;
+          var nameEl   = document.getElementById("birthNameInput");
+          var dateEl   = document.getElementById("birthDateInput");
+          var timeEl   = document.getElementById("birthTimeInput");
+          var placeEl  = document.getElementById("birthPlaceInput");
+          var locEl    = document.getElementById("currentLocationInput");
+          var pathEl   = document.getElementById("pathFocusInput");
+          var lifeEl   = document.getElementById("lifeDetailsInput");
+          if (nameEl  && d.birth_name)       nameEl.value  = d.birth_name;
+          if (dateEl  && d.birth_date)       dateEl.value  = d.birth_date;
+          if (timeEl  && d.birth_time)       timeEl.value  = d.birth_time;
+          if (placeEl && d.birth_place)      placeEl.value = d.birth_place;
+          if (locEl   && d.current_location) locEl.value   = d.current_location;
+          if (pathEl  && d.path_focus)       pathEl.value  = d.path_focus;
+          if (lifeEl  && d.life_details)     lifeEl.value  = d.life_details;
+        })
+        .catch(function () {});
+    }
+
+    /* Save control — reuses the exact same read-fields → build-payload →
+       POST logic as the SYNCHRONIZE button, just without the birth
+       name/date requirement or the sync-screen → chat transition. */
+    var saveBtn      = document.getElementById("oracleProfileSave");
+    var saveStatusEl = document.getElementById("oracleProfileSaveStatus");
+
+    function saveProfile() {
+      if (typeof API_URL === "undefined" || typeof token === "undefined") return;
+
+      var birthNameInput       = document.getElementById("birthNameInput").value.trim();
+      var birthDateInput       = document.getElementById("birthDateInput").value.trim();
+      var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
+      var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
+      var currentLocationInput = document.getElementById("currentLocationInput").value.trim();
+      var pathFocusInput       = document.getElementById("pathFocusInput").value.trim();
+      var lifeDetailsInput     = document.getElementById("lifeDetailsInput").value.trim();
+
+      var syncPayload = {
+        birth_name:       birthNameInput,
+        birth_date:       birthDateInput,
+        birth_time:       birthTimeInput,
+        birth_place:      birthPlaceInput,
+        current_location: currentLocationInput,
+        path_focus:       pathFocusInput,
+        life_details:     lifeDetailsInput
+      };
+
+      try {
+        fetch(API_URL + "/api/oracle/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify(syncPayload)
+        }).catch(function (err) {
+          console.error("Oracle profile save failed:", err);
+        });
+      } catch (err) {
+        console.error("Oracle profile save failed:", err);
+      }
+
+      if (saveStatusEl) {
+        saveStatusEl.classList.add("is-visible");
+        setTimeout(function () {
+          saveStatusEl.classList.remove("is-visible");
+          closeProfile();
+        }, 1100);
+      } else {
+        closeProfile();
+      }
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        saveProfile();
+      });
+    }
+
+    function openProfile() {
+      if (isOpen || !panel) return;
+      isOpen = true;
+      collapseStar();
+      panel.classList.add("is-open");
+      prefillProfile();
+    }
+
+    function closeProfile() {
+      if (!isOpen || !panel) return;
+      isOpen = false;
+      panel.classList.remove("is-open");
+      settleStar();
+    }
+
+    star.addEventListener("click", function () {
+      if (dragMoved) return;
+      if (isOpen) { closeProfile(); } else { openProfile(); }
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeProfile();
+      });
+    }
   }());
   </script>
 
