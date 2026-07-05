@@ -654,6 +654,95 @@
       100% { background-position: 0px -520px, 0px -520px; }
     }
 
+    /* ── Alternate starfield drift directions — defined only, not yet wired up.
+       Each direction keeps the same far/mid/near tile sizes and relative speed
+       ratio (far slowest, near fastest) as the existing drift so the parallax
+       depth reads the same no matter which direction is applied later. ── */
+
+    /* Downward — slow rain-like fall */
+    @keyframes star-drift-down-far {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 0px 260px, 0px 260px, 0px 260px, 0px 260px; }
+    }
+    @keyframes star-drift-down-mid {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 0px 380px, 0px 380px, 0px 380px; }
+    }
+    @keyframes star-drift-down-near {
+      0%   { background-position: 0px 0px,   0px 0px;   }
+      100% { background-position: 0px 520px, 0px 520px; }
+    }
+
+    /* Upward — slow ascent */
+    @keyframes star-drift-up-far {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: 0px -260px, 0px -260px, 0px -260px, 0px -260px; }
+    }
+    @keyframes star-drift-up-mid {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: 0px -380px, 0px -380px, 0px -380px; }
+    }
+    @keyframes star-drift-up-near {
+      0%   { background-position: 0px 0px,    0px 0px;    }
+      100% { background-position: 0px -520px, 0px -520px; }
+    }
+
+    /* Leftward — slow swoosh */
+    @keyframes star-drift-left-far {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: -220px 0px, -220px 0px, -220px 0px, -220px 0px; }
+    }
+    @keyframes star-drift-left-mid {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: -320px 0px, -320px 0px, -320px 0px; }
+    }
+    @keyframes star-drift-left-near {
+      0%   { background-position: 0px 0px,    0px 0px;    }
+      100% { background-position: -460px 0px, -460px 0px; }
+    }
+
+    /* Rightward — slow swoosh */
+    @keyframes star-drift-right-far {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 220px 0px, 220px 0px, 220px 0px, 220px 0px; }
+    }
+    @keyframes star-drift-right-mid {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 320px 0px, 320px 0px, 320px 0px; }
+    }
+    @keyframes star-drift-right-near {
+      0%   { background-position: 0px 0px,   0px 0px;   }
+      100% { background-position: 460px 0px, 460px 0px; }
+    }
+
+    /* Diagonal 1 — down-right */
+    @keyframes star-drift-diag1-far {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 220px 260px, 220px 260px, 220px 260px, 220px 260px; }
+    }
+    @keyframes star-drift-diag1-mid {
+      0%   { background-position: 0px 0px,   0px 0px,   0px 0px;   }
+      100% { background-position: 320px 380px, 320px 380px, 320px 380px; }
+    }
+    @keyframes star-drift-diag1-near {
+      0%   { background-position: 0px 0px,   0px 0px;   }
+      100% { background-position: 460px 520px, 460px 520px; }
+    }
+
+    /* Diagonal 2 — down-left */
+    @keyframes star-drift-diag2-far {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: -220px 260px, -220px 260px, -220px 260px, -220px 260px; }
+    }
+    @keyframes star-drift-diag2-mid {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: -320px 380px, -320px 380px, -320px 380px; }
+    }
+    @keyframes star-drift-diag2-near {
+      0%   { background-position: 0px 0px,    0px 0px;    }
+      100% { background-position: -460px 520px, -460px 520px; }
+    }
+
     /* ── Shooting star — occasional thin streak crossing the void ── */
     .shoot-star {
       position: absolute;
@@ -1429,6 +1518,40 @@
     }
 
     setTimeout(fireSceneShoot, 3000 + Math.random() * 4000);
+  }());
+  </script>
+
+  <!-- Independent starfield direction driver — scene background only -->
+  <script>
+  (function () {
+    var far  = document.querySelector(".star-far");
+    var mid  = document.querySelector(".star-mid");
+    var near = document.querySelector(".star-near");
+    if (!far || !mid || !near) return;
+
+    var DIRECTIONS = ["down", "up", "left", "right", "diag1", "diag2"];
+
+    function applyDirection(dir) {
+      far.style.animation  = "none";
+      mid.style.animation  = "none";
+      near.style.animation = "none";
+      far.offsetHeight; /* force reflow to restart */
+      far.style.animation  = "star-drift-" + dir + "-far 140s linear infinite";
+      mid.style.animation  = "star-drift-" + dir + "-mid 70s linear infinite";
+      near.style.animation = "star-drift-" + dir + "-near 30s linear infinite";
+    }
+
+    function scheduleNextShift() {
+      var delay = 20000 + Math.random() * 20000; /* 20-40s calm stretches */
+      setTimeout(function () {
+        var dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+        applyDirection(dir);
+        scheduleNextShift();
+      }, delay);
+    }
+
+    applyDirection(DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)]);
+    scheduleNextShift();
   }());
   </script>
 
