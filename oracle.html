@@ -1254,6 +1254,40 @@
       syncError.style.display = "none";
       if (!n) { showSyncError("Your birth name is required."); return; }
       if (!d) { showSyncError("Your birth date is required."); return; }
+
+      var birthNameInput       = document.getElementById("birthNameInput").value.trim();
+      var birthDateInput       = document.getElementById("birthDateInput").value.trim();
+      var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
+      var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
+      var currentLocationInput = document.getElementById("currentLocationInput").value.trim();
+      var pathFocusInput       = document.getElementById("pathFocusInput").value.trim();
+      var lifeDetailsInput     = document.getElementById("lifeDetailsInput").value.trim();
+
+      var syncPayload = {
+        birth_name:       birthNameInput,
+        birth_date:       birthDateInput,
+        birth_time:       birthTimeInput,
+        birth_place:      birthPlaceInput,
+        current_location: currentLocationInput,
+        path_focus:       pathFocusInput,
+        life_details:     lifeDetailsInput
+      };
+
+      try {
+        fetch(API_URL + "/api/oracle/sync", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify(syncPayload)
+        }).catch(function (err) {
+          console.error("Oracle sync failed:", err);
+        });
+      } catch (err) {
+        console.error("Oracle sync failed:", err);
+      }
+
       birthName = n; birthDate = d;
       localStorage.setItem("bf_oracle_name", n);
       localStorage.setItem("bf_oracle_date", d);
