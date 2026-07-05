@@ -1530,28 +1530,53 @@
     if (!far || !mid || !near) return;
 
     var DIRECTIONS = ["down", "up", "left", "right", "diag1", "diag2"];
+    var calmDir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
 
-    function applyDirection(dir) {
+    /* speedFactor 1 = calm base pace (far 140s / mid 70s / near 30s);
+       higher factors accelerate all three layers together, in the same
+       ratio, for a sudden burst without breaking the parallax pairing. */
+    function applyDrift(dir, speedFactor) {
+      var farDur  = (140 / speedFactor).toFixed(2);
+      var midDur  = (70  / speedFactor).toFixed(2);
+      var nearDur = (30  / speedFactor).toFixed(2);
       far.style.animation  = "none";
       mid.style.animation  = "none";
       near.style.animation = "none";
       far.offsetHeight; /* force reflow to restart */
-      far.style.animation  = "star-drift-" + dir + "-far 140s linear infinite";
-      mid.style.animation  = "star-drift-" + dir + "-mid 70s linear infinite";
-      near.style.animation = "star-drift-" + dir + "-near 30s linear infinite";
+      far.style.animation  = "star-drift-" + dir + "-far "  + farDur  + "s linear infinite";
+      mid.style.animation  = "star-drift-" + dir + "-mid "  + midDur  + "s linear infinite";
+      near.style.animation = "star-drift-" + dir + "-near " + nearDur + "s linear infinite";
     }
 
     function scheduleNextShift() {
       var delay = 20000 + Math.random() * 20000; /* 20-40s calm stretches */
       setTimeout(function () {
-        var dir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
-        applyDirection(dir);
+        calmDir = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+        applyDrift(calmDir, 1);
         scheduleNextShift();
       }, delay);
     }
 
-    applyDirection(DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)]);
+    function scheduleNextBurst() {
+      var delay = 30000 + Math.random() * 60000; /* 30-90s between bursts */
+      setTimeout(function () {
+        var burstDir      = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+        var burstFactor   = 8 + Math.random() * 10;        /* sudden 8x-18x sprint */
+        var burstDuration = 2000 + Math.random() * 2000;   /* 2-4s */
+
+        applyDrift(burstDir, burstFactor);
+
+        setTimeout(function () {
+          applyDrift(calmDir, 1); /* ease back into the current calm drift */
+        }, burstDuration);
+
+        scheduleNextBurst();
+      }, delay);
+    }
+
+    applyDrift(calmDir, 1);
     scheduleNextShift();
+    scheduleNextBurst();
   }());
   </script>
 
