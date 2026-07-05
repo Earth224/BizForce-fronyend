@@ -941,6 +941,34 @@
         0 0 40px 14px rgba(215,175,110,0.10);
       animation: corner-star-breathe 6s ease-in-out infinite;
     }
+    /* Slow rotating light glints — blended additively so they read as the
+       star's own shine rather than a separate rotating shape on top */
+    .corner-star::after {
+      content: '';
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,   rgba(225,220,255,0.22) 3deg,   transparent 10deg,
+        transparent 40deg,  rgba(225,195,140,0.18) 43deg,  transparent 50deg,
+        transparent 85deg,  rgba(225,220,255,0.22) 88deg,  transparent 95deg,
+        transparent 130deg, rgba(225,195,140,0.18) 133deg, transparent 140deg,
+        transparent 175deg, rgba(225,220,255,0.22) 178deg, transparent 185deg,
+        transparent 220deg, rgba(225,195,140,0.18) 223deg, transparent 230deg,
+        transparent 265deg, rgba(225,220,255,0.22) 268deg, transparent 275deg,
+        transparent 310deg, rgba(225,195,140,0.18) 313deg, transparent 320deg,
+        transparent 360deg
+      );
+      filter: blur(2.5px);
+      animation: corner-star-rays-spin 34s linear infinite;
+    }
+    @keyframes corner-star-rays-spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
     @keyframes corner-star-breathe {
       0%, 100% { opacity: 0.65; transform: scale(0.9);  }
       50%       { opacity: 1;    transform: scale(1.15); }
