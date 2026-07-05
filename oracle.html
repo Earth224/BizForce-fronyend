@@ -1108,6 +1108,42 @@
     }
     .oracle-profile-save-status.is-visible { opacity: 1; }
 
+    .oracle-profile-numerology {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(200,168,75,0.25);
+    }
+    .oracle-profile-numerology-title {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-align: center;
+      color: #e8c874;
+      text-shadow: 0 0 8px rgba(232,200,116,0.35);
+      margin-bottom: 10px;
+    }
+    .oracle-profile-num-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .oracle-profile-num-row:last-child { border-bottom: none; }
+    .oracle-profile-num-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.65);
+    }
+    .oracle-profile-num-value {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #f4e4b8;
+      text-shadow: 0 0 6px rgba(232,200,116,0.3);
+    }
+
     @media (max-width: 600px) {
       .mirror-container { width: 200px; height: 280px; margin-bottom: -80px; }
       .mirror-face { width: 130px; height: 184px; }
@@ -1192,6 +1228,26 @@
       </div>
       <button type="button" class="oracle-profile-save" id="oracleProfileSave">Save</button>
       <span class="oracle-profile-save-status" id="oracleProfileSaveStatus">Saved</span>
+
+      <div class="oracle-profile-numerology" id="oracleProfileNumerology" style="display:none;">
+        <div class="oracle-profile-numerology-title">Numerology</div>
+        <div class="oracle-profile-num-row">
+          <span class="oracle-profile-num-label">Life Path</span>
+          <span class="oracle-profile-num-value" id="numLifePath">—</span>
+        </div>
+        <div class="oracle-profile-num-row">
+          <span class="oracle-profile-num-label">Expression</span>
+          <span class="oracle-profile-num-value" id="numExpression">—</span>
+        </div>
+        <div class="oracle-profile-num-row">
+          <span class="oracle-profile-num-label">Soul Urge</span>
+          <span class="oracle-profile-num-value" id="numSoulUrge">—</span>
+        </div>
+        <div class="oracle-profile-num-row">
+          <span class="oracle-profile-num-label">Birthday</span>
+          <span class="oracle-profile-num-value" id="numBirthday">—</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1938,6 +1994,38 @@
         .catch(function () {});
     }
 
+    function fetchNumerology() {
+      var section = document.getElementById("oracleProfileNumerology");
+      if (!section) return;
+      section.style.display = "none";
+
+      if (typeof API_URL === "undefined" || typeof token === "undefined") return;
+
+      fetch(API_URL + "/api/oracle/numerology", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data ||
+              (data.life_path   == null &&
+               data.expression  == null &&
+               data.soul_urge   == null &&
+               data.birthday    == null)) {
+            return; /* leave hidden — soft-fail on empty result */
+          }
+          var lp = document.getElementById("numLifePath");
+          var ex = document.getElementById("numExpression");
+          var su = document.getElementById("numSoulUrge");
+          var bd = document.getElementById("numBirthday");
+          if (lp) lp.textContent = data.life_path  != null ? data.life_path  : "—";
+          if (ex) ex.textContent = data.expression != null ? data.expression : "—";
+          if (su) su.textContent = data.soul_urge  != null ? data.soul_urge  : "—";
+          if (bd) bd.textContent = data.birthday   != null ? data.birthday   : "—";
+          section.style.display = "block";
+        })
+        .catch(function () {}); /* leave hidden — soft-fail on error */
+    }
+
     /* Save control — reuses the exact same read-fields → build-payload →
        POST logic as the SYNCHRONIZE button, just without the birth
        name/date requirement or the sync-screen → chat transition. */
@@ -2004,6 +2092,7 @@
       collapseStar();
       panel.classList.add("is-open");
       prefillProfile();
+      fetchNumerology();
     }
 
     function closeProfile() {
