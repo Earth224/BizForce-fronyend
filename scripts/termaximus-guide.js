@@ -388,7 +388,16 @@
     return '<p class="tmx-guide-placeholder">' + value + '</p>';
   }
 
-  var guidanceText = PAGE_GUIDANCE[currentPageKey()] || DEFAULT_GUIDANCE;
+  function resolveGuidance(key) {
+    if (PAGE_GUIDANCE[key]) return PAGE_GUIDANCE[key];
+    if (key.indexOf(".html") === -1) {
+      var withExtension = key + ".html";
+      if (PAGE_GUIDANCE[withExtension]) return PAGE_GUIDANCE[withExtension];
+    }
+    return DEFAULT_GUIDANCE;
+  }
+
+  var guidanceText = resolveGuidance(currentPageKey());
 
   panel.innerHTML =
     '<div class="tmx-guide-header">' +
