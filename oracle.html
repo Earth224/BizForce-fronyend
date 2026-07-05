@@ -6,67 +6,21 @@
   <title>BizForce AI — The Oracle</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; }
 
-    /* ── CSS Custom Properties (night defaults, overridden by JS) ── */
     :root {
-      --bg-hex:       #050308;
-      --bg-g1:        rgba(70, 25, 100, 0.20);
-      --bg-g2:        rgba(40, 14, 60, 0.26);
-      --star-op:      1;
-      --ring-clr:     rgba(150,80,220,0.50);
-      --ring-glow:    rgba(0, 160, 140, 0.30);
-      --core-g1:      rgba(0, 210, 190, 0.88);
-      --core-g2:      rgba(0, 140, 120, 0.48);
-      --ray-angle:    210deg;
-      --ray-op:       0.028;
-      --ray-clr:      rgba(120, 70, 170, 0.10);
-      --bio-op:       0.90;
-      --acc-from:     #00d4b8;
-      --acc-mid:      #00a090;
-      --acc-to:       #006858;
-      --btn-from:     #006858;
-      --btn-to:       #003830;
-      --btn-shadow:   rgba(0, 104, 88, 0.48);
-      --status-clr:   rgba(0, 212, 190, 0.55);
-      --sub-clr:      rgba(0, 212, 190, 0.45);
-      --input-bg:     rgba(2, 8, 14, 0.78);
-      --input-bdr:    rgba(0, 180, 160, 0.30);
-      --input-foc:    rgba(0, 180, 160, 0.58);
-      --msg-bg:       rgba(0, 30, 26, 0.25);
-      --msg-bdr:      rgba(0, 180, 160, 0.22);
-      --header-bg:    rgba(2, 6, 10, 0.88);
-      --text-clr:     #e9d8ff;
-      --sender-clr:   rgba(200,160,255,0.60);
-      /* Scene & mirror — overridden by JS palette */
-      --j-far:        rgba(0, 15, 12, 0.85);
-      --j-mid:        rgba(0, 8, 6, 0.92);
-      --j-near:       rgba(0, 3, 2, 1);
-      --stream-clr:   rgba(150,90,210,0.38);
-      --stream-deep:  rgba(90,55,140,0.62);
-      --stream-shim:  rgba(230,190,110,0.20);
       --mirror-f-clr: #c8a84b;
-      --mirror-glow:  rgba(180,120,255,0.55);
-      --nebula-1:     rgba(120,50,160,0.50);
-      --nebula-2:     rgba(180,60,140,0.42);
-      --mist-clr:     rgba(90,50,130,0.40);
-      --glow-a-soft:  rgba(190,130,255,0.32);
-      --glow-b-soft:  rgba(230,190,110,0.30);
-      --neb-base-1:   rgba(60,30,80,1);
-      --neb-base-2:   rgba(30,16,45,1);
     }
 
-    /* ── Shared "live gold" treatment — built on --mirror-f-clr, which
-       stays gold across every time-of-day palette. Two reusable classes,
-       one shimmer rhythm, so all gold on the page breathes in sync.
-       Not applied to any element yet. ── */
+    /* ── Shared "live gold" treatment — built on --mirror-f-clr. Two
+       reusable classes, one shimmer rhythm, so all gold on the page
+       breathes in sync. ── */
     @keyframes bf-gold-shimmer {
       0%, 100% { background-position: 0% 50%; opacity: 0.9; }
       50%       { background-position: 100% 50%; opacity: 1;  }
     }
 
-    /* Gold text — gradient-clipped, soft glow behind, slow living drift.
-       For labels and the SYNCHRONIZED subtitle. */
+    /* Gold text — gradient-clipped, soft glow behind, slow living drift. */
     .bf-gold-text {
       background: linear-gradient(100deg,
         #fff3d2 0%,
@@ -83,9 +37,7 @@
     }
 
     /* Gold rim — living-gold border with outer glow and inner sheen.
-       For the chat box, profile panel, and outer screen. Thickness is
-       adjustable per use via --bf-gold-rim-w (default 1.5px) — override
-       it on a more specific selector or inline style where applied. */
+       Thickness adjustable via --bf-gold-rim-w (default 1.5px). */
     .bf-gold-rim {
       --bf-gold-rim-w: 1.5px;
       border: var(--bf-gold-rim-w) solid var(--mirror-f-clr);
@@ -97,562 +49,147 @@
       animation: bf-gold-shimmer 7s ease-in-out infinite;
     }
 
-    /* Transparent black glass — a dark, mostly see-through tint so the
-       abyss and shooting stars read clearly behind it, gently frosted
-       rather than razor-sharp. Dark enough for gold text/rims to pop
-       against it. Not applied to any element yet. */
+    /* Transparent black glass — dark, mostly see-through tint so the
+       abyss and shooting stars read clearly behind it. */
     .bf-glass {
       background: rgba(6,10,22,0.72);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
     }
 
+    /* ── BizForce page chrome — Business Chat's exact recipe ── */
     html, body {
-      height: 100%;
+      margin: 0;
+      min-height: 100%;
       font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-      background: var(--bg-hex);
-      color: var(--text-clr);
-      overflow: hidden;
-      transition: background 4s ease, color 4s ease;
+      color: #e8e8ff;
+      background: #070b18;
     }
 
-    /* Abyss depth gradient — color shifts with palette */
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 90% 70% at 50% 50%, var(--bg-g1), transparent 65%),
-        radial-gradient(ellipse 45% 45% at 50% 50%, var(--bg-g2), transparent),
-        var(--bg-hex);
-      transition: background 4s ease;
-      pointer-events: none;
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
       z-index: 0;
+      pointer-events: none;
     }
 
-    /* Star field — opacity driven by time (full at night, near-zero at midday) */
-    body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      opacity: var(--star-op);
-      background:
-        radial-gradient(1.5px 1.5px at  7%  11%, rgba(255,255,255,0.40), transparent),
-        radial-gradient(1px   1px   at 18%  72%, rgba(255,255,255,0.28), transparent),
-        radial-gradient(1.5px 1.5px at 28%  44%, rgba(200,220,255,0.32), transparent),
-        radial-gradient(1px   1px   at 41%  85%, rgba(255,255,255,0.22), transparent),
-        radial-gradient(2px   2px   at 52%  19%, rgba(220,200,255,0.35), transparent),
-        radial-gradient(1px   1px   at 63%  56%, rgba(255,255,255,0.24), transparent),
-        radial-gradient(1.5px 1.5px at 72%  33%, rgba(200,220,255,0.30), transparent),
-        radial-gradient(1px   1px   at 81%  78%, rgba(255,255,255,0.20), transparent),
-        radial-gradient(1.5px 1.5px at 89%  14%, rgba(220,200,255,0.32), transparent),
-        radial-gradient(1px   1px   at 94%  62%, rgba(255,255,255,0.26), transparent),
-        radial-gradient(1px   1px   at 11%  92%, rgba(200,220,255,0.22), transparent),
-        radial-gradient(2px   2px   at 35%  28%, rgba(255,255,255,0.18), transparent),
-        radial-gradient(1px   1px   at 58%  95%, rgba(220,200,255,0.24), transparent),
-        radial-gradient(1.5px 1.5px at 76%  50%, rgba(255,255,255,0.20), transparent),
-        radial-gradient(1px   1px   at 96%  38%, rgba(200,220,255,0.28), transparent);
-      transition: opacity 4s ease;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Light rays — angle and color temperature shift with time of day */
-    .light-rays {
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        var(--ray-angle),
-        transparent 0px,
-        transparent 80px,
-        var(--ray-clr) 80px,
-        var(--ray-clr) 81px,
-        transparent 81px,
-        transparent 160px
-      );
-      opacity: var(--ray-op);
-      transition: opacity 4s ease, background 4s ease;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── Screens ── */
-    .oracle-screen {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+    .page {
+      position: relative;
       z-index: 1;
-      /* Override .bf-glass's fill here specifically — the outer screen
-         should read as a near-black void with the starfield clearly
-         visible through it, not a solid tinted pane like the boxes */
-      background: rgba(5,7,15,0.3);
-      transition: opacity 0.8s ease;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
     }
-    .oracle-screen.hidden {
+    .page.hidden {
       opacity: 0;
       pointer-events: none;
       display: none;
+      transition: opacity 0.8s ease;
     }
 
-    /* ════════════════════════════════════════
-       SYNC SCREEN
-    ════════════════════════════════════════ */
-    .void-container {
-      position: relative;
-      width: 420px;
-      height: 420px;
+    .top-nav {
       display: flex;
       align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-bottom: -150px;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
     }
 
-    /* Bioluminescent rings — color, glow, and opacity all time-responsive */
-    .void-ring {
-      position: absolute;
-      border-radius: 50%;
-      transform-origin: center;
-      transition: border-color 4s ease, box-shadow 4s ease, opacity 4s ease;
-    }
-    .r1 {
-      width: 88px; height: 88px;
-      border: 1px solid var(--ring-clr);
-      box-shadow: 0 0 18px var(--ring-glow) inset, 0 0 18px var(--ring-glow);
-      animation: ringPulse 3s ease-in-out infinite 0s;
-    }
-    .r2 {
-      width: 168px; height: 168px;
-      border: 1px solid var(--ring-clr);
-      animation: ringPulse 3s ease-in-out infinite 0.45s;
-    }
-    .r3 {
-      width: 268px; height: 268px;
-      border: 1px solid var(--ring-clr);
-      animation: ringPulse 3s ease-in-out infinite 0.9s;
-    }
-    .r4 {
-      width: 390px; height: 390px;
-      border: 1px solid var(--ring-clr);
-      animation: ringPulse 3s ease-in-out infinite 1.35s;
-    }
-
-    @keyframes ringPulse {
-      0%, 100% {
-        transform: scale(1);
-        opacity: var(--bio-op);
-        box-shadow: 0 0 6px var(--ring-clr);
-      }
-      50% {
-        transform: scale(1.07);
-        opacity: calc(var(--bio-op) * 0.38);
-        box-shadow: 0 0 18px var(--mirror-glow), 0 0 36px var(--ring-clr);
-      }
-    }
-
-    /* Void core — glow color follows palette */
-    .void-core {
-      position: relative;
-      z-index: 2;
-      width: 52px; height: 52px;
-      display: flex;
+    .back-link {
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      animation: coreBreath 3s ease-in-out infinite;
-      transition: opacity 4s ease;
-    }
-    @keyframes coreBreath {
-      0%, 100% {
-        transform: scale(1);
-        filter: drop-shadow(0 0 10px var(--core-g1))
-                drop-shadow(0 0 22px var(--core-g2))
-                drop-shadow(0 0 4px var(--mirror-glow));
-      }
-      50% {
-        transform: scale(1.08);
-        filter: drop-shadow(0 0 22px var(--core-g1))
-                drop-shadow(0 0 48px var(--mirror-glow))
-                drop-shadow(0 0 18px var(--core-g2))
-                drop-shadow(0 0 8px var(--mirror-f-clr));
-      }
-    }
-
-    /* Sync form */
-    .sync-form {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      padding: 28px 28px 24px;
-      max-width: 420px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      background: var(--neb-base-2);
-      border: 1px solid var(--ring-clr);
-      border-radius: 18px;
-      box-shadow: 0 0 32px var(--mirror-glow), 0 8px 40px rgba(0,0,0,0.55);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
-
-    .oracle-eyebrow {
-      font-size: 0.67rem;
-      font-weight: 700;
-      letter-spacing: 0.24em;
-      color: var(--status-clr);
-      text-transform: uppercase;
-      margin-bottom: 14px;
-      transition: color 4s ease;
-    }
-
-    .oracle-title {
-      font-size: clamp(2.8rem, 8vw, 4.2rem);
-      font-weight: 900;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, var(--acc-from) 0%, var(--acc-mid) 45%, var(--acc-to) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 0 30px var(--acc-from));
-      margin-bottom: 10px;
-      line-height: 1.05;
-      transition: filter 4s ease;
-    }
-
-    .oracle-sub {
-      font-size: 0.86rem;
-      color: var(--sub-clr);
-      line-height: 1.6;
-      margin-bottom: 30px;
-      letter-spacing: 0.03em;
-      transition: color 4s ease;
-    }
-
-    .oracle-field { margin-bottom: 13px; text-align: left; }
-    .oracle-field label {
-      display: block;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--status-clr);
-      margin-bottom: 7px;
-      transition: color 4s ease;
-    }
-    .oracle-field input {
-      width: 100%;
-      padding: 13px 16px;
-      background: var(--input-bg);
-      border: 1px solid var(--input-bdr);
+      gap: 8px;
+      padding: 10px 18px;
       border-radius: 12px;
-      color: var(--text-clr);
-      font-size: 0.94rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 4s ease, color 4s ease;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .oracle-field input:focus {
-      border-color: var(--input-foc);
-      box-shadow: 0 0 0 3px rgba(0,0,0,0.14);
-    }
-    .oracle-field input::placeholder { color: var(--status-clr); opacity: 0.45; }
-    .oracle-field input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.55) sepia(1) saturate(3) hue-rotate(180deg);
-      opacity: 0.45;
-      cursor: pointer;
-    }
-
-    .oracle-sync-btn {
-      margin-top: 6px;
-      width: 100%;
-      padding: 15px 20px;
-      border: none;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--mirror-glow), var(--mirror-f-clr));
-      color: #1a0e2e;
-      font-size: 0.86rem;
-      font-weight: 800;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      cursor: pointer;
-      box-shadow: 0 4px 22px rgba(200,168,75,0.35), 0 0 12px var(--mirror-glow);
-      font-family: inherit;
-      transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-    }
-    .oracle-sync-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 40px rgba(200,168,75,0.60), 0 0 28px var(--mirror-f-clr), 0 0 14px var(--mirror-glow);
-    }
-    .oracle-sync-btn:active { transform: translateY(0); }
-    .oracle-sync-btn.syncing {
-      opacity: 0.65;
-      cursor: default;
-      pointer-events: none;
-      animation: syncGlow 0.9s ease-in-out infinite;
-    }
-    @keyframes syncGlow {
-      0%, 100% { box-shadow: 0 4px 24px var(--btn-shadow); }
-      50%       { box-shadow: 0 4px 52px var(--btn-shadow); }
-    }
-
-    .oracle-error {
-      font-size: 0.8rem;
-      color: rgba(248, 113, 113, 0.78);
-      margin-bottom: 10px;
-      font-style: italic;
-      text-align: center;
-    }
-
-    /* ════════════════════════════════════════
-       CHAT SCREEN
-    ════════════════════════════════════════ */
-    #chatScreen { justify-content: flex-start; }
-
-    .oracle-chat-header {
-      width: 100%;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 4px;
-      padding: 22px 24px 18px;
-      background: transparent;
-      flex-shrink: 0;
-    }
-    .oracle-chat-header .oracle-back {
-      position: absolute;
-      top: 14px;
-      left: 20px;
-    }
-    .oracle-brand-pill {
-      display: inline-block;
-      padding: 6px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(0, 229, 255, 0.3);
-      background: rgba(0, 229, 255, 0.08);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
       color: #22d3ee;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-
-    /* Mini void — bioluminescent rings in header, same palette */
-    .void-mini {
-      position: relative;
-      width: 42px; height: 42px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .void-ring-mini {
-      position: absolute;
-      border-radius: 50%;
-      transition: border-color 4s ease;
-    }
-    .rm1 {
-      width: 26px; height: 26px;
-      border: 1px solid var(--ring-clr);
-      animation: ringPulse 3s ease-in-out infinite 0s;
-    }
-    .rm2 {
-      width: 42px; height: 42px;
-      border: 1px solid var(--ring-clr);
-      animation: ringPulse 3s ease-in-out infinite 0.5s;
-    }
-    .void-core-mini {
-      position: relative; z-index: 2;
-      animation: coreBreath 3s ease-in-out infinite;
-    }
-
-    .oracle-header-meta {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 0;
-    }
-    .oracle-chat-title {
-      margin: 2px 0;
-      font-size: clamp(1.3rem, 3.4vw, 2rem);
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 50%, #a855f7 78%, #ff5ec2 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.35)) drop-shadow(0 0 16px rgba(168, 85, 247, 0.22));
-    }
-    .oracle-sync-status {
-      font-size: 0.65rem;
+      text-decoration: none;
+      font-size: 0.875rem;
       font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      margin-top: 2px;
-      transition: color 4s ease;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
-    .oracle-back {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--status-clr);
-      opacity: 0.75;
-      text-decoration: none;
-      padding: 7px 13px;
-      border: 1px solid var(--msg-bdr);
-      border-radius: 10px;
-      white-space: nowrap;
-      flex-shrink: 0;
-      transition: opacity 0.2s ease, border-color 0.2s ease;
-    }
-    .oracle-back:hover { opacity: 1; border-color: var(--input-foc); }
-
-    /* Messages — fixed-height rounded card, .bf-glass transparent black
-       glass fill, .bf-gold-rim living-gold edge, floating wide over the abyss */
-    .oracle-messages {
-      min-height: 420px;
-      max-height: 560px;
-      overflow-y: auto;
-      padding: 28px 24px;
-      border-radius: 20px;
+    .agent-header {
       display: flex;
-      flex-direction: column;
-      gap: 22px;
-      width: 100%;
-      max-width: 820px;
-      align-self: center;
-      margin-bottom: 16px;
-    }
-    .oracle-messages::-webkit-scrollbar { width: 3px; }
-    .oracle-messages::-webkit-scrollbar-track { background: transparent; }
-    .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
-
-    .oracle-msg {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      max-width: 74%;
-    }
-    .oracle-msg.from-oracle { align-self: flex-start; }
-    .oracle-msg.from-user  { align-self: flex-end; align-items: flex-end; }
-
-    .msg-sender {
-      font-size: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      transition: color 4s ease;
-    }
-    .from-oracle .msg-sender { color: var(--sender-clr); }
-    .from-user  .msg-sender  { color: var(--sender-clr); opacity: 0.65; }
-
-    .msg-bubble {
-      padding: 14px 18px;
-      border-radius: 16px;
-      font-size: 0.92rem;
-      line-height: 1.65;
-      transition: background 4s ease, border-color 4s ease, color 4s ease;
-    }
-    .from-oracle .msg-bubble {
-      background: var(--neb-base-2);
-      border: 1px solid var(--ring-clr);
-      color: var(--text-clr);
-      font-style: italic;
-      border-bottom-left-radius: 4px;
-      box-shadow: 0 0 16px var(--mirror-glow), 0 2px 12px rgba(0,0,0,0.45);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .from-user .msg-bubble {
-      background: var(--neb-base-1);
-      border: 1px solid rgba(200,168,75,0.28);
-      color: var(--text-clr);
-      font-style: normal;
-      border-bottom-right-radius: 4px;
-      box-shadow: 0 0 8px rgba(200,168,75,0.18), 0 2px 10px rgba(0,0,0,0.40);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
     }
 
-    /* Thinking dots */
-    .oracle-thinking {
-      display: inline-flex;
-      gap: 5px;
-      padding: 14px 18px;
-      background: var(--msg-bg);
-      border: 1px solid var(--msg-bdr);
-      border-radius: 16px;
-      border-bottom-left-radius: 4px;
-    }
-    .oracle-thinking span {
-      width: 6px; height: 6px;
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
-      background: var(--sender-clr);
-      animation: thinkDot 1.2s ease-in-out infinite;
-    }
-    .oracle-thinking span:nth-child(2) { animation-delay: 0.2s; }
-    .oracle-thinking span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes thinkDot {
-      0%, 80%, 100% { transform: scale(0.65); opacity: 0.35; }
-      40%            { transform: scale(1);    opacity: 1;    }
-    }
-
-    /* Input row — plain flex row directly below the message card,
-       Business Chat form (no docked bar / no border-top / no backdrop) */
-    .oracle-input-bar {
-      width: 100%;
-      max-width: 820px;
-      align-self: center;
-      display: flex;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .oracle-chat-input {
-      flex: 1;
-      padding: 14px 18px;
-      border: 1px solid rgba(0,229,255,0.2);
-      border-radius: 14px;
-      color: var(--text-clr);
-      font-size: 0.92rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease;
-    }
-    .oracle-chat-input:focus {
-      border-color: rgba(0,229,255,0.5);
-      box-shadow: 0 0 0 2px rgba(0,229,255,0.15), 0 0 12px rgba(0,229,255,0.25);
-    }
-    .oracle-chat-input::placeholder { color: rgba(200,200,230,0.45); }
-    .oracle-chat-input:disabled { opacity: 0.55; }
-
-    .oracle-send-btn {
-      width: 48px; height: 48px;
-      border-radius: 14px;
-      border: 1px solid rgba(0,255,255,0.12);
-      color: var(--text-clr);
-      cursor: pointer;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22));
+      border: 2px solid rgba(0, 229, 255, 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
       flex-shrink: 0;
-      box-shadow: 0 0 20px rgba(0,255,255,0.08);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
     }
-    .oracle-send-btn:hover  { transform: translateY(-1px); border-color: rgba(0,255,255,0.35); box-shadow: 0 0 30px rgba(0,255,255,0.15); }
-    .oracle-send-btn:active { transform: translateY(0); }
-    .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.85;
+    }
+
+    .agent-header-text { flex: 1; min-width: 220px; }
+
+    .agent-title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-subtitle {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
 
     /* ════════════════════════════════════════
-       SCENE — Forest Portal
+       SCENE — the moving abyss (fixed backdrop,
+       drifts behind the whole page)
     ════════════════════════════════════════ */
     .scene {
       position: fixed; inset: 0; z-index: 0;
@@ -731,10 +268,9 @@
       60%       { opacity: 0.5;  transform: scale(1.1); }
     }
 
-    /* ── Alternate starfield drift directions — defined only, not yet wired up.
-       Each direction keeps the same far/mid/near tile sizes and relative speed
-       ratio (far slowest, near fastest) as the existing drift so the parallax
-       depth reads the same no matter which direction is applied later. ── */
+    /* ── Alternate starfield drift directions — applied at runtime by
+       the drift driver script. Each direction keeps the same far/mid/near
+       tile sizes and relative speed ratio as the base drift. ── */
 
     /* Downward — slow rain-like fall */
     @keyframes star-drift-down-far {
@@ -846,16 +382,7 @@
       100% { opacity: 0;    transform: translateX(var(--shoot-dist,260px)); }
     }
 
-    /* ── Forest Trees ── */
-    .forest-tree { position: absolute; bottom: 0; pointer-events: none; fill: #071a12; }
-    .tree-left  { left: -30px;  height: 88vh; width: auto; z-index: 3; }
-    .tree-right { right: -30px; height: 88vh; width: auto; z-index: 3; transform: scaleX(-1); }
-
-    /* ── Branch Vines ── */
-    .branch-vines { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-    .bvine { position: absolute; }
-
-    /* ── Ground Mist ── */
+    /* ── Ground mist ── */
     .mist-field {
       position: absolute; bottom: 0; left: 0; right: 0;
       height: 220px; z-index: 5; pointer-events: none;
@@ -870,103 +397,6 @@
     @keyframes mDrift {
       0%   { transform: translateX(0);    }
       100% { transform: translateX(44px); }
-    }
-
-    /* ════════════════════════════════════════
-       ORNATE MIRROR — Cosmic Portal
-    ════════════════════════════════════════ */
-    .mirror-container {
-      position: relative;
-      width: 260px; height: 360px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; margin-bottom: -100px; z-index: 2;
-    }
-    .mirror-halo {
-      position: absolute; width: 210px; height: 295px;
-      border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(0,200,176,0.80) 0%, transparent 70%);
-      filter: blur(54px);
-      animation: haloBreath 4s ease-in-out infinite;
-      z-index: 0;
-    }
-    @keyframes haloBreath {
-      0%, 100% { opacity: 0.28; transform: scale(1);    }
-      50%       { opacity: 0.52; transform: scale(1.14); }
-    }
-    .mirror-frame-svg {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      color: #c8a84b; z-index: 3;
-      filter: drop-shadow(0 0 12px rgba(200,168,75,0.50)) drop-shadow(0 0 30px rgba(200,168,75,0.28));
-    }
-    .mirror-face {
-      position: absolute; width: 170px; height: 240px;
-      border-radius: 50%; overflow: hidden; z-index: 2;
-      box-shadow:
-        0 0 35px 18px rgba(0,200,176,0.52),
-        0 0 80px 40px rgba(0,200,176,0.38),
-        0 0 150px 75px rgba(0,200,176,0.20),
-        0 0 260px 130px rgba(0,200,176,0.08),
-        inset 0 0 55px rgba(0,0,0,0.78);
-    }
-    .cosmic-abyss { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
-    .nebula-base {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 52%,
-        #b0fff5 0%, rgba(176,255,245,0.92) 5%,
-        #00d4b0 16%, rgba(0,164,136,0.80) 30%,
-        #004d3a 55%, rgba(1,12,8,0.96) 76%, #010f0a 100%);
-    }
-    .nebula-bloom-1 {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 68% 48% at 38% 46%, rgba(0,90,75,0.55) 0%, transparent 68%);
-      animation: nebulaDrift 8s ease-in-out infinite alternate;
-    }
-    .nebula-bloom-2 {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 58% 42% at 64% 58%, rgba(0,120,100,0.45) 0%, transparent 62%);
-      animation: nebulaDrift 11s ease-in-out infinite alternate-reverse;
-    }
-    @keyframes nebulaDrift {
-      0%   { opacity: 0.55; transform: scale(1)    translate(0,   0);   }
-      50%  { opacity: 0.82; transform: scale(1.09) translate(-4%, 3%);  }
-      100% { opacity: 0.58; transform: scale(0.94) translate(5%, -4%);  }
-    }
-    .star-particles {
-      position: absolute; width: 1px; height: 1px; top: 50%; left: 50%; background: transparent;
-      box-shadow:
-        -62px -98px 0 0.5px rgba(255,255,255,0.85), -42px -110px 0 1px rgba(180,255,245,0.72),
-        -18px -118px 0 0.5px rgba(255,255,255,0.80),  12px -106px 0 1px rgba(160,255,240,0.68),
-         36px -115px 0 0.5px rgba(255,255,255,0.75),  57px  -97px 0 1px rgba(180,255,245,0.70),
-         70px  -70px 0 0.5px rgba(255,255,255,0.62),  78px  -40px 0 1px rgba(160,255,240,0.58),
-         74px   -8px 0 0.5px rgba(255,255,255,0.66),  66px   24px 0 1px rgba(180,255,245,0.62),
-         52px   54px 0 0.5px rgba(255,255,255,0.55),  30px   72px 0 1px rgba(160,255,240,0.52),
-          5px   82px 0 0.5px rgba(255,255,255,0.60), -22px   78px 0 1px rgba(180,255,245,0.58),
-        -48px   64px 0 0.5px rgba(255,255,255,0.65), -66px   40px 0 1px rgba(160,255,240,0.62),
-        -74px   10px 0 0.5px rgba(255,255,255,0.72), -76px  -22px 0 1px rgba(180,255,245,0.66),
-        -70px  -52px 0 0.5px rgba(255,255,255,0.76), -32px  -72px 0 1px rgba(160,255,240,0.58),
-         20px  -65px 0 0.5px rgba(255,255,255,0.62),  50px  -32px 0 1px rgba(180,255,245,0.52),
-         42px   30px 0 0.5px rgba(255,255,255,0.56), -14px   42px 0 1px rgba(160,255,240,0.52),
-        -52px  -12px 0 0.5px rgba(255,255,255,0.62),  -4px  -42px 0 1px rgba(180,255,245,0.66),
-         28px   12px 0 0.5px rgba(255,255,255,0.48), -36px   22px 0 1px rgba(160,255,240,0.48);
-      animation: starTwinkle 5.5s ease-in-out infinite;
-    }
-    @keyframes starTwinkle {
-      0%, 100% { opacity: 0.88; } 50% { opacity: 0.42; }
-    }
-    .eye-pupil {
-      position: absolute; top: 50%; left: 50%;
-      width: 62px; height: 62px;
-      transform: translate(-50%, -50%); border-radius: 50%;
-      background: radial-gradient(circle,
-        #ffffff 0%, rgba(220,255,250,0.96) 8%,
-        #b0fff5 18%, #00d4b0 38%,
-        rgba(0,80,65,0.75) 65%, transparent 85%);
-      box-shadow: 0 0 22px 10px rgba(176,255,245,0.45), 0 0 44px 22px rgba(0,212,176,0.35);
-      animation: pupilPulse 3s ease-in-out infinite;
-    }
-    @keyframes pupilPulse {
-      0%, 100% { transform: translate(-50%,-50%) scale(1);    opacity: 1;    }
-      50%       { transform: translate(-50%,-50%) scale(1.22); opacity: 0.80; }
     }
 
     /* ── Corner star — a lone breathing concentration of living gold light,
@@ -1221,20 +651,182 @@
       text-shadow: 0 0 6px rgba(232,200,116,0.3);
     }
 
-    @media (max-width: 600px) {
-      .mirror-container { width: 200px; height: 280px; margin-bottom: -80px; }
-      .mirror-face { width: 130px; height: 184px; }
-      .oracle-msg { max-width: 88%; }
-      .oracle-messages, .oracle-input-bar { padding-left: 16px; padding-right: 16px; }
+    /* ════════════════════════════════════════
+       SYNC CARD
+    ════════════════════════════════════════ */
+    .oracle-sync-card {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 28px;
+      border-radius: 20px;
     }
+    .oracle-error {
+      font-size: 0.8rem;
+      color: rgba(248, 113, 113, 0.78);
+      margin-bottom: 10px;
+      font-style: italic;
+      text-align: center;
+    }
+    .oracle-sync-btn {
+      width: 100%;
+      padding: 15px 20px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      color: #fff;
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 4px 20px rgba(0, 198, 255, 0.25);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    }
+    .oracle-sync-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 198, 255, 0.4);
+    }
+    .oracle-sync-btn:active { transform: translateY(0); }
+    .oracle-sync-btn.syncing {
+      opacity: 0.65;
+      cursor: default;
+      pointer-events: none;
+      animation: syncGlow 0.9s ease-in-out infinite;
+    }
+    @keyframes syncGlow {
+      0%, 100% { box-shadow: 0 4px 24px rgba(0, 198, 255, 0.3); }
+      50%       { box-shadow: 0 4px 48px rgba(0, 198, 255, 0.55); }
+    }
+
+    /* ════════════════════════════════════════
+       CHAT CARD
+    ════════════════════════════════════════ */
+    .oracle-messages {
+      min-height: 420px;
+      max-height: 560px;
+      overflow-y: auto;
+      padding: 28px 24px;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      margin-bottom: 16px;
+    }
+    .oracle-messages::-webkit-scrollbar { width: 3px; }
+    .oracle-messages::-webkit-scrollbar-track { background: transparent; }
+    .oracle-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+
+    .oracle-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-width: 78%;
+    }
+    .oracle-msg.from-oracle { align-self: flex-start; }
+    .oracle-msg.from-user  { align-self: flex-end; align-items: flex-end; }
+
+    .msg-sender {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #22d3ee;
+    }
+    .from-user .msg-sender { opacity: 0.65; }
+
+    .msg-bubble {
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .from-oracle .msg-bubble {
+      background: rgba(8, 12, 28, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #ccd0e8;
+      font-style: italic;
+      border-bottom-left-radius: 4px;
+    }
+    .from-user .msg-bubble {
+      background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(139,92,246,0.18));
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      color: #e8e8ff;
+      font-style: normal;
+      border-bottom-right-radius: 4px;
+    }
+
+    /* Thinking dots */
+    .oracle-thinking {
+      display: inline-flex;
+      gap: 5px;
+      padding: 14px 18px;
+      background: rgba(8, 12, 28, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+    }
+    .oracle-thinking span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #22d3ee;
+      animation: thinkDot 1.2s ease-in-out infinite;
+    }
+    .oracle-thinking span:nth-child(2) { animation-delay: 0.2s; }
+    .oracle-thinking span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes thinkDot {
+      0%, 80%, 100% { transform: scale(0.65); opacity: 0.35; }
+      40%            { transform: scale(1);    opacity: 1;    }
+    }
+
+    /* Input row — plain flex row directly below the message card,
+       Business Chat form (no docked bar / no border-top / no backdrop) */
+    .oracle-input-bar {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .oracle-chat-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 14px;
+      color: #e8e8ff;
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .oracle-chat-input:focus {
+      border-color: rgba(0,229,255,0.5);
+      box-shadow: 0 0 0 2px rgba(0,229,255,0.15), 0 0 12px rgba(0,229,255,0.25);
+    }
+    .oracle-chat-input::placeholder { color: rgba(200,200,230,0.45); }
+    .oracle-chat-input:disabled { opacity: 0.55; }
+
+    .oracle-send-btn {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,255,255,0.12);
+      color: #e8e8ff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(0,255,255,0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+    }
+    .oracle-send-btn:hover  { transform: translateY(-1px); border-color: rgba(0,255,255,0.35); box-shadow: 0 0 30px rgba(0,255,255,0.15); }
+    .oracle-send-btn:active { transform: translateY(0); }
+    .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
   </style>
 </head>
 <body>
 
-  <!-- Light ray overlay — angle and color temperature shift with time -->
-  <div class="light-rays" aria-hidden="true"></div>
-
-  <!-- ══════════ SCENE ══════════ -->
+  <!-- ══════════ SCENE — the moving abyss ══════════ -->
   <div class="scene" aria-hidden="true">
 
     <!-- Layered starfield — far/mid/near parallax depth -->
@@ -1326,104 +918,48 @@
   </div>
 
   <!-- ══════════════ SYNC SCREEN ══════════════ -->
-  <div id="syncScreen" class="oracle-screen bf-glass">
-    <a href="dashboard.html" class="oracle-back" style="position:absolute;top:18px;left:18px;z-index:10;">← Dashboard</a>
-    <!-- Ornate mirror with cosmic abyss -->
-    <div class="mirror-container" aria-hidden="true">
-      <div class="mirror-halo"></div>
-      <!-- Decorative vine frame (SVG) -->
-      <svg class="mirror-frame-svg" viewBox="0 0 260 360" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Oval mirror border -->
-        <ellipse cx="130" cy="180" rx="85" ry="120" stroke="currentColor" stroke-width="2.5"/>
-        <!-- Outer dashed accent ring -->
-        <ellipse cx="130" cy="180" rx="90" ry="125" stroke="currentColor" stroke-width="0.7" stroke-dasharray="5 3" opacity="0.45"/>
-        <!-- TOP CROWN: central stem -->
-        <line x1="130" y1="60" x2="130" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="130" cy="12" r="5" fill="currentColor"/>
-        <!-- Crown left branch -->
-        <path d="M130 40C115 35 105 24 98 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="95" cy="11" r="3.5" fill="currentColor"/>
-        <!-- Crown right branch -->
-        <path d="M130 40C145 35 155 24 162 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="165" cy="11" r="3.5" fill="currentColor"/>
-        <!-- Crown leaves -->
-        <ellipse cx="112" cy="30" rx="11" ry="5" transform="rotate(-40 112 30)" fill="currentColor" opacity="0.88"/>
-        <ellipse cx="148" cy="30" rx="11" ry="5" transform="rotate(40 148 30)" fill="currentColor" opacity="0.88"/>
-        <!-- TOP LEFT VINE -->
-        <path d="M72 80C55 64 35 50 14 42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <ellipse cx="49" cy="60" rx="12" ry="5.5" transform="rotate(-38 49 60)" fill="currentColor" opacity="0.85"/>
-        <ellipse cx="26" cy="48" rx="11" ry="5" transform="rotate(-50 26 48)" fill="currentColor" opacity="0.80"/>
-        <circle cx="13" cy="41" r="3" fill="currentColor" opacity="0.68"/>
-        <!-- TOP RIGHT VINE -->
-        <path d="M188 80C205 64 225 50 246 42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <ellipse cx="211" cy="60" rx="12" ry="5.5" transform="rotate(38 211 60)" fill="currentColor" opacity="0.85"/>
-        <ellipse cx="234" cy="48" rx="11" ry="5" transform="rotate(50 234 48)" fill="currentColor" opacity="0.80"/>
-        <circle cx="247" cy="41" r="3" fill="currentColor" opacity="0.68"/>
-        <!-- LEFT UPPER SIDE VINE -->
-        <path d="M45 155C27 149 13 149 3 147" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="18" cy="148" rx="13" ry="5" transform="rotate(-8 18 148)" fill="currentColor" opacity="0.80"/>
-        <!-- Left upper tendril curl -->
-        <path d="M45 155C28 137 20 118 25 106C30 94 42 95 44 106" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
-        <!-- LEFT LOWER SIDE VINE -->
-        <path d="M45 205C25 213 12 211 2 208" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="16" cy="211" rx="13" ry="5" transform="rotate(13 16 211)" fill="currentColor" opacity="0.80"/>
-        <!-- Left lower tendril curl -->
-        <path d="M45 205C26 223 18 243 22 257C26 271 38 271 40 259" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
-        <!-- RIGHT UPPER SIDE VINE -->
-        <path d="M215 155C233 149 247 149 257 147" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="242" cy="148" rx="13" ry="5" transform="rotate(8 242 148)" fill="currentColor" opacity="0.80"/>
-        <!-- Right upper tendril curl -->
-        <path d="M215 155C232 137 240 118 235 106C230 94 218 95 216 106" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
-        <!-- RIGHT LOWER SIDE VINE -->
-        <path d="M215 205C235 213 248 211 258 208" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="244" cy="211" rx="13" ry="5" transform="rotate(-13 244 211)" fill="currentColor" opacity="0.80"/>
-        <!-- Right lower tendril curl -->
-        <path d="M215 205C234 223 242 243 238 257C234 271 222 271 220 259" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" fill="none" opacity="0.52"/>
-        <!-- BOTTOM LEFT VINE -->
-        <path d="M77 280C58 296 38 310 18 318" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <ellipse cx="48" cy="299" rx="12" ry="5.5" transform="rotate(42 48 299)" fill="currentColor" opacity="0.80"/>
-        <ellipse cx="24" cy="313" rx="11" ry="5" transform="rotate(54 24 313)" fill="currentColor" opacity="0.75"/>
-        <circle cx="16" cy="319" r="3" fill="currentColor" opacity="0.65"/>
-        <!-- BOTTOM RIGHT VINE -->
-        <path d="M183 280C202 296 222 310 242 318" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <ellipse cx="212" cy="299" rx="12" ry="5.5" transform="rotate(-42 212 299)" fill="currentColor" opacity="0.80"/>
-        <ellipse cx="236" cy="313" rx="11" ry="5" transform="rotate(-54 236 313)" fill="currentColor" opacity="0.75"/>
-        <circle cx="244" cy="319" r="3" fill="currentColor" opacity="0.65"/>
-        <!-- BOTTOM CENTER DROOP -->
-        <path d="M130 300C122 317 118 333 120 345" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        <path d="M130 300C138 317 142 333 140 345" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-        <ellipse cx="119" cy="344" rx="10" ry="4.5" transform="rotate(-22 119 344)" fill="currentColor" opacity="0.75"/>
-        <ellipse cx="141" cy="344" rx="10" ry="4.5" transform="rotate(22 141 344)" fill="currentColor" opacity="0.75"/>
-      </svg>
-      <!-- Mirror face with cosmic abyss inside -->
-      <div class="mirror-face">
-        <div class="cosmic-abyss">
-          <div class="nebula-base"></div>
-          <div class="nebula-bloom-1"></div>
-          <div class="nebula-bloom-2"></div>
-          <div class="star-particles"></div>
-          <div class="eye-pupil"></div>
-        </div>
-      </div>
-    </div>
+  <div id="syncScreen" class="page">
 
-    <div class="sync-form">
-      <p class="oracle-eyebrow">Synchronization Required</p>
-      <h1 class="oracle-title">THE ORACLE</h1>
-      <p class="oracle-sub">Enter your birth name and date to open the channel.</p>
+    <nav class="top-nav">
+      <a class="back-link" href="dashboard.html">&#8592; Dashboard</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <header class="agent-header">
+      <div class="agent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/>
+        </svg>
+      </div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">Termaximus &middot; The Oracle</h1>
+        <p class="agent-subtitle">Synchronization required — enter your birth name and date to open the channel.</p>
+      </div>
+    </header>
+
+    <div class="oracle-sync-card bf-glass bf-gold-rim">
       <p class="oracle-error" id="syncError" style="display:none"></p>
       <button class="oracle-sync-btn" id="syncBtn">SYNCHRONIZE</button>
     </div>
   </div>
 
   <!-- ══════════════ CHAT SCREEN ══════════════ -->
-  <div id="chatScreen" class="oracle-screen hidden bf-glass">
-    <header class="oracle-chat-header">
-      <a href="dashboard.html" class="oracle-back">← Dashboard</a>
-      <div class="oracle-header-meta">
-        <span class="oracle-brand-pill">BizForce AI</span>
-        <h1 class="oracle-chat-title">Termaximus &middot; The Oracle</h1>
-        <div class="oracle-sync-status bf-gold-text">SYNCHRONIZED · <span id="syncedName"></span></div>
+  <div id="chatScreen" class="page hidden">
+
+    <nav class="top-nav">
+      <a class="back-link" href="dashboard.html">&#8592; Dashboard</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <header class="agent-header">
+      <div class="agent-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l2.2 6.8H21l-5.6 4.1 2.2 6.8L12 15.6l-5.6 4.1 2.2-6.8L3 8.8h6.8z"/>
+        </svg>
+      </div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">Termaximus &middot; The Oracle</h1>
+        <p class="agent-subtitle bf-gold-text">SYNCHRONIZED · <span id="syncedName"></span></p>
       </div>
     </header>
 
@@ -1449,220 +985,6 @@
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     var birthName = "", birthDate = "", chatHistory = [];
     var token = localStorage.getItem("bf_token");
-
-    /* ════════════════════════════════════════
-       TIME-OF-DAY PALETTE SYSTEM
-       Dawn   05:00–09:00 — rose gold / amber
-       Day    09:00–17:00 — vivid green / gold
-       Sunset 17:00–21:00 — orange / crimson / purple
-       Night  21:00–05:00 — midnight blue / teal / cosmic purple
-    ════════════════════════════════════════ */
-    var PALETTES = {
-      night: {
-        /* Cosmic eclipse / amethyst void */
-        '--bg-hex':     '#050308',
-        '--bg-g1':      'rgba(70,25,100,0.20)',
-        '--bg-g2':      'rgba(40,14,60,0.26)',
-        '--star-op':    '1',
-        '--ring-clr':   'rgba(150,80,220,0.50)',
-        '--ring-glow':  'rgba(120,60,180,0.30)',
-        '--core-g1':    'rgba(200,140,255,0.88)',
-        '--core-g2':    'rgba(120,60,180,0.48)',
-        '--ray-angle':  '210deg',
-        '--ray-op':     '0.028',
-        '--ray-clr':    'rgba(120,70,170,0.10)',
-        '--bio-op':     '0.90',
-        '--acc-from':   '#c084fc',
-        '--acc-mid':    '#9333ea',
-        '--acc-to':     '#6b21a8',
-        '--btn-from':   '#6b21a8',
-        '--btn-to':     '#3b0764',
-        '--btn-shadow': 'rgba(107,33,168,0.48)',
-        '--status-clr': 'rgba(200,160,255,0.55)',
-        '--sub-clr':    'rgba(200,160,255,0.44)',
-        '--input-bg':   'rgba(10,4,20,0.78)',
-        '--input-bdr':  'rgba(150,80,220,0.30)',
-        '--input-foc':  'rgba(150,80,220,0.58)',
-        '--msg-bg':     'rgba(30,12,50,0.26)',
-        '--msg-bdr':    'rgba(150,80,220,0.22)',
-        '--header-bg':  'rgba(8,3,16,0.88)',
-        '--text-clr':   '#e9d8ff',
-        '--sender-clr':   'rgba(200,160,255,0.60)',
-        '--j-far':        'rgba(12,5,20,0.85)',
-        '--j-mid':        'rgba(8,3,14,0.92)',
-        '--j-near':       'rgba(4,1,8,1)',
-        '--stream-clr':   'rgba(150,90,210,0.38)',
-        '--stream-deep':  'rgba(90,55,140,0.62)',
-        '--stream-shim':  'rgba(230,190,110,0.20)',
-        '--mirror-f-clr': '#c8a84b',
-        '--mirror-glow':  'rgba(180,120,255,0.55)',
-        '--nebula-1':     'rgba(120,50,160,0.50)',
-        '--nebula-2':     'rgba(180,60,140,0.42)',
-        '--mist-clr':     'rgba(90,50,130,0.40)',
-        '--glow-a-soft':  'rgba(190,130,255,0.32)',
-        '--glow-b-soft':  'rgba(230,190,110,0.30)',
-        '--neb-base-1':   'rgba(60,30,80,1)',
-        '--neb-base-2':   'rgba(30,16,45,1)'
-      },
-      dawn: {
-        /* Aqua dawn / deep ocean first light */
-        '--bg-hex':     '#050308',
-        '--bg-g1':      'rgba(70,25,100,0.20)',
-        '--bg-g2':      'rgba(40,14,60,0.26)',
-        '--star-op':    '0.40',
-        '--ring-clr':   'rgba(0,220,200,0.52)',
-        '--ring-glow':  'rgba(0,170,152,0.36)',
-        '--core-g1':    'rgba(0,235,215,0.90)',
-        '--core-g2':    'rgba(0,165,148,0.50)',
-        '--ray-angle':  '72deg',
-        '--ray-op':     '0.062',
-        '--ray-clr':    'rgba(120,70,170,0.10)',
-        '--bio-op':     '0.75',
-        '--acc-from':   '#00e4cc',
-        '--acc-mid':    '#00b8a0',
-        '--acc-to':     '#007868',
-        '--btn-from':   '#007868',
-        '--btn-to':     '#004840',
-        '--btn-shadow': 'rgba(0,120,100,0.50)',
-        '--status-clr': 'rgba(0,228,204,0.60)',
-        '--sub-clr':    'rgba(0,228,204,0.45)',
-        '--input-bg':   'rgba(2,8,14,0.78)',
-        '--input-bdr':  'rgba(0,195,175,0.30)',
-        '--input-foc':  'rgba(0,195,175,0.58)',
-        '--msg-bg':     'rgba(0,32,28,0.28)',
-        '--msg-bdr':    'rgba(0,195,175,0.22)',
-        '--header-bg':  'rgba(2,6,10,0.88)',
-        '--text-clr':   '#b8fff0',
-        '--sender-clr':   'rgba(0,228,204,0.62)',
-        '--j-far':        'rgba(0,18,14,0.85)',
-        '--j-mid':        'rgba(0,10,8,0.92)',
-        '--j-near':       'rgba(0,4,3,1)',
-        '--stream-clr':   'rgba(0,100,88,0.32)',
-        '--stream-deep':  'rgba(0,60,52,0.56)',
-        '--stream-shim':  'rgba(0,228,204,0.20)',
-        '--mirror-f-clr': '#c8a84b',
-        '--mirror-glow':  'rgba(0,200,178,0.44)',
-        '--nebula-1':     'rgba(0,90,75,0.48)',
-        '--nebula-2':     'rgba(0,120,100,0.38)',
-        '--mist-clr':     'rgba(0,90,80,0.30)',
-        '--glow-a-soft':  'rgba(0,228,204,0.30)',
-        '--glow-b-soft':  'rgba(0,170,150,0.28)',
-        '--neb-base-1':   'rgba(0,55,42,1)',
-        '--neb-base-2':   'rgba(0,22,18,1)'
-      },
-      day: {
-        /* Deep teal / ocean noon */
-        '--bg-hex':     '#050308',
-        '--bg-g1':      'rgba(70,25,100,0.20)',
-        '--bg-g2':      'rgba(40,14,60,0.26)',
-        '--star-op':    '0.055',
-        '--ring-clr':   'rgba(0,200,180,0.50)',
-        '--ring-glow':  'rgba(0,150,135,0.34)',
-        '--core-g1':    'rgba(0,225,205,0.88)',
-        '--core-g2':    'rgba(0,165,148,0.48)',
-        '--ray-angle':  '8deg',
-        '--ray-op':     '0.072',
-        '--ray-clr':    'rgba(120,70,170,0.10)',
-        '--bio-op':     '0.65',
-        '--acc-from':   '#00d4be',
-        '--acc-mid':    '#00a898',
-        '--acc-to':     '#007068',
-        '--btn-from':   '#006858',
-        '--btn-to':     '#003830',
-        '--btn-shadow': 'rgba(0,104,92,0.50)',
-        '--status-clr': 'rgba(0,212,192,0.62)',
-        '--sub-clr':    'rgba(0,212,192,0.46)',
-        '--input-bg':   'rgba(2,8,14,0.78)',
-        '--input-bdr':  'rgba(0,180,162,0.30)',
-        '--input-foc':  'rgba(0,180,162,0.60)',
-        '--msg-bg':     'rgba(0,28,24,0.28)',
-        '--msg-bdr':    'rgba(0,180,162,0.22)',
-        '--header-bg':  'rgba(2,6,10,0.88)',
-        '--text-clr':   '#a8f0e0',
-        '--sender-clr':   'rgba(0,212,192,0.62)',
-        '--j-far':        'rgba(0,16,12,0.85)',
-        '--j-mid':        'rgba(0,9,7,0.92)',
-        '--j-near':       'rgba(0,3,2,1)',
-        '--stream-clr':   'rgba(0,95,85,0.35)',
-        '--stream-deep':  'rgba(0,58,50,0.60)',
-        '--stream-shim':  'rgba(0,212,192,0.22)',
-        '--mirror-f-clr': '#c8a84b',
-        '--mirror-glow':  'rgba(0,195,175,0.44)',
-        '--nebula-1':     'rgba(0,75,62,0.48)',
-        '--nebula-2':     'rgba(0,100,85,0.38)',
-        '--mist-clr':     'rgba(0,75,68,0.32)',
-        '--glow-a-soft':  'rgba(0,212,192,0.30)',
-        '--glow-b-soft':  'rgba(0,150,135,0.28)',
-        '--neb-base-1':   'rgba(0,48,36,1)',
-        '--neb-base-2':   'rgba(0,18,14,1)'
-      },
-      sunset: {
-        /* Twilight ocean / deep teal dusk */
-        '--bg-hex':     '#050308',
-        '--bg-g1':      'rgba(70,25,100,0.20)',
-        '--bg-g2':      'rgba(40,14,60,0.26)',
-        '--star-op':    '0.58',
-        '--ring-clr':   'rgba(0,188,168,0.55)',
-        '--ring-glow':  'rgba(0,145,130,0.38)',
-        '--core-g1':    'rgba(0,200,182,0.92)',
-        '--core-g2':    'rgba(0,138,122,0.52)',
-        '--ray-angle':  '288deg',
-        '--ray-op':     '0.068',
-        '--ray-clr':    'rgba(120,70,170,0.10)',
-        '--bio-op':     '0.85',
-        '--acc-from':   '#00c8b4',
-        '--acc-mid':    '#009c8c',
-        '--acc-to':     '#006458',
-        '--btn-from':   '#006050',
-        '--btn-to':     '#003428',
-        '--btn-shadow': 'rgba(0,96,82,0.50)',
-        '--status-clr': 'rgba(0,200,180,0.62)',
-        '--sub-clr':    'rgba(0,200,180,0.46)',
-        '--input-bg':   'rgba(2,7,12,0.78)',
-        '--input-bdr':  'rgba(0,168,150,0.30)',
-        '--input-foc':  'rgba(0,168,150,0.58)',
-        '--msg-bg':     'rgba(0,26,22,0.28)',
-        '--msg-bdr':    'rgba(0,168,150,0.22)',
-        '--header-bg':  'rgba(2,5,8,0.88)',
-        '--text-clr':   '#a0e8d8',
-        '--sender-clr':   'rgba(0,200,180,0.64)',
-        '--j-far':        'rgba(0,14,11,0.85)',
-        '--j-mid':        'rgba(0,8,6,0.92)',
-        '--j-near':       'rgba(0,3,2,1)',
-        '--stream-clr':   'rgba(0,88,78,0.32)',
-        '--stream-deep':  'rgba(0,52,46,0.56)',
-        '--stream-shim':  'rgba(0,200,180,0.22)',
-        '--mirror-f-clr': '#c8a84b',
-        '--mirror-glow':  'rgba(0,188,168,0.44)',
-        '--nebula-1':     'rgba(0,70,58,0.48)',
-        '--nebula-2':     'rgba(0,95,78,0.42)',
-        '--mist-clr':     'rgba(0,70,62,0.30)',
-        '--glow-a-soft':  'rgba(0,200,180,0.30)',
-        '--glow-b-soft':  'rgba(0,145,130,0.28)',
-        '--neb-base-1':   'rgba(0,44,34,1)',
-        '--neb-base-2':   'rgba(0,17,13,1)'
-      }
-    };
-
-    function getPaletteName(hour) {
-      if (hour >= 5  && hour < 9)  return 'dawn';
-      if (hour >= 9  && hour < 17) return 'day';
-      if (hour >= 17 && hour < 21) return 'sunset';
-      return 'night';
-    }
-
-    function applyPalette() {
-      var name    = getPaletteName(new Date().getHours());
-      var palette = PALETTES[name];
-      var root    = document.documentElement;
-      Object.keys(palette).forEach(function (k) {
-        root.style.setProperty(k, palette[k]);
-      });
-    }
-
-    /* Apply immediately on load, refresh every 5 minutes */
-    applyPalette();
-    setInterval(applyPalette, 5 * 60 * 1000);
 
     /* ── Restore previous sync ── */
     (function () {
@@ -2185,5 +1507,6 @@
   }());
   </script>
 
+  <script src="/scripts/termaximus-guide.js"></script>
 </body>
 </html>
