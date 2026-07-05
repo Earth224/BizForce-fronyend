@@ -400,12 +400,41 @@
     '</div>' +
     '<div class="tmx-guide-section tmx-guide-section--insights">' +
       '<h3 class="tmx-guide-label">Termaximus Insights</h3>' +
-      '<p class="tmx-guide-placeholder">Placeholder — Termaximus&rsquo;s insights will appear here.</p>' +
+      '<p class="tmx-guide-placeholder" id="tmx-guide-insight-text">Placeholder — Termaximus&rsquo;s insights will appear here.</p>' +
     '</div>';
 
   root.appendChild(tab);
   root.appendChild(panel);
   document.body.appendChild(root);
+
+  function fetchInsight() {
+    var insightEl = document.getElementById("tmx-guide-insight-text");
+    if (!insightEl) return;
+
+    var token = localStorage.getItem("bf_token") || "";
+
+    fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/insights/page", {
+      method: "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ page: currentPageKey() })
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        if (data && data.insight) {
+          insightEl.textContent = data.insight;
+        } else {
+          insightEl.textContent = "Termaximus is gathering his thoughts — try again in a moment.";
+        }
+      })
+      .catch(function () {
+        insightEl.textContent = "Termaximus is gathering his thoughts — try again in a moment.";
+      });
+  }
+
+  fetchInsight();
 
   var isOpen = false;
 
