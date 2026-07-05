@@ -364,8 +364,8 @@
       align-items: center;
       gap: 14px;
       padding: 14px 24px;
-      background: var(--neb-base-2);
-      border-bottom: 1px solid var(--ring-clr);
+      background: rgba(6, 3, 12, 0.92);
+      border-bottom: 1px solid rgba(120, 70, 170, 0.28);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       flex-shrink: 0;
@@ -407,15 +407,19 @@
       font-weight: 900;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--text-clr);
-      filter: drop-shadow(0 0 6px var(--mirror-glow));
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.35));
     }
     .oracle-sync-status {
       font-size: 0.65rem;
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--mirror-f-clr);
+      color: #e8c874;
+      text-shadow: 0 0 8px rgba(232, 200, 116, 0.45);
       margin-top: 2px;
       transition: color 4s ease;
     }
@@ -589,6 +593,99 @@
     .light-beams svg { width: 100%; height: 100%; }
     @keyframes beamBreath { 0%,100%{opacity:0.60} 50%{opacity:1} }
 
+    /* ── Soul-glow — slow breathing radial glow behind everything ── */
+    .soul-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 80vmin; height: 80vmin;
+      transform: translate(-50%, -50%) scale(1);
+      border-radius: 50%;
+      z-index: -1;
+      pointer-events: none;
+      background: radial-gradient(circle,
+        rgba(0,229,255,0.20) 0%,
+        rgba(90,60,200,0.16) 35%,
+        rgba(120,40,180,0.10) 55%,
+        transparent 72%
+      );
+      animation: soulBreathe 13s ease-in-out infinite;
+    }
+    @keyframes soulBreathe {
+      0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.65; }
+      50%       { transform: translate(-50%, -50%) scale(1.08); opacity: 1;    }
+    }
+
+    /* ── Layered starfield — far/mid/near parallax depth ── */
+    .star-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-repeat: repeat;
+    }
+    .star-far {
+      background-image:
+        radial-gradient(0.6px 0.6px at 12% 18%, rgba(200,200,230,0.20), transparent 100%),
+        radial-gradient(0.5px 0.5px at 55% 42%, rgba(190,180,225,0.16), transparent 100%),
+        radial-gradient(0.6px 0.6px at 82% 78%, rgba(210,205,235,0.22), transparent 100%),
+        radial-gradient(0.5px 0.5px at 32% 88%, rgba(195,185,225,0.18), transparent 100%);
+      background-size: 220px 260px, 220px 260px, 220px 260px, 220px 260px;
+      animation: star-drift-far 140s linear infinite;
+    }
+    .star-mid {
+      background-image:
+        radial-gradient(1px 1px at 20% 25%, rgba(225,220,245,0.30), transparent 100%),
+        radial-gradient(0.9px 0.9px at 68% 55%, rgba(200,190,235,0.26), transparent 100%),
+        radial-gradient(1px 1px at 42% 85%, rgba(220,210,245,0.32), transparent 100%);
+      background-size: 320px 380px, 320px 380px, 320px 380px;
+      animation: star-drift-mid 70s linear infinite;
+    }
+    .star-near {
+      background-image:
+        radial-gradient(1.6px 1.6px at 30% 30%, rgba(255,255,255,0.55), rgba(220,210,255,0.20) 55%, transparent 100%),
+        radial-gradient(1.4px 1.4px at 75% 68%, rgba(240,230,255,0.50), rgba(200,180,255,0.18) 55%, transparent 100%);
+      background-size: 460px 520px, 460px 520px;
+      animation: star-drift-near 30s linear infinite;
+    }
+    @keyframes star-drift-far {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: 0px -260px, 0px -260px, 0px -260px, 0px -260px; }
+    }
+    @keyframes star-drift-mid {
+      0%   { background-position: 0px 0px,    0px 0px,    0px 0px;    }
+      100% { background-position: 0px -380px, 0px -380px, 0px -380px; }
+    }
+    @keyframes star-drift-near {
+      0%   { background-position: 0px 0px,    0px 0px;    }
+      100% { background-position: 0px -520px, 0px -520px; }
+    }
+
+    /* ── Shooting star — occasional thin streak crossing the void ── */
+    .shoot-star {
+      position: absolute;
+      top: 0; left: 0;
+      width: 90px;
+      height: 1px;
+      border-radius: 1px;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 0;
+      transform-origin: right center;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(200,210,255,0.05) 18%,
+        rgba(220,228,255,0.55) 52%,
+        rgba(210,220,255,0.10) 82%,
+        transparent 100%
+      );
+    }
+    @keyframes shoot-fly {
+      0%   { opacity: 0;    transform: translateX(0);                       }
+      8%   { opacity: 0.65;                                                 }
+      75%  { opacity: 0.45;                                                 }
+      100% { opacity: 0;    transform: translateX(var(--shoot-dist,260px)); }
+    }
+
     /* ── Forest Trees ── */
     .forest-tree { position: absolute; bottom: 0; pointer-events: none; fill: #071a12; }
     .tree-left  { left: -30px;  height: 88vh; width: auto; z-index: 3; }
@@ -603,7 +700,7 @@
       position: absolute; bottom: 0; left: 0; right: 0;
       height: 220px; z-index: 5; pointer-events: none;
     }
-    .mist { position: absolute; border-radius: 50%; background: rgba(0,180,140,0.08); filter: blur(40px); }
+    .mist { position: absolute; border-radius: 50%; background: rgba(55,25,90,0.10); filter: blur(40px); }
     .m1 { bottom:0;    left:-10%; width:88%; height:138px; opacity:0.95; animation:mDrift 16s          ease-in-out infinite alternate; }
     .m2 { bottom:14px; left:8%;   width:92%; height:108px; opacity:0.80; animation:mDrift 22s -6s     ease-in-out infinite alternate-reverse; }
     .m3 { bottom:6px;  right:-8%; width:80%; height:122px; opacity:0.90; animation:mDrift 19s -3s     ease-in-out infinite alternate; }
@@ -728,121 +825,28 @@
   <!-- ══════════ SCENE ══════════ -->
   <div class="scene" aria-hidden="true">
 
+    <!-- Soul-glow — slow breathing radial glow behind everything -->
+    <div class="soul-glow"></div>
+
+    <!-- Layered starfield — far/mid/near parallax depth -->
+    <div class="star-layer star-far"></div>
+    <div class="star-layer star-mid"></div>
+    <div class="star-layer star-near"></div>
+
+    <!-- Occasional shooting star -->
+    <div class="shoot-star" id="sceneShootStar"></div>
+
     <!-- 8 radiating light beams from portal center -->
     <div class="light-beams">
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="50,42 48,-8 52,-8"    fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 112,-12 116,-6" fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 112,40 112,44"  fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 116,96 112,100" fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 48,108 52,108"  fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 -12,100 -16,96" fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 -12,44 -12,40"  fill="#00dcb4" fill-opacity="0.06"/>
-        <polygon points="50,42 -16,-6 -12,-12" fill="#00dcb4" fill-opacity="0.06"/>
-      </svg>
-    </div>
-
-    <!-- Left forest tree — trunk, roots, and branching silhouette -->
-    <svg class="forest-tree tree-left" viewBox="0 0 260 800" xmlns="http://www.w3.org/2000/svg">
-      <!-- Trunk -->
-      <path fill="#071a12" d="M120,800 Q118,660 117,530 Q115,400 117,270 Q119,180 122,100 Q126,70 130,42 Q134,70 138,100 Q141,180 142,270 Q144,400 143,530 Q142,660 140,800 Z"/>
-      <!-- Root base -->
-      <ellipse fill="#071a12" cx="132" cy="796" rx="88" ry="18"/>
-      <path fill="#071a12" d="M120,798 Q88,778 58,760 Q32,744 18,730 Q15,717 44,725 Q74,737 118,758 Z"/>
-      <path fill="#071a12" d="M142,798 Q174,776 202,760 Q226,744 240,730 Q237,717 210,724 Q182,736 144,758 Z"/>
-      <!-- Left branch 1 -->
-      <path fill="#071a12" d="M118,590 Q84,567 48,547 Q20,530 6,516 Q10,502 40,514 Q77,529 120,554 L123,572 Z"/>
-      <path fill="#071a12" d="M42,550 Q14,532 -4,516 L-1,503 Q25,518 56,535 Z"/>
-      <!-- Left branch 2 -->
-      <path fill="#071a12" d="M116,440 Q80,416 43,394 Q12,375 -4,362 Q0,348 32,360 Q70,374 118,399 L122,421 Z"/>
-      <!-- Left branch 3 -->
-      <path fill="#071a12" d="M116,287 Q82,264 47,243 Q18,227 4,214 Q8,201 38,212 Q76,226 118,251 L122,270 Z"/>
-      <path fill="#071a12" d="M60,255 Q32,238 10,222 Q-7,210 -9,200 L-6,188 Q18,199 48,215 Q76,231 65,250 Z"/>
-      <!-- Left branch 4 -->
-      <path fill="#071a12" d="M118,168 Q86,148 54,131 Q27,116 13,104 Q17,92 47,102 Q80,115 120,136 L122,152 Z"/>
-      <!-- Right branch 1 -->
-      <path fill="#071a12" d="M143,508 Q177,483 212,465 Q238,449 252,437 Q248,424 222,433 Q188,447 144,471 L141,489 Z"/>
-      <!-- Right branch 2 -->
-      <path fill="#071a12" d="M145,354 Q180,330 216,312 Q244,297 257,285 Q252,272 226,282 Q192,295 147,319 L143,337 Z"/>
-      <!-- Right branch 3 -->
-      <path fill="#071a12" d="M143,208 Q177,186 210,168 Q236,153 248,142 Q244,130 218,140 Q184,152 144,174 L140,191 Z"/>
-      <!-- Crown -->
-      <path fill="#071a12" d="M121,94 Q94,68 65,46 Q42,29 33,16 Q37,4 62,15 Q89,27 122,56 L124,74 Z"/>
-      <path fill="#071a12" d="M115,74 Q86,50 55,30 Q32,14 22,2 Q26,-8 54,3 Q84,17 117,41 L119,58 Z"/>
-      <path fill="#071a12" d="M139,89 Q163,64 187,44 Q208,27 218,15 Q212,4 190,15 Q165,27 141,54 L137,71 Z"/>
-      <path fill="#071a12" d="M144,74 Q172,50 198,30 Q222,14 232,3 Q226,-7 202,4 Q176,18 146,42 Z"/>
-      <path fill="#071a12" d="M126,52 Q124,32 122,10 Q128,3 134,10 Q133,32 131,52 Z"/>
-    </svg>
-
-    <!-- Right forest tree (CSS mirrors via scaleX(-1)) -->
-    <svg class="forest-tree tree-right" viewBox="0 0 260 800" xmlns="http://www.w3.org/2000/svg">
-      <!-- Trunk -->
-      <path fill="#071a12" d="M120,800 Q118,660 117,530 Q115,400 117,270 Q119,180 122,100 Q126,70 130,42 Q134,70 138,100 Q141,180 142,270 Q144,400 143,530 Q142,660 140,800 Z"/>
-      <!-- Root base -->
-      <ellipse fill="#071a12" cx="132" cy="796" rx="88" ry="18"/>
-      <path fill="#071a12" d="M120,798 Q88,778 58,760 Q32,744 18,730 Q15,717 44,725 Q74,737 118,758 Z"/>
-      <path fill="#071a12" d="M142,798 Q174,776 202,760 Q226,744 240,730 Q237,717 210,724 Q182,736 144,758 Z"/>
-      <!-- Left branch 1 (varied Y) -->
-      <path fill="#071a12" d="M118,602 Q84,579 48,559 Q20,542 6,528 Q10,514 40,526 Q77,541 120,566 L123,584 Z"/>
-      <path fill="#071a12" d="M42,562 Q14,544 -4,528 L-1,515 Q25,530 56,547 Z"/>
-      <!-- Left branch 2 -->
-      <path fill="#071a12" d="M116,452 Q80,428 43,406 Q12,387 -4,374 Q0,360 32,372 Q70,386 118,411 L122,433 Z"/>
-      <!-- Left branch 3 -->
-      <path fill="#071a12" d="M116,299 Q82,276 47,255 Q18,239 4,226 Q8,213 38,224 Q76,238 118,263 L122,282 Z"/>
-      <path fill="#071a12" d="M60,267 Q32,250 10,234 Q-7,222 -9,212 L-6,200 Q18,211 48,227 Q76,243 65,262 Z"/>
-      <!-- Left branch 4 -->
-      <path fill="#071a12" d="M118,180 Q86,160 54,143 Q27,128 13,116 Q17,104 47,114 Q80,127 120,148 L122,164 Z"/>
-      <!-- Right branch 1 (varied Y) -->
-      <path fill="#071a12" d="M143,520 Q177,495 212,477 Q238,461 252,449 Q248,436 222,445 Q188,459 144,483 L141,501 Z"/>
-      <!-- Right branch 2 -->
-      <path fill="#071a12" d="M145,366 Q180,342 216,324 Q244,309 257,297 Q252,284 226,294 Q192,307 147,331 L143,349 Z"/>
-      <!-- Right branch 3 -->
-      <path fill="#071a12" d="M143,220 Q177,198 210,180 Q236,165 248,154 Q244,142 218,152 Q184,164 144,186 L140,203 Z"/>
-      <!-- Crown -->
-      <path fill="#071a12" d="M121,94 Q94,68 65,46 Q42,29 33,16 Q37,4 62,15 Q89,27 122,56 L124,74 Z"/>
-      <path fill="#071a12" d="M115,74 Q86,50 55,30 Q32,14 22,2 Q26,-8 54,3 Q84,17 117,41 L119,58 Z"/>
-      <path fill="#071a12" d="M139,89 Q163,64 187,44 Q208,27 218,15 Q212,4 190,15 Q165,27 141,54 L137,71 Z"/>
-      <path fill="#071a12" d="M144,74 Q172,50 198,30 Q222,14 232,3 Q226,-7 202,4 Q176,18 146,42 Z"/>
-      <path fill="#071a12" d="M126,52 Q124,32 122,10 Q128,3 134,10 Q133,32 131,52 Z"/>
-    </svg>
-
-    <!-- Branch vines hanging from top tree branches -->
-    <div class="branch-vines">
-      <svg class="bvine" style="left:162px;top:6vh;width:60px;height:280px;" viewBox="0 0 60 280" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M8,0 C14,40 4,80 10,120 C16,160 6,200 8,240 C10,260 6,275 8,280" stroke="#0d2818" stroke-width="1.4" stroke-linecap="round"/>
-        <ellipse cx="18" cy="50" rx="18" ry="7" transform="rotate(28 18 50)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="4" cy="118" rx="16" ry="6.5" transform="rotate(-24 4 118)" fill="#071a12" opacity="0.48"/>
-        <ellipse cx="16" cy="195" rx="15" ry="6" transform="rotate(20 16 195)" fill="#071a12" opacity="0.45"/>
-      </svg>
-      <svg class="bvine" style="left:195px;top:3vh;width:50px;height:230px;" viewBox="0 0 50 230" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5,0 C12,32 3,66 8,102 C13,136 4,172 6,204 C8,220 4,226 5,230" stroke="#0d2818" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="14" cy="40" rx="16" ry="6" transform="rotate(25 14 40)" fill="#071a12" opacity="0.55"/>
-        <ellipse cx="3" cy="100" rx="14" ry="5.5" transform="rotate(-22 3 100)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="12" cy="170" rx="13" ry="5" transform="rotate(18 12 170)" fill="#071a12" opacity="0.45"/>
-      </svg>
-      <svg class="bvine" style="left:130px;top:14vh;width:55px;height:200px;" viewBox="0 0 55 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10,0 C16,28 7,58 12,88 C17,118 8,148 10,178 C12,192 8,198 10,200" stroke="#0d2818" stroke-width="1.6" stroke-linecap="round"/>
-        <ellipse cx="22" cy="34" rx="18" ry="7" transform="rotate(30 22 34)" fill="#071a12" opacity="0.48"/>
-        <ellipse cx="5" cy="88" rx="16" ry="6" transform="rotate(-26 5 88)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="18" cy="155" rx="14" ry="5.5" transform="rotate(22 18 155)" fill="#071a12" opacity="0.45"/>
-      </svg>
-      <svg class="bvine" style="right:162px;top:6vh;width:60px;height:280px;" viewBox="0 0 60 280" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M52,0 C46,40 56,80 50,120 C44,160 54,200 52,240 C50,260 54,275 52,280" stroke="#0d2818" stroke-width="1.4" stroke-linecap="round"/>
-        <ellipse cx="42" cy="50" rx="18" ry="7" transform="rotate(-28 42 50)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="56" cy="118" rx="16" ry="6.5" transform="rotate(24 56 118)" fill="#071a12" opacity="0.48"/>
-        <ellipse cx="44" cy="195" rx="15" ry="6" transform="rotate(-20 44 195)" fill="#071a12" opacity="0.45"/>
-      </svg>
-      <svg class="bvine" style="right:195px;top:3vh;width:50px;height:230px;" viewBox="0 0 50 230" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M45,0 C38,32 47,66 42,102 C37,136 46,172 44,204 C42,220 46,226 45,230" stroke="#0d2818" stroke-width="1.2" stroke-linecap="round"/>
-        <ellipse cx="36" cy="40" rx="16" ry="6" transform="rotate(-25 36 40)" fill="#071a12" opacity="0.55"/>
-        <ellipse cx="47" cy="100" rx="14" ry="5.5" transform="rotate(22 47 100)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="38" cy="170" rx="13" ry="5" transform="rotate(-18 38 170)" fill="#071a12" opacity="0.45"/>
-      </svg>
-      <svg class="bvine" style="right:130px;top:14vh;width:55px;height:200px;" viewBox="0 0 55 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M45,0 C39,28 48,58 43,88 C38,118 47,148 45,178 C43,192 47,198 45,200" stroke="#0d2818" stroke-width="1.6" stroke-linecap="round"/>
-        <ellipse cx="33" cy="34" rx="18" ry="7" transform="rotate(-30 33 34)" fill="#071a12" opacity="0.48"/>
-        <ellipse cx="50" cy="88" rx="16" ry="6" transform="rotate(26 50 88)" fill="#071a12" opacity="0.50"/>
-        <ellipse cx="37" cy="155" rx="14" ry="5.5" transform="rotate(-22 37 155)" fill="#071a12" opacity="0.45"/>
+        <polygon points="50,42 48,-8 52,-8"    fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 112,-12 116,-6" fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 112,40 112,44"  fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 116,96 112,100" fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 48,108 52,108"  fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 -12,100 -16,96" fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 -12,44 -12,40"  fill="#6d28d9" fill-opacity="0.06"/>
+        <polygon points="50,42 -16,-6 -12,-12" fill="#6d28d9" fill-opacity="0.06"/>
       </svg>
     </div>
 
@@ -1395,6 +1399,57 @@
       messageArea.appendChild(wrap);
       messageArea.scrollTop = messageArea.scrollHeight;
     }
+  </script>
+
+  <!-- Independent shooting-star driver — scene background only -->
+  <script>
+  (function () {
+    var star = document.getElementById("sceneShootStar");
+    if (!star) return;
+
+    function fireSceneShoot() {
+      var W = window.innerWidth;
+      var H = window.innerHeight;
+      var edge = Math.floor(Math.random() * 4);
+      var top, left, angle;
+
+      if (edge === 0) {        /* top edge — travel downward, 55–125° */
+        top   = -20;
+        left  = -40 + Math.random() * (W + 80);
+        angle = 55 + Math.random() * 70;
+      } else if (edge === 1) { /* right edge — travel leftward, 145–215° */
+        top   = -40 + Math.random() * (H + 80);
+        left  = W + 20;
+        angle = 145 + Math.random() * 70;
+      } else if (edge === 2) { /* bottom edge — travel upward, 235–305° */
+        top   = H + 20;
+        left  = -40 + Math.random() * (W + 80);
+        angle = 235 + Math.random() * 70;
+      } else {                 /* left edge — travel rightward, -35 to 35° */
+        top   = -40 + Math.random() * (H + 80);
+        left  = -20;
+        angle = -35 + Math.random() * 70;
+      }
+
+      var t    = Math.random();
+      var dur  = (1.2 + t * 1.6).toFixed(2);
+      var len  = Math.round(60 + t * 70);
+      var dist = Math.round(220 + t * 280);
+
+      star.style.animation = "none";
+      star.offsetHeight; /* force reflow to restart */
+      star.style.top    = top   + "px";
+      star.style.left   = left  + "px";
+      star.style.rotate = angle + "deg";
+      star.style.width  = len   + "px";
+      star.style.setProperty("--shoot-dist", dist + "px");
+      star.style.animation = "shoot-fly " + dur + "s ease-out forwards";
+
+      setTimeout(fireSceneShoot, 6000 + Math.random() * 10000);
+    }
+
+    setTimeout(fireSceneShoot, 3000 + Math.random() * 4000);
+  }());
   </script>
 
 </body>
