@@ -392,6 +392,182 @@
     }
   
     .agent-avatar{border-color:rgba(168,85,247,0.5);background:linear-gradient(135deg,rgba(0,229,255,0.18),rgba(168,85,247,0.22));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
+
+    /* Live Leads + Pipeline (synced with Lead Radar) */
+    .sales-live-card, .sales-pipeline-card {
+      position: relative;
+      padding: 28px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      margin-bottom: 32px;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .sales-live-card::before, .sales-pipeline-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: linear-gradient(90deg, #00e5ff, #7b2ff7, #a855f7);
+    }
+    .sales-live-card:hover, .sales-pipeline-card:hover {
+      border-color: rgba(168, 85, 247, 0.3);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 0 30px rgba(168, 85, 247, 0.1);
+    }
+    .sales-live-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .sales-leads-msg { font-size: 0.85rem; color: #8892b8; min-height: 20px; margin-bottom: 14px; }
+    .sales-leads-msg.ok { color: #4ade80; }
+    .sales-leads-msg.err { color: #f87171; }
+    .sales-leads-list { display: flex; flex-direction: column; gap: 16px; }
+
+    .sales-lead-card {
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: rgba(8, 12, 28, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: border-color 0.2s ease;
+    }
+    .sales-lead-card:hover { border-color: rgba(0, 229, 255, 0.25); }
+    .sales-lead-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .sales-lead-handle { font-size: 0.85rem; font-weight: 700; color: #22d3ee; }
+    .sales-lead-text { font-size: 0.9rem; line-height: 1.6; color: #ccd0e8; margin: 0 0 12px; }
+    .sales-lead-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+
+    .sales-status-badge {
+      display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px;
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .sales-status-badge.status-new       { background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; }
+    .sales-status-badge.status-drafted   { background: rgba(0, 229, 255, 0.1);   border: 1px solid rgba(0, 229, 255, 0.3);   color: #22d3ee; }
+    .sales-status-badge.status-contacted { background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.35); color: #fbbf24; }
+    .sales-status-badge.status-replied   { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #c4b5fd; }
+    .sales-status-badge.status-converted { background: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.35); color: #4ade80; }
+
+    .sales-score-badge {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 40px;
+      padding: 3px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 800;
+    }
+    .sales-score-badge.hi  { background: rgba(74, 222, 128, 0.12);  border: 1px solid rgba(74, 222, 128, 0.4);  color: #4ade80; }
+    .sales-score-badge.mid { background: rgba(251, 191, 36, 0.12);  border: 1px solid rgba(251, 191, 36, 0.38); color: #fbbf24; }
+    .sales-score-badge.lo  { background: rgba(148, 163, 184, 0.1);  border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8; }
+
+    .sales-lead-tag {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 999px;
+    }
+    .sales-lead-tag.buyer  { background: rgba(74, 222, 128, 0.1);  border: 1px solid rgba(74, 222, 128, 0.3);  color: #4ade80; }
+    .sales-lead-tag.seller { background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.28); color: #f87171; }
+
+    .sales-lead-product { font-size: 0.78rem; font-weight: 600; color: #a855f7; }
+    .sales-lead-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .sales-lead-warn { font-size: 0.75rem; color: #fbbf24; font-style: italic; }
+
+    .sales-spinner {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: #fff;
+      animation: sales-spin 0.7s linear infinite;
+      display: inline-block; margin-right: 7px; vertical-align: -2px;
+    }
+    @keyframes sales-spin { to { transform: rotate(360deg); } }
+
+    .sales-conversion-result {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sales-conv-block { margin-bottom: 12px; }
+    .sales-conv-block:last-of-type { margin-bottom: 0; }
+    .sales-conv-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #22d3ee; margin-bottom: 5px;
+    }
+    .sales-conv-body {
+      font-size: 0.86rem; line-height: 1.6; color: #e8e8ff;
+      padding: 10px 14px; border-radius: 10px;
+      background: rgba(0, 229, 255, 0.04); border: 1px solid rgba(0, 229, 255, 0.1);
+      white-space: pre-wrap;
+    }
+    .copy-btn {
+      align-self: flex-start;
+      padding: 7px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      background: rgba(8, 8, 18, 0.85);
+      color: #00e5ff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { border-color: rgba(0, 229, 255, 0.6); box-shadow: 0 0 14px rgba(0, 229, 255, 0.18); }
+
+    .sales-pipeline-board {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+    }
+    .sales-pipeline-column {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(8, 12, 28, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 120px;
+    }
+    .sales-pipeline-column-header {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #e8e8ff; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sales-pipeline-count {
+      font-size: 0.68rem; font-weight: 700; color: #8888aa;
+      background: rgba(255, 255, 255, 0.06); border-radius: 999px; padding: 1px 8px;
+    }
+    .sales-pipeline-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(12, 18, 38, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .sales-pipeline-item-handle { font-size: 0.78rem; font-weight: 700; color: #22d3ee; }
+    .sales-pipeline-item-preview {
+      font-size: 0.72rem; color: #8892b8; line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .sales-pipeline-item-select {
+      width: 100%; padding: 6px 8px; border-radius: 8px;
+      border: 1px solid rgba(0, 229, 255, 0.2); background: rgba(8, 12, 28, 0.9);
+      color: #e8e8ff; font-size: 0.72rem; font-family: inherit; outline: none; cursor: pointer;
+    }
+    .sales-pipeline-empty {
+      font-size: 0.75rem; color: #555c78; text-align: center; padding: 12px 0;
+    }
+    @media (max-width: 700px) {
+      .sales-pipeline-board { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
 <body>
@@ -413,6 +589,21 @@
       <div class="context-grid" id="businessContextGrid"></div>
       
       <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
+    </section>
+    <section class="sales-live-card" aria-label="Live Leads from Lead Radar">
+      <div class="sales-live-header">
+        <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
+          <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
+        </div>
+      </div>
+      <div class="sales-leads-msg" id="salesLeadsMsg"></div>
+      <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
+    </section>
+    <section class="sales-pipeline-card" aria-label="Sales Pipeline">
+      <h2 class="section-label">Sales Pipeline</h2>
+      <div class="sales-pipeline-board" id="salesPipelineBoard"></div>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
@@ -600,6 +791,313 @@
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
     refreshPage();
+  </script>
+  <script>
+    (function () {
+      var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+      function tok() { return localStorage.getItem("bf_token") || ""; }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      var STATUS_LABELS = { new: "New", drafted: "Drafted", contacted: "Contacted", replied: "Replied", converted: "Converted" };
+      var STATUS_ORDER = ["new", "drafted", "contacted", "replied", "converted"];
+
+      function scoreClass(score) { return score >= 60 ? "hi" : score >= 30 ? "mid" : "lo"; }
+
+      function isBuyer(lead) {
+        return !!(lead.suggested_product && lead.suggested_product !== "none" && (lead.intent_score || 0) >= 40);
+      }
+
+      function leadHandle(lead) {
+        return lead.author_handle ? "@" + lead.author_handle : (lead.author_did || "unknown");
+      }
+
+      /* splits the model's OUTREACH MESSAGE / OFFER / CALL TO ACTION sections
+         out of the plain-text conversion package returned by the backend */
+      function parseConversion(text) {
+        var raw = String(text || "");
+        var labels = [
+          { key: "outreach", re: /outreach message[:\-]?/i },
+          { key: "offer", re: /\boffer[:\-]?/i },
+          { key: "cta", re: /call to action[:\-]?/i }
+        ];
+        var positions = [];
+        labels.forEach(function (l) {
+          var m = raw.match(l.re);
+          if (m) positions.push({ key: l.key, index: m.index, len: m[0].length });
+        });
+        var result = { outreach: "", offer: "", cta: "" };
+        if (!positions.length) { result.outreach = raw.trim(); return result; }
+        positions.sort(function (a, b) { return a.index - b.index; });
+        for (var i = 0; i < positions.length; i++) {
+          var start = positions[i].index + positions[i].len;
+          var end = (i + 1 < positions.length) ? positions[i + 1].index : raw.length;
+          result[positions[i].key] = raw.slice(start, end).replace(/^[\s:*#\-]+/, "").trim();
+        }
+        return result;
+      }
+
+      var currentLeads = [];
+
+      function setLeadsMsg(text, cls) {
+        var el = document.getElementById("salesLeadsMsg");
+        if (!el) return;
+        el.textContent = text || "";
+        el.className = "sales-leads-msg" + (cls ? " " + cls : "");
+      }
+
+      function renderLeads(leads) {
+        var list = document.getElementById("salesLeadsList");
+        if (!list) return;
+        if (!leads.length) {
+          list.innerHTML = '<div class="empty-state"><p>No captured leads yet. Lead Radar scans every 5 minutes.</p></div>';
+          return;
+        }
+        list.innerHTML = leads.map(function (lead, idx) {
+          var score = typeof lead.intent_score === "number" ? lead.intent_score : 0;
+          var buyer = isBuyer(lead);
+          var hasProduct = lead.suggested_product && lead.suggested_product !== "none";
+          var status = lead.sales_status || "new";
+          var alreadyReachedOut = (status === "contacted" || status === "replied" || status === "converted");
+
+          return (
+            '<div class="sales-lead-card" data-idx="' + idx + '">' +
+              '<div class="sales-lead-top">' +
+                '<span class="sales-lead-handle">' + esc(leadHandle(lead)) + '</span>' +
+                '<span class="sales-status-badge status-' + esc(status) + '">' + esc(STATUS_LABELS[status] || status) + '</span>' +
+              '</div>' +
+              '<p class="sales-lead-text">' + esc(lead.post_text || "") + '</p>' +
+              '<div class="sales-lead-meta">' +
+                '<span class="sales-score-badge ' + scoreClass(score) + '">' + score + '</span>' +
+                '<span class="sales-lead-tag ' + (buyer ? "buyer" : "seller") + '">' +
+                  (buyer ? "Buyer" : (hasProduct ? "Seller/Competitor" : "Unclassified")) +
+                '</span>' +
+                (hasProduct ? '<span class="sales-lead-product">' + esc(lead.suggested_product) + '</span>' : "") +
+              '</div>' +
+              '<div class="sales-lead-actions">' +
+                '<button type="button" class="action-btn action-btn--ghost sales-convert-btn" data-idx="' + idx + '">' +
+                  (status === "new" ? "Convert" : "Re-Draft") +
+                '</button>' +
+                (alreadyReachedOut
+                  ? '<span class="sales-lead-warn">Already ' + esc((STATUS_LABELS[status] || status).toLowerCase()) + ' — check the pipeline before messaging again.</span>'
+                  : "") +
+              '</div>' +
+              '<div class="sales-conversion-result" id="salesConv-' + idx + '" style="display:none;"></div>' +
+            '</div>'
+          );
+        }).join("");
+      }
+
+      function renderConversion(idx, text) {
+        var wrap = document.getElementById("salesConv-" + idx);
+        if (!wrap) return;
+        var parsed = parseConversion(text);
+        var hasParsedSections = parsed.outreach || parsed.offer || parsed.cta;
+
+        wrap.innerHTML =
+          (parsed.outreach ? '<div class="sales-conv-block"><div class="sales-conv-label">Outreach Message</div><div class="sales-conv-body">' + esc(parsed.outreach) + '</div></div>' : "") +
+          (parsed.offer ? '<div class="sales-conv-block"><div class="sales-conv-label">Offer</div><div class="sales-conv-body">' + esc(parsed.offer) + '</div></div>' : "") +
+          (parsed.cta ? '<div class="sales-conv-block"><div class="sales-conv-label">Call To Action</div><div class="sales-conv-body">' + esc(parsed.cta) + '</div></div>' : "") +
+          (!hasParsedSections ? '<div class="sales-conv-block"><div class="sales-conv-body">' + esc(text) + '</div></div>' : "") +
+          '<button type="button" class="copy-btn" data-idx="' + idx + '">Copy All</button>';
+
+        wrap.dataset.fullText = text;
+        wrap.style.display = "block";
+      }
+
+      function loadLeads() {
+        var token = tok();
+        if (!token) return;
+        setLeadsMsg("Loading leads…");
+        fetch(API_URL + "/api/agents/sales/leads", { headers: { "Authorization": "Bearer " + token } })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
+          .then(function (d) {
+            currentLeads = (d && Array.isArray(d.leads)) ? d.leads : [];
+            renderLeads(currentLeads);
+            setLeadsMsg(currentLeads.length + " lead" + (currentLeads.length === 1 ? "" : "s") + " tracked", "ok");
+          })
+          .catch(function (e) {
+            setLeadsMsg(e.message || "Could not load leads.", "err");
+            var list = document.getElementById("salesLeadsList");
+            if (list) list.innerHTML = '<div class="empty-state"><p>Could not load leads.</p></div>';
+          });
+      }
+
+      function convertLead(idx, btn) {
+        var lead = currentLeads[idx];
+        if (!lead) return;
+        var token = tok();
+        if (!token) { setLeadsMsg("Not signed in.", "err"); return; }
+
+        btn.disabled = true;
+        var originalLabel = btn.textContent;
+        btn.innerHTML = '<span class="sales-spinner"></span>Converting…';
+
+        fetch(API_URL + "/api/agents/sales/convert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ lead_post_uri: lead.post_uri })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
+          var result = res.data.results && res.data.results[0];
+          if (result) renderConversion(idx, result.conversion);
+          loadLeads();
+          loadPipeline();
+        })
+        .catch(function (e) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+          setLeadsMsg(e.message || "Conversion failed.", "err");
+        });
+      }
+
+      function convertAllHighIntent() {
+        var btn = document.getElementById("salesConvertAllBtn");
+        var token = tok();
+        if (!token) { setLeadsMsg("Not signed in.", "err"); return; }
+
+        btn.disabled = true;
+        var originalLabel = btn.textContent;
+        btn.innerHTML = '<span class="sales-spinner"></span>Converting…';
+        setLeadsMsg("Generating outreach for high-intent leads…");
+
+        fetch(API_URL + "/api/agents/sales/convert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ segment: { high_intent: true } })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
+          var count = (res.data.results || []).length;
+          setLeadsMsg(count + " conversion" + (count === 1 ? "" : "s") + " generated.", "ok");
+          loadLeads();
+          loadPipeline();
+        })
+        .catch(function (e) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+          setLeadsMsg(e.message || "Bulk conversion failed.", "err");
+        });
+      }
+
+      /* ── pipeline board ── */
+      function statusOptionsHtml(current) {
+        return STATUS_ORDER.map(function (s) {
+          return '<option value="' + s + '"' + (s === current ? " selected" : "") + '>' + STATUS_LABELS[s] + '</option>';
+        }).join("");
+      }
+
+      function renderPipeline(grouped) {
+        var board = document.getElementById("salesPipelineBoard");
+        if (!board) return;
+        board.innerHTML = STATUS_ORDER.map(function (status) {
+          var items = (grouped && grouped[status]) || [];
+          var itemsHtml = items.length
+            ? items.map(function (item) {
+                var lead = item.lead || {};
+                var handle = lead.author_handle ? "@" + lead.author_handle : (lead.author_did || "unknown");
+                var preview = (lead.post_text || item.last_draft || "").slice(0, 110);
+                return (
+                  '<div class="sales-pipeline-item" data-uri="' + esc(item.lead_post_uri) + '">' +
+                    '<div class="sales-pipeline-item-handle">' + esc(handle) + '</div>' +
+                    '<div class="sales-pipeline-item-preview">' + esc(preview) + '</div>' +
+                    '<select class="sales-pipeline-item-select" data-uri="' + esc(item.lead_post_uri) + '">' + statusOptionsHtml(status) + '</select>' +
+                  '</div>'
+                );
+              }).join("")
+            : '<div class="sales-pipeline-empty">Empty</div>';
+
+          return (
+            '<div class="sales-pipeline-column">' +
+              '<div class="sales-pipeline-column-header">' +
+                '<span>' + STATUS_LABELS[status] + '</span>' +
+                '<span class="sales-pipeline-count">' + items.length + '</span>' +
+              '</div>' +
+              itemsHtml +
+            '</div>'
+          );
+        }).join("");
+      }
+
+      function loadPipeline() {
+        var token = tok();
+        if (!token) return;
+        fetch(API_URL + "/api/agents/sales/pipeline", { headers: { "Authorization": "Bearer " + token } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) { renderPipeline(d && d.pipeline); })
+          .catch(function () {});
+      }
+
+      function updateLeadStatus(postUri, status) {
+        var token = tok();
+        if (!token) return;
+        fetch(API_URL + "/api/agents/sales/lead-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ lead_post_uri: postUri, status: status })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); })
+        .then(function (res) {
+          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
+          loadPipeline();
+          loadLeads();
+        })
+        .catch(function (e) { console.error("[Sales] status update failed:", e.message || e); });
+      }
+
+      function copyConversion(idx) {
+        var wrap = document.getElementById("salesConv-" + idx);
+        if (!wrap) return;
+        var text = wrap.dataset.fullText || "";
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(function () {
+          var btn = wrap.querySelector(".copy-btn");
+          if (btn) {
+            var original = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(function () { btn.textContent = original; }, 1800);
+          }
+        }).catch(function () {});
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        var refreshBtn = document.getElementById("salesLeadsRefreshBtn");
+        if (refreshBtn) refreshBtn.addEventListener("click", loadLeads);
+
+        var convertAllBtn = document.getElementById("salesConvertAllBtn");
+        if (convertAllBtn) convertAllBtn.addEventListener("click", convertAllHighIntent);
+
+        var list = document.getElementById("salesLeadsList");
+        if (list) {
+          list.addEventListener("click", function (e) {
+            var convertBtn = e.target.closest(".sales-convert-btn");
+            if (convertBtn) { convertLead(parseInt(convertBtn.dataset.idx, 10), convertBtn); return; }
+            var copyBtn = e.target.closest(".copy-btn");
+            if (copyBtn) { copyConversion(parseInt(copyBtn.dataset.idx, 10)); }
+          });
+        }
+
+        var board = document.getElementById("salesPipelineBoard");
+        if (board) {
+          board.addEventListener("change", function (e) {
+            var select = e.target.closest(".sales-pipeline-item-select");
+            if (!select) return;
+            updateLeadStatus(select.dataset.uri, select.value);
+          });
+        }
+
+        loadLeads();
+        loadPipeline();
+      });
+    })();
   </script>
 <script>
 window.AGENT_PROFILE_CONFIG = {
