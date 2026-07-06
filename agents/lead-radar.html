@@ -274,6 +274,18 @@
       color: #94a3b8;
     }
 
+    .source-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .source-pill.source-bluesky  { background: rgba(0, 229, 255, 0.1);   border: 1px solid rgba(0, 229, 255, 0.35);   color: #22d3ee; }
+    .source-pill.source-mastodon { background: rgba(168, 85, 247, 0.1);  border: 1px solid rgba(168, 85, 247, 0.35);  color: #c4b5fd; }
+    .source-pill.source-youtube  { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.35); color: #f87171; }
+
     .lead-product {
       font-size: 0.78rem;
       font-weight: 600;
@@ -442,7 +454,7 @@
       </div>
       <div class="agent-header-text">
         <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Live intelligence on competitors and sellers in your market — captured from Bluesky every 5 minutes.</p>
+        <p class="agent-subtitle">Live intelligence on competitors and sellers in your market — captured from Bluesky, Mastodon & YouTube every 5 minutes.</p>
       </div>
     </header>
 
@@ -729,6 +741,8 @@
             var product    = lead.suggested_product || "none";
             var reason     = lead.intent_reason || "";
             var scoreClass = score >= 60 ? "score-green" : score >= 30 ? "score-amber" : "score-gray";
+            var source      = lead.source || "bluesky";
+            var sourceClass = "source-" + source;
             return [
               "<div class=\"lead-card\" id=\"card-" + idx + "\">",
               "  <div class=\"lead-card-top\">",
@@ -738,6 +752,7 @@
               "  <p class=\"lead-text\">" + escHtml(text) + "</p>",
               "  <div class=\"lead-meta\">",
               "    <span class=\"score-badge " + scoreClass + "\">" + score + "</span>",
+              "    <span class=\"source-pill " + sourceClass + "\">" + escHtml(source) + "</span>",
               "    <span class=\"lead-product\">" + escHtml(product) + "</span>",
               "    <span class=\"lead-reason\">" + escHtml(reason) + "</span>",
               "  </div>",
