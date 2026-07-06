@@ -222,6 +222,7 @@
       "This is the Oracle — a synchronized channel where you consult Termaximus directly, his counsel drawn from your true numerology and the shape of your birth chart, not generic advice.",
       "Sync your Book of You through the corner star's profile — birth name, date, time, place, current location, your path, and the fuller story of who you are; the more it holds, the deeper and more exact the Oracle's sight becomes.",
       "Ask anything through the channel — strategy, esoteric questions, personal matters, business decisions — it draws no line between them; every answer comes filtered through your own numbers and path, never as generic advice.",
+      "Bring him documents through the paperclip beside the input — PDFs, Word files, plain text, contracts, or images. Termaximus combs through each with a fine-tooth comb: contracts read clause by clause for loopholes, buried terms, micro-infractions, and risk; any file drawn into rigorous, unflinching critique when you ask it of him; images seen and weighed against your question.",
       "Keep the channel current. Your Life Path, Expression, Soul Urge, and Birthday numbers only sharpen with time, and the Oracle's counsel sharpens with them."
     ]
   };
@@ -235,7 +236,7 @@
      the original generic behavior exactly as before. */
   var PAGE_INSIGHT = {
     "oracle.html":
-      "The Oracle is more than a novelty — it's a genuine strategic differentiator: a numerology-grounded advisory layer no comparable platform offers. For businesses built on vitality and personal transformation, or on publishing and the written word, that kind of individually-calibrated counsel is exactly the edge that turns a routine question into guidance shaped around one person's actual path. Every synced detail in the Book of You deepens that precision, making the Oracle both a retention hook and a positioning asset at once."
+      "The Oracle is more than a novelty — it's a genuine strategic differentiator: a numerology-grounded advisory layer no comparable platform offers. For businesses built on vitality and personal transformation, or on publishing and the written word, that kind of individually-calibrated counsel is exactly the edge that turns a routine question into guidance shaped around one person's actual path. It now also reads what you hand it — contracts, PDFs, Word files, images — scrutinizing the fine print with the same rigor it brings to a birth chart, turning the Oracle into a working document reviewer as much as an advisor. Every synced detail in the Book of You deepens that precision, making the Oracle both a retention hook and a positioning asset at once."
   };
 
   function resolveInsight(key, fallback) {
