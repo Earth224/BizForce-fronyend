@@ -217,10 +217,35 @@
       "Run Market Research and Competitive Intelligence together — differentiation scores mean more when you know both your market and your competitors.",
       "Use Innovation Brief to screen ideas by feasibility and impact before you invest real time in them.",
       "Build Executive Briefing last — it's designed to summarize everything else into something you can hand to a stakeholder."
+    ],
+    "oracle.html": [
+      "This is the Oracle — a synchronized channel where you consult Termaximus directly, his counsel drawn from your true numerology and the shape of your birth chart, not generic advice.",
+      "Sync your Book of You through the corner star's profile — birth name, date, time, place, current location, your path, and the fuller story of who you are; the more it holds, the deeper and more exact the Oracle's sight becomes.",
+      "Ask anything through the channel — strategy, esoteric questions, personal matters, business decisions — it draws no line between them; every answer comes filtered through your own numbers and path, never as generic advice.",
+      "Keep the channel current. Your Life Path, Expression, Soul Urge, and Birthday numbers only sharpen with time, and the Oracle's counsel sharpens with them."
     ]
   };
 
   var DEFAULT_GUIDANCE = "Explore this page — Termaximus will surface guidance here as it learns the terrain.";
+
+  /* per-page fallback for the "Termaximus Insights" section — used as
+     the initial text and whenever the live /api/insights/page call is
+     empty or fails, so a page can show a real, finished thought instead
+     of the generic placeholder below. Pages without an entry here keep
+     the original generic behavior exactly as before. */
+  var PAGE_INSIGHT = {
+    "oracle.html":
+      "The Oracle is more than a novelty — it's a genuine strategic differentiator: a numerology-grounded advisory layer no comparable platform offers. For businesses built on vitality and personal transformation, or on publishing and the written word, that kind of individually-calibrated counsel is exactly the edge that turns a routine question into guidance shaped around one person's actual path. Every synced detail in the Book of You deepens that precision, making the Oracle both a retention hook and a positioning asset at once."
+  };
+
+  function resolveInsight(key, fallback) {
+    if (PAGE_INSIGHT[key]) return PAGE_INSIGHT[key];
+    if (key.indexOf(".html") === -1) {
+      var withExtension = key + ".html";
+      if (PAGE_INSIGHT[withExtension]) return PAGE_INSIGHT[withExtension];
+    }
+    return fallback;
+  }
 
   function currentPageKey() {
     var path = window.location.pathname || "";
@@ -405,6 +430,7 @@
   }
 
   var guidanceText = resolveGuidance(currentPageKey());
+  var initialInsightText = resolveInsight(currentPageKey(), "Placeholder — Termaximus’s insights will appear here.");
 
   panel.innerHTML =
     '<div class="tmx-guide-header">' +
@@ -416,7 +442,7 @@
     '</div>' +
     '<div class="tmx-guide-section tmx-guide-section--insights">' +
       '<h3 class="tmx-guide-label">Termaximus Insights</h3>' +
-      '<p class="tmx-guide-placeholder" id="tmx-guide-insight-text">Placeholder — Termaximus&rsquo;s insights will appear here.</p>' +
+      '<p class="tmx-guide-placeholder" id="tmx-guide-insight-text">' + initialInsightText + '</p>' +
     '</div>';
 
   root.appendChild(tab);
@@ -442,11 +468,11 @@
         if (data && data.insight) {
           insightEl.textContent = data.insight;
         } else {
-          insightEl.textContent = "Termaximus is gathering his thoughts — try again in a moment.";
+          insightEl.textContent = resolveInsight(currentPageKey(), "Termaximus is gathering his thoughts — try again in a moment.");
         }
       })
       .catch(function () {
-        insightEl.textContent = "Termaximus is gathering his thoughts — try again in a moment.";
+        insightEl.textContent = resolveInsight(currentPageKey(), "Termaximus is gathering his thoughts — try again in a moment.");
       });
   }
 
