@@ -888,6 +888,79 @@
     .oracle-send-btn:hover  { transform: translateY(-1px); border-color: rgba(0,255,255,0.35); box-shadow: 0 0 30px rgba(0,255,255,0.15); }
     .oracle-send-btn:active { transform: translateY(0); }
     .oracle-send-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+
+    /* Attach button — same glass/gradient-rim language as the chat box */
+    .oracle-attach-btn {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      color: #e8e8ff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(0,255,255,0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+    }
+    .oracle-attach-btn:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(0,255,255,0.15); }
+    .oracle-attach-btn:active { transform: translateY(0); }
+    .oracle-attach-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+    .oracle-attach-btn.has-files {
+      box-shadow: 0 0 22px rgba(34,211,238,0.30);
+    }
+
+    /* Attached-file chips — shown above the input row */
+    .oracle-attach-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .oracle-attach-chips:empty { display: none; margin-bottom: 0; }
+    .oracle-attach-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 220px;
+      padding: 6px 8px 6px 12px;
+      border-radius: 999px;
+      background: rgba(6,10,22,0.55);
+      border: 1px solid rgba(0,229,255,0.25);
+      color: #e8e8ff;
+      font-size: 0.78rem;
+    }
+    .oracle-attach-chip-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .oracle-attach-chip-remove {
+      background: none;
+      border: none;
+      color: rgba(200,200,230,0.6);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px 5px;
+      border-radius: 50%;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .oracle-attach-chip-remove:hover { color: #fff; background: rgba(255,255,255,0.12); }
+
+    /* Drag-and-drop feedback on the chat box (border is a gradient
+       border-image, so we signal drag state with a glow instead) */
+    .oracle-messages.oracle-drag-over {
+      box-shadow: 0 0 0 2px rgba(34,211,238,0.55), 0 0 34px rgba(34,211,238,0.28);
+    }
+
+    /* "Termaximus is reviewing your document…" state */
+    .oracle-thinking-reviewing { align-items: center; }
+    .oracle-thinking-label {
+      font-size: 0.82rem;
+      font-style: italic;
+      color: #ccd0e8;
+      margin-right: 6px;
+    }
   </style>
 </head>
 <body>
@@ -1091,7 +1164,15 @@
       </div>
     </div>
 
+    <div class="oracle-attach-chips" id="attachChips"></div>
+
     <div class="oracle-input-bar">
+      <input type="file" id="attachFileInput" multiple accept=".pdf,.doc,.docx,.txt,.md,.csv,image/*" style="display:none;" />
+      <button type="button" class="oracle-attach-btn bf-glass bf-brand-rim" id="attachBtn" aria-label="Attach files" style="--bf-brand-rim-w: 1.5px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24L9.41 17.4a1 1 0 0 1-1.42-1.42l7.78-7.78"/>
+        </svg>
+      </button>
       <input type="text" id="chatInput" class="oracle-chat-input bf-glass" placeholder="Speak your question to the Oracle…" />
       <button class="oracle-send-btn bf-glass" id="sendBtn" aria-label="Send">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
@@ -1201,46 +1282,135 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
     });
 
+    /* ── File attach — click-to-attach and drag-and-drop onto the chat box ── */
+    var attachBtn       = document.getElementById("attachBtn");
+    var attachFileInput = document.getElementById("attachFileInput");
+    var attachChips     = document.getElementById("attachChips");
+    var attachedFiles   = [];
+
+    function renderAttachChips() {
+      attachChips.innerHTML = "";
+      attachedFiles.forEach(function (file, index) {
+        var chip = document.createElement("span");
+        chip.className = "oracle-attach-chip";
+
+        var nameEl = document.createElement("span");
+        nameEl.className = "oracle-attach-chip-name";
+        nameEl.textContent = file.name;
+
+        var removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "oracle-attach-chip-remove";
+        removeBtn.setAttribute("aria-label", "Remove " + file.name);
+        removeBtn.innerHTML = "&times;";
+        removeBtn.addEventListener("click", function () {
+          attachedFiles.splice(index, 1);
+          renderAttachChips();
+        });
+
+        chip.appendChild(nameEl);
+        chip.appendChild(removeBtn);
+        attachChips.appendChild(chip);
+      });
+      attachBtn.classList.toggle("has-files", attachedFiles.length > 0);
+    }
+
+    function addAttachedFiles(fileList) {
+      for (var i = 0; i < fileList.length; i++) {
+        attachedFiles.push(fileList[i]);
+      }
+      renderAttachChips();
+    }
+
+    attachBtn.addEventListener("click", function () {
+      attachFileInput.click();
+    });
+    attachFileInput.addEventListener("change", function () {
+      if (attachFileInput.files && attachFileInput.files.length) {
+        addAttachedFiles(attachFileInput.files);
+      }
+      attachFileInput.value = ""; // allow re-selecting the same file later
+    });
+
+    /* Drag-and-drop onto the chat box */
+    var dragDepth = 0;
+    messageArea.addEventListener("dragover", function (e) { e.preventDefault(); });
+    messageArea.addEventListener("dragenter", function (e) {
+      e.preventDefault();
+      dragDepth++;
+      messageArea.classList.add("oracle-drag-over");
+    });
+    messageArea.addEventListener("dragleave", function () {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) messageArea.classList.remove("oracle-drag-over");
+    });
+    messageArea.addEventListener("drop", function (e) {
+      e.preventDefault();
+      dragDepth = 0;
+      messageArea.classList.remove("oracle-drag-over");
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        addAttachedFiles(e.dataTransfer.files);
+      }
+    });
+
     function sendMessage() {
       var text = chatInput.value.trim();
       if (!text || sendBtn.disabled) return;
+
+      var filesForRequest = attachedFiles.slice();
+      var hasFiles = filesForRequest.length > 0;
+
       chatInput.value = "";
+      attachedFiles = [];
+      renderAttachChips();
+
       appendMsg("user", text);
       chatHistory.push({ role: "user", content: text });
-      setLoading(true);
+      setLoading(true, hasFiles);
+
+      var formData = new FormData();
+      formData.append("message", text);
+      filesForRequest.forEach(function (file) {
+        formData.append("files", file);
+      });
 
       fetch(API_URL + "/api/oracle", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": "Bearer " + token
         },
-        body: JSON.stringify({
-          message: text
-        })
+        body: formData
       })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (r) {
+        if (r.ok) return r.json();
+        return r.json().catch(function () { return null; }).then(function (errBody) {
+          return Promise.reject((errBody && errBody.error) || null);
+        });
+      })
       .then(function (data) {
         setLoading(false);
         var reply = (data && data.reply) ? data.reply : "The channel fell silent. Ask again.";
         chatHistory.push({ role: "assistant", content: reply });
         appendMsg("oracle", reply);
       })
-      .catch(function () {
+      .catch(function (errMsg) {
         setLoading(false);
-        appendMsg("oracle", "The abyss is unreachable at this moment. Try again.");
+        appendMsg("oracle", (typeof errMsg === "string" && errMsg) ? errMsg : "The abyss is unreachable at this moment. Try again.");
       });
     }
 
-    function setLoading(on) {
-      sendBtn.disabled   = on;
-      chatInput.disabled = on;
+    function setLoading(on, reviewingDocs) {
+      sendBtn.disabled    = on;
+      chatInput.disabled  = on;
+      attachBtn.disabled  = on;
       if (on) {
         thinkingEl = document.createElement("div");
         thinkingEl.className = "oracle-msg from-oracle";
         thinkingEl.innerHTML =
           '<span class="msg-sender">Oracle</span>' +
-          '<div class="oracle-thinking"><span></span><span></span><span></span></div>';
+          (reviewingDocs
+            ? '<div class="oracle-thinking oracle-thinking-reviewing"><span class="oracle-thinking-label">Termaximus is reviewing your document…</span><span></span><span></span><span></span></div>'
+            : '<div class="oracle-thinking"><span></span><span></span><span></span></div>');
         messageArea.appendChild(thinkingEl);
         messageArea.scrollTop = messageArea.scrollHeight;
       } else if (thinkingEl) {
