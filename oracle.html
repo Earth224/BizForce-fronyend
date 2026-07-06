@@ -76,6 +76,17 @@
       }
     }
 
+    /* BizForce brand-gradient rim — the exact cyan-to-purple gradient
+       used by the "BizForce AI" brand wordmark (.brand-badge), applied
+       as a gradient border via border-image. No glow, no bloom — just
+       the clean brand line. Border-radius is preserved since modern
+       browsers clip border-image to it. */
+    .bf-brand-rim {
+      --bf-brand-rim-w: 3.5px;
+      border: var(--bf-brand-rim-w) solid transparent;
+      border-image: linear-gradient(90deg, #22d3ee, #a855f7) 1;
+    }
+
     /* Transparent black glass — dark, mostly see-through tint so the
        abyss and shooting stars read clearly behind it, with a subtle
        diagonal shine like light catching real glass. */
@@ -452,8 +463,8 @@
       position: fixed;
       right: 20px;
       bottom: 100px;
-      width: 34px;
-      height: 34px;
+      width: 102px;
+      height: 102px;
       z-index: 5;
       pointer-events: auto;
       cursor: grab;
@@ -467,13 +478,21 @@
       overflow: visible;
       display: block;
     }
-    /* Faceted body gently turns a few degrees either way, so the facets
-       catch the light differently over time without losing the fixed
-       up/down/left/right orientation of the long points. */
+    /* The whole star — facets, glint, and tip-sparks together — revolves
+       slowly and continuously, so the sparks stay put at the points as
+       they turn instead of drifting out of place. */
+    .corner-star-body {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: corner-star-revolve 26s linear infinite;
+    }
+    /* The faceted body itself breathes between fully sharp/defined and a
+       soft, blurred, semi-shapeless bloom, then reforms — on its own
+       cycle, independent of the revolve above. */
     .corner-star-facets {
       transform-box: fill-box;
       transform-origin: center;
-      animation: corner-star-turn 14s ease-in-out infinite;
+      animation: corner-star-dissolve 9s ease-in-out infinite;
     }
     /* Sharp specular glint (see the clipped <rect> in the markup) sweeps
        across the facets via SMIL animateTransform, on a slow, irregular
@@ -496,10 +515,13 @@
       0%, 100% { transform: scale(0.94); }
       50%       { transform: scale(1.1);  }
     }
-    @keyframes corner-star-turn {
-      0%   { transform: rotate(-4deg); }
-      50%  { transform: rotate(5deg);  }
-      100% { transform: rotate(-4deg); }
+    @keyframes corner-star-revolve {
+      0%   { transform: rotate(0deg);   }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes corner-star-dissolve {
+      0%, 100% { filter: blur(0px);    transform: scale(1);    opacity: 1;    }
+      50%       { filter: blur(4.5px); transform: scale(1.06); opacity: 0.85; }
     }
     @keyframes corner-tip-flicker {
       0%   { opacity: 0.25; }
@@ -916,47 +938,50 @@
           <stop offset="100%" stop-color="#fffdf5" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <!-- Faceted body — each spike split into a lit and shadowed
-           triangle, shaded as if light falls from the upper-left -->
-      <g class="corner-star-facets">
-        <path d="M50,50 L50,2 L54.21,39.84 Z"    fill="#ffe9b0"/>
-        <path d="M50,50 L54.21,39.84 L69.09,30.91 Z" fill="#ffd27a"/>
-        <path d="M50,50 L69.09,30.91 L60.16,45.79 Z" fill="#f0b355"/>
-        <path d="M50,50 L60.16,45.79 L98,50 Z"    fill="#d99a3c"/>
-        <path d="M50,50 L98,50 L60.16,54.21 Z"    fill="#a8752a"/>
-        <path d="M50,50 L60.16,54.21 L69.09,69.09 Z" fill="#8a5f22"/>
-        <path d="M50,50 L69.09,69.09 L54.21,60.16 Z" fill="#5e3f18"/>
-        <path d="M50,50 L54.21,60.16 L50,98 Z"    fill="#5e3f18"/>
-        <path d="M50,50 L50,98 L45.79,60.16 Z"    fill="#8a5f22"/>
-        <path d="M50,50 L45.79,60.16 L30.91,69.09 Z" fill="#a8752a"/>
-        <path d="M50,50 L30.91,69.09 L39.84,54.21 Z" fill="#d99a3c"/>
-        <path d="M50,50 L39.84,54.21 L2,50 Z"     fill="#f0b355"/>
-        <path d="M50,50 L2,50 L39.84,45.79 Z"     fill="#ffd27a"/>
-        <path d="M50,50 L39.84,45.79 L30.91,30.91 Z" fill="#ffe9b0"/>
-        <path d="M50,50 L30.91,30.91 L45.79,39.84 Z" fill="#fffdf5"/>
-        <path d="M50,50 L45.79,39.84 L50,2 Z"     fill="#fffdf5"/>
-      </g>
-      <!-- Sharp specular glint, clipped to the star's own silhouette,
-           sweeping across the facets on a slow irregular cycle -->
-      <g clip-path="url(#cornerStarClip)">
-        <rect class="corner-star-glint" x="-30" y="42" width="160" height="16" fill="url(#cornerStarGlint)">
-          <animateTransform attributeName="transform" type="translate"
-            values="-45 45; 45 -45; 45 -45; -45 45" keyTimes="0; 0.22; 0.7; 1"
-            dur="9s" repeatCount="indefinite"/>
-        </rect>
-      </g>
-      <!-- Flickering sparks at the four long tips, each its own timing -->
-      <g class="corner-star-tips" fill="#fffaf0">
-        <path class="tip-spark spark-n" d="M50,-3 L52.3,3 L50,9 L47.7,3 Z"/>
-        <path class="tip-spark spark-e" d="M112,50 L106,52.3 L100,50 L106,47.7 Z"/>
-        <path class="tip-spark spark-s" d="M50,112 L47.7,106 L50,100 L52.3,106 Z"/>
-        <path class="tip-spark spark-w" d="M-12,50 L-6,47.7 L0,50 L-6,52.3 Z"/>
+      <!-- Whole body — facets, glint, and tips revolve together -->
+      <g class="corner-star-body">
+        <!-- Faceted body — each spike split into a lit and shadowed
+             triangle, shaded as if light falls from the upper-left -->
+        <g class="corner-star-facets">
+          <path d="M50,50 L50,2 L54.21,39.84 Z"    fill="#ffe9b0"/>
+          <path d="M50,50 L54.21,39.84 L69.09,30.91 Z" fill="#ffd27a"/>
+          <path d="M50,50 L69.09,30.91 L60.16,45.79 Z" fill="#f0b355"/>
+          <path d="M50,50 L60.16,45.79 L98,50 Z"    fill="#d99a3c"/>
+          <path d="M50,50 L98,50 L60.16,54.21 Z"    fill="#a8752a"/>
+          <path d="M50,50 L60.16,54.21 L69.09,69.09 Z" fill="#8a5f22"/>
+          <path d="M50,50 L69.09,69.09 L54.21,60.16 Z" fill="#5e3f18"/>
+          <path d="M50,50 L54.21,60.16 L50,98 Z"    fill="#5e3f18"/>
+          <path d="M50,50 L50,98 L45.79,60.16 Z"    fill="#8a5f22"/>
+          <path d="M50,50 L45.79,60.16 L30.91,69.09 Z" fill="#a8752a"/>
+          <path d="M50,50 L30.91,69.09 L39.84,54.21 Z" fill="#d99a3c"/>
+          <path d="M50,50 L39.84,54.21 L2,50 Z"     fill="#f0b355"/>
+          <path d="M50,50 L2,50 L39.84,45.79 Z"     fill="#ffd27a"/>
+          <path d="M50,50 L39.84,45.79 L30.91,30.91 Z" fill="#ffe9b0"/>
+          <path d="M50,50 L30.91,30.91 L45.79,39.84 Z" fill="#fffdf5"/>
+          <path d="M50,50 L45.79,39.84 L50,2 Z"     fill="#fffdf5"/>
+        </g>
+        <!-- Sharp specular glint, clipped to the star's own silhouette,
+             sweeping across the facets on a slow irregular cycle -->
+        <g clip-path="url(#cornerStarClip)">
+          <rect class="corner-star-glint" x="-30" y="42" width="160" height="16" fill="url(#cornerStarGlint)">
+            <animateTransform attributeName="transform" type="translate"
+              values="-45 45; 45 -45; 45 -45; -45 45" keyTimes="0; 0.22; 0.7; 1"
+              dur="9s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+        <!-- Flickering sparks at the four long tips, each its own timing -->
+        <g class="corner-star-tips" fill="#fffaf0">
+          <path class="tip-spark spark-n" d="M50,-3 L52.3,3 L50,9 L47.7,3 Z"/>
+          <path class="tip-spark spark-e" d="M112,50 L106,52.3 L100,50 L106,47.7 Z"/>
+          <path class="tip-spark spark-s" d="M50,112 L47.7,106 L50,100 L52.3,106 Z"/>
+          <path class="tip-spark spark-w" d="M-12,50 L-6,47.7 L0,50 L-6,52.3 Z"/>
+        </g>
       </g>
     </svg>
   </div>
 
   <!-- Your Oracle Profile — floating panel, opens/closes via the corner star -->
-  <div class="oracle-profile-panel bf-glass bf-gold-rim" id="oracleProfilePanel" aria-hidden="true">
+  <div class="oracle-profile-panel bf-glass bf-brand-rim" id="oracleProfilePanel" aria-hidden="true">
     <button type="button" class="oracle-profile-close" id="oracleProfileClose" aria-label="Close">&#x2715;</button>
     <div class="oracle-profile-title">Your Oracle Profile</div>
     <div class="oracle-profile-body" id="oracleProfileBody">
@@ -1059,7 +1084,7 @@
       </div>
     </header>
 
-    <div class="oracle-messages bf-glass bf-gold-rim" id="messageArea">
+    <div class="oracle-messages bf-glass bf-brand-rim" id="messageArea">
       <div class="oracle-msg from-oracle">
         <span class="msg-sender">Oracle</span>
         <div class="msg-bubble" id="greetingMsg">I have awaited you. What do you seek?</div>
