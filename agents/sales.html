@@ -811,6 +811,14 @@
       font-size: 0.85rem;
       color: #8888aa;
     }
+
+    .mc-feed-row.mc-row-enter {
+      animation: mcSlideIn 0.4s ease-out;
+    }
+    @keyframes mcSlideIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -1501,6 +1509,7 @@
          page-global formatDate() (defined in the earlier legacy <script>
          block) rather than duplicating either. ── */
       var mcTaskTimer = null;
+      var mcLastTopId = null;
 
       async function mcFetchSalesTasks() {
         try {
@@ -1587,16 +1596,21 @@
         var sorted = tasks.slice().sort(function (a, b) {
           return new Date(b.created_at) - new Date(a.created_at);
         });
-        var top = sorted.slice(0, 30);
+        var top = sorted.slice(0, 8);
 
-        feed.innerHTML = top.map(function (t) {
+        var newTopId = top[0] ? (top[0].id || top[0].created_at || null) : null;
+        var isNewTop = newTopId !== null && newTopId !== mcLastTopId;
+        mcLastTopId = newTopId;
+
+        feed.innerHTML = top.map(function (t, idx) {
           var meta = mcStatusMeta(t.status);
           var raw = String(t.prompt || t.task_type || "Task").replace(/\s+/g, " ").trim();
           var title = raw.length > 90 ? raw.slice(0, 90) + "…" : raw;
           var time = t.created_at ? formatDate(t.created_at) : "—";
+          var rowCls = "mc-feed-row" + (idx === 0 && isNewTop ? " mc-row-enter" : "");
 
           return (
-            '<div class="mc-feed-row">' +
+            '<div class="' + rowCls + '">' +
               '<span class="mc-feed-dot ' + meta.cls + '"></span>' +
               '<span class="mc-feed-title">' + esc(title) + '</span>' +
               '<span class="mc-feed-status ' + meta.cls + '">' + esc(meta.label) + '</span>' +
