@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Ancient Vitality Codex — Free Guide</title>
+<link rel="stylesheet" href="/css/bizforce-ui.css"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+  body{min-height:100vh;position:relative;overflow-x:hidden;display:flex;align-items:center;justify-content:center;padding:32px 20px}
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(52,211,153,.14),transparent 40%),#070b18;z-index:0;pointer-events:none}
+  .wrap{position:relative;z-index:1;width:100%;max-width:560px}
+  .card{background:rgba(12,18,38,0.72);border:1px solid rgba(34,211,238,0.22);border-radius:22px;padding:40px 32px;backdrop-filter:blur(14px);box-shadow:0 24px 80px rgba(0,0,0,0.5)}
+  .eyebrow{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#22d3ee;margin-bottom:16px}
+  h1{text-align:center;margin:0 0 14px;font-size:clamp(1.9rem,5.5vw,2.6rem);font-weight:800;letter-spacing:-.02em;line-height:1.1;background:linear-gradient(135deg,#e5c76b 0%,#f3e0a3 55%,#e5c76b 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:#9aa6c8;font-size:1.02rem;line-height:1.6;margin:0 auto 28px;max-width:440px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:#7f8bb0;margin-bottom:6px}
+  .field input[type=text],.field input[type=email],.field input[type=tel]{width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(122,138,176,0.3);background:rgba(7,11,24,0.6);color:#e8e8ff;font-size:1rem;outline:none;transition:border-color .18s}
+  .field input:focus{border-color:#22d3ee}
+  .consent{display:flex;gap:10px;align-items:flex-start;margin:18px 0 8px;font-size:.82rem;color:#9aa6c8;line-height:1.5}
+  .consent input{margin-top:3px;flex-shrink:0;width:18px;height:18px;accent-color:#22d3ee}
+  .btn{width:100%;margin-top:18px;padding:16px;border:none;border-radius:12px;font-size:1.05rem;font-weight:700;letter-spacing:.02em;cursor:pointer;color:#04121a;background:linear-gradient(135deg,#22d3ee 0%,#7b2ff7 100%);transition:transform .12s,opacity .12s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .err{color:#ff8ba0;font-size:.85rem;text-align:center;margin-top:12px;min-height:1em}
+  .disclaimer{margin-top:22px;font-size:.7rem;line-height:1.5;color:#5c6685;text-align:center}
+  .success{text-align:center;display:none}
+  .success h2{font-size:1.6rem;margin:0 0 12px;background:linear-gradient(135deg,#22d3ee,#7b2ff7);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .success p{color:#9aa6c8;line-height:1.6;margin:0 0 24px}
+  .stores{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .stores a{display:inline-block;padding:12px 20px;border-radius:12px;border:1px solid rgba(34,211,238,0.3);color:#22d3ee;text-decoration:none;font-weight:600;font-size:.92rem;transition:background .18s}
+  .stores a:hover{background:rgba(34,211,238,0.1)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div id="formView">
+      <div class="eyebrow">Free · Ancient Knowledge</div>
+      <h1>The Ancient Vitality Codex</h1>
+      <p class="sub">7 traditional herbs men have used for centuries to support energy, drive, and vitality. Enter your details and we'll send the Codex straight to you.</p>
+      <div class="field"><label>Name</label><input type="text" id="name" placeholder="Your name"/></div>
+      <div class="field"><label>Email</label><input type="email" id="email" placeholder="you@email.com"/></div>
+      <div class="field"><label>Phone (for text updates)</label><input type="tel" id="phone" placeholder="(555) 555-5555"/></div>
+      <label class="consent"><input type="checkbox" id="smsConsent"/><span>Yes, text me my Codex plus occasional restock alerts and members-only drops. Msg &amp; data rates may apply. Reply STOP to opt out anytime.</span></label>
+      <button class="btn" id="submitBtn">Send Me The Codex</button>
+      <div class="err" id="errMsg"></div>
+      <p class="disclaimer">These statements have not been evaluated by the Food and Drug Administration. This content is for educational purposes and is not intended to diagnose, treat, cure, or prevent any disease. Individual experiences vary.</p>
+    </div>
+    <div class="success" id="successView">
+      <h2>Check your phone &amp; email</h2>
+      <p>Your Ancient Vitality Codex is on the way. While you wait, explore the products the ancients would have reached for.</p>
+      <div class="stores">
+        <a href="https://mrearthrose.com" target="_blank" rel="noopener">Visit MrEarthRose</a>
+        <a href="https://swordvitality.com" target="_blank" rel="noopener">Visit SwordVitality</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var src=(params.get("src")||"direct").toLowerCase();
+  var btn=document.getElementById("submitBtn");
+  var err=document.getElementById("errMsg");
+  btn.addEventListener("click",async function(){
+    err.textContent="";
+    var name=document.getElementById("name").value.trim();
+    var email=document.getElementById("email").value.trim();
+    var phone=document.getElementById("phone").value.trim();
+    var smsConsent=document.getElementById("smsConsent").checked;
+    if(!email && !phone){err.textContent="Please enter an email or phone number.";return;}
+    if(phone && !smsConsent){err.textContent="Please check the box to receive text updates, or leave phone blank.";return;}
+    btn.disabled=true;btn.textContent="Sending...";
+    try{
+      var res=await fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/capture",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:name,email:email,phone:phone,source:src,brand:"mrearthrose",sms_consent:smsConsent,email_consent:!!email})
+      });
+      if(!res.ok)throw new Error("bad status");
+      document.getElementById("formView").style.display="none";
+      document.getElementById("successView").style.display="block";
+    }catch(e){
+      err.textContent="Something went wrong. Please try again.";
+      btn.disabled=false;btn.textContent="Send Me The Codex";
+    }
+  });
+})();
+</script>
+</body>
+</html>
