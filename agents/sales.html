@@ -568,10 +568,169 @@
     @media (max-width: 700px) {
       .sales-pipeline-board { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* Mission Control layout shell — reuses existing Corporate Noir tokens
+       (dark-void glass card, cyan/purple accents) already defined above by
+       .context-card / .sales-live-card / .section-label / .sales-lead-card */
+
+    .mc-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .mc-topstrip {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .mc-kpi {
+      min-width: 150px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+    .mc-kpi-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8888aa;
+      margin-bottom: 6px;
+    }
+    .mc-kpi-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #00e5ff, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .mc-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #94a3b8;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .mc-core {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (min-width: 900px) {
+      .mc-core {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .mc-panel {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+    .mc-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .mc-panel-title {
+      margin: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #22d3ee;
+    }
+
+    .mc-secondary {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 640px) {
+      .mc-secondary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1100px) {
+      .mc-secondary {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .mc-module {
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: rgba(8, 12, 28, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: border-color 0.2s ease;
+    }
+    .mc-module:hover {
+      border-color: rgba(0, 229, 255, 0.25);
+    }
+    .mc-module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .mc-module-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e8e8ff;
+    }
+    .mc-module-toggle {
+      font-size: 0.7rem;
+      color: #8888aa;
+      transition: transform 0.2s ease;
+    }
+    .mc-module-body {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .mc-module.is-collapsed .mc-module-body {
+      display: none;
+    }
+    .mc-module.is-collapsed .mc-module-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .mc-legacy-hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="page">
+    <div class="mc-shell">
     <nav class="top-nav">
       <a class="back-link" href="../ai-agents.html">← Agent Directory</a>
       <span class="brand-badge">BizForce AI</span>
@@ -584,35 +743,130 @@
         <div class="capability-pills"><span class="capability-pill">Leads</span><span class="capability-pill">Pipeline</span><span class="capability-pill">Pricing</span><span class="capability-pill">CRM</span><span class="capability-pill">Forecasts</span></div>
       </div>
     </header>
-    <section class="context-card" aria-label="Business Profile Context">
-      <h2 class="section-label">Business Profile Context</h2>
-      <div class="context-grid" id="businessContextGrid"></div>
-      
-      <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
-    </section>
-    <section class="sales-live-card" aria-label="Live Leads from Lead Radar">
-      <div class="sales-live-header">
-        <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
-          <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
+
+    <div class="mc-topstrip">
+      <div class="mc-kpi">
+        <div class="mc-kpi-label">Tasks Run</div>
+        <div class="mc-kpi-value" id="mcKpiTasks">—</div>
+      </div>
+      <div class="mc-kpi">
+        <div class="mc-kpi-label">Completed</div>
+        <div class="mc-kpi-value" id="mcKpiDone">—</div>
+      </div>
+      <div class="mc-kpi">
+        <div class="mc-kpi-label">In Progress</div>
+        <div class="mc-kpi-value" id="mcKpiActive">—</div>
+      </div>
+      <div class="mc-kpi">
+        <div class="mc-kpi-label">Last Active</div>
+        <div class="mc-kpi-value" id="mcKpiLast">—</div>
+      </div>
+      <span class="mc-badge" id="mcModeBadge">MODE —</span>
+    </div>
+
+    <div class="mc-core">
+      <div class="mc-panel">
+        <div class="mc-panel-header">
+          <h2 class="mc-panel-title">Live Activity</h2>
+        </div>
+        <div class="mc-panel-body">
+          <div id="mcActivityFeed">Feed initializes in Stage 2</div>
         </div>
       </div>
-      <div class="sales-leads-msg" id="salesLeadsMsg"></div>
-      <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
-    </section>
-    <section class="sales-pipeline-card" aria-label="Sales Pipeline">
-      <h2 class="section-label">Sales Pipeline</h2>
-      <div class="sales-pipeline-board" id="salesPipelineBoard"></div>
-    </section>
-    <div class="toolbar">
+      <div class="mc-panel">
+        <div class="mc-panel-header">
+          <h2 class="mc-panel-title">Intelligence</h2>
+        </div>
+        <div class="mc-panel-body">
+          <div id="mcChartConversions"></div>
+          <p style="margin:6px 0 16px;font-size:0.72rem;color:#8888aa;">Conversions over time</p>
+          <div id="mcChartSources"></div>
+          <p style="margin:6px 0 16px;font-size:0.72rem;color:#8888aa;">Leads by source</p>
+          <div id="mcChartPipeline"></div>
+          <p style="margin:6px 0 0;font-size:0.72rem;color:#8888aa;">Pipeline distribution</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mc-secondary">
+      <div class="mc-module" data-module="launcher">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Run Task</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <div id="mcLauncherMount"></div>
+        </div>
+      </div>
+
+      <div class="mc-module" data-module="live-status">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Live Status</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <div id="mcLiveMount"></div>
+        </div>
+      </div>
+
+      <div class="mc-module is-collapsed" data-module="business-profile">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Business Profile</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <section class="context-card" aria-label="Business Profile Context">
+            <h2 class="section-label">Business Profile Context</h2>
+            <div class="context-grid" id="businessContextGrid"></div>
+
+            <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid mc-legacy-hidden" id="statsGrid"></div></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="mc-module is-collapsed" data-module="live-leads">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Live Leads</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <section class="sales-live-card" aria-label="Live Leads from Lead Radar">
+            <div class="sales-live-header">
+              <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
+                <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
+              </div>
+            </div>
+            <div class="sales-leads-msg" id="salesLeadsMsg"></div>
+            <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="mc-module is-collapsed" data-module="sales-pipeline">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Sales Pipeline</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <section class="sales-pipeline-card" aria-label="Sales Pipeline">
+            <h2 class="section-label">Sales Pipeline</h2>
+            <div class="sales-pipeline-board" id="salesPipelineBoard"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar mc-legacy-hidden">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
         <a class="action-btn" href="../dashboard.html">Run on Dashboard</a>
       </div>
     </div>
-    <div class="reports-grid" id="reportsGrid"></div>
+    <div class="reports-grid mc-legacy-hidden" id="reportsGrid"></div>
+    </div>
   </div>
   <script>
     var AGENT_KEY = "salesAgent";
@@ -794,6 +1048,94 @@
   </script>
   <script>
     (function () {
+      /* ── relocation harness: agent-profile.js has no configurable mount
+         point (confirmed read-only) and always injects next to #reportsGrid.
+         This watches for its cards appearing and moves/hides them into the
+         new Mission Control layout without touching that shared file. ── */
+      (function () {
+        var handledLauncher = false;
+        var handledLiveStatus = false;
+        var handledStats = false;
+        var handledHistory = false;
+        var relocationObserver = null;
+        var relocationTimeout = null;
+
+        function allHandled() {
+          return handledLauncher && handledLiveStatus && handledStats && handledHistory;
+        }
+
+        function findSection(childId) {
+          var child = document.getElementById(childId);
+          if (!child) return null;
+          return child.closest(".ap-section");
+        }
+
+        function tryRelocate() {
+          try {
+            if (!handledLauncher) {
+              var launcherSection = findSection("apLaunchBtn");
+              var launcherMount = document.getElementById("mcLauncherMount");
+              if (launcherSection && launcherMount) {
+                launcherMount.appendChild(launcherSection);
+                handledLauncher = true;
+              }
+            }
+
+            if (!handledLiveStatus) {
+              var liveSection = findSection("apDot");
+              var liveMount = document.getElementById("mcLiveMount");
+              if (liveSection && liveMount) {
+                liveMount.appendChild(liveSection);
+                handledLiveStatus = true;
+              }
+            }
+
+            if (!handledStats) {
+              var statsSection = findSection("apStatTotal");
+              if (statsSection) {
+                statsSection.style.display = "none";
+                handledStats = true;
+              }
+            }
+
+            if (!handledHistory) {
+              var historySection = findSection("apHistory");
+              if (historySection) {
+                historySection.style.display = "none";
+                handledHistory = true;
+              }
+            }
+          } catch (relocErr) {
+            console.error("[MissionControl] relocation error:", relocErr.message || relocErr);
+          }
+
+          if (allHandled() && relocationObserver) {
+            relocationObserver.disconnect();
+            relocationObserver = null;
+            if (relocationTimeout) {
+              clearTimeout(relocationTimeout);
+              relocationTimeout = null;
+            }
+          }
+        }
+
+        relocationObserver = new MutationObserver(function () {
+          tryRelocate();
+        });
+        relocationObserver.observe(document.body, { childList: true, subtree: true });
+
+        // Run once immediately too, in case the shared engine already
+        // injected its content before this observer was attached.
+        tryRelocate();
+
+        relocationTimeout = setTimeout(function () {
+          if (relocationObserver) {
+            relocationObserver.disconnect();
+            relocationObserver = null;
+          }
+        }, 10000);
+      })();
+
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
       function tok() { return localStorage.getItem("bf_token") || ""; }
       function esc(s) {
