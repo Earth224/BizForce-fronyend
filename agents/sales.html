@@ -681,7 +681,7 @@
 
     #mcActivityFeed {
       flex: 0 0 auto;
-      overflow-y: auto;
+      overflow-y: hidden;
       max-height: 300px;
     }
 
@@ -857,10 +857,6 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       box-shadow: 0 16px 44px rgba(0,0,0,0.35), 0 0 32px rgba(34,211,238,0.08);
-      flex: 1 1 auto;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
     .mc-target-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .mc-target-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #22d3ee; }
@@ -892,6 +888,27 @@
       animation: mcTargetPulse 2s ease-in-out infinite;
       border-color: rgba(74,222,128,0.4);
     }
+
+    .mc-target-grid { display: grid; grid-template-columns: auto 1.2fr 1fr; gap: 28px; align-items: center; margin-top: 18px; }
+    @media (max-width: 900px) { .mc-target-grid { grid-template-columns: 1fr; } }
+    .mc-target-zone { display: flex; flex-direction: column; }
+    .mc-target-money { display: flex; gap: 24px; }
+    .mc-target-money-block { display: flex; flex-direction: column; gap: 2px; }
+    .mc-target-money-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #8888aa; }
+    .mc-target-money-val { font-size: 2rem; font-weight: 700; color: #fff; line-height: 1.1; }
+    .mc-target-money-val.earned { color: #4ade80; text-shadow: 0 0 12px rgba(74,222,128,0.3); }
+    .mc-target-money-val.projected { color: #e5c76b; text-shadow: 0 0 12px rgba(229,199,107,0.3); }
+    .mc-target-funnel { display: flex; flex-direction: column; gap: 8px; }
+    .mc-target-funnel-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 8px; background: rgba(0,0,0,0.25); border-left: 3px solid transparent; }
+    .mc-target-funnel-row .fn-label { font-size: 0.75rem; color: #c4b5fd; }
+    .mc-target-funnel-row .fn-count { font-size: 0.95rem; font-weight: 700; color: #fff; }
+    .mc-target-funnel-row.fn-drafted { border-left-color: #e5c76b; }
+    .mc-target-funnel-row.fn-sent { border-left-color: #22d3ee; }
+    .mc-target-funnel-row.fn-replied { border-left-color: #a855f7; }
+    .mc-target-funnel-row.fn-converted { border-left-color: #4ade80; }
+    .mc-target-ticker { margin-top: 16px; padding: 10px 16px; border-radius: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(34,211,238,0.15); font-size: 0.8rem; color: #22d3ee; display: flex; align-items: center; gap: 8px; }
+    .mc-target-ticker .tick-dot { width: 8px; height: 8px; border-radius: 50%; background: #22d3ee; animation: mcTickPulse 1.5s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes mcTickPulse { 0%,100% { opacity: 1; box-shadow: 0 0 8px rgba(34,211,238,0.6); } 50% { opacity: 0.4; box-shadow: 0 0 2px rgba(34,211,238,0.2); } }
   </style>
 </head>
 <body>
@@ -937,35 +954,6 @@
         </div>
         <div class="mc-panel-body">
           <div id="mcActivityFeed">Feed initializes in Stage 2</div>
-          <div class="mc-target">
-            <div class="mc-target-head">
-              <span class="mc-target-title">Daily Target</span>
-              <div class="mc-target-toggle">
-                <button id="mcTargetTabConv" class="active">Conversions</button>
-                <button id="mcTargetTabRev">Revenue</button>
-              </div>
-            </div>
-            <div class="mc-target-ring-wrap">
-              <div class="mc-target-ring">
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
-                  <circle id="mcTargetRingFill" cx="60" cy="60" r="52" fill="none" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
-                </svg>
-                <div class="mc-target-ring-center">
-                  <span class="mc-target-pct" id="mcTargetPct">0%</span>
-                </div>
-              </div>
-              <div class="mc-target-stats">
-                <div class="mc-target-current" id="mcTargetCurrent">0</div>
-                <div class="mc-target-of" id="mcTargetOf">of 0 today</div>
-                <span class="mc-target-pace ontrack" id="mcTargetPace">On track</span>
-              </div>
-            </div>
-            <div class="mc-target-goalrow">
-              <label id="mcTargetGoalLabel" for="mcTargetGoalInput">Goal (conversions):</label>
-              <input type="number" id="mcTargetGoalInput" min="1" value="10">
-            </div>
-          </div>
         </div>
       </div>
       <div class="mc-panel">
@@ -980,6 +968,61 @@
           <canvas id="mcChartPipeline"></canvas>
           <p style="margin:6px 0 0;font-size:0.72rem;color:#8888aa;">Pipeline distribution</p>
         </div>
+      </div>
+    </div>
+
+    <div class="mc-target">
+      <div class="mc-target-head">
+        <span class="mc-target-title">Daily Target</span>
+        <div class="mc-target-toggle">
+          <button id="mcTargetTabConv" class="active">Conversions</button>
+          <button id="mcTargetTabRev">Revenue</button>
+        </div>
+      </div>
+      <div class="mc-target-grid">
+        <div class="mc-target-zone">
+          <div class="mc-target-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
+              <circle id="mcTargetRingFill" cx="60" cy="60" r="52" fill="none" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
+            </svg>
+            <div class="mc-target-ring-center"><span class="mc-target-pct" id="mcTargetPct">0%</span></div>
+          </div>
+          <div class="mc-target-goalrow">
+            <label id="mcTargetGoalLabel" for="mcTargetGoalInput">Goal:</label>
+            <input type="number" id="mcTargetGoalInput" min="1" value="10">
+          </div>
+        </div>
+
+        <div class="mc-target-zone">
+          <div class="mc-target-money">
+            <div class="mc-target-money-block">
+              <span class="mc-target-money-label">Earned Today</span>
+              <span class="mc-target-money-val earned" id="mcTargetEarned">$0</span>
+            </div>
+            <div class="mc-target-money-block">
+              <span class="mc-target-money-label">Projected</span>
+              <span class="mc-target-money-val projected" id="mcTargetProjected">$0</span>
+            </div>
+          </div>
+          <div class="mc-target-current" id="mcTargetCurrent" style="margin-top:10px;">0</div>
+          <div class="mc-target-of" id="mcTargetOf">of 0 today</div>
+          <span class="mc-target-pace ontrack" id="mcTargetPace" style="margin-top:8px;align-self:flex-start;">On track</span>
+        </div>
+
+        <div class="mc-target-zone">
+          <div class="mc-target-funnel">
+            <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted</span><span class="fn-count" id="mcFnDrafted">0</span></div>
+            <div class="mc-target-funnel-row fn-sent"><span class="fn-label">Sent</span><span class="fn-count" id="mcFnSent">0</span></div>
+            <div class="mc-target-funnel-row fn-replied"><span class="fn-label">Replied</span><span class="fn-count" id="mcFnReplied">0</span></div>
+            <div class="mc-target-funnel-row fn-converted"><span class="fn-label">Converted</span><span class="fn-count" id="mcFnConverted">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mc-target-ticker">
+        <span class="tick-dot"></span>
+        <span id="mcTargetTicker">Agent standing by…</span>
       </div>
     </div>
 
@@ -1946,6 +1989,28 @@
         return count;
       }
 
+      function mcGetTodayTasks(tasks) {
+        var now = new Date();
+        return (tasks || []).filter(function (t) {
+          var d = new Date(t.created_at);
+          if (isNaN(d.getTime())) return false;
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        });
+      }
+
+      function mcExtractHandle(promptText) {
+        try {
+          var text = String(promptText || "");
+          var idx = text.lastIndexOf("@");
+          if (idx === -1) return null;
+          var rest = text.slice(idx + 1);
+          var match = rest.match(/^[^\s,;]+/);
+          return match ? "@" + match[0] : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
       function mcRenderTarget(tasks) {
         try {
           var RING_CIRC = 326.7;
@@ -2015,6 +2080,59 @@
 
           var goalLabel = document.getElementById("mcTargetGoalLabel");
           if (goalLabel) goalLabel.textContent = mcTargetMode === "revenue" ? "Goal ($ revenue):" : "Goal (conversions):";
+
+          var todayTasks = mcGetTodayTasks(tasks);
+
+          var draftedCount = 0, sentCount = 0, repliedCount = 0, convertedCount = 0;
+          todayTasks.forEach(function (t) {
+            if (t.status === "dry_run") draftedCount++;
+            else if (t.status === "completed") sentCount++;
+            else if (t.status === "replied") repliedCount++;
+            else if (t.status === "converted") convertedCount++;
+          });
+
+          var setFn = function (id, v) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = String(v);
+          };
+          setFn("mcFnDrafted", draftedCount);
+          setFn("mcFnSent", sentCount);
+          setFn("mcFnReplied", repliedCount);
+          setFn("mcFnConverted", convertedCount);
+
+          var projected = (draftedCount + sentCount) * MC_TARGET_REVENUE_PER_CONVERSION;
+          var earned = convertedCount * MC_TARGET_REVENUE_PER_CONVERSION;
+
+          var projectedEl = document.getElementById("mcTargetProjected");
+          if (projectedEl) projectedEl.textContent = "$" + projected;
+
+          var earnedEl = document.getElementById("mcTargetEarned");
+          if (earnedEl) earnedEl.textContent = "$" + earned;
+
+          var tickerEl = document.getElementById("mcTargetTicker");
+          if (tickerEl) {
+            var newestToday = null;
+            todayTasks.forEach(function (t) {
+              var d = new Date(t.created_at);
+              if (isNaN(d.getTime())) return;
+              if (!newestToday || d.getTime() > new Date(newestToday.created_at).getTime()) newestToday = t;
+            });
+
+            if (newestToday) {
+              var handle = mcExtractHandle(newestToday.prompt) || "lead";
+              if (newestToday.status === "dry_run") {
+                tickerEl.textContent = "⚡ Drafting outreach for " + handle + "…";
+              } else if (newestToday.status === "completed") {
+                tickerEl.textContent = "📤 Sent to " + handle;
+              } else if (newestToday.status === "converted") {
+                tickerEl.textContent = "💰 " + handle + " converted · $" + MC_TARGET_REVENUE_PER_CONVERSION;
+              } else {
+                tickerEl.textContent = "Agent standing by…";
+              }
+            } else {
+              tickerEl.textContent = "Agent standing by…";
+            }
+          }
         } catch (e) {
           console.error("[MissionControl] target render error:", e.message || e);
         }
