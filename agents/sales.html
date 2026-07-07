@@ -850,27 +850,32 @@
 
     .mc-target {
       margin-top: 16px;
-      padding: 18px;
-      border-radius: 16px;
-      background: rgba(12, 18, 38, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+      padding: 22px;
+      border-radius: 18px;
+      background: linear-gradient(160deg, rgba(34,211,238,0.06), rgba(168,85,247,0.06)), rgba(12,18,38,0.6);
+      border: 1px solid rgba(34,211,238,0.25);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 16px 44px rgba(0,0,0,0.35), 0 0 32px rgba(34,211,238,0.08);
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .mc-target-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .mc-target-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #22d3ee; }
     .mc-target-toggle { display: flex; gap: 4px; background: rgba(0,0,0,0.3); border-radius: 999px; padding: 3px; }
     .mc-target-toggle button { border: none; background: transparent; color: #8888aa; font-size: 0.7rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; }
     .mc-target-toggle button.active { background: linear-gradient(90deg, #22d3ee, #a855f7); color: #fff; }
-    .mc-target-ring-wrap { display: flex; align-items: center; gap: 18px; }
-    .mc-target-ring { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+    .mc-target-ring-wrap { display: flex; align-items: center; gap: 24px; }
+    .mc-target-ring { position: relative; width: 120px; height: 120px; flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(34,211,238,0.4)); }
     .mc-target-ring svg { transform: rotate(-90deg); }
     .mc-target-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .mc-target-pct { font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .mc-target-pct { font-size: 1.5rem; font-weight: 700; color: #fff; }
     .mc-target-stats { flex: 1; }
-    .mc-target-current { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.1; }
-    .mc-target-of { font-size: 0.85rem; color: #8888aa; }
+    .mc-target-current { font-size: 2.4rem; font-weight: 700; color: #fff; line-height: 1.1; text-shadow: 0 0 12px rgba(34,211,238,0.3); }
+    .mc-target-of { font-size: 0.95rem; color: #8888aa; }
+    .mc-target.is-revenue .mc-target-current { color: #e5c76b; text-shadow: 0 0 14px rgba(229,199,107,0.35); }
     .mc-target-pace { display: inline-block; margin-top: 8px; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
     .mc-target-pace.hit { background: rgba(74,222,128,0.15); color: #4ade80; }
     .mc-target-pace.ontrack { background: rgba(34,211,238,0.15); color: #22d3ee; }
@@ -878,6 +883,15 @@
     .mc-target-goalrow { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
     .mc-target-goalrow label { font-size: 0.72rem; color: #8888aa; }
     .mc-target-goalrow input { width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px 8px; font-size: 0.8rem; }
+
+    @keyframes mcTargetPulse {
+      0%, 100% { box-shadow: 0 16px 44px rgba(0,0,0,0.35), 0 0 32px rgba(34,211,238,0.08); }
+      50%      { box-shadow: 0 16px 44px rgba(0,0,0,0.35), 0 0 48px rgba(74,222,128,0.35); }
+    }
+    .mc-target.goal-hit {
+      animation: mcTargetPulse 2s ease-in-out infinite;
+      border-color: rgba(74,222,128,0.4);
+    }
   </style>
 </head>
 <body>
@@ -933,9 +947,9 @@
             </div>
             <div class="mc-target-ring-wrap">
               <div class="mc-target-ring">
-                <svg width="96" height="96" viewBox="0 0 96 96">
-                  <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"></circle>
-                  <circle id="mcTargetRingFill" cx="48" cy="48" r="40" fill="none" stroke="#22d3ee" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
+                  <circle id="mcTargetRingFill" cx="60" cy="60" r="52" fill="none" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
                 </svg>
                 <div class="mc-target-ring-center">
                   <span class="mc-target-pct" id="mcTargetPct">0%</span>
@@ -1934,9 +1948,18 @@
 
       function mcRenderTarget(tasks) {
         try {
-          var RING_CIRC = 251.2;
+          var RING_CIRC = 326.7;
           var todayCount = mcCountWorkedToday(tasks);
           var goal = mcGetTargetGoal(mcTargetMode);
+
+          var targetCard = document.querySelector(".mc-target");
+          if (targetCard) {
+            if (mcTargetMode === "revenue") {
+              targetCard.classList.add("is-revenue");
+            } else {
+              targetCard.classList.remove("is-revenue");
+            }
+          }
 
           var current, currentText, ofText;
           if (mcTargetMode === "revenue") {
@@ -1950,6 +1973,14 @@
           }
 
           var percent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+
+          if (targetCard) {
+            if (percent >= 100) {
+              targetCard.classList.add("goal-hit");
+            } else {
+              targetCard.classList.remove("goal-hit");
+            }
+          }
 
           var currentEl = document.getElementById("mcTargetCurrent");
           if (currentEl) currentEl.textContent = currentText;
