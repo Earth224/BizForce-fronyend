@@ -726,6 +726,91 @@
     .mc-legacy-hidden {
       display: none;
     }
+
+    /* Live Activity feed — reuses the same status color pairs already
+       established by .sales-status-badge / .sales-score-badge / .sales-lead-tag */
+
+    .mc-badge.is-dry {
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: #fbbf24;
+    }
+    .mc-badge.is-live {
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      color: #4ade80;
+    }
+
+    .mc-feed-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      list-style: none;
+    }
+    .mc-feed-row:last-child {
+      border-bottom: none;
+    }
+
+    .mc-feed-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .mc-feed-title {
+      flex-grow: 1;
+      min-width: 0;
+      font-size: 0.85rem;
+      color: #e8e8ff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mc-feed-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .mc-feed-time {
+      margin-left: 10px;
+      font-size: 0.72rem;
+      color: #8888aa;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .mc-feed-dot.st-completed  { background: #4ade80; }
+    .mc-feed-dot.st-dry        { background: #fbbf24; }
+    .mc-feed-dot.st-processing { background: #22d3ee; }
+    .mc-feed-dot.st-approval   { background: #c4b5fd; }
+    .mc-feed-dot.st-failed     { background: #f87171; }
+    .mc-feed-dot.st-other      { background: #94a3b8; }
+
+    .mc-feed-status.st-completed  { background: rgba(74, 222, 128, 0.12);  border: 1px solid rgba(74, 222, 128, 0.35);  color: #4ade80; }
+    .mc-feed-status.st-dry        { background: rgba(251, 191, 36, 0.12);  border: 1px solid rgba(251, 191, 36, 0.35);  color: #fbbf24; }
+    .mc-feed-status.st-processing { background: rgba(0, 229, 255, 0.1);    border: 1px solid rgba(0, 229, 255, 0.3);    color: #22d3ee; }
+    .mc-feed-status.st-approval   { background: rgba(168, 85, 247, 0.12);  border: 1px solid rgba(168, 85, 247, 0.35);  color: #c4b5fd; }
+    .mc-feed-status.st-failed     { background: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.28); color: #f87171; }
+    .mc-feed-status.st-other      { background: rgba(148, 163, 184, 0.1);  border: 1px solid rgba(148, 163, 184, 0.3);  color: #94a3b8; }
+
+    .mc-feed-empty {
+      text-align: center;
+      padding: 24px 0;
+      font-size: 0.85rem;
+      color: #8888aa;
+    }
   </style>
 </head>
 <body>
@@ -1410,6 +1495,129 @@
         }).catch(function () {});
       }
 
+      /* ── Stage 2 console engine: live Sales task feed + KPI tiles + mode
+         badge, polling the same /api/ai/tasks?agent_type=sales data
+         Task History already uses. Reuses this file's own esc() and the
+         page-global formatDate() (defined in the earlier legacy <script>
+         block) rather than duplicating either. ── */
+      var mcTaskTimer = null;
+
+      async function mcFetchSalesTasks() {
+        try {
+          var token = tok();
+          if (!token) return null;
+          var r = await fetch(API_URL + "/api/ai/tasks?agent_type=sales&limit=50", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!r.ok) return null;
+          var data = await r.json();
+          return (data && Array.isArray(data.tasks)) ? data.tasks : [];
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function mcStatusMeta(status) {
+        var map = {
+          completed:         { label: "Sent",             cls: "st-completed" },
+          dry_run:           { label: "Drafted (dry run)", cls: "st-dry" },
+          processing:        { label: "Working…",          cls: "st-processing" },
+          requires_approval: { label: "Needs approval",    cls: "st-approval" },
+          failed:            { label: "Failed",            cls: "st-failed" }
+        };
+        return map[status] || { label: status || "Unknown", cls: "st-other" };
+      }
+
+      function mcComputeKpis(tasks) {
+        var tasksRun = tasks.length;
+        var completed = tasks.filter(function (t) { return t.status === "completed" || t.status === "dry_run"; }).length;
+        var inProgress = tasks.filter(function (t) { return t.status === "processing"; }).length;
+
+        var newest = null;
+        tasks.forEach(function (t) {
+          var d = new Date(t.created_at);
+          if (isNaN(d.getTime())) return;
+          if (!newest || d.getTime() > newest.getTime()) newest = d;
+        });
+        var lastActive = newest ? formatDate(newest.toISOString()) : "—";
+
+        var setVal = function (id, v) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = String(v);
+        };
+        setVal("mcKpiTasks", tasksRun);
+        setVal("mcKpiDone", completed);
+        setVal("mcKpiActive", inProgress);
+        setVal("mcKpiLast", lastActive);
+      }
+
+      function mcRenderBadge(tasks) {
+        var badge = document.getElementById("mcModeBadge");
+        if (!badge) return;
+
+        var sorted = tasks.slice().sort(function (a, b) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        var newest = sorted[0];
+
+        if (newest && newest.status === "dry_run") {
+          badge.textContent = "DRY RUN";
+          badge.classList.add("is-dry");
+          badge.classList.remove("is-live");
+        } else if (tasks.length > 0) {
+          badge.textContent = "LIVE";
+          badge.classList.add("is-live");
+          badge.classList.remove("is-dry");
+        } else {
+          badge.textContent = "MODE —";
+          badge.classList.remove("is-dry");
+          badge.classList.remove("is-live");
+        }
+      }
+
+      function mcRenderFeed(tasks) {
+        var feed = document.getElementById("mcActivityFeed");
+        if (!feed) return;
+
+        if (!tasks.length) {
+          feed.innerHTML = '<div class="mc-feed-empty">No agent activity yet</div>';
+          return;
+        }
+
+        var sorted = tasks.slice().sort(function (a, b) {
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        var top = sorted.slice(0, 30);
+
+        feed.innerHTML = top.map(function (t) {
+          var meta = mcStatusMeta(t.status);
+          var raw = String(t.prompt || t.task_type || "Task").replace(/\s+/g, " ").trim();
+          var title = raw.length > 90 ? raw.slice(0, 90) + "…" : raw;
+          var time = t.created_at ? formatDate(t.created_at) : "—";
+
+          return (
+            '<div class="mc-feed-row">' +
+              '<span class="mc-feed-dot ' + meta.cls + '"></span>' +
+              '<span class="mc-feed-title">' + esc(title) + '</span>' +
+              '<span class="mc-feed-status ' + meta.cls + '">' + esc(meta.label) + '</span>' +
+              '<span class="mc-feed-time">' + esc(time) + '</span>' +
+            '</div>'
+          );
+        }).join("");
+      }
+
+      async function mcRefreshConsole() {
+        var tasks = await mcFetchSalesTasks();
+        if (!tasks) return;
+        try {
+          mcComputeKpis(tasks);
+          mcRenderBadge(tasks);
+          mcRenderFeed(tasks);
+        } catch (e) {
+          console.error("[MissionControl] console render error:", e.message || e);
+        }
+      }
+
       document.addEventListener("DOMContentLoaded", function () {
         var refreshBtn = document.getElementById("salesLeadsRefreshBtn");
         if (refreshBtn) refreshBtn.addEventListener("click", loadLeads);
@@ -1438,6 +1646,10 @@
 
         loadLeads();
         loadPipeline();
+
+        mcRefreshConsole();
+        if (mcTaskTimer) clearInterval(mcTaskTimer);
+        mcTaskTimer = setInterval(mcRefreshConsole, 20000);
       });
     })();
   </script>
