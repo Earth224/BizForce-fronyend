@@ -682,7 +682,7 @@
     #mcActivityFeed {
       flex: 1 1 auto;
       overflow-y: auto;
-      max-height: 520px;
+      max-height: 300px;
     }
 
     .mc-secondary {
@@ -847,6 +847,37 @@
     .mc-panel canvas {
       max-height: 200px;
     }
+
+    .mc-target {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(12, 18, 38, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    }
+    .mc-target-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .mc-target-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #22d3ee; }
+    .mc-target-toggle { display: flex; gap: 4px; background: rgba(0,0,0,0.3); border-radius: 999px; padding: 3px; }
+    .mc-target-toggle button { border: none; background: transparent; color: #8888aa; font-size: 0.7rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; }
+    .mc-target-toggle button.active { background: linear-gradient(90deg, #22d3ee, #a855f7); color: #fff; }
+    .mc-target-ring-wrap { display: flex; align-items: center; gap: 18px; }
+    .mc-target-ring { position: relative; width: 96px; height: 96px; flex-shrink: 0; }
+    .mc-target-ring svg { transform: rotate(-90deg); }
+    .mc-target-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .mc-target-pct { font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .mc-target-stats { flex: 1; }
+    .mc-target-current { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1.1; }
+    .mc-target-of { font-size: 0.85rem; color: #8888aa; }
+    .mc-target-pace { display: inline-block; margin-top: 8px; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+    .mc-target-pace.hit { background: rgba(74,222,128,0.15); color: #4ade80; }
+    .mc-target-pace.ontrack { background: rgba(34,211,238,0.15); color: #22d3ee; }
+    .mc-target-pace.behind { background: rgba(229,199,107,0.15); color: #e5c76b; }
+    .mc-target-goalrow { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+    .mc-target-goalrow label { font-size: 0.72rem; color: #8888aa; }
+    .mc-target-goalrow input { width: 80px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 5px 8px; font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -1541,6 +1572,9 @@
       var mcChartConv = null;
       var mcChartSrc = null;
       var mcChartPipe = null;
+      var mcTargetMode = "conversions";
+      var MC_TARGET_REVENUE_PER_CONVERSION = 59;
+      var mcLastTasks = [];
 
       async function mcFetchSalesTasks() {
         try {
@@ -1839,14 +1873,103 @@
         }
       }
 
+      function mcGetTargetGoal(mode) {
+        try {
+          var key = mode === "revenue" ? "mcTargetGoalRevenue" : "mcTargetGoalConversions";
+          var raw = localStorage.getItem(key);
+          var val = raw !== null ? Number(raw) : NaN;
+          if (!isNaN(val) && val > 0) return val;
+        } catch (e) {}
+        return mode === "revenue" ? 590 : 10;
+      }
+
+      function mcSetTargetGoal(mode, value) {
+        try {
+          var key = mode === "revenue" ? "mcTargetGoalRevenue" : "mcTargetGoalConversions";
+          localStorage.setItem(key, String(value));
+        } catch (e) {}
+      }
+
+      function mcCountWorkedToday(tasks) {
+        var now = new Date();
+        var count = 0;
+        (tasks || []).forEach(function (t) {
+          var d = new Date(t.created_at);
+          if (isNaN(d.getTime())) return;
+          if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()) {
+            if (t.status === "completed" || t.status === "dry_run") count++;
+          }
+        });
+        return count;
+      }
+
+      function mcRenderTarget(tasks) {
+        try {
+          var RING_CIRC = 251.2;
+          var todayCount = mcCountWorkedToday(tasks);
+          var goal = mcGetTargetGoal(mcTargetMode);
+
+          var current, currentText, ofText;
+          if (mcTargetMode === "revenue") {
+            current = todayCount * MC_TARGET_REVENUE_PER_CONVERSION;
+            currentText = "$" + current;
+            ofText = "of $" + goal + " today";
+          } else {
+            current = todayCount;
+            currentText = String(current);
+            ofText = "of " + goal + " today";
+          }
+
+          var percent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
+
+          var currentEl = document.getElementById("mcTargetCurrent");
+          if (currentEl) currentEl.textContent = currentText;
+
+          var ofEl = document.getElementById("mcTargetOf");
+          if (ofEl) ofEl.textContent = ofText;
+
+          var pctEl = document.getElementById("mcTargetPct");
+          if (pctEl) pctEl.textContent = percent + "%";
+
+          var ringEl = document.getElementById("mcTargetRingFill");
+          if (ringEl) {
+            ringEl.style.strokeDashoffset = String(RING_CIRC * (1 - percent / 100));
+          }
+
+          var paceEl = document.getElementById("mcTargetPace");
+          if (paceEl) {
+            if (percent >= 100) {
+              paceEl.textContent = "Goal hit!";
+              paceEl.className = "mc-target-pace hit";
+            } else if (percent >= 60) {
+              paceEl.textContent = "On track";
+              paceEl.className = "mc-target-pace ontrack";
+            } else {
+              paceEl.textContent = "Behind pace";
+              paceEl.className = "mc-target-pace behind";
+            }
+          }
+
+          var goalInput = document.getElementById("mcTargetGoalInput");
+          if (goalInput) goalInput.value = goal;
+
+          var goalLabel = document.getElementById("mcTargetGoalLabel");
+          if (goalLabel) goalLabel.textContent = mcTargetMode === "revenue" ? "Goal ($ revenue):" : "Goal (conversions):";
+        } catch (e) {
+          console.error("[MissionControl] target render error:", e.message || e);
+        }
+      }
+
       async function mcRefreshConsole() {
         var tasks = await mcFetchSalesTasks();
         if (!tasks) return;
         try {
+          mcLastTasks = tasks;
           mcComputeKpis(tasks);
           mcRenderBadge(tasks);
           mcRenderFeed(tasks);
           mcRefreshCharts(tasks);
+          mcRenderTarget(tasks);
         } catch (e) {
           console.error("[MissionControl] console render error:", e.message || e);
         }
@@ -1875,6 +1998,36 @@
             var select = e.target.closest(".sales-pipeline-item-select");
             if (!select) return;
             updateLeadStatus(select.dataset.uri, select.value);
+          });
+        }
+
+        var targetTabConv = document.getElementById("mcTargetTabConv");
+        var targetTabRev = document.getElementById("mcTargetTabRev");
+        if (targetTabConv) {
+          targetTabConv.addEventListener("click", function () {
+            mcTargetMode = "conversions";
+            targetTabConv.classList.add("active");
+            if (targetTabRev) targetTabRev.classList.remove("active");
+            mcRenderTarget(mcLastTasks);
+          });
+        }
+        if (targetTabRev) {
+          targetTabRev.addEventListener("click", function () {
+            mcTargetMode = "revenue";
+            targetTabRev.classList.add("active");
+            if (targetTabConv) targetTabConv.classList.remove("active");
+            mcRenderTarget(mcLastTasks);
+          });
+        }
+
+        var targetGoalInput = document.getElementById("mcTargetGoalInput");
+        if (targetGoalInput) {
+          targetGoalInput.addEventListener("change", function () {
+            var val = Number(targetGoalInput.value);
+            if (!isNaN(val) && val > 0) {
+              mcSetTargetGoal(mcTargetMode, val);
+            }
+            mcRenderTarget(mcLastTasks);
           });
         }
 
