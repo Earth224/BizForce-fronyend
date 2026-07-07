@@ -160,7 +160,7 @@
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
-      margin-bottom: 32px;
+      margin-bottom: 0;
     }
 
     .context-card:hover {
@@ -397,14 +397,14 @@
     /* Live Leads + Pipeline (synced with Lead Radar) */
     .sales-live-card, .sales-pipeline-card {
       position: relative;
-      padding: 28px;
+      padding: 20px;
       border-radius: 20px;
       background: rgba(12, 18, 38, 0.72);
       border: 1px solid rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
-      margin-bottom: 32px;
+      margin-bottom: 0;
       overflow: hidden;
       transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
@@ -430,7 +430,14 @@
     .sales-leads-msg { font-size: 0.85rem; color: #8892b8; min-height: 20px; margin-bottom: 14px; }
     .sales-leads-msg.ok { color: #4ade80; }
     .sales-leads-msg.err { color: #f87171; }
-    .sales-leads-list { display: flex; flex-direction: column; gap: 16px; }
+    .sales-leads-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
 
     .sales-lead-card {
       padding: 18px 20px;
@@ -526,6 +533,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 14px;
+      align-items: start;
     }
     .sales-pipeline-column {
       padding: 14px;
@@ -536,6 +544,14 @@
       flex-direction: column;
       gap: 10px;
       min-height: 120px;
+    }
+    .sales-pipeline-column-items {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
     .sales-pipeline-column-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -688,18 +704,18 @@
     .mc-secondary {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      row-gap: 16px;
+      column-gap: 16px;
       align-items: start;
+      margin-bottom: 0;
     }
     @media (min-width: 640px) {
       .mc-secondary {
         grid-template-columns: repeat(2, 1fr);
       }
     }
-    @media (min-width: 1100px) {
-      .mc-secondary {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    .mc-module--full {
+      grid-column: 1 / -1;
     }
 
     .mc-module {
@@ -1028,6 +1044,26 @@
     </div>
 
     <div class="mc-secondary">
+      <div class="mc-module mc-module--full" data-module="live-leads">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Live Leads</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <section class="sales-live-card" aria-label="Live Leads from Lead Radar">
+            <div class="sales-live-header">
+              <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
+                <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
+              </div>
+            </div>
+            <div class="sales-leads-msg" id="salesLeadsMsg"></div>
+            <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
+          </section>
+        </div>
+      </div>
+
       <div class="mc-module" data-module="launcher">
         <div class="mc-module-header">
           <span class="mc-module-title">Run Task</span>
@@ -1048,27 +1084,7 @@
         </div>
       </div>
 
-      <div class="mc-module" data-module="live-leads">
-        <div class="mc-module-header">
-          <span class="mc-module-title">Live Leads</span>
-          <span class="mc-module-toggle">▾</span>
-        </div>
-        <div class="mc-module-body">
-          <section class="sales-live-card" aria-label="Live Leads from Lead Radar">
-            <div class="sales-live-header">
-              <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
-                <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
-              </div>
-            </div>
-            <div class="sales-leads-msg" id="salesLeadsMsg"></div>
-            <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
-          </section>
-        </div>
-      </div>
-
-      <div class="mc-module" data-module="sales-pipeline">
+      <div class="mc-module mc-module--full" data-module="sales-pipeline">
         <div class="mc-module-header">
           <span class="mc-module-title">Sales Pipeline</span>
           <span class="mc-module-toggle">▾</span>
@@ -1080,20 +1096,20 @@
           </section>
         </div>
       </div>
-    </div>
 
-    <div class="mc-module" data-module="business-profile" style="width:100%;margin-top:16px;">
-      <div class="mc-module-header">
-        <span class="mc-module-title">Business Profile</span>
-        <span class="mc-module-toggle">▾</span>
-      </div>
-      <div class="mc-module-body">
-        <section class="context-card" aria-label="Business Profile Context">
-          <h2 class="section-label">Business Profile Context</h2>
-          <div class="context-grid" id="businessContextGrid"></div>
+      <div class="mc-module mc-module--full" data-module="business-profile">
+        <div class="mc-module-header">
+          <span class="mc-module-title">Business Profile</span>
+          <span class="mc-module-toggle">▾</span>
+        </div>
+        <div class="mc-module-body">
+          <section class="context-card" aria-label="Business Profile Context">
+            <h2 class="section-label">Business Profile Context</h2>
+            <div class="context-grid" id="businessContextGrid"></div>
 
-          <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid mc-legacy-hidden" id="statsGrid"></div></div>
-        </section>
+            <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid mc-legacy-hidden" id="statsGrid"></div></div>
+          </section>
+        </div>
       </div>
     </div>
 
@@ -1602,7 +1618,7 @@
                 '<span>' + STATUS_LABELS[status] + '</span>' +
                 '<span class="sales-pipeline-count">' + items.length + '</span>' +
               '</div>' +
-              itemsHtml +
+              '<div class="sales-pipeline-column-items">' + itemsHtml + '</div>' +
             '</div>'
           );
         }).join("");
