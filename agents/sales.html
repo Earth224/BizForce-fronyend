@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BizForce AI — Sales Agent</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -819,6 +820,10 @@
       from { opacity: 0; transform: translateY(-12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    .mc-panel canvas {
+      max-height: 200px;
+    }
   </style>
 </head>
 <body>
@@ -871,11 +876,11 @@
           <h2 class="mc-panel-title">Intelligence</h2>
         </div>
         <div class="mc-panel-body">
-          <div id="mcChartConversions"></div>
+          <canvas id="mcChartConversions"></canvas>
           <p style="margin:6px 0 16px;font-size:0.72rem;color:#8888aa;">Conversions over time</p>
-          <div id="mcChartSources"></div>
+          <canvas id="mcChartSources"></canvas>
           <p style="margin:6px 0 16px;font-size:0.72rem;color:#8888aa;">Leads by source</p>
-          <div id="mcChartPipeline"></div>
+          <canvas id="mcChartPipeline"></canvas>
           <p style="margin:6px 0 0;font-size:0.72rem;color:#8888aa;">Pipeline distribution</p>
         </div>
       </div>
@@ -1510,6 +1515,9 @@
          block) rather than duplicating either. ── */
       var mcTaskTimer = null;
       var mcLastTopId = null;
+      var mcChartConv = null;
+      var mcChartSrc = null;
+      var mcChartPipe = null;
 
       async function mcFetchSalesTasks() {
         try {
@@ -1620,6 +1628,194 @@
         }).join("");
       }
 
+      function mcRenderConversions(tasks) {
+        var canvas = document.getElementById("mcChartConversions");
+        if (!canvas) return;
+
+        var labels = [];
+        var buckets = [0, 0, 0, 0, 0, 0, 0];
+        var now = new Date();
+        for (var i = 6; i >= 0; i--) {
+          var d = new Date(now);
+          d.setDate(d.getDate() - i);
+          labels.push((d.getMonth() + 1) + "/" + d.getDate());
+        }
+
+        (tasks || []).forEach(function (t) {
+          var td = new Date(t.created_at);
+          if (isNaN(td.getTime())) return;
+          var diffDays = Math.floor((now - td) / 86400000);
+          if (diffDays >= 0 && diffDays < 7) buckets[6 - diffDays]++;
+        });
+
+        var ctx = canvas.getContext("2d");
+        var gradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 200);
+        gradient.addColorStop(0, "rgba(34, 211, 238, 0.35)");
+        gradient.addColorStop(1, "rgba(34, 211, 238, 0)");
+
+        if (mcChartConv) {
+          mcChartConv.destroy();
+          mcChartConv = null;
+        }
+
+        mcChartConv = new Chart(canvas, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              data: buckets,
+              borderColor: "#22d3ee",
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              pointBackgroundColor: "#22d3ee"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: "#8888aa" }, grid: { color: "rgba(255,255,255,0.05)" } },
+              y: { ticks: { color: "#8888aa", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
+            }
+          }
+        });
+      }
+
+      async function mcRenderSources() {
+        var canvas = document.getElementById("mcChartSources");
+        if (!canvas) return;
+
+        try {
+          var token = tok();
+          if (!token) return;
+          var r = await fetch(API_URL + "/api/agents/sales/leads", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!r.ok) return;
+          var data = await r.json();
+          var leads = (data && Array.isArray(data.leads)) ? data.leads : [];
+
+          var counts = {};
+          leads.forEach(function (lead) {
+            var key = lead.source || "bluesky";
+            counts[key] = (counts[key] || 0) + 1;
+          });
+
+          var labels = Object.keys(counts);
+          var values = labels.map(function (k) { return counts[k]; });
+          var palette = { bluesky: "#22d3ee", mastodon: "#a855f7", youtube: "#e5c76b" };
+          var colors = labels.map(function (k) { return palette[k] || "#8888aa"; });
+
+          if (mcChartSrc) {
+            mcChartSrc.destroy();
+            mcChartSrc = null;
+          }
+
+          mcChartSrc = new Chart(canvas, {
+            type: "doughnut",
+            data: {
+              labels: labels,
+              datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: "rgba(7,11,24,0.9)"
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "75%",
+              plugins: {
+                legend: {
+                  display: true,
+                  position: "bottom",
+                  labels: { color: "#e8e8ff", font: { size: 11 }, padding: 10 }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.error("[MissionControl] sources chart error:", e.message || e);
+        }
+      }
+
+      async function mcRenderPipeline() {
+        var canvas = document.getElementById("mcChartPipeline");
+        if (!canvas) return;
+
+        try {
+          var token = tok();
+          if (!token) return;
+          var r = await fetch(API_URL + "/api/agents/sales/pipeline", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!r.ok) return;
+          var data = await r.json();
+          var grouped = (data && data.pipeline) || {};
+
+          var labels = STATUS_ORDER.map(function (s) { return STATUS_LABELS[s] || s; });
+          var counts = STATUS_ORDER.map(function (s) { return (grouped[s] || []).length; });
+
+          var ctx = canvas.getContext("2d");
+          var gradient = ctx.createLinearGradient(0, 0, canvas.clientWidth || 200, 0);
+          gradient.addColorStop(0, "#22d3ee");
+          gradient.addColorStop(1, "#a855f7");
+
+          if (mcChartPipe) {
+            mcChartPipe.destroy();
+            mcChartPipe = null;
+          }
+
+          mcChartPipe = new Chart(canvas, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [{
+                data: counts,
+                backgroundColor: gradient,
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: {
+              indexAxis: "y",
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { color: "#8888aa", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true },
+                y: { ticks: { color: "#8888aa" }, grid: { color: "rgba(255,255,255,0.05)" } }
+              }
+            }
+          });
+        } catch (e) {
+          console.error("[MissionControl] pipeline chart error:", e.message || e);
+        }
+      }
+
+      function mcRefreshCharts(tasks) {
+        try {
+          mcRenderConversions(tasks);
+        } catch (e) {
+          console.error("[MissionControl] conversions chart error:", e.message || e);
+        }
+        try {
+          mcRenderSources();
+        } catch (e) {
+          console.error("[MissionControl] sources chart error:", e.message || e);
+        }
+        try {
+          mcRenderPipeline();
+        } catch (e) {
+          console.error("[MissionControl] pipeline chart error:", e.message || e);
+        }
+      }
+
       async function mcRefreshConsole() {
         var tasks = await mcFetchSalesTasks();
         if (!tasks) return;
@@ -1627,6 +1823,7 @@
           mcComputeKpis(tasks);
           mcRenderBadge(tasks);
           mcRenderFeed(tasks);
+          mcRefreshCharts(tasks);
         } catch (e) {
           console.error("[MissionControl] console render error:", e.message || e);
         }
