@@ -55,6 +55,18 @@
     .earn-text strong{color:#f4f7ff;display:block;margin-bottom:3px;font-size:.88rem}
     .empty-msg{text-align:center;padding:52px 24px;color:#8892b8;font-size:.9rem;line-height:1.6}
     .loading{text-align:center;padding:52px 24px;color:#8892b8;font-size:.9rem}
+    .send-card{background:rgba(10,15,35,.88);border:1px solid rgba(34,211,238,.22);border-radius:24px;padding:32px 28px;margin-bottom:40px}
+    .send-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0 0 16px;display:flex;align-items:center;gap:10px}
+    .send-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    .send-input{flex:1;min-width:160px;background:rgba(7,11,24,.7);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 14px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .send-input:focus{border-color:rgba(34,211,238,.55)}
+    .send-input::placeholder{color:#566082}
+    .send-input-amount{flex:0 0 140px}
+    .send-btn{padding:13px 28px;border:none;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#22d3ee,#a855f7);cursor:pointer;transition:all .25s;font-family:inherit;flex-shrink:0}
+    .send-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(34,211,238,.3)}
+    .send-status{margin-top:14px;font-size:.85rem;min-height:18px;color:#8892b8}
+    .send-status.ok{color:#34d399}
+    .send-status.err{color:#f87171}
     @media(max-width:600px){.stats-row{grid-template-columns:1fr 1fr};.balance-amount{font-size:3.5rem}}
   </style>
 </head>
@@ -93,6 +105,19 @@
       <div class="stat-num" id="statTxns">—</div>
       <div class="stat-lbl">Transactions</div>
     </div>
+  </div>
+
+  <div class="send-card">
+    <div class="send-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Send BFC
+    </div>
+    <div class="send-row">
+      <input type="text" id="send-recipient" class="send-input" placeholder="Recipient user ID" />
+      <input type="number" id="send-amount" class="send-input send-input-amount" placeholder="Amount" min="1" />
+      <button type="button" id="send-btn" class="send-btn">Send BFC</button>
+    </div>
+    <div class="send-status" id="send-status"></div>
   </div>
 
   <div class="section-title">
@@ -180,6 +205,65 @@ function renderWallet(data) {
       '</div>';
   }).join("");
 }
+
+var sendBtn = document.getElementById("send-btn");
+var sendRecipient = document.getElementById("send-recipient");
+var sendAmount = document.getElementById("send-amount");
+var sendStatus = document.getElementById("send-status");
+
+function setSendStatus(text, kind) {
+  sendStatus.textContent = text;
+  sendStatus.className = "send-status" + (kind ? " " + kind : "");
+}
+
+sendBtn.addEventListener("click", function () {
+  var recipientId = sendRecipient.value.trim();
+  var amount = parseInt(sendAmount.value, 10);
+
+  setSendStatus("", "");
+
+  if (!recipientId) {
+    setSendStatus("Recipient is required.", "err");
+    return;
+  }
+
+  if (!Number.isInteger(amount) || amount <= 0) {
+    setSendStatus("Amount must be a positive integer.", "err");
+    return;
+  }
+
+  sendBtn.disabled = true;
+  sendBtn.textContent = "Sending...";
+
+  fetch(API_URL + "/api/wallet/transfer", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ recipientId: recipientId, amount: amount })
+  })
+    .then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+    })
+    .then(function (res) {
+      if (res.ok) {
+        setSendStatus("Sent " + amount.toLocaleString() + " BFC.", "ok");
+        sendRecipient.value = "";
+        sendAmount.value = "";
+        loadWallet();
+      } else {
+        setSendStatus((res.data && res.data.error) || "Could not send BFC.", "err");
+      }
+    })
+    .catch(function () {
+      setSendStatus("Network error — could not send BFC.", "err");
+    })
+    .then(function () {
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send BFC";
+    });
+});
 
 loadWallet();
 </script>
