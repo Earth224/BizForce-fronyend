@@ -29,10 +29,18 @@
       z-index: 0;
       pointer-events: none;
     }
+
+    /* dark scrollbars, site-wide + any scrollable panel */
+    * { scrollbar-width: thin; scrollbar-color: rgba(34,211,238,0.3) #070b18; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #070b18; }
+    ::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.3); border-radius: 8px; border: 2px solid #070b18; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(34,211,238,0.55); }
+
     .page {
       position: relative;
       z-index: 1;
-      max-width: 560px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 40px 20px 80px;
     }
@@ -73,9 +81,12 @@
       border-color: rgba(0,229,255,0.55);
       box-shadow: 0 0 20px rgba(0,229,255,0.18);
     }
+
     .card {
       display: none;
       position: relative;
+      max-width: 480px;
+      margin: 0 auto;
       border-radius: 20px;
       border: 1px solid rgba(148,163,184,0.16);
       background: rgba(12,18,38,0.65);
@@ -83,10 +94,14 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.45);
       padding: 32px 28px;
     }
-    .card + .card { margin-top: 20px; }
     h1 {
       margin: 0 0 6px;
       font-size: clamp(1.4rem, 4vw, 1.8rem);
+      font-weight: 800;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
       font-weight: 800;
     }
     .accent-gold { color: #e5c76b; }
@@ -114,7 +129,11 @@
       color: #8892b8;
       margin-bottom: 8px;
     }
-    input[type="password"] {
+    .form-group { margin-bottom: 16px; }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="url"] {
       width: 100%;
       padding: 13px 14px;
       border-radius: 12px;
@@ -126,11 +145,33 @@
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    input[type="password"]:focus {
+    input:focus {
       border-color: rgba(34,211,238,0.55);
       box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
     }
-    input[type="password"]::placeholder { color: #566082; }
+    input::placeholder { color: #566082; }
+
+    /* dark <select> — required everywhere on this page */
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(34,211,238,0.4);
+      background: rgba(8,12,28,0.85);
+      color: #e6edf3;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+    }
+    select:focus {
+      border-color: rgba(34,211,238,0.7);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+    }
+    select option {
+      background: #0b1020;
+      color: #e6edf3;
+    }
+
     .btn-row {
       display: flex;
       gap: 12px;
@@ -178,12 +219,13 @@
     }
     .msg.ok  { color: #4ade80; }
     .msg.err { color: #f87171; }
-    .help-card h2 {
-      margin: 0 0 14px;
-      font-size: 1.05rem;
-      font-weight: 800;
+
+    .help-block {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(148,163,184,0.16);
     }
-    .help-card ol {
+    .help-block ol {
       margin: 0 0 16px;
       padding-left: 20px;
       color: #c3cbe0;
@@ -195,8 +237,130 @@
       color: #8892b8;
       font-style: italic;
       line-height: 1.6;
-      border-top: 1px solid rgba(148,163,184,0.16);
-      padding-top: 14px;
+    }
+
+    /* ── toggle switch ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 0;
+    }
+    .toggle-row + .toggle-row { border-top: 1px solid rgba(148,163,184,0.14); }
+    .toggle-copy { flex: 1; min-width: 0; }
+    .toggle-title { font-size: 0.92rem; font-weight: 700; color: #e6edf3; }
+    .toggle-desc { margin-top: 2px; font-size: 0.8rem; color: #8892b8; line-height: 1.5; }
+    .toggle-switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+      transition: background 0.25s ease, border-color 0.25s ease;
+      cursor: pointer;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute; top: 2px; left: 2px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #cfd3ea;
+      transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: linear-gradient(90deg, #00e5ff, #a855f7);
+      border-color: rgba(168,85,247,0.5);
+    }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+      background: #fff;
+      box-shadow: 0 0 8px rgba(168,85,247,0.6);
+    }
+
+    .pref-note {
+      margin: 8px 0 0;
+      font-size: 0.78rem;
+      color: #8892b8;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .identity-line {
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(34,211,238,0.08);
+      border: 1px solid rgba(34,211,238,0.25);
+      color: #e6edf3;
+      font-size: 0.92rem;
+      margin-bottom: 20px;
+      word-break: break-word;
+    }
+
+    /* ── settings layout: sidebar+panel on desktop, accordion on mobile ── */
+    .settings-section {
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: rgba(12,18,38,0.5);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .sidebar-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 20px;
+      background: transparent;
+      border: none;
+      border-left: 3px solid transparent;
+      color: #e6edf3;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .sidebar-item.active {
+      border-left-color: #22d3ee;
+      background: rgba(34,211,238,0.06);
+    }
+    .sidebar-chevron { color: #8892b8; transition: transform 0.25s ease, color 0.25s ease; }
+    .sidebar-item.active .sidebar-chevron { transform: rotate(90deg); color: #22d3ee; }
+
+    .settings-panel { display: none; padding: 4px 20px 22px; }
+    .settings-panel.active { display: block; }
+
+    @media (min-width: 860px) {
+      .settings-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+      .settings-section { display: contents; }
+      .sidebar-item {
+        border-radius: 14px;
+        border-left: none;
+        padding: 13px 16px;
+        margin-bottom: 6px;
+      }
+      .sidebar-item:hover { background: rgba(34,211,238,0.08); }
+      .sidebar-item.active {
+        background: linear-gradient(135deg, rgba(0,229,255,0.14), rgba(123,47,247,0.14));
+        border: 1px solid rgba(34,211,238,0.3);
+      }
+      .sidebar-chevron { display: none; }
+      .settings-panel {
+        display: none;
+        border-radius: 20px;
+        border: 1px solid rgba(148,163,184,0.16);
+        background: rgba(12,18,38,0.65);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+        padding: 32px 28px;
+      }
+      .settings-panel.active { display: block; }
     }
   </style>
 </head>
@@ -209,37 +373,164 @@
 
     <div class="card" id="loggedOutCard">
       <h1>Please log in first</h1>
-      <p class="subtitle">You need to be logged in to manage your Anthropic API key.</p>
+      <p class="subtitle">You need to be logged in to manage your settings.</p>
       <a class="btn" href="/app.html">Go to Login</a>
     </div>
 
-    <div class="card" id="mainCard">
-      <h1>API Key <span class="accent-gold">Settings</span></h1>
-      <p class="subtitle">Bring your own Anthropic API key so your AI agents run on your own account.</p>
+    <div id="settingsShell" style="display:none;">
+      <h1>Account <span class="accent-gold">Settings</span></h1>
+      <p class="subtitle">Manage your profile, API key, billing, preferences, and account.</p>
 
-      <div class="status-line" id="statusLine">Checking...</div>
+      <div class="settings-layout">
 
-      <label for="apiKeyInput">Your Anthropic API Key</label>
-      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" />
+        <div class="settings-section">
+          <button type="button" class="sidebar-item active" data-target="profile">
+            <span>Profile</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <section class="settings-panel active" id="panel-profile" data-panel="profile">
+            <h2>Profile</h2>
+            <p class="subtitle">Basic business identity used across the platform.</p>
 
-      <div class="btn-row">
-        <button class="btn" id="saveBtn" type="button">Save Key</button>
-        <button class="btn btn-danger" id="removeBtn" type="button" style="display:none;">Remove Key</button>
+            <div class="form-group">
+              <label for="pfBusinessName">Business Name</label>
+              <input type="text" id="pfBusinessName" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="pfContactEmail">Contact Email</label>
+              <input type="email" id="pfContactEmail" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="pfIndustry">Industry</label>
+              <input type="text" id="pfIndustry" autocomplete="off" />
+            </div>
+            <div class="form-group">
+              <label for="pfWebsite">Website</label>
+              <input type="url" id="pfWebsite" autocomplete="off" placeholder="https://..." />
+            </div>
+            <div class="form-group">
+              <label for="pfLocation">Location</label>
+              <input type="text" id="pfLocation" autocomplete="off" />
+            </div>
+
+            <div class="btn-row">
+              <button class="btn" id="profileSaveBtn" type="button">Save Profile</button>
+            </div>
+            <div class="msg" id="profileMsg"></div>
+          </section>
+        </div>
+
+        <div class="settings-section">
+          <button type="button" class="sidebar-item" data-target="apikey">
+            <span>API Key</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <section class="settings-panel" id="panel-apikey" data-panel="apikey">
+            <h2>API Key</h2>
+            <p class="subtitle">Bring your own Anthropic API key so your AI agents run on your own account.</p>
+
+            <div class="status-line" id="statusLine">Checking...</div>
+
+            <label for="apiKeyInput">Your Anthropic API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" />
+
+            <div class="btn-row">
+              <button class="btn" id="saveBtn" type="button">Save Key</button>
+              <button class="btn btn-danger" id="removeBtn" type="button" style="display:none;">Remove Key</button>
+            </div>
+
+            <div class="msg" id="actionMsg"></div>
+
+            <div class="help-block">
+              <h2>How to get your Anthropic API key</h2>
+              <ol>
+                <li>Go to console.anthropic.com</li>
+                <li>Sign in or create an account</li>
+                <li>Open the API Keys section</li>
+                <li>Create a new key and copy it</li>
+                <li>Paste it above and click Save Key</li>
+              </ol>
+              <p class="help-note">Your key is encrypted before storage and is never shown again in full.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-section">
+          <button type="button" class="sidebar-item" data-target="billing">
+            <span>Billing</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <section class="settings-panel" id="panel-billing" data-panel="billing">
+            <h2>Billing</h2>
+            <p class="subtitle">Manage your subscription, payment method, and invoices through Stripe's secure billing portal.</p>
+
+            <div class="btn-row">
+              <button class="btn" id="billingBtn" type="button">Manage Subscription</button>
+            </div>
+            <div class="msg" id="billingMsg"></div>
+          </section>
+        </div>
+
+        <div class="settings-section">
+          <button type="button" class="sidebar-item" data-target="preferences">
+            <span>Preferences</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <section class="settings-panel" id="panel-preferences" data-panel="preferences">
+            <h2>Preferences</h2>
+
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="toggle-title">Termaximus Presence</div>
+                <div class="toggle-desc">Show the roaming Termaximus presence and chat across the app.</div>
+              </div>
+              <span class="toggle-switch">
+                <input type="checkbox" id="tmxToggle" />
+                <span class="toggle-slider"></span>
+              </span>
+            </div>
+
+            <div class="form-group" style="margin-top:18px;">
+              <label for="tmxPositionSelect">Mist Default Position</label>
+              <select id="tmxPositionSelect">
+                <option value="top-right">Top-Right</option>
+                <option value="bottom-right">Bottom-Right</option>
+                <option value="top-left">Top-Left</option>
+                <option value="bottom-left">Bottom-Left</option>
+              </select>
+              <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="toggle-title">Notifications</div>
+                <div class="toggle-desc">Enable in-app notifications.</div>
+              </div>
+              <span class="toggle-switch">
+                <input type="checkbox" id="notifToggle" />
+                <span class="toggle-slider"></span>
+              </span>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-section">
+          <button type="button" class="sidebar-item" data-target="account">
+            <span>Account</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <section class="settings-panel" id="panel-account" data-panel="account">
+            <h2>Account</h2>
+
+            <div class="identity-line" id="acctIdentity">Signed in</div>
+
+            <div class="btn-row">
+              <button class="btn btn-danger" id="signOutBtn" type="button">Sign Out</button>
+            </div>
+          </section>
+        </div>
+
       </div>
-
-      <div class="msg" id="actionMsg"></div>
-    </div>
-
-    <div class="card help-card" id="helpCard">
-      <h2>How to get your Anthropic API key</h2>
-      <ol>
-        <li>Go to console.anthropic.com</li>
-        <li>Sign in or create an account</li>
-        <li>Open the API Keys section</li>
-        <li>Create a new key and copy it</li>
-        <li>Paste it above and click Save Key</li>
-      </ol>
-      <p class="help-note">Your key is encrypted before storage and is never shown again in full.</p>
     </div>
   </div>
 
@@ -249,17 +540,37 @@
       var token = localStorage.getItem("bf_token");
 
       var loggedOutCard = document.getElementById("loggedOutCard");
-      var mainCard = document.getElementById("mainCard");
-      var helpCard = document.getElementById("helpCard");
+      var settingsShell = document.getElementById("settingsShell");
 
       if (!token) {
         loggedOutCard.style.display = "block";
         return;
       }
 
-      mainCard.style.display = "block";
-      helpCard.style.display = "block";
+      settingsShell.style.display = "block";
 
+      /* ── section navigation (sidebar tabs on desktop, accordion on mobile) ── */
+      var sidebarItems = document.querySelectorAll(".sidebar-item");
+      var panels = document.querySelectorAll(".settings-panel");
+
+      function activateSection(name) {
+        for (var i = 0; i < sidebarItems.length; i++) {
+          var isMatch = sidebarItems[i].getAttribute("data-target") === name;
+          sidebarItems[i].classList.toggle("active", isMatch);
+        }
+        for (var j = 0; j < panels.length; j++) {
+          var isMatch2 = panels[j].getAttribute("data-panel") === name;
+          panels[j].classList.toggle("active", isMatch2);
+        }
+      }
+
+      for (var k = 0; k < sidebarItems.length; k++) {
+        sidebarItems[k].addEventListener("click", function () {
+          activateSection(this.getAttribute("data-target"));
+        });
+      }
+
+      /* ── API Key (verbatim logic, reused from the previous single-purpose page) ── */
       var statusLine = document.getElementById("statusLine");
       var apiKeyInput = document.getElementById("apiKeyInput");
       var saveBtn = document.getElementById("saveBtn");
@@ -368,6 +679,160 @@
       });
 
       refreshStatus();
+
+      /* ── Profile ── */
+      var pf = {
+        business_name:  document.getElementById("pfBusinessName"),
+        contact_email:  document.getElementById("pfContactEmail"),
+        industry:       document.getElementById("pfIndustry"),
+        website:        document.getElementById("pfWebsite"),
+        location:       document.getElementById("pfLocation")
+      };
+      var profileSaveBtn = document.getElementById("profileSaveBtn");
+      var profileMsg = document.getElementById("profileMsg");
+
+      function setProfileMsg(text, kind) {
+        profileMsg.textContent = text;
+        profileMsg.className = "msg" + (kind ? " " + kind : "");
+      }
+
+      fetch(API_URL + "/api/profile/me", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) {
+          return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+          if (!res.ok || !res.data || !res.data.profile) return;
+          var p = res.data.profile;
+          pf.business_name.value = p.business_name || "";
+          pf.contact_email.value = p.contact_email || "";
+          pf.industry.value      = p.industry      || "";
+          pf.website.value       = p.website       || "";
+          pf.location.value      = p.location      || "";
+        })
+        .catch(function () {});
+
+      profileSaveBtn.addEventListener("click", function () {
+        setProfileMsg("", "");
+        profileSaveBtn.disabled = true;
+
+        var body = {
+          business_name: pf.business_name.value.trim(),
+          contact_email: pf.contact_email.value.trim(),
+          industry:      pf.industry.value.trim(),
+          website:       pf.website.value.trim(),
+          location:      pf.location.value.trim()
+        };
+
+        fetch(API_URL + "/api/profile/me", {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            profileSaveBtn.disabled = false;
+            if (res.ok && res.data && res.data.profile) {
+              setProfileMsg("Profile saved", "ok");
+            } else {
+              setProfileMsg((res.data && res.data.error) || "Could not save profile.", "err");
+            }
+          })
+          .catch(function () {
+            profileSaveBtn.disabled = false;
+            setProfileMsg("Network error — could not save profile.", "err");
+          });
+      });
+
+      /* ── Billing ── */
+      var billingBtn = document.getElementById("billingBtn");
+      var billingMsg = document.getElementById("billingMsg");
+
+      billingBtn.addEventListener("click", function () {
+        billingBtn.disabled = true;
+        billingMsg.textContent = "";
+        billingMsg.className = "msg";
+
+        fetch(API_URL + "/api/billing/portal", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            if (res.ok && res.data && res.data.url) {
+              window.location.href = res.data.url;
+              return;
+            }
+            billingBtn.disabled = false;
+            billingMsg.textContent = (res.data && res.data.error) || "Could not open billing portal.";
+            billingMsg.className = "msg err";
+          })
+          .catch(function () {
+            billingBtn.disabled = false;
+            billingMsg.textContent = "Network error — could not open billing portal.";
+            billingMsg.className = "msg err";
+          });
+      });
+
+      /* ── Preferences (client-side only, via localStorage) ── */
+      var tmxToggle = document.getElementById("tmxToggle");
+      var tmxPositionSelect = document.getElementById("tmxPositionSelect");
+      var notifToggle = document.getElementById("notifToggle");
+
+      tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
+      notifToggle.checked = localStorage.getItem("bf_notifications") === "1";
+      tmxPositionSelect.value = "top-right";
+
+      tmxToggle.addEventListener("change", function () {
+        if (tmxToggle.checked) {
+          localStorage.removeItem("tmx_presence_active");
+        } else {
+          localStorage.setItem("tmx_presence_active", "0");
+        }
+      });
+
+      tmxPositionSelect.addEventListener("change", function () {
+        localStorage.removeItem("tmx_presence_pos");
+      });
+
+      notifToggle.addEventListener("change", function () {
+        localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
+      });
+
+      /* ── Account ── */
+      var acctIdentity = document.getElementById("acctIdentity");
+      var rawUser = localStorage.getItem("bf_user");
+      var identityText = "Signed in";
+
+      if (rawUser) {
+        try {
+          var u = JSON.parse(rawUser);
+          var name = u.business_name || u.name || u.full_name || "";
+          var email = u.email || "";
+          if (name && email) {
+            identityText = name + " — " + email;
+          } else if (name) {
+            identityText = name;
+          } else if (email) {
+            identityText = email;
+          }
+        } catch (e) {}
+      }
+      acctIdentity.textContent = identityText;
+
+      document.getElementById("signOutBtn").addEventListener("click", function () {
+        localStorage.removeItem("bf_token");
+        localStorage.removeItem("bf_user");
+        window.location.replace("app.html");
+      });
     })();
   </script>
 </body>
