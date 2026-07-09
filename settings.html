@@ -497,10 +497,10 @@
                 <div class="toggle-desc">Show the roaming Termaximus presence and chat across the app.</div>
                 <span class="pref-saved" id="tmxSaved"></span>
               </div>
-              <span class="toggle-switch">
+              <label class="toggle-switch">
                 <input type="checkbox" id="tmxToggle" />
                 <span class="toggle-slider"></span>
-              </span>
+              </label>
             </div>
 
             <div class="form-group" style="margin-top:18px;">
@@ -521,10 +521,10 @@
                 <div class="toggle-desc">Enable in-app notifications.</div>
                 <span class="pref-saved" id="notifSaved"></span>
               </div>
-              <span class="toggle-switch">
+              <label class="toggle-switch">
                 <input type="checkbox" id="notifToggle" />
                 <span class="toggle-slider"></span>
-              </span>
+              </label>
             </div>
           </section>
         </div>
@@ -836,7 +836,7 @@
       function applyPreferencesFromLocalStorage() {
         tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
         notifToggle.checked = localStorage.getItem("bf_notifications") === "1";
-        tmxPositionSelect.value = "top-right";
+        tmxPositionSelect.value = localStorage.getItem("tmx_mist_corner") || "top-right";
       }
 
       fetch(API_URL + "/api/user/preferences", {
@@ -860,6 +860,7 @@
           }
 
           tmxPositionSelect.value = prefs.mist_position || "top-right";
+          localStorage.setItem("tmx_mist_corner", tmxPositionSelect.value);
 
           notifToggle.checked = prefs.notifications_enabled === true;
           localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
@@ -878,6 +879,7 @@
       });
 
       tmxPositionSelect.addEventListener("change", function () {
+        localStorage.setItem("tmx_mist_corner", tmxPositionSelect.value);
         localStorage.removeItem("tmx_presence_pos");
         putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
       });

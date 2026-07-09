@@ -15,6 +15,22 @@
     if (localStorage.getItem("tmx_presence_active") === "0") return;
   } catch (e) {}
 
+  /* default corner — controlled from Settings (Preferences > Mist Default
+     Position); only used when no dragged position is stored, see
+     _tmxRestorePosition() below. */
+  var MIST_CORNERS = {
+    "top-right":    { root: "top: 200px; right: 180px;",    chat: "top: 320px; right: 180px;" },
+    "bottom-right": { root: "bottom: 120px; right: 180px;", chat: "bottom: 200px; right: 180px;" },
+    "top-left":     { root: "top: 200px; left: 40px;",      chat: "top: 320px; left: 40px;" },
+    "bottom-left":  { root: "bottom: 120px; left: 40px;",   chat: "bottom: 200px; left: 40px;" }
+  };
+  var _tmxCornerKey = "top-right";
+  try {
+    var _tmxStoredCorner = localStorage.getItem("tmx_mist_corner");
+    if (_tmxStoredCorner && MIST_CORNERS[_tmxStoredCorner]) _tmxCornerKey = _tmxStoredCorner;
+  } catch (e) {}
+  var _tmxCorner = MIST_CORNERS[_tmxCornerKey];
+
   /* ── Styles ── */
   var style = document.createElement("style");
   style.textContent = [
@@ -89,8 +105,7 @@
     /* ── container ── */
     "#tmx-presence-root {",
     "  position: fixed;",
-    "  top: 200px;",
-    "  right: 180px;",
+    "  " + _tmxCorner.root,
     "  z-index: 2147483647;",
     "  pointer-events: none;",
     "  width: 110px;",
@@ -454,8 +469,7 @@
     /* ── chat panel back-glow: compact brand-gradient aura + breathing pulse ── */
     "#tmx-chat-glow-wrap {",
     "  position: fixed;",
-    "  top: 320px;",
-    "  right: 180px;",
+    "  " + _tmxCorner.chat,
     "  width: min(288px, calc(100vw - 16px));",
     "  height: 340px;",
     "  z-index: 2147483646;",
@@ -487,8 +501,7 @@
     "}",
     "#tmx-chat {",
     "  position: fixed;",
-    "  top: 320px;",
-    "  right: 180px;",
+    "  " + _tmxCorner.chat,
     "  width: min(288px, calc(100vw - 16px));",
     "  height: 340px;",
     "  z-index: 2147483647;",
