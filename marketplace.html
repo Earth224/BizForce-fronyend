@@ -36,6 +36,9 @@
     .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
     .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
     .listing-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .listing-media{position:relative;width:100%;height:170px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+    .listing-media img,.listing-media video{width:100%;height:100%;object-fit:cover;display:block}
+    .listing-media-count{position:absolute;bottom:8px;right:8px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.12);color:#f4f7ff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px}
     .listing-cat{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid transparent}
     .cat-consulting{color:#60a5fa;background:rgba(96,165,250,.1);border-color:rgba(96,165,250,.25)}
     .cat-design{color:#f472b6;background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.25)}
@@ -263,6 +266,16 @@ function renderCard(l) {
   var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + t + '</span>'; }).join("");
   var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
   var statusHtml = isOwn ? '<span class="status-badge status-' + l.status + '">' + l.status + '</span>' : "";
+  var mediaArr = Array.isArray(l.media) ? l.media : [];
+  var mediaHtml = "";
+  if (mediaArr.length > 0) {
+    var m0 = mediaArr[0];
+    var inner = (typeof m0.type === "string" && m0.type.indexOf("video") === 0)
+      ? '<video src="' + m0.url + '" muted playsinline></video>'
+      : '<img src="' + m0.url + '" alt="" loading="lazy">';
+    var countBadge = mediaArr.length > 1 ? '<span class="listing-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
+    mediaHtml = '<div class="listing-media">' + inner + countBadge + '</div>';
+  }
   var actions = isOwn
     ? '<div class="listing-actions">' +
         '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
@@ -274,6 +287,7 @@ function renderCard(l) {
       '<span class="listing-cat ' + catClass + '">' + catLabel + '</span>' +
       '<span class="listing-price">' + price + '</span>' +
     '</div>' +
+    mediaHtml +
     '<h3 class="listing-title">' + l.title + '</h3>' +
     (desc ? '<p class="listing-desc">' + desc + '</p>' : '') +
     (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
