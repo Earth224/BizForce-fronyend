@@ -1,6 +1,13 @@
 (function () {
   "use strict";
 
+  /* suppress entirely on the login page or when logged out */
+  try {
+    var _tmxPath  = (window.location.pathname || "").toLowerCase();
+    var _tmxLogin = _tmxPath === "/" || _tmxPath === "" || /(^|\/)app\.html$/.test(_tmxPath);
+    if (_tmxLogin || !localStorage.getItem("bf_token")) return;
+  } catch (e) {}
+
   if (document.getElementById("tmx-presence-root")) return;
 
   /* controlled from elsewhere (e.g. a settings toggle); default to active/shown */
@@ -82,8 +89,8 @@
     /* ── container ── */
     "#tmx-presence-root {",
     "  position: fixed;",
-    "  bottom: 28px;",
-    "  right: 28px;",
+    "  top: 88px;",
+    "  right: 24px;",
     "  z-index: 2147483647;",
     "  pointer-events: none;",
     "  width: 110px;",
@@ -447,7 +454,7 @@
     /* ── chat panel back-glow: compact brand-gradient aura + breathing pulse ── */
     "#tmx-chat-glow-wrap {",
     "  position: fixed;",
-    "  bottom: 148px;",
+    "  top: 210px;",
     "  right: 8px;",
     "  width: min(288px, calc(100vw - 16px));",
     "  height: 340px;",
@@ -480,7 +487,7 @@
     "}",
     "#tmx-chat {",
     "  position: fixed;",
-    "  bottom: 148px;",
+    "  top: 210px;",
     "  right: 8px;",
     "  width: min(288px, calc(100vw - 16px));",
     "  height: 340px;",

@@ -1,6 +1,13 @@
 (function () {
   "use strict";
 
+  /* suppress entirely on the login page or when logged out */
+  try {
+    var _tmxPath  = (window.location.pathname || "").toLowerCase();
+    var _tmxLogin = _tmxPath === "/" || _tmxPath === "" || /(^|\/)app\.html$/.test(_tmxPath);
+    if (_tmxLogin || !localStorage.getItem("bf_token")) return;
+  } catch (e) {}
+
   if (document.getElementById("tmx-guide-root")) return;
 
   /* per-page "Page Guidance" text, keyed by the page's filename */
