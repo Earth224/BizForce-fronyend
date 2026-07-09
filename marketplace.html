@@ -62,6 +62,8 @@
     .btn-delete:hover{background:rgba(248,113,113,.16)}
     .btn-pause{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.28);color:#fbbf24}
     .btn-pause:hover{background:rgba(251,191,36,.16)}
+    .btn-buy{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:#34d399}
+    .btn-buy:hover{background:rgba(52,211,153,.2)}
     .status-badge{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
     .status-active{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399}
     .status-paused{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
@@ -258,7 +260,7 @@ function renderCard(l) {
         '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
         '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
       '</div>'
-    : '<div class="listing-actions"><button class="btn-sm btn-contact">Contact</button></div>';
+    : '<div class="listing-actions"><button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + price + '</button></div>';
   return '<div class="listing-card">' +
     '<div class="listing-header">' +
       '<span class="listing-cat ' + catClass + '">' + catLabel + '</span>' +
@@ -344,6 +346,25 @@ async function deleteListing(id) {
     await loadListings();
   } catch (e) {
     showToast("Delete failed", "error");
+  }
+}
+
+async function buyListing(id) {
+  if (!confirm("Buy this listing?")) return;
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + id + "/buy", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await res.json();
+    if (res.ok && data.balance !== undefined) {
+      alert("Purchase complete. New balance: " + data.balance + " BFC");
+      await loadListings();
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Something went wrong. Please try again.");
   }
 }
 
