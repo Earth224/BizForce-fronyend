@@ -283,6 +283,18 @@
       font-style: italic;
       line-height: 1.5;
     }
+    .pref-saved {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .pref-saved.show { opacity: 1; }
+    .pref-saved.ok  { color: #4ade80; }
+    .pref-saved.err { color: #f87171; }
 
     .identity-line {
       padding: 12px 16px;
@@ -483,6 +495,7 @@
               <div class="toggle-copy">
                 <div class="toggle-title">Termaximus Presence</div>
                 <div class="toggle-desc">Show the roaming Termaximus presence and chat across the app.</div>
+                <span class="pref-saved" id="tmxSaved"></span>
               </div>
               <span class="toggle-switch">
                 <input type="checkbox" id="tmxToggle" />
@@ -498,6 +511,7 @@
                 <option value="top-left">Top-Left</option>
                 <option value="bottom-left">Bottom-Left</option>
               </select>
+              <span class="pref-saved" id="mistSaved"></span>
               <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
             </div>
 
@@ -505,6 +519,7 @@
               <div class="toggle-copy">
                 <div class="toggle-title">Notifications</div>
                 <div class="toggle-desc">Enable in-app notifications.</div>
+                <span class="pref-saved" id="notifSaved"></span>
               </div>
               <span class="toggle-switch">
                 <input type="checkbox" id="notifToggle" />
@@ -782,14 +797,76 @@
           });
       });
 
-      /* ── Preferences (client-side only, via localStorage) ── */
+      /* ── Preferences (instant localStorage + per-account persistence) ── */
       var tmxToggle = document.getElementById("tmxToggle");
       var tmxPositionSelect = document.getElementById("tmxPositionSelect");
       var notifToggle = document.getElementById("notifToggle");
+      var tmxSaved = document.getElementById("tmxSaved");
+      var mistSaved = document.getElementById("mistSaved");
+      var notifSaved = document.getElementById("notifSaved");
 
-      tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
-      notifToggle.checked = localStorage.getItem("bf_notifications") === "1";
-      tmxPositionSelect.value = "top-right";
+      function showPrefSaved(el, ok) {
+        el.textContent = ok ? "Saved" : "Couldn't save";
+        el.className = "pref-saved show " + (ok ? "ok" : "err");
+        setTimeout(function () {
+          el.className = "pref-saved " + (ok ? "ok" : "err");
+        }, 1600);
+      }
+
+      function putPreferences(fields, indicatorEl) {
+        fetch(API_URL + "/api/user/preferences", {
+          method: "PUT",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(fields)
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            showPrefSaved(indicatorEl, !!(res.ok && res.data && res.data.saved));
+          })
+          .catch(function () {
+            showPrefSaved(indicatorEl, false);
+          });
+      }
+
+      function applyPreferencesFromLocalStorage() {
+        tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
+        notifToggle.checked = localStorage.getItem("bf_notifications") === "1";
+        tmxPositionSelect.value = "top-right";
+      }
+
+      fetch(API_URL + "/api/user/preferences", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) {
+          return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+          if (!res.ok || !res.data) {
+            applyPreferencesFromLocalStorage();
+            return;
+          }
+          var prefs = res.data;
+
+          tmxToggle.checked = prefs.termaximus_active !== false;
+          if (prefs.termaximus_active === false) {
+            localStorage.setItem("tmx_presence_active", "0");
+          } else {
+            localStorage.removeItem("tmx_presence_active");
+          }
+
+          tmxPositionSelect.value = prefs.mist_position || "top-right";
+
+          notifToggle.checked = prefs.notifications_enabled === true;
+          localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
+        })
+        .catch(function () {
+          applyPreferencesFromLocalStorage();
+        });
 
       tmxToggle.addEventListener("change", function () {
         if (tmxToggle.checked) {
@@ -797,14 +874,17 @@
         } else {
           localStorage.setItem("tmx_presence_active", "0");
         }
+        putPreferences({ termaximus_active: tmxToggle.checked }, tmxSaved);
       });
 
       tmxPositionSelect.addEventListener("change", function () {
         localStorage.removeItem("tmx_presence_pos");
+        putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
       });
 
       notifToggle.addEventListener("change", function () {
         localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
+        putPreferences({ notifications_enabled: notifToggle.checked }, notifSaved);
       });
 
       /* ── Account ── */
