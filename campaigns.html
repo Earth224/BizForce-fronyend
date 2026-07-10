@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Crowdfunding</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:#a855f7;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}
+    .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:220px;position:relative}
+    .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#8892b8;pointer-events:none}
+    .search-input{width:100%;padding:11px 14px 11px 40px;background:rgba(10,15,35,.78);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:#8892b8}
+    .search-input:focus{border-color:rgba(168,85,247,.45)}
+    .campaigns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+    .campaign-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
+    .campaign-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .campaign-header{display:flex;align-items:center;gap:8px;min-height:20px}
+    .campaign-media{position:relative;width:100%;height:170px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+    .campaign-media img,.campaign-media video{width:100%;height:100%;object-fit:cover;display:block}
+    .campaign-media-count{position:absolute;bottom:8px;right:8px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.12);color:#f4f7ff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px}
+    .campaign-cat{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid rgba(168,85,247,.25);background:rgba(168,85,247,.1);color:#a855f7}
+    .campaign-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .campaign-desc{font-size:.84rem;color:#8892b8;line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .campaign-progress-track{width:100%;height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+    .campaign-progress-fill{height:100%;border-radius:999px;background:#34d399;transition:width .3s ease}
+    .campaign-progress-text{font-size:.76rem;color:#8892b8;font-weight:600}
+    .campaign-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
+    .campaign-date{font-size:.7rem;color:#4a5280}
+    .campaign-owner-label{font-size:.76rem;font-weight:700;color:#8892b8;font-style:italic}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
+    .btn-donate{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:#34d399}
+    .btn-donate:hover{background:rgba(52,211,153,.2)}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:1px solid rgba(168,85,247,.4);background:rgba(168,85,247,.12);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .create-btn:hover{background:rgba(168,85,247,.22);border-color:rgba(168,85,247,.6);box-shadow:0 0 20px rgba(168,85,247,.2)}
+    .create-btn svg{width:16px;height:16px}
+    .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:rgba(10,15,35,.97);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:32px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .modal-title{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+    .modal-close:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .form-group{margin-bottom:18px}
+    .form-label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input::placeholder,.form-textarea::placeholder{color:#4a5280}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(168,85,247,.5)}
+    .form-textarea{resize:vertical;min-height:100px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
+    .btn-cancel{padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8892b8;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#e8e8ff}
+    .btn-submit{padding:10px 24px;border-radius:10px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.18);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-submit:hover{background:rgba(168,85,247,.28)}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:28px;right:28px;z-index:300;padding:14px 22px;border-radius:12px;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
+    .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
+    @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">CROWDFUNDING</div>
+    <h1 class="hero-title">Crowdfunding</h1>
+    <p class="hero-sub">Back a vision. Fund a mission. Powered by BizCash.</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search campaigns..." autocomplete="off">
+    </div>
+    <button class="create-btn" onclick="openCreateModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Start a Campaign
+    </button>
+  </div>
+
+  <div class="campaigns-grid" id="campaignsGrid"><div class="loading">Loading campaigns...</div></div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="campaignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Start a Campaign</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Campaign Title *</label>
+      <input class="form-input" id="fTitle" type="text" placeholder="e.g. Launch Our Community Garden" maxlength="150">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="Tell backers what you're building and why it matters..." maxlength="2000"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Goal (BFC) *</label>
+        <input class="form-input" id="fGoal" type="number" min="1" placeholder="1000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input class="form-input" id="fCategory" type="text" placeholder="e.g. Community, Product, Cause" maxlength="40">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Photos &amp; Video <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="file" id="fMedia" accept="image/*,video/*" multiple style="display:none">
+      <button type="button" class="btn-cancel" onclick="document.getElementById('fMedia').click()">Add Photos / Video</button>
+      <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" id="submitBtn" onclick="submitCampaign()">Start Campaign</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+var currentUserId = (function() {
+  try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
+})();
+
+var allCampaigns = [];
+var searchTimer = null;
+var campaignMedia = [];
+var campaignMediaUploading = 0;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function loadCampaigns() {
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns", { headers: { "Authorization": "Bearer " + token } });
+    if (res.ok) { var d = await res.json(); allCampaigns = d.campaigns || []; }
+    renderGrid();
+  } catch (e) {
+    document.getElementById("campaignsGrid").innerHTML = '<div class="empty-msg">Unable to load campaigns. Please try again.</div>';
+  }
+}
+
+function renderGrid() {
+  var q = document.getElementById("searchInput").value.toLowerCase().trim();
+  var items = allCampaigns;
+  if (q) {
+    items = items.filter(function(c) {
+      return (c.title || "").toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q);
+    });
+  }
+  var grid = document.getElementById("campaignsGrid");
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-msg">No campaigns found. Be the first to start one!</div>';
+    return;
+  }
+  grid.innerHTML = items.map(function(c) { return renderCard(c); }).join("");
+}
+
+function renderCard(c) {
+  var isOwn = c.owner_id === currentUserId;
+  var catHtml = c.category ? '<span class="campaign-cat">' + escapeHtml(c.category) + '</span>' : "";
+  var desc = c.description ? c.description.slice(0, 180) + (c.description.length > 180 ? "…" : "") : "";
+  var date = new Date(c.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
+  var mediaArr = Array.isArray(c.media) ? c.media : [];
+  var mediaHtml = "";
+  if (mediaArr.length > 0) {
+    var m0 = mediaArr[0];
+    var inner = (typeof m0.type === "string" && m0.type.indexOf("video") === 0)
+      ? '<video src="' + m0.url + '" muted playsinline></video>'
+      : '<img src="' + m0.url + '" alt="" loading="lazy">';
+    var countBadge = mediaArr.length > 1 ? '<span class="campaign-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
+    mediaHtml = '<div class="campaign-media">' + inner + countBadge + '</div>';
+  }
+  var goal = c.goal_bfc || 0;
+  var raised = c.raised_bfc || 0;
+  var percent = goal > 0 ? Math.min(100, Math.round(raised / goal * 100)) : 0;
+  var progressHtml =
+    '<div class="campaign-progress-track"><div class="campaign-progress-fill" style="width:' + percent + '%"></div></div>' +
+    '<div class="campaign-progress-text">' + raised.toLocaleString() + ' / ' + goal.toLocaleString() + ' BFC (' + percent + '%)</div>';
+  var actionHtml = isOwn
+    ? '<span class="campaign-owner-label">Your campaign</span>'
+    : '<button class="btn-sm btn-donate" onclick="donateToCampaign(\'' + c.id + '\')">Donate BFC</button>';
+  return '<div class="campaign-card">' +
+    '<div class="campaign-header">' + catHtml + '</div>' +
+    mediaHtml +
+    '<h3 class="campaign-title">' + escapeHtml(c.title) + '</h3>' +
+    (desc ? '<p class="campaign-desc">' + escapeHtml(desc) + '</p>' : '') +
+    progressHtml +
+    '<div class="campaign-footer">' +
+      '<span class="campaign-date">' + date + '</span>' +
+      actionHtml +
+    '</div>' +
+  '</div>';
+}
+
+function openCreateModal() {
+  document.getElementById("modalTitle").textContent = "Start a Campaign";
+  document.getElementById("submitBtn").textContent = "Start Campaign";
+  document.getElementById("fTitle").value = "";
+  document.getElementById("fDesc").value = "";
+  document.getElementById("fGoal").value = "";
+  document.getElementById("fCategory").value = "";
+  campaignMedia = [];
+  renderMediaPreview();
+  document.getElementById("campaignModal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("campaignModal").classList.remove("open");
+  campaignMedia = [];
+  renderMediaPreview();
+}
+
+function renderMediaPreview() {
+  var container = document.getElementById("mediaPreview");
+  var html = campaignMedia.map(function(item, index) {
+    var thumb = item.type.indexOf("image") === 0
+      ? '<img src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px">'
+      : '<video src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
+    return '<div style="position:relative">' +
+      thumb +
+      '<button type="button" onclick="removeMediaItem(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +
+    '</div>';
+  }).join("");
+  if (campaignMediaUploading > 0) {
+    html += '<div style="width:64px;height:64px;border-radius:8px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#8892b8;text-align:center">Uploading…</div>';
+  }
+  container.innerHTML = html;
+}
+
+function removeMediaItem(index) {
+  campaignMedia.splice(index, 1);
+  renderMediaPreview();
+}
+
+async function uploadCampaignMedia(file) {
+  campaignMediaUploading++;
+  renderMediaPreview();
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    campaignMedia.push({ url: d.publicUrl, type: file.type, name: file.name });
+  } catch (e) {
+    showToast(e.message || "Media upload failed", "error");
+  } finally {
+    campaignMediaUploading--;
+    renderMediaPreview();
+  }
+}
+
+async function submitCampaign() {
+  var title = document.getElementById("fTitle").value.trim();
+  var desc = document.getElementById("fDesc").value.trim();
+  var goal = parseInt(document.getElementById("fGoal").value, 10);
+  var category = document.getElementById("fCategory").value.trim();
+  if (!title) { showToast("Title is required", "error"); return; }
+  if (!Number.isInteger(goal) || goal <= 0) { showToast("Goal must be a positive integer", "error"); return; }
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description: desc, goal_bfc: goal, category, media: campaignMedia })
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    closeModal();
+    showToast("Campaign started!", "success");
+    await loadCampaigns();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+async function donateToCampaign(id) {
+  var raw = window.prompt("How much BFC would you like to donate?");
+  if (raw === null) return;
+  var amount = parseInt(raw, 10);
+  if (!Number.isInteger(amount) || amount <= 0) {
+    alert("Please enter a positive whole number.");
+    return;
+  }
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns/" + id + "/donate", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amount })
+    });
+    var data = await res.json();
+    if (res.ok && data.balance !== undefined) {
+      alert("Thank you! Your donation was sent. New balance: " + data.balance + " BFC");
+      await loadCampaigns();
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Something went wrong. Please try again.");
+  }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function() { el.classList.remove("show"); }, 3200);
+}
+
+document.getElementById("searchInput").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderGrid, 250);
+});
+
+document.getElementById("campaignModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.getElementById("fMedia").addEventListener("change", function() {
+  var files = Array.prototype.slice.call(this.files);
+  this.value = "";
+  files.forEach(function(file) {
+    uploadCampaignMedia(file);
+  });
+});
+
+loadCampaigns();
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+</body>
+</html>
