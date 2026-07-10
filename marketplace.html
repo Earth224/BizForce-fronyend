@@ -95,6 +95,10 @@
     .form-select option{background:#0d1228;color:#e8e8ff}
     .form-textarea{resize:vertical;min-height:100px}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field-hint{font-size:.72rem;color:#8892b8;margin:6px 0 0;line-height:1.4}
+    .price-usd-wrap{position:relative}
+    .price-usd-wrap .form-input{padding-left:28px}
+    .price-usd-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8892b8;font-size:.9rem;pointer-events:none}
     .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
     .btn-cancel{padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8892b8;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
     .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#e8e8ff}
@@ -165,24 +169,33 @@
       <label class="form-label">Description</label>
       <textarea class="form-textarea" id="fDesc" placeholder="Describe what you offer, deliverables, timeline..." maxlength="2000"></textarea>
     </div>
+    <div class="form-group">
+      <label class="form-label">Category *</label>
+      <select class="form-select" id="fCategory">
+        <option value="">Select category</option>
+        <option value="consulting">Consulting</option>
+        <option value="design">Design</option>
+        <option value="development">Development</option>
+        <option value="marketing">Marketing</option>
+        <option value="sales">Sales</option>
+        <option value="strategy">Strategy</option>
+        <option value="operations">Operations</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Category *</label>
-        <select class="form-select" id="fCategory">
-          <option value="">Select category</option>
-          <option value="consulting">Consulting</option>
-          <option value="design">Design</option>
-          <option value="development">Development</option>
-          <option value="marketing">Marketing</option>
-          <option value="sales">Sales</option>
-          <option value="strategy">Strategy</option>
-          <option value="operations">Operations</option>
-          <option value="other">Other</option>
-        </select>
+        <label class="form-label">Price (BFC)</label>
+        <input class="form-input" id="fPrice" type="number" min="0" step="1" placeholder="0">
+        <p class="field-hint">Optional — leave blank for USD-only</p>
       </div>
       <div class="form-group">
-        <label class="form-label">Price (BFC)</label>
-        <input class="form-input" id="fPrice" type="number" min="0" value="0" placeholder="0">
+        <label class="form-label">Price (USD)</label>
+        <div class="price-usd-wrap">
+          <span class="price-usd-prefix">$</span>
+          <input class="form-input" id="fPriceUsd" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <p class="field-hint">Optional — leave blank for BFC-only</p>
       </div>
     </div>
     <div class="form-group">
@@ -259,11 +272,19 @@ function renderGrid() {
   grid.innerHTML = items.map(function(l) { return renderCard(l); }).join("");
 }
 
+function formatListingPrice(l) {
+  var parts = [];
+  if (l.price_bfc > 0) parts.push(l.price_bfc.toLocaleString() + " BFC");
+  if (l.price_usd !== null && l.price_usd !== undefined) parts.push("$" + (l.price_usd / 100).toFixed(2));
+  return parts.length ? parts.join(" or ") : "Free";
+}
+
 function renderCard(l) {
   var isOwn = l.seller_id === currentUserId;
   var catClass = "cat-" + (l.category || "other");
   var catLabel = (l.category || "other").charAt(0).toUpperCase() + (l.category || "other").slice(1);
-  var price = l.price_bfc > 0 ? l.price_bfc.toLocaleString() + " BFC" : "Free";
+  var price = formatListingPrice(l);
+  var bfcPrice = l.price_bfc > 0 ? l.price_bfc.toLocaleString() + " BFC" : "Free";
   var desc = l.description ? l.description.slice(0, 180) + (l.description.length > 180 ? "…" : "") : "";
   var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + t + '</span>'; }).join("");
   var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
@@ -283,7 +304,11 @@ function renderCard(l) {
         '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
         '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
       '</div>'
-    : '<div class="listing-actions"><button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + price + '</button><button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button></div>';
+    : '<div class="listing-actions">' +
+        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + price + '</button>' : '') +
+        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + l.id + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
+        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
+      '</div>';
   return '<div class="listing-card">' +
     '<div class="listing-header">' +
       '<span class="listing-cat ' + catClass + '">' + catLabel + '</span>' +
@@ -308,6 +333,7 @@ function openCreateModal() {
   document.getElementById("fDesc").value = "";
   document.getElementById("fCategory").value = "";
   document.getElementById("fPrice").value = "0";
+  document.getElementById("fPriceUsd").value = "";
   document.getElementById("fTags").value = "";
   listingMedia = [];
   renderMediaPreview();
@@ -324,6 +350,7 @@ function openEditModal(id) {
   document.getElementById("fDesc").value = listing.description || "";
   document.getElementById("fCategory").value = listing.category || "";
   document.getElementById("fPrice").value = listing.price_bfc || 0;
+  document.getElementById("fPriceUsd").value = (listing.price_usd === null || listing.price_usd === undefined) ? "" : (listing.price_usd / 100);
   document.getElementById("fTags").value = (listing.tags || []).join(", ");
   document.getElementById("listingModal").classList.add("open");
 }
@@ -387,9 +414,17 @@ async function submitListing() {
   var desc = document.getElementById("fDesc").value.trim();
   var category = document.getElementById("fCategory").value;
   var price = parseInt(document.getElementById("fPrice").value) || 0;
+  var usdRaw = document.getElementById("fPriceUsd").value;
+  var priceUsd = null;
+  if (usdRaw !== undefined && usdRaw !== null && usdRaw.trim() !== "") {
+    var dollars = parseFloat(usdRaw);
+    if (isNaN(dollars) || dollars < 0) { showToast("USD price must be a non-negative number", "error"); return; }
+    priceUsd = Math.round(dollars * 100);
+  }
   var tagsRaw = document.getElementById("fTags").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
   if (!title) { showToast("Title is required", "error"); return; }
   if (!category) { showToast("Category is required", "error"); return; }
+  if (price <= 0 && priceUsd === null) { showToast("Set a BFC price, a USD price, or both", "error"); return; }
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
   try {
@@ -398,7 +433,7 @@ async function submitListing() {
     var res = await fetch(url, {
       method: method,
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description: desc, category, price_bfc: price, tags: tagsRaw, media: listingMedia })
+      body: JSON.stringify({ title, description: desc, category, price_bfc: price, price_usd: priceUsd, tags: tagsRaw, media: listingMedia })
     });
     if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
     closeModal();
@@ -441,6 +476,27 @@ async function buyListing(id) {
     }
   } catch (e) {
     alert("Something went wrong. Please try again.");
+  }
+}
+
+async function buyWithUsd(listingId) {
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + listingId + "/checkout-usd", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await res.json();
+    if (res.ok && data.url) {
+      window.location.href = data.url;
+      return;
+    }
+    if (res.status === 503) {
+      showToast("USD checkout isn't available yet — check back soon.", "error");
+    } else {
+      showToast((data && data.error) || "Could not start USD checkout", "error");
+    }
+  } catch (e) {
+    showToast("Could not start USD checkout", "error");
   }
 }
 
