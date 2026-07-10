@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — BizDoc</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:#a855f7;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}
+    .legal-disclaimer{margin:10px auto 0;max-width:640px;color:#8892b8;font-size:.72rem;line-height:1.6}
+    .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:220px;position:relative}
+    .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#8892b8;pointer-events:none}
+    .search-input{width:100%;padding:11px 14px 11px 40px;background:rgba(10,15,35,.78);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:#8892b8}
+    .search-input:focus{border-color:rgba(168,85,247,.45)}
+    .documents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+    .doc-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;transition:all .25s;position:relative;cursor:pointer}
+    .doc-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .doc-template-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8}
+    .doc-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .doc-party{font-size:.84rem;color:#8892b8;margin:0}
+    .doc-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
+    .doc-date{font-size:.7rem;color:#4a5280}
+    .doc-badge{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid}
+    .doc-badge-draft{background:rgba(136,146,184,.1);border-color:rgba(136,146,184,.3);color:#8892b8}
+    .doc-badge-sent{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:#fbbf24}
+    .doc-badge-signed{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:#34d399}
+    .doc-badge-voided{background:rgba(136,146,184,.1);border-color:rgba(136,146,184,.3);color:#8892b8}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.12);color:#34d399;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .create-btn:hover{background:rgba(52,211,153,.22);border-color:rgba(52,211,153,.6);box-shadow:0 0 20px rgba(52,211,153,.2)}
+    .create-btn svg{width:16px;height:16px}
+    .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:rgba(10,15,35,.97);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:32px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+    .modal-wide{max-width:640px}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .modal-title{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+    .modal-close:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .form-group{margin-bottom:18px}
+    .form-label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input::placeholder,.form-textarea::placeholder{color:#4a5280}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(168,85,247,.5)}
+    .form-textarea{resize:vertical;min-height:100px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
+    .btn-cancel{padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8892b8;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#e8e8ff}
+    .btn-submit{padding:10px 24px;border-radius:10px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.18);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-submit:hover{background:rgba(168,85,247,.28)}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:28px;right:28px;z-index:300;padding:14px 22px;border-radius:12px;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
+    .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
+    /* BizDoc-specific: template picker */
+    .template-list{display:flex;flex-direction:column;gap:10px}
+    .template-item{padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);cursor:pointer;transition:all .2s}
+    .template-item:hover{border-color:rgba(168,85,247,.35);background:rgba(168,85,247,.08)}
+    .template-item-name{font-weight:800;color:#f4f7ff;margin:0 0 4px;font-size:.95rem}
+    .template-item-desc{margin:0;font-size:.82rem;color:#8892b8;line-height:1.5}
+    .back-to-templates{background:none;border:none;color:#22d3ee;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;margin-bottom:18px}
+    .back-to-templates:hover{text-decoration:underline}
+    /* BizDoc-specific: detail view */
+    .detail-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem}
+    .detail-row:last-child{border-bottom:none}
+    .detail-label{color:#8892b8;font-weight:700;flex-shrink:0}
+    .detail-value{color:#e8e8ff;text-align:right;max-width:60%;word-break:break-word}
+    .detail-value-block{margin-top:6px;padding:12px;border-radius:10px;background:rgba(255,255,255,.03);color:#e8e8ff;font-size:.85rem;line-height:1.5;white-space:pre-wrap;width:100%}
+    .signature-item{padding:12px;border-radius:10px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);margin-bottom:8px;font-size:.85rem;color:#e8e8ff}
+    .checkbox-row{display:flex;align-items:flex-start;gap:10px;margin:18px 0 0;font-size:.85rem;color:#8892b8;line-height:1.5}
+    .checkbox-row input{margin-top:3px}
+    @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">DOCUMENTS</div>
+    <h1 class="hero-title">BizDoc</h1>
+    <p class="hero-sub">Create, sign, and download official documents.</p>
+    <p class="legal-disclaimer">BizDoc provides standard templates for your review and self-use. It does not provide legal advice and does not guarantee legal enforceability. Consult a licensed attorney for legal matters.</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search documents..." autocomplete="off">
+    </div>
+    <button class="create-btn" onclick="openCreateModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Document
+    </button>
+  </div>
+
+  <div class="documents-grid" id="documentsGrid"><div class="loading">Loading documents...</div></div>
+</div>
+
+<!-- Step 1: Template Picker Modal -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Choose a Template</h2>
+      <button class="modal-close" onclick="closeTemplateModal()">✕</button>
+    </div>
+    <div class="template-list" id="templateList"></div>
+  </div>
+</div>
+
+<!-- Step 2: Document Form Modal -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="formModalTitle">New Document</h2>
+      <button class="modal-close" onclick="closeFormModal()">✕</button>
+    </div>
+    <button type="button" class="back-to-templates" onclick="backToTemplates()">← Choose a different template</button>
+    <div class="form-group">
+      <label class="form-label">Document Title *</label>
+      <input class="form-input" id="fDocTitle" type="text" maxlength="150">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Party Name <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input class="form-input" id="fPartyName" type="text" maxlength="150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Party Email <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input class="form-input" id="fPartyEmail" type="email" maxlength="200">
+      </div>
+    </div>
+    <div id="dynamicFields"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeFormModal()">Cancel</button>
+      <button class="btn-submit" id="formSubmitBtn" onclick="submitDocument()">Create Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- Document Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 class="modal-title" id="detailModalTitle">Document</h2>
+      <button class="modal-close" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div id="detailModalBody"></div>
+  </div>
+</div>
+
+<!-- Sign Document Modal -->
+<div class="modal-overlay" id="signModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Sign Document</h2>
+      <button class="modal-close" onclick="closeSignModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type Your Full Legal Name *</label>
+      <input class="form-input" id="fSignerName" type="text" placeholder="e.g. Jordan A. Smith" maxlength="150">
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="fSignAgree">
+      I agree this typed name constitutes my legal signature.
+    </label>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSignModal()">Cancel</button>
+      <button class="btn-submit" id="signSubmitBtn" onclick="submitSignature()">Sign Document</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+var currentUserId = (function() {
+  try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
+})();
+
+var BIZDOC_TEMPLATES = [
+  {
+    type: "nda",
+    name: "Non-Disclosure Agreement (NDA)",
+    description: "Protect confidential information shared between two parties.",
+    fields: [
+      { key: "disclosing_party", label: "Disclosing Party", type: "text" },
+      { key: "receiving_party", label: "Receiving Party", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "purpose", label: "Purpose of Disclosure", type: "textarea" },
+      { key: "confidentiality_term", label: "Confidentiality Term", type: "text" }
+    ]
+  },
+  {
+    type: "service_agreement",
+    name: "Service Agreement",
+    description: "Define scope, fees, and timeline for a service engagement.",
+    fields: [
+      { key: "provider_name", label: "Service Provider", type: "text" },
+      { key: "client_name", label: "Client Name", type: "text" },
+      { key: "service_description", label: "Service Description", type: "textarea" },
+      { key: "fee", label: "Fee (USD)", type: "number" },
+      { key: "start_date", label: "Start Date", type: "date" },
+      { key: "end_date", label: "End Date", type: "date" }
+    ]
+  },
+  {
+    type: "general_contract",
+    name: "General Contract",
+    description: "A flexible template for general business agreements.",
+    fields: [
+      { key: "party_one", label: "Party One", type: "text" },
+      { key: "party_two", label: "Party Two", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "terms", label: "Terms & Conditions", type: "textarea" }
+    ]
+  },
+  {
+    type: "liability_waiver",
+    name: "Liability / Accountability Agreement",
+    description: "Acknowledge risk and outline responsibilities between parties.",
+    fields: [
+      { key: "party_one", label: "Party One", type: "text" },
+      { key: "party_two", label: "Party Two", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "risk_acknowledgment", label: "Risk Acknowledgment", type: "textarea" },
+      { key: "responsibilities", label: "Responsibilities", type: "textarea" }
+    ]
+  },
+  {
+    type: "bill_of_sale",
+    name: "Bill of Sale",
+    description: "Document the sale and transfer of an item between parties.",
+    fields: [
+      { key: "seller_name", label: "Seller Name", type: "text" },
+      { key: "buyer_name", label: "Buyer Name", type: "text" },
+      { key: "item_description", label: "Item Description", type: "textarea" },
+      { key: "sale_amount", label: "Sale Amount (USD)", type: "number" },
+      { key: "sale_date", label: "Sale Date", type: "date" }
+    ]
+  },
+  {
+    type: "letter_of_agreement",
+    name: "Letter of Agreement",
+    description: "A simple letter confirming terms both parties agree to.",
+    fields: [
+      { key: "party_one", label: "Party One", type: "text" },
+      { key: "party_two", label: "Party Two", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "agreement_summary", label: "Agreement Summary", type: "textarea" }
+    ]
+  }
+];
+
+var allDocuments = [];
+var searchTimer = null;
+var currentTemplate = null;
+var currentDetailId = null;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getTemplate(type) {
+  for (var i = 0; i < BIZDOC_TEMPLATES.length; i++) {
+    if (BIZDOC_TEMPLATES[i].type === type) return BIZDOC_TEMPLATES[i];
+  }
+  return null;
+}
+
+async function loadDocuments() {
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents", { headers: { "Authorization": "Bearer " + token } });
+    if (res.ok) { var d = await res.json(); allDocuments = d.documents || []; }
+    renderGrid();
+  } catch (e) {
+    document.getElementById("documentsGrid").innerHTML = '<div class="empty-msg">Unable to load documents. Please try again.</div>';
+  }
+}
+
+function renderGrid() {
+  var q = document.getElementById("searchInput").value.toLowerCase().trim();
+  var items = allDocuments;
+  if (q) {
+    items = items.filter(function(d) {
+      return (d.title || "").toLowerCase().includes(q) || (d.party_name || "").toLowerCase().includes(q);
+    });
+  }
+  var grid = document.getElementById("documentsGrid");
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-msg">No documents found. Create your first one!</div>';
+    return;
+  }
+  grid.innerHTML = items.map(function(d) { return renderCard(d); }).join("");
+}
+
+function renderCard(d) {
+  var tmpl = getTemplate(d.template_type);
+  var date = new Date(d.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
+  var status = d.status || "draft";
+  return '<div class="doc-card" onclick="openDocumentDetail(\'' + d.id + '\')">' +
+    '<div class="doc-template-label">' + escapeHtml(tmpl ? tmpl.name : d.template_type) + '</div>' +
+    '<h3 class="doc-title">' + escapeHtml(d.title) + '</h3>' +
+    (d.party_name ? '<p class="doc-party">' + escapeHtml(d.party_name) + '</p>' : '') +
+    '<div class="doc-footer">' +
+      '<span class="doc-date">' + date + '</span>' +
+      '<span class="doc-badge doc-badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderTemplateList() {
+  var list = document.getElementById("templateList");
+  list.innerHTML = BIZDOC_TEMPLATES.map(function(t) {
+    return '<div class="template-item" onclick="selectTemplate(\'' + t.type + '\')">' +
+      '<h3 class="template-item-name">' + escapeHtml(t.name) + '</h3>' +
+      '<p class="template-item-desc">' + escapeHtml(t.description) + '</p>' +
+    '</div>';
+  }).join("");
+}
+
+function openCreateModal() {
+  closeFormModal();
+  renderTemplateList();
+  document.getElementById("templateModal").classList.add("open");
+}
+
+function closeTemplateModal() {
+  document.getElementById("templateModal").classList.remove("open");
+}
+
+function selectTemplate(type) {
+  currentTemplate = getTemplate(type);
+  if (!currentTemplate) return;
+  document.getElementById("formModalTitle").textContent = currentTemplate.name;
+  document.getElementById("fDocTitle").value = currentTemplate.name;
+  document.getElementById("fPartyName").value = "";
+  document.getElementById("fPartyEmail").value = "";
+  document.getElementById("dynamicFields").innerHTML = buildFieldsHtml(currentTemplate.fields);
+  closeTemplateModal();
+  document.getElementById("formModal").classList.add("open");
+}
+
+function backToTemplates() {
+  document.getElementById("formModal").classList.remove("open");
+  renderTemplateList();
+  document.getElementById("templateModal").classList.add("open");
+}
+
+function buildFieldsHtml(fields) {
+  return fields.map(function(f) {
+    var input;
+    if (f.type === "textarea") {
+      input = '<textarea class="form-textarea" id="field_' + f.key + '"></textarea>';
+    } else {
+      var inputType = (f.type === "date" || f.type === "number") ? f.type : "text";
+      input = '<input class="form-input" id="field_' + f.key + '" type="' + inputType + '">';
+    }
+    return '<div class="form-group"><label class="form-label">' + escapeHtml(f.label) + '</label>' + input + '</div>';
+  }).join("");
+}
+
+function closeFormModal() {
+  document.getElementById("formModal").classList.remove("open");
+}
+
+async function submitDocument() {
+  var title = document.getElementById("fDocTitle").value.trim();
+  var partyName = document.getElementById("fPartyName").value.trim();
+  var partyEmail = document.getElementById("fPartyEmail").value.trim();
+  if (!title) { showToast("Document title is required", "error"); return; }
+  if (!currentTemplate) { showToast("No template selected", "error"); return; }
+
+  var fields = {};
+  currentTemplate.fields.forEach(function(f) {
+    var el = document.getElementById("field_" + f.key);
+    fields[f.key] = el ? el.value.trim() : "";
+  });
+
+  var btn = document.getElementById("formSubmitBtn");
+  btn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ template_type: currentTemplate.type, title, fields, party_name: partyName, party_email: partyEmail })
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    closeFormModal();
+    showToast("Document created!", "success");
+    await loadDocuments();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+async function openDocumentDetail(id) {
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { showToast("Unable to load document", "error"); return; }
+    var d = await res.json();
+    currentDetailId = id;
+    renderDetailModal(d.document, d.signatures || []);
+    document.getElementById("detailModal").classList.add("open");
+  } catch (e) {
+    showToast("Unable to load document", "error");
+  }
+}
+
+function closeDetailModal() {
+  document.getElementById("detailModal").classList.remove("open");
+}
+
+function renderDetailModal(doc, signatures) {
+  var tmpl = getTemplate(doc.template_type);
+  var fieldRows = "";
+  if (tmpl) {
+    fieldRows = tmpl.fields.map(function(f) {
+      var val = (doc.fields && doc.fields[f.key]) || "";
+      if (f.type === "textarea") {
+        return '<div class="detail-row" style="flex-direction:column;align-items:flex-start">' +
+          '<span class="detail-label">' + escapeHtml(f.label) + '</span>' +
+          '<div class="detail-value-block">' + escapeHtml(val || "—") + '</div>' +
+        '</div>';
+      }
+      return '<div class="detail-row"><span class="detail-label">' + escapeHtml(f.label) + '</span><span class="detail-value">' + escapeHtml(val || "—") + '</span></div>';
+    }).join("");
+  }
+
+  var badgeClass = "doc-badge-" + (doc.status || "draft");
+  var sigHtml = signatures.length
+    ? signatures.map(function(s) {
+        var d = new Date(s.signed_at).toLocaleString("en-US", {month:"short",day:"numeric",year:"numeric",hour:"2-digit",minute:"2-digit"});
+        return '<div class="signature-item"><strong>' + escapeHtml(s.signer_name) + '</strong> signed on ' + d + '</div>';
+      }).join("")
+    : '<p style="color:#8892b8;font-size:.85rem">No signatures yet.</p>';
+
+  var actionHtml = doc.status === "signed"
+    ? '<button class="btn-submit" onclick="openPrintView(\'' + doc.id + '\')">View / Print Official Document</button>'
+    : '<button class="btn-submit" onclick="openSignModal()">Sign Document</button>';
+
+  document.getElementById("detailModalTitle").textContent = doc.title;
+  document.getElementById("detailModalBody").innerHTML =
+    '<div class="detail-row"><span class="detail-label">Template</span><span class="detail-value">' + escapeHtml(tmpl ? tmpl.name : doc.template_type) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="doc-badge ' + badgeClass + '">' + escapeHtml(doc.status) + '</span></span></div>' +
+    '<div class="detail-row"><span class="detail-label">Party Name</span><span class="detail-value">' + escapeHtml(doc.party_name || "—") + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">Party Email</span><span class="detail-value">' + escapeHtml(doc.party_email || "—") + '</span></div>' +
+    fieldRows +
+    '<h3 style="margin:24px 0 10px;font-size:.9rem;color:#f4f7ff">Signatures</h3>' +
+    sigHtml +
+    '<div class="modal-footer">' + actionHtml + '</div>';
+}
+
+function openSignModal() {
+  document.getElementById("fSignerName").value = "";
+  document.getElementById("fSignAgree").checked = false;
+  document.getElementById("signModal").classList.add("open");
+}
+
+function closeSignModal() {
+  document.getElementById("signModal").classList.remove("open");
+}
+
+async function submitSignature() {
+  var name = document.getElementById("fSignerName").value.trim();
+  var agree = document.getElementById("fSignAgree").checked;
+  if (!name) { showToast("Please type your full legal name", "error"); return; }
+  if (!agree) { showToast("Please confirm the checkbox to sign", "error"); return; }
+
+  var btn = document.getElementById("signSubmitBtn");
+  btn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + currentDetailId + "/sign", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ signer_name: name, signature_data: name })
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed to sign"); }
+    closeSignModal();
+    showToast("Document signed.", "success");
+    await loadDocuments();
+    await openDocumentDetail(currentDetailId);
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+async function openPrintView(documentId) {
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + documentId, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { showToast("Unable to load document", "error"); return; }
+    var d = await res.json();
+    var doc = d.document;
+    var signatures = d.signatures || [];
+    var tmpl = getTemplate(doc.template_type);
+
+    var win = window.open("", "_blank");
+    if (!win) { showToast("Please allow pop-ups to view the print layout", "error"); return; }
+
+    var createdDate = new Date(doc.created_at).toLocaleDateString("en-US", {month:"long",day:"numeric",year:"numeric"});
+
+    var partiesHtml = "";
+    if (doc.party_name || doc.party_email) {
+      partiesHtml =
+        '<div class="section">' +
+          '<h2 class="section-title">Parties</h2>' +
+          '<p class="party-line"><strong>Counterparty:</strong> ' + escapeHtml(doc.party_name || "—") +
+            (doc.party_email ? " (" + escapeHtml(doc.party_email) + ")" : "") +
+          '</p>' +
+        '</div>';
+    }
+
+    var fieldsHtml = "";
+    if (tmpl) {
+      fieldsHtml = tmpl.fields.map(function(f) {
+        var val = (doc.fields && doc.fields[f.key]) || "";
+        if (f.type === "textarea") {
+          return '<div class="field-block">' +
+            '<span class="field-label">' + escapeHtml(f.label) + '</span>' +
+            '<p class="field-value-block">' + escapeHtml(val || "—") + '</p>' +
+          '</div>';
+        }
+        return '<p class="field-line"><span class="field-label">' + escapeHtml(f.label) + ':</span> ' + escapeHtml(val || "—") + '</p>';
+      }).join("");
+    }
+
+    var sigHtml;
+    if (signatures.length) {
+      sigHtml = signatures.map(function(s) {
+        var signedDate = new Date(s.signed_at).toLocaleDateString("en-US", {month:"long",day:"numeric",year:"numeric"});
+        return '<div class="sig-block">' +
+          '<div class="sig-script">' + escapeHtml(s.signer_name) + '</div>' +
+          '<div class="sig-line"></div>' +
+          '<p class="sig-meta">Signed by: ' + escapeHtml(s.signer_name) + '</p>' +
+          '<p class="sig-meta">Date: ' + escapeHtml(signedDate) + '</p>' +
+        '</div>';
+      }).join("");
+    } else {
+      sigHtml =
+        '<div class="sig-block">' +
+          '<div class="sig-line"></div>' +
+          '<p class="sig-meta">Signature: ____________________</p>' +
+          '<p class="sig-meta">Date: ____________________</p>' +
+        '</div>';
+    }
+
+    var html =
+      '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>' +
+      '<title>' + escapeHtml(doc.title) + '</title>' +
+      '<style>' +
+        '*,*::before,*::after{box-sizing:border-box}' +
+        'body{background:#fff;color:#111;font-family:Georgia,"Times New Roman",serif;margin:0;padding:0}' +
+        '.print-toolbar{position:sticky;top:0;background:#f4f4f4;border-bottom:1px solid #ccc;padding:12px 24px;text-align:right;z-index:10}' +
+        '.print-btn{background:#111;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:.9rem;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer}' +
+        '.print-btn:hover{background:#333}' +
+        '.doc-wrap{max-width:800px;margin:0 auto;padding:48px 40px 80px}' +
+        '.doc-header{text-align:center;margin-bottom:24px}' +
+        '.doc-title{font-size:2rem;margin:0 0 6px;font-weight:700}' +
+        '.doc-template{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:#555;margin:0}' +
+        'hr.rule{border:none;border-top:2px solid #111;margin:24px 0}' +
+        '.meta-line{font-size:.85rem;color:#444;text-align:center;margin-bottom:32px}' +
+        '.section{margin-bottom:28px}' +
+        '.section-title{font-size:1rem;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #ccc;padding-bottom:6px;margin-bottom:14px}' +
+        '.party-line{font-size:.95rem;line-height:1.6;margin:4px 0}' +
+        '.field-line{font-size:.95rem;line-height:1.8;margin:6px 0}' +
+        '.field-label{font-weight:700}' +
+        '.field-block{margin:14px 0}' +
+        '.field-value-block{margin:6px 0 0;padding:12px 14px;border:1px solid #ddd;background:#fafafa;font-size:.92rem;line-height:1.6;white-space:pre-wrap}' +
+        '.sig-block{margin-top:36px;padding-top:20px}' +
+        '.sig-script{font-family:"Brush Script MT",cursive;font-size:2rem;margin-bottom:4px}' +
+        '.sig-line{border-top:1px solid #111;width:320px;margin-bottom:6px}' +
+        '.sig-meta{font-size:.85rem;color:#333;margin:2px 0}' +
+        '.footer-disclaimer{margin-top:60px;font-size:.72rem;color:#888;text-align:center;line-height:1.6}' +
+        '@media print{.print-toolbar{display:none}body{padding:0}}' +
+      '</style></head><body>' +
+      '<div class="print-toolbar"><button class="print-btn" onclick="window.print()">Print / Save as PDF</button></div>' +
+      '<div class="doc-wrap">' +
+        '<div class="doc-header">' +
+          '<h1 class="doc-title">' + escapeHtml(doc.title) + '</h1>' +
+          '<p class="doc-template">' + escapeHtml(tmpl ? tmpl.name : doc.template_type) + '</p>' +
+        '</div>' +
+        '<hr class="rule">' +
+        '<p class="meta-line">Document ID: ' + escapeHtml(doc.id) + ' &nbsp;|&nbsp; Created: ' + escapeHtml(createdDate) + '</p>' +
+        partiesHtml +
+        '<div class="section">' +
+          '<h2 class="section-title">Terms</h2>' +
+          fieldsHtml +
+        '</div>' +
+        '<div class="section">' +
+          '<h2 class="section-title">Signatures</h2>' +
+          sigHtml +
+        '</div>' +
+        '<p class="footer-disclaimer">This document was generated by BizDoc for the parties\' review and self-use. It does not constitute legal advice and BizDoc does not guarantee its legal enforceability.</p>' +
+      '</div>' +
+      '</body></html>';
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } catch (e) {
+    showToast("Unable to open print view", "error");
+  }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function() { el.classList.remove("show"); }, 3200);
+}
+
+document.getElementById("searchInput").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderGrid, 250);
+});
+
+document.getElementById("templateModal").addEventListener("click", function(e) {
+  if (e.target === this) closeTemplateModal();
+});
+document.getElementById("formModal").addEventListener("click", function(e) {
+  if (e.target === this) closeFormModal();
+});
+document.getElementById("detailModal").addEventListener("click", function(e) {
+  if (e.target === this) closeDetailModal();
+});
+document.getElementById("signModal").addEventListener("click", function(e) {
+  if (e.target === this) closeSignModal();
+});
+
+loadDocuments();
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+</body>
+</html>
