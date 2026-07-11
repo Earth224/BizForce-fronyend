@@ -28,13 +28,16 @@
     .search-input::placeholder{color:#8892b8}
     .search-input:focus{border-color:rgba(168,85,247,.45)}
     .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
-    .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
+    .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:all .25s;position:relative}
     .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
-    .listing-header{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:20px}
-    .listing-media{position:relative;width:100%;height:170px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+    .listing-content{padding:22px;display:flex;flex-direction:column;gap:12px}
+    .listing-media{position:relative;width:100%;aspect-ratio:1/1;overflow:hidden;background:rgba(255,255,255,.03)}
     .listing-media img,.listing-media video{width:100%;height:100%;object-fit:cover;display:block}
     .listing-media-count{position:absolute;bottom:8px;right:8px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.12);color:#f4f7ff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px}
-    .listing-price{font-size:.82rem;font-weight:800;color:#fbbf24;white-space:nowrap}
+    .no-photo{width:100%;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(10,15,35,.6)}
+    .no-photo svg{width:28px;height:28px;color:#34d399;opacity:.35}
+    .no-photo span{color:#8892b8;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .listing-price{font-size:1.5rem;font-weight:800;color:#34d399}
     .listing-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
     .listing-desc{font-size:.84rem;color:#8892b8;line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
     .listing-tags{display:flex;flex-wrap:wrap;gap:6px}
@@ -242,6 +245,11 @@ function renderCard(l) {
       : '<img src="' + escapeHtml(m0.url) + '" alt="" loading="lazy">';
     var countBadge = mediaArr.length > 1 ? '<span class="listing-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
     mediaHtml = '<div class="listing-media">' + inner + countBadge + '</div>';
+  } else {
+    mediaHtml = '<div class="no-photo">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>' +
+      '<span>No photo</span>' +
+    '</div>';
   }
   var actions = isOwn
     ? '<div class="listing-actions">' +
@@ -254,16 +262,16 @@ function renderCard(l) {
         '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
       '</div>';
   return '<div class="listing-card">' +
-    '<div class="listing-header">' +
-      '<span class="listing-price">' + escapeHtml(price) + '</span>' +
-    '</div>' +
     mediaHtml +
-    '<h3 class="listing-title">' + escapeHtml(l.title) + '</h3>' +
-    (desc ? '<p class="listing-desc">' + escapeHtml(desc) + '</p>' : '') +
-    (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
-    '<div class="listing-footer">' +
-      '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
-      actions +
+    '<div class="listing-content">' +
+      '<span class="listing-price">' + escapeHtml(price) + '</span>' +
+      '<h3 class="listing-title">' + escapeHtml(l.title) + '</h3>' +
+      (desc ? '<p class="listing-desc">' + escapeHtml(desc) + '</p>' : '') +
+      (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
+      '<div class="listing-footer">' +
+        '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
+        actions +
+      '</div>' +
     '</div>' +
   '</div>';
 }
