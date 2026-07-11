@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Garage Sale</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.08);color:#a855f7;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0 auto;max-width:640px;color:#8892b8;font-size:1rem;line-height:1.6}
+    .toolbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+    .search-wrap{flex:1;min-width:220px;position:relative}
+    .search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#8892b8;pointer-events:none}
+    .search-input{width:100%;padding:11px 14px 11px 40px;background:rgba(10,15,35,.78);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .search-input::placeholder{color:#8892b8}
+    .search-input:focus{border-color:rgba(168,85,247,.45)}
+    .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+    .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
+    .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .listing-header{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:20px}
+    .listing-media{position:relative;width:100%;height:170px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+    .listing-media img,.listing-media video{width:100%;height:100%;object-fit:cover;display:block}
+    .listing-media-count{position:absolute;bottom:8px;right:8px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.12);color:#f4f7ff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px}
+    .listing-price{font-size:.82rem;font-weight:800;color:#fbbf24;white-space:nowrap}
+    .listing-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .listing-desc{font-size:.84rem;color:#8892b8;line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .listing-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .listing-tag{font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#8892b8;letter-spacing:.04em}
+    .listing-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
+    .listing-date{font-size:.7rem;color:#4a5280}
+    .listing-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
+    .btn-edit{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.3);color:#22d3ee}
+    .btn-edit:hover{background:rgba(34,211,238,.15)}
+    .btn-delete{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.28);color:#f87171}
+    .btn-delete:hover{background:rgba(248,113,113,.16)}
+    .btn-buy{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:#34d399}
+    .btn-buy:hover{background:rgba(52,211,153,.2)}
+    .btn-message{background:rgba(34,211,238,.08);border-color:rgba(34,211,238,.3);color:#22d3ee}
+    .btn-message:hover{background:rgba(34,211,238,.15)}
+    .status-badge{font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+    .status-active{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);color:#34d399}
+    .status-paused{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24}
+    .status-sold{background:rgba(136,146,184,.08);border:1px solid rgba(136,146,184,.2);color:#8892b8}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:1px solid rgba(168,85,247,.4);background:rgba(168,85,247,.12);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .create-btn:hover{background:rgba(168,85,247,.22);border-color:rgba(168,85,247,.6);box-shadow:0 0 20px rgba(168,85,247,.2)}
+    .create-btn svg{width:16px;height:16px}
+    .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{background:rgba(10,15,35,.97);border:1px solid rgba(168,85,247,.25);border-radius:20px;padding:32px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+    .modal-title{font-size:1.15rem;font-weight:800;background:linear-gradient(135deg,#00e5ff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0}
+    .modal-close{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#8892b8;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:inherit}
+    .modal-close:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .form-group{margin-bottom:18px}
+    .form-label{display:block;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-textarea{width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input::placeholder,.form-textarea::placeholder{color:#4a5280}
+    .form-input:focus,.form-textarea:focus{border-color:rgba(168,85,247,.5)}
+    .form-textarea{resize:vertical;min-height:100px}
+    .field-hint{font-size:.72rem;color:#8892b8;margin:6px 0 0;line-height:1.4}
+    .price-usd-wrap{position:relative}
+    .price-usd-wrap .form-input{padding-left:28px}
+    .price-usd-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8892b8;font-size:.9rem;pointer-events:none}
+    .modal-footer{display:flex;gap:12px;justify-content:flex-end;margin-top:28px}
+    .btn-cancel{padding:10px 20px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:#8892b8;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-cancel:hover{border-color:rgba(255,255,255,.2);color:#e8e8ff}
+    .btn-submit{padding:10px 24px;border-radius:10px;border:1px solid rgba(168,85,247,.45);background:rgba(168,85,247,.18);color:#a855f7;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+    .btn-submit:hover{background:rgba(168,85,247,.28)}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .toast{position:fixed;bottom:28px;right:28px;z-index:300;padding:14px 22px;border-radius:12px;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
+    .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
+    @media(max-width:600px){.toolbar{flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">GARAGE SALE</div>
+    <h1 class="hero-title">Garage Sale</h1>
+    <p class="hero-sub">Buy and sell real, physical goods — set the value in BFC and any cash portion in USD, the split is entirely yours.</p>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search garage-sale items..." autocomplete="off">
+    </div>
+    <button class="create-btn" onclick="openCreateModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Post an Item
+    </button>
+  </div>
+
+  <div class="listings-grid" id="listingsGrid"><div class="loading">Loading garage sale...</div></div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="listingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">Post an Item</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Item Title *</label>
+      <input class="form-input" id="fTitle" type="text" placeholder="e.g. Vintage Leather Office Chair" maxlength="150">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="Describe the item, condition, pickup details..." maxlength="2000"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Value (BFC)</label>
+      <input class="form-input" id="fPrice" type="number" min="0" step="1" placeholder="0">
+      <p class="field-hint">The value of this item in BizForce Credits.</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cash portion (USD) <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <div class="price-usd-wrap">
+        <span class="price-usd-prefix">$</span>
+        <input class="form-input" id="fPriceUsd" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <p class="field-hint">Optional. Set any cash amount you want — shipping, a partial cash price, or none. The BFC/USD split is entirely your call.</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tags <span style="font-weight:400;text-transform:none;letter-spacing:0">(comma-separated, optional)</span></label>
+      <input class="form-input" id="fTags" type="text" placeholder="furniture, electronics, local-pickup">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Photos &amp; Video <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="file" id="fMedia" accept="image/*,video/*" multiple style="display:none">
+      <button type="button" class="btn-cancel" onclick="document.getElementById('fMedia').click()">Add Photos / Video</button>
+      <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" id="submitBtn" onclick="submitListing()">Post Item</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+var currentUserId = (function() {
+  try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
+})();
+
+var GARAGE_SALE_CATEGORY = "garage_sale";
+
+var allListings = [];
+var editingId = null;
+var searchTimer = null;
+var listingMedia = [];
+var listingMediaUploading = 0;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function loadListings() {
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings?category=" + GARAGE_SALE_CATEGORY, {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) { var d = await res.json(); allListings = d.listings || []; }
+    renderGrid();
+  } catch (e) {
+    document.getElementById("listingsGrid").innerHTML = '<div class="empty-msg">Unable to load garage sale. Please try again.</div>';
+  }
+}
+
+function renderGrid() {
+  var q = document.getElementById("searchInput").value.toLowerCase().trim();
+  var items = allListings;
+  if (q) {
+    items = items.filter(function(l) {
+      return (l.title || "").toLowerCase().includes(q) || (l.description || "").toLowerCase().includes(q);
+    });
+  }
+  var grid = document.getElementById("listingsGrid");
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty-msg">No garage-sale items yet. Post the first one.</div>';
+    return;
+  }
+  grid.innerHTML = items.map(function(l) { return renderCard(l); }).join("");
+}
+
+function formatListingPrice(l) {
+  var parts = [];
+  if (l.price_bfc > 0) parts.push(l.price_bfc.toLocaleString() + " BFC");
+  if (l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) parts.push("$" + (l.price_usd / 100).toFixed(2));
+  return parts.length ? parts.join(" or ") : "Free";
+}
+
+function renderCard(l) {
+  var isOwn = l.seller_id === currentUserId;
+  var price = formatListingPrice(l);
+  var desc = l.description ? l.description.slice(0, 180) + (l.description.length > 180 ? "…" : "") : "";
+  var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + escapeHtml(t) + '</span>'; }).join("");
+  var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
+  var statusHtml = isOwn ? '<span class="status-badge status-' + escapeHtml(l.status) + '">' + escapeHtml(l.status) + '</span>' : "";
+  var mediaArr = Array.isArray(l.media) ? l.media : [];
+  var mediaHtml = "";
+  if (mediaArr.length > 0) {
+    var m0 = mediaArr[0];
+    var inner = (typeof m0.type === "string" && m0.type.indexOf("video") === 0)
+      ? '<video src="' + escapeHtml(m0.url) + '" muted playsinline></video>'
+      : '<img src="' + escapeHtml(m0.url) + '" alt="" loading="lazy">';
+    var countBadge = mediaArr.length > 1 ? '<span class="listing-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
+    mediaHtml = '<div class="listing-media">' + inner + countBadge + '</div>';
+  }
+  var actions = isOwn
+    ? '<div class="listing-actions">' +
+        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
+        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
+      '</div>'
+    : '<div class="listing-actions">' +
+        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + escapeHtml(price) + '</button>' : '') +
+        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + l.id + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
+        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
+      '</div>';
+  return '<div class="listing-card">' +
+    '<div class="listing-header">' +
+      '<span class="listing-price">' + escapeHtml(price) + '</span>' +
+    '</div>' +
+    mediaHtml +
+    '<h3 class="listing-title">' + escapeHtml(l.title) + '</h3>' +
+    (desc ? '<p class="listing-desc">' + escapeHtml(desc) + '</p>' : '') +
+    (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
+    '<div class="listing-footer">' +
+      '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
+      actions +
+    '</div>' +
+  '</div>';
+}
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById("modalTitle").textContent = "Post an Item";
+  document.getElementById("submitBtn").textContent = "Post Item";
+  document.getElementById("fTitle").value = "";
+  document.getElementById("fDesc").value = "";
+  document.getElementById("fPrice").value = "0";
+  document.getElementById("fPriceUsd").value = "";
+  document.getElementById("fTags").value = "";
+  listingMedia = [];
+  renderMediaPreview();
+  document.getElementById("listingModal").classList.add("open");
+}
+
+function openEditModal(id) {
+  var listing = allListings.find(function(l) { return l.id === id; });
+  if (!listing) return;
+  editingId = id;
+  document.getElementById("modalTitle").textContent = "Edit Item";
+  document.getElementById("submitBtn").textContent = "Save Changes";
+  document.getElementById("fTitle").value = listing.title || "";
+  document.getElementById("fDesc").value = listing.description || "";
+  document.getElementById("fPrice").value = listing.price_bfc || 0;
+  document.getElementById("fPriceUsd").value = (listing.price_usd === null || listing.price_usd === undefined) ? "" : (listing.price_usd / 100);
+  document.getElementById("fTags").value = (listing.tags || []).join(", ");
+  document.getElementById("listingModal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("listingModal").classList.remove("open");
+  listingMedia = [];
+  renderMediaPreview();
+}
+
+function renderMediaPreview() {
+  var container = document.getElementById("mediaPreview");
+  var html = listingMedia.map(function(item, index) {
+    var thumb = item.type.indexOf("image") === 0
+      ? '<img src="' + escapeHtml(item.url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px">'
+      : '<video src="' + escapeHtml(item.url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
+    return '<div style="position:relative">' +
+      thumb +
+      '<button type="button" onclick="removeMediaItem(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +
+    '</div>';
+  }).join("");
+  if (listingMediaUploading > 0) {
+    html += '<div style="width:64px;height:64px;border-radius:8px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#8892b8;text-align:center">Uploading…</div>';
+  }
+  container.innerHTML = html;
+}
+
+function removeMediaItem(index) {
+  listingMedia.splice(index, 1);
+  renderMediaPreview();
+}
+
+async function uploadListingMedia(file) {
+  listingMediaUploading++;
+  renderMediaPreview();
+  try {
+    var res = await fetch(API_URL + "/api/bfp/upload-url", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type })
+    });
+    if (!res.ok) throw new Error("Could not get upload URL");
+    var d = await res.json();
+    var upRes = await fetch(d.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+    if (!upRes.ok) throw new Error("Storage upload failed");
+    listingMedia.push({ url: d.publicUrl, type: file.type, name: file.name });
+  } catch (e) {
+    showToast(e.message || "Media upload failed", "error");
+  } finally {
+    listingMediaUploading--;
+    renderMediaPreview();
+  }
+}
+
+async function submitListing() {
+  var title = document.getElementById("fTitle").value.trim();
+  var desc = document.getElementById("fDesc").value.trim();
+  var price = parseInt(document.getElementById("fPrice").value) || 0;
+  var usdRaw = document.getElementById("fPriceUsd").value;
+  var priceUsd = null;
+  if (usdRaw !== undefined && usdRaw !== null && usdRaw.trim() !== "") {
+    var dollars = parseFloat(usdRaw);
+    if (isNaN(dollars) || dollars < 0) { showToast("USD price must be a non-negative number", "error"); return; }
+    priceUsd = Math.round(dollars * 100);
+  }
+  var tagsRaw = document.getElementById("fTags").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
+  if (!title) { showToast("Title is required", "error"); return; }
+  if (price <= 0 && priceUsd === null) { showToast("Set a BFC value, a cash (USD) amount, or both", "error"); return; }
+  var btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  try {
+    var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
+    var method = editingId ? "PUT" : "POST";
+    var res = await fetch(url, {
+      method: method,
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description: desc, category: GARAGE_SALE_CATEGORY, price_bfc: price, price_usd: priceUsd, tags: tagsRaw, media: listingMedia })
+    });
+    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    closeModal();
+    showToast(editingId ? "Item updated!" : "Item posted!", "success");
+    await loadListings();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+  btn.disabled = false;
+}
+
+async function deleteListing(id) {
+  if (!confirm("Delete this item?")) return;
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Delete failed");
+    showToast("Item deleted", "success");
+    await loadListings();
+  } catch (e) {
+    showToast("Delete failed", "error");
+  }
+}
+
+async function buyListing(id) {
+  if (!confirm("Buy this item?")) return;
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + id + "/buy", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await res.json();
+    if (res.ok && data.balance !== undefined) {
+      alert("Purchase complete. New balance: " + data.balance + " BFC");
+      await loadListings();
+    } else {
+      alert(data.error);
+    }
+  } catch (e) {
+    alert("Something went wrong. Please try again.");
+  }
+}
+
+async function buyWithUsd(listingId) {
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + listingId + "/checkout-usd", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await res.json();
+    if (res.ok && data.url) {
+      window.location.href = data.url;
+      return;
+    }
+    if (res.status === 503) {
+      showToast("USD checkout isn't available yet — check back soon.", "error");
+    } else {
+      showToast((data && data.error) || "Could not start USD checkout", "error");
+    }
+  } catch (e) {
+    showToast("Could not start USD checkout", "error");
+  }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function() { el.classList.remove("show"); }, 3200);
+}
+
+document.getElementById("searchInput").addEventListener("input", function() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderGrid, 250);
+});
+
+document.getElementById("listingModal").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.getElementById("fMedia").addEventListener("change", function() {
+  var files = Array.prototype.slice.call(this.files);
+  this.value = "";
+  files.forEach(function(file) {
+    uploadListingMedia(file);
+  });
+});
+
+loadListings();
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+</body>
+</html>
