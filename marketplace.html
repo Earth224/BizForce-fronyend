@@ -42,6 +42,11 @@
     .category-menu.open .category-menu-panel{display:flex}
     .category-menu-item{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:#8892b8;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
     .category-menu-item:hover{background:rgba(168,85,247,.1);color:#e8e8ff}
+    .feed-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+    .feed-header-left{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+    .feed-title{margin:0;font-size:1.35rem;font-weight:800;color:#f4f7ff}
+    .feed-count{font-size:.82rem;color:#8892b8;font-weight:600}
+    .feed-sort-label{font-size:.72rem;color:#8892b8;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
     .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
     .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:all .25s;position:relative}
     .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
@@ -154,6 +159,14 @@
     <span id="categoryPills"></span>
     <button class="tab-btn my-tab" data-cat="mine" onclick="selectTab(this)">My Listings</button>
     <a href="garage-sale.html" class="tab-btn" style="color:#34d399;border-color:#34d399;text-decoration:none">Garage Sale →</a>
+  </div>
+
+  <div class="feed-header">
+    <div class="feed-header-left">
+      <h2 class="feed-title" id="feedTitle">All Listings</h2>
+      <span class="feed-count" id="feedCount">0 listings</span>
+    </div>
+    <span class="feed-sort-label">Newest first</span>
   </div>
 
   <div class="listings-grid" id="listingsGrid"><div class="loading">Loading marketplace...</div></div>
@@ -340,6 +353,19 @@ function renderGrid() {
       return (l.title || "").toLowerCase().includes(q) || (l.description || "").toLowerCase().includes(q);
     });
   }
+
+  var viewName;
+  if (activeTab === "all") {
+    viewName = "All Listings";
+  } else if (activeTab === "mine") {
+    viewName = "My Listings";
+  } else {
+    var matchedCategory = CATEGORIES.find(function(c) { return c.value === activeTab; });
+    viewName = matchedCategory ? matchedCategory.label : formatCategoryLabel(activeTab);
+  }
+  document.getElementById("feedTitle").textContent = viewName;
+  document.getElementById("feedCount").textContent = items.length + (items.length === 1 ? " listing" : " listings");
+
   var grid = document.getElementById("listingsGrid");
   if (!items.length) {
     grid.innerHTML = '<div class="empty-msg">' + (activeTab === "mine" ? 'You haven\'t listed any services yet.<br>Click "List a Service" to get started.' : 'No listings found. Be the first to list a service!') + '</div>';
