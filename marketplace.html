@@ -28,6 +28,7 @@
     .search-input::placeholder{color:#8892b8}
     .search-input:focus{border-color:rgba(168,85,247,.45)}
     .tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+    #categoryPills{display:contents}
     .tab-btn{padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,28,.7);color:#8892b8;font-size:.8rem;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
     .tab-btn:hover{border-color:rgba(168,85,247,.35);color:#e8e8ff}
     .tab-btn.active{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.45);color:#a855f7}
@@ -150,13 +151,7 @@
 
   <div class="tab-bar" id="tabBar">
     <button class="tab-btn active" data-cat="all" onclick="selectTab(this)">All</button>
-    <button class="tab-btn" data-cat="consulting" onclick="selectTab(this)">Consulting</button>
-    <button class="tab-btn" data-cat="design" onclick="selectTab(this)">Design</button>
-    <button class="tab-btn" data-cat="development" onclick="selectTab(this)">Development</button>
-    <button class="tab-btn" data-cat="marketing" onclick="selectTab(this)">Marketing</button>
-    <button class="tab-btn" data-cat="sales" onclick="selectTab(this)">Sales</button>
-    <button class="tab-btn" data-cat="strategy" onclick="selectTab(this)">Strategy</button>
-    <button class="tab-btn" data-cat="operations" onclick="selectTab(this)">Operations</button>
+    <span id="categoryPills"></span>
     <button class="tab-btn my-tab" data-cat="mine" onclick="selectTab(this)">My Listings</button>
     <a href="garage-sale.html" class="tab-btn" style="color:#34d399;border-color:#34d399;text-decoration:none">Garage Sale →</a>
   </div>
@@ -183,14 +178,6 @@
       <label class="form-label">Category *</label>
       <select class="form-select" id="fCategory">
         <option value="">Select category</option>
-        <option value="consulting">Consulting</option>
-        <option value="design">Design</option>
-        <option value="development">Development</option>
-        <option value="marketing">Marketing</option>
-        <option value="sales">Sales</option>
-        <option value="strategy">Strategy</option>
-        <option value="operations">Operations</option>
-        <option value="other">Other</option>
       </select>
     </div>
     <div class="form-row">
@@ -234,6 +221,19 @@ var currentUserId = (function() {
   try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
 })();
 
+var CATEGORIES = [
+  { value: "services", label: "Services", pill: true },
+  { value: "artists", label: "Artists & Talent", pill: true },
+  { value: "bookstore", label: "Bookstore", pill: true },
+  { value: "garage_sale", label: "Garage Sale", pill: true },
+  { value: "health_wellness", label: "Health & Wellness", pill: true },
+  { value: "hair_beauty", label: "Hair & Beauty", pill: false },
+  { value: "clothing", label: "Clothing & Apparel", pill: false },
+  { value: "vehicles", label: "Vehicles", pill: false },
+  { value: "labor_trades", label: "Labor & Trades", pill: false },
+  { value: "other", label: "Other", pill: false }
+];
+
 var allListings = [];
 var myListings = [];
 var activeTab = "all";
@@ -255,14 +255,27 @@ function formatCategoryLabel(category) {
     .join(" ");
 }
 
-var CATEGORY_MENU_VALUES = ["all", "consulting", "design", "development", "marketing", "sales", "strategy", "operations", "other", "garage_sale"];
 var categoryMenuOpen = false;
+
+function renderCategoryPills() {
+  var container = document.getElementById("categoryPills");
+  container.innerHTML = CATEGORIES.filter(function(c) { return c.pill; }).map(function(c) {
+    return '<button class="tab-btn" data-cat="' + c.value + '" onclick="selectTab(this)">' + escapeHtml(c.label) + '</button>';
+  }).join("");
+}
 
 function renderCategoryMenu() {
   var panel = document.getElementById("categoryMenuPanel");
-  panel.innerHTML = CATEGORY_MENU_VALUES.map(function(value) {
-    var label = value === "all" ? "All Categories" : formatCategoryLabel(value);
-    return '<button type="button" class="category-menu-item" onclick="selectCategoryFromMenu(\'' + value + '\')">' + escapeHtml(label) + '</button>';
+  var items = [{ value: "all", label: "All Categories" }].concat(CATEGORIES);
+  panel.innerHTML = items.map(function(c) {
+    return '<button type="button" class="category-menu-item" onclick="selectCategoryFromMenu(\'' + c.value + '\')">' + escapeHtml(c.label) + '</button>';
+  }).join("");
+}
+
+function renderCategorySelectOptions() {
+  var select = document.getElementById("fCategory");
+  select.innerHTML = '<option value="">Select category</option>' + CATEGORIES.map(function(c) {
+    return '<option value="' + c.value + '">' + escapeHtml(c.label) + '</option>';
   }).join("");
 }
 
@@ -591,7 +604,9 @@ document.getElementById("fMedia").addEventListener("change", function() {
   });
 });
 
+renderCategoryPills();
 renderCategoryMenu();
+renderCategorySelectOptions();
 loadListings();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
