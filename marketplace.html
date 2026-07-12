@@ -32,6 +32,15 @@
     .tab-btn:hover{border-color:rgba(168,85,247,.35);color:#e8e8ff}
     .tab-btn.active{background:rgba(168,85,247,.12);border-color:rgba(168,85,247,.45);color:#a855f7}
     .tab-btn.my-tab.active{background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.4);color:#22d3ee}
+    .category-menu{position:relative;margin-bottom:16px}
+    .category-menu-trigger{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;border:1px solid rgba(168,85,247,.35);background:rgba(168,85,247,.08);color:#a855f7;font-size:.8rem;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+    .category-menu-trigger:hover{background:rgba(168,85,247,.16);border-color:rgba(168,85,247,.55)}
+    .category-menu-caret{font-size:.7rem;transition:transform .2s}
+    .category-menu.open .category-menu-caret{transform:rotate(180deg)}
+    .category-menu-panel{display:none;flex-direction:column;gap:2px;position:absolute;top:calc(100% + 8px);left:0;min-width:220px;background:rgba(10,15,35,.95);border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.4);padding:8px;z-index:50}
+    .category-menu.open .category-menu-panel{display:flex}
+    .category-menu-item{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:8px;border:none;background:transparent;color:#8892b8;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+    .category-menu-item:hover{background:rgba(168,85,247,.1);color:#e8e8ff}
     .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
     .listing-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:all .25s;position:relative}
     .listing-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
@@ -132,6 +141,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       List a Service
     </button>
+  </div>
+
+  <div class="category-menu" id="categoryMenu">
+    <button type="button" class="category-menu-trigger" onclick="toggleCategoryMenu()">Shop by category <span class="category-menu-caret">▾</span></button>
+    <div class="category-menu-panel" id="categoryMenuPanel"></div>
   </div>
 
   <div class="tab-bar" id="tabBar">
@@ -240,6 +254,43 @@ function formatCategoryLabel(category) {
     .map(function(word) { return word.charAt(0).toUpperCase() + word.slice(1); })
     .join(" ");
 }
+
+var CATEGORY_MENU_VALUES = ["all", "consulting", "design", "development", "marketing", "sales", "strategy", "operations", "other", "garage_sale"];
+var categoryMenuOpen = false;
+
+function renderCategoryMenu() {
+  var panel = document.getElementById("categoryMenuPanel");
+  panel.innerHTML = CATEGORY_MENU_VALUES.map(function(value) {
+    var label = value === "all" ? "All Categories" : formatCategoryLabel(value);
+    return '<button type="button" class="category-menu-item" onclick="selectCategoryFromMenu(\'' + value + '\')">' + escapeHtml(label) + '</button>';
+  }).join("");
+}
+
+function toggleCategoryMenu() {
+  categoryMenuOpen = !categoryMenuOpen;
+  document.getElementById("categoryMenu").classList.toggle("open", categoryMenuOpen);
+}
+
+function closeCategoryMenu() {
+  categoryMenuOpen = false;
+  document.getElementById("categoryMenu").classList.remove("open");
+}
+
+function selectCategoryFromMenu(value) {
+  activeTab = value;
+  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+  var matchingPill = document.querySelector('.tab-btn[data-cat="' + value + '"]');
+  if (matchingPill) matchingPill.classList.add("active");
+  renderGrid();
+  closeCategoryMenu();
+}
+
+document.addEventListener("click", function(e) {
+  var menu = document.getElementById("categoryMenu");
+  if (menu && categoryMenuOpen && !menu.contains(e.target)) {
+    closeCategoryMenu();
+  }
+});
 
 var listingMedia = [];
 var listingMediaUploading = 0;
@@ -540,6 +591,7 @@ document.getElementById("fMedia").addEventListener("change", function() {
   });
 });
 
+renderCategoryMenu();
 loadListings();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
