@@ -155,6 +155,21 @@
         <input class="form-input" id="fBookAuthor" type="text" maxlength="150" placeholder="e.g. Jordan A. Smith">
       </div>
       <div class="form-group">
+        <label class="form-label">Trim Size</label>
+        <select class="form-select" id="fTrimSize">
+          <option value="letter" selected>Letter (8.5 × 11) — default</option>
+          <option value="6x9">6 × 9 in (standard paperback)</option>
+          <option value="5x8">5 × 8 in</option>
+          <option value="5.25x8">5.25 × 8 in</option>
+          <option value="5.5x8.5">5.5 × 8.5 in</option>
+          <option value="6.14x9.21">6.14 × 9.21 in</option>
+          <option value="7x10">7 × 10 in</option>
+          <option value="8x10">8 × 10 in</option>
+          <option value="8.5x11">8.5 × 11 in</option>
+        </select>
+        <p class="ebook-helper-text">PDF page size. EPUB is reflowable and ignores this.</p>
+      </div>
+      <div class="form-group">
         <label class="form-label">Manuscript</label>
         <input type="file" id="fBookManuscript" accept=".docx,.txt,.md" style="display:none">
         <button type="button" class="btn-cancel" onclick="document.getElementById('fBookManuscript').click()">Choose Manuscript (.docx or .txt)</button>
@@ -738,6 +753,7 @@ async function generateBook() {
     formData.append("file", currentManuscriptFile);
     formData.append("title", title);
     formData.append("author", author);
+    formData.append("trimSize", document.getElementById("fTrimSize").value);
     var res = await fetch(API_URL + "/api/bizbook/generate", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token },
@@ -747,6 +763,7 @@ async function generateBook() {
     showToast("Book created!", "success");
     document.getElementById("fBookTitle").value = "";
     document.getElementById("fBookAuthor").value = "";
+    document.getElementById("fTrimSize").value = "letter";
     document.getElementById("fBookManuscript").value = "";
     currentManuscriptFile = null;
     document.getElementById("bookManuscriptName").textContent = "";
