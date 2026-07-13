@@ -67,6 +67,24 @@
     .create-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:12px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.12);color:#34d399;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
     .create-btn:hover{background:rgba(52,211,153,.22);border-color:rgba(52,211,153,.6);box-shadow:0 0 20px rgba(52,211,153,.2)}
     .create-btn svg{width:16px;height:16px}
+    /* Start-a-new-document strip */
+    .newdoc-strip{margin-bottom:28px}
+    .newdoc-strip-head{font-size:.82rem;font-weight:600;color:#8892b8;margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+    .newdoc-row{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x proximity}
+    .newdoc-row::-webkit-scrollbar{height:6px}
+    .newdoc-row::-webkit-scrollbar-track{background:rgba(8,12,24,.4);border-radius:8px}
+    .newdoc-row::-webkit-scrollbar-thumb{background:linear-gradient(90deg,rgba(34,211,238,.5),rgba(168,85,247,.5));border-radius:8px}
+    .newdoc-row::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,rgba(34,211,238,.7),rgba(168,85,247,.7))}
+    .newdoc-tile{flex:0 0 auto;width:120px;scroll-snap-align:start;background:none;border:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit}
+    .newdoc-thumb{width:120px;height:150px;background:#ffffff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+    .newdoc-tile:hover .newdoc-thumb{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+    .newdoc-thumb-lines{position:absolute;inset:16px 14px auto 14px;height:70%;display:block;background:repeating-linear-gradient(to bottom,#e5e5e5 0,#e5e5e5 6%,transparent 6%,transparent 18%)}
+    .newdoc-tile-new .newdoc-plus{width:120px;height:150px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(10,15,35,.6);border:1px dashed rgba(255,255,255,.15);transition:border-color .15s,transform .15s}
+    .newdoc-tile-new:hover .newdoc-plus{border-color:rgba(255,255,255,.35);transform:translateY(-3px)}
+    .newdoc-tile-new .newdoc-plus svg{width:64px;height:64px;padding:19px;border-radius:50%;background:linear-gradient(135deg,#22d3ee 0%,#7b2ff7 55%,#fbbf24 100%);color:#ffffff;box-shadow:0 6px 20px rgba(123,47,247,.4);box-sizing:border-box}
+    .newdoc-browse-icon{width:120px;height:150px;border-radius:10px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#22d3ee;transition:border-color .15s,transform .15s}
+    .newdoc-tile-browse:hover .newdoc-browse-icon{border-color:rgba(34,211,238,.5);transform:translateY(-3px)}
+    .newdoc-tile-label{font-size:.78rem;color:#e6edf3;text-align:center;font-weight:600;line-height:1.2}
     .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
     .loading{text-align:center;padding:64px 24px;color:#8892b8}
     /* Modal */
@@ -187,6 +205,43 @@
   </div>
 
   <div id="paneDocuments" class="workspace-pane active">
+  <div class="newdoc-strip">
+    <div class="newdoc-strip-head">Start a new document</div>
+    <div class="newdoc-row">
+      <button class="newdoc-tile newdoc-tile-new" onclick="openCreateModal()">
+        <div class="newdoc-plus"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
+        <div class="newdoc-tile-label">Blank Document</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('nda')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">NDA</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('bill_of_sale')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">Bill of Sale</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('independent_contractor')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">Independent Contractor</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('invoice')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">Invoice</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('self_publishing_agreement')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">Self-Publishing</div>
+      </button>
+      <button class="newdoc-tile" onclick="selectTemplate('copyright_assignment')">
+        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-tile-label">Copyright Assignment</div>
+      </button>
+      <button class="newdoc-tile newdoc-tile-browse" onclick="openCreateModal()">
+        <div class="newdoc-browse-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg></div>
+        <div class="newdoc-tile-label">Browse all</div>
+      </button>
+    </div>
+  </div>
   <div class="toolbar">
     <div class="search-wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
