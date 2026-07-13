@@ -172,6 +172,16 @@
         <input class="form-input" id="fBookAuthor" type="text" maxlength="150" placeholder="e.g. Jordan A. Smith">
       </div>
       <div class="form-group">
+        <label class="form-label">Book Cover (Optional)</label>
+        <input type="file" id="fBookCover" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <button type="button" class="btn-cancel" onclick="document.getElementById('fBookCover').click()">Choose Cover Image (JPG/PNG)</button>
+        <div id="coverPreviewWrap" style="display:none">
+          <img id="coverPreviewImg" style="max-width:120px;border-radius:8px;margin-top:10px;border:1px solid rgba(255,255,255,.12)">
+          <div><button type="button" class="back-to-templates" id="coverRemoveBtn">Remove</button></div>
+        </div>
+        <p class="ebook-helper-text">Optional. Shown as your book's cover. JPG, PNG, or WEBP.</p>
+      </div>
+      <div class="form-group">
         <label class="form-label">Trim Size</label>
         <div class="trim-select" id="trimSelect">
           <div class="trim-trigger" id="trimTrigger" tabindex="0">
@@ -374,6 +384,7 @@ var currentDetailId = null;
 
 var allBooks = [];
 var currentManuscriptFile = null;
+var currentCoverFile = null;
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -797,6 +808,15 @@ function toggleTrimMenu(force) {
   trigger.classList.toggle("open", open);
 }
 
+function clearCoverPreview() {
+  var img = document.getElementById("coverPreviewImg");
+  if (img.src) { try { URL.revokeObjectURL(img.src); } catch (e) {} }
+  img.src = "";
+  document.getElementById("coverPreviewWrap").style.display = "none";
+  document.getElementById("fBookCover").value = "";
+  currentCoverFile = null;
+}
+
 async function generateBook() {
   var title = document.getElementById("fBookTitle").value.trim();
   var author = document.getElementById("fBookAuthor").value.trim();
@@ -813,6 +833,7 @@ async function generateBook() {
     formData.append("title", title);
     formData.append("author", author);
     formData.append("trimSize", document.getElementById("fTrimSize").value);
+    if (currentCoverFile) formData.append("cover", currentCoverFile);
     var res = await fetch(API_URL + "/api/bizbook/generate", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token },
@@ -826,6 +847,7 @@ async function generateBook() {
     document.getElementById("fBookManuscript").value = "";
     currentManuscriptFile = null;
     document.getElementById("bookManuscriptName").textContent = "";
+    clearCoverPreview();
     await loadMyBooks();
   } catch (e) {
     showToast(e.message || "Failed to generate book", "error");
@@ -887,6 +909,18 @@ document.getElementById("signModal").addEventListener("click", function(e) {
 document.getElementById("fBookManuscript").addEventListener("change", function() {
   currentManuscriptFile = (this.files && this.files[0]) ? this.files[0] : null;
   document.getElementById("bookManuscriptName").textContent = currentManuscriptFile ? currentManuscriptFile.name : "";
+});
+
+document.getElementById("fBookCover").addEventListener("change", function() {
+  var file = (this.files && this.files[0]) ? this.files[0] : null;
+  if (!file) return;
+  currentCoverFile = file;
+  document.getElementById("coverPreviewImg").src = URL.createObjectURL(file);
+  document.getElementById("coverPreviewWrap").style.display = "block";
+});
+
+document.getElementById("coverRemoveBtn").addEventListener("click", function() {
+  clearCoverPreview();
 });
 
 document.getElementById("trimTrigger").addEventListener("click", function(e) {
