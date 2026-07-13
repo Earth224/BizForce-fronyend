@@ -356,6 +356,7 @@ var BIZDOC_TEMPLATES = [
     type: "nda",
     name: "Non-Disclosure Agreement (NDA)",
     description: "Protect confidential information shared between two parties.",
+    category: "protection",
     fields: [
       { key: "disclosing_party", label: "Disclosing Party", type: "text" },
       { key: "receiving_party", label: "Receiving Party", type: "text" },
@@ -368,6 +369,7 @@ var BIZDOC_TEMPLATES = [
     type: "service_agreement",
     name: "Service Agreement",
     description: "Define scope, fees, and timeline for a service engagement.",
+    category: "business",
     fields: [
       { key: "provider_name", label: "Service Provider", type: "text" },
       { key: "client_name", label: "Client Name", type: "text" },
@@ -381,6 +383,7 @@ var BIZDOC_TEMPLATES = [
     type: "general_contract",
     name: "General Contract",
     description: "A flexible template for general business agreements.",
+    category: "business",
     fields: [
       { key: "party_one", label: "Party One", type: "text" },
       { key: "party_two", label: "Party Two", type: "text" },
@@ -392,6 +395,7 @@ var BIZDOC_TEMPLATES = [
     type: "liability_waiver",
     name: "Liability / Accountability Agreement",
     description: "Acknowledge risk and outline responsibilities between parties.",
+    category: "protection",
     fields: [
       { key: "party_one", label: "Party One", type: "text" },
       { key: "party_two", label: "Party Two", type: "text" },
@@ -404,6 +408,7 @@ var BIZDOC_TEMPLATES = [
     type: "bill_of_sale",
     name: "Bill of Sale",
     description: "Document the sale and transfer of an item between parties.",
+    category: "transactional",
     fields: [
       { key: "seller_name", label: "Seller Name", type: "text" },
       { key: "buyer_name", label: "Buyer Name", type: "text" },
@@ -416,11 +421,407 @@ var BIZDOC_TEMPLATES = [
     type: "letter_of_agreement",
     name: "Letter of Agreement",
     description: "A simple letter confirming terms both parties agree to.",
+    category: "business",
     fields: [
       { key: "party_one", label: "Party One", type: "text" },
       { key: "party_two", label: "Party Two", type: "text" },
       { key: "effective_date", label: "Effective Date", type: "date" },
       { key: "agreement_summary", label: "Agreement Summary", type: "textarea" }
+    ]
+  },
+  {
+    type: "promissory_note",
+    name: "Promissory Note",
+    description: "Records a loan and the borrower's promise to repay.",
+    category: "transactional",
+    fields: [
+      { key: "lender", label: "Lender", type: "text" },
+      { key: "borrower", label: "Borrower", type: "text" },
+      { key: "principal_amount", label: "Principal Amount", type: "text" },
+      { key: "interest_rate", label: "Interest Rate", type: "text" },
+      { key: "repayment_terms", label: "Repayment Terms", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "maturity_date", label: "Maturity Date", type: "date" }
+    ]
+  },
+  {
+    type: "receipt_of_payment",
+    name: "Receipt of Payment",
+    description: "Proves that cash, goods, or services were received.",
+    category: "transactional",
+    fields: [
+      { key: "payer", label: "Payer", type: "text" },
+      { key: "payee", label: "Payee", type: "text" },
+      { key: "amount_received", label: "Amount Received", type: "text" },
+      { key: "payment_for", label: "Payment For", type: "textarea" },
+      { key: "payment_method", label: "Payment Method", type: "text" },
+      { key: "date_received", label: "Date Received", type: "date" }
+    ]
+  },
+  {
+    type: "quitclaim_deed",
+    name: "Quitclaim Deed",
+    description: "Transfers a party's interest in a property without warranty.",
+    category: "transactional",
+    notice: "Starting-point draft. Property deeds usually require notarization and county recording to be valid in your state.",
+    fields: [
+      { key: "grantor", label: "Grantor", type: "text" },
+      { key: "grantee", label: "Grantee", type: "text" },
+      { key: "property_description", label: "Property Description", type: "textarea" },
+      { key: "county_state", label: "County / State", type: "text" },
+      { key: "consideration", label: "Consideration", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "invoice",
+    name: "Invoice",
+    description: "Requests payment for goods or services provided.",
+    category: "transactional",
+    fields: [
+      { key: "bill_from", label: "Bill From", type: "text" },
+      { key: "bill_to", label: "Bill To", type: "text" },
+      { key: "invoice_number", label: "Invoice Number", type: "text" },
+      { key: "line_items", label: "Items / Description", type: "textarea" },
+      { key: "amount_due", label: "Amount Due", type: "text" },
+      { key: "due_date", label: "Due Date", type: "date" }
+    ]
+  },
+  {
+    type: "loan_agreement",
+    name: "Loan Agreement",
+    description: "Sets the full terms of a loan between two parties.",
+    category: "transactional",
+    fields: [
+      { key: "lender", label: "Lender", type: "text" },
+      { key: "borrower", label: "Borrower", type: "text" },
+      { key: "loan_amount", label: "Loan Amount", type: "text" },
+      { key: "interest_rate", label: "Interest Rate", type: "text" },
+      { key: "repayment_schedule", label: "Repayment Schedule", type: "textarea" },
+      { key: "start_date", label: "Start Date", type: "date" },
+      { key: "end_date", label: "End Date", type: "date" }
+    ]
+  },
+  {
+    type: "non_compete",
+    name: "Non-Compete Agreement",
+    description: "Restricts a party from competing for a defined time and area.",
+    category: "protection",
+    fields: [
+      { key: "company", label: "Company / Employer", type: "text" },
+      { key: "party", label: "Employee / Party", type: "text" },
+      { key: "restricted_activities", label: "Restricted Activities", type: "textarea" },
+      { key: "geographic_scope", label: "Geographic Scope", type: "text" },
+      { key: "duration", label: "Duration", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "hold_harmless",
+    name: "Hold Harmless Agreement",
+    description: "One party agrees not to hold another liable for damages.",
+    category: "protection",
+    fields: [
+      { key: "indemnifying_party", label: "Indemnifying Party", type: "text" },
+      { key: "protected_party", label: "Protected Party", type: "text" },
+      { key: "scope", label: "Activity / Scope", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "media_release",
+    name: "Photo / Media Release",
+    description: "Grants permission to use someone's image or likeness.",
+    category: "protection",
+    fields: [
+      { key: "releasing_party", label: "Releasing Party", type: "text" },
+      { key: "recipient", label: "Company / Recipient", type: "text" },
+      { key: "media_description", label: "Description of Media", type: "textarea" },
+      { key: "permitted_uses", label: "Permitted Uses", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "independent_contractor",
+    name: "Independent Contractor Agreement",
+    description: "Defines the scope and terms for freelance or contract work.",
+    category: "business",
+    fields: [
+      { key: "client", label: "Client", type: "text" },
+      { key: "contractor", label: "Contractor", type: "text" },
+      { key: "scope_of_work", label: "Scope of Work", type: "textarea" },
+      { key: "compensation", label: "Compensation", type: "text" },
+      { key: "payment_terms", label: "Payment Terms", type: "textarea" },
+      { key: "start_date", label: "Start Date", type: "date" },
+      { key: "end_date", label: "End Date", type: "date" }
+    ]
+  },
+  {
+    type: "employment_contract",
+    name: "Employment Contract",
+    description: "Sets the terms, wages, and duties for an employee.",
+    category: "business",
+    notice: "Starting-point draft. Employment terms are regulated and vary by state — review with an attorney before use.",
+    fields: [
+      { key: "employer", label: "Employer", type: "text" },
+      { key: "employee", label: "Employee", type: "text" },
+      { key: "job_title", label: "Job Title", type: "text" },
+      { key: "duties", label: "Duties & Responsibilities", type: "textarea" },
+      { key: "compensation", label: "Compensation", type: "text" },
+      { key: "start_date", label: "Start Date", type: "date" },
+      { key: "terms", label: "Additional Terms", type: "textarea" }
+    ]
+  },
+  {
+    type: "partnership_agreement",
+    name: "Partnership Agreement",
+    description: "Outlines how co-owners share profits, duties, and decisions.",
+    category: "business",
+    fields: [
+      { key: "partner_one", label: "Partner One", type: "text" },
+      { key: "partner_two", label: "Partner Two", type: "text" },
+      { key: "business_name", label: "Business Name", type: "text" },
+      { key: "profit_split", label: "Profit / Loss Split", type: "textarea" },
+      { key: "responsibilities", label: "Responsibilities", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "sla",
+    name: "Service Level Agreement (SLA)",
+    description: "Specifies service quality standards owed to a client.",
+    category: "business",
+    fields: [
+      { key: "provider", label: "Provider", type: "text" },
+      { key: "client", label: "Client", type: "text" },
+      { key: "services_covered", label: "Services Covered", type: "textarea" },
+      { key: "performance_standards", label: "Performance Standards", type: "textarea" },
+      { key: "metrics", label: "Uptime / Metrics", type: "text" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "consulting_agreement",
+    name: "Consulting Agreement",
+    description: "Engages a consultant for defined services and fees.",
+    category: "business",
+    fields: [
+      { key: "client", label: "Client", type: "text" },
+      { key: "consultant", label: "Consultant", type: "text" },
+      { key: "consulting_services", label: "Consulting Services", type: "textarea" },
+      { key: "fees", label: "Fees", type: "text" },
+      { key: "term", label: "Term", type: "text" },
+      { key: "start_date", label: "Start Date", type: "date" }
+    ]
+  },
+  {
+    type: "llc_operating",
+    name: "LLC Operating Agreement",
+    description: "Sets ownership and management rules for an LLC.",
+    category: "business",
+    notice: "Starting-point draft. LLC formation and operating rules vary by state and may require official filing.",
+    fields: [
+      { key: "company_name", label: "Company Name", type: "text" },
+      { key: "members", label: "Member(s)", type: "textarea" },
+      { key: "ownership", label: "Ownership %", type: "textarea" },
+      { key: "management", label: "Management Structure", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "residential_lease",
+    name: "Residential Lease Agreement",
+    description: "Sets the terms for renting a house or apartment.",
+    category: "realestate",
+    fields: [
+      { key: "landlord", label: "Landlord", type: "text" },
+      { key: "tenant", label: "Tenant", type: "text" },
+      { key: "property_address", label: "Property Address", type: "textarea" },
+      { key: "monthly_rent", label: "Monthly Rent", type: "text" },
+      { key: "security_deposit", label: "Security Deposit", type: "text" },
+      { key: "lease_start", label: "Lease Start", type: "date" },
+      { key: "lease_end", label: "Lease End", type: "date" },
+      { key: "terms", label: "Terms & Conditions", type: "textarea" }
+    ]
+  },
+  {
+    type: "commercial_lease",
+    name: "Commercial Lease Agreement",
+    description: "Governs the rental of a business space.",
+    category: "realestate",
+    fields: [
+      { key: "landlord", label: "Landlord", type: "text" },
+      { key: "tenant", label: "Tenant / Business", type: "text" },
+      { key: "property_address", label: "Property Address", type: "textarea" },
+      { key: "permitted_use", label: "Permitted Use", type: "textarea" },
+      { key: "monthly_rent", label: "Monthly Rent", type: "text" },
+      { key: "lease_start", label: "Lease Start", type: "date" },
+      { key: "lease_end", label: "Lease End", type: "date" }
+    ]
+  },
+  {
+    type: "sublease",
+    name: "Sublease Agreement",
+    description: "Lets a tenant rent their space to another party.",
+    category: "realestate",
+    fields: [
+      { key: "original_tenant", label: "Original Tenant", type: "text" },
+      { key: "subtenant", label: "Subtenant", type: "text" },
+      { key: "property_address", label: "Property Address", type: "textarea" },
+      { key: "monthly_rent", label: "Monthly Rent", type: "text" },
+      { key: "sublease_start", label: "Sublease Start", type: "date" },
+      { key: "sublease_end", label: "Sublease End", type: "date" }
+    ]
+  },
+  {
+    type: "eviction_notice",
+    name: "Eviction Notice",
+    description: "Formal notice to a tenant regarding a lease violation.",
+    category: "realestate",
+    notice: "Starting-point draft. Eviction notice requirements and timelines are strictly regulated and vary by state/locality — confirm local rules or consult an attorney.",
+    fields: [
+      { key: "landlord", label: "Landlord", type: "text" },
+      { key: "tenant", label: "Tenant", type: "text" },
+      { key: "property_address", label: "Property Address", type: "textarea" },
+      { key: "reason", label: "Reason for Notice", type: "textarea" },
+      { key: "cure_or_vacate_by", label: "Cure / Vacate By", type: "date" },
+      { key: "notice_date", label: "Notice Date", type: "date" }
+    ]
+  },
+  {
+    type: "rental_application",
+    name: "Rental Application",
+    description: "Collects applicant info for a rental screening.",
+    category: "realestate",
+    fields: [
+      { key: "applicant_name", label: "Applicant Name", type: "text" },
+      { key: "current_address", label: "Current Address", type: "textarea" },
+      { key: "employer", label: "Employer", type: "text" },
+      { key: "monthly_income", label: "Monthly Income", type: "text" },
+      { key: "references", label: "References", type: "textarea" },
+      { key: "application_date", label: "Application Date", type: "date" }
+    ]
+  },
+  {
+    type: "affidavit",
+    name: "Affidavit",
+    description: "A written statement sworn to be true under oath.",
+    category: "verification",
+    notice: "Starting-point draft. An affidavit typically must be signed before a notary or authorized officer to be valid.",
+    fields: [
+      { key: "affiant", label: "Affiant (Person Swearing)", type: "text" },
+      { key: "statement", label: "Sworn Statement", type: "textarea" },
+      { key: "location", label: "County / State", type: "text" },
+      { key: "date_sworn", label: "Date", type: "date" }
+    ]
+  },
+  {
+    type: "cease_and_desist",
+    name: "Cease & Desist Letter",
+    description: "Formally demands that a party stop a specified activity.",
+    category: "verification",
+    notice: "Starting-point draft. This is a demand letter, not a court order — consult an attorney for enforcement.",
+    fields: [
+      { key: "sender", label: "Sender", type: "text" },
+      { key: "recipient", label: "Recipient", type: "text" },
+      { key: "activity_to_stop", label: "Activity to Stop", type: "textarea" },
+      { key: "deadline", label: "Comply By", type: "date" },
+      { key: "consequences", label: "Stated Consequences", type: "textarea" }
+    ]
+  },
+  {
+    type: "corporate_minutes",
+    name: "Corporate Minutes",
+    description: "Official record of decisions made in a business meeting.",
+    category: "verification",
+    fields: [
+      { key: "company", label: "Company", type: "text" },
+      { key: "meeting_date", label: "Meeting Date", type: "date" },
+      { key: "attendees", label: "Attendees", type: "textarea" },
+      { key: "resolutions", label: "Resolutions / Decisions", type: "textarea" },
+      { key: "recorded_by", label: "Recorded By", type: "text" }
+    ]
+  },
+  {
+    type: "contract_termination",
+    name: "Notice of Contract Termination",
+    description: "Formally ends an existing agreement.",
+    category: "verification",
+    fields: [
+      { key: "terminating_party", label: "Terminating Party", type: "text" },
+      { key: "other_party", label: "Other Party", type: "text" },
+      { key: "contract_reference", label: "Contract Being Terminated", type: "textarea" },
+      { key: "reason", label: "Reason", type: "textarea" },
+      { key: "effective_date", label: "Termination Effective Date", type: "date" }
+    ]
+  },
+  {
+    type: "demand_letter",
+    name: "Demand Letter",
+    description: "Formally demands payment or action before further steps.",
+    category: "verification",
+    fields: [
+      { key: "sender", label: "Sender", type: "text" },
+      { key: "recipient", label: "Recipient", type: "text" },
+      { key: "demand", label: "Demand", type: "textarea" },
+      { key: "amount_owed", label: "Amount Owed", type: "text" },
+      { key: "respond_by", label: "Respond By", type: "date" }
+    ]
+  },
+  {
+    type: "last_will",
+    name: "Last Will & Testament",
+    description: "States how a person's assets are distributed after death.",
+    category: "estate",
+    notice: "Starting-point draft only. A valid will generally requires witnesses and specific state formalities — review with an estate attorney before signing.",
+    fields: [
+      { key: "testator", label: "Testator (Your Name)", type: "text" },
+      { key: "executor", label: "Executor", type: "text" },
+      { key: "beneficiaries", label: "Beneficiaries", type: "textarea" },
+      { key: "asset_distribution", label: "Asset Distribution", type: "textarea" },
+      { key: "guardianship", label: "Guardianship (if any)", type: "textarea" },
+      { key: "date", label: "Date", type: "date" }
+    ]
+  },
+  {
+    type: "power_of_attorney",
+    name: "Power of Attorney (POA)",
+    description: "Authorizes someone to act on your behalf.",
+    category: "estate",
+    notice: "Starting-point draft only. A POA usually requires notarization and specific state language to be valid — review with an attorney.",
+    fields: [
+      { key: "principal", label: "Principal (You)", type: "text" },
+      { key: "agent", label: "Agent / Attorney-in-Fact", type: "text" },
+      { key: "powers_granted", label: "Powers Granted", type: "textarea" },
+      { key: "effective_date", label: "Effective Date", type: "date" },
+      { key: "durability", label: "Durability / Conditions", type: "textarea" }
+    ]
+  },
+  {
+    type: "living_will",
+    name: "Living Will",
+    description: "States medical wishes if you become incapacitated.",
+    category: "estate",
+    notice: "Starting-point draft only. Advance directives must meet state-specific requirements — review with a licensed professional.",
+    fields: [
+      { key: "declarant", label: "Declarant (You)", type: "text" },
+      { key: "medical_wishes", label: "Medical Care Wishes", type: "textarea" },
+      { key: "life_support", label: "Life Support Preferences", type: "textarea" },
+      { key: "healthcare_proxy", label: "Healthcare Proxy", type: "text" },
+      { key: "date", label: "Date", type: "date" }
+    ]
+  },
+  {
+    type: "beneficiary_designation",
+    name: "Beneficiary Designation",
+    description: "Names who receives an asset or account.",
+    category: "estate",
+    fields: [
+      { key: "account_owner", label: "Account / Policy Owner", type: "text" },
+      { key: "account_reference", label: "Account / Policy", type: "text" },
+      { key: "primary_beneficiary", label: "Primary Beneficiary", type: "textarea" },
+      { key: "contingent_beneficiary", label: "Contingent Beneficiary", type: "textarea" },
+      { key: "date", label: "Date", type: "date" }
     ]
   }
 ];
