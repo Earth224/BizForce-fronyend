@@ -101,6 +101,10 @@
     .ebook-books-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px;flex:1 1 auto;min-width:0}
     .ebook-book-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;transition:all .25s}
     .ebook-book-card:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
+    .ebook-cover{width:100%;aspect-ratio:2/3;border-radius:10px;overflow:hidden;margin-bottom:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center}
+    .ebook-cover-img{width:100%;height:100%;object-fit:cover;display:block}
+    .ebook-cover-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#8892b8;font-size:.8rem}
+    .ebook-cover-icon{font-size:2rem}
     .ebook-book-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
     .ebook-book-author{font-size:.84rem;color:#8892b8;margin:0}
     .ebook-book-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
@@ -755,12 +759,35 @@ function renderMyBooks() {
     return;
   }
   list.innerHTML = allBooks.map(function(b) { return renderBookCard(b); }).join("");
+  loadCoverImages();
+}
+
+async function loadCoverImages() {
+  allBooks.forEach(async function(b) {
+    if (!b.cover_path) return;
+    try {
+      var res = await fetch(API_URL + "/api/bizbook/books/" + b.id + "/cover", { headers: { "Authorization": "Bearer " + token } });
+      if (!res.ok) throw new Error("Failed to load cover");
+      var d = await res.json();
+      var img = document.querySelector('.ebook-cover[data-book-id="' + b.id + '"] .ebook-cover-img[data-cover="1"]');
+      if (!img || !d.url) throw new Error("No cover url");
+      img.src = d.url;
+    } catch (e) {
+      var wrap = document.querySelector('.ebook-cover[data-book-id="' + b.id + '"]');
+      if (wrap) { wrap.innerHTML = '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>'; }
+    }
+  });
 }
 
 function renderBookCard(b) {
   var date = new Date(b.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
   var status = b.status || "ready";
+  var coverInner = b.cover_path
+    ? '<img class="ebook-cover-img" data-cover="1" alt="cover">'
+    : '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>';
+  var coverHtml = '<div class="ebook-cover" data-book-id="' + escapeHtml(b.id) + '">' + coverInner + '</div>';
   return '<div class="ebook-book-card">' +
+    coverHtml +
     '<h3 class="ebook-book-title">' + escapeHtml(b.title) + '</h3>' +
     (b.author ? '<p class="ebook-book-author">' + escapeHtml(b.author) + '</p>' : '') +
     '<div class="ebook-book-footer">' +
