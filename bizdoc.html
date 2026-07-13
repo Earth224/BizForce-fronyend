@@ -107,6 +107,8 @@
     .ebook-cover-icon{font-size:1.4rem}
     .ebook-change-cover{background:none;border:none;color:#22d3ee;font-size:.68rem;cursor:pointer;padding:0;margin:0 0 8px 0;align-self:flex-start;font-family:inherit}
     .ebook-change-cover:hover{color:#00e5ff;text-decoration:underline}
+    .ebook-delete{background:none;border:none;color:#f87171;font-size:.68rem;cursor:pointer;padding:0;margin:0 0 8px 0;align-self:flex-start;font-family:inherit}
+    .ebook-delete:hover{color:#ff9494;text-decoration:underline}
     .ebook-book-title{font-size:.95rem;font-weight:700;color:#f4f7ff;margin:0;line-height:1.2}
     .ebook-book-author{font-size:.8rem;color:#8892b8;margin:0}
     .ebook-book-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
@@ -809,6 +811,7 @@ function renderBookCard(b) {
   return '<div class="ebook-book-card">' +
     coverHtml +
     '<button class="ebook-change-cover" onclick="triggerCoverChange(\'' + escapeHtml(b.id) + '\')">Change Cover</button>' +
+    '<button class="ebook-delete" onclick="deleteBook(\'' + escapeHtml(b.id) + '\')">Delete</button>' +
     '<h3 class="ebook-book-title">' + escapeHtml(b.title) + '</h3>' +
     (b.author ? '<p class="ebook-book-author">' + escapeHtml(b.author) + '</p>' : '') +
     '<div class="ebook-book-footer">' +
@@ -931,6 +934,25 @@ async function downloadBookEpub(bookId) {
     else { showToast("Download link unavailable", "error"); }
   } catch (e) {
     showToast("Unable to download book", "error");
+  }
+}
+
+async function deleteBook(id) {
+  if (!confirm("Delete this book? This permanently removes the PDF, EPUB, and cover. This cannot be undone.")) return;
+  try {
+    var res = await fetch(API_URL + "/api/bizbook/books/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) {
+      showToast("Book deleted", "success");
+      await loadMyBooks();
+    } else {
+      var e = await res.json().catch(function() { return {}; });
+      showToast(e.error || "Couldn't delete book", "error");
+    }
+  } catch (e) {
+    showToast("Couldn't delete book", "error");
   }
 }
 
