@@ -44,6 +44,16 @@
     .doc-card-icon svg{width:18px;height:18px}
     .doc-card-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
     .doc-card-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .doc-menu{position:relative;flex:0 0 auto;margin-left:auto}
+    .doc-menu-btn{background:none;border:none;color:#8892b8;cursor:pointer;padding:2px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .doc-menu-btn:hover{color:#e6edf3;background:rgba(255,255,255,.06)}
+    .doc-menu-btn svg{width:18px;height:18px}
+    .doc-menu-pop{position:absolute;top:calc(100% + 4px);right:0;min-width:150px;background:rgba(10,15,35,.97);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px;z-index:50;display:none;flex-direction:column;gap:2px;box-shadow:0 12px 32px rgba(0,0,0,.5)}
+    .doc-menu-pop.open{display:flex}
+    .doc-menu-item{text-align:left;background:none;border:none;color:#e6edf3;font-family:inherit;font-size:.82rem;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background .15s}
+    .doc-menu-item:hover{background:rgba(34,211,238,.12);color:#22d3ee}
+    .doc-menu-item.danger{color:#f87171}
+    .doc-menu-item.danger:hover{background:rgba(248,113,113,.12);color:#f87171}
     .doc-template-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8}
     .doc-title{font-size:.9rem;font-weight:700;color:#f4f7ff;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .doc-party{font-size:.84rem;color:#8892b8;margin:0}
@@ -504,6 +514,15 @@ function renderCard(d) {
           '<span class="doc-badge doc-badge-' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' +
         '</div>' +
       '</div>' +
+      '<div class="doc-menu">' +
+        '<button class="doc-menu-btn" onclick="toggleDocMenu(event,\'' + escapeHtml(d.id) + '\')" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>' +
+        '<div class="doc-menu-pop" id="docMenu-' + escapeHtml(d.id) + '">' +
+          '<button class="doc-menu-item" onclick="docMenuOpen(event,\'' + escapeHtml(d.id) + '\')">Open</button>' +
+          '<button class="doc-menu-item" onclick="docMenuRename(event,\'' + escapeHtml(d.id) + '\')">Rename</button>' +
+          '<button class="doc-menu-item" onclick="docMenuDuplicate(event,\'' + escapeHtml(d.id) + '\')">Duplicate</button>' +
+          '<button class="doc-menu-item danger" onclick="docMenuDelete(event,\'' + escapeHtml(d.id) + '\')">Delete</button>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
   '</div>';
 }
@@ -803,6 +822,102 @@ async function openPrintView(documentId) {
   }
 }
 
+function toggleDocMenu(event, id) {
+  event.stopPropagation();
+  var target = document.getElementById("docMenu-" + id);
+  document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
+    if (pop !== target) pop.classList.remove("open");
+  });
+  if (target) target.classList.toggle("open");
+}
+
+function docMenuOpen(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) pop.classList.remove("open");
+  openPrintView(id);
+}
+
+async function docMenuRename(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) pop.classList.remove("open");
+  var current = null;
+  for (var i = 0; i < allDocuments.length; i++) {
+    if (allDocuments[i].id === id) { current = allDocuments[i]; break; }
+  }
+  var name = prompt("Rename document:", current ? current.title : "");
+  if (name === null) return;
+  name = name.trim();
+  if (!name) return;
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, {
+      method: "PUT",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ title: name })
+    });
+    if (res.ok) {
+      showToast("Renamed", "success");
+      await loadDocuments();
+    } else {
+      var e = await res.json().catch(function() { return {}; });
+      showToast(e.error || "Couldn't rename", "error");
+    }
+  } catch (e) {
+    showToast("Couldn't rename", "error");
+  }
+}
+
+async function docMenuDuplicate(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) pop.classList.remove("open");
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { showToast("Unable to load document", "error"); return; }
+    var d = await res.json();
+    var doc = d.document;
+    var res2 = await fetch(API_URL + "/api/bizdoc/documents", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        template_type: doc.template_type,
+        title: doc.title + " (Copy)",
+        fields: doc.fields,
+        party_name: doc.party_name,
+        party_email: doc.party_email
+      })
+    });
+    if (!res2.ok) { var e = await res2.json().catch(function() { return {}; }); throw new Error(e.error || "Failed to duplicate"); }
+    showToast("Duplicated", "success");
+    await loadDocuments();
+  } catch (e) {
+    showToast(e.message || "Failed to duplicate", "error");
+  }
+}
+
+async function docMenuDelete(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) pop.classList.remove("open");
+  if (!confirm("Delete this document? This cannot be undone.")) return;
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) {
+      showToast("Document deleted", "success");
+      await loadDocuments();
+    } else {
+      var e = await res.json().catch(function() { return {}; });
+      showToast(e.error || "Couldn't delete document", "error");
+    }
+  } catch (e) {
+    showToast("Couldn't delete document", "error");
+  }
+}
+
 async function loadMyBooks() {
   try {
     var res = await fetch(API_URL + "/api/bizbook/books", { headers: { "Authorization": "Bearer " + token } });
@@ -1080,6 +1195,13 @@ document.getElementById("trimMenu").addEventListener("click", function(e) {
 document.addEventListener("click", function(e) {
   var wrap = document.getElementById("trimSelect");
   if (wrap && !wrap.contains(e.target)) toggleTrimMenu(false);
+});
+
+document.addEventListener("click", function(e) {
+  if (e.target.closest(".doc-menu")) return;
+  document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
+    pop.classList.remove("open");
+  });
 });
 
 document.querySelectorAll(".workspace-tab").forEach(function(tab) {
