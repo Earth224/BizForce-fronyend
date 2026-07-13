@@ -31,6 +31,14 @@
     .documents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
     .doc-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;transition:all .25s;position:relative;cursor:pointer}
     .doc-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .doc-thumb{width:100%;height:150px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,.25);display:flex;align-items:flex-start;justify-content:center;padding:12px;margin-bottom:14px;border:1px solid rgba(255,255,255,.06)}
+    .doc-thumb-page{background:#ffffff;color:#1a1a1a;width:100%;max-width:120px;height:100%;border-radius:3px;box-shadow:0 4px 14px rgba(0,0,0,.4);padding:10px 9px;overflow:hidden;font-size:5px;line-height:1.5}
+    .doc-thumb-title{text-align:center;font-size:6px;font-weight:700;color:#111;margin-bottom:3px}
+    .doc-thumb-rule{border-top:1px solid #ddd;margin-bottom:4px}
+    .doc-thumb-field{margin-bottom:3px}
+    .doc-thumb-label{font-size:4.5px;font-weight:700;color:#333}
+    .doc-thumb-value{font-size:4.5px;color:#555}
+    .doc-thumb-value-empty{width:70%;height:3px;background:#e5e5e5;border-radius:2px;margin-top:1px}
     .doc-template-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8}
     .doc-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
     .doc-party{font-size:.84rem;color:#8892b8;margin:0}
@@ -453,11 +461,36 @@ function renderGrid() {
   grid.innerHTML = items.map(function(d) { return renderCard(d); }).join("");
 }
 
+function buildDocThumb(d) {
+  var tmpl = getTemplate(d.template_type);
+  var fieldLines = "";
+  if (tmpl && tmpl.fields && tmpl.fields.length) {
+    fieldLines = tmpl.fields.slice(0, 6).map(function(f) {
+      var val = (d.fields && d.fields[f.key]) || "";
+      var valueHtml = val
+        ? '<div class="doc-thumb-value">' + escapeHtml(val) + '</div>'
+        : '<div class="doc-thumb-value-empty"></div>';
+      return '<div class="doc-thumb-field">' +
+        '<div class="doc-thumb-label">' + escapeHtml(f.label) + '</div>' +
+        valueHtml +
+      '</div>';
+    }).join("");
+  }
+  return '<div class="doc-thumb">' +
+    '<div class="doc-thumb-page">' +
+      '<div class="doc-thumb-title">' + escapeHtml(d.title) + '</div>' +
+      '<div class="doc-thumb-rule"></div>' +
+      fieldLines +
+    '</div>' +
+  '</div>';
+}
+
 function renderCard(d) {
   var tmpl = getTemplate(d.template_type);
   var date = new Date(d.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
   var status = d.status || "draft";
   return '<div class="doc-card" onclick="openDocumentDetail(\'' + d.id + '\')">' +
+    buildDocThumb(d) +
     '<div class="doc-template-label">' + escapeHtml(tmpl ? tmpl.name : d.template_type) + '</div>' +
     '<h3 class="doc-title">' + escapeHtml(d.title) + '</h3>' +
     (d.party_name ? '<p class="doc-party">' + escapeHtml(d.party_name) + '</p>' : '') +
