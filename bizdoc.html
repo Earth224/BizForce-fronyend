@@ -718,6 +718,7 @@ function renderBookCard(b) {
     '</div>' +
     '<div class="ebook-book-footer">' +
       '<button class="ebook-download-btn" onclick="downloadBook(\'' + b.id + '\')">Download</button>' +
+      '<button class="ebook-download-btn" onclick="downloadBookEpub(\'' + b.id + '\')">Download EPUB</button>' +
     '</div>' +
   '</div>';
 }
@@ -761,6 +762,18 @@ async function generateBook() {
 async function downloadBook(bookId) {
   try {
     var res = await fetch(API_URL + "/api/bizbook/books/" + bookId + "/download", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { var e = await res.json().catch(function() { return {}; }); showToast(e.error || "Unable to download book", "error"); return; }
+    var d = await res.json();
+    if (d.url) { window.open(d.url, "_blank"); }
+    else { showToast("Download link unavailable", "error"); }
+  } catch (e) {
+    showToast("Unable to download book", "error");
+  }
+}
+
+async function downloadBookEpub(bookId) {
+  try {
+    var res = await fetch(API_URL + "/api/bizbook/books/" + bookId + "/download?format=epub", { headers: { "Authorization": "Bearer " + token } });
     if (!res.ok) { var e = await res.json().catch(function() { return {}; }); showToast(e.error || "Unable to download book", "error"); return; }
     var d = await res.json();
     if (d.url) { window.open(d.url, "_blank"); }
