@@ -2844,7 +2844,16 @@ function openCoverDesigner(bookId) {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
-  coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: [] };
+  if (book.cover_design && typeof book.cover_design === "object" && (book.cover_design.bgColor || book.cover_design.textLayers)) {
+    var loadedDesign = JSON.parse(JSON.stringify(book.cover_design));
+    coverDesign = {
+      bgColor: loadedDesign.bgColor || "#ffffff",
+      bgImage: loadedDesign.bgImage || null,
+      textLayers: loadedDesign.textLayers || []
+    };
+  } else {
+    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: [] };
+  }
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
@@ -2852,8 +2861,8 @@ function openCoverDesigner(bookId) {
   coverDirty = false;
   clearTimeout(coverUndoDebounceTimer);
   coverUndoDebounceTimer = null;
-  document.getElementById("coverBgColorBar").style.background = "#ffffff";
-  document.getElementById("coverBgColorCustom").value = "#ffffff";
+  document.getElementById("coverBgColorBar").style.background = coverDesign.bgColor;
+  document.getElementById("coverBgColorCustom").value = coverDesign.bgColor;
   document.getElementById("coverBgImageInput").value = "";
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   document.getElementById("coverTextColorCustom").value = "#ffffff";
@@ -2869,6 +2878,19 @@ function openCoverDesigner(bookId) {
   fitCoverCanvas();
   renderCoverCanvas();
   initCoverUndo();
+
+  if (coverDesign.bgImage && typeof coverDesign.bgImage === "string" && coverDesign.bgImage.indexOf("blob:") !== 0 && coverDesign.bgImage.indexOf("http") !== 0) {
+    var loadBookId = bookId;
+    fetch(API_URL + "/api/bizbook/books/" + bookId + "/cover", { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(d) {
+        if (!d || !d.url) return;
+        if (coverBookId !== loadBookId) return;
+        coverBgDisplayUrl = d.url;
+        renderCoverCanvas();
+      })
+      .catch(function() {});
+  }
 }
 
 function closeCoverDesigner() {
