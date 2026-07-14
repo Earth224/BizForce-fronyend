@@ -184,7 +184,7 @@
     .trim-menu::-webkit-scrollbar-track{background:rgba(8,12,24,.4);border-radius:8px;margin:6px 0}
     .trim-menu::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(34,211,238,.5),rgba(168,85,247,.5));border-radius:8px}
     .trim-menu::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(34,211,238,.7),rgba(168,85,247,.7))}
-    @media(max-width:900px){.ebook-columns{flex-direction:column}.ebook-create-card{flex:1 1 auto;width:100%}}
+    @media(max-width:900px){.ebook-columns{flex-direction:column}.ebook-create-card{flex:1 1 auto;width:100%}.editor-body{flex-direction:column}.editor-outline{flex:1 1 auto;width:100%;position:static;max-height:none}}
     @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}.documents-grid{justify-content:center}}
     /* Workspace tabs */
     .workspace-tabs{display:inline-flex;gap:4px;padding:5px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-bottom:32px}
@@ -214,6 +214,17 @@
     .etb-italic{font-style:italic}
     .etb-underline{text-decoration:underline}
     .etb-div{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
+    .etb-chapter{font-size:.8rem;white-space:nowrap;color:#34d399}
+    .etb-chapter:hover{background:rgba(52,211,153,.14);color:#34d399}
+    .editor-wordcount{color:#8892b8;font-size:.78rem;white-space:nowrap}
+    .editor-body{display:flex;gap:24px;align-items:flex-start}
+    .editor-outline{flex:0 0 200px;position:sticky;top:16px;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:70vh;overflow-y:auto}
+    .editor-outline-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .editor-outline-list{display:flex;flex-direction:column;gap:2px}
+    .editor-outline-item{text-align:left;background:none;border:none;color:#e6edf3;font-family:inherit;font-size:.82rem;padding:7px 9px;border-radius:6px;cursor:pointer;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s}
+    .editor-outline-item:hover{background:rgba(34,211,238,.12);color:#22d3ee}
+    .editor-outline-empty{color:#8892b8;font-size:.78rem;line-height:1.5}
+    .editor-canvas-wrap{flex:1 1 auto;min-width:0}
   </style>
 </head>
 <body>
@@ -361,9 +372,12 @@
       <div class="editor-bar">
         <button class="editor-back" onclick="closeEditor()">← Back to books</button>
         <span class="editor-title-label" id="editorBookTitle"></span>
+        <span class="editor-wordcount" id="editorWordCount"></span>
         <button class="editor-save-btn" id="editorSaveBtn" onclick="saveEditor()">Save</button>
       </div>
       <div class="editor-toolbar">
+        <button type="button" class="etb etb-chapter" title="Insert Chapter" onmousedown="event.preventDefault()" onclick="insertChapter()">+ Chapter</button>
+        <span class="etb-div"></span>
         <button type="button" class="etb" title="Bold" onmousedown="event.preventDefault()" onclick="editorCmd('bold')">B</button>
         <button type="button" class="etb etb-italic" title="Italic" onmousedown="event.preventDefault()" onclick="editorCmd('italic')">I</button>
         <button type="button" class="etb etb-underline" title="Underline" onmousedown="event.preventDefault()" onclick="editorCmd('underline')">U</button>
@@ -380,7 +394,15 @@
         <button type="button" class="etb" title="Align center" onmousedown="event.preventDefault()" onclick="editorCmd('justifyCenter')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
         <button type="button" class="etb" title="Align right" onmousedown="event.preventDefault()" onclick="editorCmd('justifyRight')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
       </div>
-      <div class="editor-canvas" id="editorCanvas" contenteditable="true" spellcheck="true"></div>
+      <div class="editor-body">
+        <aside class="editor-outline">
+          <div class="editor-outline-head">Chapters</div>
+          <div class="editor-outline-list" id="editorOutline"></div>
+        </aside>
+        <div class="editor-canvas-wrap">
+          <div class="editor-canvas" id="editorCanvas" contenteditable="true" spellcheck="true"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1855,6 +1877,60 @@ function updateEditorPlaceholder() {
   canvas.classList.toggle("is-empty", !canvas.textContent.trim());
 }
 
+var chapterIdCounter = 0;
+
+function updateWordCount() {
+  var text = document.getElementById("editorCanvas").innerText;
+  var words = text.split(/\s+/).filter(function(w) { return w.length > 0; });
+  var count = words.length;
+  document.getElementById("editorWordCount").textContent = count.toLocaleString() + (count === 1 ? " word" : " words");
+}
+
+function renderOutline() {
+  var canvas = document.getElementById("editorCanvas");
+  var heads = canvas.querySelectorAll("h1");
+  var list = document.getElementById("editorOutline");
+  if (!heads.length) {
+    list.innerHTML = '<div class="editor-outline-empty">No chapters yet. Use Insert Chapter or the H1 button.</div>';
+    return;
+  }
+  var html = "";
+  heads.forEach(function(h) {
+    if (!h.id) { h.id = "ch-" + (++chapterIdCounter); }
+    var label = h.textContent.trim() || "Untitled chapter";
+    html += '<button class="editor-outline-item" onclick="jumpToChapter(\'' + h.id + '\')">' + escapeHtml(label) + '</button>';
+  });
+  list.innerHTML = html;
+}
+
+function jumpToChapter(id) {
+  var el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function insertChapter() {
+  var canvas = document.getElementById("editorCanvas");
+  var sel = window.getSelection();
+  var caretInCanvas = !!(sel && sel.anchorNode && canvas.contains(sel.anchorNode));
+  if (caretInCanvas) {
+    canvas.focus();
+    document.execCommand("formatBlock", false, "h1");
+  } else {
+    var h1 = document.createElement("h1");
+    h1.textContent = "New Chapter";
+    canvas.appendChild(h1);
+    canvas.focus();
+    var range = document.createRange();
+    range.selectNodeContents(h1);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  renderOutline();
+  updateEditorPlaceholder();
+  updateWordCount();
+}
+
 function openEditor(id) {
   var book = null;
   for (var i = 0; i < allBooks.length; i++) {
@@ -1865,6 +1941,8 @@ function openEditor(id) {
   document.getElementById("editorBookTitle").textContent = "Editing: " + book.title;
   document.getElementById("editorCanvas").innerHTML = book.content || "";
   updateEditorPlaceholder();
+  renderOutline();
+  updateWordCount();
   document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
   document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
   document.getElementById("paneEditor").classList.add("active");
@@ -1975,7 +2053,11 @@ document.getElementById("coverChangeInput").addEventListener("change", async fun
   }
 });
 
-document.getElementById("editorCanvas").addEventListener("input", updateEditorPlaceholder);
+document.getElementById("editorCanvas").addEventListener("input", function() {
+  updateEditorPlaceholder();
+  updateWordCount();
+  renderOutline();
+});
 
 document.getElementById("trimTrigger").addEventListener("click", function(e) {
   e.stopPropagation();
