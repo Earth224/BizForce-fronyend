@@ -305,7 +305,7 @@
   <div class="newdoc-strip">
     <div class="newdoc-strip-head">Start a new document</div>
     <div class="newdoc-row">
-      <button class="newdoc-tile newdoc-tile-new" onclick="openCreateModal()">
+      <button class="newdoc-tile newdoc-tile-new" onclick="openBlankDocEditor()">
         <div class="newdoc-plus"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
         <div class="newdoc-tile-label">Blank Document</div>
       </button>
@@ -1268,7 +1268,8 @@ var allBooks = [];
 var currentManuscriptFile = null;
 var currentCoverFile = null;
 var coverChangeTargetId = null;
-var currentEditorBookId = null;
+var editorDocId = null;
+var editorMode = "book";
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2289,7 +2290,8 @@ function openEditor(id) {
     if (allBooks[i].id === id) { book = allBooks[i]; break; }
   }
   if (!book) return;
-  currentEditorBookId = id;
+  editorMode = "book";
+  editorDocId = id;
   document.getElementById("editorBookTitle").textContent = "Editing: " + book.title;
   document.getElementById("editorCanvas").innerHTML = book.content || "";
   var savedTheme = "dark";
@@ -2304,22 +2306,64 @@ function openEditor(id) {
   window.scrollTo(0, 0);
 }
 
+async function openBlankDocEditor() {
+  try {
+    var res = await fetch(API_URL + "/api/bizdoc/documents", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Untitled Document", template_type: "blank", content: "" })
+    });
+    if (!res.ok) { var e = await res.json().catch(function() { return {}; }); throw new Error(e.error || "Couldn't create document"); }
+    var d = await res.json();
+    var doc = d.document;
+    if (!doc || !doc.id) throw new Error("Couldn't create document");
+
+    editorMode = "bizdoc";
+    editorDocId = doc.id;
+    document.getElementById("editorBookTitle").textContent = "Editing: " + doc.title;
+    document.getElementById("editorCanvas").innerHTML = "";
+    var savedTheme = "dark";
+    try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e2) {}
+    setEditorTheme(savedTheme);
+    updateEditorPlaceholder();
+    renderOutline();
+    updateWordCount();
+    document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
+    document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
+    document.getElementById("paneEditor").classList.add("active");
+    window.scrollTo(0, 0);
+  } catch (e) {
+    showToast(e.message || "Couldn't create document", "error");
+  }
+}
+
 function closeEditor() {
   document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
-  document.getElementById("paneEbook").classList.add("active");
-  var ebookTab = document.querySelector('.workspace-tab[data-pane="ebook"]');
-  if (ebookTab) ebookTab.classList.add("active");
-  currentEditorBookId = null;
-  loadMyBooks();
+  if (editorMode === "bizdoc") {
+    document.getElementById("paneDocuments").classList.add("active");
+    var docsTab = document.querySelector('.workspace-tab[data-pane="documents"]');
+    if (docsTab) docsTab.classList.add("active");
+    loadDocuments();
+  } else {
+    document.getElementById("paneEbook").classList.add("active");
+    var ebookTab = document.querySelector('.workspace-tab[data-pane="ebook"]');
+    if (ebookTab) ebookTab.classList.add("active");
+    loadMyBooks();
+  }
+  editorDocId = null;
+  editorMode = "book";
 }
 
 async function saveEditor() {
-  if (!currentEditorBookId) return;
+  if (!editorDocId) return;
   var content = document.getElementById("editorCanvas").innerHTML;
   var btn = document.getElementById("editorSaveBtn");
   btn.disabled = true;
   try {
-    var res = await fetch(API_URL + "/api/bizbook/books/" + currentEditorBookId, {
+    var url = editorMode === "bizdoc"
+      ? API_URL + "/api/bizdoc/documents/" + editorDocId
+      : API_URL + "/api/bizbook/books/" + editorDocId;
+    var res = await fetch(url, {
       method: "PUT",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify({ content: content })
