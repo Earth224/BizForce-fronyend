@@ -3376,6 +3376,7 @@ async function saveCoverDesign() {
     btn.textContent = "Saving…";
   }
   try {
+    var bgUploadedThisSave = false;
     if (coverBgFile) {
       var formData = new FormData();
       formData.append("cover", coverBgFile);
@@ -3396,6 +3397,7 @@ async function saveCoverDesign() {
       }
       coverDesign.bgImage = uploadData.cover_path;
       coverBgFile = null;
+      bgUploadedThisSave = true;
     }
 
     var saveRes = await fetch(API_URL + "/api/bizbook/books/" + coverBookId + "/cover-design", {
@@ -3406,6 +3408,15 @@ async function saveCoverDesign() {
     if (saveRes.ok) {
       showToast("Cover saved", "success");
       coverDirty = false;
+      for (var i = 0; i < allBooks.length; i++) {
+        if (allBooks[i].id === coverBookId) {
+          allBooks[i].cover_design = JSON.parse(JSON.stringify(coverDesign));
+          if (bgUploadedThisSave) {
+            allBooks[i].cover_path = coverDesign.bgImage;
+          }
+          break;
+        }
+      }
     } else {
       var saveErr = await saveRes.json().catch(function() { return {}; });
       showToast(saveErr.error || "Failed to save cover design", "error");
