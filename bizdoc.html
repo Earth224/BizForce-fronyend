@@ -2337,6 +2337,53 @@ function editorFormatBlock(tag) {
   document.getElementById("editorCanvas").focus();
 }
 
+function sanitizePastedHtml(html) {
+  var container = document.createElement("div");
+  container.innerHTML = html;
+
+  ["script", "style", "meta", "link", "title"].forEach(function(tag) {
+    container.querySelectorAll(tag).forEach(function(el) { el.remove(); });
+  });
+  container.querySelectorAll("*").forEach(function(el) {
+    if (el.tagName.indexOf(":") !== -1) el.remove();
+  });
+
+  var PASTE_WHITELIST = ["P","BR","H1","H2","H3","STRONG","B","EM","I","U","UL","OL","LI","BLOCKQUOTE","A"];
+
+  function unwrapEl(el) {
+    var parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) { parent.insertBefore(el.firstChild, el); }
+    parent.removeChild(el);
+  }
+
+  function sanitizeNode(node) {
+    var child = node.firstChild;
+    while (child) {
+      var next = child.nextSibling;
+      if (child.nodeType === 1) sanitizeNode(child);
+      child = next;
+    }
+    var tag = node.tagName;
+    if (PASTE_WHITELIST.indexOf(tag) === -1) {
+      unwrapEl(node);
+      return;
+    }
+    var href = (tag === "A") ? node.getAttribute("href") : null;
+    var attrs = Array.prototype.slice.call(node.attributes);
+    attrs.forEach(function(a) { node.removeAttribute(a.name); });
+    if (tag === "A" && href && href.trim().toLowerCase().indexOf("javascript:") !== 0) {
+      node.setAttribute("href", href);
+    }
+  }
+
+  Array.prototype.slice.call(container.childNodes).forEach(function(n) {
+    if (n.nodeType === 1) sanitizeNode(n);
+  });
+
+  return container.innerHTML;
+}
+
 function updateEditorPlaceholder() {
   var canvas = document.getElementById("editorCanvas");
   canvas.classList.toggle("is-empty", !canvas.textContent.trim());
@@ -2733,6 +2780,23 @@ document.getElementById("editorCanvas").addEventListener("keydown", function(e) 
   } else if (key === "u") {
     e.preventDefault();
     editorCmd("underline");
+  }
+});
+
+document.getElementById("editorCanvas").addEventListener("paste", function(e) {
+  e.preventDefault();
+  var cd = e.clipboardData || window.clipboardData;
+  var plain = cd ? (cd.getData("text/plain") || "") : "";
+  try {
+    var html = cd ? cd.getData("text/html") : "";
+    if (!html) {
+      document.execCommand("insertText", false, plain);
+      return;
+    }
+    var cleanHtml = sanitizePastedHtml(html);
+    document.execCommand("insertHTML", false, cleanHtml);
+  } catch (err) {
+    document.execCommand("insertText", false, plain);
   }
 });
 
