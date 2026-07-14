@@ -2175,6 +2175,7 @@ function applyFontSizePx(px) {
     while (f.firstChild) span.appendChild(f.firstChild);
     f.parentNode.replaceChild(span, f);
   });
+  if (!isRestoringEditor) recordEditorUndo();
 }
 
 function pickFontSize(event, px) {
@@ -2537,6 +2538,7 @@ function deleteChapter(event, id) {
   renderOutline();
   updateWordCount();
   updateEditorPlaceholder();
+  if (!isRestoringEditor) recordEditorUndo();
 }
 
 function jumpToChapter(id) {
@@ -2565,6 +2567,7 @@ function insertChapter() {
   renderOutline();
   updateEditorPlaceholder();
   updateWordCount();
+  if (!isRestoringEditor) recordEditorUndo();
 }
 
 function openEditor(id) {
