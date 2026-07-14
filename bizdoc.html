@@ -2515,7 +2515,17 @@ function recordEditorUndo() {
   editorCurrentState = captureEditorSnapshot();
 }
 
+function flushPendingUndoCapture() {
+  if (isRestoringEditor) return;
+  if (editorUndoDebounceTimer) {
+    clearTimeout(editorUndoDebounceTimer);
+    editorUndoDebounceTimer = null;
+    recordEditorUndo();
+  }
+}
+
 function editorUndo() {
+  flushPendingUndoCapture();
   if (!editorUndoStack.length) return;
   editorRedoStack.push(editorCurrentState);
   editorCurrentState = editorUndoStack.pop();
@@ -2523,6 +2533,7 @@ function editorUndo() {
 }
 
 function editorRedo() {
+  flushPendingUndoCapture();
   if (!editorRedoStack.length) return;
   editorUndoStack.push(editorCurrentState);
   editorCurrentState = editorRedoStack.pop();
