@@ -1268,6 +1268,7 @@ var currentCoverFile = null;
 var coverChangeTargetId = null;
 var editorDocId = null;
 var editorMode = "book";
+var editorDirty = false;
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2427,35 +2428,22 @@ function openEditor(id) {
   window.scrollTo(0, 0);
 }
 
-async function openBlankDocEditor() {
-  try {
-    var res = await fetch(API_URL + "/api/bizdoc/documents", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Untitled Document", template_type: "blank", content: "" })
-    });
-    if (!res.ok) { var e = await res.json().catch(function() { return {}; }); throw new Error(e.error || "Couldn't create document"); }
-    var d = await res.json();
-    var doc = d.document;
-    if (!doc || !doc.id) throw new Error("Couldn't create document");
-
-    editorMode = "bizdoc";
-    editorDocId = doc.id;
-    document.getElementById("editorBookTitle").textContent = "Editing: " + doc.title;
-    document.getElementById("editorCanvas").innerHTML = "";
-    var savedTheme = "dark";
-    try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e2) {}
-    setEditorTheme(savedTheme);
-    updateEditorPlaceholder();
-    renderOutline();
-    updateWordCount();
-    document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
-    document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
-    document.getElementById("paneEditor").classList.add("active");
-    window.scrollTo(0, 0);
-  } catch (e) {
-    showToast(e.message || "Couldn't create document", "error");
-  }
+function openBlankDocEditor() {
+  editorMode = "bizdoc";
+  editorDocId = null;
+  editorDirty = false;
+  document.getElementById("editorBookTitle").textContent = "Editing: Untitled Document";
+  document.getElementById("editorCanvas").innerHTML = "";
+  var savedTheme = "dark";
+  try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e) {}
+  setEditorTheme(savedTheme);
+  updateEditorPlaceholder();
+  renderOutline();
+  updateWordCount();
+  document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
+  document.getElementById("paneEditor").classList.add("active");
+  window.scrollTo(0, 0);
 }
 
 function closeEditor() {
@@ -2473,29 +2461,51 @@ function closeEditor() {
   }
   editorDocId = null;
   editorMode = "book";
+  editorDirty = false;
 }
 
 async function saveEditor() {
-  if (!editorDocId) return;
   var content = document.getElementById("editorCanvas").innerHTML;
   var btn = document.getElementById("editorSaveBtn");
+  var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
+
+  if (isNewBizdoc) {
+    if (!document.getElementById("editorCanvas").innerText.trim()) return;
+  } else if (!editorDocId) {
+    return;
+  }
+
   btn.disabled = true;
   try {
-    var url = editorMode === "bizdoc"
-      ? API_URL + "/api/bizdoc/documents/" + editorDocId
-      : API_URL + "/api/bizbook/books/" + editorDocId;
-    var res = await fetch(url, {
-      method: "PUT",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ content: content })
-    });
+    var res;
+    if (isNewBizdoc) {
+      res = await fetch(API_URL + "/api/bizdoc/documents", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Untitled Document", template_type: "blank", content: content })
+      });
+    } else {
+      var url = editorMode === "bizdoc"
+        ? API_URL + "/api/bizdoc/documents/" + editorDocId
+        : API_URL + "/api/bizbook/books/" + editorDocId;
+      res = await fetch(url, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ content: content })
+      });
+    }
     if (res.ok) {
+      if (isNewBizdoc) {
+        var d = await res.json();
+        if (d.document && d.document.id) editorDocId = d.document.id;
+      }
       showToast("Saved", "success");
+      editorDirty = false;
     } else {
       var e = await res.json().catch(function() { return {}; });
       showToast(e.error || "Couldn't save", "error");
     }
-  } catch (e) {
+  } catch (e2) {
     showToast("Couldn't save", "error");
   } finally {
     btn.disabled = false;
@@ -2574,6 +2584,7 @@ document.getElementById("coverChangeInput").addEventListener("change", async fun
 });
 
 document.getElementById("editorCanvas").addEventListener("input", function() {
+  editorDirty = true;
   updateEditorPlaceholder();
   updateWordCount();
   renderOutline();
