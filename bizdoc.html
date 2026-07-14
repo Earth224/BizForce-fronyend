@@ -276,6 +276,9 @@
     .editor-color-custom-label{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8}
     .editor-color-custom-row input[type="color"]{width:28px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.15);padding:0;cursor:pointer;background:none}
     .editor-wordcount{color:#8892b8;font-size:.78rem;white-space:nowrap}
+    .editor-autosave{color:#8892b8;font-size:.75rem;white-space:nowrap;transition:color .3s}
+    .editor-autosave.saved{color:#34d399}
+    .editor-autosave.failed{color:#f87171}
     .editor-body{display:flex;gap:24px;align-items:flex-start}
     .editor-outline{flex:0 0 200px;position:sticky;top:16px;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:70vh;overflow-y:auto}
     .editor-outline-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
@@ -436,6 +439,7 @@
         <button class="editor-back" onclick="closeEditor()">← Back to books</button>
         <span class="editor-title-label" id="editorBookTitle"></span>
         <span class="editor-wordcount" id="editorWordCount"></span>
+        <span class="editor-autosave" id="editorAutosave"></span>
         <div class="editor-dd" id="themeDD">
           <button type="button" class="etb editor-dd-trigger" title="Page Theme" onclick="toggleThemeMenu(event)">
             <span id="themeTriggerLabel">Page</span>
@@ -1269,6 +1273,8 @@ var coverChangeTargetId = null;
 var editorDocId = null;
 var editorMode = "book";
 var editorDirty = false;
+var autosaveTimer = null;
+var autosaveInFlight = false;
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2412,8 +2418,12 @@ function openEditor(id) {
     if (allBooks[i].id === id) { book = allBooks[i]; break; }
   }
   if (!book) return;
+  clearTimeout(autosaveTimer);
+  autosaveInFlight = false;
   editorMode = "book";
   editorDocId = id;
+  editorDirty = false;
+  setAutosaveStatus("");
   document.getElementById("editorBookTitle").textContent = "Editing: " + book.title;
   document.getElementById("editorCanvas").innerHTML = book.content || "";
   var savedTheme = "dark";
@@ -2429,9 +2439,12 @@ function openEditor(id) {
 }
 
 function openBlankDocEditor() {
+  clearTimeout(autosaveTimer);
+  autosaveInFlight = false;
   editorMode = "bizdoc";
   editorDocId = null;
   editorDirty = false;
+  setAutosaveStatus("");
   document.getElementById("editorBookTitle").textContent = "Editing: Untitled Document";
   document.getElementById("editorCanvas").innerHTML = "";
   var savedTheme = "dark";
@@ -2447,6 +2460,14 @@ function openBlankDocEditor() {
 }
 
 function closeEditor() {
+  clearTimeout(autosaveTimer);
+  if (editorDirty) {
+    var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
+    var hasContent = document.getElementById("editorCanvas").innerText.trim() !== "";
+    if (!isNewBizdoc || hasContent) {
+      performSave({ silent: true });
+    }
+  }
   document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
   if (editorMode === "bizdoc") {
     document.getElementById("paneDocuments").classList.add("active");
@@ -2464,18 +2485,26 @@ function closeEditor() {
   editorDirty = false;
 }
 
-async function saveEditor() {
+function setAutosaveStatus(text) {
+  var el = document.getElementById("editorAutosave");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("saved", "failed");
+  if (text === "Saved") el.classList.add("saved");
+  else if (text === "Save failed") el.classList.add("failed");
+}
+
+async function performSave(opts) {
+  var silent = !!(opts && opts.silent);
   var content = document.getElementById("editorCanvas").innerHTML;
-  var btn = document.getElementById("editorSaveBtn");
   var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
 
   if (isNewBizdoc) {
-    if (!document.getElementById("editorCanvas").innerText.trim()) return;
+    if (!document.getElementById("editorCanvas").innerText.trim()) return { ok: false, skipped: true };
   } else if (!editorDocId) {
-    return;
+    return { ok: false, skipped: true };
   }
 
-  btn.disabled = true;
   try {
     var res;
     if (isNewBizdoc) {
@@ -2499,16 +2528,59 @@ async function saveEditor() {
         var d = await res.json();
         if (d.document && d.document.id) editorDocId = d.document.id;
       }
-      showToast("Saved", "success");
       editorDirty = false;
+      if (!silent) showToast("Saved", "success");
+      return { ok: true };
     } else {
       var e = await res.json().catch(function() { return {}; });
-      showToast(e.error || "Couldn't save", "error");
+      if (!silent) showToast(e.error || "Couldn't save", "error");
+      return { ok: false, error: e.error || "Couldn't save" };
     }
   } catch (e2) {
-    showToast("Couldn't save", "error");
-  } finally {
-    btn.disabled = false;
+    if (!silent) showToast("Couldn't save", "error");
+    return { ok: false, error: "Couldn't save" };
+  }
+}
+
+async function saveEditor() {
+  var btn = document.getElementById("editorSaveBtn");
+  clearTimeout(autosaveTimer);
+  btn.disabled = true;
+  setAutosaveStatus("Saving…");
+  var result = await performSave({ silent: false });
+  btn.disabled = false;
+  if (result.ok) {
+    setAutosaveStatus("Saved");
+    setTimeout(function() { setAutosaveStatus(""); }, 2000);
+  } else if (!result.skipped) {
+    setAutosaveStatus("Save failed");
+  } else {
+    setAutosaveStatus("");
+  }
+}
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(runAutosave, 2000);
+}
+
+async function runAutosave() {
+  if (!editorDirty) return;
+  if (autosaveInFlight) return;
+  var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
+  if (isNewBizdoc && !document.getElementById("editorCanvas").innerText.trim()) return;
+
+  autosaveInFlight = true;
+  setAutosaveStatus("Saving…");
+  var result = await performSave({ silent: true });
+  autosaveInFlight = false;
+  if (result.ok) {
+    setAutosaveStatus("Saved");
+    setTimeout(function() { setAutosaveStatus(""); }, 2000);
+  } else if (!result.skipped) {
+    setAutosaveStatus("Save failed");
+  } else {
+    setAutosaveStatus("");
   }
 }
 
@@ -2588,6 +2660,18 @@ document.getElementById("editorCanvas").addEventListener("input", function() {
   updateEditorPlaceholder();
   updateWordCount();
   renderOutline();
+  scheduleAutosave();
+});
+
+document.addEventListener("visibilitychange", function() {
+  if (document.visibilityState !== "hidden" || !editorDirty) return;
+  var paneEditor = document.getElementById("paneEditor");
+  if (!paneEditor || !paneEditor.classList.contains("active")) return;
+  var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
+  var hasContent = document.getElementById("editorCanvas").innerText.trim() !== "";
+  if (!isNewBizdoc || hasContent) {
+    performSave({ silent: true });
+  }
 });
 
 document.getElementById("trimTrigger").addEventListener("click", function(e) {
