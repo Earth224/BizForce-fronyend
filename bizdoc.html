@@ -6,6 +6,9 @@
   <title>BizForce AI — BizDoc</title>
   <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&family=EB+Garamond:wght@400;700&family=PT+Serif:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Crimson+Text:wght@400;700&family=Cormorant+Garamond:wght@400;700&family=Roboto+Slab:wght@400;700&family=Bitter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@400;700&family=Source+Sans+3:wght@400;700&family=Poppins:wght@400;700&family=Raleway:wght@400;700&family=Inter:wght@400;700&family=Work+Sans:wght@400;700&family=Roboto+Mono:wght@400;700&family=Source+Code+Pro:wght@400;700&display=swap"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
@@ -246,7 +249,7 @@
     .editor-dd{position:relative}
     .editor-dd-trigger{gap:6px;min-width:56px;padding:6px 10px}
     .editor-dd-caret{width:12px;height:12px;flex-shrink:0}
-    .editor-dd-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:rgba(10,15,35,.97);border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.5);min-width:140px;max-height:260px;overflow-y:auto;display:none;scrollbar-width:thin;scrollbar-color:rgba(110,150,220,.55) rgba(8,12,24,.4)}
+    .editor-dd-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:rgba(10,15,35,.97);border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.5);min-width:140px;max-height:320px;overflow-y:auto;display:none;scrollbar-width:thin;scrollbar-color:rgba(110,150,220,.55) rgba(8,12,24,.4)}
     .editor-dd-menu.open{display:block}
     .editor-dd-option{padding:8px 12px;color:#e6edf3;font-size:.82rem;cursor:pointer;transition:all .15s}
     .editor-dd-option:hover{background:rgba(34,211,238,.12);color:#22d3ee}
@@ -447,14 +450,7 @@
             <span id="fontFamilyLabel">Font</span>
             <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="editor-dd-menu" id="fontFamilyMenu">
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'serif')">Serif</div>
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'sans')">Sans</div>
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'book')">Book</div>
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'modern')">Modern</div>
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'mono')">Mono</div>
-            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'elegant')">Elegant</div>
-          </div>
+          <div class="editor-dd-menu" id="fontFamilyMenu"></div>
         </div>
         <span class="etb-div"></span>
         <div class="editor-dd" id="fontSizeDD">
@@ -1273,12 +1269,38 @@ var editorMode = "book";
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
-  { key: "serif", label: "Serif", stack: "Georgia, 'Times New Roman', serif" },
-  { key: "sans", label: "Sans", stack: "'Helvetica Neue', Arial, sans-serif" },
-  { key: "book", label: "Book", stack: "'Palatino Linotype', Palatino, Georgia, serif" },
-  { key: "modern", label: "Modern", stack: "'Segoe UI', Roboto, sans-serif" },
-  { key: "mono", label: "Mono", stack: "'Courier New', monospace" },
-  { key: "elegant", label: "Elegant", stack: "'Garamond', 'Times New Roman', serif" }
+  { key: "times", label: "Times New Roman", stack: "'Times New Roman', Times, serif" },
+  { key: "georgia", label: "Georgia", stack: "Georgia, serif" },
+  { key: "palatino", label: "Palatino", stack: "'Palatino Linotype', Palatino, serif" },
+  { key: "garamond", label: "Garamond", stack: "Garamond, serif" },
+  { key: "merriweather", label: "Merriweather", stack: "'Merriweather', serif" },
+  { key: "lora", label: "Lora", stack: "'Lora', serif" },
+  { key: "playfair", label: "Playfair Display", stack: "'Playfair Display', serif" },
+  { key: "eb_garamond", label: "EB Garamond", stack: "'EB Garamond', serif" },
+  { key: "pt_serif", label: "PT Serif", stack: "'PT Serif', serif" },
+  { key: "libre_baskerville", label: "Libre Baskerville", stack: "'Libre Baskerville', serif" },
+  { key: "crimson_text", label: "Crimson Text", stack: "'Crimson Text', serif" },
+  { key: "cormorant", label: "Cormorant Garamond", stack: "'Cormorant Garamond', serif" },
+  { key: "roboto_slab", label: "Roboto Slab", stack: "'Roboto Slab', serif" },
+  { key: "bitter", label: "Bitter", stack: "'Bitter', serif" },
+  { key: "arial", label: "Arial", stack: "Arial, sans-serif" },
+  { key: "helvetica", label: "Helvetica", stack: "'Helvetica Neue', Helvetica, Arial, sans-serif" },
+  { key: "verdana", label: "Verdana", stack: "Verdana, Geneva, sans-serif" },
+  { key: "trebuchet", label: "Trebuchet", stack: "'Trebuchet MS', sans-serif" },
+  { key: "tahoma", label: "Tahoma", stack: "Tahoma, sans-serif" },
+  { key: "roboto", label: "Roboto", stack: "'Roboto', sans-serif" },
+  { key: "open_sans", label: "Open Sans", stack: "'Open Sans', sans-serif" },
+  { key: "lato", label: "Lato", stack: "'Lato', sans-serif" },
+  { key: "montserrat", label: "Montserrat", stack: "'Montserrat', sans-serif" },
+  { key: "nunito", label: "Nunito", stack: "'Nunito', sans-serif" },
+  { key: "source_sans", label: "Source Sans 3", stack: "'Source Sans 3', sans-serif" },
+  { key: "poppins", label: "Poppins", stack: "'Poppins', sans-serif" },
+  { key: "raleway", label: "Raleway", stack: "'Raleway', sans-serif" },
+  { key: "inter", label: "Inter", stack: "'Inter', sans-serif" },
+  { key: "work_sans", label: "Work Sans", stack: "'Work Sans', sans-serif" },
+  { key: "courier", label: "Courier New", stack: "'Courier New', Courier, monospace" },
+  { key: "roboto_mono", label: "Roboto Mono", stack: "'Roboto Mono', monospace" },
+  { key: "source_code_pro", label: "Source Code Pro", stack: "'Source Code Pro', monospace" }
 ];
 
 var THEMES = {
@@ -2068,6 +2090,13 @@ function closeEditorDropdowns() {
   document.querySelectorAll(".editor-dd-menu.open").forEach(function(m) { m.classList.remove("open"); });
 }
 
+function renderFontFamilyMenu() {
+  var menu = document.getElementById("fontFamilyMenu");
+  menu.innerHTML = EDITOR_FONTS.map(function(f) {
+    return '<div class="editor-dd-option" style="font-family:' + f.stack + '" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,\'' + f.key + '\')">' + escapeHtml(f.label) + '</div>';
+  }).join("");
+}
+
 function toggleFontFamilyMenu(event) {
   event.stopPropagation();
   var menu = document.getElementById("fontFamilyMenu");
@@ -2497,6 +2526,7 @@ document.querySelectorAll(".workspace-tab").forEach(function(tab) {
 });
 
 renderNewdocThumbs();
+renderFontFamilyMenu();
 loadDocuments();
 loadMyBooks();
 </script>
