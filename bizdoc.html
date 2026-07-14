@@ -1819,13 +1819,51 @@ async function openPrintView(documentId) {
   }
 }
 
+function closeDocMenuPop(pop) {
+  pop.classList.remove("open");
+  pop.style.position = "";
+  pop.style.top = "";
+  pop.style.left = "";
+  pop.style.right = "";
+}
+
+function positionDocMenuPop(btn, pop) {
+  var margin = 8;
+  var btnRect = btn.getBoundingClientRect();
+  var menuHeight = pop.offsetHeight;
+  var menuWidth = pop.offsetWidth;
+
+  var spaceBelow = window.innerHeight - btnRect.bottom;
+  var top;
+  if (spaceBelow < menuHeight + margin) {
+    top = btnRect.top - menuHeight - 6;
+  } else {
+    top = btnRect.bottom + 6;
+  }
+  top = Math.max(margin, Math.min(top, window.innerHeight - menuHeight - margin));
+
+  var left = btnRect.right - menuWidth;
+  left = Math.max(margin, Math.min(left, window.innerWidth - menuWidth - margin));
+
+  pop.style.position = "fixed";
+  pop.style.top = top + "px";
+  pop.style.left = left + "px";
+  pop.style.right = "auto";
+}
+
 function toggleDocMenu(event, id) {
   event.stopPropagation();
   var target = document.getElementById("docMenu-" + id);
   document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
-    if (pop !== target) pop.classList.remove("open");
+    if (pop !== target) closeDocMenuPop(pop);
   });
-  if (target) target.classList.toggle("open");
+  if (!target) return;
+  if (target.classList.contains("open")) {
+    closeDocMenuPop(target);
+  } else {
+    target.classList.add("open");
+    positionDocMenuPop(event.currentTarget, target);
+  }
 }
 
 function docMenuOpen(event, id) {
@@ -2945,12 +2983,24 @@ document.addEventListener("click", function(e) {
 document.addEventListener("click", function(e) {
   if (!e.target.closest(".doc-menu")) {
     document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
-      pop.classList.remove("open");
+      closeDocMenuPop(pop);
     });
   }
   if (!e.target.closest(".editor-dd")) {
     closeEditorDropdowns();
   }
+});
+
+window.addEventListener("scroll", function() {
+  document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
+    closeDocMenuPop(pop);
+  });
+}, true);
+
+window.addEventListener("resize", function() {
+  document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
+    closeDocMenuPop(pop);
+  });
 });
 
 document.querySelectorAll(".workspace-tab").forEach(function(tab) {
