@@ -242,7 +242,8 @@
     #editorCanvas.theme-night blockquote{color:#8892b8}
     #editorCanvas.theme-night.is-empty::before{color:#555}
     .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
-    .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;flex-shrink:0}
+    .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0}
+    .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
     .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
     .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
     .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
@@ -565,6 +566,25 @@
       <div class="editor-bar">
         <button class="editor-back" onclick="closeCoverDesigner()">← Back</button>
         <span class="editor-title-label" id="coverDesignerTitle"></span>
+      </div>
+      <div class="cover-toolbar">
+        <div class="editor-dd" id="coverBgColorDD">
+          <button type="button" class="etb editor-dd-trigger" title="Background Color" onclick="toggleCoverBgColorMenu(event)">
+            <span class="editor-color-glyph">BG<span class="editor-color-bar" id="coverBgColorBar" style="background:#ffffff"></span></span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu editor-color-menu" id="coverBgColorMenu">
+            <div id="coverBgColorPalette"></div>
+            <div class="editor-color-custom-row">
+              <span class="editor-color-custom-label">Custom</span>
+              <input type="color" id="coverBgColorCustom" value="#ffffff" onchange="pickCoverBgColorCustom()">
+            </div>
+          </div>
+        </div>
+        <span class="etb-div"></span>
+        <input type="file" id="coverBgImageInput" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <button type="button" class="etb" onclick="document.getElementById('coverBgImageInput').click()">Background Image</button>
+        <button type="button" class="etb" onclick="removeCoverBgImage()">Remove Image</button>
       </div>
       <div class="cover-stage">
         <div class="cover-canvas" id="coverCanvas"></div>
@@ -1304,6 +1324,8 @@ var isRestoringEditor = false;
 var editorUndoDebounceTimer = null;
 var coverBookId = null;
 var coverTrim = null;
+var coverDesign = null;
+var coverBgFile = null;
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2758,6 +2780,15 @@ function openCoverDesigner(bookId) {
 
   coverBookId = bookId;
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
+  if (coverDesign && coverDesign.bgImage) {
+    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  }
+  coverDesign = { bgColor: "#ffffff", bgImage: null };
+  coverBgFile = null;
+  document.getElementById("coverBgColorBar").style.background = "#ffffff";
+  document.getElementById("coverBgColorCustom").value = "#ffffff";
+  document.getElementById("coverBgImageInput").value = "";
+  document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
 
   document.getElementById("coverDesignerTitle").textContent = "Design Cover — " + book.title;
 
@@ -2767,6 +2798,7 @@ function openCoverDesigner(bookId) {
   window.scrollTo(0, 0);
 
   fitCoverCanvas();
+  renderCoverCanvas();
 }
 
 function closeCoverDesigner() {
@@ -2776,6 +2808,76 @@ function closeCoverDesigner() {
   if (ebookTab) ebookTab.classList.add("active");
   coverBookId = null;
   coverTrim = null;
+  coverBgFile = null;
+}
+
+function renderCoverCanvas() {
+  if (!coverDesign) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  canvas.style.backgroundColor = coverDesign.bgColor;
+  var img = document.getElementById("coverBgImageEl");
+  if (coverDesign.bgImage) {
+    if (!img) {
+      img = document.createElement("img");
+      img.id = "coverBgImageEl";
+      img.alt = "";
+      img.style.position = "absolute";
+      img.style.top = "0";
+      img.style.left = "0";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.zIndex = "0";
+      canvas.insertBefore(img, canvas.firstChild);
+    }
+    img.src = coverDesign.bgImage;
+    img.style.display = "block";
+  } else if (img) {
+    img.style.display = "none";
+  }
+}
+
+function renderCoverBgColorMenu() {
+  document.getElementById("coverBgColorPalette").innerHTML = buildColorGrid(COLOR_PALETTE, "pickCoverBgColor");
+}
+
+function toggleCoverBgColorMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("coverBgColorMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickCoverBgColor(event, color) {
+  if (!coverDesign) return;
+  coverDesign.bgColor = color;
+  document.getElementById("coverBgColorBar").style.background = color;
+  document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
+  if (event && event.target) event.target.classList.add("selected");
+  renderCoverCanvas();
+  closeEditorDropdowns();
+}
+
+function pickCoverBgColorCustom() {
+  if (!coverDesign) return;
+  var color = document.getElementById("coverBgColorCustom").value;
+  coverDesign.bgColor = color;
+  document.getElementById("coverBgColorBar").style.background = color;
+  renderCoverCanvas();
+  closeEditorDropdowns();
+}
+
+function removeCoverBgImage() {
+  if (!coverDesign) return;
+  if (coverDesign.bgImage) {
+    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  }
+  coverDesign.bgImage = null;
+  coverBgFile = null;
+  document.getElementById("coverBgImageInput").value = "";
+  renderCoverCanvas();
 }
 
 function setAutosaveStatus(text) {
@@ -2953,6 +3055,17 @@ document.getElementById("fBookCover").addEventListener("change", function() {
   document.getElementById("coverPreviewWrap").style.display = "block";
 });
 
+document.getElementById("coverBgImageInput").addEventListener("change", function() {
+  var file = (this.files && this.files[0]) ? this.files[0] : null;
+  if (!file || !coverDesign) return;
+  if (coverDesign.bgImage) {
+    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  }
+  coverBgFile = file;
+  coverDesign.bgImage = URL.createObjectURL(file);
+  renderCoverCanvas();
+});
+
 document.getElementById("coverRemoveBtn").addEventListener("click", function() {
   clearCoverPreview();
 });
@@ -3110,6 +3223,7 @@ renderFontFamilyMenu();
 loadRecentColors();
 renderTextColorMenu();
 renderHighlightMenu();
+renderCoverBgColorMenu();
 loadDocuments();
 loadMyBooks();
 </script>
