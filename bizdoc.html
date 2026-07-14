@@ -261,12 +261,20 @@
     .editor-color-glyph{position:relative;display:flex;flex-direction:column;align-items:center;line-height:1;font-weight:700}
     .editor-color-bar{width:16px;height:3px;border-radius:2px;margin-top:3px}
     .editor-swatch-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:10px}
-    .editor-swatch{width:22px;height:22px;border-radius:5px;cursor:pointer;border:1px solid rgba(255,255,255,.15);padding:0}
+    .editor-swatch{width:18px;height:18px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,255,255,.15);padding:0}
     .editor-swatch:hover{box-shadow:0 0 0 2px rgba(34,211,238,.5)}
     .editor-swatch.selected{box-shadow:0 0 0 2px rgba(34,211,238,.8)}
     .editor-swatch-none{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid rgba(255,255,255,.08);color:#e6edf3;font-family:inherit;font-size:.82rem;padding:8px 12px;cursor:pointer;transition:background .15s}
     .editor-swatch-none:hover{background:rgba(34,211,238,.12);color:#22d3ee}
     .editor-swatch-none.selected{background:rgba(34,211,238,.12);color:#22d3ee}
+    .editor-color-menu{min-width:240px}
+    .editor-color-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:8px}
+    .editor-color-recent-wrap{border-bottom:1px solid rgba(255,255,255,.08)}
+    .editor-color-recent-label{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;padding:8px 8px 0}
+    .editor-color-recent{display:flex;gap:4px;padding:6px 8px;flex-wrap:wrap;min-height:0}
+    .editor-color-custom-row{display:flex;align-items:center;gap:8px;padding:8px;border-top:1px solid rgba(255,255,255,.08)}
+    .editor-color-custom-label{font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8892b8}
+    .editor-color-custom-row input[type="color"]{width:28px;height:24px;border-radius:5px;border:1px solid rgba(255,255,255,.15);padding:0;cursor:pointer;background:none}
     .editor-wordcount{color:#8892b8;font-size:.78rem;white-space:nowrap}
     .editor-body{display:flex;gap:24px;align-items:flex-start}
     .editor-outline{flex:0 0 200px;position:sticky;top:16px;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:70vh;overflow-y:auto}
@@ -477,20 +485,15 @@
             <span class="editor-color-glyph">A<span class="editor-color-bar" id="textColorBar" style="background:#e6edf3"></span></span>
             <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="editor-dd-menu" id="textColorMenu">
-            <div class="editor-swatch-grid">
-              <button type="button" class="editor-swatch" style="background:#e6edf3" title="Default" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#e6edf3')"></button>
-              <button type="button" class="editor-swatch" style="background:#ffffff" title="White" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#ffffff')"></button>
-              <button type="button" class="editor-swatch" style="background:#1a1a1a" title="Near-black" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#1a1a1a')"></button>
-              <button type="button" class="editor-swatch" style="background:#22d3ee" title="Cyan" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#22d3ee')"></button>
-              <button type="button" class="editor-swatch" style="background:#34d399" title="Emerald" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#34d399')"></button>
-              <button type="button" class="editor-swatch" style="background:#fbbf24" title="Gold" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#fbbf24')"></button>
-              <button type="button" class="editor-swatch" style="background:#a855f7" title="Purple" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#a855f7')"></button>
-              <button type="button" class="editor-swatch" style="background:#f87171" title="Red" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#f87171')"></button>
-              <button type="button" class="editor-swatch" style="background:#60a5fa" title="Blue" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#60a5fa')"></button>
-              <button type="button" class="editor-swatch" style="background:#f472b6" title="Pink" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#f472b6')"></button>
-              <button type="button" class="editor-swatch" style="background:#4ade80" title="Green" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#4ade80')"></button>
-              <button type="button" class="editor-swatch" style="background:#8892b8" title="Muted" onmousedown="event.preventDefault()" onclick="pickTextColor(event,'#8892b8')"></button>
+          <div class="editor-dd-menu editor-color-menu" id="textColorMenu">
+            <div class="editor-color-recent-wrap" id="textColorRecentWrap" style="display:none">
+              <div class="editor-color-recent-label">Recent</div>
+              <div class="editor-color-recent" id="textColorRecent"></div>
+            </div>
+            <div id="textColorPalette"></div>
+            <div class="editor-color-custom-row">
+              <span class="editor-color-custom-label">Custom</span>
+              <input type="color" id="textColorCustom" value="#e6edf3" onchange="pickTextColorCustom()">
             </div>
           </div>
         </div>
@@ -500,17 +503,16 @@
             <span class="editor-color-glyph">H<span class="editor-color-bar" id="highlightBar" style="background:#8892b8"></span></span>
             <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
-          <div class="editor-dd-menu" id="highlightMenu">
-            <button type="button" class="editor-swatch-none" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'transparent')">None</button>
-            <div class="editor-swatch-grid">
-              <button type="button" class="editor-swatch" style="background:#fef08a" title="Yellow" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#fef08a')"></button>
-              <button type="button" class="editor-swatch" style="background:#bbf7d0" title="Green" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#bbf7d0')"></button>
-              <button type="button" class="editor-swatch" style="background:#bfdbfe" title="Blue" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#bfdbfe')"></button>
-              <button type="button" class="editor-swatch" style="background:#fbcfe8" title="Pink" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#fbcfe8')"></button>
-              <button type="button" class="editor-swatch" style="background:#fed7aa" title="Orange" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#fed7aa')"></button>
-              <button type="button" class="editor-swatch" style="background:#e9d5ff" title="Purple" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#e9d5ff')"></button>
-              <button type="button" class="editor-swatch" style="background:#fecaca" title="Red-tint" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#fecaca')"></button>
-              <button type="button" class="editor-swatch" style="background:#a7f3d0" title="Mint" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'#a7f3d0')"></button>
+          <div class="editor-dd-menu editor-color-menu" id="highlightMenu">
+            <button type="button" class="editor-swatch-none" onmousedown="event.preventDefault()" onclick="pickHighlight(event,'transparent')">∅ None</button>
+            <div class="editor-color-recent-wrap" id="highlightRecentWrap" style="display:none">
+              <div class="editor-color-recent-label">Recent</div>
+              <div class="editor-color-recent" id="highlightRecent"></div>
+            </div>
+            <div id="highlightPalette"></div>
+            <div class="editor-color-custom-row">
+              <span class="editor-color-custom-label">Custom</span>
+              <input type="color" id="highlightCustom" value="#fef08a" onchange="pickHighlightCustom()">
             </div>
           </div>
         </div>
@@ -1311,6 +1313,21 @@ var THEMES = {
   green: "Soft Green",
   night: "Night"
 };
+
+var COLOR_PALETTE = [
+  ["#000000","#434343","#666666","#999999","#b7b7b7","#cccccc","#d9d9d9","#efefef","#f3f3f3","#ffffff"],
+  ["#5b0f0f","#990000","#cc0000","#e06666","#ea9999","#f4cccc"],
+  ["#5a3d0f","#b45f06","#e69138","#f6b26b","#f9cb9c","#fce5cd"],
+  ["#7f6000","#bf9000","#f1c232","#ffd966","#ffe599","#fff2cc"],
+  ["#274e13","#38761d","#6aa84f","#93c47d","#b6d7a8","#d9ead3"],
+  ["#0c343d","#134f5c","#45818e","#76a5af","#a2c4c9","#d0e0e3"],
+  ["#1c4587","#3d85c6","#6fa8dc","#9fc5e8","#cfe2f3","#eaf1f8"],
+  ["#20124d","#674ea7","#8e7cc3","#b4a7d6","#d9d2e9","#ead1dc"],
+  ["#4c1130","#a64d79","#c27ba0","#d5a6bd","#e6b8af","#f4cccc"]
+];
+
+var recentTextColors = [];
+var recentHighlights = [];
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -2166,13 +2183,73 @@ function toggleHighlightMenu(event) {
   if (!wasOpen) menu.classList.add("open");
 }
 
+function buildColorGrid(rows, pickFnName) {
+  return rows.map(function(row) {
+    return '<div class="editor-color-grid" style="grid-template-columns:repeat(' + row.length + ',1fr)">' +
+      row.map(function(c) {
+        return '<button type="button" class="editor-swatch" style="background:' + c + '" title="' + c + '" onmousedown="event.preventDefault()" onclick="' + pickFnName + '(event,\'' + c + '\')"></button>';
+      }).join("") +
+    '</div>';
+  }).join("");
+}
+
+function renderTextColorMenu() {
+  document.getElementById("textColorPalette").innerHTML = buildColorGrid(COLOR_PALETTE, "pickTextColor");
+  renderRecentColors("text");
+}
+
+function renderHighlightMenu() {
+  document.getElementById("highlightPalette").innerHTML = buildColorGrid(COLOR_PALETTE, "pickHighlight");
+  renderRecentColors("highlight");
+}
+
+function loadRecentColors() {
+  try { recentTextColors = JSON.parse(localStorage.getItem("bf_recent_textcolors") || "[]"); } catch (e) { recentTextColors = []; }
+  try { recentHighlights = JSON.parse(localStorage.getItem("bf_recent_highlights") || "[]"); } catch (e) { recentHighlights = []; }
+}
+
+function pushRecentColor(list, storageKey, color) {
+  var idx = list.indexOf(color);
+  if (idx !== -1) list.splice(idx, 1);
+  list.unshift(color);
+  if (list.length > 8) list.length = 8;
+  try { localStorage.setItem(storageKey, JSON.stringify(list)); } catch (e) {}
+}
+
+function renderRecentColors(which) {
+  var isHighlight = which === "highlight";
+  var list = isHighlight ? recentHighlights : recentTextColors;
+  var wrap = document.getElementById(isHighlight ? "highlightRecentWrap" : "textColorRecentWrap");
+  var row = document.getElementById(isHighlight ? "highlightRecent" : "textColorRecent");
+  if (!wrap || !row) return;
+  if (!list.length) { wrap.style.display = "none"; row.innerHTML = ""; return; }
+  wrap.style.display = "block";
+  var fn = isHighlight ? "pickHighlight" : "pickTextColor";
+  row.innerHTML = list.map(function(c) {
+    return '<button type="button" class="editor-swatch" style="background:' + c + '" title="' + c + '" onmousedown="event.preventDefault()" onclick="' + fn + '(event,\'' + c + '\')"></button>';
+  }).join("");
+}
+
 function pickTextColor(event, color) {
   document.getElementById("editorCanvas").focus();
   restoreEditorSelection();
   document.execCommand("foreColor", false, color);
   document.getElementById("textColorBar").style.background = color;
+  pushRecentColor(recentTextColors, "bf_recent_textcolors", color);
+  renderRecentColors("text");
   document.querySelectorAll("#textColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   if (event && event.target) event.target.classList.add("selected");
+  closeEditorDropdowns();
+}
+
+function pickTextColorCustom() {
+  var color = document.getElementById("textColorCustom").value;
+  document.getElementById("editorCanvas").focus();
+  restoreEditorSelection();
+  document.execCommand("foreColor", false, color);
+  document.getElementById("textColorBar").style.background = color;
+  pushRecentColor(recentTextColors, "bf_recent_textcolors", color);
+  renderRecentColors("text");
   closeEditorDropdowns();
 }
 
@@ -2189,8 +2266,23 @@ function pickHighlight(event, color) {
   restoreEditorSelection();
   applyHighlight(color);
   document.getElementById("highlightBar").style.background = (color === "transparent") ? "#8892b8" : color;
+  if (color !== "transparent") {
+    pushRecentColor(recentHighlights, "bf_recent_highlights", color);
+    renderRecentColors("highlight");
+  }
   document.querySelectorAll("#highlightMenu .editor-swatch, #highlightMenu .editor-swatch-none").forEach(function(s) { s.classList.remove("selected"); });
   if (event && event.target) event.target.classList.add("selected");
+  closeEditorDropdowns();
+}
+
+function pickHighlightCustom() {
+  var color = document.getElementById("highlightCustom").value;
+  document.getElementById("editorCanvas").focus();
+  restoreEditorSelection();
+  applyHighlight(color);
+  document.getElementById("highlightBar").style.background = color;
+  pushRecentColor(recentHighlights, "bf_recent_highlights", color);
+  renderRecentColors("highlight");
   closeEditorDropdowns();
 }
 
@@ -2527,6 +2619,9 @@ document.querySelectorAll(".workspace-tab").forEach(function(tab) {
 
 renderNewdocThumbs();
 renderFontFamilyMenu();
+loadRecentColors();
+renderTextColorMenu();
+renderHighlightMenu();
 loadDocuments();
 loadMyBooks();
 </script>
