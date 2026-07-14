@@ -573,6 +573,7 @@
       <div class="editor-bar">
         <button class="editor-back" onclick="closeCoverDesigner()">← Back</button>
         <span class="editor-title-label" id="coverDesignerTitle"></span>
+        <button class="editor-save-btn" id="coverSaveBtn" onclick="saveCoverDesign()">Save</button>
       </div>
       <div class="cover-toolbar">
         <div class="editor-dd" id="coverBgColorDD">
@@ -1372,6 +1373,8 @@ var coverDesign = null;
 var coverBgFile = null;
 var coverSelectedLayerId = null;
 var coverDragState = null;
+var coverBgDisplayUrl = null;
+var coverDirty = false;
 var coverUndoStack = [];
 var coverRedoStack = [];
 var coverCurrentSnapshot = null;
@@ -2840,6 +2843,8 @@ function openCoverDesigner(bookId) {
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
+  coverBgDisplayUrl = null;
+  coverDirty = false;
   clearTimeout(coverUndoDebounceTimer);
   coverUndoDebounceTimer = null;
   document.getElementById("coverBgColorBar").style.background = "#ffffff";
@@ -2891,7 +2896,7 @@ function renderCoverCanvas() {
       img.style.zIndex = "0";
       canvas.insertBefore(img, canvas.firstChild);
     }
-    img.src = coverDesign.bgImage;
+    img.src = coverBgDisplayUrl || coverDesign.bgImage;
     img.style.display = "block";
   } else if (img) {
     img.style.display = "none";
@@ -3112,6 +3117,7 @@ function removeCoverBgImage() {
   }
   coverDesign.bgImage = null;
   coverBgFile = null;
+  coverBgDisplayUrl = null;
   document.getElementById("coverBgImageInput").value = "";
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
@@ -3334,6 +3340,59 @@ function coverRedo() {
   restoreCoverSnapshot(coverCurrentSnapshot);
 }
 
+async function saveCoverDesign() {
+  if (!coverBookId || !coverDesign) return;
+  var btn = document.getElementById("coverSaveBtn");
+  var originalText = btn ? btn.textContent : "Save";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+  }
+  try {
+    if (coverBgFile) {
+      var formData = new FormData();
+      formData.append("cover", coverBgFile);
+      var uploadRes = await fetch(API_URL + "/api/bizbook/books/" + coverBookId + "/cover", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+        body: formData
+      });
+      if (!uploadRes.ok) {
+        var uploadErr = await uploadRes.json().catch(function() { return {}; });
+        showToast(uploadErr.error || "Failed to upload background image", "error");
+        return;
+      }
+      var uploadData = await uploadRes.json().catch(function() { return {}; });
+      if (!uploadData.cover_path) {
+        showToast("Failed to upload background image", "error");
+        return;
+      }
+      coverDesign.bgImage = uploadData.cover_path;
+      coverBgFile = null;
+    }
+
+    var saveRes = await fetch(API_URL + "/api/bizbook/books/" + coverBookId + "/cover-design", {
+      method: "PUT",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ cover_design: coverDesign })
+    });
+    if (saveRes.ok) {
+      showToast("Cover saved", "success");
+      coverDirty = false;
+    } else {
+      var saveErr = await saveRes.json().catch(function() { return {}; });
+      showToast(saveErr.error || "Failed to save cover design", "error");
+    }
+  } catch (e) {
+    showToast("Failed to save cover design", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+}
+
 function setAutosaveStatus(text) {
   var el = document.getElementById("editorAutosave");
   if (!el) return;
@@ -3517,6 +3576,7 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   }
   coverBgFile = file;
   coverDesign.bgImage = URL.createObjectURL(file);
+  coverBgDisplayUrl = coverDesign.bgImage;
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
 });
