@@ -201,13 +201,34 @@
     .editor-title-label{flex:1 1 auto;color:#8892b8;font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .editor-save-btn{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);color:#34d399;padding:8px 20px;border-radius:10px;font-weight:700;font-family:inherit;font-size:.85rem;cursor:pointer;transition:all .18s}
     .editor-save-btn:hover{background:rgba(52,211,153,.22)}
-    .editor-canvas{position:relative;min-height:55vh;max-width:760px;margin:0 auto;width:100%;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:32px 40px;color:#e6edf3;font-size:1rem;line-height:1.8;outline:none;font-family:Georgia,'Times New Roman',serif;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box}
+    .editor-canvas{position:relative;min-height:55vh;max-width:760px;margin:0 auto;width:100%;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:32px 40px;color:#e6edf3;font-size:1rem;line-height:1.8;outline:none;font-family:Georgia,'Times New Roman',serif;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box;transition:background .2s,color .2s}
     .editor-canvas:focus{border-color:rgba(34,211,238,.4)}
     .editor-canvas.is-empty::before{content:"Start writing your manuscript…";color:#8892b8;opacity:.6;pointer-events:none;position:absolute}
     .editor-canvas h1{font-size:1.8rem;font-weight:800;margin:.6em 0 .3em;color:#f4f7ff}
     .editor-canvas h2{font-size:1.4rem;font-weight:700;margin:.6em 0 .3em;color:#f4f7ff}
     .editor-canvas blockquote{border-left:3px solid rgba(34,211,238,.5);margin:.6em 0;padding:.2em 0 .2em 16px;color:#8892b8;font-style:italic}
     .editor-canvas ul,.editor-canvas ol{padding-left:1.6em;margin:.5em 0}
+    #editorCanvas.theme-dark{background:rgba(10,15,35,.5);color:#e6edf3}
+    #editorCanvas.theme-white{background:#ffffff;color:#1a1a1a}
+    #editorCanvas.theme-white h1,#editorCanvas.theme-white h2{color:#111}
+    #editorCanvas.theme-white blockquote{color:#555;border-left-color:#ccc}
+    #editorCanvas.theme-white.is-empty::before{color:#999}
+    #editorCanvas.theme-sepia{background:#f4ecd8;color:#3a2f1e}
+    #editorCanvas.theme-sepia h1,#editorCanvas.theme-sepia h2{color:#2a2118}
+    #editorCanvas.theme-sepia blockquote{color:#6b5d45;border-left-color:#c9b896}
+    #editorCanvas.theme-sepia.is-empty::before{color:#9c8f76}
+    #editorCanvas.theme-blue{background:#eef2f8;color:#1a2230}
+    #editorCanvas.theme-blue h1,#editorCanvas.theme-blue h2{color:#0f1826}
+    #editorCanvas.theme-blue blockquote{color:#4a5568;border-left-color:#b8c4d6}
+    #editorCanvas.theme-blue.is-empty::before{color:#94a3b8}
+    #editorCanvas.theme-green{background:#eef6ee;color:#1a2b1a}
+    #editorCanvas.theme-green h1,#editorCanvas.theme-green h2{color:#14260f}
+    #editorCanvas.theme-green blockquote{color:#4a5d45;border-left-color:#b8d0b3}
+    #editorCanvas.theme-green.is-empty::before{color:#94a89a}
+    #editorCanvas.theme-night{background:#0a0a0f;color:#c8c8d0}
+    #editorCanvas.theme-night h1,#editorCanvas.theme-night h2{color:#f4f7ff}
+    #editorCanvas.theme-night blockquote{color:#8892b8}
+    #editorCanvas.theme-night.is-empty::before{color:#555}
     .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
     .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
     .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
@@ -398,6 +419,20 @@
         <button class="editor-back" onclick="closeEditor()">← Back to books</button>
         <span class="editor-title-label" id="editorBookTitle"></span>
         <span class="editor-wordcount" id="editorWordCount"></span>
+        <div class="editor-dd" id="themeDD">
+          <button type="button" class="etb editor-dd-trigger" title="Page Theme" onclick="toggleThemeMenu(event)">
+            <span id="themeTriggerLabel">Page</span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu" id="themeMenu">
+            <div class="editor-dd-option" onclick="pickTheme('dark')">Dark</div>
+            <div class="editor-dd-option" onclick="pickTheme('white')">White</div>
+            <div class="editor-dd-option" onclick="pickTheme('sepia')">Sepia</div>
+            <div class="editor-dd-option" onclick="pickTheme('blue')">Soft Blue</div>
+            <div class="editor-dd-option" onclick="pickTheme('green')">Soft Green</div>
+            <div class="editor-dd-option" onclick="pickTheme('night')">Night</div>
+          </div>
+        </div>
         <button class="editor-save-btn" id="editorSaveBtn" onclick="saveEditor()">Save</button>
       </div>
       <div class="editor-toolbar">
@@ -1238,6 +1273,15 @@ var EDITOR_FONTS = [
   { key: "mono", label: "Mono", stack: "'Courier New', monospace" },
   { key: "elegant", label: "Elegant", stack: "'Garamond', 'Times New Roman', serif" }
 ];
+
+var THEMES = {
+  dark: "Dark",
+  white: "White",
+  sepia: "Sepia",
+  blue: "Soft Blue",
+  green: "Soft Green",
+  night: "Night"
+};
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -2089,6 +2133,33 @@ function pickHighlight(event, color) {
   closeEditorDropdowns();
 }
 
+function setEditorTheme(themeKey) {
+  if (!THEMES[themeKey]) themeKey = "dark";
+  var canvas = document.getElementById("editorCanvas");
+  Object.keys(THEMES).forEach(function(key) { canvas.classList.remove("theme-" + key); });
+  canvas.classList.add("theme-" + themeKey);
+  document.getElementById("themeTriggerLabel").textContent = THEMES[themeKey];
+  document.querySelectorAll("#themeMenu .editor-dd-option").forEach(function(o) { o.classList.remove("selected"); });
+  var options = document.querySelectorAll("#themeMenu .editor-dd-option");
+  for (var i = 0; i < options.length; i++) {
+    if (options[i].textContent === THEMES[themeKey]) { options[i].classList.add("selected"); break; }
+  }
+  try { localStorage.setItem("bf_editor_theme", themeKey); } catch (e) {}
+}
+
+function toggleThemeMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("themeMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickTheme(themeKey) {
+  setEditorTheme(themeKey);
+  closeEditorDropdowns();
+}
+
 function editorCmd(command) {
   document.execCommand(command, false, null);
   document.getElementById("editorCanvas").focus();
@@ -2190,6 +2261,9 @@ function openEditor(id) {
   currentEditorBookId = id;
   document.getElementById("editorBookTitle").textContent = "Editing: " + book.title;
   document.getElementById("editorCanvas").innerHTML = book.content || "";
+  var savedTheme = "dark";
+  try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e) {}
+  setEditorTheme(savedTheme);
   updateEditorPlaceholder();
   renderOutline();
   updateWordCount();
