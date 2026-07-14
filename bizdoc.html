@@ -216,6 +216,18 @@
     .etb-div{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
     .etb-chapter{font-size:.8rem;white-space:nowrap;color:#34d399}
     .etb-chapter:hover{background:rgba(52,211,153,.14);color:#34d399}
+    .editor-dd{position:relative}
+    .editor-dd-trigger{gap:6px;min-width:56px;padding:6px 10px}
+    .editor-dd-caret{width:12px;height:12px;flex-shrink:0}
+    .editor-dd-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:rgba(10,15,35,.97);border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.5);min-width:140px;max-height:260px;overflow-y:auto;display:none;scrollbar-width:thin;scrollbar-color:rgba(110,150,220,.55) rgba(8,12,24,.4)}
+    .editor-dd-menu.open{display:block}
+    .editor-dd-option{padding:8px 12px;color:#e6edf3;font-size:.82rem;cursor:pointer;transition:all .15s}
+    .editor-dd-option:hover{background:rgba(34,211,238,.12);color:#22d3ee}
+    .editor-dd-option.selected{background:rgba(34,211,238,.08);color:#22d3ee;font-weight:600}
+    .editor-dd-menu::-webkit-scrollbar{width:6px}
+    .editor-dd-menu::-webkit-scrollbar-track{background:rgba(8,12,24,.4);border-radius:8px}
+    .editor-dd-menu::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(34,211,238,.5),rgba(168,85,247,.5));border-radius:8px}
+    .editor-dd-menu::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(34,211,238,.7),rgba(168,85,247,.7))}
     .editor-wordcount{color:#8892b8;font-size:.78rem;white-space:nowrap}
     .editor-body{display:flex;gap:24px;align-items:flex-start}
     .editor-outline{flex:0 0 200px;position:sticky;top:16px;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:70vh;overflow-y:auto}
@@ -380,6 +392,40 @@
         <button class="editor-save-btn" id="editorSaveBtn" onclick="saveEditor()">Save</button>
       </div>
       <div class="editor-toolbar">
+        <div class="editor-dd" id="fontFamilyDD">
+          <button type="button" class="etb editor-dd-trigger" title="Font Family" onmousedown="saveEditorSelection();event.preventDefault();" onclick="toggleFontFamilyMenu(event)">
+            <span id="fontFamilyLabel">Font</span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu" id="fontFamilyMenu">
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'serif')">Serif</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'sans')">Sans</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'book')">Book</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'modern')">Modern</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'mono')">Mono</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontFamily(event,'elegant')">Elegant</div>
+          </div>
+        </div>
+        <span class="etb-div"></span>
+        <div class="editor-dd" id="fontSizeDD">
+          <button type="button" class="etb editor-dd-trigger" title="Font Size" onmousedown="saveEditorSelection();event.preventDefault();" onclick="toggleFontSizeMenu(event)">
+            <span id="fontSizeLabel">Size</span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu" id="fontSizeMenu">
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,12)">12</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,14)">14</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,16)">16</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,18)">18</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,20)">20</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,24)">24</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,28)">28</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,32)">32</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,36)">36</div>
+            <div class="editor-dd-option" onmousedown="event.preventDefault()" onclick="pickFontSize(event,48)">48</div>
+          </div>
+        </div>
+        <span class="etb-div"></span>
         <button type="button" class="etb etb-chapter" title="Insert Chapter" onmousedown="event.preventDefault()" onclick="insertChapter()">+ Chapter</button>
         <span class="etb-div"></span>
         <button type="button" class="etb" title="Bold" onmousedown="event.preventDefault()" onclick="editorCmd('bold')">B</button>
@@ -1130,6 +1176,16 @@ var currentManuscriptFile = null;
 var currentCoverFile = null;
 var coverChangeTargetId = null;
 var currentEditorBookId = null;
+var editorSavedRange = null;
+
+var EDITOR_FONTS = [
+  { key: "serif", label: "Serif", stack: "Georgia, 'Times New Roman', serif" },
+  { key: "sans", label: "Sans", stack: "'Helvetica Neue', Arial, sans-serif" },
+  { key: "book", label: "Book", stack: "'Palatino Linotype', Palatino, Georgia, serif" },
+  { key: "modern", label: "Modern", stack: "'Segoe UI', Roboto, sans-serif" },
+  { key: "mono", label: "Mono", stack: "'Courier New', monospace" },
+  { key: "elegant", label: "Elegant", stack: "'Garamond', 'Times New Roman', serif" }
+];
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -1866,6 +1922,80 @@ async function deleteBook(id) {
   }
 }
 
+function saveEditorSelection() {
+  var sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    editorSavedRange = sel.getRangeAt(0);
+  }
+}
+
+function restoreEditorSelection() {
+  if (!editorSavedRange) return;
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(editorSavedRange);
+}
+
+function closeEditorDropdowns() {
+  var famMenu = document.getElementById("fontFamilyMenu");
+  var sizeMenu = document.getElementById("fontSizeMenu");
+  if (famMenu) famMenu.classList.remove("open");
+  if (sizeMenu) sizeMenu.classList.remove("open");
+}
+
+function toggleFontFamilyMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("fontFamilyMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function toggleFontSizeMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("fontSizeMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickFontFamily(event, key) {
+  var opt = null;
+  for (var i = 0; i < EDITOR_FONTS.length; i++) {
+    if (EDITOR_FONTS[i].key === key) { opt = EDITOR_FONTS[i]; break; }
+  }
+  if (!opt) return;
+  document.getElementById("editorCanvas").focus();
+  restoreEditorSelection();
+  document.execCommand("fontName", false, opt.stack);
+  document.getElementById("fontFamilyLabel").textContent = opt.label;
+  document.querySelectorAll("#fontFamilyMenu .editor-dd-option").forEach(function(o) { o.classList.remove("selected"); });
+  if (event && event.target) event.target.classList.add("selected");
+  closeEditorDropdowns();
+}
+
+function applyFontSizePx(px) {
+  document.execCommand("fontSize", false, "7");
+  var canvas = document.getElementById("editorCanvas");
+  var fonts = canvas.querySelectorAll('font[size="7"]');
+  fonts.forEach(function(f) {
+    var span = document.createElement("span");
+    span.style.fontSize = px + "px";
+    while (f.firstChild) span.appendChild(f.firstChild);
+    f.parentNode.replaceChild(span, f);
+  });
+}
+
+function pickFontSize(event, px) {
+  document.getElementById("editorCanvas").focus();
+  restoreEditorSelection();
+  applyFontSizePx(px);
+  document.getElementById("fontSizeLabel").textContent = px + "px";
+  document.querySelectorAll("#fontSizeMenu .editor-dd-option").forEach(function(o) { o.classList.remove("selected"); });
+  if (event && event.target) event.target.classList.add("selected");
+  closeEditorDropdowns();
+}
+
 function editorCmd(command) {
   document.execCommand(command, false, null);
   document.getElementById("editorCanvas").focus();
@@ -2102,10 +2232,14 @@ document.addEventListener("click", function(e) {
 });
 
 document.addEventListener("click", function(e) {
-  if (e.target.closest(".doc-menu")) return;
-  document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
-    pop.classList.remove("open");
-  });
+  if (!e.target.closest(".doc-menu")) {
+    document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
+      pop.classList.remove("open");
+    });
+  }
+  if (!e.target.closest(".editor-dd")) {
+    closeEditorDropdowns();
+  }
 });
 
 document.querySelectorAll(".workspace-tab").forEach(function(tab) {
