@@ -160,24 +160,19 @@
     .ebook-create-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px;flex:0 0 400px}
     .ebook-filename{margin-top:8px;font-size:.82rem;color:#22d3ee;word-break:break-word}
     .ebook-helper-text{margin:10px 0 0;font-size:.78rem;color:#8892b8;line-height:1.5}
-    .ebook-books-list{display:grid;grid-template-columns:repeat(auto-fill,200px);justify-content:start;gap:24px;flex:1 1 auto;min-width:0}
-    .ebook-book-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;transition:all .25s}
-    .ebook-book-card:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
-    .ebook-cover{width:100%;aspect-ratio:2/3;border-radius:8px;overflow:hidden;margin-bottom:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);box-shadow:0 4px 16px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
-    .ebook-cover-img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}
+    .ebook-books-list{display:grid;grid-template-columns:repeat(auto-fill,220px);justify-content:start;gap:20px;flex:1 1 auto;min-width:0}
+    .ebook-tile{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);padding:0;overflow:hidden;border-radius:14px;display:flex;flex-direction:column;gap:0;transition:all .25s;position:relative;cursor:pointer}
+    .ebook-tile:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
+    .ebook-cover{width:100%;aspect-ratio:2/3;overflow:hidden;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center}
+    .ebook-cover-img{width:100%;height:100%;object-fit:cover;display:block}
     .ebook-cover-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#8892b8;font-size:.65rem}
     .ebook-cover-icon{font-size:1.4rem}
-    .ebook-change-cover{background:none;border:none;color:#22d3ee;font-size:.68rem;cursor:pointer;padding:0;margin:0 0 8px 0;align-self:flex-start;font-family:inherit}
-    .ebook-change-cover:hover{color:#00e5ff;text-decoration:underline}
-    .ebook-delete{background:none;border:none;color:#f87171;font-size:.68rem;cursor:pointer;padding:0;margin:0 0 8px 0;align-self:flex-start;font-family:inherit}
-    .ebook-delete:hover{color:#ff9494;text-decoration:underline}
-    .ebook-book-title{font-size:.95rem;font-weight:700;color:#f4f7ff;margin:0;line-height:1.2}
-    .ebook-book-author{font-size:.8rem;color:#8892b8;margin:0}
-    .ebook-book-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
-    .ebook-book-date{font-size:.7rem;color:#4a5280}
+    .ebook-tile-meta{padding:12px 14px;display:flex;align-items:flex-start;gap:10px;background:rgba(10,15,35,.82)}
+    .ebook-tile-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+    .ebook-tile-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .ebook-tile-title{font-size:.9rem;font-weight:700;color:#f4f7ff;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .ebook-tile-date{font-size:.7rem;color:#4a5280}
     .ebook-status{font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(136,146,184,.3);background:rgba(136,146,184,.1);color:#8892b8}
-    .ebook-download-btn{padding:7px 10px;border-radius:10px;border:1px solid rgba(34,211,238,.4);background:rgba(34,211,238,.12);color:#22d3ee;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;flex:1 1 auto;min-width:0;text-align:center}
-    .ebook-download-btn:hover{background:rgba(34,211,238,.22);border-color:rgba(34,211,238,.6)}
     /* Custom trim-size dropdown */
     .trim-select{position:relative}
     .trim-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;cursor:pointer;transition:border-color .2s}
@@ -2096,23 +2091,71 @@ function renderBookCard(b) {
     ? '<img class="ebook-cover-img" data-cover="1" alt="cover">'
     : '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>';
   var coverHtml = '<div class="ebook-cover" data-book-id="' + escapeHtml(b.id) + '">' + coverInner + '</div>';
-  return '<div class="ebook-book-card">' +
+  return '<div class="ebook-tile" onclick="openEditor(\'' + escapeHtml(b.id) + '\')">' +
     coverHtml +
-    '<button class="ebook-change-cover" onclick="openEditor(\'' + escapeHtml(b.id) + '\')">Edit</button>' +
-    '<button class="ebook-change-cover" onclick="triggerCoverChange(\'' + escapeHtml(b.id) + '\')">Change Cover</button>' +
-    '<button class="ebook-change-cover" onclick="openCoverDesigner(\'' + escapeHtml(b.id) + '\')">Design Cover</button>' +
-    '<button class="ebook-delete" onclick="deleteBook(\'' + escapeHtml(b.id) + '\')">Delete</button>' +
-    '<h3 class="ebook-book-title">' + escapeHtml(b.title) + '</h3>' +
-    (b.author ? '<p class="ebook-book-author">' + escapeHtml(b.author) + '</p>' : '') +
-    '<div class="ebook-book-footer">' +
-      '<span class="ebook-book-date">' + date + '</span>' +
-      '<span class="ebook-status">' + escapeHtml(status) + '</span>' +
-    '</div>' +
-    '<div class="ebook-book-footer">' +
-      '<button class="ebook-download-btn" onclick="downloadBook(\'' + b.id + '\')">Download PDF</button>' +
-      '<button class="ebook-download-btn" onclick="downloadBookEpub(\'' + b.id + '\')">Download EPUB</button>' +
+    '<div class="ebook-tile-meta">' +
+      '<div class="ebook-tile-info">' +
+        '<h3 class="ebook-tile-title">' + escapeHtml(b.title) + '</h3>' +
+        '<div class="ebook-tile-sub">' +
+          '<span class="ebook-tile-date">' + date + '</span>' +
+          '<span class="ebook-status">' + escapeHtml(status) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="doc-menu">' +
+        '<button class="doc-menu-btn" onclick="toggleDocMenu(event,\'' + escapeHtml(b.id) + '\')" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>' +
+        '<div class="doc-menu-pop" id="docMenu-' + escapeHtml(b.id) + '">' +
+          '<button class="doc-menu-item" onclick="ebookMenuEdit(event,\'' + escapeHtml(b.id) + '\')">Edit Manuscript</button>' +
+          '<button class="doc-menu-item" onclick="ebookMenuDesignCover(event,\'' + escapeHtml(b.id) + '\')">Design Cover</button>' +
+          '<button class="doc-menu-item" onclick="ebookMenuChangeCover(event,\'' + escapeHtml(b.id) + '\')">Change Cover</button>' +
+          '<button class="doc-menu-item" onclick="ebookMenuDownloadPdf(event,\'' + escapeHtml(b.id) + '\')">Download PDF</button>' +
+          '<button class="doc-menu-item" onclick="ebookMenuDownloadEpub(event,\'' + escapeHtml(b.id) + '\')">Download EPUB</button>' +
+          '<button class="doc-menu-item danger" onclick="ebookMenuDelete(event,\'' + escapeHtml(b.id) + '\')">Delete</button>' +
+        '</div>' +
+      '</div>' +
     '</div>' +
   '</div>';
+}
+
+function ebookMenuEdit(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  openEditor(id);
+}
+
+function ebookMenuDesignCover(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  openCoverDesigner(id);
+}
+
+function ebookMenuChangeCover(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  triggerCoverChange(id);
+}
+
+function ebookMenuDownloadPdf(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  downloadBook(id);
+}
+
+function ebookMenuDownloadEpub(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  downloadBookEpub(id);
+}
+
+function ebookMenuDelete(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  deleteBook(id);
 }
 
 var TRIM_SIZES = [
