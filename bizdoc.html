@@ -244,6 +244,9 @@
     .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
     .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0}
     .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
+    .cover-text-layer{position:absolute;display:inline-block;min-width:10px;padding:2px 4px;outline:none;cursor:grab;white-space:nowrap;-webkit-user-select:text;user-select:text}
+    .cover-text-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
+    .cover-text-layer.dragging{cursor:grabbing;opacity:.85}
     .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
     .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
     .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
@@ -585,6 +588,9 @@
         <input type="file" id="coverBgImageInput" accept="image/png,image/jpeg,image/webp" style="display:none">
         <button type="button" class="etb" onclick="document.getElementById('coverBgImageInput').click()">Background Image</button>
         <button type="button" class="etb" onclick="removeCoverBgImage()">Remove Image</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" onclick="addCoverTitleLayer()">Add Title</button>
+        <button type="button" class="etb" onclick="addCoverTextLayer()">Add Text</button>
       </div>
       <div class="cover-stage">
         <div class="cover-canvas" id="coverCanvas"></div>
@@ -1326,6 +1332,8 @@ var coverBookId = null;
 var coverTrim = null;
 var coverDesign = null;
 var coverBgFile = null;
+var coverSelectedLayerId = null;
+var coverDragState = null;
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2758,6 +2766,7 @@ function fitCoverCanvas() {
 
   canvas.style.height = displayHeight + "px";
   canvas.style.width = displayWidth + "px";
+  renderCoverTextLayers();
 }
 
 function openCoverDesigner(bookId) {
@@ -2783,8 +2792,10 @@ function openCoverDesigner(bookId) {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
-  coverDesign = { bgColor: "#ffffff", bgImage: null };
+  coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: [] };
   coverBgFile = null;
+  coverSelectedLayerId = null;
+  coverDragState = null;
   document.getElementById("coverBgColorBar").style.background = "#ffffff";
   document.getElementById("coverBgColorCustom").value = "#ffffff";
   document.getElementById("coverBgImageInput").value = "";
@@ -2836,6 +2847,171 @@ function renderCoverCanvas() {
   } else if (img) {
     img.style.display = "none";
   }
+  renderCoverTextLayers();
+}
+
+function getCoverLayerById(layerId) {
+  if (!coverDesign) return null;
+  for (var i = 0; i < coverDesign.textLayers.length; i++) {
+    if (coverDesign.textLayers[i].id === layerId) return coverDesign.textLayers[i];
+  }
+  return null;
+}
+
+function renderCoverTextLayers() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas || !coverDesign) return;
+  var canvasHeight = canvas.offsetHeight || 1;
+  var existingIds = {};
+
+  coverDesign.textLayers.forEach(function(layer) {
+    existingIds[layer.id] = true;
+    var el = canvas.querySelector('.cover-text-layer[data-layer-id="' + layer.id + '"]');
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "cover-text-layer";
+      el.setAttribute("data-layer-id", layer.id);
+      el.contentEditable = "true";
+      el.spellcheck = false;
+      el.textContent = layer.text;
+      el.addEventListener("mousedown", function(e) { onCoverLayerMouseDown(e, layer.id); });
+      el.addEventListener("input", function() { onCoverLayerInput(layer.id, el); });
+      canvas.appendChild(el);
+    }
+    el.style.left = layer.xPct + "%";
+    el.style.top = layer.yPct + "%";
+    el.style.transform = "translate(-50%,-50%)";
+    el.style.fontFamily = layer.fontFamily;
+    el.style.fontSize = (canvasHeight * layer.fontSizePct / 100) + "px";
+    el.style.color = layer.color;
+    el.style.textAlign = layer.align;
+    el.style.fontWeight = layer.bold ? "700" : "400";
+    el.style.fontStyle = layer.italic ? "italic" : "normal";
+    el.style.zIndex = "1";
+    el.classList.toggle("selected", layer.id === coverSelectedLayerId);
+  });
+
+  canvas.querySelectorAll(".cover-text-layer").forEach(function(el) {
+    if (!existingIds[el.getAttribute("data-layer-id")]) el.remove();
+  });
+}
+
+function onCoverLayerInput(layerId, el) {
+  var layer = getCoverLayerById(layerId);
+  if (!layer) return;
+  layer.text = el.textContent;
+}
+
+function selectCoverLayer(layerId) {
+  coverSelectedLayerId = layerId;
+  document.querySelectorAll(".cover-text-layer").forEach(function(el) {
+    el.classList.toggle("selected", el.getAttribute("data-layer-id") === layerId);
+  });
+}
+
+function deselectCoverLayer() {
+  coverSelectedLayerId = null;
+  document.querySelectorAll(".cover-text-layer").forEach(function(el) {
+    el.classList.remove("selected");
+  });
+}
+
+function onCoverLayerMouseDown(e, layerId) {
+  e.stopPropagation();
+  selectCoverLayer(layerId);
+  var layer = getCoverLayerById(layerId);
+  if (!layer) return;
+  coverDragState = {
+    layerId: layerId,
+    el: e.currentTarget,
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    startXPct: layer.xPct,
+    startYPct: layer.yPct,
+    liveXPct: layer.xPct,
+    liveYPct: layer.yPct,
+    dragging: false
+  };
+  document.addEventListener("mousemove", onCoverLayerMouseMove);
+  document.addEventListener("mouseup", onCoverLayerMouseUp);
+}
+
+function onCoverLayerMouseMove(e) {
+  if (!coverDragState) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var dx = e.clientX - coverDragState.startClientX;
+  var dy = e.clientY - coverDragState.startClientY;
+
+  if (!coverDragState.dragging) {
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    coverDragState.dragging = true;
+    coverDragState.el.classList.add("dragging");
+    var sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
+    coverDragState.el.blur();
+  }
+
+  var newXPct = Math.max(0, Math.min(100, coverDragState.startXPct + (dx / rect.width) * 100));
+  var newYPct = Math.max(0, Math.min(100, coverDragState.startYPct + (dy / rect.height) * 100));
+  coverDragState.liveXPct = newXPct;
+  coverDragState.liveYPct = newYPct;
+  coverDragState.el.style.left = newXPct + "%";
+  coverDragState.el.style.top = newYPct + "%";
+}
+
+function onCoverLayerMouseUp() {
+  if (!coverDragState) return;
+  if (coverDragState.dragging) {
+    var layer = getCoverLayerById(coverDragState.layerId);
+    if (layer) {
+      layer.xPct = coverDragState.liveXPct;
+      layer.yPct = coverDragState.liveYPct;
+    }
+    coverDragState.el.classList.remove("dragging");
+  }
+  document.removeEventListener("mousemove", onCoverLayerMouseMove);
+  document.removeEventListener("mouseup", onCoverLayerMouseUp);
+  coverDragState = null;
+}
+
+function addCoverTitleLayer() {
+  if (!coverDesign) return;
+  var layer = {
+    id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+    text: "Title",
+    xPct: 50,
+    yPct: 25,
+    fontFamily: EDITOR_FONTS[0].stack,
+    fontSizePct: 7,
+    color: "#ffffff",
+    align: "center",
+    bold: false,
+    italic: false
+  };
+  coverDesign.textLayers.push(layer);
+  coverSelectedLayerId = layer.id;
+  renderCoverCanvas();
+}
+
+function addCoverTextLayer() {
+  if (!coverDesign) return;
+  var layer = {
+    id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+    text: "New Text",
+    xPct: 50,
+    yPct: 50,
+    fontFamily: EDITOR_FONTS[0].stack,
+    fontSizePct: 3.5,
+    color: "#ffffff",
+    align: "center",
+    bold: false,
+    italic: false
+  };
+  coverDesign.textLayers.push(layer);
+  coverSelectedLayerId = layer.id;
+  renderCoverCanvas();
 }
 
 function renderCoverBgColorMenu() {
@@ -3064,6 +3240,11 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   coverBgFile = file;
   coverDesign.bgImage = URL.createObjectURL(file);
   renderCoverCanvas();
+});
+
+document.getElementById("coverCanvas").addEventListener("click", function(e) {
+  if (e.target.closest(".cover-text-layer")) return;
+  deselectCoverLayer();
 });
 
 document.getElementById("coverRemoveBtn").addEventListener("click", function() {
