@@ -86,6 +86,15 @@
     .newdoc-tile-browse:hover .newdoc-browse-icon{border-color:rgba(34,211,238,.5);transform:translateY(-3px)}
     .newdoc-tile-label{font-size:.78rem;color:#e6edf3;text-align:center;font-weight:600;line-height:1.2}
     .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .empty-state{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:72px 24px}
+    .empty-state-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);color:#22d3ee}
+    .empty-state-icon svg{width:28px;height:28px}
+    .empty-state-icon.warn{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25);color:#fbbf24}
+    .empty-state-title{font-size:1.1rem;font-weight:700;color:#f4f7ff;margin:0}
+    .empty-state-sub{font-size:.88rem;color:#8892b8;line-height:1.6;max-width:360px;margin:0}
+    .empty-state-actions{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+    .empty-link{background:none;border:none;color:#22d3ee;font-size:.875rem;font-weight:600;font-family:inherit;cursor:pointer;padding:0}
+    .empty-link:hover{text-decoration:underline}
     .loading{text-align:center;padding:64px 24px;color:#8892b8}
     /* Modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -1061,13 +1070,29 @@ function getTemplate(type) {
   return null;
 }
 
+function buildEmptyState(opts) {
+  var iconClass = "empty-state-icon" + (opts.warn ? " warn" : "");
+  return '<div class="empty-state">' +
+    '<div class="' + iconClass + '">' + opts.iconSvg + '</div>' +
+    '<h3 class="empty-state-title">' + escapeHtml(opts.title) + '</h3>' +
+    '<p class="empty-state-sub">' + opts.sub + '</p>' +
+    (opts.actionsHtml ? '<div class="empty-state-actions">' + opts.actionsHtml + '</div>' : '') +
+  '</div>';
+}
+
 async function loadDocuments() {
   try {
     var res = await fetch(API_URL + "/api/bizdoc/documents", { headers: { "Authorization": "Bearer " + token } });
     if (res.ok) { var d = await res.json(); allDocuments = d.documents || []; }
     renderGrid();
   } catch (e) {
-    document.getElementById("documentsGrid").innerHTML = '<div class="empty-msg">Unable to load documents. Please try again.</div>';
+    document.getElementById("documentsGrid").innerHTML = buildEmptyState({
+      warn: true,
+      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+      title: "Couldn't load documents",
+      sub: "Something went wrong. Check your connection and try again.",
+      actionsHtml: '<button class="create-btn" onclick="loadDocuments()">Try again</button>'
+    });
   }
 }
 
@@ -1081,7 +1106,22 @@ function renderGrid() {
   }
   var grid = document.getElementById("documentsGrid");
   if (!items.length) {
-    grid.innerHTML = '<div class="empty-msg">No documents found. Create your first one!</div>';
+    if (q) {
+      var rawQuery = document.getElementById("searchInput").value;
+      grid.innerHTML = buildEmptyState({
+        iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+        title: "No matches",
+        sub: 'No documents match "' + escapeHtml(rawQuery) + '".',
+        actionsHtml: '<button class="empty-link" onclick="document.getElementById(\'searchInput\').value=\'\';renderGrid();">Clear search</button>'
+      });
+    } else {
+      grid.innerHTML = buildEmptyState({
+        iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+        title: "No documents yet",
+        sub: "Create your first document to get started.",
+        actionsHtml: '<button class="create-btn" onclick="openCreateModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Document</button>'
+      });
+    }
     return;
   }
   grid.innerHTML = items.map(function(d) { return renderCard(d); }).join("");
