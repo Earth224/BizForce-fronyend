@@ -221,8 +221,12 @@
     .editor-outline{flex:0 0 200px;position:sticky;top:16px;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:70vh;overflow-y:auto}
     .editor-outline-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
     .editor-outline-list{display:flex;flex-direction:column;gap:2px}
-    .editor-outline-item{text-align:left;background:none;border:none;color:#e6edf3;font-family:inherit;font-size:.82rem;padding:7px 9px;border-radius:6px;cursor:pointer;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s}
+    .editor-outline-item{text-align:left;background:none;border:none;color:#e6edf3;font-family:inherit;font-size:.82rem;padding:7px 9px;border-radius:6px;cursor:pointer;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:background .15s}
     .editor-outline-item:hover{background:rgba(34,211,238,.12);color:#22d3ee}
+    .editor-outline-item-row{display:flex;align-items:center;gap:2px}
+    .editor-outline-item-row:hover .editor-outline-del{opacity:1}
+    .editor-outline-del{flex:0 0 auto;opacity:0;background:none;border:none;color:#f87171;font-size:1rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:4px;transition:opacity .15s,background .15s}
+    .editor-outline-del:hover{background:rgba(248,113,113,.15)}
     .editor-outline-empty{color:#8892b8;font-size:.78rem;line-height:1.5}
     .editor-canvas-wrap{flex:1 1 auto;min-width:0}
   </style>
@@ -1898,9 +1902,32 @@ function renderOutline() {
   heads.forEach(function(h) {
     if (!h.id) { h.id = "ch-" + (++chapterIdCounter); }
     var label = h.textContent.trim() || "Untitled chapter";
-    html += '<button class="editor-outline-item" onclick="jumpToChapter(\'' + h.id + '\')">' + escapeHtml(label) + '</button>';
+    html += '<div class="editor-outline-item-row">' +
+      '<button class="editor-outline-item" onclick="jumpToChapter(\'' + escapeHtml(h.id) + '\')">' + escapeHtml(label) + '</button>' +
+      '<button class="editor-outline-del" onclick="deleteChapter(event,\'' + escapeHtml(h.id) + '\')" title="Delete chapter">×</button>' +
+    '</div>';
   });
   list.innerHTML = html;
+}
+
+function deleteChapter(event, id) {
+  event.stopPropagation();
+  if (!confirm("Delete this chapter and everything in it? This can't be undone.")) return;
+  var canvas = document.getElementById("editorCanvas");
+  var h1 = document.getElementById(id);
+  if (!h1 || !canvas.contains(h1)) return;
+
+  var toRemove = [h1];
+  var node = h1.nextSibling;
+  while (node && node.tagName !== "H1") {
+    toRemove.push(node);
+    node = node.nextSibling;
+  }
+  toRemove.forEach(function(n) { n.parentNode.removeChild(n); });
+
+  renderOutline();
+  updateWordCount();
+  updateEditorPlaceholder();
 }
 
 function jumpToChapter(id) {
