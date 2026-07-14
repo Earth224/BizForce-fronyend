@@ -1918,6 +1918,9 @@ function closeDocMenuPop(pop) {
   pop.style.top = "";
   pop.style.left = "";
   pop.style.right = "";
+  if (pop._ownerMenu && pop.parentElement !== pop._ownerMenu) {
+    pop._ownerMenu.appendChild(pop);
+  }
 }
 
 function positionDocMenuPop(btn, pop) {
@@ -1954,6 +1957,8 @@ function toggleDocMenu(event, id) {
   if (target.classList.contains("open")) {
     closeDocMenuPop(target);
   } else {
+    if (!target._ownerMenu) target._ownerMenu = target.parentElement;
+    document.body.appendChild(target);
     target.classList.add("open");
     positionDocMenuPop(event.currentTarget, target);
   }
@@ -1962,14 +1967,14 @@ function toggleDocMenu(event, id) {
 function docMenuOpen(event, id) {
   event.stopPropagation();
   var pop = document.getElementById("docMenu-" + id);
-  if (pop) pop.classList.remove("open");
+  if (pop) closeDocMenuPop(pop);
   openPrintView(id);
 }
 
 async function docMenuRename(event, id) {
   event.stopPropagation();
   var pop = document.getElementById("docMenu-" + id);
-  if (pop) pop.classList.remove("open");
+  if (pop) closeDocMenuPop(pop);
   var current = null;
   for (var i = 0; i < allDocuments.length; i++) {
     if (allDocuments[i].id === id) { current = allDocuments[i]; break; }
@@ -1999,7 +2004,7 @@ async function docMenuRename(event, id) {
 async function docMenuDuplicate(event, id) {
   event.stopPropagation();
   var pop = document.getElementById("docMenu-" + id);
-  if (pop) pop.classList.remove("open");
+  if (pop) closeDocMenuPop(pop);
   try {
     var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, { headers: { "Authorization": "Bearer " + token } });
     if (!res.ok) { showToast("Unable to load document", "error"); return; }
@@ -2027,7 +2032,7 @@ async function docMenuDuplicate(event, id) {
 async function docMenuDelete(event, id) {
   event.stopPropagation();
   var pop = document.getElementById("docMenu-" + id);
-  if (pop) pop.classList.remove("open");
+  if (pop) closeDocMenuPop(pop);
   if (!confirm("Delete this document? This cannot be undone.")) return;
   try {
     var res = await fetch(API_URL + "/api/bizdoc/documents/" + id, {
@@ -3700,7 +3705,7 @@ document.addEventListener("click", function(e) {
 });
 
 document.addEventListener("click", function(e) {
-  if (!e.target.closest(".doc-menu")) {
+  if (!e.target.closest(".doc-menu") && !e.target.closest(".doc-menu-pop")) {
     document.querySelectorAll(".doc-menu-pop.open").forEach(function(pop) {
       closeDocMenuPop(pop);
     });
