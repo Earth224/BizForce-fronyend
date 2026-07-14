@@ -247,6 +247,10 @@
     .cover-text-layer{position:absolute;display:inline-block;min-width:10px;padding:2px 4px;outline:none;cursor:grab;white-space:nowrap;-webkit-user-select:text;user-select:text}
     .cover-text-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
     .cover-text-layer.dragging{cursor:grabbing;opacity:.85}
+    .cover-toolbar .etb:disabled,.cover-toolbar .editor-dd-trigger:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+    .cover-toolbar .etb.active{background:rgba(34,211,238,.18);color:#22d3ee}
+    .cover-size-stepper{display:flex;align-items:center;gap:2px}
+    .cover-size-value{min-width:28px;text-align:center;font-size:.78rem;color:#e6edf3;font-weight:600}
     .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
     .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
     .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
@@ -591,6 +595,40 @@
         <span class="etb-div"></span>
         <button type="button" class="etb" onclick="addCoverTitleLayer()">Add Title</button>
         <button type="button" class="etb" onclick="addCoverTextLayer()">Add Text</button>
+        <span class="etb-div"></span>
+        <div class="editor-dd" id="coverFontDD">
+          <button type="button" class="etb editor-dd-trigger" title="Font Family" id="coverFontTrigger" onclick="toggleCoverFontMenu(event)" disabled>
+            <span id="coverFontLabel">Font</span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu" id="coverFontMenu"></div>
+        </div>
+        <div class="cover-size-stepper">
+          <button type="button" class="etb" id="coverSizeMinus" title="Decrease size" onclick="nudgeCoverFontSize(-0.5)" disabled>−</button>
+          <span class="cover-size-value" id="coverSizeValue">–</span>
+          <button type="button" class="etb" id="coverSizePlus" title="Increase size" onclick="nudgeCoverFontSize(0.5)" disabled>+</button>
+        </div>
+        <div class="editor-dd" id="coverTextColorDD">
+          <button type="button" class="etb editor-dd-trigger" title="Text Color" id="coverTextColorTrigger" onclick="toggleCoverTextColorMenu(event)" disabled>
+            <span class="editor-color-glyph">A<span class="editor-color-bar" id="coverTextColorBar" style="background:#ffffff"></span></span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu editor-color-menu" id="coverTextColorMenu">
+            <div id="coverTextColorPalette"></div>
+            <div class="editor-color-custom-row">
+              <span class="editor-color-custom-label">Custom</span>
+              <input type="color" id="coverTextColorCustom" value="#ffffff" onchange="pickCoverTextColorCustom()">
+            </div>
+          </div>
+        </div>
+        <button type="button" class="etb" id="coverBoldBtn" title="Bold" onclick="toggleCoverBold()" disabled>B</button>
+        <button type="button" class="etb" id="coverItalicBtn" title="Italic" onclick="toggleCoverItalic()" disabled style="font-style:italic">I</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" id="coverAlignLeftBtn" title="Align left" onclick="setCoverAlign('left')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="17" y2="18"/></svg></button>
+        <button type="button" class="etb" id="coverAlignCenterBtn" title="Align center" onclick="setCoverAlign('center')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+        <button type="button" class="etb" id="coverAlignRightBtn" title="Align right" onclick="setCoverAlign('right')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" id="coverDeleteLayerBtn" title="Delete Layer" onclick="deleteCoverLayer()" disabled style="color:#f87171">Delete Layer</button>
       </div>
       <div class="cover-stage">
         <div class="cover-canvas" id="coverCanvas"></div>
@@ -1334,6 +1372,12 @@ var coverDesign = null;
 var coverBgFile = null;
 var coverSelectedLayerId = null;
 var coverDragState = null;
+var coverUndoStack = [];
+var coverRedoStack = [];
+var coverCurrentSnapshot = null;
+var COVER_UNDO_MAX = 100;
+var isRestoringCover = false;
+var coverUndoDebounceTimer = null;
 var editorSavedRange = null;
 
 var EDITOR_FONTS = [
@@ -2796,10 +2840,14 @@ function openCoverDesigner(bookId) {
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
+  clearTimeout(coverUndoDebounceTimer);
+  coverUndoDebounceTimer = null;
   document.getElementById("coverBgColorBar").style.background = "#ffffff";
   document.getElementById("coverBgColorCustom").value = "#ffffff";
   document.getElementById("coverBgImageInput").value = "";
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
+  document.getElementById("coverTextColorCustom").value = "#ffffff";
+  updateCoverTextControls();
 
   document.getElementById("coverDesignerTitle").textContent = "Design Cover — " + book.title;
 
@@ -2810,6 +2858,7 @@ function openCoverDesigner(bookId) {
 
   fitCoverCanvas();
   renderCoverCanvas();
+  initCoverUndo();
 }
 
 function closeCoverDesigner() {
@@ -2900,6 +2949,10 @@ function onCoverLayerInput(layerId, el) {
   var layer = getCoverLayerById(layerId);
   if (!layer) return;
   layer.text = el.textContent;
+  if (!isRestoringCover) {
+    clearTimeout(coverUndoDebounceTimer);
+    coverUndoDebounceTimer = setTimeout(recordCoverUndo, 600);
+  }
 }
 
 function selectCoverLayer(layerId) {
@@ -2907,6 +2960,7 @@ function selectCoverLayer(layerId) {
   document.querySelectorAll(".cover-text-layer").forEach(function(el) {
     el.classList.toggle("selected", el.getAttribute("data-layer-id") === layerId);
   });
+  updateCoverTextControls();
 }
 
 function deselectCoverLayer() {
@@ -2914,6 +2968,7 @@ function deselectCoverLayer() {
   document.querySelectorAll(".cover-text-layer").forEach(function(el) {
     el.classList.remove("selected");
   });
+  updateCoverTextControls();
 }
 
 function onCoverLayerMouseDown(e, layerId) {
@@ -2970,6 +3025,7 @@ function onCoverLayerMouseUp() {
       layer.yPct = coverDragState.liveYPct;
     }
     coverDragState.el.classList.remove("dragging");
+    recordCoverUndo();
   }
   document.removeEventListener("mousemove", onCoverLayerMouseMove);
   document.removeEventListener("mouseup", onCoverLayerMouseUp);
@@ -2991,8 +3047,9 @@ function addCoverTitleLayer() {
     italic: false
   };
   coverDesign.textLayers.push(layer);
-  coverSelectedLayerId = layer.id;
+  selectCoverLayer(layer.id);
   renderCoverCanvas();
+  recordCoverUndo();
 }
 
 function addCoverTextLayer() {
@@ -3010,8 +3067,9 @@ function addCoverTextLayer() {
     italic: false
   };
   coverDesign.textLayers.push(layer);
-  coverSelectedLayerId = layer.id;
+  selectCoverLayer(layer.id);
   renderCoverCanvas();
+  recordCoverUndo();
 }
 
 function renderCoverBgColorMenu() {
@@ -3033,6 +3091,7 @@ function pickCoverBgColor(event, color) {
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   if (event && event.target) event.target.classList.add("selected");
   renderCoverCanvas();
+  if (!isRestoringCover) recordCoverUndo();
   closeEditorDropdowns();
 }
 
@@ -3042,6 +3101,7 @@ function pickCoverBgColorCustom() {
   coverDesign.bgColor = color;
   document.getElementById("coverBgColorBar").style.background = color;
   renderCoverCanvas();
+  if (!isRestoringCover) recordCoverUndo();
   closeEditorDropdowns();
 }
 
@@ -3054,6 +3114,224 @@ function removeCoverBgImage() {
   coverBgFile = null;
   document.getElementById("coverBgImageInput").value = "";
   renderCoverCanvas();
+  if (!isRestoringCover) recordCoverUndo();
+}
+
+function updateCoverTextControls() {
+  var layer = coverSelectedLayerId ? getCoverLayerById(coverSelectedLayerId) : null;
+  var ids = ["coverFontTrigger", "coverSizeMinus", "coverSizePlus", "coverTextColorTrigger", "coverBoldBtn", "coverItalicBtn", "coverAlignLeftBtn", "coverAlignCenterBtn", "coverAlignRightBtn", "coverDeleteLayerBtn"];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !layer;
+  });
+  if (!layer) {
+    document.getElementById("coverFontLabel").textContent = "Font";
+    document.getElementById("coverSizeValue").textContent = "–";
+    document.getElementById("coverTextColorBar").style.background = "#ffffff";
+    document.getElementById("coverBoldBtn").classList.remove("active");
+    document.getElementById("coverItalicBtn").classList.remove("active");
+    updateCoverAlignButtons(null);
+    return;
+  }
+  var fontOpt = null;
+  for (var i = 0; i < EDITOR_FONTS.length; i++) {
+    if (EDITOR_FONTS[i].stack === layer.fontFamily) { fontOpt = EDITOR_FONTS[i]; break; }
+  }
+  document.getElementById("coverFontLabel").textContent = fontOpt ? fontOpt.label : "Font";
+  document.getElementById("coverSizeValue").textContent = layer.fontSizePct;
+  document.getElementById("coverTextColorBar").style.background = layer.color;
+  document.getElementById("coverTextColorCustom").value = layer.color;
+  document.getElementById("coverBoldBtn").classList.toggle("active", layer.bold);
+  document.getElementById("coverItalicBtn").classList.toggle("active", layer.italic);
+  updateCoverAlignButtons(layer.align);
+}
+
+function updateCoverAlignButtons(align) {
+  document.getElementById("coverAlignLeftBtn").classList.toggle("active", align === "left");
+  document.getElementById("coverAlignCenterBtn").classList.toggle("active", align === "center");
+  document.getElementById("coverAlignRightBtn").classList.toggle("active", align === "right");
+}
+
+function renderCoverFontMenu() {
+  var menu = document.getElementById("coverFontMenu");
+  menu.innerHTML = EDITOR_FONTS.map(function(f) {
+    return '<div class="editor-dd-option" style="font-family:' + f.stack + '" onmousedown="event.preventDefault()" onclick="pickCoverFont(event,\'' + f.key + '\')">' + escapeHtml(f.label) + '</div>';
+  }).join("");
+}
+
+function toggleCoverFontMenu(event) {
+  if (!coverSelectedLayerId) return;
+  event.stopPropagation();
+  var menu = document.getElementById("coverFontMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickCoverFont(event, key) {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  var opt = null;
+  for (var i = 0; i < EDITOR_FONTS.length; i++) {
+    if (EDITOR_FONTS[i].key === key) { opt = EDITOR_FONTS[i]; break; }
+  }
+  if (!opt) return;
+  layer.fontFamily = opt.stack;
+  document.getElementById("coverFontLabel").textContent = opt.label;
+  document.querySelectorAll("#coverFontMenu .editor-dd-option").forEach(function(o) { o.classList.remove("selected"); });
+  if (event && event.target) event.target.classList.add("selected");
+  renderCoverCanvas();
+  recordCoverUndo();
+  closeEditorDropdowns();
+}
+
+function nudgeCoverFontSize(delta) {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  var next = Math.round((layer.fontSizePct + delta) * 10) / 10;
+  next = Math.max(1, Math.min(25, next));
+  layer.fontSizePct = next;
+  document.getElementById("coverSizeValue").textContent = next;
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function renderCoverTextColorMenu() {
+  document.getElementById("coverTextColorPalette").innerHTML = buildColorGrid(COLOR_PALETTE, "pickCoverTextColor");
+}
+
+function toggleCoverTextColorMenu(event) {
+  if (!coverSelectedLayerId) return;
+  event.stopPropagation();
+  var menu = document.getElementById("coverTextColorMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickCoverTextColor(event, color) {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  layer.color = color;
+  document.getElementById("coverTextColorBar").style.background = color;
+  document.getElementById("coverTextColorCustom").value = color;
+  document.querySelectorAll("#coverTextColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
+  if (event && event.target) event.target.classList.add("selected");
+  renderCoverCanvas();
+  recordCoverUndo();
+  closeEditorDropdowns();
+}
+
+function pickCoverTextColorCustom() {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  var color = document.getElementById("coverTextColorCustom").value;
+  layer.color = color;
+  document.getElementById("coverTextColorBar").style.background = color;
+  renderCoverCanvas();
+  recordCoverUndo();
+  closeEditorDropdowns();
+}
+
+function toggleCoverBold() {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  layer.bold = !layer.bold;
+  document.getElementById("coverBoldBtn").classList.toggle("active", layer.bold);
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function toggleCoverItalic() {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  layer.italic = !layer.italic;
+  document.getElementById("coverItalicBtn").classList.toggle("active", layer.italic);
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function setCoverAlign(align) {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  layer.align = align;
+  updateCoverAlignButtons(align);
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function deleteCoverLayer() {
+  if (!coverSelectedLayerId || !coverDesign) return;
+  var idx = -1;
+  for (var i = 0; i < coverDesign.textLayers.length; i++) {
+    if (coverDesign.textLayers[i].id === coverSelectedLayerId) { idx = i; break; }
+  }
+  if (idx === -1) return;
+  coverDesign.textLayers.splice(idx, 1);
+  deselectCoverLayer();
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function captureCoverSnapshot() {
+  return JSON.parse(JSON.stringify(coverDesign));
+}
+
+function restoreCoverSnapshot(snap) {
+  isRestoringCover = true;
+  coverDesign = JSON.parse(JSON.stringify(snap));
+  if (coverSelectedLayerId && !getCoverLayerById(coverSelectedLayerId)) {
+    coverSelectedLayerId = null;
+  }
+  renderCoverCanvas();
+  updateCoverTextControls();
+  fitCoverCanvas();
+  isRestoringCover = false;
+}
+
+function initCoverUndo() {
+  coverCurrentSnapshot = captureCoverSnapshot();
+  coverUndoStack = [];
+  coverRedoStack = [];
+}
+
+function recordCoverUndo() {
+  if (isRestoringCover) return;
+  if (!coverCurrentSnapshot) {
+    initCoverUndo();
+    return;
+  }
+  coverUndoStack.push(coverCurrentSnapshot);
+  coverRedoStack = [];
+  if (coverUndoStack.length > COVER_UNDO_MAX) {
+    coverUndoStack.shift();
+  }
+  coverCurrentSnapshot = captureCoverSnapshot();
+}
+
+function flushPendingCoverUndoCapture() {
+  if (isRestoringCover) return;
+  if (coverUndoDebounceTimer) {
+    clearTimeout(coverUndoDebounceTimer);
+    coverUndoDebounceTimer = null;
+    recordCoverUndo();
+  }
+}
+
+function coverUndo() {
+  flushPendingCoverUndoCapture();
+  if (!coverUndoStack.length) return;
+  coverRedoStack.push(coverCurrentSnapshot);
+  coverCurrentSnapshot = coverUndoStack.pop();
+  restoreCoverSnapshot(coverCurrentSnapshot);
+}
+
+function coverRedo() {
+  flushPendingCoverUndoCapture();
+  if (!coverRedoStack.length) return;
+  coverUndoStack.push(coverCurrentSnapshot);
+  coverCurrentSnapshot = coverRedoStack.pop();
+  restoreCoverSnapshot(coverCurrentSnapshot);
 }
 
 function setAutosaveStatus(text) {
@@ -3240,6 +3518,7 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   coverBgFile = file;
   coverDesign.bgImage = URL.createObjectURL(file);
   renderCoverCanvas();
+  if (!isRestoringCover) recordCoverUndo();
 });
 
 document.getElementById("coverCanvas").addEventListener("click", function(e) {
@@ -3387,6 +3666,21 @@ window.addEventListener("resize", function() {
   fitCoverCanvas();
 });
 
+document.addEventListener("keydown", function(e) {
+  var pane = document.getElementById("paneCoverDesigner");
+  if (!pane || !pane.classList.contains("active")) return;
+  var cmdKey = e.ctrlKey || e.metaKey;
+  if (!cmdKey) return;
+  var key = e.key.toLowerCase();
+  if (key === "z" && !e.shiftKey) {
+    e.preventDefault();
+    coverUndo();
+  } else if ((key === "z" && e.shiftKey) || key === "y") {
+    e.preventDefault();
+    coverRedo();
+  }
+});
+
 document.querySelectorAll(".workspace-tab").forEach(function(tab) {
   tab.addEventListener("click", function() {
     var paneKey = tab.getAttribute("data-pane");
@@ -3405,6 +3699,8 @@ loadRecentColors();
 renderTextColorMenu();
 renderHighlightMenu();
 renderCoverBgColorMenu();
+renderCoverFontMenu();
+renderCoverTextColorMenu();
 loadDocuments();
 loadMyBooks();
 </script>
