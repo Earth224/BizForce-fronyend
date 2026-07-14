@@ -2717,6 +2717,25 @@ document.getElementById("editorCanvas").addEventListener("input", function() {
   scheduleAutosave();
 });
 
+document.getElementById("editorCanvas").addEventListener("keydown", function(e) {
+  var cmdKey = e.ctrlKey || e.metaKey;
+  if (!cmdKey) return;
+  var key = e.key.toLowerCase();
+  if (key === "s") {
+    e.preventDefault();
+    saveEditor();
+  } else if (key === "b") {
+    e.preventDefault();
+    editorCmd("bold");
+  } else if (key === "i") {
+    e.preventDefault();
+    editorCmd("italic");
+  } else if (key === "u") {
+    e.preventDefault();
+    editorCmd("underline");
+  }
+});
+
 document.addEventListener("visibilitychange", function() {
   if (document.visibilityState !== "hidden" || !editorDirty) return;
   var paneEditor = document.getElementById("paneEditor");
