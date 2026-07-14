@@ -201,8 +201,19 @@
     .editor-title-label{flex:1 1 auto;color:#8892b8;font-size:.9rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .editor-save-btn{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.4);color:#34d399;padding:8px 20px;border-radius:10px;font-weight:700;font-family:inherit;font-size:.85rem;cursor:pointer;transition:all .18s}
     .editor-save-btn:hover{background:rgba(52,211,153,.22)}
-    .editor-canvas{min-height:55vh;max-width:760px;margin:0 auto;width:100%;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:32px 40px;color:#e6edf3;font-size:1rem;line-height:1.8;outline:none;font-family:Georgia,'Times New Roman',serif;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box}
+    .editor-canvas{position:relative;min-height:55vh;max-width:760px;margin:0 auto;width:100%;background:rgba(10,15,35,.5);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:32px 40px;color:#e6edf3;font-size:1rem;line-height:1.8;outline:none;font-family:Georgia,'Times New Roman',serif;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box}
     .editor-canvas:focus{border-color:rgba(34,211,238,.4)}
+    .editor-canvas.is-empty::before{content:"Start writing your manuscript…";color:#8892b8;opacity:.6;pointer-events:none;position:absolute}
+    .editor-canvas h1{font-size:1.8rem;font-weight:800;margin:.6em 0 .3em;color:#f4f7ff}
+    .editor-canvas h2{font-size:1.4rem;font-weight:700;margin:.6em 0 .3em;color:#f4f7ff}
+    .editor-canvas blockquote{border-left:3px solid rgba(34,211,238,.5);margin:.6em 0;padding:.2em 0 .2em 16px;color:#8892b8;font-style:italic}
+    .editor-canvas ul,.editor-canvas ol{padding-left:1.6em;margin:.5em 0}
+    .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
+    .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
+    .etb-italic{font-style:italic}
+    .etb-underline{text-decoration:underline}
+    .etb-div{width:1px;height:20px;background:rgba(255,255,255,.12);margin:0 4px}
   </style>
 </head>
 <body>
@@ -351,6 +362,23 @@
         <button class="editor-back" onclick="closeEditor()">← Back to books</button>
         <span class="editor-title-label" id="editorBookTitle"></span>
         <button class="editor-save-btn" id="editorSaveBtn" onclick="saveEditor()">Save</button>
+      </div>
+      <div class="editor-toolbar">
+        <button type="button" class="etb" title="Bold" onmousedown="event.preventDefault()" onclick="editorCmd('bold')">B</button>
+        <button type="button" class="etb etb-italic" title="Italic" onmousedown="event.preventDefault()" onclick="editorCmd('italic')">I</button>
+        <button type="button" class="etb etb-underline" title="Underline" onmousedown="event.preventDefault()" onclick="editorCmd('underline')">U</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" title="Heading 1" onmousedown="event.preventDefault()" onclick="editorFormatBlock('h1')">H1</button>
+        <button type="button" class="etb" title="Heading 2" onmousedown="event.preventDefault()" onclick="editorFormatBlock('h2')">H2</button>
+        <button type="button" class="etb" title="Normal text" onmousedown="event.preventDefault()" onclick="editorFormatBlock('p')">¶</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" title="Bulleted list" onmousedown="event.preventDefault()" onclick="editorCmd('insertUnorderedList')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/></svg></button>
+        <button type="button" class="etb" title="Numbered list" onmousedown="event.preventDefault()" onclick="editorCmd('insertOrderedList')">1.</button>
+        <button type="button" class="etb" title="Quote" onmousedown="event.preventDefault()" onclick="editorFormatBlock('blockquote')">&ldquo;</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb" title="Align left" onmousedown="event.preventDefault()" onclick="editorCmd('justifyLeft')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="17" y2="18"/></svg></button>
+        <button type="button" class="etb" title="Align center" onmousedown="event.preventDefault()" onclick="editorCmd('justifyCenter')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
+        <button type="button" class="etb" title="Align right" onmousedown="event.preventDefault()" onclick="editorCmd('justifyRight')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
       </div>
       <div class="editor-canvas" id="editorCanvas" contenteditable="true" spellcheck="true"></div>
     </div>
@@ -1812,6 +1840,21 @@ async function deleteBook(id) {
   }
 }
 
+function editorCmd(command) {
+  document.execCommand(command, false, null);
+  document.getElementById("editorCanvas").focus();
+}
+
+function editorFormatBlock(tag) {
+  document.execCommand("formatBlock", false, tag);
+  document.getElementById("editorCanvas").focus();
+}
+
+function updateEditorPlaceholder() {
+  var canvas = document.getElementById("editorCanvas");
+  canvas.classList.toggle("is-empty", !canvas.textContent.trim());
+}
+
 function openEditor(id) {
   var book = null;
   for (var i = 0; i < allBooks.length; i++) {
@@ -1820,7 +1863,8 @@ function openEditor(id) {
   if (!book) return;
   currentEditorBookId = id;
   document.getElementById("editorBookTitle").textContent = "Editing: " + book.title;
-  document.getElementById("editorCanvas").innerText = book.content || "";
+  document.getElementById("editorCanvas").innerHTML = book.content || "";
+  updateEditorPlaceholder();
   document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
   document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
   document.getElementById("paneEditor").classList.add("active");
@@ -1838,7 +1882,7 @@ function closeEditor() {
 
 async function saveEditor() {
   if (!currentEditorBookId) return;
-  var content = document.getElementById("editorCanvas").innerText;
+  var content = document.getElementById("editorCanvas").innerHTML;
   var btn = document.getElementById("editorSaveBtn");
   btn.disabled = true;
   try {
@@ -1930,6 +1974,8 @@ document.getElementById("coverChangeInput").addEventListener("change", async fun
     coverChangeTargetId = null;
   }
 });
+
+document.getElementById("editorCanvas").addEventListener("input", updateEditorPlaceholder);
 
 document.getElementById("trimTrigger").addEventListener("click", function(e) {
   e.stopPropagation();
