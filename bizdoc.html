@@ -79,6 +79,12 @@
     .newdoc-thumb{width:120px;height:150px;background:#ffffff;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.35);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
     .newdoc-tile:hover .newdoc-thumb{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.45)}
     .newdoc-thumb-lines{position:absolute;inset:16px 14px auto 14px;height:70%;display:block;background:repeating-linear-gradient(to bottom,#e5e5e5 0,#e5e5e5 6%,transparent 6%,transparent 18%)}
+    .newdoc-thumb-page{width:100%;height:100%;background:#fff;color:#111;padding:8px 7px;overflow:hidden;display:flex;flex-direction:column;gap:5px;box-sizing:border-box}
+    .newdoc-thumb-title{font-size:6px;font-weight:800;text-align:center;color:#111;line-height:1.1}
+    .newdoc-thumb-rule{height:1px;background:#ddd;margin:1px 0 2px}
+    .newdoc-thumb-frow{display:flex;flex-direction:column;gap:2px}
+    .newdoc-thumb-flabel{font-size:4px;color:#333;font-weight:700;line-height:1.1;letter-spacing:.02em}
+    .newdoc-thumb-fbar{height:4px;width:80%;background:#e5e5e5;border-radius:2px}
     .newdoc-tile-new .newdoc-plus{width:120px;height:150px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(10,15,35,.6);border:1px dashed rgba(255,255,255,.15);transition:border-color .15s,transform .15s}
     .newdoc-tile-new:hover .newdoc-plus{border-color:rgba(255,255,255,.35);transform:translateY(-3px)}
     .newdoc-tile-new .newdoc-plus svg{width:64px;height:64px;padding:19px;border-radius:50%;background:linear-gradient(135deg,#22d3ee 0%,#7b2ff7 55%,#fbbf24 100%);color:#ffffff;box-shadow:0 6px 20px rgba(123,47,247,.4);box-sizing:border-box}
@@ -304,27 +310,27 @@
         <div class="newdoc-tile-label">Blank Document</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('nda')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="nda"></div>
         <div class="newdoc-tile-label">NDA</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('bill_of_sale')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="bill_of_sale"></div>
         <div class="newdoc-tile-label">Bill of Sale</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('independent_contractor')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="independent_contractor"></div>
         <div class="newdoc-tile-label">Independent Contractor</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('invoice')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="invoice"></div>
         <div class="newdoc-tile-label">Invoice</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('self_publishing_agreement')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="self_publishing_agreement"></div>
         <div class="newdoc-tile-label">Self-Publishing</div>
       </button>
       <button class="newdoc-tile" onclick="selectTemplate('copyright_assignment')">
-        <div class="newdoc-thumb"><span class="newdoc-thumb-lines"></span></div>
+        <div class="newdoc-thumb" data-tmpl-type="copyright_assignment"></div>
         <div class="newdoc-tile-label">Copyright Assignment</div>
       </button>
       <button class="newdoc-tile newdoc-tile-browse" onclick="openCreateModal()">
@@ -1353,6 +1359,31 @@ function renderGrid() {
     return;
   }
   grid.innerHTML = items.map(function(d) { return renderCard(d); }).join("");
+}
+
+function buildTemplateThumb(tmpl) {
+  if (!tmpl) return "";
+  var rows = "";
+  if (tmpl.fields && tmpl.fields.length) {
+    rows = tmpl.fields.slice(0, 5).map(function(f) {
+      return '<div class="newdoc-thumb-frow">' +
+        '<div class="newdoc-thumb-flabel">' + escapeHtml(f.label) + '</div>' +
+        '<div class="newdoc-thumb-fbar"></div>' +
+      '</div>';
+    }).join("");
+  }
+  return '<div class="newdoc-thumb-page">' +
+    '<div class="newdoc-thumb-title">' + escapeHtml(tmpl.name) + '</div>' +
+    '<div class="newdoc-thumb-rule"></div>' +
+    rows +
+  '</div>';
+}
+
+function renderNewdocThumbs() {
+  document.querySelectorAll(".newdoc-thumb[data-tmpl-type]").forEach(function(el) {
+    var tmpl = getTemplate(el.getAttribute("data-tmpl-type"));
+    if (tmpl) el.innerHTML = buildTemplateThumb(tmpl);
+  });
 }
 
 function buildDocThumb(d) {
@@ -2421,6 +2452,7 @@ document.querySelectorAll(".workspace-tab").forEach(function(tab) {
   });
 });
 
+renderNewdocThumbs();
 loadDocuments();
 loadMyBooks();
 </script>
