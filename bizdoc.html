@@ -140,6 +140,13 @@
     .template-item-notice{font-size:.68rem;color:#fbbf24;line-height:1.4;margin-top:6px}
     .template-cat-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
     .template-list .template-cat-head:first-child{margin-top:0}
+    #templateModal .modal{max-width:860px;width:100%}
+    .tmpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;margin-bottom:8px}
+    .tmpl-tile{background:none;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit;transition:all .18s;text-align:center}
+    .tmpl-tile:hover{border-color:rgba(168,85,247,.4);background:rgba(168,85,247,.06);transform:translateY(-2px)}
+    .tmpl-tile-thumb{width:130px;height:162px;border-radius:8px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+    .tmpl-tile-name{font-size:.82rem;font-weight:700;color:#f4f7ff;line-height:1.2}
+    .tmpl-tile-notice{font-size:.66rem;color:#fbbf24;line-height:1.35}
     .back-to-templates{background:none;border:none;color:#22d3ee;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;margin-bottom:18px}
     .back-to-templates:hover{text-decoration:underline}
     /* BizDoc-specific: detail view */
@@ -1494,12 +1501,12 @@ var TEMPLATE_CATEGORIES = [
   { key: "publishing_ip", label: "Publishing & Intellectual Property" }
 ];
 
-function renderTemplateItem(t) {
-  return '<div class="template-item" onclick="selectTemplate(\'' + t.type + '\')">' +
-    '<h3 class="template-item-name">' + escapeHtml(t.name) + '</h3>' +
-    '<p class="template-item-desc">' + escapeHtml(t.description) + '</p>' +
-    (t.notice ? '<div class="template-item-notice">' + escapeHtml(t.notice) + '</div>' : '') +
-  '</div>';
+function renderTemplateTile(t) {
+  return '<button class="tmpl-tile" onclick="selectTemplate(\'' + escapeHtml(t.type) + '\')">' +
+    '<div class="tmpl-tile-thumb">' + buildTemplateThumb(t) + '</div>' +
+    '<div class="tmpl-tile-name">' + escapeHtml(t.name) + '</div>' +
+    (t.notice ? '<div class="tmpl-tile-notice">' + escapeHtml(t.notice) + '</div>' : '') +
+  '</button>';
 }
 
 function renderTemplateList() {
@@ -1511,12 +1518,12 @@ function renderTemplateList() {
     if (!items.length) return;
     items.forEach(function(t) { usedTypes[t.type] = true; });
     html += '<div class="template-cat-head">' + escapeHtml(cat.label) + '</div>';
-    html += items.map(renderTemplateItem).join("");
+    html += '<div class="tmpl-grid">' + items.map(renderTemplateTile).join("") + '</div>';
   });
   var leftover = BIZDOC_TEMPLATES.filter(function(t) { return !usedTypes[t.type]; });
   if (leftover.length) {
     html += '<div class="template-cat-head">Other</div>';
-    html += leftover.map(renderTemplateItem).join("");
+    html += '<div class="tmpl-grid">' + leftover.map(renderTemplateTile).join("") + '</div>';
   }
   list.innerHTML = html;
 }
