@@ -254,6 +254,12 @@
     .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
     .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(34,211,238,.6);pointer-events:none;z-index:2;display:none}
+    .cover-guide-trim{position:absolute;top:1px;left:1px;right:1px;bottom:1px;border:1px solid rgba(255,255,255,.55);pointer-events:none;z-index:2}
+    .cover-guide-bleed{position:absolute;border:1px dashed rgba(251,191,36,.6);pointer-events:none;z-index:2}
+    .cover-guide-center{position:absolute;pointer-events:none;z-index:2}
+    .cover-guide-center-h{left:0;right:0;top:50%;height:0;border-top:1px dashed rgba(168,85,247,.5)}
+    .cover-guide-center-v{top:0;bottom:0;width:0;border-left:1px dashed rgba(168,85,247,.5);display:none}
+    .cover-canvas.guides-off .cover-fold-line,.cover-canvas.guides-off .cover-guide-trim,.cover-canvas.guides-off .cover-guide-bleed,.cover-canvas.guides-off .cover-guide-center{display:none!important}
     .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
     .spine-props{display:none;align-items:center;gap:16px;flex-wrap:wrap;padding:8px 14px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:.82rem}
     .spine-props-field{display:flex;align-items:center;gap:8px;color:#8892b8}
@@ -666,6 +672,8 @@
         <button type="button" class="etb" id="coverAlignRightBtn" title="Align right" onclick="setCoverAlign('right')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
         <span class="etb-div"></span>
         <button type="button" class="etb" id="coverDeleteLayerBtn" title="Delete Layer" onclick="deleteCoverLayer()" disabled style="color:#f87171">Delete Layer</button>
+        <span class="etb-div"></span>
+        <button type="button" class="etb active" id="coverGuidesBtn" title="Toggle guide overlays (trim, bleed, center lines, fold lines)" onclick="toggleCoverGuides()">Guides</button>
       </div>
       <div class="spine-props">
         <label class="spine-props-field">
@@ -1433,6 +1441,7 @@ var coverSpineFrac = 0;
 var coverFrontFrac = 1;
 var coverBackEndPct = 0;
 var coverFrontStartPct = 100;
+var coverGuidesOn = true;
 var coverDesign = null;
 var coverBgFile = null;
 var coverSelectedLayerId = null;
@@ -3158,10 +3167,19 @@ function fitCoverCanvas() {
 
   renderCoverTextLayers();
   renderCoverFolds();
+  renderCoverGuides();
 }
 
 function fitCoverSpine() {
   fitCoverCanvas();
+}
+
+function toggleCoverGuides() {
+  coverGuidesOn = !coverGuidesOn;
+  var btn = document.getElementById("coverGuidesBtn");
+  if (btn) btn.classList.toggle("active", coverGuidesOn);
+  var canvas = document.getElementById("coverCanvas");
+  if (canvas) canvas.classList.toggle("guides-off", !coverGuidesOn);
 }
 
 function renderCoverFolds() {
@@ -3193,6 +3211,69 @@ function renderCoverFolds() {
   backFold.style.left = coverBackEndPct + "%";
   frontFold.style.display = "block";
   frontFold.style.left = coverFrontStartPct + "%";
+}
+
+function renderCoverGuides() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas || !coverTrim) return;
+
+  var trim = canvas.querySelector(".cover-guide-trim");
+  if (!trim) {
+    trim = document.createElement("div");
+    trim.className = "cover-guide-trim";
+    canvas.appendChild(trim);
+  }
+
+  var bleed = canvas.querySelector(".cover-guide-bleed");
+  if (!bleed) {
+    bleed = document.createElement("div");
+    bleed.className = "cover-guide-bleed";
+    canvas.appendChild(bleed);
+  }
+  var canvasHeight = parseFloat(canvas.style.height) || canvas.offsetHeight || 1;
+  var pxPerInch = canvasHeight / coverTrim.h;
+  var insetPx = 0.25 * pxPerInch;
+  bleed.style.top = insetPx + "px";
+  bleed.style.left = insetPx + "px";
+  bleed.style.right = insetPx + "px";
+  bleed.style.bottom = insetPx + "px";
+
+  renderCoverCenterLines(canvas);
+}
+
+function renderCoverCenterLines(canvas) {
+  var hLine = canvas.querySelector(".cover-guide-center-h");
+  if (!hLine) {
+    hLine = document.createElement("div");
+    hLine.className = "cover-guide-center cover-guide-center-h";
+    canvas.appendChild(hLine);
+  }
+
+  var centers;
+  if (coverContext === "wrap") {
+    centers = [
+      coverBackEndPct / 2,
+      (coverBackEndPct + coverFrontStartPct) / 2,
+      (coverFrontStartPct + 100) / 2
+    ];
+  } else {
+    centers = [50];
+  }
+
+  var existing = canvas.querySelectorAll(".cover-guide-center-v");
+  for (var i = 0; i < centers.length; i++) {
+    var vLine = existing[i];
+    if (!vLine) {
+      vLine = document.createElement("div");
+      vLine.className = "cover-guide-center cover-guide-center-v";
+      canvas.appendChild(vLine);
+    }
+    vLine.style.left = centers[i] + "%";
+    vLine.style.display = "block";
+  }
+  for (var j = centers.length; j < existing.length; j++) {
+    existing[j].style.display = "none";
+  }
 }
 
 function updateCoverSpineNote() {
@@ -3464,6 +3545,7 @@ function renderCoverCanvas() {
   }
   renderCoverTextLayers();
   renderCoverFolds();
+  renderCoverGuides();
 }
 
 function getCoverLayerById(layerId) {
