@@ -252,12 +252,18 @@
     #editorCanvas.theme-night blockquote{color:#8892b8}
     #editorCanvas.theme-night.is-empty::before{color:#555}
     .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
-    .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0}
+    .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
+    .cover-canvas{background:#ffffff;position:relative}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.15);pointer-events:none;z-index:2;display:none}
     .cover-snap-guide{position:absolute;pointer-events:none;z-index:3;display:none;background:#ff2ec4}
     .cover-snap-guide-v{top:0;bottom:0;width:1px}
     .cover-snap-guide-h{left:0;right:0;height:1px}
     .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
+    .cover-view-switch{display:inline-flex;gap:2px;padding:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px}
+    .cover-view-btn{padding:5px 10px;background:none;border:none;border-radius:6px;color:#8892b8;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s ease;white-space:nowrap}
+    .cover-view-btn:hover:not(.active):not(:disabled){color:#e6edf3}
+    .cover-view-btn.active{background:rgba(34,211,238,.12);color:#22d3ee;box-shadow:0 0 0 1px rgba(34,211,238,.35)}
+    .cover-view-btn:disabled{opacity:.35;cursor:not-allowed}
     .spine-props{display:none;align-items:center;gap:16px;flex-wrap:wrap;padding:8px 14px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:.82rem}
     .spine-props-field{display:flex;align-items:center;gap:8px;color:#8892b8}
     .spine-props-label{white-space:nowrap}
@@ -614,6 +620,13 @@
         <button class="editor-save-btn" id="coverSaveBtn" onclick="saveCoverDesign()">Save</button>
       </div>
       <div class="cover-toolbar">
+        <div class="cover-view-switch" id="coverViewSwitch">
+          <button type="button" class="cover-view-btn" id="coverViewFrontBtn" onclick="setCoverView('front')">Front</button>
+          <button type="button" class="cover-view-btn" id="coverViewSpineBtn" onclick="setCoverView('spine')">Spine</button>
+          <button type="button" class="cover-view-btn" id="coverViewBackBtn" onclick="setCoverView('back')">Back</button>
+          <button type="button" class="cover-view-btn active" id="coverViewWrapBtn" onclick="setCoverView('wrap')">Full Wrap</button>
+        </div>
+        <span class="etb-div"></span>
         <div class="editor-dd" id="coverBgColorDD">
           <button type="button" class="etb editor-dd-trigger" title="Background Color" onclick="toggleCoverBgColorMenu(event)">
             <span class="editor-color-glyph">BG<span class="editor-color-bar" id="coverBgColorBar" style="background:#ffffff"></span></span>
@@ -692,7 +705,9 @@
         <span class="spine-props-note" id="coverSpineNote">Spine text needs ~100+ pages</span>
       </div>
       <div class="cover-stage">
-        <div class="cover-canvas" id="coverCanvas"></div>
+        <div class="cover-viewport" id="coverViewport">
+          <div class="cover-canvas" id="coverCanvas"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1430,6 +1445,7 @@ var isRestoringEditor = false;
 var editorUndoDebounceTimer = null;
 var coverBookId = null;
 var coverContext = "book";
+var coverView = "wrap";
 var coverWrapId = null;
 var coverTrim = null;
 var coverPageCount = 0;
@@ -3128,6 +3144,7 @@ function fitCoverCanvas() {
   if (!canvas || !pane || !pane.classList.contains("active")) return;
 
   var propsEl = document.querySelector(".spine-props");
+  var viewSwitchEl = document.getElementById("coverViewSwitch");
 
   var topBarHeight = 60;
   var padding = 64;
@@ -3141,6 +3158,7 @@ function fitCoverCanvas() {
 
   if (coverContext === "wrap") {
     if (propsEl) propsEl.style.display = "flex";
+    if (viewSwitchEl) viewSwitchEl.style.display = "inline-flex";
     var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
     spineInches = coverPageCount * thickness;
     wrapWidthInches = coverTrim.w + spineInches + coverTrim.w;
@@ -3149,12 +3167,23 @@ function fitCoverCanvas() {
     coverFrontFrac = coverTrim.w / wrapWidthInches;
   } else {
     if (propsEl) propsEl.style.display = "none";
+    if (viewSwitchEl) viewSwitchEl.style.display = "none";
     coverBackFrac = 0;
     coverSpineFrac = 0;
     coverFrontFrac = 1;
+    coverView = "wrap";
   }
   coverBackEndPct = coverBackFrac * 100;
   coverFrontStartPct = (coverBackFrac + coverSpineFrac) * 100;
+
+  var spineBtn = document.getElementById("coverViewSpineBtn");
+  if (spineBtn) {
+    var spineViewable = coverContext === "wrap" && coverSpineFrac > 0;
+    spineBtn.disabled = !spineViewable;
+    if (!spineViewable && coverView === "spine") {
+      resetCoverView();
+    }
+  }
 
   var displayWidth = wrapWidthInches * pxPerInch;
   canvas.style.height = displayHeight + "px";
@@ -3166,10 +3195,58 @@ function fitCoverCanvas() {
 
   renderCoverTextLayers();
   renderCoverFolds();
+  applyCoverView();
 }
 
 function fitCoverSpine() {
   fitCoverCanvas();
+}
+
+function setCoverView(view) {
+  coverView = view;
+  document.querySelectorAll(".cover-view-btn").forEach(function(b) { b.classList.remove("active"); });
+  var btn = document.getElementById("coverView" + view.charAt(0).toUpperCase() + view.slice(1) + "Btn");
+  if (btn) btn.classList.add("active");
+  applyCoverView();
+}
+
+function resetCoverView() {
+  coverView = "wrap";
+  document.querySelectorAll(".cover-view-btn").forEach(function(b) { b.classList.remove("active"); });
+  var wrapBtn = document.getElementById("coverViewWrapBtn");
+  if (wrapBtn) wrapBtn.classList.add("active");
+}
+
+function applyCoverView() {
+  var canvas = document.getElementById("coverCanvas");
+  var viewport = document.getElementById("coverViewport");
+  if (!canvas || !viewport) return;
+
+  var displayWidth = parseFloat(canvas.style.width) || canvas.offsetWidth || 1;
+  var displayHeight = parseFloat(canvas.style.height) || canvas.offsetHeight || 1;
+
+  var view = (coverContext === "wrap") ? coverView : "wrap";
+  var scale = 1;
+  var regionStartPct = 0;
+
+  if (view === "front") {
+    scale = coverFrontFrac > 0 ? (1 / coverFrontFrac) : 1;
+    regionStartPct = coverFrontStartPct;
+  } else if (view === "back") {
+    scale = coverBackFrac > 0 ? (1 / coverBackFrac) : 1;
+    regionStartPct = 0;
+  } else if (view === "spine") {
+    scale = coverSpineFrac > 0 ? (1 / coverSpineFrac) : 1;
+    regionStartPct = coverBackEndPct;
+  }
+
+  var translateX = -(regionStartPct / 100 * displayWidth * scale);
+
+  canvas.style.transformOrigin = "0 0";
+  canvas.style.transform = "translateX(" + translateX + "px) scale(" + scale + ")";
+
+  viewport.style.width = displayWidth + "px";
+  viewport.style.height = (displayHeight * scale) + "px";
 }
 
 function renderCoverFolds() {
@@ -3279,6 +3356,7 @@ function defaultCoverTextLayers(mode) {
 function openCoverDesigner(bookId) {
   coverContext = "book";
   coverWrapId = null;
+  resetCoverView();
   var book = null;
   for (var i = 0; i < allBooks.length; i++) {
     if (allBooks[i].id === bookId) { book = allBooks[i]; break; }
@@ -3383,6 +3461,7 @@ async function openWrapDesigner(wrapId) {
   coverContext = "wrap";
   coverWrapId = wrapId;
   coverBookId = null;
+  resetCoverView();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
   coverPageCount = wrap.page_count || 0;
   coverPaperStock = wrap.paper_stock || "white";
