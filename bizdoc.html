@@ -255,7 +255,11 @@
     .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;display:none}
+    .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.5);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
+    .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.35);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
     .cover-margin-guide{position:absolute;border:1px dashed rgba(255,255,255,.28);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
+    .cover-spine-warning{position:absolute;top:0;bottom:0;background:rgba(251,191,36,.14);pointer-events:none;z-index:0;display:none}
+    .cover-spine-warning-label{position:absolute;pointer-events:none;z-index:2;display:none;color:rgba(251,191,36,.85);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;font-family:inherit;transform:translate(-50%,-50%) rotate(90deg)}
     .cover-section-label{position:absolute;pointer-events:none;z-index:2;display:none;color:rgba(255,255,255,.32);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;font-family:inherit}
     .cover-section-label-back,.cover-section-label-front{transform:translate(-50%,0)}
     .cover-section-label-spine{transform:translate(-50%,-50%) rotate(90deg)}
@@ -3439,10 +3443,51 @@ function renderCoverGuides() {
   var canvas = document.getElementById("coverCanvas");
   if (!canvas || !coverTrim) return;
 
-  var wrapWidthInches = coverFrontFrac > 0 ? (coverTrim.w / coverFrontFrac) : coverTrim.w;
-  var insetXPct = (COVER_BLEED_INCHES / wrapWidthInches) * 100;
-  var insetYPct = (COVER_BLEED_INCHES / coverTrim.h) * 100;
+  var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
+  var spineInches = coverContext === "wrap" ? (coverPageCount * thickness) : 0;
+  var wrapWidthInches = coverContext === "wrap" ? (coverTrim.w + spineInches + coverTrim.w) : coverTrim.w;
 
+  // Percent-of-canvas-per-inch on each axis. Guides are positioned purely as
+  // percentages of #coverCanvas's own box, so they stay correct at any zoom
+  // level automatically (the same CSS transform that zooms the canvas zooms
+  // everything positioned inside it, guides included) and at any trim/spine.
+  var pctPerInchX = 100 / wrapWidthInches;
+  var pctPerInchY = 100 / coverTrim.h;
+
+  var bleedXPct = COVER_BLEED_IN * pctPerInchX;
+  var bleedYPct = COVER_BLEED_IN * pctPerInchY;
+  var marginXPct = COVER_MARGIN_IN * pctPerInchX;
+  var marginYPct = COVER_MARGIN_IN * pctPerInchY;
+  var safeXPct = bleedXPct + marginXPct;
+  var safeYPct = bleedYPct + marginYPct;
+
+  // --- Bleed border + trim line: one rectangle each spanning the whole wrap.
+  // Only the outer perimeter has bleed/trim; fold lines (spine boundaries)
+  // are drawn separately by renderCoverFolds() and are not bleed edges. In
+  // single Front/Back/Spine views the viewport crop naturally hides whichever
+  // of these edges falls outside the visible region, so no extra branching
+  // is needed for per-view display.
+  var bleedEl = canvas.querySelector(".cover-bleed-border");
+  if (!bleedEl) {
+    bleedEl = document.createElement("div");
+    bleedEl.className = "cover-bleed-border";
+    canvas.appendChild(bleedEl);
+  }
+  bleedEl.style.display = "block";
+
+  var trimEl = canvas.querySelector(".cover-trim-line");
+  if (!trimEl) {
+    trimEl = document.createElement("div");
+    trimEl.className = "cover-trim-line";
+    canvas.appendChild(trimEl);
+  }
+  trimEl.style.display = "block";
+  trimEl.style.left = bleedXPct + "%";
+  trimEl.style.top = bleedYPct + "%";
+  trimEl.style.width = Math.max(0, 100 - bleedXPct * 2) + "%";
+  trimEl.style.height = Math.max(0, 100 - bleedYPct * 2) + "%";
+
+  // --- Safe margin: per-region (back / front), inset from the TRIM line.
   var backGuide = canvas.querySelector(".cover-margin-guide-back");
   var frontGuide = canvas.querySelector(".cover-margin-guide-front");
   if (!backGuide) {
@@ -3458,19 +3503,68 @@ function renderCoverGuides() {
 
   if (coverContext === "wrap" && coverBackFrac > 0) {
     backGuide.style.display = "block";
-    backGuide.style.left = insetXPct + "%";
-    backGuide.style.top = insetYPct + "%";
-    backGuide.style.width = Math.max(0, coverBackEndPct - insetXPct * 2) + "%";
-    backGuide.style.height = Math.max(0, 100 - insetYPct * 2) + "%";
+    backGuide.style.left = safeXPct + "%";
+    backGuide.style.top = safeYPct + "%";
+    backGuide.style.width = Math.max(0, coverBackEndPct - safeXPct * 2) + "%";
+    backGuide.style.height = Math.max(0, 100 - safeYPct * 2) + "%";
   } else {
     backGuide.style.display = "none";
   }
 
   frontGuide.style.display = "block";
-  frontGuide.style.left = (coverFrontStartPct + insetXPct) + "%";
-  frontGuide.style.top = insetYPct + "%";
-  frontGuide.style.width = Math.max(0, 100 - coverFrontStartPct - insetXPct * 2) + "%";
-  frontGuide.style.height = Math.max(0, 100 - insetYPct * 2) + "%";
+  frontGuide.style.left = (coverFrontStartPct + safeXPct) + "%";
+  frontGuide.style.top = safeYPct + "%";
+  frontGuide.style.width = Math.max(0, 100 - coverFrontStartPct - safeXPct * 2) + "%";
+  frontGuide.style.height = Math.max(0, 100 - safeYPct * 2) + "%";
+
+  // --- Spine: either its own safe-zone guide, or a thin-spine warning.
+  var spineWarnEl = canvas.querySelector(".cover-spine-warning");
+  var spineWarnLabel = canvas.querySelector(".cover-spine-warning-label");
+  var spineGuide = canvas.querySelector(".cover-margin-guide-spine");
+  if (!spineWarnEl) {
+    spineWarnEl = document.createElement("div");
+    spineWarnEl.className = "cover-spine-warning";
+    canvas.appendChild(spineWarnEl);
+  }
+  if (!spineWarnLabel) {
+    spineWarnLabel = document.createElement("div");
+    spineWarnLabel.className = "cover-spine-warning-label";
+    spineWarnLabel.textContent = "Spine too thin for text";
+    canvas.appendChild(spineWarnLabel);
+  }
+  if (!spineGuide) {
+    spineGuide = document.createElement("div");
+    spineGuide.className = "cover-margin-guide cover-margin-guide-spine";
+    canvas.appendChild(spineGuide);
+  }
+
+  var hasSpine = coverContext === "wrap" && coverSpineFrac > 0;
+  var spineTooThin = hasSpine && (coverPageCount < SPINE_TEXT_MIN_PAGES || spineInches < COVER_MIN_SPINE_TEXT_IN);
+
+  if (!hasSpine) {
+    spineWarnEl.style.display = "none";
+    spineWarnLabel.style.display = "none";
+    spineGuide.style.display = "none";
+  } else if (spineTooThin) {
+    spineWarnEl.style.display = "block";
+    spineWarnEl.style.left = coverBackEndPct + "%";
+    spineWarnEl.style.width = Math.max(0, coverFrontStartPct - coverBackEndPct) + "%";
+
+    spineWarnLabel.style.display = "block";
+    spineWarnLabel.style.left = ((coverBackEndPct + coverFrontStartPct) / 2) + "%";
+    spineWarnLabel.style.top = "50%";
+
+    spineGuide.style.display = "none";
+  } else {
+    spineWarnEl.style.display = "none";
+    spineWarnLabel.style.display = "none";
+
+    spineGuide.style.display = "block";
+    spineGuide.style.left = (coverBackEndPct + marginXPct) + "%";
+    spineGuide.style.top = safeYPct + "%";
+    spineGuide.style.width = Math.max(0, (coverFrontStartPct - coverBackEndPct) - marginXPct * 2) + "%";
+    spineGuide.style.height = Math.max(0, 100 - safeYPct * 2) + "%";
+  }
 }
 
 function updateCoverSpineNote() {
@@ -3941,7 +4035,9 @@ function onCoverLayerMouseMove(e) {
 }
 
 var COVER_SNAP_PX = 8;
-var COVER_BLEED_INCHES = 0.25;
+var COVER_BLEED_IN = 0.125;
+var COVER_MARGIN_IN = 0.25;
+var COVER_MIN_SPINE_TEXT_IN = 0.0625;
 
 function getCoverSnapTargetsX(rect) {
   var targets = [50];
@@ -3954,7 +4050,7 @@ function getCoverSnapTargetsX(rect) {
   }
   if (coverTrim && rect.width) {
     var pxPerInch = rect.height / coverTrim.h;
-    var insetPct = (COVER_BLEED_INCHES * pxPerInch / rect.width) * 100;
+    var insetPct = (COVER_MARGIN_IN * pxPerInch / rect.width) * 100;
     targets.push(insetPct);
     targets.push(100 - insetPct);
   }
@@ -3965,7 +4061,7 @@ function getCoverSnapTargetsY(rect) {
   var targets = [50];
   if (coverTrim && rect.height) {
     var pxPerInch = rect.height / coverTrim.h;
-    var insetPct = (COVER_BLEED_INCHES * pxPerInch / rect.height) * 100;
+    var insetPct = (COVER_MARGIN_IN * pxPerInch / rect.height) * 100;
     targets.push(insetPct);
     targets.push(100 - insetPct);
   }
