@@ -2285,28 +2285,50 @@ function renderWrapTile(w) {
   '</div>';
 }
 
-async function createNewWrap() {
-  try {
-    var res = await fetch(API_URL + "/api/cover-wraps", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Untitled Cover", trim_size: "6x9" })
-    });
-    if (res.ok) {
-      var data = await res.json().catch(function() { return {}; });
-      var newId = data.wrap && data.wrap.id;
-      showToast("New cover", "success");
-      await loadCoverWraps();
-      if (newId) {
-        openWrapDesigner(newId);
-      }
-    } else {
-      var e = await res.json().catch(function() { return {}; });
-      showToast(e.error || "Couldn't create cover", "error");
-    }
-  } catch (e) {
-    showToast("Couldn't create cover", "error");
+function createNewWrap() {
+  var trim = null;
+  for (var j = 0; j < TRIM_SIZES.length; j++) {
+    if (TRIM_SIZES[j].value === "6x9") { trim = TRIM_SIZES[j]; break; }
   }
+
+  coverContext = "wrap";
+  coverWrapId = null;
+  coverBookId = null;
+  resetCoverView();
+  coverTrim = { w: trim.w, h: trim.h, value: trim.value };
+  coverPageCount = 0;
+  coverPaperStock = "white";
+  if (coverDesign && coverDesign.bgImage) {
+    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  }
+  coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("wrap") };
+  coverBgFile = null;
+  coverSelectedLayerId = null;
+  coverDragState = null;
+  coverBgDisplayUrl = null;
+  coverDirty = false;
+  clearTimeout(coverUndoDebounceTimer);
+  coverUndoDebounceTimer = null;
+  document.getElementById("coverBgColorBar").style.background = coverDesign.bgColor;
+  document.getElementById("coverBgColorCustom").value = coverDesign.bgColor;
+  document.getElementById("coverBgImageInput").value = "";
+  document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
+  document.getElementById("coverTextColorCustom").value = "#ffffff";
+  updateCoverTextControls();
+  document.getElementById("coverPageCountInput").value = coverPageCount;
+  updateCoverPaperStockLabel();
+
+  document.getElementById("coverDesignerTitle").textContent = "Design Cover — Untitled Cover";
+
+  document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
+  document.getElementById("paneCoverDesigner").classList.add("active");
+  window.scrollTo(0, 0);
+
+  fitCoverCanvas();
+  renderCoverCanvas();
+  initCoverUndo();
+  fitCoverSpine();
 }
 
 function wrapMenuEdit(event, id) {
@@ -3224,28 +3246,31 @@ function applyCoverView() {
 
   var displayWidth = parseFloat(canvas.style.width) || canvas.offsetWidth || 1;
   var displayHeight = parseFloat(canvas.style.height) || canvas.offsetHeight || 1;
+  var viewportWidth = displayWidth;
 
   var view = (coverContext === "wrap") ? coverView : "wrap";
   var scale = 1;
   var regionStartPct = 0;
 
-  if (view === "front") {
-    scale = coverFrontFrac > 0 ? (1 / coverFrontFrac) : 1;
+  if (view === "front" && coverFrontFrac > 1e-6) {
+    scale = viewportWidth / (coverFrontFrac * displayWidth);
     regionStartPct = coverFrontStartPct;
-  } else if (view === "back") {
-    scale = coverBackFrac > 0 ? (1 / coverBackFrac) : 1;
+  } else if (view === "back" && coverBackFrac > 1e-6) {
+    scale = viewportWidth / (coverBackFrac * displayWidth);
     regionStartPct = 0;
-  } else if (view === "spine") {
-    scale = coverSpineFrac > 0 ? (1 / coverSpineFrac) : 1;
+  } else if (view === "spine" && coverSpineFrac > 1e-6) {
+    scale = viewportWidth / (coverSpineFrac * displayWidth);
     regionStartPct = coverBackEndPct;
   }
+  if (!isFinite(scale) || scale <= 0) scale = 1;
 
   var translateX = -(regionStartPct / 100 * displayWidth * scale);
+  if (!isFinite(translateX)) translateX = 0;
 
   canvas.style.transformOrigin = "0 0";
   canvas.style.transform = "translateX(" + translateX + "px) scale(" + scale + ")";
 
-  viewport.style.width = displayWidth + "px";
+  viewport.style.width = viewportWidth + "px";
   viewport.style.height = (displayHeight * scale) + "px";
 }
 
@@ -3544,6 +3569,7 @@ function renderCoverCanvas() {
   if (!coverDesign) return;
   var canvas = document.getElementById("coverCanvas");
   if (!canvas) return;
+  ensureCoverSnapGuides(canvas);
   canvas.style.backgroundColor = coverDesign.bgColor;
   var img = document.getElementById("coverBgImageEl");
   if (coverDesign.bgImage) {
@@ -3754,9 +3780,7 @@ function applyCoverSnap(xPct, yPct, rect) {
   return result;
 }
 
-function updateCoverSnapGuides(snapX, snapY) {
-  var canvas = document.getElementById("coverCanvas");
-  if (!canvas) return;
+function ensureCoverSnapGuides(canvas) {
   var vLine = canvas.querySelector(".cover-snap-guide-v");
   if (!vLine) {
     vLine = document.createElement("div");
@@ -3769,17 +3793,24 @@ function updateCoverSnapGuides(snapX, snapY) {
     hLine.className = "cover-snap-guide cover-snap-guide-h";
     canvas.appendChild(hLine);
   }
+  return { vLine: vLine, hLine: hLine };
+}
+
+function updateCoverSnapGuides(snapX, snapY) {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var lines = ensureCoverSnapGuides(canvas);
   if (snapX !== null) {
-    vLine.style.left = snapX + "%";
-    vLine.style.display = "block";
+    lines.vLine.style.left = snapX + "%";
+    lines.vLine.style.display = "block";
   } else {
-    vLine.style.display = "none";
+    lines.vLine.style.display = "none";
   }
   if (snapY !== null) {
-    hLine.style.top = snapY + "%";
-    hLine.style.display = "block";
+    lines.hLine.style.top = snapY + "%";
+    lines.hLine.style.display = "block";
   } else {
-    hLine.style.display = "none";
+    lines.hLine.style.display = "none";
   }
 }
 
@@ -4121,7 +4152,35 @@ async function saveCoverDesign() {
   }
   try {
     if (coverContext === "wrap") {
-      if (!coverWrapId || !coverDesign) return;
+      if (!coverDesign) return;
+
+      var isNewWrap = !coverWrapId;
+      if (isNewWrap) {
+        var createRes = await fetch(API_URL + "/api/cover-wraps", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Untitled Cover",
+            trim_size: coverTrim ? coverTrim.value : "6x9",
+            paper_stock: coverPaperStock,
+            page_count: coverPageCount,
+            front_design: coverDesign
+          })
+        });
+        if (!createRes.ok) {
+          var createErr = await createRes.json().catch(function() { return {}; });
+          showToast(createErr.error || "Failed to save cover design", "error");
+          return;
+        }
+        var createData = await createRes.json().catch(function() { return {}; });
+        var newWrapId = createData.wrap && createData.wrap.id;
+        if (!newWrapId) {
+          showToast("Failed to save cover design", "error");
+          return;
+        }
+        coverWrapId = newWrapId;
+      }
+
       if (coverBgFile) {
         var wrapFormData = new FormData();
         wrapFormData.append("bg_image", coverBgFile);
@@ -4151,10 +4210,14 @@ async function saveCoverDesign() {
       });
       if (wrapSaveRes.ok) {
         coverDirty = false;
-        for (var wi = 0; wi < allWraps.length; wi++) {
-          if (allWraps[wi].id === coverWrapId) {
-            allWraps[wi].front_design = JSON.parse(JSON.stringify(coverDesign));
-            break;
+        if (isNewWrap) {
+          await loadCoverWraps();
+        } else {
+          for (var wi = 0; wi < allWraps.length; wi++) {
+            if (allWraps[wi].id === coverWrapId) {
+              allWraps[wi].front_design = JSON.parse(JSON.stringify(coverDesign));
+              break;
+            }
           }
         }
         showToast("Cover saved", "success");
