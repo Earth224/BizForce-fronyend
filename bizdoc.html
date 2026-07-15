@@ -2182,8 +2182,13 @@ async function createNewWrap() {
       body: JSON.stringify({ name: "Untitled Cover", trim_size: "6x9" })
     });
     if (res.ok) {
-      showToast("Cover created", "success");
+      var data = await res.json().catch(function() { return {}; });
+      var newId = data.wrap && data.wrap.id;
+      showToast("New cover", "success");
       await loadCoverWraps();
+      if (newId) {
+        openWrapDesigner(newId);
+      }
     } else {
       var e = await res.json().catch(function() { return {}; });
       showToast(e.error || "Couldn't create cover", "error");
@@ -3678,11 +3683,6 @@ function coverRedo() {
 }
 
 async function saveCoverDesign() {
-  if (coverContext === "wrap") {
-    showToast("Saving covers coming in the next step", "success");
-    return;
-  }
-  if (!coverBookId || !coverDesign) return;
   var btn = document.getElementById("coverSaveBtn");
   var originalText = btn ? btn.textContent : "Save";
   if (btn) {
@@ -3690,6 +3690,35 @@ async function saveCoverDesign() {
     btn.textContent = "Saving…";
   }
   try {
+    if (coverContext === "wrap") {
+      if (!coverWrapId || !coverDesign) return;
+      var hadNewBgFile = !!coverBgFile;
+      var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
+        method: "PUT",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ front_design: coverDesign })
+      });
+      if (wrapSaveRes.ok) {
+        coverDirty = false;
+        for (var wi = 0; wi < allWraps.length; wi++) {
+          if (allWraps[wi].id === coverWrapId) {
+            allWraps[wi].front_design = JSON.parse(JSON.stringify(coverDesign));
+            break;
+          }
+        }
+        if (hadNewBgFile) {
+          showToast("Saved. (Background image upload for covers is coming in the next step.)", "success");
+        } else {
+          showToast("Cover saved", "success");
+        }
+      } else {
+        var wrapSaveErr = await wrapSaveRes.json().catch(function() { return {}; });
+        showToast(wrapSaveErr.error || "Failed to save cover design", "error");
+      }
+      return;
+    }
+
+    if (!coverBookId || !coverDesign) return;
     var bgUploadedThisSave = false;
     if (coverBgFile) {
       var formData = new FormData();
