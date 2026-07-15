@@ -251,9 +251,9 @@
     #editorCanvas.theme-night h1,#editorCanvas.theme-night h2{color:#f4f7ff}
     #editorCanvas.theme-night blockquote{color:#8892b8}
     #editorCanvas.theme-night.is-empty::before{color:#555}
-    .cover-stage{display:flex;align-items:center;justify-content:center;gap:4px;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
+    .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
     .cover-canvas{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0}
-    .cover-spine{background:#ffffff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;overflow:hidden;flex-shrink:0;display:none}
+    .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(34,211,238,.6);pointer-events:none;z-index:2;display:none}
     .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
     .spine-props{display:none;align-items:center;gap:16px;flex-wrap:wrap;padding:8px 14px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:.82rem}
     .spine-props-field{display:flex;align-items:center;gap:8px;color:#8892b8}
@@ -684,7 +684,6 @@
         <span class="spine-props-note" id="coverSpineNote">Spine text needs ~100+ pages</span>
       </div>
       <div class="cover-stage">
-        <div class="cover-spine" id="coverSpine"></div>
         <div class="cover-canvas" id="coverCanvas"></div>
       </div>
     </div>
@@ -1429,6 +1428,11 @@ var coverPageCount = 0;
 var coverPaperStock = "white";
 var PAPER_THICKNESS = { white: 0.002252, cream: 0.0025, color: 0.002347 };
 var SPINE_TEXT_MIN_PAGES = 100;
+var coverBackFrac = 0;
+var coverSpineFrac = 0;
+var coverFrontFrac = 1;
+var coverBackEndPct = 0;
+var coverFrontStartPct = 100;
 var coverDesign = null;
 var coverBgFile = null;
 var coverSelectedLayerId = null;
@@ -3115,50 +3119,80 @@ function fitCoverCanvas() {
   var pane = document.getElementById("paneCoverDesigner");
   if (!canvas || !pane || !pane.classList.contains("active")) return;
 
+  var propsEl = document.querySelector(".spine-props");
+
   var topBarHeight = 60;
   var padding = 64;
   var maxHeight = 720;
   var availableHeight = Math.max(200, window.innerHeight - topBarHeight - padding);
   var displayHeight = Math.min(availableHeight, maxHeight);
-  var ratio = coverTrim.h / coverTrim.w;
-  var displayWidth = displayHeight / ratio;
+  var pxPerInch = displayHeight / coverTrim.h;
 
+  var spineInches = 0;
+  var wrapWidthInches = coverTrim.w;
+
+  if (coverContext === "wrap") {
+    if (propsEl) propsEl.style.display = "flex";
+    var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
+    spineInches = coverPageCount * thickness;
+    wrapWidthInches = coverTrim.w + spineInches + coverTrim.w;
+    coverBackFrac = coverTrim.w / wrapWidthInches;
+    coverSpineFrac = spineInches / wrapWidthInches;
+    coverFrontFrac = coverTrim.w / wrapWidthInches;
+  } else {
+    if (propsEl) propsEl.style.display = "none";
+    coverBackFrac = 0;
+    coverSpineFrac = 0;
+    coverFrontFrac = 1;
+  }
+  coverBackEndPct = coverBackFrac * 100;
+  coverFrontStartPct = (coverBackFrac + coverSpineFrac) * 100;
+
+  var displayWidth = wrapWidthInches * pxPerInch;
   canvas.style.height = displayHeight + "px";
   canvas.style.width = displayWidth + "px";
-  renderCoverTextLayers();
-  fitCoverSpine();
-}
-
-function fitCoverSpine() {
-  var spineEl = document.getElementById("coverSpine");
-  var propsEl = document.querySelector(".spine-props");
-  if (coverContext !== "wrap") {
-    if (spineEl) spineEl.style.display = "none";
-    if (propsEl) propsEl.style.display = "none";
-    return;
-  }
-  if (propsEl) propsEl.style.display = "flex";
-  if (!spineEl || !coverTrim) return;
-
-  var canvas = document.getElementById("coverCanvas");
-  if (!canvas) return;
-  var canvasWidth = parseFloat(canvas.style.width) || canvas.getBoundingClientRect().width;
-  var canvasHeight = parseFloat(canvas.style.height) || canvas.getBoundingClientRect().height;
-  if (!canvasWidth || !canvasHeight) return;
-  var pxPerInch = canvasWidth / coverTrim.w;
-
-  var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
-  var spineInches = coverPageCount * thickness;
-  var spineWidthPx = Math.max(spineInches * pxPerInch, 8);
-
-  spineEl.style.display = "block";
-  spineEl.style.height = canvasHeight + "px";
-  spineEl.style.width = spineWidthPx + "px";
 
   var label = document.getElementById("coverSpineWidthLabel");
   if (label) label.textContent = 'Spine: ' + spineInches.toFixed(2) + '"';
-
   updateCoverSpineNote();
+
+  renderCoverTextLayers();
+  renderCoverFolds();
+}
+
+function fitCoverSpine() {
+  fitCoverCanvas();
+}
+
+function renderCoverFolds() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var showFolds = coverContext === "wrap" && coverSpineFrac > 0;
+
+  var backFold = canvas.querySelector(".cover-fold-back");
+  var frontFold = canvas.querySelector(".cover-fold-front");
+
+  if (!showFolds) {
+    if (backFold) backFold.style.display = "none";
+    if (frontFold) frontFold.style.display = "none";
+    return;
+  }
+
+  if (!backFold) {
+    backFold = document.createElement("div");
+    backFold.className = "cover-fold-line cover-fold-back";
+    canvas.appendChild(backFold);
+  }
+  if (!frontFold) {
+    frontFold = document.createElement("div");
+    frontFold.className = "cover-fold-line cover-fold-front";
+    canvas.appendChild(frontFold);
+  }
+
+  backFold.style.display = "block";
+  backFold.style.left = coverBackEndPct + "%";
+  frontFold.style.display = "block";
+  frontFold.style.left = coverFrontStartPct + "%";
 }
 
 function updateCoverSpineNote() {
@@ -3399,6 +3433,7 @@ function renderCoverCanvas() {
     img.style.display = "none";
   }
   renderCoverTextLayers();
+  renderCoverFolds();
 }
 
 function getCoverLayerById(layerId) {
