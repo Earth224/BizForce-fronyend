@@ -255,6 +255,7 @@
     .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.15);pointer-events:none;z-index:2;display:none}
+    .cover-margin-guide{position:absolute;border:1px dashed rgba(255,255,255,.28);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
     .cover-snap-guide{position:absolute;pointer-events:none;z-index:3;display:none;background:#ff2ec4}
     .cover-snap-guide-v{top:0;bottom:0;width:1px}
     .cover-snap-guide-h{left:0;right:0;height:1px}
@@ -3210,18 +3211,15 @@ function fitCoverCanvas() {
   var wrapAspect = wrapWidthInches / coverTrim.h;
 
   var stageEl = document.querySelector(".cover-stage");
-  var stagePadding = 64;
-  var availableWidth = Math.max(200, (stageEl ? stageEl.clientWidth : window.innerWidth) - stagePadding);
+  var availW = Math.max(120, (stageEl ? stageEl.clientWidth : window.innerWidth) - 40);
 
   var topBarHeight = 60;
-  var pagePadding = 64;
-  var maxHeight = 640;
-  var availableHeight = Math.max(200, window.innerHeight - topBarHeight - pagePadding);
+  var toolbarChromeHeight = 64;
+  var maxH = 560;
+  var availH = Math.min(Math.max(120, window.innerHeight - topBarHeight - toolbarChromeHeight), maxH);
 
-  var candidateHeightFromWidth = availableWidth / wrapAspect;
-  var candidateHeightFromHeight = Math.min(availableHeight, maxHeight);
-  var minHeight = 200;
-  var displayHeight = Math.max(minHeight, Math.min(candidateHeightFromWidth, candidateHeightFromHeight));
+  var heightIfWidthConstrained = availW / wrapAspect;
+  var displayHeight = Math.min(heightIfWidthConstrained, availH);
   var displayWidth = displayHeight * wrapAspect;
 
   canvas.style.height = displayHeight + "px";
@@ -3233,6 +3231,7 @@ function fitCoverCanvas() {
 
   renderCoverTextLayers();
   renderCoverFolds();
+  renderCoverGuides();
   applyCoverView();
 }
 
@@ -3320,6 +3319,44 @@ function renderCoverFolds() {
   backFold.style.left = coverBackEndPct + "%";
   frontFold.style.display = "block";
   frontFold.style.left = coverFrontStartPct + "%";
+}
+
+function renderCoverGuides() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas || !coverTrim) return;
+
+  var wrapWidthInches = coverFrontFrac > 0 ? (coverTrim.w / coverFrontFrac) : coverTrim.w;
+  var insetXPct = (COVER_BLEED_INCHES / wrapWidthInches) * 100;
+  var insetYPct = (COVER_BLEED_INCHES / coverTrim.h) * 100;
+
+  var backGuide = canvas.querySelector(".cover-margin-guide-back");
+  var frontGuide = canvas.querySelector(".cover-margin-guide-front");
+  if (!backGuide) {
+    backGuide = document.createElement("div");
+    backGuide.className = "cover-margin-guide cover-margin-guide-back";
+    canvas.appendChild(backGuide);
+  }
+  if (!frontGuide) {
+    frontGuide = document.createElement("div");
+    frontGuide.className = "cover-margin-guide cover-margin-guide-front";
+    canvas.appendChild(frontGuide);
+  }
+
+  if (coverContext === "wrap" && coverBackFrac > 0) {
+    backGuide.style.display = "block";
+    backGuide.style.left = insetXPct + "%";
+    backGuide.style.top = insetYPct + "%";
+    backGuide.style.width = Math.max(0, coverBackEndPct - insetXPct * 2) + "%";
+    backGuide.style.height = Math.max(0, 100 - insetYPct * 2) + "%";
+  } else {
+    backGuide.style.display = "none";
+  }
+
+  frontGuide.style.display = "block";
+  frontGuide.style.left = (coverFrontStartPct + insetXPct) + "%";
+  frontGuide.style.top = insetYPct + "%";
+  frontGuide.style.width = Math.max(0, 100 - coverFrontStartPct - insetXPct * 2) + "%";
+  frontGuide.style.height = Math.max(0, 100 - insetYPct * 2) + "%";
 }
 
 function updateCoverSpineNote() {
