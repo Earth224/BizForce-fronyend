@@ -1452,6 +1452,7 @@ var coverPageCount = 0;
 var coverPaperStock = "white";
 var PAPER_THICKNESS = { white: 0.002252, cream: 0.0025, color: 0.002347 };
 var SPINE_TEXT_MIN_PAGES = 100;
+var DEFAULT_COVER_PAGE_COUNT = 120;
 var coverBackFrac = 0;
 var coverSpineFrac = 0;
 var coverFrontFrac = 1;
@@ -2296,7 +2297,7 @@ function createNewWrap() {
   coverBookId = null;
   resetCoverView();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
-  coverPageCount = 0;
+  coverPageCount = DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = "white";
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
@@ -3199,13 +3200,7 @@ function fitCoverCanvas() {
   coverFrontStartPct = (coverBackFrac + coverSpineFrac) * 100;
 
   var spineBtn = document.getElementById("coverViewSpineBtn");
-  if (spineBtn) {
-    var spineViewable = coverContext === "wrap" && coverSpineFrac > 0;
-    spineBtn.disabled = !spineViewable;
-    if (!spineViewable && coverView === "spine") {
-      resetCoverView();
-    }
-  }
+  if (spineBtn) spineBtn.disabled = false;
 
   var displayWidth = wrapWidthInches * pxPerInch;
   canvas.style.height = displayHeight + "px";
@@ -3258,8 +3253,9 @@ function applyCoverView() {
   } else if (view === "back" && coverBackFrac > 1e-6) {
     scale = viewportWidth / (coverBackFrac * displayWidth);
     regionStartPct = 0;
-  } else if (view === "spine" && coverSpineFrac > 1e-6) {
-    scale = viewportWidth / (coverSpineFrac * displayWidth);
+  } else if (view === "spine") {
+    var spineViewFrac = Math.max(coverSpineFrac, COVER_MIN_SPINE_VIEW_FRAC);
+    scale = viewportWidth / (spineViewFrac * displayWidth);
     regionStartPct = coverBackEndPct;
   }
   if (!isFinite(scale) || scale <= 0) scale = 1;
@@ -3488,7 +3484,7 @@ async function openWrapDesigner(wrapId) {
   coverBookId = null;
   resetCoverView();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
-  coverPageCount = wrap.page_count || 0;
+  coverPageCount = wrap.page_count || DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = wrap.paper_stock || "white";
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
@@ -3720,6 +3716,7 @@ function onCoverLayerMouseMove(e) {
 
 var COVER_SNAP_PX = 8;
 var COVER_BLEED_INCHES = 0.25;
+var COVER_MIN_SPINE_VIEW_FRAC = 0.03;
 
 function getCoverSnapTargetsX(rect) {
   var targets = [50];
