@@ -254,8 +254,11 @@
     .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
     .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
-    .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(34,211,238,.5);pointer-events:none;z-index:2;display:none}
+    .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;display:none}
     .cover-margin-guide{position:absolute;border:1px dashed rgba(255,255,255,.28);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
+    .cover-section-label{position:absolute;pointer-events:none;z-index:2;display:none;color:rgba(255,255,255,.32);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;font-family:inherit}
+    .cover-section-label-back,.cover-section-label-front{transform:translate(-50%,0)}
+    .cover-section-label-spine{transform:translate(-50%,-50%) rotate(90deg)}
     .cover-snap-guide{position:absolute;pointer-events:none;z-index:3;display:none;background:#ff2ec4}
     .cover-snap-guide-v{top:0;bottom:0;width:1px}
     .cover-snap-guide-h{left:0;right:0;height:1px}
@@ -3311,6 +3314,8 @@ function applyCoverView() {
 
   viewport.style.width = viewportWidth + "px";
   viewport.style.height = (displayHeight * scale) + "px";
+
+  renderCoverSectionLabels();
 }
 
 function renderCoverFolds() {
@@ -3342,6 +3347,59 @@ function renderCoverFolds() {
   backFold.style.left = coverBackEndPct + "%";
   frontFold.style.display = "block";
   frontFold.style.left = coverFrontStartPct + "%";
+}
+
+function renderCoverSectionLabels() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+
+  var showLabels = coverContext === "wrap" && coverView === "wrap" && coverSpineFrac > 0;
+
+  var backLabel = canvas.querySelector(".cover-section-label-back");
+  var spineLabel = canvas.querySelector(".cover-section-label-spine");
+  var frontLabel = canvas.querySelector(".cover-section-label-front");
+
+  if (!showLabels) {
+    if (backLabel) backLabel.style.display = "none";
+    if (spineLabel) spineLabel.style.display = "none";
+    if (frontLabel) frontLabel.style.display = "none";
+    return;
+  }
+
+  if (!backLabel) {
+    backLabel = document.createElement("div");
+    backLabel.className = "cover-section-label cover-section-label-back";
+    backLabel.textContent = "BACK";
+    canvas.appendChild(backLabel);
+  }
+  if (!spineLabel) {
+    spineLabel = document.createElement("div");
+    spineLabel.className = "cover-section-label cover-section-label-spine";
+    spineLabel.textContent = "SPINE";
+    canvas.appendChild(spineLabel);
+  }
+  if (!frontLabel) {
+    frontLabel = document.createElement("div");
+    frontLabel.className = "cover-section-label cover-section-label-front";
+    frontLabel.textContent = "FRONT";
+    canvas.appendChild(frontLabel);
+  }
+
+  var backX = coverBackEndPct / 2;
+  var spineX = (coverBackEndPct + coverFrontStartPct) / 2;
+  var frontX = (coverFrontStartPct + 100) / 2;
+
+  backLabel.style.display = "block";
+  backLabel.style.left = backX + "%";
+  backLabel.style.top = "8%";
+
+  spineLabel.style.display = "block";
+  spineLabel.style.left = spineX + "%";
+  spineLabel.style.top = "8%";
+
+  frontLabel.style.display = "block";
+  frontLabel.style.left = frontX + "%";
+  frontLabel.style.top = "8%";
 }
 
 function renderCoverGuides() {
@@ -3468,7 +3526,14 @@ function pickCoverTrim(value) {
 }
 
 function defaultCoverTextLayers(mode) {
-  var titleXPct = mode === "wrap" ? 80 : 50;
+  var titleXPct = 50;
+  if (mode === "wrap" && coverTrim) {
+    var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
+    var spineInches = coverPageCount * thickness;
+    var wrapWidthInches = coverTrim.w + spineInches + coverTrim.w;
+    var frontStartPct = ((coverTrim.w + spineInches) / wrapWidthInches) * 100;
+    titleXPct = (frontStartPct + 100) / 2;
+  }
   return [
     {
       id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
