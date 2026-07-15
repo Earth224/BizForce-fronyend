@@ -253,7 +253,7 @@
     #editorCanvas.theme-night.is-empty::before{color:#555}
     .cover-stage{display:grid;height:70vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto;box-sizing:border-box}
     .cover-viewport{margin:auto;overflow:hidden;position:relative;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
-    .cover-canvas{background:#ffffff;position:relative}
+    .cover-canvas{background:#ffffff;position:relative;overflow:hidden}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:50;display:none}
     .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.75);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
     .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.55);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
@@ -667,6 +667,17 @@
         <input type="file" id="coverBgImageInput" accept="image/png,image/jpeg,image/webp" style="display:none">
         <button type="button" class="etb" onclick="document.getElementById('coverBgImageInput').click()">Background Image</button>
         <button type="button" class="etb" onclick="removeCoverBgImage()">Remove Image</button>
+        <span class="etb-div"></span>
+        <div class="cover-size-stepper">
+          <button type="button" class="etb" id="coverBgZoomMinus" title="Zoom image out" onclick="nudgeCoverBgScale(-0.1)" disabled>−</button>
+          <span class="cover-size-value" id="coverBgScaleValue">100%</span>
+          <button type="button" class="etb" id="coverBgZoomPlus" title="Zoom image in" onclick="nudgeCoverBgScale(0.1)" disabled>+</button>
+        </div>
+        <button type="button" class="etb" id="coverBgLeft" title="Pan image left" onclick="nudgeCoverBgOffset('x',-2)" disabled>←</button>
+        <button type="button" class="etb" id="coverBgRight" title="Pan image right" onclick="nudgeCoverBgOffset('x',2)" disabled>→</button>
+        <button type="button" class="etb" id="coverBgUp" title="Pan image up" onclick="nudgeCoverBgOffset('y',-2)" disabled>↑</button>
+        <button type="button" class="etb" id="coverBgDown" title="Pan image down" onclick="nudgeCoverBgOffset('y',2)" disabled>↓</button>
+        <button type="button" class="etb" id="coverBgReset" title="Reset image position/zoom" onclick="resetCoverBgTransform()" disabled>Reset</button>
         <span class="etb-div"></span>
         <button type="button" class="etb" onclick="addCoverTitleLayer()">Add Title</button>
         <button type="button" class="etb" onclick="addCoverTextLayer()">Add Text</button>
@@ -2338,7 +2349,7 @@ function createNewWrap() {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
-  coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("wrap") };
+  coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
@@ -3745,10 +3756,13 @@ function openCoverDesigner(bookId) {
     coverDesign = {
       bgColor: loadedDesign.bgColor || "#ffffff",
       bgImage: loadedDesign.bgImage || null,
+      bgScale: loadedDesign.bgScale || 1,
+      bgOffsetX: loadedDesign.bgOffsetX || 0,
+      bgOffsetY: loadedDesign.bgOffsetY || 0,
       textLayers: loadedDesign.textLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("book") };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("book") };
   }
   coverBgFile = null;
   coverSelectedLayerId = null;
@@ -3836,10 +3850,13 @@ async function openWrapDesigner(wrapId) {
     coverDesign = {
       bgColor: loadedDesign.bgColor || "#ffffff",
       bgImage: loadedDesign.bgImage || null,
+      bgScale: loadedDesign.bgScale || 1,
+      bgOffsetX: loadedDesign.bgOffsetX || 0,
+      bgOffsetY: loadedDesign.bgOffsetY || 0,
       textLayers: loadedDesign.textLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("wrap") };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
   }
   coverBgFile = null;
   coverSelectedLayerId = null;
@@ -3906,6 +3923,32 @@ function closeCoverDesigner() {
   coverContext = "book";
 }
 
+function clampCoverBgTransform(design) {
+  var scale = design.bgScale || 1;
+  if (!isFinite(scale) || scale < 1) scale = 1;
+  if (scale > 4) scale = 4;
+  var maxOffset = Math.min(50, (scale - 1) / 2 * 100);
+  var offsetX = design.bgOffsetX || 0;
+  var offsetY = design.bgOffsetY || 0;
+  offsetX = Math.max(-maxOffset, Math.min(maxOffset, offsetX));
+  offsetY = Math.max(-maxOffset, Math.min(maxOffset, offsetY));
+  return { scale: scale, offsetX: offsetX, offsetY: offsetY };
+}
+
+function updateCoverBgControls() {
+  var hasImage = !!(coverDesign && coverDesign.bgImage);
+  var ids = ["coverBgZoomMinus", "coverBgZoomPlus", "coverBgLeft", "coverBgRight", "coverBgUp", "coverBgDown", "coverBgReset"];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !hasImage;
+  });
+  var label = document.getElementById("coverBgScaleValue");
+  if (label) {
+    var scale = (coverDesign && coverDesign.bgScale) || 1;
+    label.textContent = Math.round(scale * 100) + "%";
+  }
+}
+
 function renderCoverCanvas() {
   if (!coverDesign) return;
   var canvas = document.getElementById("coverCanvas");
@@ -3924,14 +3967,18 @@ function renderCoverCanvas() {
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.objectFit = "cover";
+      img.style.transformOrigin = "center";
       img.style.zIndex = "0";
       canvas.insertBefore(img, canvas.firstChild);
     }
     img.src = coverBgDisplayUrl || coverDesign.bgImage;
     img.style.display = "block";
+    var bgT = clampCoverBgTransform(coverDesign);
+    img.style.transform = "translate(" + bgT.offsetX + "%, " + bgT.offsetY + "%) scale(" + bgT.scale + ")";
   } else if (img) {
     img.style.display = "none";
   }
+  updateCoverBgControls();
   renderCoverTextLayers();
   renderCoverFolds();
 }
@@ -4264,11 +4311,45 @@ function removeCoverBgImage() {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
   coverDesign.bgImage = null;
+  coverDesign.bgScale = 1;
+  coverDesign.bgOffsetX = 0;
+  coverDesign.bgOffsetY = 0;
   coverBgFile = null;
   coverBgDisplayUrl = null;
   document.getElementById("coverBgImageInput").value = "";
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
+}
+
+function nudgeCoverBgScale(delta) {
+  if (!coverDesign || !coverDesign.bgImage) return;
+  var next = Math.round(((coverDesign.bgScale || 1) + delta) * 10) / 10;
+  coverDesign.bgScale = Math.max(1, Math.min(4, next));
+  var clamped = clampCoverBgTransform(coverDesign);
+  coverDesign.bgOffsetX = clamped.offsetX;
+  coverDesign.bgOffsetY = clamped.offsetY;
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function nudgeCoverBgOffset(axis, delta) {
+  if (!coverDesign || !coverDesign.bgImage) return;
+  var scale = coverDesign.bgScale || 1;
+  var maxOffset = Math.min(50, (scale - 1) / 2 * 100);
+  var key = axis === "y" ? "bgOffsetY" : "bgOffsetX";
+  var next = (coverDesign[key] || 0) + delta;
+  coverDesign[key] = Math.max(-maxOffset, Math.min(maxOffset, next));
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function resetCoverBgTransform() {
+  if (!coverDesign) return;
+  coverDesign.bgScale = 1;
+  coverDesign.bgOffsetX = 0;
+  coverDesign.bgOffsetY = 0;
+  renderCoverCanvas();
+  recordCoverUndo();
 }
 
 function updateCoverTextControls() {
@@ -4835,6 +4916,9 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   }
   coverBgFile = file;
   coverDesign.bgImage = URL.createObjectURL(file);
+  coverDesign.bgScale = 1;
+  coverDesign.bgOffsetX = 0;
+  coverDesign.bgOffsetY = 0;
   coverBgDisplayUrl = coverDesign.bgImage;
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
