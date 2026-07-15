@@ -251,8 +251,8 @@
     #editorCanvas.theme-night h1,#editorCanvas.theme-night h2{color:#f4f7ff}
     #editorCanvas.theme-night blockquote{color:#8892b8}
     #editorCanvas.theme-night.is-empty::before{color:#555}
-    .cover-stage{display:flex;align-items:safe center;justify-content:safe center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto}
-    .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
+    .cover-stage{display:grid;height:70vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto;box-sizing:border-box}
+    .cover-viewport{margin:auto;overflow:hidden;position:relative;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:50;display:none}
     .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.75);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
@@ -1477,16 +1477,18 @@ var coverBookId = null;
 var coverContext = "book";
 var coverView = "wrap";
 var coverZoom = 1.0;
-var COVER_ZOOM_MIN = 0.25;
-var COVER_ZOOM_MAX = 4.0;
-var COVER_ZOOM_STEP = 1.25;
+var coverFitScale = 1.0;
+var BASE_PPI = 100;
+var COVER_ZOOM_MIN = 0.1;
+var COVER_ZOOM_MAX = 5;
+var COVER_ZOOM_STEP = 1.2;
 var coverWrapId = null;
 var coverTrim = null;
 var coverPageCount = 0;
 var coverPaperStock = "white";
 var PAPER_THICKNESS = { white: 0.002252, cream: 0.0025, color: 0.002347 };
 var SPINE_TEXT_MIN_PAGES = 100;
-var DEFAULT_COVER_PAGE_COUNT = 120;
+var DEFAULT_COVER_PAGE_COUNT = 300;
 var coverBackFrac = 0;
 var coverSpineFrac = 0;
 var coverFrontFrac = 1;
@@ -2330,8 +2332,6 @@ function createNewWrap() {
   coverWrapId = null;
   coverBookId = null;
   resetCoverView();
-  coverZoom = 1.0;
-  updateCoverZoomLabel();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
   coverPageCount = DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = "white";
@@ -2367,6 +2367,8 @@ function createNewWrap() {
   renderCoverCanvas();
   initCoverUndo();
   fitCoverSpine();
+  coverZoom = computeFitScale();
+  applyCoverView();
 }
 
 function wrapMenuEdit(event, id) {
@@ -3197,6 +3199,49 @@ function updateGenerateBtnVisibility() {
   btn.style.display = (editorMode === "book") ? "flex" : "none";
 }
 
+function computeCoverSpineInches() {
+  if (coverContext !== "wrap" || !coverPageCount) return 0;
+  var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
+  return coverPageCount * thickness;
+}
+
+function computeCoverWrapWidthInches() {
+  if (!coverTrim) return 0;
+  return coverContext === "wrap" ? (coverTrim.w + computeCoverSpineInches() + coverTrim.w) : coverTrim.w;
+}
+
+// The natural (zoom-independent) size of the VISIBLE WINDOW (.cover-viewport) for
+// whichever view is currently active. #coverCanvas itself always stays sized to the
+// full wrap (see fitCoverCanvas) — only this window's natural size changes per view;
+// zoom scales both uniformly afterward, in applyCoverView().
+function computeCoverViewportNaturalSize() {
+  if (!coverTrim) return { width: 1, height: 1 };
+  var view = (coverContext === "wrap") ? coverView : "wrap";
+  var naturalHeight = coverTrim.h * BASE_PPI;
+  var naturalWidth;
+  if (view === "front" || view === "back") {
+    naturalWidth = coverTrim.w * BASE_PPI;
+  } else if (view === "spine") {
+    naturalWidth = Math.max(computeCoverSpineInches(), 0.001) * BASE_PPI;
+  } else {
+    naturalWidth = computeCoverWrapWidthInches() * BASE_PPI;
+  }
+  return { width: naturalWidth, height: naturalHeight };
+}
+
+function computeFitScale() {
+  if (!coverTrim) return 1;
+  var stageEl = document.querySelector(".cover-stage");
+  var stagePadding = 64;
+  var stageInnerWidth = Math.max(50, (stageEl ? stageEl.clientWidth : window.innerWidth) - stagePadding);
+  var stageInnerHeight = Math.max(50, (stageEl ? stageEl.clientHeight : window.innerHeight * 0.7) - stagePadding);
+
+  var natural = computeCoverViewportNaturalSize();
+  if (!natural.width || !natural.height) return 1;
+
+  return Math.min(stageInnerWidth / natural.width, stageInnerHeight / natural.height);
+}
+
 function fitCoverCanvas() {
   if (!coverTrim) return;
   var canvas = document.getElementById("coverCanvas");
@@ -3235,22 +3280,12 @@ function fitCoverCanvas() {
   var spineBtn = document.getElementById("coverViewSpineBtn");
   if (spineBtn) spineBtn.disabled = false;
 
-  var wrapAspect = wrapWidthInches / coverTrim.h;
-
-  var stageEl = document.querySelector(".cover-stage");
-  var availW = Math.max(120, (stageEl ? stageEl.clientWidth : window.innerWidth) - 40);
-
-  var topBarHeight = 60;
-  var toolbarChromeHeight = 64;
-  var maxH = 900;
-  var availH = Math.min(Math.max(120, window.innerHeight - topBarHeight - toolbarChromeHeight), maxH);
-
-  var heightIfWidthConstrained = availW / wrapAspect;
-  var displayHeight = Math.min(heightIfWidthConstrained, availH);
-  var displayWidth = displayHeight * wrapAspect;
-
-  canvas.style.height = displayHeight + "px";
-  canvas.style.width = displayWidth + "px";
+  // #coverCanvas renders ONCE at a fixed natural pixel size (BASE_PPI) representing
+  // the full document (the whole wrap), regardless of view or zoom. Zoom and the
+  // per-view crop are applied entirely via the transform in applyCoverView() — this
+  // natural size is never touched by a zoom change, only by trim/page-count/paper.
+  canvas.style.width = (wrapWidthInches * BASE_PPI) + "px";
+  canvas.style.height = (coverTrim.h * BASE_PPI) + "px";
 
   var label = document.getElementById("coverSpineWidthLabel");
   if (label) label.textContent = 'Spine: ' + spineInches.toFixed(2) + '"';
@@ -3283,82 +3318,53 @@ function resetCoverView() {
 
 function updateCoverZoomLabel() {
   var label = document.getElementById("coverZoomValue");
-  if (label) label.textContent = Math.round(coverZoom * 100) + "%";
+  if (!label) return;
+  var fitScale = (isFinite(coverFitScale) && coverFitScale > 0) ? coverFitScale : 1;
+  label.textContent = Math.round((coverZoom / fitScale) * 100) + "%";
 }
 
 function adjustCoverZoom(factor) {
   coverZoom = Math.min(COVER_ZOOM_MAX, Math.max(COVER_ZOOM_MIN, coverZoom * factor));
-  updateCoverZoomLabel();
-  fitCoverCanvas();
+  applyCoverView();
 }
 
 function resetCoverZoom() {
-  coverZoom = 1.0;
-  updateCoverZoomLabel();
-  fitCoverCanvas();
+  coverZoom = computeFitScale();
+  applyCoverView();
 }
 
+// Zoom NEVER changes #coverCanvas's or .cover-viewport's natural pixel size (that's
+// fixed by fitCoverCanvas from BASE_PPI). Here we only ever update the transform
+// (translate + scale by coverZoom) and the two derived numbers that ride along with
+// it: coverFitScale (so "Fit"/the % readout stay accurate after a resize) and the
+// viewport's on-screen size (natural size * zoom, still not its natural size itself).
 function applyCoverView() {
   var canvas = document.getElementById("coverCanvas");
   var viewport = document.getElementById("coverViewport");
-  if (!canvas || !viewport) return;
+  if (!canvas || !viewport || !coverTrim) return;
 
-  var displayWidth = parseFloat(canvas.style.width) || canvas.offsetWidth || 1;
-  var displayHeight = parseFloat(canvas.style.height) || canvas.offsetHeight || 1;
-  var pxPerInchWrap = coverTrim ? (displayHeight / coverTrim.h) : 0;
+  coverFitScale = computeFitScale();
 
   var view = (coverContext === "wrap") ? coverView : "wrap";
-  var scale = 1;
-  var regionStartPct = 0;
-  var targetWidthUnscaled = displayWidth;
-
-  if ((view === "front" || view === "back" || view === "spine") && coverTrim && pxPerInchWrap > 0) {
-    // Single-section views share ONE pixels-per-inch scale, derived from fitting a single
-    // PAGE (front/back aspect) into the same workspace budget fitCoverCanvas uses. Front,
-    // back, and spine all use this same scale so they share height; only their widths
-    // (in inches) differ, so the spine renders as a genuinely thin sliver, never zoomed.
-    var stageEl = document.querySelector(".cover-stage");
-    var availW = Math.max(120, (stageEl ? stageEl.clientWidth : window.innerWidth) - 40);
-    var topBarHeight = 60;
-    var toolbarChromeHeight = 64;
-    var maxH = 900;
-    var availH = Math.min(Math.max(120, window.innerHeight - topBarHeight - toolbarChromeHeight), maxH);
-    var pageAspect = coverTrim.w / coverTrim.h;
-    var pageHeightIfWidthConstrained = availW / pageAspect;
-    var pageDisplayHeight = Math.min(pageHeightIfWidthConstrained, availH);
-    var pxPerInchSingle = pageDisplayHeight / coverTrim.h;
-
-    scale = pxPerInchSingle / pxPerInchWrap;
-
-    if (view === "front") {
-      targetWidthUnscaled = coverTrim.w * pxPerInchWrap;
-      regionStartPct = coverFrontStartPct;
-    } else if (view === "back") {
-      targetWidthUnscaled = coverTrim.w * pxPerInchWrap;
-      regionStartPct = 0;
-    } else {
-      var spineThickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
-      var spineInches = coverPageCount * spineThickness;
-      targetWidthUnscaled = Math.max(spineInches, 0.001) * pxPerInchWrap;
-      regionStartPct = coverBackEndPct;
-    }
-  }
-  if (!isFinite(targetWidthUnscaled) || targetWidthUnscaled <= 0) targetWidthUnscaled = displayWidth;
-  if (!isFinite(scale) || scale <= 0) scale = 1;
-
   var zoom = (isFinite(coverZoom) && coverZoom > 0) ? coverZoom : 1;
-  scale = scale * zoom;
 
-  var viewportWidth = targetWidthUnscaled * scale;
-  var translateX = -(regionStartPct / 100 * displayWidth * scale);
-  if (!isFinite(translateX)) translateX = 0;
+  var regionStartInches = 0;
+  if (view === "front") {
+    regionStartInches = coverTrim.w + computeCoverSpineInches();
+  } else if (view === "spine") {
+    regionStartInches = coverTrim.w;
+  }
+
+  var natural = computeCoverViewportNaturalSize();
+  var translateX = -(regionStartInches * BASE_PPI) * zoom;
 
   canvas.style.transformOrigin = "0 0";
-  canvas.style.transform = "translateX(" + translateX + "px) scale(" + scale + ")";
+  canvas.style.transform = "translateX(" + translateX + "px) scale(" + zoom + ")";
 
-  viewport.style.width = viewportWidth + "px";
-  viewport.style.height = (displayHeight * scale) + "px";
+  viewport.style.width = (natural.width * zoom) + "px";
+  viewport.style.height = (natural.height * zoom) + "px";
 
+  updateCoverZoomLabel();
   renderCoverSectionLabels();
 }
 
@@ -3397,18 +3403,12 @@ function renderCoverSectionLabels() {
   var canvas = document.getElementById("coverCanvas");
   if (!canvas) return;
 
-  var showLabels = coverContext === "wrap" && coverView === "wrap" && coverSpineFrac > 0;
+  var inWrapView = coverContext === "wrap" && coverView === "wrap" && coverSpineFrac > 0;
+  var inSpineView = coverContext === "wrap" && coverView === "spine" && coverSpineFrac > 0;
 
   var backLabel = canvas.querySelector(".cover-section-label-back");
   var spineLabel = canvas.querySelector(".cover-section-label-spine");
   var frontLabel = canvas.querySelector(".cover-section-label-front");
-
-  if (!showLabels) {
-    if (backLabel) backLabel.style.display = "none";
-    if (spineLabel) spineLabel.style.display = "none";
-    if (frontLabel) frontLabel.style.display = "none";
-    return;
-  }
 
   if (!backLabel) {
     backLabel = document.createElement("div");
@@ -3419,7 +3419,6 @@ function renderCoverSectionLabels() {
   if (!spineLabel) {
     spineLabel = document.createElement("div");
     spineLabel.className = "cover-section-label cover-section-label-spine";
-    spineLabel.textContent = "SPINE";
     canvas.appendChild(spineLabel);
   }
   if (!frontLabel) {
@@ -3433,17 +3432,34 @@ function renderCoverSectionLabels() {
   var spineX = (coverBackEndPct + coverFrontStartPct) / 2;
   var frontX = (coverFrontStartPct + 100) / 2;
 
-  backLabel.style.display = "block";
-  backLabel.style.left = backX + "%";
-  backLabel.style.top = "8%";
+  if (inWrapView) {
+    backLabel.style.display = "block";
+    backLabel.style.left = backX + "%";
+    backLabel.style.top = "8%";
+    frontLabel.style.display = "block";
+    frontLabel.style.left = frontX + "%";
+    frontLabel.style.top = "8%";
+  } else {
+    backLabel.style.display = "none";
+    frontLabel.style.display = "none";
+  }
 
-  spineLabel.style.display = "block";
-  spineLabel.style.left = spineX + "%";
-  spineLabel.style.top = "8%";
-
-  frontLabel.style.display = "block";
-  frontLabel.style.left = frontX + "%";
-  frontLabel.style.top = "8%";
+  if (inWrapView) {
+    spineLabel.textContent = "SPINE";
+    spineLabel.style.transform = "";
+    spineLabel.style.display = "block";
+    spineLabel.style.left = spineX + "%";
+    spineLabel.style.top = "8%";
+  } else if (inSpineView) {
+    var spineInchesNow = computeCoverSpineInches();
+    spineLabel.textContent = "Spine — " + spineInchesNow.toFixed(2) + '" (' + coverPageCount + 'pp)';
+    spineLabel.style.transform = "translate(-50%,-50%)";
+    spineLabel.style.display = "block";
+    spineLabel.style.left = spineX + "%";
+    spineLabel.style.top = "8%";
+  } else {
+    spineLabel.style.display = "none";
+  }
 }
 
 function renderCoverGuides() {
@@ -3702,8 +3718,6 @@ function openCoverDesigner(bookId) {
   coverContext = "book";
   coverWrapId = null;
   resetCoverView();
-  coverZoom = 1.0;
-  updateCoverZoomLabel();
   var book = null;
   for (var i = 0; i < allBooks.length; i++) {
     if (allBooks[i].id === bookId) { book = allBooks[i]; break; }
@@ -3760,6 +3774,8 @@ function openCoverDesigner(bookId) {
   fitCoverCanvas();
   renderCoverCanvas();
   initCoverUndo();
+  coverZoom = computeFitScale();
+  applyCoverView();
 
   if (coverDesign.bgImage && typeof coverDesign.bgImage === "string" && coverDesign.bgImage.indexOf("blob:") !== 0 && coverDesign.bgImage.indexOf("http") !== 0) {
     var loadBookId = bookId;
@@ -3809,8 +3825,6 @@ async function openWrapDesigner(wrapId) {
   coverWrapId = wrapId;
   coverBookId = null;
   resetCoverView();
-  coverZoom = 1.0;
-  updateCoverZoomLabel();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
   coverPageCount = wrap.page_count || DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = wrap.paper_stock || "white";
@@ -3855,6 +3869,8 @@ async function openWrapDesigner(wrapId) {
   renderCoverCanvas();
   initCoverUndo();
   fitCoverSpine();
+  coverZoom = computeFitScale();
+  applyCoverView();
 
   if (coverDesign.bgImage && typeof coverDesign.bgImage === "string" && coverDesign.bgImage.indexOf("blob:") !== 0 && coverDesign.bgImage.indexOf("http") !== 0) {
     var loadWrapId = wrapId;
