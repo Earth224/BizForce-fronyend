@@ -627,6 +627,14 @@
           <button type="button" class="cover-view-btn active" id="coverViewWrapBtn" onclick="setCoverView('wrap')">Full Wrap</button>
         </div>
         <span class="etb-div"></span>
+        <div class="editor-dd" id="coverTrimDD">
+          <button type="button" class="etb editor-dd-trigger" title="Trim Size" onclick="toggleCoverTrimMenu(event)">
+            <span id="coverTrimLabel">6 × 9 in</span>
+            <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="editor-dd-menu" id="coverTrimMenu"></div>
+        </div>
+        <span class="etb-div"></span>
         <div class="editor-dd" id="coverBgColorDD">
           <button type="button" class="etb editor-dd-trigger" title="Background Color" onclick="toggleCoverBgColorMenu(event)">
             <span class="editor-color-glyph">BG<span class="editor-color-bar" id="coverBgColorBar" style="background:#ffffff"></span></span>
@@ -2318,6 +2326,7 @@ function createNewWrap() {
   updateCoverTextControls();
   document.getElementById("coverPageCountInput").value = coverPageCount;
   updateCoverPaperStockLabel();
+  updateCoverTrimLabel();
 
   document.getElementById("coverDesignerTitle").textContent = "Design Cover — Untitled Cover";
 
@@ -3168,13 +3177,7 @@ function fitCoverCanvas() {
 
   var propsEl = document.querySelector(".spine-props");
   var viewSwitchEl = document.getElementById("coverViewSwitch");
-
-  var topBarHeight = 60;
-  var padding = 64;
-  var maxHeight = 720;
-  var availableHeight = Math.max(200, window.innerHeight - topBarHeight - padding);
-  var displayHeight = Math.min(availableHeight, maxHeight);
-  var pxPerInch = displayHeight / coverTrim.h;
+  var trimDD = document.getElementById("coverTrimDD");
 
   var spineInches = 0;
   var wrapWidthInches = coverTrim.w;
@@ -3182,6 +3185,7 @@ function fitCoverCanvas() {
   if (coverContext === "wrap") {
     if (propsEl) propsEl.style.display = "flex";
     if (viewSwitchEl) viewSwitchEl.style.display = "inline-flex";
+    if (trimDD) trimDD.style.display = "flex";
     var thickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
     spineInches = coverPageCount * thickness;
     wrapWidthInches = coverTrim.w + spineInches + coverTrim.w;
@@ -3191,6 +3195,7 @@ function fitCoverCanvas() {
   } else {
     if (propsEl) propsEl.style.display = "none";
     if (viewSwitchEl) viewSwitchEl.style.display = "none";
+    if (trimDD) trimDD.style.display = "none";
     coverBackFrac = 0;
     coverSpineFrac = 0;
     coverFrontFrac = 1;
@@ -3202,7 +3207,23 @@ function fitCoverCanvas() {
   var spineBtn = document.getElementById("coverViewSpineBtn");
   if (spineBtn) spineBtn.disabled = false;
 
-  var displayWidth = wrapWidthInches * pxPerInch;
+  var wrapAspect = wrapWidthInches / coverTrim.h;
+
+  var stageEl = document.querySelector(".cover-stage");
+  var stagePadding = 64;
+  var availableWidth = Math.max(200, (stageEl ? stageEl.clientWidth : window.innerWidth) - stagePadding);
+
+  var topBarHeight = 60;
+  var pagePadding = 64;
+  var maxHeight = 640;
+  var availableHeight = Math.max(200, window.innerHeight - topBarHeight - pagePadding);
+
+  var candidateHeightFromWidth = availableWidth / wrapAspect;
+  var candidateHeightFromHeight = Math.min(availableHeight, maxHeight);
+  var minHeight = 200;
+  var displayHeight = Math.max(minHeight, Math.min(candidateHeightFromWidth, candidateHeightFromHeight));
+  var displayWidth = displayHeight * wrapAspect;
+
   canvas.style.height = displayHeight + "px";
   canvas.style.width = displayWidth + "px";
 
@@ -3342,6 +3363,48 @@ function pickCoverPaperStock(value) {
   coverDirty = true;
   closeEditorDropdowns();
   fitCoverSpine();
+}
+
+function renderCoverTrimMenu() {
+  var menu = document.getElementById("coverTrimMenu");
+  if (!menu) return;
+  menu.innerHTML = TRIM_SIZES.map(function(t) {
+    return '<div class="editor-dd-option" data-value="' + escapeHtml(t.value) + '" onclick="pickCoverTrim(\'' + t.value + '\')">' + escapeHtml(t.label) + '</div>';
+  }).join("");
+}
+
+function updateCoverTrimLabel() {
+  var label = document.getElementById("coverTrimLabel");
+  if (!label) return;
+  var opt = null;
+  for (var i = 0; i < TRIM_SIZES.length; i++) {
+    if (coverTrim && TRIM_SIZES[i].value === coverTrim.value) { opt = TRIM_SIZES[i]; break; }
+  }
+  label.textContent = opt ? opt.label : "Trim Size";
+  document.querySelectorAll("#coverTrimMenu .editor-dd-option").forEach(function(o) {
+    o.classList.toggle("selected", coverTrim && o.getAttribute("data-value") === coverTrim.value);
+  });
+}
+
+function toggleCoverTrimMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("coverTrimMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickCoverTrim(value) {
+  var opt = null;
+  for (var i = 0; i < TRIM_SIZES.length; i++) {
+    if (TRIM_SIZES[i].value === value) { opt = TRIM_SIZES[i]; break; }
+  }
+  if (!opt) return;
+  coverTrim = { w: opt.w, h: opt.h, value: opt.value };
+  updateCoverTrimLabel();
+  coverDirty = true;
+  closeEditorDropdowns();
+  fitCoverCanvas();
 }
 
 function defaultCoverTextLayers(mode) {
@@ -3514,6 +3577,7 @@ async function openWrapDesigner(wrapId) {
   updateCoverTextControls();
   document.getElementById("coverPageCountInput").value = coverPageCount;
   updateCoverPaperStockLabel();
+  updateCoverTrimLabel();
 
   document.getElementById("coverDesignerTitle").textContent = "Design Cover — " + (wrap.name || "Untitled Cover");
 
@@ -4203,7 +4267,7 @@ async function saveCoverDesign() {
       var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
         method: "PUT",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ front_design: coverDesign })
+        body: JSON.stringify({ front_design: coverDesign, trim_size: coverTrim ? coverTrim.value : "6x9" })
       });
       if (wrapSaveRes.ok) {
         coverDirty = false;
@@ -4655,6 +4719,7 @@ renderTextColorMenu();
 renderHighlightMenu();
 renderCoverBgColorMenu();
 renderCoverFontMenu();
+renderCoverTrimMenu();
 renderCoverTextColorMenu();
 loadDocuments();
 loadMyBooks();
