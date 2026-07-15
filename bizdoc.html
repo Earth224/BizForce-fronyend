@@ -251,7 +251,7 @@
     #editorCanvas.theme-night h1,#editorCanvas.theme-night h2{color:#f4f7ff}
     #editorCanvas.theme-night blockquote{color:#8892b8}
     #editorCanvas.theme-night.is-empty::before{color:#555}
-    .cover-stage{display:flex;align-items:center;justify-content:center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px}
+    .cover-stage{display:flex;align-items:safe center;justify-content:safe center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto}
     .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;display:none}
@@ -630,6 +630,13 @@
           <button type="button" class="cover-view-btn" id="coverViewBackBtn" onclick="setCoverView('back')">Back</button>
           <button type="button" class="cover-view-btn active" id="coverViewWrapBtn" onclick="setCoverView('wrap')">Full Wrap</button>
         </div>
+        <span class="etb-div"></span>
+        <div class="cover-size-stepper" title="Zoom">
+          <button type="button" class="etb" id="coverZoomOutBtn" title="Zoom out" onclick="adjustCoverZoom(1 / COVER_ZOOM_STEP)">−</button>
+          <span class="cover-size-value" id="coverZoomValue">100%</span>
+          <button type="button" class="etb" id="coverZoomInBtn" title="Zoom in" onclick="adjustCoverZoom(COVER_ZOOM_STEP)">+</button>
+        </div>
+        <button type="button" class="etb" id="coverZoomFitBtn" title="Reset zoom to fit" onclick="resetCoverZoom()">Fit</button>
         <span class="etb-div"></span>
         <div class="editor-dd" id="coverTrimDD">
           <button type="button" class="etb editor-dd-trigger" title="Trim Size" onclick="toggleCoverTrimMenu(event)">
@@ -1458,6 +1465,10 @@ var editorUndoDebounceTimer = null;
 var coverBookId = null;
 var coverContext = "book";
 var coverView = "wrap";
+var coverZoom = 1.0;
+var COVER_ZOOM_MIN = 0.25;
+var COVER_ZOOM_MAX = 4.0;
+var COVER_ZOOM_STEP = 1.25;
 var coverWrapId = null;
 var coverTrim = null;
 var coverPageCount = 0;
@@ -2308,6 +2319,8 @@ function createNewWrap() {
   coverWrapId = null;
   coverBookId = null;
   resetCoverView();
+  coverZoom = 1.0;
+  updateCoverZoomLabel();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
   coverPageCount = DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = "white";
@@ -3257,6 +3270,23 @@ function resetCoverView() {
   if (wrapBtn) wrapBtn.classList.add("active");
 }
 
+function updateCoverZoomLabel() {
+  var label = document.getElementById("coverZoomValue");
+  if (label) label.textContent = Math.round(coverZoom * 100) + "%";
+}
+
+function adjustCoverZoom(factor) {
+  coverZoom = Math.min(COVER_ZOOM_MAX, Math.max(COVER_ZOOM_MIN, coverZoom * factor));
+  updateCoverZoomLabel();
+  fitCoverCanvas();
+}
+
+function resetCoverZoom() {
+  coverZoom = 1.0;
+  updateCoverZoomLabel();
+  fitCoverCanvas();
+}
+
 function applyCoverView() {
   var canvas = document.getElementById("coverCanvas");
   var viewport = document.getElementById("coverViewport");
@@ -3304,6 +3334,9 @@ function applyCoverView() {
   }
   if (!isFinite(targetWidthUnscaled) || targetWidthUnscaled <= 0) targetWidthUnscaled = displayWidth;
   if (!isFinite(scale) || scale <= 0) scale = 1;
+
+  var zoom = (isFinite(coverZoom) && coverZoom > 0) ? coverZoom : 1;
+  scale = scale * zoom;
 
   var viewportWidth = targetWidthUnscaled * scale;
   var translateX = -(regionStartPct / 100 * displayWidth * scale);
@@ -3566,6 +3599,8 @@ function openCoverDesigner(bookId) {
   coverContext = "book";
   coverWrapId = null;
   resetCoverView();
+  coverZoom = 1.0;
+  updateCoverZoomLabel();
   var book = null;
   for (var i = 0; i < allBooks.length; i++) {
     if (allBooks[i].id === bookId) { book = allBooks[i]; break; }
@@ -3671,6 +3706,8 @@ async function openWrapDesigner(wrapId) {
   coverWrapId = wrapId;
   coverBookId = null;
   resetCoverView();
+  coverZoom = 1.0;
+  updateCoverZoomLabel();
   coverTrim = { w: trim.w, h: trim.h, value: trim.value };
   coverPageCount = wrap.page_count || DEFAULT_COVER_PAGE_COUNT;
   coverPaperStock = wrap.paper_stock || "white";
@@ -4801,6 +4838,12 @@ window.addEventListener("resize", function() {
 window.addEventListener("resize", function() {
   fitCoverCanvas();
 });
+
+document.getElementById("coverViewport").addEventListener("wheel", function(e) {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  adjustCoverZoom(e.deltaY < 0 ? 1.1 : 1 / 1.1);
+}, { passive: false });
 
 document.addEventListener("keydown", function(e) {
   var pane = document.getElementById("paneCoverDesigner");
