@@ -262,7 +262,6 @@
     .spine-props-field{display:flex;align-items:center;gap:8px;color:#8892b8}
     .spine-props-label{white-space:nowrap}
     .spine-props-field input[type="number"]{width:70px;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#e6edf3;font-family:inherit;font-size:.82rem}
-    .spine-props-field select{padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#e6edf3;font-family:inherit;font-size:.82rem;cursor:pointer}
     .spine-props-readout{color:#22d3ee;font-weight:600;white-space:nowrap}
     .spine-props-note{color:#fbbf24;white-space:nowrap}
     .cover-text-layer{position:absolute;display:inline-block;min-width:10px;padding:2px 4px;outline:none;cursor:grab;white-space:nowrap;-webkit-user-select:text;user-select:text}
@@ -677,11 +676,17 @@
         </label>
         <label class="spine-props-field">
           <span class="spine-props-label">Paper</span>
-          <select id="coverPaperStockSelect" onchange="onCoverPaperStockChange()">
-            <option value="white">White</option>
-            <option value="cream">Cream</option>
-            <option value="color">Color</option>
-          </select>
+          <div class="editor-dd" id="coverPaperStockDD">
+            <button type="button" class="etb editor-dd-trigger" title="Paper Stock" onclick="toggleCoverPaperStockMenu(event)">
+              <span id="coverPaperStockLabel">White</span>
+              <svg class="editor-dd-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="editor-dd-menu" id="coverPaperStockMenu">
+              <div class="editor-dd-option" onclick="pickCoverPaperStock('white')">White</div>
+              <div class="editor-dd-option" onclick="pickCoverPaperStock('cream')">Cream</div>
+              <div class="editor-dd-option" onclick="pickCoverPaperStock('color')">Color</div>
+            </div>
+          </div>
         </label>
         <span class="spine-props-readout" id="coverSpineWidthLabel">Spine: 0.00"</span>
         <span class="spine-props-note" id="coverSpineNote">Spine text needs ~100+ pages</span>
@@ -3218,10 +3223,26 @@ function onCoverPageCountChange() {
   fitCoverSpine();
 }
 
-function onCoverPaperStockChange() {
-  var select = document.getElementById("coverPaperStockSelect");
-  coverPaperStock = select.value || "white";
+var COVER_PAPER_STOCK_LABELS = { white: "White", cream: "Cream", color: "Color" };
+
+function updateCoverPaperStockLabel() {
+  var label = document.getElementById("coverPaperStockLabel");
+  if (label) label.textContent = COVER_PAPER_STOCK_LABELS[coverPaperStock] || "White";
+}
+
+function toggleCoverPaperStockMenu(event) {
+  event.stopPropagation();
+  var menu = document.getElementById("coverPaperStockMenu");
+  var wasOpen = menu.classList.contains("open");
+  closeEditorDropdowns();
+  if (!wasOpen) menu.classList.add("open");
+}
+
+function pickCoverPaperStock(value) {
+  coverPaperStock = value;
+  updateCoverPaperStockLabel();
   coverDirty = true;
+  closeEditorDropdowns();
   fitCoverSpine();
 }
 
@@ -3392,7 +3413,7 @@ async function openWrapDesigner(wrapId) {
   document.getElementById("coverTextColorCustom").value = "#ffffff";
   updateCoverTextControls();
   document.getElementById("coverPageCountInput").value = coverPageCount;
-  document.getElementById("coverPaperStockSelect").value = coverPaperStock;
+  updateCoverPaperStockLabel();
 
   document.getElementById("coverDesignerTitle").textContent = "Design Cover — " + (wrap.name || "Untitled Cover");
 
