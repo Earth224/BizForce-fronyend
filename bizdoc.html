@@ -3222,6 +3222,36 @@ function onCoverPaperStockChange() {
   fitCoverSpine();
 }
 
+function defaultCoverTextLayers(mode) {
+  var titleXPct = mode === "wrap" ? 80 : 50;
+  return [
+    {
+      id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      text: "Book Title",
+      xPct: titleXPct,
+      yPct: 30,
+      fontFamily: EDITOR_FONTS[0].stack,
+      fontSizePct: 8,
+      color: "#111111",
+      align: "center",
+      bold: true,
+      italic: false
+    },
+    {
+      id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      text: "Author Name",
+      xPct: titleXPct,
+      yPct: 45,
+      fontFamily: EDITOR_FONTS[0].stack,
+      fontSizePct: 4,
+      color: "#111111",
+      align: "center",
+      bold: false,
+      italic: false
+    }
+  ];
+}
+
 function openCoverDesigner(bookId) {
   coverContext = "book";
   coverWrapId = null;
@@ -3255,7 +3285,7 @@ function openCoverDesigner(bookId) {
       textLayers: loadedDesign.textLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: [] };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("book") };
   }
   coverBgFile = null;
   coverSelectedLayerId = null;
@@ -3343,7 +3373,7 @@ async function openWrapDesigner(wrapId) {
       textLayers: loadedDesign.textLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: [] };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, textLayers: defaultCoverTextLayers("wrap") };
   }
   coverBgFile = null;
   coverSelectedLayerId = null;
