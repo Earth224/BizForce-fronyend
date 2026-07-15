@@ -3261,25 +3261,32 @@ function applyCoverView() {
 
   var displayWidth = parseFloat(canvas.style.width) || canvas.offsetWidth || 1;
   var displayHeight = parseFloat(canvas.style.height) || canvas.offsetHeight || 1;
-  var viewportWidth = displayWidth;
+  var pxPerInch = coverTrim ? (displayHeight / coverTrim.h) : 0;
 
   var view = (coverContext === "wrap") ? coverView : "wrap";
   var scale = 1;
   var regionStartPct = 0;
+  var targetWidthUnscaled = displayWidth;
 
-  if (view === "front" && coverFrontFrac > 1e-6) {
-    scale = viewportWidth / (coverFrontFrac * displayWidth);
+  if (view === "front" && coverFrontFrac > 1e-6 && coverTrim) {
+    targetWidthUnscaled = coverTrim.w * pxPerInch;
     regionStartPct = coverFrontStartPct;
-  } else if (view === "back" && coverBackFrac > 1e-6) {
-    scale = viewportWidth / (coverBackFrac * displayWidth);
+  } else if (view === "back" && coverBackFrac > 1e-6 && coverTrim) {
+    targetWidthUnscaled = coverTrim.w * pxPerInch;
     regionStartPct = 0;
-  } else if (view === "spine") {
-    var spineViewFrac = Math.max(coverSpineFrac, COVER_MIN_SPINE_VIEW_FRAC);
-    scale = viewportWidth / (spineViewFrac * displayWidth);
+  } else if (view === "spine" && coverTrim) {
+    var spineThickness = PAPER_THICKNESS[coverPaperStock] || PAPER_THICKNESS.white;
+    var spineInches = coverPageCount * spineThickness;
+    targetWidthUnscaled = Math.max(spineInches, 0.001) * pxPerInch;
     regionStartPct = coverBackEndPct;
+    if (targetWidthUnscaled < COVER_MIN_SPINE_VIEW_PX) {
+      scale = COVER_MIN_SPINE_VIEW_PX / targetWidthUnscaled;
+    }
   }
+  if (!isFinite(targetWidthUnscaled) || targetWidthUnscaled <= 0) targetWidthUnscaled = displayWidth;
   if (!isFinite(scale) || scale <= 0) scale = 1;
 
+  var viewportWidth = targetWidthUnscaled * scale;
   var translateX = -(regionStartPct / 100 * displayWidth * scale);
   if (!isFinite(translateX)) translateX = 0;
 
@@ -3817,7 +3824,7 @@ function onCoverLayerMouseMove(e) {
 
 var COVER_SNAP_PX = 8;
 var COVER_BLEED_INCHES = 0.25;
-var COVER_MIN_SPINE_VIEW_FRAC = 0.03;
+var COVER_MIN_SPINE_VIEW_PX = 70;
 
 function getCoverSnapTargetsX(rect) {
   var targets = [50];
