@@ -177,10 +177,11 @@
     .coverlib-grid{display:grid;grid-template-columns:repeat(auto-fill,220px);justify-content:start;gap:20px}
     .wrap-tile{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);padding:0;overflow:hidden;border-radius:14px;display:flex;flex-direction:column;gap:0;transition:all .25s;position:relative}
     .wrap-tile:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
-    .wrap-thumb{width:100%;aspect-ratio:2/3;overflow:hidden;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center}
-    .wrap-thumb-face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;text-align:center}
-    .wrap-thumb-label{font-size:.85rem;font-weight:800;color:#1a1a1a;text-shadow:0 1px 2px rgba(255,255,255,.4);word-break:break-word}
-    .wrap-thumb-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#8892b8;font-size:.65rem}
+    .wrap-thumb{width:100%;aspect-ratio:2/3;overflow:hidden;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);position:relative}
+    .wrap-thumb-face{position:relative;overflow:hidden;width:100%;height:100%}
+    .wrap-thumb-bg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
+    .wrap-thumb-text{position:absolute;pointer-events:none;white-space:pre-wrap}
+    .wrap-thumb-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#8892b8;font-size:.65rem;width:100%;height:100%}
     .wrap-thumb-icon{font-size:1.4rem}
     .wrap-tile-meta{padding:12px 14px;display:flex;align-items:flex-start;gap:10px;background:rgba(10,15,35,.82)}
     .wrap-tile-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -2138,20 +2139,73 @@ function renderCoverWraps() {
     return;
   }
   grid.innerHTML = allWraps.map(function(w) { return renderWrapTile(w); }).join("");
+  allWraps.forEach(function(w) {
+    if (!w.front_design) return;
+    var faceEl = grid.querySelector('.wrap-thumb-face[data-wrap-id="' + w.id + '"]');
+    if (faceEl) renderDesignPreview(w.front_design, faceEl);
+  });
+  loadWrapThumbnails();
+}
+
+function renderDesignPreview(design, boxEl) {
+  if (!boxEl) return;
+  boxEl.style.backgroundColor = (design && design.bgColor) || "#ffffff";
+
+  if (design && design.bgImage) {
+    var img = boxEl.querySelector(".wrap-thumb-bg");
+    if (!img) {
+      img = document.createElement("img");
+      img.className = "wrap-thumb-bg";
+      img.alt = "";
+      boxEl.appendChild(img);
+    }
+    img.style.display = "none";
+  }
+
+  var boxHeight = boxEl.offsetHeight || boxEl.clientHeight || 330;
+  var layers = (design && design.textLayers) || [];
+  layers.forEach(function(layer) {
+    var el = document.createElement("div");
+    el.className = "wrap-thumb-text";
+    el.textContent = layer.text;
+    el.style.left = layer.xPct + "%";
+    el.style.top = layer.yPct + "%";
+    el.style.transform = "translate(-50%,-50%)";
+    el.style.fontFamily = layer.fontFamily;
+    el.style.fontSize = (boxHeight * layer.fontSizePct / 100) + "px";
+    el.style.color = layer.color;
+    el.style.textAlign = layer.align;
+    el.style.fontWeight = layer.bold ? "700" : "400";
+    el.style.fontStyle = layer.italic ? "italic" : "normal";
+    el.style.zIndex = "1";
+    boxEl.appendChild(el);
+  });
+}
+
+async function loadWrapThumbnails() {
+  allWraps.forEach(async function(w) {
+    if (!w.front_design || !w.front_design.bgImage) return;
+    var bg = w.front_design.bgImage;
+    if (typeof bg !== "string" || bg.indexOf("blob:") === 0 || bg.indexOf("http") === 0) return;
+    try {
+      var res = await fetch(API_URL + "/api/cover-wraps/" + w.id + "/bg-image", { headers: { "Authorization": "Bearer " + token } });
+      if (!res.ok) throw new Error("Failed to load cover image");
+      var d = await res.json();
+      var img = document.querySelector('.wrap-thumb-face[data-wrap-id="' + w.id + '"] .wrap-thumb-bg');
+      if (!img || !d.url) throw new Error("No cover image url");
+      img.src = d.url;
+      img.style.display = "block";
+    } catch (e) {
+      // leave the solid bgColor showing
+    }
+  });
 }
 
 function renderWrapTile(w) {
   var fd = w.front_design || null;
-  var thumbInner;
-  if (fd) {
-    var bg = fd.bgColor || "#ffffff";
-    var labelText = (fd.textLayers && fd.textLayers.length && fd.textLayers[0].text) ? fd.textLayers[0].text : "";
-    thumbInner = '<div class="wrap-thumb-face" style="background:' + escapeHtml(bg) + '">' +
-      (labelText ? '<span class="wrap-thumb-label">' + escapeHtml(labelText) + '</span>' : '') +
-    '</div>';
-  } else {
-    thumbInner = '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No design</span></div>';
-  }
+  var thumbInner = fd
+    ? '<div class="wrap-thumb-face" data-wrap-id="' + escapeHtml(w.id) + '"></div>'
+    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No design</span></div>';
   return '<div class="wrap-tile">' +
     '<div class="wrap-thumb">' + thumbInner + '</div>' +
     '<div class="wrap-tile-meta">' +
