@@ -254,16 +254,16 @@
     .cover-stage{display:flex;align-items:safe center;justify-content:safe center;min-height:60vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto}
     .cover-viewport{overflow:hidden;position:relative;flex-shrink:0;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative}
-    .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:2;display:none}
-    .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.5);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
-    .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.35);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
-    .cover-margin-guide{position:absolute;border:1px dashed rgba(255,255,255,.28);pointer-events:none;z-index:2;display:none;box-sizing:border-box}
+    .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:50;display:none}
+    .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.75);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
+    .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.55);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
+    .cover-margin-guide{position:absolute;border:1px dashed rgba(160,160,180,.8);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
     .cover-spine-warning{position:absolute;top:0;bottom:0;background:rgba(251,191,36,.14);pointer-events:none;z-index:0;display:none}
-    .cover-spine-warning-label{position:absolute;pointer-events:none;z-index:2;display:none;color:rgba(251,191,36,.85);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;font-family:inherit;transform:translate(-50%,-50%) rotate(90deg)}
-    .cover-section-label{position:absolute;pointer-events:none;z-index:2;display:none;color:rgba(255,255,255,.32);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;font-family:inherit}
+    .cover-spine-warning-label{position:absolute;pointer-events:none;z-index:50;display:none;color:rgba(251,191,36,.85);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;font-family:inherit;transform:translate(-50%,-50%) rotate(90deg)}
+    .cover-section-label{position:absolute;pointer-events:none;z-index:50;display:none;color:rgba(255,255,255,.32);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;font-family:inherit}
     .cover-section-label-back,.cover-section-label-front{transform:translate(-50%,0)}
     .cover-section-label-spine{transform:translate(-50%,-50%) rotate(90deg)}
-    .cover-snap-guide{position:absolute;pointer-events:none;z-index:3;display:none;background:#ff2ec4}
+    .cover-snap-guide{position:absolute;pointer-events:none;z-index:60;display:none;background:#ff2ec4}
     .cover-snap-guide-v{top:0;bottom:0;width:1px}
     .cover-snap-guide-h{left:0;right:0;height:1px}
     .cover-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px}
@@ -3235,7 +3235,7 @@ function fitCoverCanvas() {
 
   var topBarHeight = 60;
   var toolbarChromeHeight = 64;
-  var maxH = 560;
+  var maxH = 900;
   var availH = Math.min(Math.max(120, window.innerHeight - topBarHeight - toolbarChromeHeight), maxH);
 
   var heightIfWidthConstrained = availW / wrapAspect;
@@ -3314,7 +3314,7 @@ function applyCoverView() {
     var availW = Math.max(120, (stageEl ? stageEl.clientWidth : window.innerWidth) - 40);
     var topBarHeight = 60;
     var toolbarChromeHeight = 64;
-    var maxH = 560;
+    var maxH = 900;
     var availH = Math.min(Math.max(120, window.innerHeight - topBarHeight - toolbarChromeHeight), maxH);
     var pageAspect = coverTrim.w / coverTrim.h;
     var pageHeightIfWidthConstrained = availW / pageAspect;
