@@ -703,6 +703,13 @@
         <button type="button" class="etb" id="coverAlignCenterBtn" title="Align center" onclick="setCoverAlign('center')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
         <button type="button" class="etb" id="coverAlignRightBtn" title="Align right" onclick="setCoverAlign('right')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
         <span class="etb-div"></span>
+        <div class="cover-size-stepper">
+          <button type="button" class="etb" id="coverRotateMinus" title="Rotate -15°" onclick="nudgeCoverRotation(-15)" disabled>⟲</button>
+          <span class="cover-size-value" id="coverRotateValue">–</span>
+          <button type="button" class="etb" id="coverRotatePlus" title="Rotate +15°" onclick="nudgeCoverRotation(15)" disabled>⟳</button>
+        </div>
+        <button type="button" class="etb" id="coverRotate90Btn" title="Rotate 90°" onclick="cycleCoverRotation90()" disabled>90°</button>
+        <span class="etb-div"></span>
         <button type="button" class="etb" id="coverDeleteLayerBtn" title="Delete Layer" onclick="deleteCoverLayer()" disabled style="color:#f87171">Delete Layer</button>
       </div>
       <div class="spine-props">
@@ -3672,7 +3679,8 @@ function defaultCoverTextLayers(mode) {
       color: "#111111",
       align: "center",
       bold: true,
-      italic: false
+      italic: false,
+      rotation: 0
     },
     {
       id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
@@ -3684,7 +3692,8 @@ function defaultCoverTextLayers(mode) {
       color: "#111111",
       align: "center",
       bold: false,
-      italic: false
+      italic: false,
+      rotation: 0
     }
   ];
 }
@@ -3941,7 +3950,7 @@ function renderCoverTextLayers() {
     }
     el.style.left = layer.xPct + "%";
     el.style.top = layer.yPct + "%";
-    el.style.transform = "translate(-50%,-50%)";
+    el.style.transform = "translate(-50%,-50%) rotate(" + (layer.rotation || 0) + "deg)";
     el.style.fontFamily = layer.fontFamily;
     el.style.fontSize = (canvasHeight * layer.fontSizePct / 100) + "px";
     el.style.color = layer.color;
@@ -4170,7 +4179,8 @@ function addCoverTitleLayer() {
     color: "#ffffff",
     align: "center",
     bold: false,
-    italic: false
+    italic: false,
+    rotation: 0
   };
   coverDesign.textLayers.push(layer);
   selectCoverLayer(layer.id);
@@ -4190,7 +4200,8 @@ function addCoverTextLayer() {
     color: "#ffffff",
     align: "center",
     bold: false,
-    italic: false
+    italic: false,
+    rotation: 0
   };
   coverDesign.textLayers.push(layer);
   selectCoverLayer(layer.id);
@@ -4246,7 +4257,7 @@ function removeCoverBgImage() {
 
 function updateCoverTextControls() {
   var layer = coverSelectedLayerId ? getCoverLayerById(coverSelectedLayerId) : null;
-  var ids = ["coverFontTrigger", "coverSizeMinus", "coverSizePlus", "coverTextColorTrigger", "coverBoldBtn", "coverItalicBtn", "coverAlignLeftBtn", "coverAlignCenterBtn", "coverAlignRightBtn", "coverDeleteLayerBtn"];
+  var ids = ["coverFontTrigger", "coverSizeMinus", "coverSizePlus", "coverTextColorTrigger", "coverBoldBtn", "coverItalicBtn", "coverAlignLeftBtn", "coverAlignCenterBtn", "coverAlignRightBtn", "coverRotateMinus", "coverRotatePlus", "coverRotate90Btn", "coverDeleteLayerBtn"];
   ids.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.disabled = !layer;
@@ -4258,6 +4269,7 @@ function updateCoverTextControls() {
     document.getElementById("coverBoldBtn").classList.remove("active");
     document.getElementById("coverItalicBtn").classList.remove("active");
     updateCoverAlignButtons(null);
+    document.getElementById("coverRotateValue").textContent = "–";
     return;
   }
   var fontOpt = null;
@@ -4271,6 +4283,7 @@ function updateCoverTextControls() {
   document.getElementById("coverBoldBtn").classList.toggle("active", layer.bold);
   document.getElementById("coverItalicBtn").classList.toggle("active", layer.italic);
   updateCoverAlignButtons(layer.align);
+  document.getElementById("coverRotateValue").textContent = (layer.rotation || 0) + "°";
 }
 
 function updateCoverAlignButtons(align) {
@@ -4383,6 +4396,27 @@ function setCoverAlign(align) {
   if (!layer) return;
   layer.align = align;
   updateCoverAlignButtons(align);
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function nudgeCoverRotation(delta) {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  layer.rotation = (((layer.rotation || 0) + delta) % 360 + 360) % 360;
+  document.getElementById("coverRotateValue").textContent = layer.rotation + "°";
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function cycleCoverRotation90() {
+  var layer = getCoverLayerById(coverSelectedLayerId);
+  if (!layer) return;
+  var steps = [0, 90, 180, 270];
+  var current = layer.rotation || 0;
+  var idx = steps.indexOf(current);
+  layer.rotation = idx === -1 ? 0 : steps[(idx + 1) % steps.length];
+  document.getElementById("coverRotateValue").textContent = layer.rotation + "°";
   renderCoverCanvas();
   recordCoverUndo();
 }
