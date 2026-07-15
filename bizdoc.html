@@ -3191,11 +3191,18 @@ async function openWrapDesigner(wrapId) {
   renderCoverCanvas();
   initCoverUndo();
 
-  // TODO: wrap bg-image signed-URL resolution needs its own handling — the existing
-  // GET /api/bizbook/books/:id/cover endpoint is book-scoped and can't resolve an
-  // arbitrary wrap's stored path. Address when wrap save/bg-upload is built next step.
-  // For now, a saved wrap bgImage stored path just leaves coverBgDisplayUrl null and
-  // the canvas shows the solid bgColor; text layers still load and render fine.
+  if (coverDesign.bgImage && typeof coverDesign.bgImage === "string" && coverDesign.bgImage.indexOf("blob:") !== 0 && coverDesign.bgImage.indexOf("http") !== 0) {
+    var loadWrapId = wrapId;
+    fetch(API_URL + "/api/cover-wraps/" + wrapId + "/bg-image", { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(d) {
+        if (!d || !d.url) return;
+        if (coverWrapId !== loadWrapId) return;
+        coverBgDisplayUrl = d.url;
+        renderCoverCanvas();
+      })
+      .catch(function() {});
+  }
 }
 
 function closeCoverDesigner() {
@@ -3692,7 +3699,28 @@ async function saveCoverDesign() {
   try {
     if (coverContext === "wrap") {
       if (!coverWrapId || !coverDesign) return;
-      var hadNewBgFile = !!coverBgFile;
+      if (coverBgFile) {
+        var wrapFormData = new FormData();
+        wrapFormData.append("bg_image", coverBgFile);
+        var wrapUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: wrapFormData
+        });
+        if (!wrapUploadRes.ok) {
+          var wrapUploadErr = await wrapUploadRes.json().catch(function() { return {}; });
+          showToast(wrapUploadErr.error || "Failed to upload background image", "error");
+          return;
+        }
+        var wrapUploadData = await wrapUploadRes.json().catch(function() { return {}; });
+        if (!wrapUploadData.path) {
+          showToast("Failed to upload background image", "error");
+          return;
+        }
+        coverDesign.bgImage = wrapUploadData.path;
+        coverBgFile = null;
+      }
+
       var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
         method: "PUT",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
@@ -3706,11 +3734,7 @@ async function saveCoverDesign() {
             break;
           }
         }
-        if (hadNewBgFile) {
-          showToast("Saved. (Background image upload for covers is coming in the next step.)", "success");
-        } else {
-          showToast("Cover saved", "success");
-        }
+        showToast("Cover saved", "success");
       } else {
         var wrapSaveErr = await wrapSaveRes.json().catch(function() { return {}; });
         showToast(wrapSaveErr.error || "Failed to save cover design", "error");
