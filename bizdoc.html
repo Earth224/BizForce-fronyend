@@ -173,6 +173,20 @@
     .ebook-tile-title{font-size:.9rem;font-weight:700;color:#f4f7ff;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .ebook-tile-date{font-size:.7rem;color:#4a5280}
     .ebook-status{font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid rgba(136,146,184,.3);background:rgba(136,146,184,.1);color:#8892b8}
+    .coverlib-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    .coverlib-grid{display:grid;grid-template-columns:repeat(auto-fill,220px);justify-content:start;gap:20px}
+    .wrap-tile{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);padding:0;overflow:hidden;border-radius:14px;display:flex;flex-direction:column;gap:0;transition:all .25s;position:relative}
+    .wrap-tile:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
+    .wrap-thumb{width:100%;aspect-ratio:2/3;overflow:hidden;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center}
+    .wrap-thumb-face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;text-align:center}
+    .wrap-thumb-label{font-size:.85rem;font-weight:800;color:#1a1a1a;text-shadow:0 1px 2px rgba(255,255,255,.4);word-break:break-word}
+    .wrap-thumb-fallback{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#8892b8;font-size:.65rem}
+    .wrap-thumb-icon{font-size:1.4rem}
+    .wrap-tile-meta{padding:12px 14px;display:flex;align-items:flex-start;gap:10px;background:rgba(10,15,35,.82)}
+    .wrap-tile-info{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+    .wrap-tile-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .wrap-tile-title{font-size:.9rem;font-weight:700;color:#f4f7ff;line-height:1.25;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .wrap-tile-trim{font-size:.7rem;color:#4a5280}
     /* Custom trim-size dropdown */
     .trim-select{position:relative}
     .trim-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:12px 14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.9rem;font-family:inherit;cursor:pointer;transition:border-color .2s}
@@ -321,6 +335,7 @@
   <div class="workspace-tabs">
     <button class="workspace-tab active" data-pane="documents">Documents</button>
     <button class="workspace-tab" data-pane="ebook">Biz-EBook</button>
+    <button class="workspace-tab" data-pane="coverlib">Cover</button>
   </div>
 
   <div id="paneDocuments" class="workspace-pane active">
@@ -439,6 +454,23 @@
     <input type="file" id="coverChangeInput" accept="image/png,image/jpeg,image/webp" style="display:none">
     </div>
   </div>
+  </div>
+
+  <div id="paneCoverlib" class="workspace-pane">
+    <div class="ebook-section">
+      <div class="coverlib-header">
+        <div>
+          <div class="ebook-eyebrow">PUBLISHING</div>
+          <h2 class="ebook-title">Cover Library</h2>
+          <p class="ebook-sub">Design reusable book covers, apply them to any book.</p>
+        </div>
+        <button class="create-btn" onclick="createNewWrap()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Cover
+        </button>
+      </div>
+      <div class="coverlib-grid" id="coverlibGrid"><div class="loading">Loading covers...</div></div>
+    </div>
   </div>
 
   <div id="paneEditor" class="workspace-pane">
@@ -1350,6 +1382,7 @@ var currentDetailId = null;
 var allBooks = [];
 var currentManuscriptFile = null;
 var currentCoverFile = null;
+var allWraps = [];
 var coverChangeTargetId = null;
 var editorDocId = null;
 var editorMode = "book";
@@ -2082,6 +2115,148 @@ async function loadCoverImages() {
       if (wrap) { wrap.innerHTML = '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>'; }
     }
   });
+}
+
+async function loadCoverWraps() {
+  try {
+    var res = await fetch(API_URL + "/api/cover-wraps", { headers: { "Authorization": "Bearer " + token } });
+    if (res.ok) { var d = await res.json(); allWraps = d.wraps || []; }
+    renderCoverWraps();
+  } catch (e) {
+    document.getElementById("coverlibGrid").innerHTML = '<div class="empty-msg">Unable to load covers. Please try again.</div>';
+    showToast("Unable to load your covers", "error");
+  }
+}
+
+function renderCoverWraps() {
+  var grid = document.getElementById("coverlibGrid");
+  if (!grid) return;
+  if (!allWraps.length) {
+    grid.innerHTML = '<div class="empty-msg">No covers yet — create your first one.</div>';
+    return;
+  }
+  grid.innerHTML = allWraps.map(function(w) { return renderWrapTile(w); }).join("");
+}
+
+function renderWrapTile(w) {
+  var fd = w.front_design || null;
+  var thumbInner;
+  if (fd) {
+    var bg = fd.bgColor || "#ffffff";
+    var labelText = (fd.textLayers && fd.textLayers.length && fd.textLayers[0].text) ? fd.textLayers[0].text : "";
+    thumbInner = '<div class="wrap-thumb-face" style="background:' + escapeHtml(bg) + '">' +
+      (labelText ? '<span class="wrap-thumb-label">' + escapeHtml(labelText) + '</span>' : '') +
+    '</div>';
+  } else {
+    thumbInner = '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No design</span></div>';
+  }
+  return '<div class="wrap-tile">' +
+    '<div class="wrap-thumb">' + thumbInner + '</div>' +
+    '<div class="wrap-tile-meta">' +
+      '<div class="wrap-tile-info">' +
+        '<h3 class="wrap-tile-title">' + escapeHtml(w.name || "Untitled Cover") + '</h3>' +
+        '<div class="wrap-tile-sub">' +
+          '<span class="wrap-tile-trim">' + escapeHtml(w.trim_size || "") + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="doc-menu">' +
+        '<button class="doc-menu-btn" onclick="toggleDocMenu(event,\'' + escapeHtml(w.id) + '\')" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button>' +
+        '<div class="doc-menu-pop" id="docMenu-' + escapeHtml(w.id) + '">' +
+          '<button class="doc-menu-item" onclick="wrapMenuEdit(event,\'' + escapeHtml(w.id) + '\')">Edit</button>' +
+          '<button class="doc-menu-item" onclick="wrapMenuApply(event,\'' + escapeHtml(w.id) + '\')">Apply to Book</button>' +
+          '<button class="doc-menu-item" onclick="wrapMenuDuplicate(event,\'' + escapeHtml(w.id) + '\')">Duplicate</button>' +
+          '<button class="doc-menu-item danger" onclick="wrapMenuDelete(event,\'' + escapeHtml(w.id) + '\')">Delete</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+async function createNewWrap() {
+  try {
+    var res = await fetch(API_URL + "/api/cover-wraps", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Untitled Cover", trim_size: "6x9" })
+    });
+    if (res.ok) {
+      showToast("Cover created", "success");
+      await loadCoverWraps();
+    } else {
+      var e = await res.json().catch(function() { return {}; });
+      showToast(e.error || "Couldn't create cover", "error");
+    }
+  } catch (e) {
+    showToast("Couldn't create cover", "error");
+  }
+}
+
+function wrapMenuEdit(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  // TODO: wire to the standalone wrap designer (openWrapDesigner) — next build step.
+  showToast("Cover designer wiring coming next", "success");
+}
+
+function wrapMenuApply(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  // TODO: build apply-to-book flow (pick a book, copy this wrap's design into that book's cover_design).
+  showToast("Apply to book coming soon", "success");
+}
+
+async function wrapMenuDuplicate(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  try {
+    var res = await fetch(API_URL + "/api/cover-wraps/" + id, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { showToast("Unable to load cover", "error"); return; }
+    var d = await res.json();
+    var wrap = d.wrap;
+    var res2 = await fetch(API_URL + "/api/cover-wraps", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: (wrap.name || "Untitled Cover") + " (Copy)",
+        trim_size: wrap.trim_size,
+        paper_stock: wrap.paper_stock,
+        page_count: wrap.page_count,
+        front_design: wrap.front_design,
+        spine_design: wrap.spine_design,
+        back_design: wrap.back_design
+      })
+    });
+    if (!res2.ok) { var e = await res2.json().catch(function() { return {}; }); throw new Error(e.error || "Failed to duplicate"); }
+    showToast("Duplicated", "success");
+    await loadCoverWraps();
+  } catch (e) {
+    showToast(e.message || "Failed to duplicate", "error");
+  }
+}
+
+async function wrapMenuDelete(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  if (!confirm("Delete this cover? This cannot be undone.")) return;
+  try {
+    var res = await fetch(API_URL + "/api/cover-wraps/" + id, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (res.ok) {
+      showToast("Deleted", "success");
+      await loadCoverWraps();
+    } else {
+      var e = await res.json().catch(function() { return {}; });
+      showToast(e.error || "Couldn't delete cover", "error");
+    }
+  } catch (e) {
+    showToast("Couldn't delete cover", "error");
+  }
 }
 
 function renderBookCard(b) {
@@ -3833,6 +4008,13 @@ document.querySelectorAll(".workspace-tab").forEach(function(tab) {
     if (pane) pane.classList.add("active");
   });
 });
+
+var coverlibTab = document.querySelector('.workspace-tab[data-pane="coverlib"]');
+if (coverlibTab) {
+  coverlibTab.addEventListener("click", function() {
+    loadCoverWraps();
+  });
+}
 
 renderNewdocThumbs();
 renderFontFamilyMenu();
