@@ -290,8 +290,8 @@
     .cover-text-layer{position:absolute;display:inline-block;min-width:10px;padding:2px 4px;outline:none;cursor:grab;white-space:nowrap;-webkit-user-select:text;user-select:text}
     .cover-text-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
     .cover-text-layer.dragging{cursor:grabbing;opacity:.85}
-    .cover-image-layer{position:absolute;cursor:grab;box-sizing:border-box}
-    .cover-image-layer img{width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none}
+    .cover-image-layer{position:absolute;cursor:grab;box-sizing:border-box;overflow:hidden}
+    .cover-image-layer img{position:absolute;width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none}
     .cover-image-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
     .cover-image-layer.dragging{cursor:grabbing;opacity:.85}
     .cover-resize-handle{position:absolute;width:12px;height:12px;background:#22d3ee;border:1.5px solid #070b18;border-radius:2px;z-index:5}
@@ -709,6 +709,17 @@
         <button type="button" class="etb" onclick="addCoverTextLayer()">Add Text</button>
         <button type="button" class="etb" id="coverAddImageBtn" onclick="document.getElementById('coverImageLayerInput').click()">Add Image</button>
         <button type="button" class="etb" id="coverDeleteImageBtn" title="Delete Image" onclick="deleteCoverImageLayer()" disabled style="color:#f87171">Delete Image</button>
+        <span class="cover-toolbar-label">Crop:</span>
+        <div class="cover-size-stepper">
+          <button type="button" class="etb" id="coverCropZoomOut" title="Zoom crop out" onclick="nudgeCoverCropZoom(-0.1)" disabled>−</button>
+          <span class="cover-size-value" id="coverCropZoomValue">100%</span>
+          <button type="button" class="etb" id="coverCropZoomIn" title="Zoom crop in" onclick="nudgeCoverCropZoom(0.1)" disabled>+</button>
+        </div>
+        <button type="button" class="etb" id="coverCropLeft" title="Pan crop left" onclick="nudgeCoverCropPan('x',-0.05)" disabled>←</button>
+        <button type="button" class="etb" id="coverCropRight" title="Pan crop right" onclick="nudgeCoverCropPan('x',0.05)" disabled>→</button>
+        <button type="button" class="etb" id="coverCropUp" title="Pan crop up" onclick="nudgeCoverCropPan('y',-0.05)" disabled>↑</button>
+        <button type="button" class="etb" id="coverCropDown" title="Pan crop down" onclick="nudgeCoverCropPan('y',0.05)" disabled>↓</button>
+        <button type="button" class="etb" id="coverCropReset" title="Reset crop" onclick="resetCoverCrop()" disabled>Reset</button>
         <span class="etb-div"></span>
         <div class="editor-dd" id="coverFontDD">
           <button type="button" class="etb editor-dd-trigger" title="Font Family" id="coverFontTrigger" onclick="toggleCoverFontMenu(event)" disabled>
@@ -4496,6 +4507,10 @@ function getCoverImageLayerById(layerId) {
   return null;
 }
 
+function getCoverSelectedImageLayer() {
+  return coverSelectedImageLayerId ? getCoverImageLayerById(coverSelectedImageLayerId) : null;
+}
+
 // Foreground image layers render between the background (region-bg z-index
 // 0/1) and the text layers. Text layers use z-index 2 (bumped from 1 —
 // the one text-layer touch in this block, needed so text always wins
@@ -4531,6 +4546,19 @@ function renderCoverImageLayers() {
     var isSelected = layer.id === coverSelectedImageLayerId;
     el.classList.toggle("selected", isSelected);
     img.src = coverImageLayerDisplayUrls[layer.id] || layer.src;
+
+    // Crop: zoom the img up so only the [cropX,cropY,cropX+cropW,cropY+cropH]
+    // sub-rectangle of the source shows inside the frame (which clips via
+    // overflow:hidden on .cover-image-layer). Full crop (0,0,1,1) reduces to
+    // width/height 100%, left/top 0 — identical to pre-crop rendering.
+    var cropW = (typeof layer.cropW === "number" && layer.cropW > 0) ? layer.cropW : 1;
+    var cropH = (typeof layer.cropH === "number" && layer.cropH > 0) ? layer.cropH : 1;
+    var cropX = typeof layer.cropX === "number" ? layer.cropX : 0;
+    var cropY = typeof layer.cropY === "number" ? layer.cropY : 0;
+    img.style.width = ((1 / cropW) * 100) + "%";
+    img.style.height = ((1 / cropH) * 100) + "%";
+    img.style.left = (-(cropX / cropW) * 100) + "%";
+    img.style.top = (-(cropY / cropH) * 100) + "%";
 
     // Corner resize handles only exist while the layer is selected —
     // created/removed here rather than just hidden, mirroring the
@@ -4628,6 +4656,17 @@ function deselectCoverLayer() {
 function updateCoverImageControls() {
   var btn = document.getElementById("coverDeleteImageBtn");
   if (btn) btn.disabled = !coverSelectedImageLayerId;
+
+  var layer = getCoverSelectedImageLayer();
+  var cropIds = ["coverCropZoomOut", "coverCropZoomIn", "coverCropLeft", "coverCropRight", "coverCropUp", "coverCropDown", "coverCropReset"];
+  cropIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !layer;
+  });
+  var zoomValueEl = document.getElementById("coverCropZoomValue");
+  if (zoomValueEl) {
+    zoomValueEl.textContent = (layer && layer.cropW > 0) ? Math.round((1 / layer.cropW) * 100) + "%" : "100%";
+  }
 }
 
 function selectCoverImageLayer(layerId) {
@@ -5359,6 +5398,63 @@ function deleteCoverImageLayer() {
   delete coverImageLayerFiles[removedId];
   delete coverImageLayerDisplayUrls[removedId];
   deselectCoverImageLayer();
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+// Crop zoom: delta > 0 = zoom IN (shrink cropW/cropH toward the center,
+// magnifying); delta < 0 = zoom OUT (grow back toward the full 1,1 image).
+// Centered — the crop window's own center stays put as it resizes, then
+// gets clamped back inside [0,1] on each axis.
+function nudgeCoverCropZoom(delta) {
+  var layer = getCoverSelectedImageLayer();
+  if (!layer) return;
+  var oldCropW = (typeof layer.cropW === "number" && layer.cropW > 0) ? layer.cropW : 1;
+  var oldCropH = (typeof layer.cropH === "number" && layer.cropH > 0) ? layer.cropH : 1;
+  var oldCropX = typeof layer.cropX === "number" ? layer.cropX : 0;
+  var oldCropY = typeof layer.cropY === "number" ? layer.cropY : 0;
+  var centerX = oldCropX + oldCropW / 2;
+  var centerY = oldCropY + oldCropH / 2;
+
+  var newCropW = Math.max(0.1, Math.min(1, oldCropW - delta));
+  var newCropH = Math.max(0.1, Math.min(1, oldCropH - delta));
+  var newCropX = Math.max(0, Math.min(1 - newCropW, centerX - newCropW / 2));
+  var newCropY = Math.max(0, Math.min(1 - newCropH, centerY - newCropH / 2));
+
+  layer.cropW = newCropW;
+  layer.cropH = newCropH;
+  layer.cropX = newCropX;
+  layer.cropY = newCropY;
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+// Crop pan: shifts the crop window within the source image. Clamped to
+// [0, 1-cropW]/[0, 1-cropH], so at full crop (cropW/cropH === 1) the clamp
+// range collapses to a single point and panning is a no-op, as intended.
+function nudgeCoverCropPan(axis, delta) {
+  var layer = getCoverSelectedImageLayer();
+  if (!layer) return;
+  var cropW = (typeof layer.cropW === "number" && layer.cropW > 0) ? layer.cropW : 1;
+  var cropH = (typeof layer.cropH === "number" && layer.cropH > 0) ? layer.cropH : 1;
+  if (axis === "x") {
+    var oldCropX = typeof layer.cropX === "number" ? layer.cropX : 0;
+    layer.cropX = Math.max(0, Math.min(1 - cropW, oldCropX + delta));
+  } else {
+    var oldCropY = typeof layer.cropY === "number" ? layer.cropY : 0;
+    layer.cropY = Math.max(0, Math.min(1 - cropH, oldCropY + delta));
+  }
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function resetCoverCrop() {
+  var layer = getCoverSelectedImageLayer();
+  if (!layer) return;
+  layer.cropX = 0;
+  layer.cropY = 0;
+  layer.cropW = 1;
+  layer.cropH = 1;
   renderCoverCanvas();
   recordCoverUndo();
 }
