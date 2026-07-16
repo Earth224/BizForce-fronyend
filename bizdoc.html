@@ -254,6 +254,7 @@
     .cover-stage{display:grid;height:70vh;padding:32px;background:rgba(0,0,0,.25);border-radius:12px;overflow:auto;box-sizing:border-box}
     .cover-viewport{margin:auto;overflow:hidden;position:relative;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative;overflow:hidden}
+    .cover-region-bg{position:absolute;top:0;bottom:0;overflow:hidden;z-index:0;box-sizing:border-box}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:50;display:none}
     .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.75);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
     .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.55);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
@@ -1511,6 +1512,12 @@ var coverBgFile = null;
 var coverSelectedLayerId = null;
 var coverDragState = null;
 var coverBgDisplayUrl = null;
+// Per-region (back/spine/front) background state — wrap context only.
+// Book context has one page and keeps using the flat coverBgFile/
+// coverBgDisplayUrl above via getActiveRegionObj()'s book-mode shim.
+var coverActiveRegion = "front";
+var coverRegionBgFiles = { back: null, spine: null, front: null };
+var coverRegionDisplayUrls = { back: null, spine: null, front: null };
 var coverDirty = false;
 var coverUndoStack = [];
 var coverRedoStack = [];
@@ -2350,16 +2357,21 @@ function createNewWrap() {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
+  revokeCoverRegionBlobUrls();
   coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
+  ensureCoverRegions(coverDesign);
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
   coverBgDisplayUrl = null;
+  coverRegionBgFiles = { back: null, spine: null, front: null };
+  coverRegionDisplayUrls = { back: null, spine: null, front: null };
   coverDirty = false;
   clearTimeout(coverUndoDebounceTimer);
   coverUndoDebounceTimer = null;
-  document.getElementById("coverBgColorBar").style.background = coverDesign.bgColor;
-  document.getElementById("coverBgColorCustom").value = coverDesign.bgColor;
+  var initialActiveRegion = getActiveRegionObj() || coverDesign;
+  document.getElementById("coverBgColorBar").style.background = initialActiveRegion.bgColor;
+  document.getElementById("coverBgColorCustom").value = initialActiveRegion.bgColor;
   document.getElementById("coverBgImageInput").value = "";
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   document.getElementById("coverTextColorCustom").value = "#ffffff";
@@ -3325,14 +3337,17 @@ function fitCoverSpine() {
 
 function setCoverView(view) {
   coverView = view;
+  updateCoverActiveRegion();
   document.querySelectorAll(".cover-view-btn").forEach(function(b) { b.classList.remove("active"); });
   var btn = document.getElementById("coverView" + view.charAt(0).toUpperCase() + view.slice(1) + "Btn");
   if (btn) btn.classList.add("active");
   applyCoverView();
+  updateCoverBgControls();
 }
 
 function resetCoverView() {
   coverView = "wrap";
+  updateCoverActiveRegion();
   document.querySelectorAll(".cover-view-btn").forEach(function(b) { b.classList.remove("active"); });
   var wrapBtn = document.getElementById("coverViewWrapBtn");
   if (wrapBtn) wrapBtn.classList.add("active");
@@ -3762,6 +3777,7 @@ function openCoverDesigner(bookId) {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
+  revokeCoverRegionBlobUrls();
   if (book.cover_design && typeof book.cover_design === "object" && (book.cover_design.bgColor || book.cover_design.textLayers)) {
     var loadedDesign = JSON.parse(JSON.stringify(book.cover_design));
     coverDesign = {
@@ -3775,15 +3791,19 @@ function openCoverDesigner(bookId) {
   } else {
     coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("book") };
   }
+  ensureCoverRegions(coverDesign);
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
   coverBgDisplayUrl = null;
+  coverRegionBgFiles = { back: null, spine: null, front: null };
+  coverRegionDisplayUrls = { back: null, spine: null, front: null };
   coverDirty = false;
   clearTimeout(coverUndoDebounceTimer);
   coverUndoDebounceTimer = null;
-  document.getElementById("coverBgColorBar").style.background = coverDesign.bgColor;
-  document.getElementById("coverBgColorCustom").value = coverDesign.bgColor;
+  var initialActiveRegion = getActiveRegionObj() || coverDesign;
+  document.getElementById("coverBgColorBar").style.background = initialActiveRegion.bgColor;
+  document.getElementById("coverBgColorCustom").value = initialActiveRegion.bgColor;
   document.getElementById("coverBgImageInput").value = "";
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   document.getElementById("coverTextColorCustom").value = "#ffffff";
@@ -3856,6 +3876,7 @@ async function openWrapDesigner(wrapId) {
   if (coverDesign && coverDesign.bgImage) {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
+  revokeCoverRegionBlobUrls();
   if (wrap.front_design && typeof wrap.front_design === "object" && (wrap.front_design.bgColor || wrap.front_design.textLayers)) {
     var loadedDesign = JSON.parse(JSON.stringify(wrap.front_design));
     coverDesign = {
@@ -3864,20 +3885,25 @@ async function openWrapDesigner(wrapId) {
       bgScale: loadedDesign.bgScale || 1,
       bgOffsetX: loadedDesign.bgOffsetX || 0,
       bgOffsetY: loadedDesign.bgOffsetY || 0,
+      regions: loadedDesign.regions,
       textLayers: loadedDesign.textLayers || []
     };
   } else {
     coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
   }
+  ensureCoverRegions(coverDesign);
   coverBgFile = null;
   coverSelectedLayerId = null;
   coverDragState = null;
   coverBgDisplayUrl = null;
+  coverRegionBgFiles = { back: null, spine: null, front: null };
+  coverRegionDisplayUrls = { back: null, spine: null, front: null };
   coverDirty = false;
   clearTimeout(coverUndoDebounceTimer);
   coverUndoDebounceTimer = null;
-  document.getElementById("coverBgColorBar").style.background = coverDesign.bgColor;
-  document.getElementById("coverBgColorCustom").value = coverDesign.bgColor;
+  var initialActiveRegion = getActiveRegionObj() || coverDesign;
+  document.getElementById("coverBgColorBar").style.background = initialActiveRegion.bgColor;
+  document.getElementById("coverBgColorCustom").value = initialActiveRegion.bgColor;
   document.getElementById("coverBgImageInput").value = "";
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   document.getElementById("coverTextColorCustom").value = "#ffffff";
@@ -3908,6 +3934,16 @@ async function openWrapDesigner(wrapId) {
         if (!d || !d.url) return;
         if (coverWrapId !== loadWrapId) return;
         coverBgDisplayUrl = d.url;
+        // Backend only resolves a signed URL for the flat design.bgImage path
+        // (no per-region endpoint exists yet). Best-effort: if the front
+        // region's stored path still matches that flat value (i.e. it hasn't
+        // been re-uploaded independently since), reuse the same signed URL
+        // for it so a freshly-migrated cover's front image still displays.
+        // Back/spine images saved under their own path need a real backend
+        // per-region signed-URL route to resolve on reload — not added here.
+        if (coverDesign.regions && coverDesign.regions.front && coverDesign.regions.front.bgImage === coverDesign.bgImage) {
+          coverRegionDisplayUrls.front = d.url;
+        }
         renderCoverCanvas();
       })
       .catch(function() {});
@@ -3946,8 +3982,54 @@ function clampCoverBgTransform(design) {
   return { scale: scale, offsetX: offsetX, offsetY: offsetY };
 }
 
+function revokeCoverRegionBlobUrls() {
+  ["back", "spine", "front"].forEach(function(name) {
+    var url = coverRegionDisplayUrls[name];
+    if (url) { try { URL.revokeObjectURL(url); } catch (e) {} }
+  });
+}
+
+// Backward-compat migration-on-load: seeds design.regions.{back,spine,front}
+// from the design's existing flat bg* fields the first time a design is
+// touched by the per-region system, so an old single-image cover opens
+// looking identical, just now editable per region. No-op once regions exist.
+function ensureCoverRegions(design) {
+  if (!design) return;
+  if (design.regions && design.regions.back && design.regions.spine && design.regions.front) return;
+  var seed = function() {
+    return {
+      bgColor: design.bgColor || "#ffffff",
+      bgImage: design.bgImage || null,
+      bgScale: design.bgScale || 1,
+      bgOffsetX: design.bgOffsetX || 0,
+      bgOffsetY: design.bgOffsetY || 0
+    };
+  };
+  design.regions = { back: seed(), spine: seed(), front: seed() };
+}
+
+// coverActiveRegion tracks which region the bg controls (color/image/pan/
+// zoom) currently affect. It follows the Front/Spine/Back view switch in
+// wrap context; Full Wrap view and book context both resolve to "front".
+function updateCoverActiveRegion() {
+  coverActiveRegion = (coverContext === "wrap" && (coverView === "back" || coverView === "spine" || coverView === "front")) ? coverView : "front";
+}
+
+// Returns the region object the bg controls should read/write. In book
+// context there's only one page — coverDesign itself already has the same
+// bgColor/bgImage/bgScale/bgOffsetX/bgOffsetY shape as a region, so it IS
+// the shim: reads/writes here go straight to the flat fields unchanged.
+function getActiveRegionObj() {
+  if (!coverDesign) return null;
+  updateCoverActiveRegion();
+  if (coverContext !== "wrap") return coverDesign;
+  ensureCoverRegions(coverDesign);
+  return coverDesign.regions[coverActiveRegion];
+}
+
 function updateCoverBgControls() {
-  var hasImage = !!(coverDesign && coverDesign.bgImage);
+  var region = getActiveRegionObj();
+  var hasImage = !!(region && region.bgImage);
   var ids = ["coverBgZoomMinus", "coverBgZoomPlus", "coverBgLeft", "coverBgRight", "coverBgUp", "coverBgDown", "coverBgReset"];
   ids.forEach(function(id) {
     var el = document.getElementById(id);
@@ -3955,22 +4037,32 @@ function updateCoverBgControls() {
   });
   var label = document.getElementById("coverBgScaleValue");
   if (label) {
-    var scale = (coverDesign && coverDesign.bgScale) || 1;
+    var scale = (region && region.bgScale) || 1;
     label.textContent = Math.round(scale * 100) + "%";
   }
 }
 
-function renderCoverCanvas() {
-  if (!coverDesign) return;
-  var canvas = document.getElementById("coverCanvas");
-  if (!canvas) return;
-  ensureCoverSnapGuides(canvas);
-  canvas.style.backgroundColor = coverDesign.bgColor;
-  var img = document.getElementById("coverBgImageEl");
-  if (coverDesign.bgImage) {
+// Paints one region's color + (optional) image into its wrapper div, which
+// is clipped to that region's own horizontal band — object-fit:cover and
+// the pan/zoom transform are computed relative to that band, not the whole
+// wrap, so each region crops its own image independently.
+function renderCoverRegionLayer(canvas, name, region, leftPct, widthPct, displayUrl) {
+  var wrapper = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
+  if (!wrapper) {
+    wrapper = document.createElement("div");
+    wrapper.className = "cover-region-bg";
+    wrapper.setAttribute("data-region", name);
+    canvas.insertBefore(wrapper, canvas.firstChild);
+  }
+  wrapper.style.display = "block";
+  wrapper.style.left = leftPct + "%";
+  wrapper.style.width = widthPct + "%";
+  wrapper.style.backgroundColor = (region && region.bgColor) || "#ffffff";
+
+  var img = wrapper.querySelector("img");
+  if (region && region.bgImage) {
     if (!img) {
       img = document.createElement("img");
-      img.id = "coverBgImageEl";
       img.alt = "";
       img.style.position = "absolute";
       img.style.top = "0";
@@ -3979,16 +4071,55 @@ function renderCoverCanvas() {
       img.style.height = "100%";
       img.style.objectFit = "cover";
       img.style.transformOrigin = "center";
-      img.style.zIndex = "0";
-      canvas.insertBefore(img, canvas.firstChild);
+      wrapper.appendChild(img);
     }
-    img.src = coverBgDisplayUrl || coverDesign.bgImage;
+    img.src = displayUrl || region.bgImage;
     img.style.display = "block";
-    var bgT = clampCoverBgTransform(coverDesign);
+    var bgT = clampCoverBgTransform(region);
     img.style.transform = "translate(" + bgT.offsetX + "%, " + bgT.offsetY + "%) scale(" + bgT.scale + ")";
   } else if (img) {
     img.style.display = "none";
   }
+}
+
+function renderCoverRegionBackgrounds(canvas) {
+  var names = ["back", "spine", "front"];
+
+  if (coverContext !== "wrap") {
+    // Book mode: one page, no back/spine — render straight from the flat
+    // legacy fields so book covers are pixel-identical to before.
+    names.forEach(function(name) {
+      if (name === "front") return;
+      var el = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
+      if (el) el.style.display = "none";
+    });
+    renderCoverRegionLayer(canvas, "front", coverDesign, 0, 100, coverBgDisplayUrl);
+    return;
+  }
+
+  ensureCoverRegions(coverDesign);
+  var bounds = {
+    back:  { left: 0, width: coverBackFrac * 100 },
+    spine: { left: coverBackEndPct, width: coverSpineFrac * 100 },
+    front: { left: coverFrontStartPct, width: coverFrontFrac * 100 }
+  };
+  names.forEach(function(name) {
+    var b = bounds[name];
+    if (!b.width || b.width <= 0) {
+      var el = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
+      if (el) el.style.display = "none";
+      return;
+    }
+    renderCoverRegionLayer(canvas, name, coverDesign.regions[name], b.left, b.width, coverRegionDisplayUrls[name]);
+  });
+}
+
+function renderCoverCanvas() {
+  if (!coverDesign) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  ensureCoverSnapGuides(canvas);
+  renderCoverRegionBackgrounds(canvas);
   updateCoverBgControls();
   renderCoverTextLayers();
   renderCoverFolds();
@@ -4296,8 +4427,9 @@ function toggleCoverBgColorMenu(event) {
 }
 
 function pickCoverBgColor(event, color) {
-  if (!coverDesign) return;
-  coverDesign.bgColor = color;
+  var region = getActiveRegionObj();
+  if (!region) return;
+  region.bgColor = color;
   document.getElementById("coverBgColorBar").style.background = color;
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   if (event && event.target) event.target.classList.add("selected");
@@ -4307,9 +4439,10 @@ function pickCoverBgColor(event, color) {
 }
 
 function pickCoverBgColorCustom() {
-  if (!coverDesign) return;
+  var region = getActiveRegionObj();
+  if (!region) return;
   var color = document.getElementById("coverBgColorCustom").value;
-  coverDesign.bgColor = color;
+  region.bgColor = color;
   document.getElementById("coverBgColorBar").style.background = color;
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
@@ -4317,48 +4450,57 @@ function pickCoverBgColorCustom() {
 }
 
 function removeCoverBgImage() {
-  if (!coverDesign) return;
-  if (coverDesign.bgImage) {
-    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  var region = getActiveRegionObj();
+  if (!region) return;
+  if (region.bgImage) {
+    try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
   }
-  coverDesign.bgImage = null;
-  coverDesign.bgScale = 1;
-  coverDesign.bgOffsetX = 0;
-  coverDesign.bgOffsetY = 0;
-  coverBgFile = null;
-  coverBgDisplayUrl = null;
+  region.bgImage = null;
+  region.bgScale = 1;
+  region.bgOffsetX = 0;
+  region.bgOffsetY = 0;
+  if (coverContext === "wrap") {
+    coverRegionBgFiles[coverActiveRegion] = null;
+    coverRegionDisplayUrls[coverActiveRegion] = null;
+  } else {
+    coverBgFile = null;
+    coverBgDisplayUrl = null;
+  }
   document.getElementById("coverBgImageInput").value = "";
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
 }
 
 function nudgeCoverBgScale(delta) {
-  if (!coverDesign || !coverDesign.bgImage) return;
-  var next = Math.round(((coverDesign.bgScale || 1) + delta) * 10) / 10;
-  coverDesign.bgScale = Math.max(1, Math.min(4, next));
-  var clamped = clampCoverBgTransform(coverDesign);
-  coverDesign.bgOffsetX = clamped.offsetX;
-  coverDesign.bgOffsetY = clamped.offsetY;
+  var region = getActiveRegionObj();
+  if (!region || !region.bgImage) return;
+  var next = Math.round(((region.bgScale || 1) + delta) * 10) / 10;
+  region.bgScale = Math.max(1, Math.min(4, next));
+  var clamped = clampCoverBgTransform(region);
+  region.bgOffsetX = clamped.offsetX;
+  region.bgOffsetY = clamped.offsetY;
   renderCoverCanvas();
   recordCoverUndo();
 }
 
 function nudgeCoverBgOffset(axis, delta) {
-  if (!coverDesign || !coverDesign.bgImage) return;
-  var scale = coverDesign.bgScale || 1;
+  var region = getActiveRegionObj();
+  if (!region || !region.bgImage) return;
+  var scale = region.bgScale || 1;
   var maxOffset = Math.min(50, (scale - 1) / 2 * 100);
   var key = axis === "y" ? "bgOffsetY" : "bgOffsetX";
-  var next = (coverDesign[key] || 0) + delta;
-  coverDesign[key] = Math.max(-maxOffset, Math.min(maxOffset, next));
+  var next = (region[key] || 0) + delta;
+  region[key] = Math.max(-maxOffset, Math.min(maxOffset, next));
   renderCoverCanvas();
   recordCoverUndo();
 }
 
 function resetCoverBgTransform() {
-  if (!coverDesign) return;
-  coverDesign.bgScale = 1;
-  coverDesign.bgOffsetX = 0;
-  coverDesign.bgOffsetY = 0;
+  var region = getActiveRegionObj();
+  if (!region) return;
+  region.bgScale = 1;
+  region.bgOffsetX = 0;
+  region.bgOffsetY = 0;
   renderCoverCanvas();
   recordCoverUndo();
 }
@@ -4642,26 +4784,34 @@ async function saveCoverDesign() {
         updateCoverExportBtn();
       }
 
-      if (coverBgFile) {
-        var wrapFormData = new FormData();
-        wrapFormData.append("bg_image", coverBgFile);
-        var wrapUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
+      // Upload each region's pending freshly-picked file (if any) the same
+      // way the single flat bg image used to upload, one request per region
+      // that actually has something pending — most saves have zero or one.
+      ensureCoverRegions(coverDesign);
+      var regionUploadOrder = ["back", "spine", "front"];
+      for (var ri = 0; ri < regionUploadOrder.length; ri++) {
+        var regionName = regionUploadOrder[ri];
+        var pendingFile = coverRegionBgFiles[regionName];
+        if (!pendingFile) continue;
+        var regionFormData = new FormData();
+        regionFormData.append("bg_image", pendingFile);
+        var regionUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
           method: "POST",
           headers: { "Authorization": "Bearer " + token },
-          body: wrapFormData
+          body: regionFormData
         });
-        if (!wrapUploadRes.ok) {
-          var wrapUploadErr = await wrapUploadRes.json().catch(function() { return {}; });
-          showToast(wrapUploadErr.error || "Failed to upload background image", "error");
+        if (!regionUploadRes.ok) {
+          var regionUploadErr = await regionUploadRes.json().catch(function() { return {}; });
+          showToast(regionUploadErr.error || "Failed to upload background image", "error");
           return;
         }
-        var wrapUploadData = await wrapUploadRes.json().catch(function() { return {}; });
-        if (!wrapUploadData.path) {
+        var regionUploadData = await regionUploadRes.json().catch(function() { return {}; });
+        if (!regionUploadData.path) {
           showToast("Failed to upload background image", "error");
           return;
         }
-        coverDesign.bgImage = wrapUploadData.path;
-        coverBgFile = null;
+        coverDesign.regions[regionName].bgImage = regionUploadData.path;
+        coverRegionBgFiles[regionName] = null;
       }
 
       var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
@@ -4975,15 +5125,23 @@ document.getElementById("fBookCover").addEventListener("change", function() {
 document.getElementById("coverBgImageInput").addEventListener("change", function() {
   var file = (this.files && this.files[0]) ? this.files[0] : null;
   if (!file || !coverDesign) return;
-  if (coverDesign.bgImage) {
-    try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+  var region = getActiveRegionObj();
+  if (!region) return;
+  if (region.bgImage) {
+    try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
   }
-  coverBgFile = file;
-  coverDesign.bgImage = URL.createObjectURL(file);
-  coverDesign.bgScale = 1;
-  coverDesign.bgOffsetX = 0;
-  coverDesign.bgOffsetY = 0;
-  coverBgDisplayUrl = coverDesign.bgImage;
+  var objectUrl = URL.createObjectURL(file);
+  region.bgImage = objectUrl;
+  region.bgScale = 1;
+  region.bgOffsetX = 0;
+  region.bgOffsetY = 0;
+  if (coverContext === "wrap") {
+    coverRegionBgFiles[coverActiveRegion] = file;
+    coverRegionDisplayUrls[coverActiveRegion] = objectUrl;
+  } else {
+    coverBgFile = file;
+    coverBgDisplayUrl = objectUrl;
+  }
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
 });
