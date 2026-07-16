@@ -5190,6 +5190,7 @@ async function generateBookFromEditor() {
     if (res.ok) {
       var d = await res.json();
       showToast(d.has_epub ? "Book generated! PDF + EPUB ready." : "Book generated! PDF ready.", "success");
+      await loadMyBooks();
     } else {
       var e = await res.json().catch(function() { return {}; });
       showToast(e.error || "Couldn't generate book.", "error");
