@@ -140,6 +140,10 @@
     .template-item-notice{font-size:.68rem;color:#fbbf24;line-height:1.4;margin-top:6px}
     .template-cat-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
     .template-list .template-cat-head:first-child{margin-top:0}
+    .ebook-template-picker{margin-bottom:24px}
+    .ebook-template-picker .template-cat-head{margin-top:0}
+    .ebook-template-tiles{display:flex;flex-wrap:wrap;gap:10px}
+    .ebook-template-tiles .template-item{flex:1 1 220px;max-width:280px}
     .back-to-templates{background:none;border:none;color:#22d3ee;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;padding:0;margin-bottom:18px}
     .back-to-templates:hover{text-decoration:underline}
     /* BizDoc-specific: detail view */
@@ -426,6 +430,11 @@
     <div class="ebook-eyebrow">PUBLISHING</div>
     <h2 class="ebook-title">Biz-EBook Creator</h2>
     <p class="ebook-sub">Turn your manuscript into a professionally formatted PDF and EPUB book.</p>
+
+    <div class="ebook-template-picker">
+      <div class="template-cat-head">Start from a template</div>
+      <div class="ebook-template-tiles" id="bookTemplateTiles"></div>
+    </div>
 
     <div class="ebook-columns">
     <div class="ebook-create-card">
@@ -1471,6 +1480,83 @@ var BIZDOC_TEMPLATES = [
   }
 ];
 
+var BIZEBOOK_TEMPLATES = [
+  {
+    type: "howto",
+    name: "How-To Guide",
+    description: "A structured, chapter-by-chapter guide that teaches a skill from first idea to real-world practice.",
+    category: "Non-Fiction",
+    contentHtml: "<h1>Introduction</h1>" +
+      "<p>Start by telling readers who this guide is for and what they'll be able to do by the time they finish it. Be specific about the transformation — what changes for them?</p>" +
+      "<p>Set expectations for how the guide is structured, and give readers a reason to keep reading past the first page.</p>" +
+      "<h1>Chapter 1: The Core Idea</h1>" +
+      "<p>In this chapter, explain the single most important concept your reader needs to understand before anything else. What's the foundational idea everything else builds on?</p>" +
+      "<p>Use a concrete example or a short story to make the idea stick — abstract explanations are easy to forget, but a vivid example is not.</p>" +
+      "<h1>Chapter 2: Going Deeper</h1>" +
+      "<p>In this chapter, build on the core idea from Chapter 1 and address the nuances, edge cases, or common misconceptions readers run into.</p>" +
+      "<p>Anticipate the question a skeptical reader would ask here, and answer it directly.</p>" +
+      "<h1>Chapter 3: Putting It Into Practice</h1>" +
+      "<p>In this chapter, walk the reader through the actual steps they need to take. Break it down into a clear, ordered sequence they can follow along with.</p>" +
+      "<p>Call out the most common mistake beginners make at this stage, and tell them how to avoid it.</p>" +
+      "<h1>Conclusion</h1>" +
+      "<p>Summarize the transformation the reader has gone through, and give them a clear next step — what should they do the moment they close this book?</p>"
+  },
+  {
+    type: "leadmagnet",
+    name: "Lead-Magnet eBook",
+    description: "A short, funnel-style book that hooks a reader with a problem and moves them toward your offer.",
+    category: "Business",
+    contentHtml: "<h1>The Problem</h1>" +
+      "<p>Open with the specific, painful problem your ideal reader is facing right now — name it in language they'd use themselves, not industry jargon.</p>" +
+      "<p>Make it visceral: what does this problem cost them in time, money, or stress if it goes unsolved?</p>" +
+      "<h1>Why It Matters</h1>" +
+      "<p>Explain why this problem is harder to solve than it looks, or why most people get stuck trying to fix it on their own.</p>" +
+      "<p>Build credibility here — briefly establish why you're the right person to be walking them through this.</p>" +
+      "<h1>The Solution</h1>" +
+      "<p>Introduce your approach or framework at a high level. Give it a name if you can — a named method is more memorable and more shareable.</p>" +
+      "<p>Show, don't just tell: give one quick example of the solution working in practice.</p>" +
+      "<h1>Next Steps</h1>" +
+      "<p>Give the reader one clear, specific action to take next — a call, a reply, a link — the one thing that moves them from reader to lead.</p>" +
+      "<p>Make the offer low-friction and time-bound so they act now instead of \"someday.\"</p>"
+  },
+  {
+    type: "workbook",
+    name: "Workbook / Course",
+    description: "Lesson-by-lesson structure with a built-in exercise at the end of each lesson.",
+    category: "Education",
+    contentHtml: "<h1>Lesson 1</h1>" +
+      "<p>Introduce the single skill or concept this lesson teaches, and explain why it matters before moving to the next lesson.</p>" +
+      "<p><b>Exercise:</b> Write down one specific example from your own situation where this lesson applies.</p>" +
+      "<h1>Lesson 2</h1>" +
+      "<p>Build on Lesson 1 by introducing the next layer of the skill — keep it focused on one new idea at a time.</p>" +
+      "<p><b>Exercise:</b> Apply what you just learned to a real example, and note what felt difficult about it.</p>" +
+      "<h1>Lesson 3</h1>" +
+      "<p>Bring the pieces together and show how Lessons 1 and 2 combine into the full skill in practice.</p>" +
+      "<p><b>Exercise:</b> Complete one full run-through using everything covered so far, start to finish.</p>"
+  },
+  {
+    type: "novel",
+    name: "Novel / Fiction",
+    description: "A clean three-chapter skeleton to start drafting your story.",
+    category: "Fiction",
+    contentHtml: "<h1>Chapter One</h1><p><br></p><h1>Chapter Two</h1><p><br></p><h1>Chapter Three</h1><p><br></p>"
+  },
+  {
+    type: "memoir",
+    name: "Memoir",
+    description: "A prologue and opening chapters to begin telling your story.",
+    category: "Fiction",
+    contentHtml: "<h1>Prologue</h1><p><br></p><h1>Part One</h1><p><br></p><h1>Chapter One</h1><p><br></p><h1>Chapter Two</h1><p><br></p>"
+  },
+  {
+    type: "poetry",
+    name: "Poetry Collection",
+    description: "Numbered sections ready for your poems.",
+    category: "Fiction",
+    contentHtml: "<h1>I.</h1><p><br></p><h1>II.</h1><p><br></p><h1>III.</h1><p><br></p>"
+  }
+];
+
 var allDocuments = [];
 var searchTimer = null;
 var currentTemplate = null;
@@ -1484,6 +1570,7 @@ var coverChangeTargetId = null;
 var editorDocId = null;
 var editorMode = "book";
 var editorDirty = false;
+var editorDraftMeta = null;
 var autosaveTimer = null;
 var autosaveInFlight = false;
 var editorUndoStack = [];
@@ -3182,6 +3269,51 @@ function openBlankDocEditor() {
   setAutosaveStatus("");
   document.getElementById("editorBookTitle").textContent = "Editing: Untitled Document";
   document.getElementById("editorCanvas").innerHTML = "";
+  initEditorUndo();
+  var savedTheme = "dark";
+  try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e) {}
+  setEditorTheme(savedTheme);
+  updateEditorPlaceholder();
+  renderOutline();
+  updateWordCount();
+  updateGenerateBtnVisibility();
+  document.querySelectorAll(".workspace-pane").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
+  document.getElementById("paneEditor").classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function renderBookTemplateTiles() {
+  var wrap = document.getElementById("bookTemplateTiles");
+  if (!wrap) return;
+  wrap.innerHTML = BIZEBOOK_TEMPLATES.map(function(t) {
+    return '<div class="template-item" onclick="openBookTemplate(\'' + t.type + '\')">' +
+      '<h3 class="template-item-name">' + escapeHtml(t.name) + '</h3>' +
+      '<p class="template-item-desc">' + escapeHtml(t.description) + '</p>' +
+    '</div>';
+  }).join("");
+}
+
+// Opens the editor on a NEW, unsaved book draft seeded with a template's
+// starter HTML — editorDocId stays null until Generate actually creates the
+// bizbooks row (see generateBookFromEditor's !editorDocId branch).
+// editorDraftMeta carries the title/author/trimSize that call will send.
+function openBookTemplate(type) {
+  var template = null;
+  for (var i = 0; i < BIZEBOOK_TEMPLATES.length; i++) {
+    if (BIZEBOOK_TEMPLATES[i].type === type) { template = BIZEBOOK_TEMPLATES[i]; break; }
+  }
+  if (!template) return;
+
+  clearTimeout(autosaveTimer);
+  autosaveInFlight = false;
+  editorMode = "book";
+  editorDocId = null;
+  editorDirty = true;
+  editorDraftMeta = { title: template.name, author: "", trimSize: "letter" };
+  setAutosaveStatus("");
+  document.getElementById("editorBookTitle").textContent = "Editing: " + editorDraftMeta.title;
+  document.getElementById("editorCanvas").innerHTML = template.contentHtml;
   initEditorUndo();
   var savedTheme = "dark";
   try { savedTheme = localStorage.getItem("bf_editor_theme") || "dark"; } catch (e) {}
@@ -5167,7 +5299,7 @@ async function saveEditor() {
 }
 
 async function generateBookFromEditor() {
-  if (editorMode !== "book" || !editorDocId) return;
+  if (editorMode !== "book") return;
   if (!document.getElementById("editorCanvas").innerText.trim()) {
     showToast("Write something before generating.", "error");
     return;
@@ -5179,23 +5311,45 @@ async function generateBookFromEditor() {
   btn.textContent = "Generating…";
 
   try {
-    var saveResult = await performSave({ silent: true });
-    if (!saveResult.ok) {
-      showToast("Couldn't save before generating.", "error");
-      return;
-    }
-
-    var res = await fetch(API_URL + "/api/bizbook/books/" + editorDocId + "/generate-from-content", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token }
-    });
-    if (res.ok) {
-      var d = await res.json();
-      showToast(d.has_epub ? "Book generated! PDF + EPUB ready." : "Book generated! PDF ready.", "success");
-      await loadMyBooks();
+    if (!editorDocId) {
+      // Template/draft flow: no bizbooks row exists yet — create-from-content
+      // creates the row AND generates the PDF/EPUB in one call.
+      var content = document.getElementById("editorCanvas").innerHTML;
+      var meta = editorDraftMeta || { title: "Untitled Book", author: "", trimSize: "letter" };
+      var draftRes = await fetch(API_URL + "/api/bizbook/books/create-from-content", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: meta.title, author: meta.author, trimSize: meta.trimSize, content: content })
+      });
+      if (draftRes.ok) {
+        var draftData = await draftRes.json();
+        if (draftData.book && draftData.book.id) editorDocId = draftData.book.id;
+        editorDirty = false;
+        showToast("Book generated! PDF + EPUB ready.", "success");
+        await loadMyBooks();
+      } else {
+        var draftErr = await draftRes.json().catch(function() { return {}; });
+        showToast(draftErr.error || "Couldn't generate book.", "error");
+      }
     } else {
-      var e = await res.json().catch(function() { return {}; });
-      showToast(e.error || "Couldn't generate book.", "error");
+      var saveResult = await performSave({ silent: true });
+      if (!saveResult.ok) {
+        showToast("Couldn't save before generating.", "error");
+        return;
+      }
+
+      var res = await fetch(API_URL + "/api/bizbook/books/" + editorDocId + "/generate-from-content", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+      });
+      if (res.ok) {
+        var d = await res.json();
+        showToast(d.has_epub ? "Book generated! PDF + EPUB ready." : "Book generated! PDF ready.", "success");
+        await loadMyBooks();
+      } else {
+        var e = await res.json().catch(function() { return {}; });
+        showToast(e.error || "Couldn't generate book.", "error");
+      }
     }
   } catch (err) {
     showToast("Couldn't generate book.", "error");
@@ -5518,6 +5672,7 @@ renderCoverTrimMenu();
 renderCoverTextColorMenu();
 loadDocuments();
 loadMyBooks();
+renderBookTemplateTiles();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
