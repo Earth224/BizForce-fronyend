@@ -294,6 +294,11 @@
     .cover-image-layer img{width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none}
     .cover-image-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
     .cover-image-layer.dragging{cursor:grabbing;opacity:.85}
+    .cover-resize-handle{position:absolute;width:12px;height:12px;background:#22d3ee;border:1.5px solid #070b18;border-radius:2px;z-index:5}
+    .cover-resize-handle.rh-nw{top:-6px;left:-6px;cursor:nwse-resize}
+    .cover-resize-handle.rh-se{bottom:-6px;right:-6px;cursor:nwse-resize}
+    .cover-resize-handle.rh-ne{top:-6px;right:-6px;cursor:nesw-resize}
+    .cover-resize-handle.rh-sw{bottom:-6px;left:-6px;cursor:nesw-resize}
     .cover-toolbar .etb:disabled,.cover-toolbar .editor-dd-trigger:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
     .cover-toolbar .etb.active{background:rgba(34,211,238,.18);color:#22d3ee}
     .cover-size-stepper{display:flex;align-items:center;gap:2px}
@@ -1708,6 +1713,10 @@ var coverRegionDisplayUrls = { back: null, spine: null, front: null };
 var coverSelectedImageLayerId = null;
 var coverImageLayerFiles = {};
 var coverImageLayerDisplayUrls = {};
+// Corner-handle resize state (Cover Designer Block C) — separate from
+// coverDragState (move-drag) so a resize in progress and a move-drag can
+// never be confused with each other.
+var coverImageResizeState = null;
 var coverDirty = false;
 var coverUndoStack = [];
 var coverRedoStack = [];
@@ -4507,8 +4516,27 @@ function renderCoverImageLayers() {
     el.style.height = layer.heightPct + "%";
     el.style.transform = "translate(-50%,-50%) rotate(" + (layer.rotation || 0) + "deg)";
     el.style.zIndex = "1";
-    el.classList.toggle("selected", layer.id === coverSelectedImageLayerId);
+    var isSelected = layer.id === coverSelectedImageLayerId;
+    el.classList.toggle("selected", isSelected);
     img.src = coverImageLayerDisplayUrls[layer.id] || layer.src;
+
+    // Corner resize handles only exist while the layer is selected —
+    // created/removed here rather than just hidden, mirroring the
+    // create-if-missing / remove-if-orphaned pattern used everywhere else
+    // in this reconciliation loop.
+    ["nw", "ne", "sw", "se"].forEach(function(corner) {
+      var handle = el.querySelector(".cover-resize-handle.rh-" + corner);
+      if (isSelected) {
+        if (!handle) {
+          handle = document.createElement("div");
+          handle.className = "cover-resize-handle rh-" + corner;
+          handle.addEventListener("mousedown", function(e) { onCoverImageResizeMouseDown(e, layer.id, corner); });
+          el.appendChild(handle);
+        }
+      } else if (handle) {
+        handle.remove();
+      }
+    });
   });
 
   canvas.querySelectorAll(".cover-image-layer").forEach(function(el) {
@@ -4853,6 +4881,94 @@ function onCoverImageLayerMouseUp() {
   document.removeEventListener("mousemove", onCoverImageLayerMouseMove);
   document.removeEventListener("mouseup", onCoverImageLayerMouseUp);
   coverDragState = null;
+}
+
+// Corner-handle resize — separate state/listeners from the move-drag above
+// (coverImageResizeState, not coverDragState) so the two can never collide.
+// Center-anchored (xPct/yPct never change) and aspect-locked: only
+// widthPct is driven directly by the drag, heightPct is always derived
+// from it via the aspect ratio captured at mousedown, using the same
+// widthPct * (naturalH/naturalW) * (canvasW/canvasH) shape the add-image
+// handler uses (aspect here is width/height in px, so 1/aspect is the H/W
+// term that formula needs).
+function onCoverImageResizeMouseDown(e, layerId, corner) {
+  e.stopPropagation();
+  e.preventDefault();
+  selectCoverImageLayer(layerId);
+  var layer = getCoverImageLayerById(layerId);
+  if (!layer) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var startWidthPx = (layer.widthPct / 100) * rect.width;
+  var startHeightPx = (layer.heightPct / 100) * rect.height;
+
+  coverImageResizeState = {
+    layerId: layerId,
+    corner: corner,
+    el: canvas.querySelector('.cover-image-layer[data-layer-id="' + layerId + '"]'),
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    startWidthPct: layer.widthPct,
+    startHeightPct: layer.heightPct,
+    startXPct: layer.xPct,
+    startYPct: layer.yPct,
+    aspect: startHeightPx > 0 ? (startWidthPx / startHeightPx) : 1,
+    liveWidthPct: layer.widthPct,
+    liveHeightPct: layer.heightPct
+  };
+  document.addEventListener("mousemove", onCoverImageResizeMouseMove);
+  document.addEventListener("mouseup", onCoverImageResizeMouseUp);
+}
+
+function onCoverImageResizeMouseMove(e) {
+  if (!coverImageResizeState) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var state = coverImageResizeState;
+  var dx = e.clientX - state.startClientX;
+  var dy = e.clientY - state.startClientY;
+
+  // Signed diagonal delta: dragging a corner outward (away from the
+  // layer's own center, along that corner's diagonal) grows the image;
+  // dragging inward shrinks it. nw/se and ne/sw run opposite diagonals.
+  var signedDiagonal;
+  if (state.corner === "se") signedDiagonal = dx + dy;
+  else if (state.corner === "nw") signedDiagonal = -dx - dy;
+  else if (state.corner === "ne") signedDiagonal = dx - dy;
+  else signedDiagonal = -dx + dy; // sw
+
+  var startWidthPx = (state.startWidthPct / 100) * rect.width;
+  var startHeightPx = (state.startHeightPct / 100) * rect.height;
+  var startDiagPx = Math.sqrt(startWidthPx * startWidthPx + startHeightPx * startHeightPx);
+  var newDiagPx = Math.max(1, startDiagPx + signedDiagonal);
+  var scaleFactor = newDiagPx / startDiagPx;
+
+  var newWidthPct = Math.max(3, Math.min(200, state.startWidthPct * scaleFactor));
+  var newHeightPct = newWidthPct * (1 / state.aspect) * (rect.width / rect.height);
+
+  state.liveWidthPct = newWidthPct;
+  state.liveHeightPct = newHeightPct;
+
+  if (state.el) {
+    state.el.style.width = newWidthPct + "%";
+    state.el.style.height = newHeightPct + "%";
+  }
+}
+
+function onCoverImageResizeMouseUp() {
+  if (!coverImageResizeState) return;
+  var layer = getCoverImageLayerById(coverImageResizeState.layerId);
+  if (layer) {
+    layer.widthPct = coverImageResizeState.liveWidthPct;
+    layer.heightPct = coverImageResizeState.liveHeightPct;
+  }
+  document.removeEventListener("mousemove", onCoverImageResizeMouseMove);
+  document.removeEventListener("mouseup", onCoverImageResizeMouseUp);
+  coverImageResizeState = null;
+  recordCoverUndo();
+  renderCoverCanvas();
 }
 
 // Where a freshly-added layer should land: spine gets its own center point,
