@@ -236,6 +236,8 @@
     .editor-canvas h2{font-size:1.4rem;font-weight:700;margin:.6em 0 .3em;color:#f4f7ff}
     .editor-canvas blockquote{border-left:3px solid rgba(34,211,238,.5);margin:.6em 0;padding:.2em 0 .2em 16px;color:#8892b8;font-style:italic}
     .editor-canvas ul,.editor-canvas ol{padding-left:1.6em;margin:.5em 0}
+    .editor-canvas img{ max-width:100%; height:auto; }
+    .editor-canvas img.img-selected{ outline:2px solid #22d3ee; outline-offset:2px; }
     #editorCanvas.theme-dark{background:rgba(10,15,35,.5);color:#e6edf3}
     #editorCanvas.theme-white{background:#ffffff;color:#1a1a1a}
     #editorCanvas.theme-white h1,#editorCanvas.theme-white h2{color:#111}
@@ -357,6 +359,10 @@
     .editor-outline-del:hover{background:rgba(248,113,113,.15)}
     .editor-outline-empty{color:#8892b8;font-size:.78rem;line-height:1.5}
     .editor-canvas-wrap{flex:1 1 auto;min-width:0}
+    .editor-img-toolbar{display:none;align-items:center;gap:8px;position:sticky;top:8px;z-index:20;width:fit-content;margin:0 auto 10px;padding:6px 10px;background:rgba(10,15,35,.92);border:1px solid rgba(255,255,255,.14);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35);color:#e6edf3;font-size:.85rem}
+    .editor-img-toolbar button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e6edf3;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.85rem;line-height:1}
+    .editor-img-toolbar button:hover{background:rgba(255,255,255,.12)}
+    .editor-img-toolbar-readout{min-width:52px;text-align:center;color:#8892b8;font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body>
@@ -640,6 +646,15 @@
           <div class="editor-outline-list" id="editorOutline"></div>
         </aside>
         <div class="editor-canvas-wrap">
+          <div id="editorImgToolbar" class="editor-img-toolbar">
+            <button type="button" id="editorImgSmaller" title="Smaller">&minus;</button>
+            <span id="editorImgWidthReadout" class="editor-img-toolbar-readout">340px</span>
+            <button type="button" id="editorImgLarger" title="Larger">+</button>
+            <span class="etb-div"></span>
+            <button type="button" id="editorImgFullWidth" title="Full width">Full width</button>
+            <span class="etb-div"></span>
+            <button type="button" id="editorImgDelete" title="Delete image">Delete</button>
+          </div>
           <div class="editor-canvas" id="editorCanvas" contenteditable="true" spellcheck="true"></div>
         </div>
       </div>
@@ -6245,6 +6260,87 @@ document.getElementById("editorCanvas").addEventListener("paste", function(e) {
   }
 });
 
+var editorSelectedImg = null;
+
+function editorImgMarkDirty() {
+  document.getElementById("editorCanvas").dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function updateEditorImgToolbar() {
+  if (!editorSelectedImg) return;
+  var w = Math.round(editorSelectedImg.getBoundingClientRect().width);
+  document.getElementById("editorImgWidthReadout").textContent = w + "px";
+}
+
+function selectEditorImg(img) {
+  document.getElementById("editorCanvas").querySelectorAll("img.img-selected").forEach(function(el) {
+    if (el !== img) el.classList.remove("img-selected");
+  });
+  img.classList.add("img-selected");
+  editorSelectedImg = img;
+  updateEditorImgToolbar();
+  document.getElementById("editorImgToolbar").style.display = "flex";
+}
+
+function deselectEditorImg() {
+  document.getElementById("editorCanvas").querySelectorAll("img.img-selected").forEach(function(el) {
+    el.classList.remove("img-selected");
+  });
+  editorSelectedImg = null;
+  document.getElementById("editorImgToolbar").style.display = "none";
+}
+
+function getEditorCanvasContentWidth() {
+  var canvas = document.getElementById("editorCanvas");
+  var cs = getComputedStyle(canvas);
+  var paddingL = parseFloat(cs.paddingLeft) || 0;
+  var paddingR = parseFloat(cs.paddingRight) || 0;
+  return canvas.clientWidth - paddingL - paddingR;
+}
+
+document.getElementById("editorCanvas").addEventListener("click", function(e) {
+  var target = e.target;
+  if (target && target.tagName === "IMG") {
+    selectEditorImg(target);
+  } else {
+    deselectEditorImg();
+  }
+});
+
+document.getElementById("editorImgSmaller").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  var current = editorSelectedImg.getBoundingClientRect().width;
+  var next = Math.max(60, Math.round(current * 0.85));
+  editorSelectedImg.style.width = next + "px";
+  updateEditorImgToolbar();
+  editorImgMarkDirty();
+});
+
+document.getElementById("editorImgLarger").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  var maxWidth = getEditorCanvasContentWidth();
+  var current = editorSelectedImg.getBoundingClientRect().width;
+  var next = Math.min(maxWidth, Math.round(current * 1.15));
+  editorSelectedImg.style.width = next + "px";
+  updateEditorImgToolbar();
+  editorImgMarkDirty();
+});
+
+document.getElementById("editorImgFullWidth").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  editorSelectedImg.style.width = "100%";
+  updateEditorImgToolbar();
+  editorImgMarkDirty();
+});
+
+document.getElementById("editorImgDelete").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  var img = editorSelectedImg;
+  deselectEditorImg();
+  img.remove();
+  editorImgMarkDirty();
+});
+
 document.getElementById("editorImageInput").addEventListener("change", async function() {
   var file = (this.files && this.files[0]) ? this.files[0] : null;
   this.value = "";
@@ -6296,7 +6392,7 @@ document.getElementById("editorImageInput").addEventListener("change", async fun
       endSel.addRange(endRange);
     }
 
-    var imgHtml = '<img src="' + escapeHtml(displayUrl) + '" data-path="' + escapeHtml(uploadData.path) + '" alt="" style="max-width:100%;height:auto;">';
+    var imgHtml = '<img src="' + escapeHtml(displayUrl) + '" data-path="' + escapeHtml(uploadData.path) + '" alt="" style="width:340px; max-width:100%; height:auto; cursor:pointer; display:block;">';
     document.execCommand("insertHTML", false, imgHtml);
 
     // execCommand("insertHTML", ...) already fires a native input event in
