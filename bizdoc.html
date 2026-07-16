@@ -625,6 +625,7 @@
       <div class="editor-bar">
         <button class="editor-back" onclick="closeCoverDesigner()">← Back</button>
         <span class="editor-title-label" id="coverDesignerTitle"></span>
+        <button class="editor-generate-btn" id="coverExportPdfBtn" onclick="exportCoverPdf()" disabled>Download Print PDF</button>
         <button class="editor-save-btn" id="coverSaveBtn" onclick="saveCoverDesign()">Save</button>
       </div>
       <div class="cover-toolbar">
@@ -3253,6 +3254,14 @@ function computeFitScale() {
   return Math.min(stageInnerWidth / natural.width, stageInnerHeight / natural.height);
 }
 
+// Export reads the saved server-side design, so it's only meaningful once
+// the cover is a real wrap that's actually been saved (has a coverWrapId).
+function updateCoverExportBtn() {
+  var btn = document.getElementById("coverExportPdfBtn");
+  if (!btn) return;
+  btn.disabled = !(coverContext === "wrap" && coverWrapId);
+}
+
 function fitCoverCanvas() {
   if (!coverTrim) return;
   var canvas = document.getElementById("coverCanvas");
@@ -3290,6 +3299,8 @@ function fitCoverCanvas() {
 
   var spineBtn = document.getElementById("coverViewSpineBtn");
   if (spineBtn) spineBtn.disabled = false;
+
+  updateCoverExportBtn();
 
   // #coverCanvas renders ONCE at a fixed natural pixel size (BASE_PPI) representing
   // the full document (the whole wrap), regardless of view or zoom. Zoom and the
@@ -4628,6 +4639,7 @@ async function saveCoverDesign() {
           return;
         }
         coverWrapId = newWrapId;
+        updateCoverExportBtn();
       }
 
       if (coverBgFile) {
@@ -4730,6 +4742,58 @@ async function saveCoverDesign() {
       btn.disabled = false;
       btn.textContent = originalText;
     }
+  }
+}
+
+async function exportCoverPdf() {
+  if (coverContext !== "wrap" || !coverWrapId) {
+    showToast("Save your cover first, then export.", "error");
+    return;
+  }
+
+  if (coverDirty) {
+    await saveCoverDesign();
+    if (coverDirty) return; // save failed — saveCoverDesign() already showed the error toast
+  }
+
+  var btn = document.getElementById("coverExportPdfBtn");
+  var originalText = btn ? btn.textContent : "Download Print PDF";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Exporting…";
+  }
+  try {
+    var resp = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/export-pdf", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!resp.ok) {
+      var err = await resp.json().catch(function() { return {}; });
+      showToast(err.error || "Export failed. Please try again.", "error");
+      return;
+    }
+
+    var blob = await resp.blob();
+    var objectUrl = URL.createObjectURL(blob);
+    var safeName = "cover";
+    for (var wi = 0; wi < allWraps.length; wi++) {
+      if (allWraps[wi].id === coverWrapId) {
+        safeName = (allWraps[wi].name || "cover").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "cover";
+        break;
+      }
+    }
+    var a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = safeName + "-print.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (e) {
+    showToast("Export failed. Please try again.", "error");
+  } finally {
+    if (btn) btn.textContent = originalText;
+    updateCoverExportBtn();
   }
 }
 
