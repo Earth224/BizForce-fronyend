@@ -4273,52 +4273,64 @@ function getTargetRegionObjs() {
 function resolveCoverRegionImages(wrapId) {
   var fetches = [];
 
-  var basePath = coverDesign && coverDesign.bgImage;
-  if (basePath && typeof basePath === "string" && basePath.indexOf("blob:") !== 0 && basePath.indexOf("http") !== 0) {
-    fetches.push(
-      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/bg-image", { headers: { "Authorization": "Bearer " + token } })
-        .then(function(res) { return res.ok ? res.json() : null; })
-        .then(function(d) {
-          if (!d || !d.url) return;
-          if (coverWrapId !== wrapId) return;
-          coverBgDisplayUrl = d.url;
-        })
-        .catch(function() {})
-    );
+  // Building the fetch list is wrapped in try/catch, and Promise.allSettled
+  // (never rejects, unlike Promise.all) is used below — together these
+  // guarantee the final renderCoverCanvas() always runs, so a problem
+  // anywhere (a malformed layer while iterating, a failed resolve, etc.)
+  // can never silently strand an already-fetched value like coverBgDisplayUrl
+  // unpainted. Each individual fetch below already resolves via its own
+  // .catch, but that alone doesn't protect the array-construction phase
+  // itself, which runs before any of those .catches exist.
+  try {
+    var basePath = coverDesign && coverDesign.bgImage;
+    if (basePath && typeof basePath === "string" && basePath.indexOf("blob:") !== 0 && basePath.indexOf("http") !== 0) {
+      fetches.push(
+        fetch(API_URL + "/api/cover-wraps/" + wrapId + "/bg-image", { headers: { "Authorization": "Bearer " + token } })
+          .then(function(res) { return res.ok ? res.json() : null; })
+          .then(function(d) {
+            if (!d || !d.url) return;
+            if (coverWrapId !== wrapId) return;
+            coverBgDisplayUrl = d.url;
+          })
+          .catch(function() {})
+      );
+    }
+
+    ["back", "spine", "front"].forEach(function(region) {
+      var path = coverDesign && coverDesign.regions && coverDesign.regions[region] && coverDesign.regions[region].bgImage;
+      if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
+      fetches.push(
+        fetch(API_URL + "/api/cover-wraps/" + wrapId + "/region-bg-image?region=" + region, { headers: { "Authorization": "Bearer " + token } })
+          .then(function(res) { return res.ok ? res.json() : null; })
+          .then(function(d) {
+            if (!d || !d.url) return;
+            if (coverWrapId !== wrapId) return;
+            coverRegionDisplayUrls[region] = d.url;
+          })
+          .catch(function() {})
+      );
+    });
+
+    var imageLayersToResolve = (coverDesign && coverDesign.imageLayers) || [];
+    imageLayersToResolve.forEach(function(layer) {
+      var path = layer && layer.src;
+      if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
+      fetches.push(
+        fetch(API_URL + "/api/cover-wraps/" + wrapId + "/layer-image?path=" + encodeURIComponent(path), { headers: { "Authorization": "Bearer " + token } })
+          .then(function(res) { return res.ok ? res.json() : null; })
+          .then(function(d) {
+            if (!d || !d.url) return;
+            if (coverWrapId !== wrapId) return;
+            coverImageLayerDisplayUrls[layer.id] = d.url;
+          })
+          .catch(function() {})
+      );
+    });
+  } catch (buildErr) {
+    console.error("[cover-wraps] resolveCoverRegionImages failed while building fetch list:", buildErr);
   }
 
-  ["back", "spine", "front"].forEach(function(region) {
-    var path = coverDesign && coverDesign.regions && coverDesign.regions[region] && coverDesign.regions[region].bgImage;
-    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
-    fetches.push(
-      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/region-bg-image?region=" + region, { headers: { "Authorization": "Bearer " + token } })
-        .then(function(res) { return res.ok ? res.json() : null; })
-        .then(function(d) {
-          if (!d || !d.url) return;
-          if (coverWrapId !== wrapId) return;
-          coverRegionDisplayUrls[region] = d.url;
-        })
-        .catch(function() {})
-    );
-  });
-
-  var imageLayersToResolve = (coverDesign && coverDesign.imageLayers) || [];
-  imageLayersToResolve.forEach(function(layer) {
-    var path = layer && layer.src;
-    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
-    fetches.push(
-      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/layer-image?path=" + encodeURIComponent(path), { headers: { "Authorization": "Bearer " + token } })
-        .then(function(res) { return res.ok ? res.json() : null; })
-        .then(function(d) {
-          if (!d || !d.url) return;
-          if (coverWrapId !== wrapId) return;
-          coverImageLayerDisplayUrls[layer.id] = d.url;
-        })
-        .catch(function() {})
-    );
-  });
-
-  Promise.all(fetches).then(function() {
+  Promise.allSettled(fetches).then(function() {
     if (coverWrapId !== wrapId) return;
     renderCoverCanvas();
   });
@@ -5958,6 +5970,12 @@ document.getElementById("coverCanvas").addEventListener("click", function(e) {
   if (e.target.closest(".cover-image-layer")) return;
   deselectCoverLayer();
   deselectCoverImageLayer();
+  // Deselecting clears the .selected CSS class immediately, but the 4
+  // resize-handle divs are only created/removed inside
+  // renderCoverImageLayers()'s reconciliation loop — without this render,
+  // they're orphaned in the DOM until something ELSE happens to trigger a
+  // re-render, which reads as "handles never disappear."
+  renderCoverCanvas();
 });
 
 function updateCoverRegionHover(activeName) {
