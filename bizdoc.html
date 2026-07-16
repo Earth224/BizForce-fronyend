@@ -4006,6 +4006,32 @@ function getActiveRegionObj() {
   return coverDesign.regions[coverActiveRegion];
 }
 
+// Returns the set of region objects a bg control action should apply to.
+// Full Wrap view is the "whole cover" view, so bg edits made there apply to
+// all three regions at once; an isolated Front/Spine/Back view only ever
+// targets that one region. Book context has a single page (unchanged).
+function getTargetRegionObjs() {
+  if (!coverDesign) return [];
+  if (coverContext !== "wrap") return [coverDesign];
+  if (coverView === "wrap") {
+    ensureCoverRegions(coverDesign);
+    return [coverDesign.regions.back, coverDesign.regions.spine, coverDesign.regions.front];
+  }
+  var region = getActiveRegionObj();
+  return region ? [region] : [];
+}
+
+// Region-name counterpart of getTargetRegionObjs(), for indexing into
+// coverRegionBgFiles/coverRegionDisplayUrls (which are keyed by name, not
+// object reference). Empty in book context — that context tracks its
+// pending file/display-url in the flat coverBgFile/coverBgDisplayUrl pair.
+function getTargetRegionNames() {
+  if (coverContext !== "wrap") return [];
+  if (coverView === "wrap") return ["back", "spine", "front"];
+  updateCoverActiveRegion();
+  return [coverActiveRegion];
+}
+
 // Resolves a signed display URL for each region's saved (non-blob, non-http)
 // bgImage path via the per-region backend route, so back/spine/front images
 // all persist across a reload — not just front. wrapId doubles as the
@@ -4433,9 +4459,9 @@ function toggleCoverBgColorMenu(event) {
 }
 
 function pickCoverBgColor(event, color) {
-  var region = getActiveRegionObj();
-  if (!region) return;
-  region.bgColor = color;
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
+  regions.forEach(function(region) { region.bgColor = color; });
   document.getElementById("coverBgColorBar").style.background = color;
   document.querySelectorAll("#coverBgColorMenu .editor-swatch").forEach(function(s) { s.classList.remove("selected"); });
   if (event && event.target) event.target.classList.add("selected");
@@ -4445,10 +4471,10 @@ function pickCoverBgColor(event, color) {
 }
 
 function pickCoverBgColorCustom() {
-  var region = getActiveRegionObj();
-  if (!region) return;
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
   var color = document.getElementById("coverBgColorCustom").value;
-  region.bgColor = color;
+  regions.forEach(function(region) { region.bgColor = color; });
   document.getElementById("coverBgColorBar").style.background = color;
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
@@ -4456,18 +4482,22 @@ function pickCoverBgColorCustom() {
 }
 
 function removeCoverBgImage() {
-  var region = getActiveRegionObj();
-  if (!region) return;
-  if (region.bgImage) {
-    try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
-  }
-  region.bgImage = null;
-  region.bgScale = 1;
-  region.bgOffsetX = 0;
-  region.bgOffsetY = 0;
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
+  regions.forEach(function(region) {
+    if (region.bgImage) {
+      try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
+    }
+    region.bgImage = null;
+    region.bgScale = 1;
+    region.bgOffsetX = 0;
+    region.bgOffsetY = 0;
+  });
   if (coverContext === "wrap") {
-    coverRegionBgFiles[coverActiveRegion] = null;
-    coverRegionDisplayUrls[coverActiveRegion] = null;
+    getTargetRegionNames().forEach(function(name) {
+      coverRegionBgFiles[name] = null;
+      coverRegionDisplayUrls[name] = null;
+    });
   } else {
     coverBgFile = null;
     coverBgDisplayUrl = null;
@@ -4478,35 +4508,49 @@ function removeCoverBgImage() {
 }
 
 function nudgeCoverBgScale(delta) {
-  var region = getActiveRegionObj();
-  if (!region || !region.bgImage) return;
-  var next = Math.round(((region.bgScale || 1) + delta) * 10) / 10;
-  region.bgScale = Math.max(1, Math.min(4, next));
-  var clamped = clampCoverBgTransform(region);
-  region.bgOffsetX = clamped.offsetX;
-  region.bgOffsetY = clamped.offsetY;
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
+  var changed = false;
+  regions.forEach(function(region) {
+    if (!region.bgImage) return;
+    changed = true;
+    var next = Math.round(((region.bgScale || 1) + delta) * 10) / 10;
+    region.bgScale = Math.max(1, Math.min(4, next));
+    var clamped = clampCoverBgTransform(region);
+    region.bgOffsetX = clamped.offsetX;
+    region.bgOffsetY = clamped.offsetY;
+  });
+  if (!changed) return;
   renderCoverCanvas();
   recordCoverUndo();
 }
 
 function nudgeCoverBgOffset(axis, delta) {
-  var region = getActiveRegionObj();
-  if (!region || !region.bgImage) return;
-  var scale = region.bgScale || 1;
-  var maxOffset = Math.min(50, (scale - 1) / 2 * 100);
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
   var key = axis === "y" ? "bgOffsetY" : "bgOffsetX";
-  var next = (region[key] || 0) + delta;
-  region[key] = Math.max(-maxOffset, Math.min(maxOffset, next));
+  var changed = false;
+  regions.forEach(function(region) {
+    if (!region.bgImage) return;
+    changed = true;
+    var scale = region.bgScale || 1;
+    var maxOffset = Math.min(50, (scale - 1) / 2 * 100);
+    var next = (region[key] || 0) + delta;
+    region[key] = Math.max(-maxOffset, Math.min(maxOffset, next));
+  });
+  if (!changed) return;
   renderCoverCanvas();
   recordCoverUndo();
 }
 
 function resetCoverBgTransform() {
-  var region = getActiveRegionObj();
-  if (!region) return;
-  region.bgScale = 1;
-  region.bgOffsetX = 0;
-  region.bgOffsetY = 0;
+  var regions = getTargetRegionObjs();
+  if (!regions.length) return;
+  regions.forEach(function(region) {
+    region.bgScale = 1;
+    region.bgOffsetX = 0;
+    region.bgOffsetY = 0;
+  });
   renderCoverCanvas();
   recordCoverUndo();
 }
@@ -5131,23 +5175,46 @@ document.getElementById("fBookCover").addEventListener("change", function() {
 document.getElementById("coverBgImageInput").addEventListener("change", function() {
   var file = (this.files && this.files[0]) ? this.files[0] : null;
   if (!file || !coverDesign) return;
-  var region = getActiveRegionObj();
-  if (!region) return;
-  if (region.bgImage) {
-    try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
-  }
-  var objectUrl = URL.createObjectURL(file);
-  region.bgImage = objectUrl;
-  region.bgScale = 1;
-  region.bgOffsetX = 0;
-  region.bgOffsetY = 0;
-  if (coverContext === "wrap") {
-    coverRegionBgFiles[coverActiveRegion] = file;
-    coverRegionDisplayUrls[coverActiveRegion] = objectUrl;
-  } else {
+
+  if (coverContext !== "wrap") {
+    if (coverDesign.bgImage) {
+      try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
+    }
+    var bookObjectUrl = URL.createObjectURL(file);
+    coverDesign.bgImage = bookObjectUrl;
+    coverDesign.bgScale = 1;
+    coverDesign.bgOffsetX = 0;
+    coverDesign.bgOffsetY = 0;
     coverBgFile = file;
-    coverBgDisplayUrl = objectUrl;
+    coverBgDisplayUrl = bookObjectUrl;
+    renderCoverCanvas();
+    if (!isRestoringCover) recordCoverUndo();
+    return;
   }
+
+  // Full Wrap: one shared objectURL for live display, but the SAME File is
+  // assigned to all three regions so each uploads (and stores) its own copy
+  // on save. Isolated Front/Spine/Back: getTargetRegionObjs()/Names() both
+  // resolve to just the active region, so this loop naturally degrades to
+  // "only that region" with no separate branch needed.
+  var regions = getTargetRegionObjs();
+  var names = getTargetRegionNames();
+  if (!regions.length) return;
+  var objectUrl = URL.createObjectURL(file);
+  regions.forEach(function(region, i) {
+    if (region.bgImage) {
+      try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
+    }
+    region.bgImage = objectUrl;
+    region.bgScale = 1;
+    region.bgOffsetX = 0;
+    region.bgOffsetY = 0;
+    var name = names[i];
+    if (name) {
+      coverRegionBgFiles[name] = file;
+      coverRegionDisplayUrls[name] = objectUrl;
+    }
+  });
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
 });
