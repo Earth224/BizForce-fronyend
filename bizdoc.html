@@ -615,6 +615,8 @@
         </div>
         <span class="etb-div"></span>
         <button type="button" class="etb etb-chapter" title="Insert Chapter" onmousedown="event.preventDefault()" onclick="insertChapter()">+ Chapter</button>
+        <input type="file" id="editorImageInput" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <button type="button" class="etb" id="editorInsertImageBtn" title="Insert Image" onmousedown="saveEditorSelection();event.preventDefault();" onclick="document.getElementById('editorImageInput').click()">Insert Image</button>
         <span class="etb-div"></span>
         <button type="button" class="etb" title="Bold" onmousedown="event.preventDefault()" onclick="editorCmd('bold')">B</button>
         <button type="button" class="etb etb-italic" title="Italic" onmousedown="event.preventDefault()" onclick="editorCmd('italic')">I</button>
@@ -3123,7 +3125,8 @@ function sanitizePastedHtml(html) {
     if (el.tagName.indexOf(":") !== -1) el.remove();
   });
 
-  var PASTE_WHITELIST = ["P","BR","H1","H2","H3","STRONG","B","EM","I","U","UL","OL","LI","BLOCKQUOTE","A"];
+  var PASTE_WHITELIST = ["P","BR","H1","H2","H3","STRONG","B","EM","I","U","UL","OL","LI","BLOCKQUOTE","A","IMG"];
+  var IMG_ATTR_WHITELIST = ["src", "data-path", "alt", "width", "height", "style"];
 
   function unwrapEl(el) {
     var parent = el.parentNode;
@@ -3142,6 +3145,13 @@ function sanitizePastedHtml(html) {
     var tag = node.tagName;
     if (PASTE_WHITELIST.indexOf(tag) === -1) {
       unwrapEl(node);
+      return;
+    }
+    if (tag === "IMG") {
+      var imgAttrs = Array.prototype.slice.call(node.attributes);
+      imgAttrs.forEach(function(a) {
+        if (IMG_ATTR_WHITELIST.indexOf(a.name.toLowerCase()) === -1) node.removeAttribute(a.name);
+      });
       return;
     }
     var href = (tag === "A") ? node.getAttribute("href") : null;
@@ -3375,6 +3385,28 @@ function openEditor(id) {
   document.querySelectorAll(".workspace-tab").forEach(function(t) { t.classList.remove("active"); });
   document.getElementById("paneEditor").classList.add("active");
   window.scrollTo(0, 0);
+
+  resolveEditorContentImages();
+}
+
+// Saved book content may contain <img data-path="..."> from a previous
+// session — data-path is the only trustworthy reference (see
+// getEditorSaveHtml); whatever src was saved alongside it is never used.
+// Each image resolves independently so one failed lookup can't block the
+// rest from displaying.
+function resolveEditorContentImages() {
+  var canvas = document.getElementById("editorCanvas");
+  if (!canvas) return;
+  canvas.querySelectorAll("img[data-path]").forEach(function(img) {
+    var path = img.getAttribute("data-path");
+    if (!path) return;
+    fetch(API_URL + "/api/editor/image?path=" + encodeURIComponent(path), { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(d) {
+        if (d && d.url) img.src = d.url;
+      })
+      .catch(function() {});
+  });
 }
 
 function openBlankDocEditor() {
@@ -5808,9 +5840,25 @@ function setAutosaveStatus(text) {
   else if (text === "Save failed") el.classList.add("failed");
 }
 
+// Persisted content must never carry an ephemeral signed image URL — those
+// expire in 60s and would be a dead link the next time this content loads.
+// Builds the save string from a CLONE with every img[data-path]'s src
+// swapped to its permanent storage path, so the live on-screen image (still
+// showing its signed display URL) is never touched — only what gets saved
+// changes. Whatever src ends up in the DB is irrelevant either way, since
+// resolveEditorContentImages() always re-resolves from data-path on load.
+function getEditorSaveHtml(canvasEl) {
+  var clone = canvasEl.cloneNode(true);
+  clone.querySelectorAll("img[data-path]").forEach(function(img) {
+    var path = img.getAttribute("data-path");
+    if (path) img.setAttribute("src", path);
+  });
+  return clone.innerHTML;
+}
+
 async function performSave(opts) {
   var silent = !!(opts && opts.silent);
-  var content = document.getElementById("editorCanvas").innerHTML;
+  var content = getEditorSaveHtml(document.getElementById("editorCanvas"));
   var isNewBizdoc = (editorMode === "bizdoc" && !editorDocId);
 
   if (isNewBizdoc) {
@@ -6194,6 +6242,70 @@ document.getElementById("editorCanvas").addEventListener("paste", function(e) {
     document.execCommand("insertHTML", false, cleanHtml);
   } catch (err) {
     document.execCommand("insertText", false, plain);
+  }
+});
+
+document.getElementById("editorImageInput").addEventListener("change", async function() {
+  var file = (this.files && this.files[0]) ? this.files[0] : null;
+  this.value = "";
+  if (!file) return;
+
+  showToast("Uploading image…", "success");
+  try {
+    var formData = new FormData();
+    formData.append("image", file);
+    var uploadRes = await fetch(API_URL + "/api/editor/image", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token },
+      body: formData
+    });
+    if (!uploadRes.ok) {
+      var uploadErr = await uploadRes.json().catch(function() { return {}; });
+      showToast(uploadErr.error || "Failed to upload image", "error");
+      return;
+    }
+    var uploadData = await uploadRes.json().catch(function() { return {}; });
+    if (!uploadData.path) {
+      showToast("Failed to upload image", "error");
+      return;
+    }
+
+    // Resolve a display URL immediately so the image shows right away —
+    // this signed URL is only good for 60s and is never what gets
+    // persisted (see getEditorSaveHtml / resolveEditorContentImages,
+    // which key off data-path, the permanent reference).
+    var displayUrl = uploadData.path;
+    try {
+      var resolveRes = await fetch(API_URL + "/api/editor/image?path=" + encodeURIComponent(uploadData.path), { headers: { "Authorization": "Bearer " + token } });
+      if (resolveRes.ok) {
+        var resolveData = await resolveRes.json().catch(function() { return {}; });
+        if (resolveData.url) displayUrl = resolveData.url;
+      }
+    } catch (resolveErr) {}
+
+    var canvas = document.getElementById("editorCanvas");
+    canvas.focus();
+    if (editorSavedRange) {
+      restoreEditorSelection();
+    } else {
+      var endRange = document.createRange();
+      endRange.selectNodeContents(canvas);
+      endRange.collapse(false);
+      var endSel = window.getSelection();
+      endSel.removeAllRanges();
+      endSel.addRange(endRange);
+    }
+
+    var imgHtml = '<img src="' + escapeHtml(displayUrl) + '" data-path="' + escapeHtml(uploadData.path) + '" alt="" style="max-width:100%;height:auto;">';
+    document.execCommand("insertHTML", false, imgHtml);
+
+    // execCommand("insertHTML", ...) already fires a native input event in
+    // every major browser, but dispatch one explicitly too so dirty/
+    // autosave/undo are guaranteed to fire regardless.
+    canvas.dispatchEvent(new Event("input", { bubbles: true }));
+    showToast("Image inserted", "success");
+  } catch (e) {
+    showToast("Failed to upload image", "error");
   }
 });
 
