@@ -5378,18 +5378,28 @@ async function saveCoverDesign() {
         coverRegionBgFiles[regionName] = null;
       }
 
-      // Upload each foreground image layer's pending freshly-picked file
-      // (if any) — mirrors the region loop above, but keyed by layer id
-      // since image layers are an arbitrary-length array, not fixed region
-      // names. coverDesign is serialized whole into front_design by the PUT
-      // below, so layer.src MUST be a storage path (not a blob URL) before
-      // that PUT runs — this loop guarantees that, same as the region loop
-      // does for coverDesign.regions[...].bgImage.
+      // Upload every foreground image layer whose src is STILL a blob: URL —
+      // keyed off layer.src itself, not "is there a pending file" (that was
+      // the bug: a layer could have a blob src with no matching entry in
+      // coverImageLayerFiles and get silently skipped, letting a dead blob
+      // URL survive into the PUT below). coverDesign is serialized whole
+      // into front_design by that PUT, so no layer.src may still be
+      // "blob:..." when it runs, or the cover breaks on reload.
       coverDesign.imageLayers = coverDesign.imageLayers || [];
       for (var li = 0; li < coverDesign.imageLayers.length; li++) {
         var imgLayer = coverDesign.imageLayers[li];
+        if (!imgLayer || typeof imgLayer.src !== "string" || imgLayer.src.indexOf("blob:") !== 0) continue;
+
         var pendingImgFile = coverImageLayerFiles[imgLayer.id];
-        if (!pendingImgFile) continue;
+        if (!pendingImgFile) {
+          // Shouldn't happen — a blob src with no backing file can never be
+          // uploaded. Drop the layer rather than persist a dead blob URL.
+          console.warn("[cover-wraps] Dropping image layer " + imgLayer.id + " — blob src with no pending file to upload");
+          coverDesign.imageLayers.splice(li, 1);
+          li--;
+          continue;
+        }
+
         var imgFormData = new FormData();
         imgFormData.append("bg_image", pendingImgFile);
         var imgUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
@@ -5407,11 +5417,17 @@ async function saveCoverDesign() {
           showToast("Failed to upload image", "error");
           return;
         }
-        imgLayer.src = imgUploadData.path;
+        coverDesign.imageLayers[li].src = imgUploadData.path;
         // Keep the existing blob display URL — it's still what's showing on
         // canvas this session; only the pending-file marker is cleared.
         coverImageLayerFiles[imgLayer.id] = null;
       }
+
+      // Defensive final guard: the DB must never receive a blob src. If
+      // anything above somehow left one behind, strip it rather than save it.
+      coverDesign.imageLayers = coverDesign.imageLayers.filter(function(layer) {
+        return !(layer && typeof layer.src === "string" && layer.src.indexOf("blob:") === 0);
+      });
 
       var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
         method: "PUT",
