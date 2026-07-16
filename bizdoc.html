@@ -290,6 +290,10 @@
     .cover-text-layer{position:absolute;display:inline-block;min-width:10px;padding:2px 4px;outline:none;cursor:grab;white-space:nowrap;-webkit-user-select:text;user-select:text}
     .cover-text-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
     .cover-text-layer.dragging{cursor:grabbing;opacity:.85}
+    .cover-image-layer{position:absolute;cursor:grab;box-sizing:border-box}
+    .cover-image-layer img{width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;-webkit-user-drag:none;user-drag:none}
+    .cover-image-layer.selected{outline:1px dashed rgba(34,211,238,.8);outline-offset:2px}
+    .cover-image-layer.dragging{cursor:grabbing;opacity:.85}
     .cover-toolbar .etb:disabled,.cover-toolbar .editor-dd-trigger:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
     .cover-toolbar .etb.active{background:rgba(34,211,238,.18);color:#22d3ee}
     .cover-size-stepper{display:flex;align-items:center;gap:2px}
@@ -681,6 +685,7 @@
         </div>
         <span class="etb-div"></span>
         <input type="file" id="coverBgImageInput" accept="image/png,image/jpeg,image/webp" style="display:none">
+        <input type="file" id="coverImageLayerInput" accept="image/png,image/jpeg,image/webp" style="display:none">
         <button type="button" class="etb" onclick="document.getElementById('coverBgImageInput').click()">Background Image</button>
         <button type="button" class="etb" onclick="removeCoverBgImage()">Remove Image</button>
         <span class="etb-div"></span>
@@ -697,6 +702,8 @@
         <span class="etb-div"></span>
         <button type="button" class="etb" onclick="addCoverTitleLayer()">Add Title</button>
         <button type="button" class="etb" onclick="addCoverTextLayer()">Add Text</button>
+        <button type="button" class="etb" id="coverAddImageBtn" onclick="document.getElementById('coverImageLayerInput').click()">Add Image</button>
+        <button type="button" class="etb" id="coverDeleteImageBtn" title="Delete Image" onclick="deleteCoverImageLayer()" disabled style="color:#f87171">Delete Image</button>
         <span class="etb-div"></span>
         <div class="editor-dd" id="coverFontDD">
           <button type="button" class="etb editor-dd-trigger" title="Font Family" id="coverFontTrigger" onclick="toggleCoverFontMenu(event)" disabled>
@@ -1695,6 +1702,12 @@ var coverBgDisplayUrl = null;
 var coverActiveRegion = "front";
 var coverRegionBgFiles = { back: null, spine: null, front: null };
 var coverRegionDisplayUrls = { back: null, spine: null, front: null };
+// Foreground image layers (Cover Designer Block A) — mirrors the
+// coverBgFile/coverBgDisplayUrl pattern, but keyed by image-layer id since
+// there can be any number of them (not one fixed slot per region).
+var coverSelectedImageLayerId = null;
+var coverImageLayerFiles = {};
+var coverImageLayerDisplayUrls = {};
 var coverDirty = false;
 var coverUndoStack = [];
 var coverRedoStack = [];
@@ -2535,7 +2548,7 @@ function createNewWrap() {
     try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
   }
   revokeCoverRegionBlobUrls();
-  coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
+  coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap"), imageLayers: [] };
   ensureCoverRegions(coverDesign);
   coverBgFile = null;
   coverSelectedLayerId = null;
@@ -3996,10 +4009,11 @@ function openCoverDesigner(bookId) {
       bgScale: loadedDesign.bgScale || 1,
       bgOffsetX: loadedDesign.bgOffsetX || 0,
       bgOffsetY: loadedDesign.bgOffsetY || 0,
-      textLayers: loadedDesign.textLayers || []
+      textLayers: loadedDesign.textLayers || [],
+      imageLayers: loadedDesign.imageLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("book") };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("book"), imageLayers: [] };
   }
   ensureCoverRegions(coverDesign);
   coverBgFile = null;
@@ -4096,10 +4110,11 @@ async function openWrapDesigner(wrapId) {
       bgOffsetX: loadedDesign.bgOffsetX || 0,
       bgOffsetY: loadedDesign.bgOffsetY || 0,
       regions: loadedDesign.regions,
-      textLayers: loadedDesign.textLayers || []
+      textLayers: loadedDesign.textLayers || [],
+      imageLayers: loadedDesign.imageLayers || []
     };
   } else {
-    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap") };
+    coverDesign = { bgColor: "#ffffff", bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0, textLayers: defaultCoverTextLayers("wrap"), imageLayers: [] };
   }
   ensureCoverRegions(coverDesign);
   coverBgFile = null;
@@ -4422,6 +4437,7 @@ function renderCoverCanvas() {
   ensureCoverSnapGuides(canvas);
   renderCoverRegionBackgrounds(canvas);
   updateCoverBgControls();
+  renderCoverImageLayers();
   renderCoverTextLayers();
   renderCoverFolds();
 }
@@ -4432,6 +4448,56 @@ function getCoverLayerById(layerId) {
     if (coverDesign.textLayers[i].id === layerId) return coverDesign.textLayers[i];
   }
   return null;
+}
+
+function getCoverImageLayerById(layerId) {
+  if (!coverDesign) return null;
+  coverDesign.imageLayers = coverDesign.imageLayers || [];
+  for (var i = 0; i < coverDesign.imageLayers.length; i++) {
+    if (coverDesign.imageLayers[i].id === layerId) return coverDesign.imageLayers[i];
+  }
+  return null;
+}
+
+// Foreground image layers render between the background (region-bg z-index
+// 0/1) and the text layers. Text layers use z-index 2 (bumped from 1 —
+// the one text-layer touch in this block, needed so text always wins
+// regardless of add-order/DOM position; see renderCoverTextLayers below).
+function renderCoverImageLayers() {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas || !coverDesign) return;
+  coverDesign.imageLayers = coverDesign.imageLayers || [];
+  var existingIds = {};
+
+  coverDesign.imageLayers.forEach(function(layer) {
+    existingIds[layer.id] = true;
+    var el = canvas.querySelector('.cover-image-layer[data-layer-id="' + layer.id + '"]');
+    var img;
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "cover-image-layer";
+      el.setAttribute("data-layer-id", layer.id);
+      img = document.createElement("img");
+      img.draggable = false;
+      el.appendChild(img);
+      el.addEventListener("mousedown", function(e) { onCoverImageLayerMouseDown(e, layer.id); });
+      canvas.appendChild(el);
+    } else {
+      img = el.querySelector("img");
+    }
+    el.style.left = layer.xPct + "%";
+    el.style.top = layer.yPct + "%";
+    el.style.width = layer.widthPct + "%";
+    el.style.height = layer.heightPct + "%";
+    el.style.transform = "translate(-50%,-50%) rotate(" + (layer.rotation || 0) + "deg)";
+    el.style.zIndex = "1";
+    el.classList.toggle("selected", layer.id === coverSelectedImageLayerId);
+    img.src = coverImageLayerDisplayUrls[layer.id] || layer.src;
+  });
+
+  canvas.querySelectorAll(".cover-image-layer").forEach(function(el) {
+    if (!existingIds[el.getAttribute("data-layer-id")]) el.remove();
+  });
 }
 
 function renderCoverTextLayers() {
@@ -4463,7 +4529,7 @@ function renderCoverTextLayers() {
     el.style.textAlign = layer.align;
     el.style.fontWeight = layer.bold ? "700" : "400";
     el.style.fontStyle = layer.italic ? "italic" : "normal";
-    el.style.zIndex = "1";
+    el.style.zIndex = "2";
     el.classList.toggle("selected", layer.id === coverSelectedLayerId);
   });
 
@@ -4496,6 +4562,32 @@ function deselectCoverLayer() {
     el.classList.remove("selected");
   });
   updateCoverTextControls();
+}
+
+function updateCoverImageControls() {
+  var btn = document.getElementById("coverDeleteImageBtn");
+  if (btn) btn.disabled = !coverSelectedImageLayerId;
+}
+
+function selectCoverImageLayer(layerId) {
+  coverSelectedImageLayerId = layerId;
+  coverSelectedLayerId = null;
+  document.querySelectorAll(".cover-text-layer").forEach(function(el) {
+    el.classList.remove("selected");
+  });
+  document.querySelectorAll(".cover-image-layer").forEach(function(el) {
+    el.classList.toggle("selected", el.getAttribute("data-layer-id") === layerId);
+  });
+  updateCoverTextControls();
+  updateCoverImageControls();
+}
+
+function deselectCoverImageLayer() {
+  coverSelectedImageLayerId = null;
+  document.querySelectorAll(".cover-image-layer").forEach(function(el) {
+    el.classList.remove("selected");
+  });
+  updateCoverImageControls();
 }
 
 function onCoverLayerMouseDown(e, layerId) {
@@ -4670,6 +4762,75 @@ function onCoverLayerMouseUp() {
   hideCoverSnapGuides();
   document.removeEventListener("mousemove", onCoverLayerMouseMove);
   document.removeEventListener("mouseup", onCoverLayerMouseUp);
+  coverDragState = null;
+}
+
+// Image-layer drag mirrors the text-layer drag above exactly (same
+// coverDragState shape, same applyCoverSnap/updateCoverSnapGuides/
+// hideCoverSnapGuides) — position-only for now; resize/crop are later blocks.
+function onCoverImageLayerMouseDown(e, layerId) {
+  e.stopPropagation();
+  e.preventDefault();
+  selectCoverImageLayer(layerId);
+  var layer = getCoverImageLayerById(layerId);
+  if (!layer) return;
+  coverDragState = {
+    layerId: layerId,
+    el: e.currentTarget,
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    startXPct: layer.xPct,
+    startYPct: layer.yPct,
+    liveXPct: layer.xPct,
+    liveYPct: layer.yPct,
+    dragging: false
+  };
+  document.addEventListener("mousemove", onCoverImageLayerMouseMove);
+  document.addEventListener("mouseup", onCoverImageLayerMouseUp);
+}
+
+function onCoverImageLayerMouseMove(e) {
+  if (!coverDragState) return;
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  var dx = e.clientX - coverDragState.startClientX;
+  var dy = e.clientY - coverDragState.startClientY;
+
+  if (!coverDragState.dragging) {
+    if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+    coverDragState.dragging = true;
+    coverDragState.el.classList.add("dragging");
+  }
+
+  var newXPct = Math.max(0, Math.min(100, coverDragState.startXPct + (dx / rect.width) * 100));
+  var newYPct = Math.max(0, Math.min(100, coverDragState.startYPct + (dy / rect.height) * 100));
+
+  var snap = applyCoverSnap(newXPct, newYPct, rect);
+  newXPct = snap.xPct;
+  newYPct = snap.yPct;
+  updateCoverSnapGuides(snap.snapX, snap.snapY);
+
+  coverDragState.liveXPct = newXPct;
+  coverDragState.liveYPct = newYPct;
+  coverDragState.el.style.left = newXPct + "%";
+  coverDragState.el.style.top = newYPct + "%";
+}
+
+function onCoverImageLayerMouseUp() {
+  if (!coverDragState) return;
+  if (coverDragState.dragging) {
+    var layer = getCoverImageLayerById(coverDragState.layerId);
+    if (layer) {
+      layer.xPct = coverDragState.liveXPct;
+      layer.yPct = coverDragState.liveYPct;
+    }
+    coverDragState.el.classList.remove("dragging");
+    recordCoverUndo();
+  }
+  hideCoverSnapGuides();
+  document.removeEventListener("mousemove", onCoverImageLayerMouseMove);
+  document.removeEventListener("mouseup", onCoverImageLayerMouseUp);
   coverDragState = null;
 }
 
@@ -5018,6 +5179,27 @@ function deleteCoverLayer() {
   if (idx === -1) return;
   coverDesign.textLayers.splice(idx, 1);
   deselectCoverLayer();
+  renderCoverCanvas();
+  recordCoverUndo();
+}
+
+function deleteCoverImageLayer() {
+  if (!coverSelectedImageLayerId || !coverDesign) return;
+  coverDesign.imageLayers = coverDesign.imageLayers || [];
+  var idx = -1;
+  for (var i = 0; i < coverDesign.imageLayers.length; i++) {
+    if (coverDesign.imageLayers[i].id === coverSelectedImageLayerId) { idx = i; break; }
+  }
+  if (idx === -1) return;
+  var removedId = coverDesign.imageLayers[idx].id;
+  coverDesign.imageLayers.splice(idx, 1);
+  var displayUrl = coverImageLayerDisplayUrls[removedId];
+  if (displayUrl) {
+    try { URL.revokeObjectURL(displayUrl); } catch (e) {}
+  }
+  delete coverImageLayerFiles[removedId];
+  delete coverImageLayerDisplayUrls[removedId];
+  deselectCoverImageLayer();
   renderCoverCanvas();
   recordCoverUndo();
 }
@@ -5537,9 +5719,57 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   if (!isRestoringCover) recordCoverUndo();
 });
 
+document.getElementById("coverImageLayerInput").addEventListener("change", function() {
+  var file = (this.files && this.files[0]) ? this.files[0] : null;
+  this.value = "";
+  if (!file || !coverDesign) return;
+
+  coverDesign.imageLayers = coverDesign.imageLayers || [];
+  var objectUrl = URL.createObjectURL(file);
+  var layer = {
+    id: "imglayer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+    src: objectUrl,
+    xPct: 50,
+    yPct: 50,
+    widthPct: 30,
+    heightPct: 30,
+    rotation: 0,
+    cropX: 0,
+    cropY: 0,
+    cropW: 1,
+    cropH: 1,
+    z: Date.now()
+  };
+  coverDesign.imageLayers.push(layer);
+  coverImageLayerFiles[layer.id] = file;
+  coverImageLayerDisplayUrls[layer.id] = objectUrl;
+
+  // Correct heightPct for the image's real aspect ratio once it's loaded —
+  // widthPct is a % of canvas WIDTH but heightPct is a % of canvas HEIGHT,
+  // so the canvas's own on-screen aspect ratio has to factor into the math
+  // or a square canvas region would make non-square images look stretched.
+  var probeImg = new Image();
+  probeImg.onload = function() {
+    var canvas = document.getElementById("coverCanvas");
+    var canvasWidthPx = canvas ? canvas.offsetWidth : 0;
+    var canvasHeightPx = canvas ? canvas.offsetHeight : 0;
+    if (probeImg.naturalWidth && probeImg.naturalHeight && canvasWidthPx && canvasHeightPx) {
+      layer.heightPct = layer.widthPct * (probeImg.naturalHeight / probeImg.naturalWidth) * (canvasWidthPx / canvasHeightPx);
+      renderCoverCanvas();
+    }
+  };
+  probeImg.src = objectUrl;
+
+  selectCoverImageLayer(layer.id);
+  renderCoverCanvas();
+  recordCoverUndo();
+});
+
 document.getElementById("coverCanvas").addEventListener("click", function(e) {
   if (e.target.closest(".cover-text-layer")) return;
+  if (e.target.closest(".cover-image-layer")) return;
   deselectCoverLayer();
+  deselectCoverImageLayer();
 });
 
 function updateCoverRegionHover(activeName) {
