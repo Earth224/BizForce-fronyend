@@ -1154,6 +1154,11 @@
           </div>
           <div class="pf-about-right">
             <div>
+              <div class="pf-about-field-label">Username</div>
+              <input class="pf-about-input" id="usernameInput" placeholder="your-handle">
+              <p style="font-size:.75rem;color:var(--sub);margin:4px 0 0">Your public handle for your storefront and shareable links.</p>
+            </div>
+            <div>
               <div class="pf-about-field-label">Industry</div>
               <input class="pf-about-input" id="industryInput" placeholder="e.g. Technology, Design, Music…">
             </div>
@@ -1512,6 +1517,7 @@ function applyProfile(p) {
   skills = Array.isArray(p.skills) ? p.skills.slice() : [];
   document.getElementById("bioView").textContent = p.bio || (isOwner ? "Add a bio in edit mode." : "");
   document.getElementById("bioInput").value = p.bio || "";
+  document.getElementById("usernameInput").value = p.username || "";
   document.getElementById("industryInput").value = p.industry || "";
   var indView = document.getElementById("industryView");
   if (p.industry) { document.getElementById("industryBadge").textContent = p.industry; indView.style.display=""; }
@@ -1639,6 +1645,7 @@ async function saveAbout() {
   try {
     var body = {
       bio:      document.getElementById("bioInput").value.trim(),
+      username: document.getElementById("usernameInput").value.trim(),
       industry: document.getElementById("industryInput").value.trim(),
       skills:   skills
     };
