@@ -238,6 +238,9 @@
     .editor-canvas ul,.editor-canvas ol{padding-left:1.6em;margin:.5em 0}
     .editor-canvas img{ max-width:100%; height:auto; }
     .editor-canvas img.img-selected{ outline:2px solid #22d3ee; outline-offset:2px; }
+    .editor-canvas .img-crop-wrap{position:relative;display:inline-block;overflow:hidden;vertical-align:top}
+    .editor-canvas .img-crop-wrap img{position:absolute;top:0;left:0;max-width:none}
+    .editor-canvas .img-crop-wrap.img-selected{outline:2px solid #22d3ee;outline-offset:2px}
     #editorCanvas.theme-dark{background:rgba(10,15,35,.5);color:#e6edf3}
     #editorCanvas.theme-white{background:#ffffff;color:#1a1a1a}
     #editorCanvas.theme-white h1,#editorCanvas.theme-white h2{color:#111}
@@ -652,6 +655,14 @@
             <button type="button" id="editorImgLarger" title="Larger">+</button>
             <span class="etb-div"></span>
             <button type="button" id="editorImgFullWidth" title="Full width">Full width</button>
+            <span class="etb-div"></span>
+            <button type="button" id="editorImgCropOut" title="Crop zoom out">Crop &minus;</button>
+            <button type="button" id="editorImgCropIn" title="Crop zoom in">Crop +</button>
+            <button type="button" id="editorImgCropPanLeft" title="Pan left">&larr;</button>
+            <button type="button" id="editorImgCropPanUp" title="Pan up">&uarr;</button>
+            <button type="button" id="editorImgCropPanDown" title="Pan down">&darr;</button>
+            <button type="button" id="editorImgCropPanRight" title="Pan right">&rarr;</button>
+            <button type="button" id="editorImgCropReset" title="Reset crop">Reset crop</button>
             <span class="etb-div"></span>
             <button type="button" id="editorImgDelete" title="Delete image">Delete</button>
           </div>
@@ -3141,7 +3152,7 @@ function sanitizePastedHtml(html) {
   });
 
   var PASTE_WHITELIST = ["P","BR","H1","H2","H3","STRONG","B","EM","I","U","UL","OL","LI","BLOCKQUOTE","A","IMG"];
-  var IMG_ATTR_WHITELIST = ["src", "data-path", "alt", "width", "height", "style"];
+  var IMG_ATTR_WHITELIST = ["src", "data-path", "alt", "width", "height", "style", "data-cropx", "data-cropy", "data-cropw", "data-croph"];
 
   function unwrapEl(el) {
     var parent = el.parentNode;
@@ -3402,6 +3413,7 @@ function openEditor(id) {
   window.scrollTo(0, 0);
 
   resolveEditorContentImages();
+  applyEditorImgCropsOnLoad();
 }
 
 // Saved book content may contain <img data-path="..."> from a previous
@@ -6266,24 +6278,42 @@ function editorImgMarkDirty() {
   document.getElementById("editorCanvas").dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+// The visible frame for a manuscript image is the img itself, unless it's
+// cropped — then the frame is the .img-crop-wrap span around it, and the
+// img is an oversized/offset child clipped to the wrap's bounds.
+function getEditorImgFrameEl(img) {
+  var p = img.parentNode;
+  return (p && p.classList && p.classList.contains("img-crop-wrap")) ? p : img;
+}
+
 function updateEditorImgToolbar() {
   if (!editorSelectedImg) return;
-  var w = Math.round(editorSelectedImg.getBoundingClientRect().width);
+  var frame = getEditorImgFrameEl(editorSelectedImg);
+  var w = Math.round(frame.getBoundingClientRect().width);
   document.getElementById("editorImgWidthReadout").textContent = w + "px";
 }
 
-function selectEditorImg(img) {
-  document.getElementById("editorCanvas").querySelectorAll("img.img-selected").forEach(function(el) {
-    if (el !== img) el.classList.remove("img-selected");
+// The frame element (img vs. its .img-crop-wrap) can change identity when
+// applyEditorImgCrop wraps/unwraps in response to a crop edit — re-run this
+// after any such change so the outline follows the selection instead of
+// vanishing with a removed wrap.
+function resyncEditorImgSelectedClass() {
+  if (!editorSelectedImg) return;
+  document.getElementById("editorCanvas").querySelectorAll(".img-selected").forEach(function(el) {
+    el.classList.remove("img-selected");
   });
-  img.classList.add("img-selected");
+  getEditorImgFrameEl(editorSelectedImg).classList.add("img-selected");
+}
+
+function selectEditorImg(img) {
   editorSelectedImg = img;
+  resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   document.getElementById("editorImgToolbar").style.display = "flex";
 }
 
 function deselectEditorImg() {
-  document.getElementById("editorCanvas").querySelectorAll("img.img-selected").forEach(function(el) {
+  document.getElementById("editorCanvas").querySelectorAll(".img-selected").forEach(function(el) {
     el.classList.remove("img-selected");
   });
   editorSelectedImg = null;
@@ -6298,6 +6328,134 @@ function getEditorCanvasContentWidth() {
   return canvas.clientWidth - paddingL - paddingR;
 }
 
+// Crop model mirrors the cover designer's image-layer crop: cropX/cropY/
+// cropW/cropH are fractions of the source image, full = 0,0,1,1. Stored as
+// data-crop* attrs on the img (the persisted source of truth); the visual
+// wrap/offset is re-derived from them on every change and on load.
+function getEditorImgCrop(img) {
+  var x = parseFloat(img.getAttribute("data-cropx"));
+  var y = parseFloat(img.getAttribute("data-cropy"));
+  var w = parseFloat(img.getAttribute("data-cropw"));
+  var h = parseFloat(img.getAttribute("data-croph"));
+  return {
+    x: isNaN(x) ? 0 : x,
+    y: isNaN(y) ? 0 : y,
+    w: (w > 0) ? w : 1,
+    h: (h > 0) ? h : 1
+  };
+}
+
+function setEditorImgCrop(img, crop) {
+  img.setAttribute("data-cropx", crop.x);
+  img.setAttribute("data-cropy", crop.y);
+  img.setAttribute("data-cropw", crop.w);
+  img.setAttribute("data-croph", crop.h);
+}
+
+// Idempotent: safe to call after any width or crop change, and on load.
+// Full crop (0,0,1,1) unwraps back to a plain img at its frame width;
+// non-full crop wraps the img in a fixed-size, overflow-hidden frame and
+// scales/offsets the img inside it per the crop fractions.
+function applyEditorImgCrop(img) {
+  var crop = getEditorImgCrop(img);
+  var isFull = (crop.x === 0 && crop.y === 0 && crop.w === 1 && crop.h === 1);
+  var wrap = (img.parentNode && img.parentNode.classList && img.parentNode.classList.contains("img-crop-wrap")) ? img.parentNode : null;
+
+  if (isFull) {
+    if (wrap) {
+      var widthPx = Math.round(wrap.getBoundingClientRect().width);
+      wrap.parentNode.insertBefore(img, wrap);
+      wrap.remove();
+      img.style.width = widthPx + "px";
+      img.style.height = "";
+      img.style.position = "";
+      img.style.left = "";
+      img.style.top = "";
+    }
+    return;
+  }
+
+  if (!wrap) {
+    var currentWidthPx = Math.round(img.getBoundingClientRect().width);
+    wrap = document.createElement("span");
+    wrap.className = "img-crop-wrap";
+    wrap.style.width = currentWidthPx + "px";
+    img.parentNode.insertBefore(wrap, img);
+    wrap.appendChild(img);
+  }
+
+  var frameWidthPx = wrap.getBoundingClientRect().width || parseFloat(wrap.style.width) || 340;
+  var aspect = (img.naturalWidth && img.naturalHeight) ? (img.naturalWidth / img.naturalHeight) : 1;
+  var wrapHeightPx = frameWidthPx * crop.h / (crop.w * aspect);
+  wrap.style.height = Math.round(wrapHeightPx) + "px";
+
+  img.style.width = ((1 / crop.w) * 100) + "%";
+  img.style.height = ((1 / crop.h) * 100) + "%";
+  img.style.left = (-(crop.x / crop.w) * 100) + "%";
+  img.style.top = (-(crop.y / crop.h) * 100) + "%";
+
+  if (!img.naturalWidth) {
+    img.addEventListener("load", function onEditorImgCropLoad() {
+      img.removeEventListener("load", onEditorImgCropLoad);
+      applyEditorImgCrop(img);
+    });
+  }
+}
+
+// Re-derives the crop wrap/offset for any already-cropped img in the
+// current canvas content — called once after content is loaded, since the
+// wrap is a rendering artifact of data-crop*, not guaranteed to reflect the
+// image's true natural aspect until its (possibly newly-resolved) src loads.
+function applyEditorImgCropsOnLoad() {
+  var canvas = document.getElementById("editorCanvas");
+  if (!canvas) return;
+  canvas.querySelectorAll("img[data-cropx], img[data-cropy], img[data-cropw], img[data-croph]").forEach(function(img) {
+    var crop = getEditorImgCrop(img);
+    if (crop.x !== 0 || crop.y !== 0 || crop.w !== 1 || crop.h !== 1) {
+      applyEditorImgCrop(img);
+    }
+  });
+}
+
+function nudgeEditorImgCropZoom(delta) {
+  if (!editorSelectedImg) return;
+  var crop = getEditorImgCrop(editorSelectedImg);
+  var centerX = crop.x + crop.w / 2;
+  var centerY = crop.y + crop.h / 2;
+  var newW = Math.max(0.1, Math.min(1, crop.w - delta));
+  var newH = Math.max(0.1, Math.min(1, crop.h - delta));
+  var newX = Math.max(0, Math.min(1 - newW, centerX - newW / 2));
+  var newY = Math.max(0, Math.min(1 - newH, centerY - newH / 2));
+  setEditorImgCrop(editorSelectedImg, { x: newX, y: newY, w: newW, h: newH });
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
+  updateEditorImgToolbar();
+  editorImgMarkDirty();
+}
+
+function nudgeEditorImgCropPan(axis, delta) {
+  if (!editorSelectedImg) return;
+  var crop = getEditorImgCrop(editorSelectedImg);
+  if (axis === "x") {
+    crop.x = Math.max(0, Math.min(1 - crop.w, crop.x + delta));
+  } else {
+    crop.y = Math.max(0, Math.min(1 - crop.h, crop.y + delta));
+  }
+  setEditorImgCrop(editorSelectedImg, crop);
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
+  editorImgMarkDirty();
+}
+
+function resetEditorImgCrop() {
+  if (!editorSelectedImg) return;
+  setEditorImgCrop(editorSelectedImg, { x: 0, y: 0, w: 1, h: 1 });
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
+  updateEditorImgToolbar();
+  editorImgMarkDirty();
+}
+
 document.getElementById("editorCanvas").addEventListener("click", function(e) {
   var target = e.target;
   if (target && target.tagName === "IMG") {
@@ -6309,35 +6467,51 @@ document.getElementById("editorCanvas").addEventListener("click", function(e) {
 
 document.getElementById("editorImgSmaller").addEventListener("click", function() {
   if (!editorSelectedImg) return;
-  var current = editorSelectedImg.getBoundingClientRect().width;
+  var frame = getEditorImgFrameEl(editorSelectedImg);
+  var current = frame.getBoundingClientRect().width;
   var next = Math.max(60, Math.round(current * 0.85));
-  editorSelectedImg.style.width = next + "px";
+  frame.style.width = next + "px";
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   editorImgMarkDirty();
 });
 
 document.getElementById("editorImgLarger").addEventListener("click", function() {
   if (!editorSelectedImg) return;
+  var frame = getEditorImgFrameEl(editorSelectedImg);
   var maxWidth = getEditorCanvasContentWidth();
-  var current = editorSelectedImg.getBoundingClientRect().width;
+  var current = frame.getBoundingClientRect().width;
   var next = Math.min(maxWidth, Math.round(current * 1.15));
-  editorSelectedImg.style.width = next + "px";
+  frame.style.width = next + "px";
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   editorImgMarkDirty();
 });
 
 document.getElementById("editorImgFullWidth").addEventListener("click", function() {
   if (!editorSelectedImg) return;
-  editorSelectedImg.style.width = "100%";
+  getEditorImgFrameEl(editorSelectedImg).style.width = "100%";
+  applyEditorImgCrop(editorSelectedImg);
+  resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   editorImgMarkDirty();
 });
 
+document.getElementById("editorImgCropIn").addEventListener("click", function() { nudgeEditorImgCropZoom(0.1); });
+document.getElementById("editorImgCropOut").addEventListener("click", function() { nudgeEditorImgCropZoom(-0.1); });
+document.getElementById("editorImgCropPanLeft").addEventListener("click", function() { nudgeEditorImgCropPan("x", -0.05); });
+document.getElementById("editorImgCropPanRight").addEventListener("click", function() { nudgeEditorImgCropPan("x", 0.05); });
+document.getElementById("editorImgCropPanUp").addEventListener("click", function() { nudgeEditorImgCropPan("y", -0.05); });
+document.getElementById("editorImgCropPanDown").addEventListener("click", function() { nudgeEditorImgCropPan("y", 0.05); });
+document.getElementById("editorImgCropReset").addEventListener("click", resetEditorImgCrop);
+
 document.getElementById("editorImgDelete").addEventListener("click", function() {
   if (!editorSelectedImg) return;
-  var img = editorSelectedImg;
+  var frame = getEditorImgFrameEl(editorSelectedImg);
   deselectEditorImg();
-  img.remove();
+  frame.remove();
   editorImgMarkDirty();
 });
 
