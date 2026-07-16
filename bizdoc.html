@@ -4641,6 +4641,16 @@ function selectCoverImageLayer(layerId) {
   });
   updateCoverTextControls();
   updateCoverImageControls();
+  // The .selected class toggle above is enough for the outline, but the 4
+  // resize-handle divs only get created inside renderCoverImageLayers()'s
+  // reconciliation loop — without this render, a plain click (mousedown/
+  // mouseup with no drag) selects the layer in state but never actually
+  // paints its handles, since neither onCoverImageLayerMouseDown nor
+  // onCoverImageLayerMouseUp render on their own. A freshly-added layer
+  // only ever looked selectable because the Add-Image flow renders right
+  // after calling this function; reloaded layers have no such step, so
+  // clicking them was the first time this gap ever showed up.
+  renderCoverCanvas();
 }
 
 function deselectCoverImageLayer() {
