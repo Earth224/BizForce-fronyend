@@ -4293,6 +4293,22 @@ function resolveCoverRegionImages(wrapId) {
     );
   });
 
+  var imageLayersToResolve = (coverDesign && coverDesign.imageLayers) || [];
+  imageLayersToResolve.forEach(function(layer) {
+    var path = layer && layer.src;
+    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
+    fetches.push(
+      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/layer-image?path=" + encodeURIComponent(path), { headers: { "Authorization": "Bearer " + token } })
+        .then(function(res) { return res.ok ? res.json() : null; })
+        .then(function(d) {
+          if (!d || !d.url) return;
+          if (coverWrapId !== wrapId) return;
+          coverImageLayerDisplayUrls[layer.id] = d.url;
+        })
+        .catch(function() {})
+    );
+  });
+
   Promise.all(fetches).then(function() {
     if (coverWrapId !== wrapId) return;
     renderCoverCanvas();
@@ -4553,7 +4569,12 @@ function selectCoverLayer(layerId) {
   document.querySelectorAll(".cover-text-layer").forEach(function(el) {
     el.classList.toggle("selected", el.getAttribute("data-layer-id") === layerId);
   });
+  coverSelectedImageLayerId = null;
+  document.querySelectorAll(".cover-image-layer").forEach(function(el) {
+    el.classList.remove("selected");
+  });
   updateCoverTextControls();
+  updateCoverImageControls();
 }
 
 function deselectCoverLayer() {
@@ -5355,6 +5376,41 @@ async function saveCoverDesign() {
         }
         coverDesign.regions[regionName].bgImage = regionUploadData.path;
         coverRegionBgFiles[regionName] = null;
+      }
+
+      // Upload each foreground image layer's pending freshly-picked file
+      // (if any) — mirrors the region loop above, but keyed by layer id
+      // since image layers are an arbitrary-length array, not fixed region
+      // names. coverDesign is serialized whole into front_design by the PUT
+      // below, so layer.src MUST be a storage path (not a blob URL) before
+      // that PUT runs — this loop guarantees that, same as the region loop
+      // does for coverDesign.regions[...].bgImage.
+      coverDesign.imageLayers = coverDesign.imageLayers || [];
+      for (var li = 0; li < coverDesign.imageLayers.length; li++) {
+        var imgLayer = coverDesign.imageLayers[li];
+        var pendingImgFile = coverImageLayerFiles[imgLayer.id];
+        if (!pendingImgFile) continue;
+        var imgFormData = new FormData();
+        imgFormData.append("bg_image", pendingImgFile);
+        var imgUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: imgFormData
+        });
+        if (!imgUploadRes.ok) {
+          var imgUploadErr = await imgUploadRes.json().catch(function() { return {}; });
+          showToast(imgUploadErr.error || "Failed to upload image", "error");
+          return;
+        }
+        var imgUploadData = await imgUploadRes.json().catch(function() { return {}; });
+        if (!imgUploadData.path) {
+          showToast("Failed to upload image", "error");
+          return;
+        }
+        imgLayer.src = imgUploadData.path;
+        // Keep the existing blob display URL — it's still what's showing on
+        // canvas this session; only the pending-file marker is cleared.
+        coverImageLayerFiles[imgLayer.id] = null;
       }
 
       var wrapSaveRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId, {
