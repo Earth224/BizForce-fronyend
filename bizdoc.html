@@ -3969,90 +3969,95 @@ function revokeCoverRegionBlobUrls() {
 }
 
 // Backward-compat migration-on-load: seeds design.regions.{back,spine,front}
-// from the design's existing flat bg* fields the first time a design is
-// touched by the per-region system, so an old single-image cover opens
-// looking identical, just now editable per region. No-op once regions exist.
+// as EMPTY overrides (not copies of the flat fields) the first time a
+// design is touched by the per-region system. The flat bg* fields remain
+// the single continuous whole-wrap image/color; a migrated old cover shows
+// that image as one continuous base with zero region overrides on top.
+// No-op once regions exist.
 function ensureCoverRegions(design) {
   if (!design) return;
   if (design.regions && design.regions.back && design.regions.spine && design.regions.front) return;
   var seed = function() {
-    return {
-      bgColor: design.bgColor || "#ffffff",
-      bgImage: design.bgImage || null,
-      bgScale: design.bgScale || 1,
-      bgOffsetX: design.bgOffsetX || 0,
-      bgOffsetY: design.bgOffsetY || 0
-    };
+    return { bgColor: null, bgImage: null, bgScale: 1, bgOffsetX: 0, bgOffsetY: 0 };
   };
   design.regions = { back: seed(), spine: seed(), front: seed() };
 }
 
-// coverActiveRegion tracks which region the bg controls (color/image/pan/
-// zoom) currently affect. It follows the Front/Spine/Back view switch in
-// wrap context; Full Wrap view and book context both resolve to "front".
+// coverActiveRegion tracks which region an ISOLATED Front/Spine/Back view
+// is editing. It's only meaningful when isWrapBaseTarget() is false; Full
+// Wrap view and book context both resolve to "front" as a harmless default,
+// but neither ever reads it (both target the flat whole-wrap base instead).
 function updateCoverActiveRegion() {
   coverActiveRegion = (coverContext === "wrap" && (coverView === "back" || coverView === "spine" || coverView === "front")) ? coverView : "front";
 }
 
-// Returns the region object the bg controls should read/write. In book
-// context there's only one page — coverDesign itself already has the same
-// bgColor/bgImage/bgScale/bgOffsetX/bgOffsetY shape as a region, so it IS
-// the shim: reads/writes here go straight to the flat fields unchanged.
+// True when bg controls should act on the flat coverDesign.bg* fields — the
+// ONE continuous whole-wrap base image/color — rather than a single region's
+// override. That's always true in book context (one page, no regions), and
+// true in wrap context specifically when Full Wrap is the active view.
+function isWrapBaseTarget() {
+  return coverContext !== "wrap" || coverView === "wrap";
+}
+
+// Returns the object bg controls should read/write: the flat base
+// (coverDesign itself — book context or Full Wrap view) or the active
+// region's override (isolated Front/Spine/Back view).
 function getActiveRegionObj() {
   if (!coverDesign) return null;
   updateCoverActiveRegion();
-  if (coverContext !== "wrap") return coverDesign;
+  if (isWrapBaseTarget()) return coverDesign;
   ensureCoverRegions(coverDesign);
   return coverDesign.regions[coverActiveRegion];
 }
 
-// Returns the set of region objects a bg control action should apply to.
-// Full Wrap view is the "whole cover" view, so bg edits made there apply to
-// all three regions at once; an isolated Front/Spine/Back view only ever
-// targets that one region. Book context has a single page (unchanged).
+// Returns the set of objects a bg control action should apply to. Always a
+// single object now: the flat base in Full Wrap/book context, or the one
+// active region in an isolated view — kept as an array so callers that loop
+// (pickCoverBgColor, resetCoverBgTransform, etc.) don't need special-casing.
 function getTargetRegionObjs() {
   if (!coverDesign) return [];
-  if (coverContext !== "wrap") return [coverDesign];
-  if (coverView === "wrap") {
-    ensureCoverRegions(coverDesign);
-    return [coverDesign.regions.back, coverDesign.regions.spine, coverDesign.regions.front];
-  }
   var region = getActiveRegionObj();
   return region ? [region] : [];
 }
 
-// Region-name counterpart of getTargetRegionObjs(), for indexing into
-// coverRegionBgFiles/coverRegionDisplayUrls (which are keyed by name, not
-// object reference). Empty in book context — that context tracks its
-// pending file/display-url in the flat coverBgFile/coverBgDisplayUrl pair.
-function getTargetRegionNames() {
-  if (coverContext !== "wrap") return [];
-  if (coverView === "wrap") return ["back", "spine", "front"];
-  updateCoverActiveRegion();
-  return [coverActiveRegion];
-}
-
-// Resolves a signed display URL for each region's saved (non-blob, non-http)
-// bgImage path via the per-region backend route, so back/spine/front images
-// all persist across a reload — not just front. wrapId doubles as the
-// staleness guard: if the user navigates away before a fetch resolves (or
-// before all three settle), stale results are discarded rather than painted.
+// Resolves signed display URLs for the flat whole-wrap base image AND each
+// region override's saved (non-blob, non-http) bgImage path, so the
+// continuous base and any back/spine/front overrides all persist across a
+// reload. wrapId doubles as the staleness guard: if the user navigates away
+// before a fetch resolves (or before all settle), stale results are
+// discarded rather than painted.
 function resolveCoverRegionImages(wrapId) {
-  var regions = ["back", "spine", "front"];
-  var fetches = regions.map(function(region) {
+  var fetches = [];
+
+  var basePath = coverDesign && coverDesign.bgImage;
+  if (basePath && typeof basePath === "string" && basePath.indexOf("blob:") !== 0 && basePath.indexOf("http") !== 0) {
+    fetches.push(
+      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/bg-image", { headers: { "Authorization": "Bearer " + token } })
+        .then(function(res) { return res.ok ? res.json() : null; })
+        .then(function(d) {
+          if (!d || !d.url) return;
+          if (coverWrapId !== wrapId) return;
+          coverBgDisplayUrl = d.url;
+        })
+        .catch(function() {})
+    );
+  }
+
+  ["back", "spine", "front"].forEach(function(region) {
     var path = coverDesign && coverDesign.regions && coverDesign.regions[region] && coverDesign.regions[region].bgImage;
-    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) {
-      return Promise.resolve();
-    }
-    return fetch(API_URL + "/api/cover-wraps/" + wrapId + "/region-bg-image?region=" + region, { headers: { "Authorization": "Bearer " + token } })
-      .then(function(res) { return res.ok ? res.json() : null; })
-      .then(function(d) {
-        if (!d || !d.url) return;
-        if (coverWrapId !== wrapId) return;
-        coverRegionDisplayUrls[region] = d.url;
-      })
-      .catch(function() {});
+    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) return;
+    fetches.push(
+      fetch(API_URL + "/api/cover-wraps/" + wrapId + "/region-bg-image?region=" + region, { headers: { "Authorization": "Bearer " + token } })
+        .then(function(res) { return res.ok ? res.json() : null; })
+        .then(function(d) {
+          if (!d || !d.url) return;
+          if (coverWrapId !== wrapId) return;
+          coverRegionDisplayUrls[region] = d.url;
+        })
+        .catch(function() {})
+    );
   });
+
   Promise.all(fetches).then(function() {
     if (coverWrapId !== wrapId) return;
     renderCoverCanvas();
@@ -4074,25 +4079,16 @@ function updateCoverBgControls() {
   }
 }
 
-// Paints one region's color + (optional) image into its wrapper div, which
-// is clipped to that region's own horizontal band — object-fit:cover and
-// the pan/zoom transform are computed relative to that band, not the whole
-// wrap, so each region crops its own image independently.
-function renderCoverRegionLayer(canvas, name, region, leftPct, widthPct, displayUrl) {
-  var wrapper = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
-  if (!wrapper) {
-    wrapper = document.createElement("div");
-    wrapper.className = "cover-region-bg";
-    wrapper.setAttribute("data-region", name);
-    canvas.insertBefore(wrapper, canvas.firstChild);
-  }
-  wrapper.style.display = "block";
-  wrapper.style.left = leftPct + "%";
-  wrapper.style.width = widthPct + "%";
-  wrapper.style.backgroundColor = (region && region.bgColor) || "#ffffff";
+// Paints color + (optional) image into a bg-layer wrapper div — shared by
+// the whole-wrap base layer and any per-region override layers. object-fit
+// and the pan/zoom transform are always computed relative to whatever box
+// the wrapper itself occupies (the full canvas for the base, one region's
+// band for an override).
+function paintCoverBgLayer(wrapper, source, displayUrl) {
+  wrapper.style.backgroundColor = (source && source.bgColor) || "#ffffff";
 
   var img = wrapper.querySelector("img");
-  if (region && region.bgImage) {
+  if (source && source.bgImage) {
     if (!img) {
       img = document.createElement("img");
       img.alt = "";
@@ -4105,9 +4101,9 @@ function renderCoverRegionLayer(canvas, name, region, leftPct, widthPct, display
       img.style.transformOrigin = "center";
       wrapper.appendChild(img);
     }
-    img.src = displayUrl || region.bgImage;
+    img.src = displayUrl || source.bgImage;
     img.style.display = "block";
-    var bgT = clampCoverBgTransform(region);
+    var bgT = clampCoverBgTransform(source);
     img.style.transform = "translate(" + bgT.offsetX + "%, " + bgT.offsetY + "%) scale(" + bgT.scale + ")";
   } else if (img) {
     img.style.display = "none";
@@ -4115,17 +4111,31 @@ function renderCoverRegionLayer(canvas, name, region, leftPct, widthPct, display
 }
 
 function renderCoverRegionBackgrounds(canvas) {
+  // BASE: the flat coverDesign fields, rendered as ONE continuous layer
+  // spanning the whole canvas (back+spine+front together) — never sliced
+  // per region. This is the same layer for both wrap and book context.
+  var baseWrapper = canvas.querySelector("#coverBgBaseLayer");
+  if (!baseWrapper) {
+    baseWrapper = document.createElement("div");
+    baseWrapper.className = "cover-region-bg";
+    baseWrapper.id = "coverBgBaseLayer";
+    baseWrapper.style.zIndex = "0";
+    canvas.insertBefore(baseWrapper, canvas.firstChild);
+  }
+  baseWrapper.style.display = "block";
+  baseWrapper.style.left = "0%";
+  baseWrapper.style.width = "100%";
+  paintCoverBgLayer(baseWrapper, coverDesign, coverBgDisplayUrl);
+
   var names = ["back", "spine", "front"];
 
   if (coverContext !== "wrap") {
-    // Book mode: one page, no back/spine — render straight from the flat
-    // legacy fields so book covers are pixel-identical to before.
+    // Book mode has no regions — hide any override wrappers left over from
+    // a previous wrap-editing session; the base above is the whole cover.
     names.forEach(function(name) {
-      if (name === "front") return;
       var el = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
       if (el) el.style.display = "none";
     });
-    renderCoverRegionLayer(canvas, "front", coverDesign, 0, 100, coverBgDisplayUrl);
     return;
   }
 
@@ -4136,13 +4146,26 @@ function renderCoverRegionBackgrounds(canvas) {
     front: { left: coverFrontStartPct, width: coverFrontFrac * 100 }
   };
   names.forEach(function(name) {
+    var region = coverDesign.regions[name];
     var b = bounds[name];
-    if (!b.width || b.width <= 0) {
-      var el = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
-      if (el) el.style.display = "none";
+    var hasOverride = !!(region && (region.bgImage || region.bgColor != null));
+    var wrapper = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
+
+    if (!hasOverride || !b.width || b.width <= 0) {
+      if (wrapper) wrapper.style.display = "none";
       return;
     }
-    renderCoverRegionLayer(canvas, name, coverDesign.regions[name], b.left, b.width, coverRegionDisplayUrls[name]);
+    if (!wrapper) {
+      wrapper = document.createElement("div");
+      wrapper.className = "cover-region-bg";
+      wrapper.setAttribute("data-region", name);
+      wrapper.style.zIndex = "1";
+      canvas.insertBefore(wrapper, canvas.firstChild);
+    }
+    wrapper.style.display = "block";
+    wrapper.style.left = b.left + "%";
+    wrapper.style.width = b.width + "%";
+    paintCoverBgLayer(wrapper, region, coverRegionDisplayUrls[name]);
   });
 }
 
@@ -4493,14 +4516,12 @@ function removeCoverBgImage() {
     region.bgOffsetX = 0;
     region.bgOffsetY = 0;
   });
-  if (coverContext === "wrap") {
-    getTargetRegionNames().forEach(function(name) {
-      coverRegionBgFiles[name] = null;
-      coverRegionDisplayUrls[name] = null;
-    });
-  } else {
+  if (isWrapBaseTarget()) {
     coverBgFile = null;
     coverBgDisplayUrl = null;
+  } else {
+    coverRegionBgFiles[coverActiveRegion] = null;
+    coverRegionDisplayUrls[coverActiveRegion] = null;
   }
   document.getElementById("coverBgImageInput").value = "";
   renderCoverCanvas();
@@ -4834,9 +4855,32 @@ async function saveCoverDesign() {
         updateCoverExportBtn();
       }
 
-      // Upload each region's pending freshly-picked file (if any) the same
-      // way the single flat bg image used to upload, one request per region
-      // that actually has something pending — most saves have zero or one.
+      // Upload the flat whole-wrap base image, if a new one was picked.
+      if (coverBgFile) {
+        var baseFormData = new FormData();
+        baseFormData.append("bg_image", coverBgFile);
+        var baseUploadRes = await fetch(API_URL + "/api/cover-wraps/" + coverWrapId + "/bg-image", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: baseFormData
+        });
+        if (!baseUploadRes.ok) {
+          var baseUploadErr = await baseUploadRes.json().catch(function() { return {}; });
+          showToast(baseUploadErr.error || "Failed to upload background image", "error");
+          return;
+        }
+        var baseUploadData = await baseUploadRes.json().catch(function() { return {}; });
+        if (!baseUploadData.path) {
+          showToast("Failed to upload background image", "error");
+          return;
+        }
+        coverDesign.bgImage = baseUploadData.path;
+        coverBgFile = null;
+      }
+
+      // Upload each region override's pending freshly-picked file (if any),
+      // one request per region that actually has something pending — most
+      // saves have zero or one region override.
       ensureCoverRegions(coverDesign);
       var regionUploadOrder = ["back", "spine", "front"];
       for (var ri = 0; ri < regionUploadOrder.length; ri++) {
@@ -5176,45 +5220,29 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
   var file = (this.files && this.files[0]) ? this.files[0] : null;
   if (!file || !coverDesign) return;
 
-  if (coverContext !== "wrap") {
-    if (coverDesign.bgImage) {
-      try { URL.revokeObjectURL(coverDesign.bgImage); } catch (e) {}
-    }
-    var bookObjectUrl = URL.createObjectURL(file);
-    coverDesign.bgImage = bookObjectUrl;
-    coverDesign.bgScale = 1;
-    coverDesign.bgOffsetX = 0;
-    coverDesign.bgOffsetY = 0;
-    coverBgFile = file;
-    coverBgDisplayUrl = bookObjectUrl;
-    renderCoverCanvas();
-    if (!isRestoringCover) recordCoverUndo();
-    return;
-  }
+  // isWrapBaseTarget() covers book context AND Full Wrap view alike — both
+  // write the flat continuous base. An isolated Front/Spine/Back view
+  // writes just that region's override. getActiveRegionObj() already
+  // resolves to the right target object either way.
+  var target = getActiveRegionObj();
+  if (!target) return;
 
-  // Full Wrap: one shared objectURL for live display, but the SAME File is
-  // assigned to all three regions so each uploads (and stores) its own copy
-  // on save. Isolated Front/Spine/Back: getTargetRegionObjs()/Names() both
-  // resolve to just the active region, so this loop naturally degrades to
-  // "only that region" with no separate branch needed.
-  var regions = getTargetRegionObjs();
-  var names = getTargetRegionNames();
-  if (!regions.length) return;
+  if (target.bgImage) {
+    try { URL.revokeObjectURL(target.bgImage); } catch (e) {}
+  }
   var objectUrl = URL.createObjectURL(file);
-  regions.forEach(function(region, i) {
-    if (region.bgImage) {
-      try { URL.revokeObjectURL(region.bgImage); } catch (e) {}
-    }
-    region.bgImage = objectUrl;
-    region.bgScale = 1;
-    region.bgOffsetX = 0;
-    region.bgOffsetY = 0;
-    var name = names[i];
-    if (name) {
-      coverRegionBgFiles[name] = file;
-      coverRegionDisplayUrls[name] = objectUrl;
-    }
-  });
+  target.bgImage = objectUrl;
+  target.bgScale = 1;
+  target.bgOffsetX = 0;
+  target.bgOffsetY = 0;
+
+  if (isWrapBaseTarget()) {
+    coverBgFile = file;
+    coverBgDisplayUrl = objectUrl;
+  } else {
+    coverRegionBgFiles[coverActiveRegion] = file;
+    coverRegionDisplayUrls[coverActiveRegion] = objectUrl;
+  }
   renderCoverCanvas();
   if (!isRestoringCover) recordCoverUndo();
 });
