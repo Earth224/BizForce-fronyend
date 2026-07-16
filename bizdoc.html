@@ -236,11 +236,12 @@
     .editor-canvas h2{font-size:1.4rem;font-weight:700;margin:.6em 0 .3em;color:#f4f7ff}
     .editor-canvas blockquote{border-left:3px solid rgba(34,211,238,.5);margin:.6em 0;padding:.2em 0 .2em 16px;color:#8892b8;font-style:italic}
     .editor-canvas ul,.editor-canvas ol{padding-left:1.6em;margin:.5em 0}
-    .editor-canvas img{ max-width:100%; height:auto; }
-    .editor-canvas img.img-selected{ outline:2px solid #22d3ee; outline-offset:2px; }
-    .editor-canvas .img-crop-wrap{position:relative;display:inline-block;overflow:hidden;vertical-align:top}
+    .editor-canvas img{ cursor:pointer; max-width:100%; height:auto; }
+    .editor-canvas img.img-selected{ outline:2px solid #22d3ee; outline-offset:2px; cursor:move; }
+    .editor-canvas .img-crop-wrap{position:relative;display:inline-block;overflow:hidden;vertical-align:top;cursor:pointer}
     .editor-canvas .img-crop-wrap img{position:absolute;top:0;left:0;max-width:none}
-    .editor-canvas .img-crop-wrap.img-selected{outline:2px solid #22d3ee;outline-offset:2px}
+    .editor-canvas .img-crop-wrap.img-selected{outline:2px solid #22d3ee;outline-offset:2px;cursor:move}
+    .editor-canvas .img-crop-wrap.img-selected img{cursor:move}
     #editorCanvas.theme-dark{background:rgba(10,15,35,.5);color:#e6edf3}
     #editorCanvas.theme-white{background:#ffffff;color:#1a1a1a}
     #editorCanvas.theme-white h1,#editorCanvas.theme-white h2{color:#111}
@@ -655,6 +656,10 @@
             <button type="button" id="editorImgLarger" title="Larger">+</button>
             <span class="etb-div"></span>
             <button type="button" id="editorImgFullWidth" title="Full width">Full width</button>
+            <span class="etb-div"></span>
+            <button type="button" id="editorImgAlignLeft" title="Align left">Left</button>
+            <button type="button" id="editorImgAlignCenter" title="Align center">Center</button>
+            <button type="button" id="editorImgAlignRight" title="Align right">Right</button>
             <span class="etb-div"></span>
             <button type="button" id="editorImgCropOut" title="Crop zoom out">Crop &minus;</button>
             <button type="button" id="editorImgCropIn" title="Crop zoom in">Crop +</button>
@@ -3152,7 +3157,7 @@ function sanitizePastedHtml(html) {
   });
 
   var PASTE_WHITELIST = ["P","BR","H1","H2","H3","STRONG","B","EM","I","U","UL","OL","LI","BLOCKQUOTE","A","IMG"];
-  var IMG_ATTR_WHITELIST = ["src", "data-path", "alt", "width", "height", "style", "data-cropx", "data-cropy", "data-cropw", "data-croph"];
+  var IMG_ATTR_WHITELIST = ["src", "data-path", "alt", "width", "height", "style", "data-cropx", "data-cropy", "data-cropw", "data-croph", "data-align"];
 
   function unwrapEl(el) {
     var parent = el.parentNode;
@@ -3414,6 +3419,7 @@ function openEditor(id) {
 
   resolveEditorContentImages();
   applyEditorImgCropsOnLoad();
+  applyEditorImgAlignsOnLoad();
 }
 
 // Saved book content may contain <img data-path="..."> from a previous
@@ -6417,6 +6423,50 @@ function applyEditorImgCropsOnLoad() {
   });
 }
 
+// Alignment governs how the image's block sits in the flowing manuscript
+// (display:block + auto margins) — orthogonal to width (resize) and crop
+// (what's visible inside the frame). Stored as data-align on the img (the
+// source of truth, since crop can swap which element is the outer frame);
+// re-applied to whichever element is currently the frame on every change
+// and on load.
+function applyEditorImgAlign(img) {
+  var align = img.getAttribute("data-align") || "left";
+  var frame = getEditorImgFrameEl(img);
+  frame.style.display = "block";
+  if (align === "center") {
+    frame.style.marginLeft = "auto";
+    frame.style.marginRight = "auto";
+  } else if (align === "right") {
+    frame.style.marginLeft = "auto";
+    frame.style.marginRight = "0";
+  } else {
+    frame.style.marginLeft = "0";
+    frame.style.marginRight = "auto";
+  }
+}
+
+function setEditorImgAlign(img, align) {
+  img.setAttribute("data-align", align);
+  applyEditorImgAlign(img);
+  resyncEditorImgSelectedClass();
+  editorImgMarkDirty();
+}
+
+// A crop change can wrap/unwrap the img (swapping which element is the
+// frame), which would otherwise lose alignment margins set on the old
+// frame — reapply them only if the image has actually been aligned before.
+function reapplyEditorImgAlignIfSet(img) {
+  if (img.hasAttribute("data-align")) applyEditorImgAlign(img);
+}
+
+function applyEditorImgAlignsOnLoad() {
+  var canvas = document.getElementById("editorCanvas");
+  if (!canvas) return;
+  canvas.querySelectorAll("img[data-align]").forEach(function(img) {
+    applyEditorImgAlign(img);
+  });
+}
+
 function nudgeEditorImgCropZoom(delta) {
   if (!editorSelectedImg) return;
   var crop = getEditorImgCrop(editorSelectedImg);
@@ -6428,6 +6478,7 @@ function nudgeEditorImgCropZoom(delta) {
   var newY = Math.max(0, Math.min(1 - newH, centerY - newH / 2));
   setEditorImgCrop(editorSelectedImg, { x: newX, y: newY, w: newW, h: newH });
   applyEditorImgCrop(editorSelectedImg);
+  reapplyEditorImgAlignIfSet(editorSelectedImg);
   resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   editorImgMarkDirty();
@@ -6443,6 +6494,7 @@ function nudgeEditorImgCropPan(axis, delta) {
   }
   setEditorImgCrop(editorSelectedImg, crop);
   applyEditorImgCrop(editorSelectedImg);
+  reapplyEditorImgAlignIfSet(editorSelectedImg);
   resyncEditorImgSelectedClass();
   editorImgMarkDirty();
 }
@@ -6451,6 +6503,7 @@ function resetEditorImgCrop() {
   if (!editorSelectedImg) return;
   setEditorImgCrop(editorSelectedImg, { x: 0, y: 0, w: 1, h: 1 });
   applyEditorImgCrop(editorSelectedImg);
+  reapplyEditorImgAlignIfSet(editorSelectedImg);
   resyncEditorImgSelectedClass();
   updateEditorImgToolbar();
   editorImgMarkDirty();
@@ -6506,6 +6559,19 @@ document.getElementById("editorImgCropPanRight").addEventListener("click", funct
 document.getElementById("editorImgCropPanUp").addEventListener("click", function() { nudgeEditorImgCropPan("y", -0.05); });
 document.getElementById("editorImgCropPanDown").addEventListener("click", function() { nudgeEditorImgCropPan("y", 0.05); });
 document.getElementById("editorImgCropReset").addEventListener("click", resetEditorImgCrop);
+
+document.getElementById("editorImgAlignLeft").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  setEditorImgAlign(editorSelectedImg, "left");
+});
+document.getElementById("editorImgAlignCenter").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  setEditorImgAlign(editorSelectedImg, "center");
+});
+document.getElementById("editorImgAlignRight").addEventListener("click", function() {
+  if (!editorSelectedImg) return;
+  setEditorImgAlign(editorSelectedImg, "right");
+});
 
 document.getElementById("editorImgDelete").addEventListener("click", function() {
   if (!editorSelectedImg) return;
