@@ -242,6 +242,8 @@
     .editor-canvas .img-crop-wrap img{position:absolute;top:0;left:0;max-width:none}
     .editor-canvas .img-crop-wrap.img-selected{outline:2px solid #22d3ee;outline-offset:2px;cursor:move}
     .editor-canvas .img-crop-wrap.img-selected img{cursor:move}
+    .editor-drop-line{ height:2px; background:#22d3ee; margin:2px 0; border-radius:1px; }
+    .editor-canvas img.img-dragging, .img-crop-wrap.img-dragging{ opacity:.5; }
     #editorCanvas.theme-dark{background:rgba(10,15,35,.5);color:#e6edf3}
     #editorCanvas.theme-white{background:#ffffff;color:#1a1a1a}
     #editorCanvas.theme-white h1,#editorCanvas.theme-white h2{color:#111}
@@ -6516,6 +6518,106 @@ document.getElementById("editorCanvas").addEventListener("click", function(e) {
   } else {
     deselectEditorImg();
   }
+});
+
+// Drag-to-reposition: mousedown only arms a "candidate" drag (it never
+// starts one outright) so a plain click-to-select still works untouched —
+// promotion to an actual drag happens in the mousemove listener once the
+// pointer has moved past a small threshold.
+var editorImgDragCandidate = null;
+var editorImgDragging = null;
+var editorDropLineEl = null;
+
+document.getElementById("editorCanvas").addEventListener("mousedown", function(e) {
+  var target = e.target;
+  if (!target || target.tagName !== "IMG") return;
+  var toolbar = document.getElementById("editorImgToolbar");
+  if (toolbar && toolbar.contains(target)) return;
+  var frame = getEditorImgFrameEl(target);
+  if (!frame.classList.contains("img-selected")) return;
+  e.preventDefault();
+  editorImgDragCandidate = { frame: frame, startX: e.clientX, startY: e.clientY };
+});
+
+function startEditorImgDrag(frame) {
+  editorImgDragging = frame;
+  frame.classList.add("img-dragging");
+  if (!editorDropLineEl) {
+    editorDropLineEl = document.createElement("div");
+    editorDropLineEl.className = "editor-drop-line";
+  }
+}
+
+// Finds the gap between #editorCanvas's direct block children nearest the
+// cursor's Y position and moves the (reusable) drop-line div there — this
+// also guarantees the drop target is always a direct-child gap, so the
+// dragged node can never land nested inside a paragraph's text.
+function updateEditorDropIndicator(clientY) {
+  var canvas = document.getElementById("editorCanvas");
+  var blocks = Array.prototype.filter.call(canvas.children, function(el) {
+    return el !== editorImgDragging && el !== editorDropLineEl;
+  });
+  if (!blocks.length) {
+    canvas.appendChild(editorDropLineEl);
+    return;
+  }
+  var closestBlock = null;
+  var closestDist = Infinity;
+  var before = true;
+  for (var i = 0; i < blocks.length; i++) {
+    var rect = blocks[i].getBoundingClientRect();
+    var mid = rect.top + rect.height / 2;
+    var dist = Math.abs(clientY - mid);
+    if (dist < closestDist) {
+      closestDist = dist;
+      closestBlock = blocks[i];
+      before = clientY < mid;
+    }
+  }
+  if (before) {
+    canvas.insertBefore(editorDropLineEl, closestBlock);
+  } else if (closestBlock.nextSibling) {
+    canvas.insertBefore(editorDropLineEl, closestBlock.nextSibling);
+  } else {
+    canvas.appendChild(editorDropLineEl);
+  }
+}
+
+function endEditorImgDrag() {
+  if (editorImgDragging) {
+    var canvas = document.getElementById("editorCanvas");
+    if (editorDropLineEl && editorDropLineEl.parentNode === canvas) {
+      canvas.insertBefore(editorImgDragging, editorDropLineEl);
+    }
+    editorImgDragging.classList.remove("img-dragging");
+    editorImgDragging = null;
+    resyncEditorImgSelectedClass();
+    editorImgMarkDirty();
+  }
+  if (editorDropLineEl && editorDropLineEl.parentNode) {
+    editorDropLineEl.remove();
+  }
+  editorImgDragCandidate = null;
+}
+
+document.addEventListener("mousemove", function(e) {
+  if (editorImgDragCandidate && !editorImgDragging) {
+    var dx = e.clientX - editorImgDragCandidate.startX;
+    var dy = e.clientY - editorImgDragCandidate.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > 4) {
+      startEditorImgDrag(editorImgDragCandidate.frame);
+      updateEditorDropIndicator(e.clientY);
+    }
+    return;
+  }
+  if (editorImgDragging) {
+    e.preventDefault();
+    updateEditorDropIndicator(e.clientY);
+  }
+});
+
+document.addEventListener("mouseup", function() {
+  if (editorImgDragging || editorImgDragCandidate) endEditorImgDrag();
 });
 
 document.getElementById("editorImgSmaller").addEventListener("click", function() {
