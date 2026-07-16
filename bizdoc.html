@@ -3926,28 +3926,7 @@ async function openWrapDesigner(wrapId) {
   coverZoom = computeFitScale();
   applyCoverView();
 
-  if (coverDesign.bgImage && typeof coverDesign.bgImage === "string" && coverDesign.bgImage.indexOf("blob:") !== 0 && coverDesign.bgImage.indexOf("http") !== 0) {
-    var loadWrapId = wrapId;
-    fetch(API_URL + "/api/cover-wraps/" + wrapId + "/bg-image", { headers: { "Authorization": "Bearer " + token } })
-      .then(function(res) { return res.ok ? res.json() : null; })
-      .then(function(d) {
-        if (!d || !d.url) return;
-        if (coverWrapId !== loadWrapId) return;
-        coverBgDisplayUrl = d.url;
-        // Backend only resolves a signed URL for the flat design.bgImage path
-        // (no per-region endpoint exists yet). Best-effort: if the front
-        // region's stored path still matches that flat value (i.e. it hasn't
-        // been re-uploaded independently since), reuse the same signed URL
-        // for it so a freshly-migrated cover's front image still displays.
-        // Back/spine images saved under their own path need a real backend
-        // per-region signed-URL route to resolve on reload — not added here.
-        if (coverDesign.regions && coverDesign.regions.front && coverDesign.regions.front.bgImage === coverDesign.bgImage) {
-          coverRegionDisplayUrls.front = d.url;
-        }
-        renderCoverCanvas();
-      })
-      .catch(function() {});
-  }
+  resolveCoverRegionImages(wrapId);
 }
 
 function closeCoverDesigner() {
@@ -4025,6 +4004,33 @@ function getActiveRegionObj() {
   if (coverContext !== "wrap") return coverDesign;
   ensureCoverRegions(coverDesign);
   return coverDesign.regions[coverActiveRegion];
+}
+
+// Resolves a signed display URL for each region's saved (non-blob, non-http)
+// bgImage path via the per-region backend route, so back/spine/front images
+// all persist across a reload — not just front. wrapId doubles as the
+// staleness guard: if the user navigates away before a fetch resolves (or
+// before all three settle), stale results are discarded rather than painted.
+function resolveCoverRegionImages(wrapId) {
+  var regions = ["back", "spine", "front"];
+  var fetches = regions.map(function(region) {
+    var path = coverDesign && coverDesign.regions && coverDesign.regions[region] && coverDesign.regions[region].bgImage;
+    if (!path || typeof path !== "string" || path.indexOf("blob:") === 0 || path.indexOf("http") === 0) {
+      return Promise.resolve();
+    }
+    return fetch(API_URL + "/api/cover-wraps/" + wrapId + "/region-bg-image?region=" + region, { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(d) {
+        if (!d || !d.url) return;
+        if (coverWrapId !== wrapId) return;
+        coverRegionDisplayUrls[region] = d.url;
+      })
+      .catch(function() {});
+  });
+  Promise.all(fetches).then(function() {
+    if (coverWrapId !== wrapId) return;
+    renderCoverCanvas();
+  });
 }
 
 function updateCoverBgControls() {
