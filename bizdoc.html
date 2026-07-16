@@ -183,6 +183,9 @@
     .coverlib-grid{display:grid;grid-template-columns:repeat(auto-fill,220px);justify-content:start;gap:20px}
     .wrap-tile{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);padding:0;overflow:hidden;border-radius:14px;display:flex;flex-direction:column;gap:0;transition:all .25s;position:relative}
     .wrap-tile:hover{border-color:rgba(34,211,238,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(34,211,238,.1)}
+    .wrap-tile-selectable{cursor:pointer}
+    .wrap-tile-disabled{opacity:.45;cursor:not-allowed}
+    .wrap-tile-disabled:hover{transform:none;box-shadow:none}
     .wrap-thumb{width:100%;aspect-ratio:2/3;overflow:hidden;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);position:relative}
     .wrap-thumb-face{position:relative;overflow:hidden;width:100%;height:100%}
     .wrap-thumb-bg{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
@@ -900,6 +903,17 @@
       <button class="btn-cancel" onclick="closeSignModal()">Cancel</button>
       <button class="btn-submit" id="signSubmitBtn" onclick="submitSignature()">Sign Document</button>
     </div>
+  </div>
+</div>
+
+<!-- Saved Cover Picker Modal (Biz-EBook add cover / change cover flow) -->
+<div class="modal-overlay" id="savedCoverPickerModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 class="modal-title">Choose from My Saved Covers</h2>
+      <button class="modal-close" onclick="closeSavedCoverPicker()">✕</button>
+    </div>
+    <div class="coverlib-grid" id="savedCoverPickerGrid"><div class="loading">Loading covers...</div></div>
   </div>
 </div>
 
@@ -2586,6 +2600,112 @@ function renderWrapTile(w) {
   '</div>';
 }
 
+// Saved Cover Picker (Biz-EBook add cover / change cover flow) — lets a
+// book adopt a saved cover_wraps design's already-stored front image
+// without re-uploading a file. Reuses the same allWraps/loadCoverWraps()
+// data source as the Cover Library, just rendered into its own modal grid.
+var savedCoverPickerBookId = null;
+
+function openSavedCoverPicker(bookId) {
+  savedCoverPickerBookId = bookId;
+  document.getElementById("savedCoverPickerModal").classList.add("open");
+  document.getElementById("savedCoverPickerGrid").innerHTML = '<div class="loading">Loading covers...</div>';
+  loadCoverWraps().then(renderSavedCoverPickerGrid);
+}
+
+function closeSavedCoverPicker() {
+  document.getElementById("savedCoverPickerModal").classList.remove("open");
+  savedCoverPickerBookId = null;
+}
+
+// Mirrors the backend's own preference order (POST .../cover-from-wrap):
+// the front-region-specific override if the design has one, else the flat
+// whole-wrap base image, else null (a color/text-only cover with nothing
+// to attach).
+function getSavedCoverFrontImagePath(w) {
+  var fd = w && w.front_design;
+  if (!fd) return null;
+  var regionPath = fd.regions && fd.regions.front && fd.regions.front.bgImage;
+  return regionPath || fd.bgImage || null;
+}
+
+function renderSavedCoverPickerGrid() {
+  var grid = document.getElementById("savedCoverPickerGrid");
+  if (!grid) return;
+  if (!allWraps.length) {
+    grid.innerHTML = '<div class="empty-msg">No saved covers yet — create one in the Cover Library first.</div>';
+    return;
+  }
+  grid.innerHTML = allWraps.map(function(w) { return renderSavedCoverPickerTile(w); }).join("");
+  loadSavedCoverPickerThumbnails();
+}
+
+function renderSavedCoverPickerTile(w) {
+  var frontPath = getSavedCoverFrontImagePath(w);
+  var hasImage = !!frontPath;
+  var thumbInner = hasImage
+    ? '<div class="wrap-thumb-face"><img class="wrap-thumb-bg" data-picker-thumb-wrap-id="' + escapeHtml(w.id) + '" alt=""></div>'
+    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No image (color/text only)</span></div>';
+  var tileClass = "wrap-tile" + (hasImage ? " wrap-tile-selectable" : " wrap-tile-disabled");
+  var clickAttr = hasImage ? ' onclick="selectSavedCoverForBook(\'' + escapeHtml(w.id) + '\')"' : '';
+  return '<div class="' + tileClass + '"' + clickAttr + '>' +
+    '<div class="wrap-thumb">' + thumbInner + '</div>' +
+    '<div class="wrap-tile-meta">' +
+      '<div class="wrap-tile-info">' +
+        '<h3 class="wrap-tile-title">' + escapeHtml(w.name || "Untitled Cover") + '</h3>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// Resolves each tile's front image the same way the backend route does —
+// the region-bg-image endpoint (region=front) if the design has a
+// front-specific override, else the flat bg-image endpoint for the base
+// whole-wrap image. Each resolves independently so one failure can't block
+// the rest of the grid from showing thumbnails.
+function loadSavedCoverPickerThumbnails() {
+  allWraps.forEach(async function(w) {
+    var frontPath = getSavedCoverFrontImagePath(w);
+    if (!frontPath || typeof frontPath !== "string" || frontPath.indexOf("blob:") === 0 || frontPath.indexOf("http") === 0) return;
+    var usesRegionOverride = !!(w.front_design && w.front_design.regions && w.front_design.regions.front && w.front_design.regions.front.bgImage);
+    var resolveUrl = usesRegionOverride
+      ? (API_URL + "/api/cover-wraps/" + w.id + "/region-bg-image?region=front")
+      : (API_URL + "/api/cover-wraps/" + w.id + "/bg-image");
+    try {
+      var res = await fetch(resolveUrl, { headers: { "Authorization": "Bearer " + token } });
+      if (!res.ok) throw new Error("Failed to load cover image");
+      var d = await res.json();
+      var img = document.querySelector('img[data-picker-thumb-wrap-id="' + w.id + '"]');
+      if (!img || !d.url) throw new Error("No cover image url");
+      img.src = d.url;
+      img.style.display = "block";
+    } catch (e) {
+      // leave the fallback showing
+    }
+  });
+}
+
+async function selectSavedCoverForBook(wrapId) {
+  if (!savedCoverPickerBookId) return;
+  try {
+    var res = await fetch(API_URL + "/api/bizbook/books/" + savedCoverPickerBookId + "/cover-from-wrap", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ wrapId: wrapId })
+    });
+    var d = await res.json().catch(function() { return {}; });
+    if (!res.ok) {
+      showToast(d.error || "Failed to apply cover", "error");
+      return;
+    }
+    showToast("Cover applied.", "success");
+    closeSavedCoverPicker();
+    await loadMyBooks();
+  } catch (e) {
+    showToast("Failed to apply cover", "error");
+  }
+}
+
 function createNewWrap() {
   var trim = null;
   for (var j = 0; j < TRIM_SIZES.length; j++) {
@@ -2730,6 +2850,7 @@ function renderBookCard(b) {
           '<button class="doc-menu-item" onclick="ebookMenuEdit(event,\'' + escapeHtml(b.id) + '\')">Edit Manuscript</button>' +
           '<button class="doc-menu-item" onclick="ebookMenuDesignCover(event,\'' + escapeHtml(b.id) + '\')">Design Cover</button>' +
           '<button class="doc-menu-item" onclick="ebookMenuChangeCover(event,\'' + escapeHtml(b.id) + '\')">Change Cover</button>' +
+          '<button class="doc-menu-item" id="chooseSavedCoverBtn" onclick="ebookMenuChooseSavedCover(event,\'' + escapeHtml(b.id) + '\')">Choose from My Saved Covers</button>' +
           '<button class="doc-menu-item" onclick="ebookMenuDownloadPdf(event,\'' + escapeHtml(b.id) + '\')">Download PDF</button>' +
           '<button class="doc-menu-item" onclick="ebookMenuDownloadEpub(event,\'' + escapeHtml(b.id) + '\')">Download EPUB</button>' +
           '<button class="doc-menu-item danger" onclick="ebookMenuDelete(event,\'' + escapeHtml(b.id) + '\')">Delete</button>' +
@@ -2758,6 +2879,13 @@ function ebookMenuChangeCover(event, id) {
   var pop = document.getElementById("docMenu-" + id);
   if (pop) closeDocMenuPop(pop);
   triggerCoverChange(id);
+}
+
+function ebookMenuChooseSavedCover(event, id) {
+  event.stopPropagation();
+  var pop = document.getElementById("docMenu-" + id);
+  if (pop) closeDocMenuPop(pop);
+  openSavedCoverPicker(id);
 }
 
 function ebookMenuDownloadPdf(event, id) {
