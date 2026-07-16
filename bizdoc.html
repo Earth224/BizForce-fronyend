@@ -255,6 +255,8 @@
     .cover-viewport{margin:auto;overflow:hidden;position:relative;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:width .2s,height .2s}
     .cover-canvas{background:#ffffff;position:relative;overflow:hidden}
     .cover-region-bg{position:absolute;top:0;bottom:0;overflow:hidden;z-index:0;box-sizing:border-box}
+    .cover-region-hover-zone{position:absolute;top:0;bottom:0;pointer-events:none;z-index:2;display:none;box-sizing:border-box;transition:box-shadow .1s}
+    .cover-region-hover-zone.cover-region-hover{box-shadow:inset 0 0 0 1px rgba(34,211,238,.5)}
     .cover-fold-line{position:absolute;top:0;bottom:0;width:0;border-left:1px solid rgba(34,211,238,.55);pointer-events:none;z-index:50;display:none}
     .cover-bleed-border{position:absolute;top:0;left:0;right:0;bottom:0;border:1.5px solid rgba(34,211,238,.75);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
     .cover-trim-line{position:absolute;border:1px solid rgba(230,237,243,.55);pointer-events:none;z-index:50;display:none;box-sizing:border-box}
@@ -288,6 +290,7 @@
     .cover-size-value{min-width:28px;text-align:center;font-size:.78rem;color:#e6edf3;font-weight:600}
     .editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 10px;margin-bottom:14px;background:rgba(10,15,35,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;max-width:760px;margin-left:auto;margin-right:auto;width:100%}
     .etb{background:none;border:none;color:#8892b8;cursor:pointer;padding:6px 9px;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:32px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+    .cover-toolbar-label{color:#8892b8;font-size:.78rem;font-weight:600;white-space:nowrap;margin-right:2px}
     .etb:hover{background:rgba(34,211,238,.12);color:#22d3ee}
     .etb-italic{font-style:italic}
     .etb-underline{text-decoration:underline}
@@ -716,6 +719,7 @@
         <button type="button" class="etb" id="coverAlignCenterBtn" title="Align center" onclick="setCoverAlign('center')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="6" y1="18" x2="18" y2="18"/></svg></button>
         <button type="button" class="etb" id="coverAlignRightBtn" title="Align right" onclick="setCoverAlign('right')" disabled><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="7" y1="18" x2="20" y2="18"/></svg></button>
         <span class="etb-div"></span>
+        <span class="cover-toolbar-label">Rotate:</span>
         <div class="cover-size-stepper">
           <button type="button" class="etb" id="coverRotateMinus" title="Rotate -15°" onclick="nudgeCoverRotation(-15)" disabled>⟲</button>
           <span class="cover-size-value" id="coverRotateValue">–</span>
@@ -1501,7 +1505,7 @@ var coverPageCount = 0;
 var coverPaperStock = "white";
 var PAPER_THICKNESS = { white: 0.002252, cream: 0.0025, color: 0.002347 };
 var SPINE_TEXT_MIN_PAGES = 100;
-var DEFAULT_COVER_PAGE_COUNT = 300;
+var DEFAULT_COVER_PAGE_COUNT = 480;
 var coverBackFrac = 0;
 var coverSpineFrac = 0;
 var coverFrontFrac = 1;
@@ -3577,10 +3581,15 @@ function renderCoverGuides() {
   frontGuide.style.width = Math.max(0, 100 - coverFrontStartPct - safeXPct * 2) + "%";
   frontGuide.style.height = Math.max(0, 100 - safeYPct * 2) + "%";
 
-  // --- Spine: either its own safe-zone guide, or a thin-spine warning.
+  // --- Spine: thin-spine warning only. (There used to also be a dashed
+  // safe-margin box inset inside the spine band — on an already-narrow
+  // spine, an inset rectangle collapses to near-zero width and reads as
+  // stray "stub" lines down the middle of the spine, so it's gone. The
+  // two full-height fold lines drawn by renderCoverFolds() already mark
+  // the spine's real boundaries; the bleed/trim/margin guides above cover
+  // the outer perimeter and the back/front pages.)
   var spineWarnEl = canvas.querySelector(".cover-spine-warning");
   var spineWarnLabel = canvas.querySelector(".cover-spine-warning-label");
-  var spineGuide = canvas.querySelector(".cover-margin-guide-spine");
   if (!spineWarnEl) {
     spineWarnEl = document.createElement("div");
     spineWarnEl.className = "cover-spine-warning";
@@ -3592,20 +3601,14 @@ function renderCoverGuides() {
     spineWarnLabel.textContent = "Spine too thin for text";
     canvas.appendChild(spineWarnLabel);
   }
-  if (!spineGuide) {
-    spineGuide = document.createElement("div");
-    spineGuide.className = "cover-margin-guide cover-margin-guide-spine";
-    canvas.appendChild(spineGuide);
-  }
 
   var hasSpine = coverContext === "wrap" && coverSpineFrac > 0;
   var spineTooThin = hasSpine && (coverPageCount < SPINE_TEXT_MIN_PAGES || spineInches < COVER_MIN_SPINE_TEXT_IN);
 
-  if (!hasSpine) {
+  if (!hasSpine || !spineTooThin) {
     spineWarnEl.style.display = "none";
     spineWarnLabel.style.display = "none";
-    spineGuide.style.display = "none";
-  } else if (spineTooThin) {
+  } else {
     spineWarnEl.style.display = "block";
     spineWarnEl.style.left = coverBackEndPct + "%";
     spineWarnEl.style.width = Math.max(0, coverFrontStartPct - coverBackEndPct) + "%";
@@ -3613,17 +3616,6 @@ function renderCoverGuides() {
     spineWarnLabel.style.display = "block";
     spineWarnLabel.style.left = ((coverBackEndPct + coverFrontStartPct) / 2) + "%";
     spineWarnLabel.style.top = "50%";
-
-    spineGuide.style.display = "none";
-  } else {
-    spineWarnEl.style.display = "none";
-    spineWarnLabel.style.display = "none";
-
-    spineGuide.style.display = "block";
-    spineGuide.style.left = (coverBackEndPct + marginXPct) + "%";
-    spineGuide.style.top = safeYPct + "%";
-    spineGuide.style.width = Math.max(0, (coverFrontStartPct - coverBackEndPct) - marginXPct * 2) + "%";
-    spineGuide.style.height = Math.max(0, 100 - safeYPct * 2) + "%";
   }
 }
 
@@ -3999,6 +3991,16 @@ function isWrapBaseTarget() {
   return coverContext !== "wrap" || coverView === "wrap";
 }
 
+// Which region a given whole-wrap xPct falls into, using the same boundary
+// percentages the fold lines/guides are drawn from. Book context has no
+// regions, so it's always "front".
+function coverRegionAtPercent(xPct) {
+  if (coverContext !== "wrap") return "front";
+  if (xPct < coverBackEndPct) return "back";
+  if (xPct < coverFrontStartPct) return "spine";
+  return "front";
+}
+
 // Returns the object bg controls should read/write: the flat base
 // (coverDesign itself — book context or Full Wrap view) or the active
 // region's override (isolated Front/Spine/Back view).
@@ -4110,6 +4112,20 @@ function paintCoverBgLayer(wrapper, source, displayUrl) {
   }
 }
 
+// A lightweight, always-present hover-feedback overlay per region — exists
+// regardless of whether that region has an actual bg-override wrapper, so
+// hovering an empty (base-only) region still glows.
+function ensureCoverRegionHoverZone(canvas, name) {
+  var el = canvas.querySelector('.cover-region-hover-zone[data-region="' + name + '"]');
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "cover-region-hover-zone";
+    el.setAttribute("data-region", name);
+    canvas.appendChild(el);
+  }
+  return el;
+}
+
 function renderCoverRegionBackgrounds(canvas) {
   // BASE: the flat coverDesign fields, rendered as ONE continuous layer
   // spanning the whole canvas (back+spine+front together) — never sliced
@@ -4132,9 +4148,12 @@ function renderCoverRegionBackgrounds(canvas) {
   if (coverContext !== "wrap") {
     // Book mode has no regions — hide any override wrappers left over from
     // a previous wrap-editing session; the base above is the whole cover.
+    // Hover feedback is wrap-context only, so hide all hover zones too.
     names.forEach(function(name) {
       var el = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
       if (el) el.style.display = "none";
+      var hoverEl = canvas.querySelector('.cover-region-hover-zone[data-region="' + name + '"]');
+      if (hoverEl) hoverEl.style.display = "none";
     });
     return;
   }
@@ -4151,21 +4170,30 @@ function renderCoverRegionBackgrounds(canvas) {
     var hasOverride = !!(region && (region.bgImage || region.bgColor != null));
     var wrapper = canvas.querySelector('.cover-region-bg[data-region="' + name + '"]');
 
-    if (!hasOverride || !b.width || b.width <= 0) {
-      if (wrapper) wrapper.style.display = "none";
-      return;
+    if (hasOverride && b.width > 0) {
+      if (!wrapper) {
+        wrapper = document.createElement("div");
+        wrapper.className = "cover-region-bg";
+        wrapper.setAttribute("data-region", name);
+        wrapper.style.zIndex = "1";
+        canvas.insertBefore(wrapper, canvas.firstChild);
+      }
+      wrapper.style.display = "block";
+      wrapper.style.left = b.left + "%";
+      wrapper.style.width = b.width + "%";
+      paintCoverBgLayer(wrapper, region, coverRegionDisplayUrls[name]);
+    } else if (wrapper) {
+      wrapper.style.display = "none";
     }
-    if (!wrapper) {
-      wrapper = document.createElement("div");
-      wrapper.className = "cover-region-bg";
-      wrapper.setAttribute("data-region", name);
-      wrapper.style.zIndex = "1";
-      canvas.insertBefore(wrapper, canvas.firstChild);
+
+    var hoverEl = ensureCoverRegionHoverZone(canvas, name);
+    if (!b.width || b.width <= 0) {
+      hoverEl.style.display = "none";
+    } else {
+      hoverEl.style.display = "block";
+      hoverEl.style.left = b.left + "%";
+      hoverEl.style.width = b.width + "%";
     }
-    wrapper.style.display = "block";
-    wrapper.style.left = b.left + "%";
-    wrapper.style.width = b.width + "%";
-    paintCoverBgLayer(wrapper, region, coverRegionDisplayUrls[name]);
   });
 }
 
@@ -4427,20 +4455,39 @@ function onCoverLayerMouseUp() {
   coverDragState = null;
 }
 
+// Where a freshly-added layer should land: spine gets its own center point,
+// yPct pinned to 50, and rotation 90 (spine text reads vertically); an
+// isolated front/back view centers on that region instead of the wrap's
+// midpoint; Full Wrap and book context both just use xPct 50 as before.
+function getCoverNewLayerPlacement() {
+  if (coverContext === "wrap" && coverView === "spine") {
+    return { xPct: (coverBackEndPct + coverFrontStartPct) / 2, yPct: 50, rotation: 90 };
+  }
+  if (coverContext === "wrap" && coverView === "front") {
+    return { xPct: (coverFrontStartPct + 100) / 2, yPct: null, rotation: 0 };
+  }
+  if (coverContext === "wrap" && coverView === "back") {
+    return { xPct: coverBackEndPct / 2, yPct: null, rotation: 0 };
+  }
+  return { xPct: 50, yPct: null, rotation: 0 };
+}
+
 function addCoverTitleLayer() {
   if (!coverDesign) return;
+  var placement = getCoverNewLayerPlacement();
+  var isSpine = coverContext === "wrap" && coverView === "spine";
   var layer = {
     id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
     text: "Title",
-    xPct: 50,
-    yPct: 25,
+    xPct: placement.xPct,
+    yPct: placement.yPct != null ? placement.yPct : 25,
     fontFamily: EDITOR_FONTS[0].stack,
-    fontSizePct: 7,
+    fontSizePct: isSpine ? 2.6 : 7,
     color: "#ffffff",
     align: "center",
     bold: false,
     italic: false,
-    rotation: 0
+    rotation: placement.rotation
   };
   coverDesign.textLayers.push(layer);
   selectCoverLayer(layer.id);
@@ -4450,18 +4497,20 @@ function addCoverTitleLayer() {
 
 function addCoverTextLayer() {
   if (!coverDesign) return;
+  var placement = getCoverNewLayerPlacement();
+  var isSpine = coverContext === "wrap" && coverView === "spine";
   var layer = {
     id: "layer-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
     text: "New Text",
-    xPct: 50,
-    yPct: 50,
+    xPct: placement.xPct,
+    yPct: placement.yPct != null ? placement.yPct : 50,
     fontFamily: EDITOR_FONTS[0].stack,
-    fontSizePct: 3.5,
+    fontSizePct: isSpine ? 2.2 : 3.5,
     color: "#ffffff",
     align: "center",
     bold: false,
     italic: false,
-    rotation: 0
+    rotation: placement.rotation
   };
   coverDesign.textLayers.push(layer);
   selectCoverLayer(layer.id);
@@ -5250,6 +5299,29 @@ document.getElementById("coverBgImageInput").addEventListener("change", function
 document.getElementById("coverCanvas").addEventListener("click", function(e) {
   if (e.target.closest(".cover-text-layer")) return;
   deselectCoverLayer();
+});
+
+function updateCoverRegionHover(activeName) {
+  var canvas = document.getElementById("coverCanvas");
+  if (!canvas) return;
+  canvas.querySelectorAll(".cover-region-hover-zone").forEach(function(el) {
+    el.classList.toggle("cover-region-hover", !!activeName && el.getAttribute("data-region") === activeName);
+  });
+  canvas.style.cursor = activeName ? "text" : "";
+}
+
+document.getElementById("coverCanvas").addEventListener("mousemove", function(e) {
+  if (coverContext !== "wrap") return;
+  if (coverDragState) return;
+  var canvas = document.getElementById("coverCanvas");
+  var rect = canvas.getBoundingClientRect();
+  if (!rect.width) return;
+  var xPct = ((e.clientX - rect.left) / rect.width) * 100;
+  updateCoverRegionHover(coverRegionAtPercent(xPct));
+});
+
+document.getElementById("coverCanvas").addEventListener("mouseleave", function() {
+  updateCoverRegionHover(null);
 });
 
 document.getElementById("coverRemoveBtn").addEventListener("click", function() {
