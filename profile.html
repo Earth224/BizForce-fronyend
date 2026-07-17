@@ -1154,6 +1154,10 @@
           </div>
           <div class="pf-about-right">
             <div>
+              <div class="pf-about-field-label">Display Name</div>
+              <input class="pf-about-input" id="displayNameInput" placeholder="Your name">
+            </div>
+            <div>
               <div class="pf-about-field-label">Username</div>
               <input class="pf-about-input" id="usernameInput" placeholder="your-handle">
               <p style="font-size:.75rem;color:var(--sub);margin:4px 0 0">Your public handle for your storefront and shareable links.</p>
@@ -1480,6 +1484,7 @@ function applyProfile(p) {
   // Name
   var name = p.display_name || (isOwner ? "Your Name" : "");
   document.getElementById("displayName").textContent = name;
+  document.getElementById("displayNameInput").value = p.display_name || "";
   // Initials
   var initials = name.split(" ").filter(Boolean).map(function(w){ return w[0]; }).join("").toUpperCase().slice(0,2) || "?";
   document.getElementById("avatarInitials").textContent = initials;
@@ -1544,7 +1549,14 @@ function applyProfile(p) {
 }
 
 // ── Edit mode ────────────────────────────────────────────────────────────────
-function toggleEditMode() {
+async function toggleEditMode() {
+  // Exiting edit mode ("✓ Done") must persist first — silently discarding
+  // typed edits here was the save trap. Stay in edit mode (with saveAbout's
+  // own error status still visible) if the save fails.
+  if (editMode) {
+    var saved = await saveAbout();
+    if (!saved) return;
+  }
   editMode = !editMode;
   document.body.classList.toggle("edit-mode", editMode);
   var btn = document.getElementById("editBtn");
@@ -1642,21 +1654,25 @@ async function saveAbout() {
   var btn    = document.getElementById("saveAboutBtn");
   var status = document.getElementById("aboutStatus");
   btn.disabled = true; status.textContent = "Saving…"; status.className = "pf-about-save-status";
+  var ok = false;
   try {
     var body = {
-      bio:      document.getElementById("bioInput").value.trim(),
-      username: document.getElementById("usernameInput").value.trim(),
-      industry: document.getElementById("industryInput").value.trim(),
-      skills:   skills
+      display_name: document.getElementById("displayNameInput").value.trim(),
+      bio:          document.getElementById("bioInput").value.trim(),
+      username:     document.getElementById("usernameInput").value.trim(),
+      industry:     document.getElementById("industryInput").value.trim(),
+      skills:       skills
     };
     var res = await apiFetch("/api/bfp/profile/me", "PUT", body);
     if (!res.ok) throw new Error((await res.json()).error || "Save failed");
     var d = await res.json(); profileData = d.profile || profileData;
     applyProfile(profileData);
     status.textContent = "Saved!"; status.className = "pf-about-save-status ok";
+    ok = true;
   } catch(e) { status.textContent = e.message; status.className = "pf-about-save-status err"; }
   btn.disabled = false;
   setTimeout(function(){ status.textContent=""; status.className="pf-about-save-status"; }, 3000);
+  return ok;
 }
 
 // ── Empty state helper ────────────────────────────────────────────────────────
