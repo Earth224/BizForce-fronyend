@@ -1321,6 +1321,24 @@
       <input class="pf-form-input" id="pm-buy-link" placeholder="https://… (checkout or sales page)">
     </div>
     <div class="pf-form-group">
+      <div class="pf-about-field-label">Listing Type</div>
+      <select class="pf-about-input" id="pm-listing-kind">
+        <option value="good">Good</option>
+        <option value="service">Service</option>
+      </select>
+    </div>
+    <div class="pf-form-group">
+      <div class="pf-about-field-label">Category</div>
+      <input class="pf-about-input" id="pm-category" placeholder="e.g. Design, Coaching, Merch…">
+    </div>
+    <div class="pf-form-group">
+      <div class="pf-about-field-label">Status</div>
+      <select class="pf-about-input" id="pm-status">
+        <option value="active">Active</option>
+        <option value="draft">Draft</option>
+      </select>
+    </div>
+    <div class="pf-form-group">
       <label class="pf-form-label">Product Photo</label>
       <div class="pf-upload-row">
         <button class="pf-upload-trigger" onclick="triggerFileUpload('fi-prod-img','products','pm-img-url','pm-img-prev','pm-img-status')">Upload Photo</button>
@@ -1745,11 +1763,16 @@ function openProductModal(id) {
       document.getElementById("pm-desc").value     = p.description  || "";
       document.getElementById("pm-buy-link").value = p.buy_link     || "";
       document.getElementById("pm-img-url").value  = p.image_url    || "";
+      document.getElementById("pm-listing-kind").value = p.listing_kind || "good";
+      document.getElementById("pm-category").value     = p.category     || "";
+      document.getElementById("pm-status").value       = p.status       || "active";
       if (p.image_url) { prev.src = p.image_url; prev.style.display = "block"; }
       else               prev.style.display = "none";
     }
   } else {
-    ["pm-name","pm-price","pm-desc","pm-buy-link","pm-img-url"].forEach(function(i){ document.getElementById(i).value=""; });
+    ["pm-name","pm-price","pm-desc","pm-buy-link","pm-img-url","pm-category"].forEach(function(i){ document.getElementById(i).value=""; });
+    document.getElementById("pm-listing-kind").value = "good";
+    document.getElementById("pm-status").value       = "active";
     prev.style.display = "none";
   }
   openModal("modalProduct");
@@ -1766,10 +1789,13 @@ async function saveProduct() {
   try {
     var body = {
       name,
-      price:       document.getElementById("pm-price").value.trim() || null,
-      description: document.getElementById("pm-desc").value.trim(),
-      buy_link:    document.getElementById("pm-buy-link").value.trim() || null,
-      image_url:   document.getElementById("pm-img-url").value || null
+      price:        document.getElementById("pm-price").value.trim() || null,
+      description:  document.getElementById("pm-desc").value.trim(),
+      buy_link:     document.getElementById("pm-buy-link").value.trim() || null,
+      image_url:    document.getElementById("pm-img-url").value || null,
+      listing_kind: document.getElementById("pm-listing-kind").value,
+      category:     document.getElementById("pm-category").value.trim(),
+      status:       document.getElementById("pm-status").value
     };
     var path   = editingProductId ? "/api/bfp/pproducts/"+editingProductId : "/api/bfp/pproducts";
     var method = editingProductId ? "PUT" : "POST";
