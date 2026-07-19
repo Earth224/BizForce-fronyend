@@ -798,6 +798,7 @@
     }
     .oracle-msg.from-oracle { align-self: flex-start; }
     .oracle-msg.from-user  { align-self: flex-end; align-items: flex-end; }
+    .oracle-msg:has(.oracle-thinking) { max-width: 100%; }
 
     .msg-sender {
       font-size: 0.6rem;
@@ -834,6 +835,9 @@
     /* Thinking dots */
     .oracle-thinking {
       display: inline-flex;
+      align-items: center;
+      max-width: none;
+      white-space: nowrap;
       gap: 5px;
       padding: 14px 18px;
       background: rgba(8, 12, 28, 0.85);
@@ -966,6 +970,7 @@
       font-size: 0.82rem;
       font-style: italic;
       color: #ccd0e8;
+      white-space: nowrap;
       margin-right: 6px;
     }
   </style>
@@ -1166,7 +1171,7 @@
 
     <div class="oracle-messages bf-brand-rim" id="messageArea">
       <div class="oracle-msg from-oracle">
-        <span class="msg-sender">Oracle</span>
+        <span class="msg-sender">TERMAXIMUS</span>
         <div class="msg-bubble" id="greetingMsg">I have awaited you. What do you seek?</div>
       </div>
     </div>
@@ -1458,7 +1463,7 @@
         thinkingEl = document.createElement("div");
         thinkingEl.className = "oracle-msg from-oracle";
         thinkingEl.innerHTML =
-          '<span class="msg-sender">Oracle</span>' +
+          '<span class="msg-sender">TERMAXIMUS</span>' +
           '<div class="oracle-thinking' + (reviewingDocs ? ' oracle-thinking-reviewing' : '') + '"><span class="oracle-thinking-label">' + thinkingLabel + '</span><span></span><span></span><span></span></div>';
         messageArea.appendChild(thinkingEl);
         messageArea.scrollTop = messageArea.scrollHeight;
@@ -1473,7 +1478,7 @@
       wrap.className = "oracle-msg " + (who === "oracle" ? "from-oracle" : "from-user");
       var sender = document.createElement("span");
       sender.className = "msg-sender";
-      sender.textContent = who === "oracle" ? "Oracle" : "You";
+      sender.textContent = who === "oracle" ? "TERMAXIMUS" : "You";
       var bubble = document.createElement("div");
       bubble.className = "msg-bubble";
       bubble.textContent = text;
