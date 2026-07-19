@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — Ads Agent</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("/app.html");})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+        #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .agent-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22));
+      border: 2px solid rgba(0, 229, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+      flex-shrink: 0;
+    }
+
+    .agent-avatar svg {
+      width: 34px;
+      height: 34px;
+      opacity: 0.85;
+    }
+
+    .agent-header-text { flex: 1; min-width: 220px; }
+
+    .agent-title {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .agent-subtitle {
+      margin: 0 0 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #8892b8;
+    }
+
+    .capability-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .capability-pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      background: rgba(168, 85, 247, 0.1);
+      color: #c4b5fd;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .context-card {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      margin-bottom: 32px;
+    }
+
+    .context-card:hover {
+      border-color: rgba(0, 229, 255, 0.25);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 0 30px rgba(0, 229, 255, 0.08);
+    }
+
+    .section-label {
+      margin: 0 0 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #22d3ee;
+    }
+
+    .context-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .context-item label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8888aa;
+      margin-bottom: 4px;
+    }
+
+    .context-item span {
+      font-size: 0.9rem;
+      color: #e8e8ff;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .research-goals {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .research-goals p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #c4b5fd;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-meta {
+      font-size: 0.85rem;
+      color: #8888aa;
+    }
+
+    .toolbar-meta strong {
+      color: #22d3ee;
+      font-weight: 700;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 20px;
+      border: none;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: #ffffff;
+      background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(0, 198, 255, 0.25);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0, 198, 255, 0.35), 0 0 20px rgba(168, 85, 247, 0.25);
+    }
+
+    .action-btn--ghost {
+      background: rgba(12, 18, 38, 0.75);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: #22d3ee;
+      box-shadow: none;
+    }
+
+    .action-btn--ghost:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+    }
+
+    .reports-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    .report-section {
+      padding: 24px;
+      border-radius: 20px;
+      background: rgba(12, 18, 38, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .report-section:hover {
+      border-color: rgba(0, 229, 255, 0.25);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35), 0 0 30px rgba(168, 85, 247, 0.08);
+    }
+
+    .report-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .report-section-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    .report-count {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #8888aa;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .report-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .report-item {
+      padding: 18px;
+      border-radius: 14px;
+      background: rgba(8, 12, 28, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: border-color 0.25s ease, transform 0.25s ease;
+    }
+
+    .report-item:hover {
+      border-color: rgba(0, 229, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .report-item-title {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e8e8ff;
+      line-height: 1.4;
+    }
+
+    .report-item-meta {
+      margin: 0 0 10px;
+      font-size: 0.78rem;
+      color: #8888aa;
+      line-height: 1.5;
+    }
+
+    .report-item-body {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #8892b8;
+      line-height: 1.6;
+    }
+
+    .report-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      color: #22d3ee;
+    }
+
+    .empty-state {
+      padding: 24px;
+      border-radius: 14px;
+      border: 1px dashed rgba(168, 85, 247, 0.35);
+      background: rgba(168, 85, 247, 0.06);
+      text-align: center;
+    }
+
+    .empty-state p {
+      margin: 0 0 14px;
+      font-size: 0.9rem;
+      color: #8892b8;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .page { padding: 24px 16px 48px; }
+      .agent-header { gap: 16px; }
+      .report-items { grid-template-columns: 1fr; }
+    }
+  
+    .agent-avatar{border-color:rgba(192,132,252,0.55);background:linear-gradient(135deg,rgba(192,132,252,0.2),rgba(168,85,247,0.12));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="top-nav">
+      <a class="back-link" href="ai-agents.html">← Agent Directory</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+    <header class="agent-header">
+      <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9a4 4 0 0 0 0 8h6a4 4 0 0 1 0 8H6"/></svg></div>
+      <div class="agent-header-text">
+        <h1 class="agent-title">Ads Agent</h1>
+        <p class="agent-subtitle">Campaigns, paid traffic, and advertising performance intelligence.</p>
+        <div class="capability-pills"><span class="capability-pill">Deals</span><span class="capability-pill">Partnerships</span><span class="capability-pill">Negotiations</span><span class="capability-pill">Pipeline</span><span class="capability-pill">Strategy</span></div>
+      </div>
+    </header>
+    <section class="context-card" aria-label="Business Profile Context">
+      <h2 class="section-label">Business Profile Context</h2>
+      <div class="context-grid" id="businessContextGrid"></div>
+      
+      <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
+    </section>
+    <div class="toolbar">
+      <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
+        <a class="action-btn" href="dashboard.html">Run on Dashboard</a>
+      </div>
+    </div>
+    <div class="reports-grid" id="reportsGrid"></div>
+  </div>
+  <script>
+    var AGENT_KEY = "adsAgent";
+    var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
+    var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
+    var REPORT_SECTIONS = [{"title":"Deals","collections":["deals"]},{"title":"Partnerships","collections":["partnerships"]},{"title":"Pipeline","collections":["pipeline"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    var EXTRA_CONTEXT_FIELDS = [];
+    var GOALS_FIELD = "";
+    var DASHBOARD_HREF = "dashboard.html";
+    var AGENT_LABEL = "Ads Agent";
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    function formatDate(value) {
+      if (!value) return "—";
+      try { return new Date(value).toLocaleString(); } catch (e) { return String(value); }
+    }
+    function loadUserProfile() {
+      try { return JSON.parse(localStorage.getItem("bf_user") || "null") || {}; } catch (e) { return {}; }
+    }
+    function loadExecutiveMemory() {
+      var keys = [BF_EXECUTIVE_MEMORY_KEY, BF_AGENT_MEMORY_KEY], i, stored;
+      for (i = 0; i < keys.length; i++) {
+        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
+        if (stored && typeof stored === "object" && stored[AGENT_KEY]) return stored;
+      }
+      for (i = 0; i < keys.length; i++) {
+        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
+        if (stored && typeof stored === "object") return stored;
+      }
+      return null;
+    }
+    function getAgentStore(memory) {
+      if (!memory || typeof memory !== "object") return { reports: {}, stats: {}, businessContext: {} };
+      var store = memory[AGENT_KEY];
+      if (!store || typeof store !== "object") store = { reports: {}, stats: {}, businessContext: {} };
+      if (!store.reports || typeof store.reports !== "object") store.reports = {};
+      if (!store.businessContext) store.businessContext = {};
+      return store;
+    }
+    function buildBusinessContext(profile, store) {
+      var ctx = store && store.businessContext ? store.businessContext : {};
+      var base = {
+        businessName: ctx.businessName || profile.business_name || profile.businessName || "Your Business",
+        industry: ctx.industry || profile.industry || profile.top_keywords || "—",
+        website: profile.website || ctx.website || "—",
+        location: profile.location || ctx.location || "—",
+        competitors: ctx.competitors || profile.top_competitors || "—"
+      };
+      var i;
+      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
+        var f = EXTRA_CONTEXT_FIELDS[i];
+        base[f.key] = ctx[f.key] || f.fallback || "—";
+      }
+      return base;
+    }
+    function collectItems(store, section) {
+      var items = [], seen = {}, bi, ci, bn, cn, bucket, coll, key, arr, ai;
+      if (section.buckets) {
+        for (bi = 0; bi < section.buckets.length; bi++) {
+          bn = section.buckets[bi];
+          bucket = store.reports && store.reports[bn] ? store.reports[bn] : {};
+          if (bucket && typeof bucket === "object" && !Array.isArray(bucket)) {
+            for (key in bucket) if (Object.prototype.hasOwnProperty.call(bucket, key) && !seen[key + ":" + bn]) {
+              seen[key + ":" + bn] = true; items.push(bucket[key]);
+            }
+          }
+        }
+      }
+      if (section.nestedBuckets) {
+        for (bi = 0; bi < section.nestedBuckets.length; bi++) {
+          bn = section.nestedBuckets[bi];
+          bucket = store.reports && store.reports[bn] ? store.reports[bn] : {};
+          if (bucket && typeof bucket === "object") {
+            for (key in bucket) if (Object.prototype.hasOwnProperty.call(bucket, key) && !seen["n:" + key + ":" + bn]) {
+              seen["n:" + key + ":" + bn] = true; items.push(bucket[key]);
+            }
+          }
+        }
+      }
+      if (section.collections) {
+        for (ci = 0; ci < section.collections.length; ci++) {
+          cn = section.collections[ci];
+          coll = store[cn];
+          if (Array.isArray(coll)) {
+            for (ai = 0; ai < coll.length; ai++) if (!seen["a:" + cn + ":" + ai]) {
+              seen["a:" + cn + ":" + ai] = true; items.push(coll[ai]);
+            }
+          } else if (coll && typeof coll === "object") {
+            for (key in coll) if (Object.prototype.hasOwnProperty.call(coll, key) && !seen[key + ":" + cn]) {
+              seen[key + ":" + cn] = true; items.push(coll[key]);
+            }
+          }
+        }
+      }
+      items.sort(function (a, b) {
+        var at = a && (a.updatedAt || a.timestamp || a.runAt) ? new Date(a.updatedAt || a.timestamp || a.runAt).getTime() : 0;
+        var bt = b && (b.updatedAt || b.timestamp || b.runAt) ? new Date(b.updatedAt || b.timestamp || b.runAt).getTime() : 0;
+        return bt - at;
+      });
+      return items;
+    }
+    function renderGenericItem(item) {
+      var title = item.title || item.name || item.reportTitle || item.headline || item.topicName || item.ideaTitle || item.briefTitle || item.campaignName || item.projectName || item.type || item.id || "Report";
+      var meta = [];
+      if (item.confidence) meta.push("Confidence: " + item.confidence);
+      if (item.status) meta.push("Status: " + item.status);
+      if (item.priority) meta.push("Priority: " + item.priority);
+      if (item.reportType) meta.push("Type: " + item.reportType);
+      var body = item.summary || item.executiveSummary || item.goal || "";
+      if (!body && Array.isArray(item.highlights)) body = item.highlights.join(" · ");
+      if (!body && Array.isArray(item.recommendations)) body = item.recommendations.join(" · ");
+      if (!body && item.seoScore != null) body = "SEO score: " + item.seoScore;
+      if (!body) body = "—";
+      return "<article class=\"report-item\"><h3 class=\"report-item-title\">" + escapeHtml(title) + "</h3>" +
+        (meta.length ? "<p class=\"report-item-meta\">" + escapeHtml(meta.join(" · ")) + "</p>" : "") +
+        "<p class=\"report-item-body\">" + escapeHtml(body) + "</p>" +
+        "<span class=\"report-tag\">" + escapeHtml(formatDate(item.updatedAt || item.timestamp || item.runAt)) + "</span></article>";
+    }
+    function renderBusinessContext(context) {
+      var fields = [
+        { label: "Business", value: context.businessName },
+        { label: "Industry", value: context.industry },
+        { label: "Website", value: context.website },
+        { label: "Location", value: context.location },
+        { label: "Competitors", value: context.competitors }
+      ];
+      var i, html = "";
+      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
+        fields.push({ label: EXTRA_CONTEXT_FIELDS[i].label, value: context[EXTRA_CONTEXT_FIELDS[i].key] || "—" });
+      }
+      for (i = 0; i < fields.length; i++) {
+        html += "<div class=\"context-item\"><label>" + escapeHtml(fields[i].label) + "</label><span>" + escapeHtml(fields[i].value) + "</span></div>";
+      }
+      document.getElementById("businessContextGrid").innerHTML = html;
+      var goalsEl = document.getElementById("agentGoalsText");
+      if (goalsEl && GOALS_FIELD) goalsEl.textContent = context[GOALS_FIELD] || "—";
+    }
+    function renderReports(store, agentLabel) {
+      var grid = document.getElementById("reportsGrid"), total = 0, html = "", si, section, items, ii;
+      for (si = 0; si < REPORT_SECTIONS.length; si++) {
+        section = REPORT_SECTIONS[si];
+        items = collectItems(store, section);
+        total += items.length;
+        html += "<section class=\"report-section\"><div class=\"report-section-header\"><h2 class=\"report-section-title\">" + escapeHtml(section.title) + "</h2><span class=\"report-count\">" + items.length + " report" + (items.length === 1 ? "" : "s") + "</span></div>";
+        if (!items.length) {
+          html += "<div class=\"empty-state\"><p>No " + escapeHtml(section.title.toLowerCase()) + " yet. Run the " + escapeHtml(agentLabel) + " from the dashboard to generate intelligence.</p><a class=\"action-btn\" href=\"" + DASHBOARD_HREF + "\">Go to Dashboard</a></div>";
+        } else {
+          html += "<div class=\"report-items\">";
+          for (ii = 0; ii < items.length; ii++) html += renderGenericItem(items[ii]);
+          html += "</div>";
+        }
+        html += "</section>";
+      }
+      grid.innerHTML = html;
+      document.getElementById("reportTotalText").textContent = String(total);
+      var lr = store.lastRun;
+      if (lr && typeof lr === "object") lr = lr.runAt || lr.timestamp;
+      document.getElementById("lastRunText").textContent = formatDate(lr || (store.stats && (store.stats.lastRun || store.stats.updatedAt)));
+      var statsEl = document.getElementById("statsGrid");
+      if (statsEl && store.stats && typeof store.stats === "object") {
+        var sk, sh = "";
+        for (sk in store.stats) if (Object.prototype.hasOwnProperty.call(store.stats, sk) && store.stats[sk] != null && sk !== "updatedAt" && typeof store.stats[sk] !== "object") {
+          sh += "<div class=\"context-item\"><label>" + escapeHtml(sk) + "</label><span>" + escapeHtml(store.stats[sk]) + "</span></div>";
+        }
+        statsEl.innerHTML = sh || "<p class=\"report-item-body\">No stats recorded yet.</p>";
+      }
+    }
+    function applyLiveAgentData() {
+      var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+      var token = localStorage.getItem("bf_token");
+      if (!token) { return; }
+
+      fetch(API_URL + "/api/agents/ads", {
+        method: "GET",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (response) {
+          return response.ok ? response.json() : null;
+        })
+        .then(function (data) {
+          if (!data || !data.agent) { return; }
+          var agent = data.agent;
+
+          if (typeof agent.display_name === "string" && agent.display_name.trim()) {
+            var titleEl = document.querySelector(".agent-title");
+            if (titleEl) { titleEl.textContent = agent.display_name; }
+          }
+
+          if (typeof agent.description === "string" && agent.description.trim()) {
+            var subtitleEl = document.querySelector(".agent-subtitle");
+            if (subtitleEl) { subtitleEl.textContent = agent.description; }
+          }
+
+          var liveStatsEl = document.getElementById("liveAgentStats");
+          if (!liveStatsEl) {
+            var statsGridEl = document.getElementById("statsGrid");
+            if (statsGridEl && statsGridEl.parentNode) {
+              liveStatsEl = document.createElement("div");
+              liveStatsEl.id = "liveAgentStats";
+              liveStatsEl.className = "context-grid";
+              statsGridEl.parentNode.insertBefore(liveStatsEl, statsGridEl);
+            }
+          }
+          if (liveStatsEl) {
+            var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
+            var estimatedRoi = agent.estimated_roi != null ? agent.estimated_roi : 0;
+            var roiFormatted = "$" + Math.round(estimatedRoi).toLocaleString("en-US");
+
+            liveStatsEl.textContent = "";
+
+            var tile1 = document.createElement("div");
+            tile1.className = "context-item";
+            var label1 = document.createElement("label");
+            label1.textContent = "Tasks Completed";
+            var value1 = document.createElement("span");
+            value1.textContent = String(tasksCompleted);
+            tile1.appendChild(label1);
+            tile1.appendChild(value1);
+
+            var tile2 = document.createElement("div");
+            tile2.className = "context-item";
+            var label2 = document.createElement("label");
+            label2.textContent = "Est. ROI";
+            var value2 = document.createElement("span");
+            value2.textContent = roiFormatted;
+            tile2.appendChild(label2);
+            tile2.appendChild(value2);
+
+            liveStatsEl.appendChild(tile1);
+            liveStatsEl.appendChild(tile2);
+          }
+        })
+        .catch(function () {});
+    }
+    function refreshPage() {
+      var profile = loadUserProfile();
+      var memory = loadExecutiveMemory();
+      var store = getAgentStore(memory);
+      renderBusinessContext(buildBusinessContext(profile, store));
+      renderReports(store, AGENT_LABEL);
+      applyLiveAgentData();
+    }
+    document.getElementById("refreshBtn").addEventListener("click", refreshPage);
+    refreshPage();
+  </script>
+<script>
+window.AGENT_PROFILE_CONFIG = {
+  agentType:   "ads",
+  agentLabel:  "Ads Agent",
+  accentColor: "#c084fc",
+  taskTypes: [
+    { value: "deal_pipeline",       label: "Deal Pipeline" },
+    { value: "partnership_strategy",label: "Partnership Strategy" },
+    { value: "negotiation_brief",   label: "Negotiation Brief" },
+    { value: "due_diligence",       label: "Due Diligence Checklist" },
+    { value: "term_sheet",          label: "Term Sheet Draft" },
+    { value: "general",             label: "General Task" }
+  ]
+};
+</script>
+<script src="/scripts/agent-profile.js"></script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+</body>
+</html>
