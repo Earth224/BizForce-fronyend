@@ -1229,6 +1229,30 @@
       if (n && d) { birthName = n; birthDate = d; openChat(true); }
     })();
 
+    /* ── Daily invocation — replaces the greeting with Termaximus's
+       personalized daily invocation; silently leaves the existing
+       greeting untouched on any failure. ── */
+    function loadInvocation() {
+      if (!token) return;
+      try {
+        fetch(API_URL + "/api/oracle/invocation", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (data && typeof data.invocation === "string" && data.invocation.trim()) {
+              var greetingEl = document.getElementById("greetingMsg");
+              if (greetingEl) greetingEl.textContent = data.invocation;
+            }
+          })
+          .catch(function () {});
+      } catch (e) {}
+    }
+
+    if (localStorage.getItem("bf_oracle_name") && localStorage.getItem("bf_oracle_date")) {
+      loadInvocation();
+    }
+
     /* ── Sync flow ── */
     var syncBtn   = document.getElementById("syncBtn");
     var syncError = document.getElementById("syncError");
