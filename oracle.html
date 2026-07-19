@@ -1224,27 +1224,45 @@
         life_details:     lifeDetailsInput
       };
 
-      try {
-        fetch(API_URL + "/api/oracle/sync", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-          },
-          body: JSON.stringify(syncPayload)
-        }).catch(function (err) {
-          console.error("Oracle sync failed:", err);
-        });
-      } catch (err) {
-        console.error("Oracle sync failed:", err);
-      }
+      syncBtn.disabled = true;
 
-      birthName = n; birthDate = d;
-      localStorage.setItem("bf_oracle_name", n);
-      localStorage.setItem("bf_oracle_date", d);
-      syncBtn.textContent = "SYNCHRONIZING…";
-      syncBtn.classList.add("syncing");
-      setTimeout(function () { openChat(false); }, 1500);
+      fetch(API_URL + "/api/oracle/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(syncPayload)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function (result) {
+          syncBtn.disabled = false;
+
+          if (!result.ok) {
+            syncBtn.textContent = "SYNCHRONIZE";
+            syncBtn.classList.remove("syncing");
+            showSyncError((result.body && result.body.error) || "The sync failed. Please try again.");
+            return;
+          }
+
+          birthName = n; birthDate = d;
+          localStorage.setItem("bf_oracle_name", n);
+          localStorage.setItem("bf_oracle_date", d);
+          syncBtn.textContent = "SYNCHRONIZING…";
+          syncBtn.classList.add("syncing");
+          setTimeout(function () { openChat(false); }, 1500);
+        })
+        .catch(function (err) {
+          console.error("Oracle sync failed:", err);
+          syncBtn.disabled = false;
+          syncBtn.textContent = "SYNCHRONIZE";
+          syncBtn.classList.remove("syncing");
+          showSyncError("Could not reach the Oracle. Check your connection and try again.");
+        });
     });
 
     function showSyncError(msg) {
@@ -1737,6 +1755,14 @@
       var pathFocusInput       = document.getElementById("pathFocusInput").value.trim();
       var lifeDetailsInput     = document.getElementById("lifeDetailsInput").value.trim();
 
+      if (!birthNameInput || !birthDateInput) {
+        if (saveStatusEl) {
+          saveStatusEl.textContent = "Birth name and birth date are both required.";
+          saveStatusEl.classList.add("is-visible");
+        }
+        return;
+      }
+
       var syncPayload = {
         birth_name:       birthNameInput,
         birth_date:       birthDateInput,
@@ -1747,30 +1773,51 @@
         life_details:     lifeDetailsInput
       };
 
-      try {
-        fetch(API_URL + "/api/oracle/sync", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-          },
-          body: JSON.stringify(syncPayload)
-        }).catch(function (err) {
-          console.error("Oracle profile save failed:", err);
-        });
-      } catch (err) {
-        console.error("Oracle profile save failed:", err);
-      }
+      if (saveBtn) saveBtn.disabled = true;
 
-      if (saveStatusEl) {
-        saveStatusEl.classList.add("is-visible");
-        setTimeout(function () {
-          saveStatusEl.classList.remove("is-visible");
-          closeProfile();
-        }, 1100);
-      } else {
-        closeProfile();
-      }
+      fetch(API_URL + "/api/oracle/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(syncPayload)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function (result) {
+          if (saveBtn) saveBtn.disabled = false;
+
+          if (!result.ok) {
+            if (saveStatusEl) {
+              saveStatusEl.textContent = (result.body && result.body.error) || "Save failed. Please try again.";
+              saveStatusEl.classList.add("is-visible");
+            }
+            return;
+          }
+
+          if (saveStatusEl) {
+            saveStatusEl.textContent = "Saved";
+            saveStatusEl.classList.add("is-visible");
+            setTimeout(function () {
+              saveStatusEl.classList.remove("is-visible");
+              closeProfile();
+            }, 1100);
+          } else {
+            closeProfile();
+          }
+        })
+        .catch(function (err) {
+          console.error("Oracle profile save failed:", err);
+          if (saveBtn) saveBtn.disabled = false;
+          if (saveStatusEl) {
+            saveStatusEl.textContent = "Could not reach the Oracle. Check your connection and try again.";
+            saveStatusEl.classList.add("is-visible");
+          }
+        });
     }
 
     if (saveBtn) {
@@ -1807,6 +1854,9 @@
         closeProfile();
       });
     }
+
+    /* pre-fill the profile form on initial load, not only when the panel is opened */
+    prefillProfile();
   }());
   </script>
 
