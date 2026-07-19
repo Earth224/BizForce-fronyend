@@ -1193,6 +1193,28 @@
   <script>
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     var birthName = "", birthDate = "", chatHistory = [];
+    var ORACLE_THINKING_PHRASES = [
+      "Termaximus consults the deeper current…",
+      "Tracing the pattern beneath the pattern…",
+      "Descending into the well of knowing…",
+      "The channel gathers its light…",
+      "Weighing this in the alchemical fire…",
+      "Peeping the angles on this one…",
+      "Turning the matter over, facet by facet…",
+      "Listening to what the silence says…",
+      "Letting the signal rise through the noise…",
+      "Consulting the record etched in the deep…",
+      "Running it through the crucible…",
+      "The Oracle leans in…"
+    ];
+    var ORACLE_REVIEW_PHRASES = [
+      "Termaximus is reviewing your document…",
+      "Combing the fine print, line by line…",
+      "Peeping every clause and sub-clause…",
+      "Hunting the buried terms…",
+      "Reading between the lines you were meant to miss…",
+      "Scrutinizing the language, word by word…"
+    ];
     var token = localStorage.getItem("bf_token");
 
     /* ── Restore previous sync ── */
@@ -1430,13 +1452,14 @@
       chatInput.disabled  = on;
       attachBtn.disabled  = on;
       if (on) {
+        var thinkingLabel = reviewingDocs
+          ? ORACLE_REVIEW_PHRASES[Math.floor(Math.random() * ORACLE_REVIEW_PHRASES.length)]
+          : ORACLE_THINKING_PHRASES[Math.floor(Math.random() * ORACLE_THINKING_PHRASES.length)];
         thinkingEl = document.createElement("div");
         thinkingEl.className = "oracle-msg from-oracle";
         thinkingEl.innerHTML =
           '<span class="msg-sender">Oracle</span>' +
-          (reviewingDocs
-            ? '<div class="oracle-thinking oracle-thinking-reviewing"><span class="oracle-thinking-label">Termaximus is reviewing your document…</span><span></span><span></span><span></span></div>'
-            : '<div class="oracle-thinking"><span></span><span></span><span></span></div>');
+          '<div class="oracle-thinking' + (reviewingDocs ? ' oracle-thinking-reviewing' : '') + '"><span class="oracle-thinking-label">' + thinkingLabel + '</span><span></span><span></span><span></span></div>';
         messageArea.appendChild(thinkingEl);
         messageArea.scrollTop = messageArea.scrollHeight;
       } else if (thinkingEl) {
