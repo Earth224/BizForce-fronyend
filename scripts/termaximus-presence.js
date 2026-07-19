@@ -709,6 +709,34 @@
     "  background: rgba(100,55,220,0.5);",
     "  border-color: rgba(150,110,255,0.55);",
     "}",
+    "#tmx-chat-attach {",
+    "  width: 30px;",
+    "  height: 30px;",
+    "  border-radius: 8px;",
+    "  border: 1px solid rgba(120,80,220,0.4);",
+    "  background: rgba(80,40,180,0.18);",
+    "  color: rgba(200,180,255,0.8);",
+    "  font-size: 13px;",
+    "  cursor: pointer;",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  flex-shrink: 0;",
+    "  transition: background 0.15s, border-color 0.15s;",
+    "  font-family: inherit;",
+    "  line-height: 1;",
+    "}",
+    "#tmx-chat-attach:hover {",
+    "  background: rgba(100,55,220,0.32);",
+    "  border-color: rgba(150,110,255,0.55);",
+    "}",
+    "#tmx-chat-attach-info {",
+    "  padding: 4px 14px 0;",
+    "  font-size: 10px;",
+    "  color: rgba(180,160,230,0.65);",
+    "  font-style: italic;",
+    "  display: none;",
+    "}",
     "#tmx-chat-shoot {",
     "  position: absolute;",
     "  height: 1px;",
@@ -819,7 +847,10 @@
       '<button id="tmx-chat-close" aria-label="Close">&#x2715;</button>' +
     '</div>' +
     '<div id="tmx-chat-msgs"></div>' +
+    '<div id="tmx-chat-attach-info"></div>' +
     '<div id="tmx-chat-foot">' +
+      '<input id="tmx-chat-file" type="file" multiple accept=".pdf,.doc,.docx,.txt,.md,.csv,image/*" style="display:none;" />' +
+      '<button id="tmx-chat-attach" type="button" aria-label="Attach files">&#x1F4CE;</button>' +
       '<input id="tmx-chat-input" type="text" placeholder="Ask the Oracle…" autocomplete="off" />' +
       '<button id="tmx-chat-send" aria-label="Send">&#x2191;</button>' +
     '</div>';
@@ -834,12 +865,17 @@
   var chatSend  = document.getElementById("tmx-chat-send");
   var chatClose = document.getElementById("tmx-chat-close");
   var chatTitleName = document.getElementById("tmx-chat-title-name");
+  var chatFile       = document.getElementById("tmx-chat-file");
+  var chatAttach     = document.getElementById("tmx-chat-attach");
+  var chatAttachInfo = document.getElementById("tmx-chat-attach-info");
 
-  var _chatOpen     = false;
-  var _firstOpen    = true;
-  var _sending      = false;
-  var _currentStyle = 0;
-  var _closeToken   = 0;
+  var _chatOpen      = false;
+  var _firstOpen     = true;
+  var _historyLoaded = false;
+  var _sending       = false;
+  var _currentStyle  = 0;
+  var _closeToken    = 0;
+  var _stagedFiles   = [];
 
   /* 10 open/close transition styles — one picked at random each open */
   var TMX_STYLES = [
@@ -916,8 +952,39 @@
     chatMsgs.scrollTop = chatMsgs.scrollHeight;
   }
 
+  function loadChatHistory() {
+    var token = localStorage.getItem("bf_token") || "";
+    if (!token) return;
+
+    fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        var list = Array.isArray(data) ? data : (Array.isArray(data.messages) ? data.messages : null);
+        if (!list || !list.length) return;
+
+        chatMsgs.textContent = "";
+        list.forEach(function (m) {
+          if (!m) return;
+          var r = (m.role === "assistant" || m.role === "oracle") ? "oracle" : "user";
+          addMsg(r, m.content || "");
+        });
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      })
+      .catch(function () {});
+  }
+
   function openChat() {
     _chatOpen = true;
+
+    if (!_historyLoaded) {
+      _historyLoaded = true;
+      loadChatHistory();
+    }
+
     _closeToken++;
     _currentStyle = Math.floor(Math.random() * 10);
     chat.style.pointerEvents = "auto";
@@ -1017,15 +1084,44 @@
     closeChat();
   });
 
+  function _renderAttachInfo() {
+    if (_stagedFiles.length) {
+      chatAttachInfo.textContent = _stagedFiles.length + " file" + (_stagedFiles.length === 1 ? "" : "s") + " attached";
+      chatAttachInfo.style.display = "block";
+    } else {
+      chatAttachInfo.textContent = "";
+      chatAttachInfo.style.display = "none";
+    }
+  }
+
+  chatAttach.addEventListener("click", function (e) {
+    e.stopPropagation();
+    chatFile.click();
+  });
+
+  chatFile.addEventListener("click", function (e) {
+    e.stopPropagation();
+  });
+
+  chatFile.addEventListener("change", function () {
+    _stagedFiles = Array.prototype.slice.call(chatFile.files || []);
+    _renderAttachInfo();
+  });
+
   function sendMsg() {
     var txt = chatInput.value.trim();
-    if (!txt || _sending) return;
+    var filesForRequest = _stagedFiles.slice();
+    if ((!txt && !filesForRequest.length) || _sending) return;
     _sending = true;
 
-    addMsg("user", txt);
+    addMsg("user", txt || ("[" + filesForRequest.length + " file" + (filesForRequest.length === 1 ? "" : "s") + " attached]"));
     chatInput.value        = "";
     chatInput.style.opacity = "0.5";
     chatSend.style.opacity  = "0.5";
+
+    _stagedFiles   = [];
+    chatFile.value = "";
+    _renderAttachInfo();
 
     var thinking = document.createElement("div");
     thinking.className   = "tmx-msg tmx-msg-oracle";
@@ -1037,13 +1133,19 @@
 
     var token = localStorage.getItem("bf_token") || "";
 
+    var formData = new FormData();
+    formData.append("message", txt);
+    formData.append("agent_type", "oracle");
+    filesForRequest.forEach(function (file) {
+      formData.append("files", file);
+    });
+
     fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
       method: "POST",
       headers: {
-        "Content-Type":  "application/json",
         "Authorization": "Bearer " + token
       },
-      body: JSON.stringify({ message: txt })
+      body: formData
     })
     .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
     .then(function (data) {
