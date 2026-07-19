@@ -1108,6 +1108,25 @@
     _renderAttachInfo();
   });
 
+  var TMX_THINKING_PHRASES = [
+    "Termaximus consults the deeper current…",
+    "Tracing the pattern beneath the pattern…",
+    "Descending into the well of knowing…",
+    "Reading the threads of your question…",
+    "The channel gathers its light…",
+    "Weighing this in the alchemical fire…",
+    "Peeping the angles on this one…",
+    "Turning the matter over, facet by facet…",
+    "Listening to what the silence says…",
+    "Cross-referencing the hidden ledger…",
+    "Letting the signal rise through the noise…",
+    "Consulting the record etched in the deep…",
+    "Running it through the crucible…",
+    "Feeling out the shape of the truth here…",
+    "The Oracle leans in…",
+    "Drawing the map before I speak…"
+  ];
+
   function sendMsg() {
     var txt = chatInput.value.trim();
     var filesForRequest = _stagedFiles.slice();
@@ -1125,7 +1144,7 @@
 
     var thinking = document.createElement("div");
     thinking.className   = "tmx-msg tmx-msg-oracle";
-    thinking.textContent = "Termaximus contemplates your words…";
+    thinking.textContent = TMX_THINKING_PHRASES[Math.floor(Math.random() * TMX_THINKING_PHRASES.length)];
     chatMsgs.appendChild(thinking);
     chatMsgs.scrollTop = chatMsgs.scrollHeight;
 
