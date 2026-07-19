@@ -657,7 +657,7 @@
       return null;
     }
     function getAgentStore(memory) {
-      if (!memory || typeof memory !== "object") return null;
+      if (!memory || typeof memory !== "object") return { reports: {}, stats: {}, businessContext: {} };
       var store = memory[AGENT_KEY];
       if (!store || typeof store !== "object") store = { reports: {}, stats: {}, businessContext: {} };
       if (!store.reports || typeof store.reports !== "object") store.reports = {};
@@ -792,12 +792,85 @@
         statsEl.innerHTML = sh || "<p class=\"report-item-body\">No stats recorded yet.</p>";
       }
     }
+    function applyLiveAgentData() {
+      var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+      var token = localStorage.getItem("bf_token");
+      if (!token) { return; }
+
+      fetch(API_URL + "/api/agents/seo", {
+        method: "GET",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (response) {
+          return response.ok ? response.json() : null;
+        })
+        .then(function (data) {
+          if (!data || !data.agent) { return; }
+          var agent = data.agent;
+
+          if (typeof agent.display_name === "string" && agent.display_name.trim()) {
+            var titleEl = document.querySelector(".agent-title");
+            if (titleEl) { titleEl.textContent = agent.display_name; }
+          }
+
+          if (typeof agent.description === "string" && agent.description.trim()) {
+            var subtitleEl = document.querySelector(".agent-subtitle");
+            if (subtitleEl) { subtitleEl.textContent = agent.description; }
+          }
+
+          var liveStatsEl = document.getElementById("liveAgentStats");
+          if (!liveStatsEl) {
+            var contextGridEl = document.getElementById("businessContextGrid");
+            var anchorSection = contextGridEl ? contextGridEl.closest(".context-card") : null;
+            liveStatsEl = document.createElement("div");
+            liveStatsEl.id = "liveAgentStats";
+            liveStatsEl.className = "context-grid";
+            if (anchorSection && anchorSection.parentNode) {
+              anchorSection.parentNode.insertBefore(liveStatsEl, anchorSection);
+            } else if (contextGridEl && contextGridEl.parentNode) {
+              contextGridEl.parentNode.insertBefore(liveStatsEl, contextGridEl);
+            } else {
+              liveStatsEl = null;
+            }
+          }
+          if (liveStatsEl) {
+            var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
+            var estimatedRoi = agent.estimated_roi != null ? agent.estimated_roi : 0;
+            var roiFormatted = "$" + Math.round(estimatedRoi).toLocaleString("en-US");
+
+            liveStatsEl.textContent = "";
+
+            var tile1 = document.createElement("div");
+            tile1.className = "context-item";
+            var label1 = document.createElement("label");
+            label1.textContent = "Tasks Completed";
+            var value1 = document.createElement("span");
+            value1.textContent = String(tasksCompleted);
+            tile1.appendChild(label1);
+            tile1.appendChild(value1);
+
+            var tile2 = document.createElement("div");
+            tile2.className = "context-item";
+            var label2 = document.createElement("label");
+            label2.textContent = "Est. ROI";
+            var value2 = document.createElement("span");
+            value2.textContent = roiFormatted;
+            tile2.appendChild(label2);
+            tile2.appendChild(value2);
+
+            liveStatsEl.appendChild(tile1);
+            liveStatsEl.appendChild(tile2);
+          }
+        })
+        .catch(function () {});
+    }
     function refreshPage() {
       var profile = loadUserProfile();
       var memory = loadExecutiveMemory();
       var store = getAgentStore(memory);
       renderBusinessContext(buildBusinessContext(profile, store));
       renderReports(store, AGENT_LABEL);
+      applyLiveAgentData();
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
     refreshPage();
