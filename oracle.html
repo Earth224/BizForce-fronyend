@@ -112,6 +112,15 @@
       );
     }
 
+    /* Oracle profile panel only — let the abyss show through instead of
+       the shared .bf-glass dark frosted fill. */
+    .oracle-profile-panel.bf-glass {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .oracle-profile-panel.bf-glass::before { display: none; }
+
     /* ── BizForce page chrome — Business Chat's exact recipe ── */
     html, body {
       margin: 0;
@@ -131,10 +140,7 @@
       content: "";
       position: fixed;
       inset: 0;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
-        radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
-        #070b18;
+      background: #070b18;
       z-index: 0;
       pointer-events: none;
     }
@@ -512,8 +518,9 @@
     .spark-w { animation-delay: 3.4s; animation-duration: 5.7s; }
 
     @keyframes corner-star-breathe {
-      0%, 100% { transform: scale(0.94); }
-      50%       { transform: scale(1.1);  }
+      0%   { opacity: 0.45; transform: scale(0.92); }
+      50%  { opacity: 1;    transform: scale(1.06); }
+      100% { opacity: 0.45; transform: scale(0.92); }
     }
     @keyframes corner-star-revolve {
       0%   { transform: rotate(0deg);   }
@@ -1830,7 +1837,7 @@
     function openProfile() {
       if (isOpen || !panel) return;
       isOpen = true;
-      collapseStar();
+      // collapseStar(); // star stays visible while the profile panel is open
       panel.classList.add("is-open");
       prefillProfile();
       fetchNumerology();
@@ -1840,7 +1847,7 @@
       if (!isOpen || !panel) return;
       isOpen = false;
       panel.classList.remove("is-open");
-      settleStar();
+      // settleStar(); // no longer needed — star was never collapsed
     }
 
     star.addEventListener("click", function () {
