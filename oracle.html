@@ -2465,6 +2465,7 @@
       var offset = litFraction * 2 * r;
       var dir = moon.phaseFraction < 0.5 ? 1 : -1;
       var shadowCx = cx + dir * offset;
+      var imgR = r * 1.18;
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
@@ -2474,7 +2475,7 @@
             '</filter>' +
             '<mask id="moonLitMask">' +
               '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
-              '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fff"/>' +
+              '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#fff"/>' +
               '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#moonTerminatorBlur)"/>' +
             '</mask>' +
             '<filter id="glowMaskBlur" x="-50%" y="-50%" width="200%" height="200%">' +
@@ -2493,7 +2494,7 @@
             '</radialGradient>' +
           '</defs>' +
           '<circle class="moon-glow" cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.1) + '" fill="url(#moonGlowGrad)" mask="url(#glowMask)"/>' +
-          '<image href="' + MOON_IMG_URL + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + (2 * r) + '" height="' + (2 * r) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)"/>' +
+          '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)"/>' +
         '</svg>';
 
       var imgEl = container.querySelector("image");
