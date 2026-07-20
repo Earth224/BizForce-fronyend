@@ -322,15 +322,21 @@
       height: 260px;
       z-index: 0;
       pointer-events: auto;
-      cursor: pointer;
+      cursor: grab;
       filter: blur(0.3px);
       animation: abyss-moon-drift 120s ease-in-out infinite alternate,
                  abyss-moon-pulse 7s ease-in-out infinite;
     }
     .abyss-moon svg { width: 100%; height: 100%; display: block; }
-    .abyss-moon:hover {
-      box-shadow: 0 0 40px 10px rgba(220,225,255,0.18);
-      border-radius: 50%;
+    .abyss-moon:hover { cursor: grab; }
+    .abyss-moon.is-dragging { cursor: grabbing; }
+    .moon-glow {
+      animation: moonGlowPulse 6s ease-in-out infinite;
+      transform-origin: center;
+    }
+    @keyframes moonGlowPulse {
+      0%, 100% { opacity: 0.55; }
+      50%       { opacity: 0.9; }
     }
     @keyframes abyss-moon-drift {
       0%   { transform: translate(0px, 0px); }
@@ -2199,6 +2205,8 @@
   <!-- Celestial panel — fully self-contained, no page-global references -->
   <script>
   (function () {
+    var MOON_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg";
+
     var toggleBtn   = document.getElementById("abyssMoon");
     var panel       = document.getElementById("celestialPanel");
     var closeBtn    = document.getElementById("celestialClose");
@@ -2226,11 +2234,87 @@
     }
 
     toggleBtn.addEventListener("click", function () {
+      if (moonMoved) return;
       if (isOpen) { closePanel(); } else { openPanel(); }
     });
     if (closeBtn) {
       closeBtn.addEventListener("click", function () { closePanel(); });
     }
+
+    /* ── Drag the moon (mirrors the corner star's exact drag pattern) ── */
+    var MOON_POS_KEY        = "bf_oracle_moon_pos";
+    var MOON_DRAG_THRESHOLD = 5;
+    var moonPressX = 0, moonPressY = 0;
+    var moonStartLeft = 0, moonStartTop = 0;
+    var moonDragging = false;
+    var moonMoved = false;
+
+    function clampMoonPosition(left, top) {
+      var maxLeft = Math.max(window.innerWidth  - toggleBtn.offsetWidth,  0);
+      var maxTop  = Math.max(window.innerHeight - toggleBtn.offsetHeight, 0);
+      return {
+        left: Math.min(Math.max(left, 0), maxLeft),
+        top:  Math.min(Math.max(top,  0), maxTop)
+      };
+    }
+
+    function restoreMoonPosition() {
+      var raw;
+      try { raw = localStorage.getItem(MOON_POS_KEY); } catch (e) { return; }
+      if (!raw) return;
+      var pos;
+      try { pos = JSON.parse(raw); } catch (e) { return; }
+      if (typeof pos.left !== "number" || typeof pos.top !== "number") return;
+      var c = clampMoonPosition(pos.left, pos.top);
+      toggleBtn.style.left   = c.left + "px";
+      toggleBtn.style.top    = c.top  + "px";
+      toggleBtn.style.right  = "auto";
+      toggleBtn.style.bottom = "auto";
+    }
+
+    toggleBtn.addEventListener("pointerdown", function (e) {
+      moonPressX    = e.clientX;
+      moonPressY    = e.clientY;
+      moonMoved     = false;
+      moonDragging  = true;
+      var rect      = toggleBtn.getBoundingClientRect();
+      moonStartLeft = rect.left;
+      moonStartTop  = rect.top;
+      if (toggleBtn.setPointerCapture) {
+        try { toggleBtn.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+    });
+
+    toggleBtn.addEventListener("pointermove", function (e) {
+      if (!moonDragging) return;
+      var dx = e.clientX - moonPressX;
+      var dy = e.clientY - moonPressY;
+      if (!moonMoved && Math.sqrt(dx * dx + dy * dy) < MOON_DRAG_THRESHOLD) return;
+      moonMoved = true;
+      toggleBtn.classList.add("is-dragging");
+      var c = clampMoonPosition(moonStartLeft + dx, moonStartTop + dy);
+      toggleBtn.style.left   = c.left + "px";
+      toggleBtn.style.top    = c.top  + "px";
+      toggleBtn.style.right  = "auto";
+      toggleBtn.style.bottom = "auto";
+    });
+
+    function endMoonDrag() {
+      if (!moonDragging) return;
+      moonDragging = false;
+      toggleBtn.classList.remove("is-dragging");
+      if (moonMoved) {
+        var rect = toggleBtn.getBoundingClientRect();
+        try {
+          localStorage.setItem(MOON_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+        } catch (err) {}
+      }
+    }
+
+    toggleBtn.addEventListener("pointerup", endMoonDrag);
+    toggleBtn.addEventListener("pointercancel", endMoonDrag);
+
+    restoreMoonPosition();
 
     var CALENDARS = [
       { value: "gregory",           label: "Gregorian" },
@@ -2266,6 +2350,19 @@
     }
 
     function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function formatTime12(moment) {
+      try {
+        return new Intl.DateTimeFormat(undefined, {
+          hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true
+        }).format(moment);
+      } catch (e) {
+        var h = moment.getHours();
+        var ampm = h >= 12 ? "PM" : "AM";
+        var h12 = h % 12 || 12;
+        return h12 + ":" + pad2(moment.getMinutes()) + ":" + pad2(moment.getSeconds()) + " " + ampm;
+      }
+    }
 
     /* ── Moon phase (standard synodic-month calculation) ── */
     var SYNODIC_MONTH = 29.53058867;
@@ -2375,89 +2472,32 @@
       var dir = moon.phaseFraction < 0.5 ? 1 : -1;
       var shadowCx = cx + dir * offset;
 
-      var maria = [
-        { cx: 66,  cy: 56,  rx: 23, ry: 18, rot: -18, op: 0.38 },
-        { cx: 116, cy: 60,  rx: 16, ry: 14, rot: 12,  op: 0.35 },
-        { cx: 131, cy: 86,  rx: 14, ry: 12, rot: -8,  op: 0.40 },
-        { cx: 90,  cy: 131, rx: 15, ry: 11, rot: 6,   op: 0.42 },
-        { cx: 63,  cy: 141, rx: 10, ry: 9,  rot: -14, op: 0.36 },
-        { cx: 49,  cy: 92,  rx: 20, ry: 32, rot: -4,  op: 0.45 }
-      ];
-      var mariaMarkup = maria.map(function (m) {
-        return '<ellipse cx="' + m.cx + '" cy="' + m.cy + '" rx="' + m.rx + '" ry="' + m.ry +
-          '" transform="rotate(' + m.rot + ' ' + m.cx + ' ' + m.cy + ')" fill="rgba(82,80,70,' + m.op + ')"/>';
-      }).join("");
-
-      var craters = [
-        { cx: 70,  cy: 60,  r: 7 },
-        { cx: 120, cy: 50,  r: 5 },
-        { cx: 90,  cy: 100, r: 9 },
-        { cx: 140, cy: 110, r: 5.5 },
-        { cx: 60,  cy: 130, r: 4.5 },
-        { cx: 115, cy: 145, r: 6.5 },
-        { cx: 45,  cy: 65,  r: 3.5 },
-        { cx: 100, cy: 40,  r: 3 },
-        { cx: 150, cy: 75,  r: 4 },
-        { cx: 78,  cy: 150, r: 3.5 },
-        { cx: 105, cy: 118, r: 4 },
-        { cx: 132, cy: 135, r: 3 }
-      ];
-      var cratersMarkup = craters.map(function (c) {
-        return '<circle cx="' + c.cx + '" cy="' + c.cy + '" r="' + c.r + '" fill="rgba(70,68,60,0.3)"/>' +
-               '<ellipse cx="' + (c.cx - c.r * 0.3) + '" cy="' + (c.cy - c.r * 0.3) + '" rx="' + (c.r * 0.45) + '" ry="' + (c.r * 0.3) +
-                 '" fill="rgba(230,226,212,0.15)"/>';
-      }).join("");
-
-      var rayCraters = [
-        { cx: 82,  cy: 118 },
-        { cx: 128, cy: 62  },
-        { cx: 55,  cy: 100 }
-      ];
-      var rayCratersMarkup = rayCraters.map(function (rc) {
-        var streaks = [0, 45, 90, 135, 180, 225, 270, 315].map(function (ang) {
-          var rad = ang * Math.PI / 180;
-          var x2 = rc.cx + Math.cos(rad) * 10;
-          var y2 = rc.cy + Math.sin(rad) * 10;
-          return '<line x1="' + rc.cx + '" y1="' + rc.cy + '" x2="' + x2 + '" y2="' + y2 +
-            '" stroke="rgba(240,238,228,0.12)" stroke-width="0.6"/>';
-        }).join("");
-        return streaks + '<circle cx="' + rc.cx + '" cy="' + rc.cy + '" r="1.6" fill="rgba(240,238,228,0.5)"/>';
-      }).join("");
-
       container.innerHTML =
-        '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+        '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
           '<defs>' +
-            '<radialGradient id="abyssMoonGlow" cx="50%" cy="50%" r="50%">' +
-              '<stop offset="55%" stop-color="#e8e6dd" stop-opacity="0.15"/>' +
-              '<stop offset="100%" stop-color="#e8e6dd" stop-opacity="0"/>' +
-            '</radialGradient>' +
-            '<radialGradient id="abyssMoonBody" cx="40%" cy="35%" r="70%">' +
-              '<stop offset="0%" stop-color="#f2f0e8"/>' +
-              '<stop offset="45%" stop-color="#d6d3c6"/>' +
-              '<stop offset="80%" stop-color="#b0ad9f"/>' +
-              '<stop offset="100%" stop-color="#918e80"/>' +
-            '</radialGradient>' +
-            '<filter id="terminatorBlur" x="-50%" y="-50%" width="200%" height="200%">' +
-              '<feGaussianBlur stdDeviation="5"/>' +
+            '<filter id="moonTerminatorBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="4"/>' +
             '</filter>' +
-            '<filter id="moonMariaBlur" x="-30%" y="-30%" width="160%" height="160%">' +
-              '<feGaussianBlur stdDeviation="2.5"/>' +
-            '</filter>' +
-            '<mask id="litMask">' +
+            '<mask id="moonLitMask">' +
               '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
               '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fff"/>' +
-              '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#terminatorBlur)"/>' +
+              '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#moonTerminatorBlur)"/>' +
             '</mask>' +
+            '<radialGradient id="moonGlowGrad" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="0%" stop-color="#ebeeff" stop-opacity="0.5"/>' +
+              '<stop offset="100%" stop-color="#ebeeff" stop-opacity="0"/>' +
+            '</radialGradient>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 24) + '" fill="url(#abyssMoonGlow)"/>' +
-          '<g mask="url(#litMask)">' +
-            '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="url(#abyssMoonBody)"/>' +
-            '<g filter="url(#moonMariaBlur)">' + mariaMarkup + '</g>' +
-            cratersMarkup +
-            rayCratersMarkup +
-            '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,243,232,0.12)" stroke-width="1"/>' +
-          '</g>' +
+          '<circle class="moon-glow" cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#moonGlowGrad)"/>' +
+          '<image href="' + MOON_IMG_URL + '" x="' + (cx - r) + '" y="' + (cy - r) + '" width="' + (2 * r) + '" height="' + (2 * r) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)"/>' +
         '</svg>';
+
+      var imgEl = container.querySelector("image");
+      if (imgEl) {
+        imgEl.addEventListener("error", function () {
+          container.style.display = "none";
+        });
+      }
     }
 
     /* ── Location (requested once, never blocks anything else) ── */
@@ -2496,10 +2536,7 @@
       var moment = getActiveMoment();
 
       if (clockEl) {
-        clockEl.textContent =
-          pad2(moment.getHours()) + ":" +
-          pad2(moment.getMinutes()) + ":" +
-          pad2(moment.getSeconds());
+        clockEl.textContent = formatTime12(moment);
       }
 
       if (dateEl) {
@@ -2527,11 +2564,7 @@
       var pageClockEl = document.getElementById("pageClock");
       if (pageClockEl) {
         var moonForPageClock = getMoonData(moment);
-        pageClockEl.textContent =
-          pad2(moment.getHours()) + ":" +
-          pad2(moment.getMinutes()) + ":" +
-          pad2(moment.getSeconds()) +
-          " · " + moonForPageClock.phaseName;
+        pageClockEl.textContent = formatTime12(moment) + " · " + moonForPageClock.phaseName;
       }
 
       renderMoon();
