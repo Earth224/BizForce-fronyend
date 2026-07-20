@@ -2390,41 +2390,98 @@
       var dir = moon.phaseFraction < 0.5 ? 1 : -1;
       var shadowCx = cx + dir * offset;
 
+      var maria = [
+        { cx: 66,  cy: 56,  rx: 23, ry: 18, rot: -18, op: 0.38 },
+        { cx: 116, cy: 60,  rx: 16, ry: 14, rot: 12,  op: 0.35 },
+        { cx: 131, cy: 86,  rx: 14, ry: 12, rot: -8,  op: 0.40 },
+        { cx: 90,  cy: 131, rx: 15, ry: 11, rot: 6,   op: 0.42 },
+        { cx: 63,  cy: 141, rx: 10, ry: 9,  rot: -14, op: 0.36 },
+        { cx: 49,  cy: 92,  rx: 20, ry: 32, rot: -4,  op: 0.45 }
+      ];
+      var mariaMarkup = maria.map(function (m) {
+        return '<ellipse cx="' + m.cx + '" cy="' + m.cy + '" rx="' + m.rx + '" ry="' + m.ry +
+          '" transform="rotate(' + m.rot + ' ' + m.cx + ' ' + m.cy + ')" fill="rgba(82,80,70,' + m.op + ')"/>';
+      }).join("");
+
       var craters = [
-        { cx: 70,  cy: 60,  rx: 14, ry: 11 },
-        { cx: 120, cy: 50,  rx: 9,  ry: 8  },
-        { cx: 90,  cy: 100, rx: 18, ry: 14 },
-        { cx: 140, cy: 110, rx: 10, ry: 9  },
-        { cx: 60,  cy: 130, rx: 8,  ry: 7  },
-        { cx: 115, cy: 145, rx: 12, ry: 10 }
+        { cx: 70,  cy: 60,  r: 7 },
+        { cx: 120, cy: 50,  r: 5 },
+        { cx: 90,  cy: 100, r: 9 },
+        { cx: 140, cy: 110, r: 5.5 },
+        { cx: 60,  cy: 130, r: 4.5 },
+        { cx: 115, cy: 145, r: 6.5 },
+        { cx: 45,  cy: 65,  r: 3.5 },
+        { cx: 100, cy: 40,  r: 3 },
+        { cx: 150, cy: 75,  r: 4 },
+        { cx: 78,  cy: 150, r: 3.5 },
+        { cx: 105, cy: 118, r: 4 },
+        { cx: 132, cy: 135, r: 3 }
       ];
       var cratersMarkup = craters.map(function (c) {
-        return '<ellipse cx="' + c.cx + '" cy="' + c.cy + '" rx="' + c.rx + '" ry="' + c.ry + '" fill="rgba(120,118,105,0.32)"/>' +
-               '<ellipse cx="' + (c.cx - c.rx * 0.25) + '" cy="' + (c.cy - c.ry * 0.25) + '" rx="' + (c.rx * 0.4) + '" ry="' + (c.ry * 0.4) + '" fill="rgba(220,216,200,0.10)"/>';
+        return '<circle cx="' + c.cx + '" cy="' + c.cy + '" r="' + c.r + '" fill="rgba(70,68,60,0.3)"/>' +
+               '<ellipse cx="' + (c.cx - c.r * 0.3) + '" cy="' + (c.cy - c.r * 0.3) + '" rx="' + (c.r * 0.45) + '" ry="' + (c.r * 0.3) +
+                 '" fill="rgba(230,226,212,0.15)"/>';
+      }).join("");
+
+      var rayCraters = [
+        { cx: 82,  cy: 118 },
+        { cx: 128, cy: 62  },
+        { cx: 55,  cy: 100 }
+      ];
+      var rayCratersMarkup = rayCraters.map(function (rc) {
+        var streaks = [0, 45, 90, 135, 180, 225, 270, 315].map(function (ang) {
+          var rad = ang * Math.PI / 180;
+          var x2 = rc.cx + Math.cos(rad) * 10;
+          var y2 = rc.cy + Math.sin(rad) * 10;
+          return '<line x1="' + rc.cx + '" y1="' + rc.cy + '" x2="' + x2 + '" y2="' + y2 +
+            '" stroke="rgba(240,238,228,0.12)" stroke-width="0.6"/>';
+        }).join("");
+        return streaks + '<circle cx="' + rc.cx + '" cy="' + rc.cy + '" r="1.6" fill="rgba(240,238,228,0.5)"/>';
       }).join("");
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">' +
           '<defs>' +
             '<radialGradient id="abyssMoonGlow" cx="50%" cy="50%" r="50%">' +
-              '<stop offset="55%" stop-color="#e8e6dd" stop-opacity="0.18"/>' +
+              '<stop offset="55%" stop-color="#e8e6dd" stop-opacity="0.15"/>' +
               '<stop offset="100%" stop-color="#e8e6dd" stop-opacity="0"/>' +
             '</radialGradient>' +
-            '<radialGradient id="abyssMoonBody" cx="42%" cy="38%" r="65%">' +
-              '<stop offset="0%" stop-color="#e8e6dd"/>' +
-              '<stop offset="100%" stop-color="#b8b5a8"/>' +
+            '<radialGradient id="abyssMoonBody" cx="40%" cy="35%" r="70%">' +
+              '<stop offset="0%" stop-color="#f2f0e8"/>' +
+              '<stop offset="45%" stop-color="#d6d3c6"/>' +
+              '<stop offset="80%" stop-color="#b0ad9f"/>' +
+              '<stop offset="100%" stop-color="#918e80"/>' +
             '</radialGradient>' +
-            '<clipPath id="abyssMoonClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
-            '<filter id="abyssMoonBlur" x="-50%" y="-50%" width="200%" height="200%">' +
-              '<feGaussianBlur stdDeviation="6"/>' +
+            '<filter id="moonTexture" x="-20%" y="-20%" width="140%" height="140%">' +
+              '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="7" result="noise"/>' +
+              '<feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.35 0.35 0.35 0 0" result="grayNoise"/>' +
+              '<feComponentTransfer in="grayNoise">' +
+                '<feFuncA type="linear" slope="0.4"/>' +
+              '</feComponentTransfer>' +
+            '</filter>' +
+            '<clipPath id="moonDisc"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
+            '<radialGradient id="moonShadowFade" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="70%" stop-color="#05070f" stop-opacity="1"/>' +
+              '<stop offset="100%" stop-color="#05070f" stop-opacity="0"/>' +
+            '</radialGradient>' +
+            '<filter id="moonShadowBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="5"/>' +
+            '</filter>' +
+            '<filter id="moonMariaBlur" x="-30%" y="-30%" width="160%" height="160%">' +
+              '<feGaussianBlur stdDeviation="2.5"/>' +
             '</filter>' +
           '</defs>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 30) + '" fill="url(#abyssMoonGlow)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="url(#abyssMoonBody)"/>' +
-          '<g clip-path="url(#abyssMoonClip)">' +
+          '<g clip-path="url(#moonDisc)">' +
+            '<g filter="url(#moonMariaBlur)">' + mariaMarkup + '</g>' +
             cratersMarkup +
-            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#05070f" filter="url(#abyssMoonBlur)"/>' +
+            rayCratersMarkup +
+            '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#888" filter="url(#moonTexture)" opacity="0.5"/>' +
+            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#05070f" filter="url(#moonShadowBlur)"/>' +
+            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="url(#moonShadowFade)"/>' +
           '</g>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,243,232,0.12)" stroke-width="1"/>' +
         '</svg>';
     }
 
