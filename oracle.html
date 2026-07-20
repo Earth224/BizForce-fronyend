@@ -1158,6 +1158,41 @@
       font-size: 0.82rem;
       line-height: 1.5;
     }
+
+    .cel-moon-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 6px;
+    }
+    .cel-moon-svg {
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+    .cel-moon-svg svg { width: 100%; height: 100%; display: block; }
+    .cel-moon-text { flex: 1; min-width: 0; }
+    .cel-moon-phase {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f5f3e8;
+    }
+    .cel-moon-illum {
+      margin-top: 2px;
+      font-size: 0.78rem;
+      color: #22d3ee;
+    }
+    .cel-moon-stage {
+      margin-top: 2px;
+      font-size: 0.75rem;
+      color: #8892b8;
+    }
+    .cel-location {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: #8892b8;
+      letter-spacing: 0.02em;
+    }
   </style>
 </head>
 <body>
@@ -1333,7 +1368,18 @@
       <div class="cel-calendar-out" id="celCalendarOut"></div>
     </div>
 
-    <div class="cel-section" id="celMoon">Moon — coming</div>
+    <div class="cel-section" id="celMoon">
+      <label class="cel-label">Moon</label>
+      <div class="cel-moon-row">
+        <div class="cel-moon-svg" id="celMoonSvg"></div>
+        <div class="cel-moon-text">
+          <div class="cel-moon-phase" id="celMoonPhase">—</div>
+          <div class="cel-moon-illum" id="celMoonIllum">—</div>
+          <div class="cel-moon-stage" id="celMoonStage">—</div>
+        </div>
+      </div>
+      <div class="cel-location" id="celLocation">Location: —</div>
+    </div>
     <div class="cel-section" id="celEclipse">Eclipse — coming</div>
   </div>
 
@@ -2154,6 +2200,7 @@
       isOpen = true;
       panel.classList.add("is-open");
       panel.setAttribute("aria-hidden", "false");
+      requestLocationOnce();
     }
     function closePanel() {
       isOpen = false;
@@ -2203,6 +2250,127 @@
 
     function pad2(n) { return String(n).padStart(2, "0"); }
 
+    /* ── Moon phase (standard synodic-month calculation) ── */
+    var SYNODIC_MONTH = 29.53058867;
+    var KNOWN_NEW_MOON_UTC = Date.UTC(2000, 0, 6, 18, 14, 0);
+
+    function getMoonData(date) {
+      var daysSinceNew = (date.getTime() - KNOWN_NEW_MOON_UTC) / 86400000;
+      var cycles = daysSinceNew / SYNODIC_MONTH;
+      var phaseFraction = cycles - Math.floor(cycles);
+      if (phaseFraction < 0) phaseFraction += 1;
+
+      var illumPercent = Math.round((1 - Math.cos(phaseFraction * 2 * Math.PI)) / 2 * 100);
+
+      var tol = 0.02;
+      var phaseName;
+      if (phaseFraction < tol || phaseFraction > 1 - tol) {
+        phaseName = "New Moon";
+      } else if (Math.abs(phaseFraction - 0.25) < tol) {
+        phaseName = "First Quarter";
+      } else if (Math.abs(phaseFraction - 0.5) < tol) {
+        phaseName = "Full Moon";
+      } else if (Math.abs(phaseFraction - 0.75) < tol) {
+        phaseName = "Last Quarter";
+      } else if (phaseFraction < 0.25) {
+        phaseName = "Waxing Crescent";
+      } else if (phaseFraction < 0.5) {
+        phaseName = "Waxing Gibbous";
+      } else if (phaseFraction < 0.75) {
+        phaseName = "Waning Gibbous";
+      } else {
+        phaseName = "Waning Crescent";
+      }
+
+      return {
+        phaseName: phaseName,
+        illumPercent: illumPercent,
+        phaseFraction: phaseFraction,
+        waxing: phaseFraction < 0.5
+      };
+    }
+
+    function renderMoonSvg(phaseFraction, illumPercent) {
+      var container = document.getElementById("celMoonSvg");
+      if (!container) return;
+
+      var size = 72;
+      var r = size / 2 - 3;
+      var cx = size / 2;
+      var cy = size / 2;
+      var litFraction = illumPercent / 100;
+      var offset = litFraction * 2 * r;
+      var dir = phaseFraction < 0.5 ? 1 : -1;
+      var shadowCx = cx + dir * offset;
+
+      container.innerHTML =
+        '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs>' +
+            '<clipPath id="celMoonClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
+            '<radialGradient id="celMoonGlow" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="60%" stop-color="#f5f3e8" stop-opacity="0.25"/>' +
+              '<stop offset="100%" stop-color="#f5f3e8" stop-opacity="0"/>' +
+            '</radialGradient>' +
+          '</defs>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 6) + '" fill="url(#celMoonGlow)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#f5f3e8"/>' +
+          '<g clip-path="url(#celMoonClip)">' +
+            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#0a0e1a"/>' +
+          '</g>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,243,232,0.15)" stroke-width="1"/>' +
+        '</svg>';
+    }
+
+    function renderMoon() {
+      var moment = getActiveMoment();
+      var moon = getMoonData(moment);
+
+      var phaseEl = document.getElementById("celMoonPhase");
+      var illumEl = document.getElementById("celMoonIllum");
+      var stageEl = document.getElementById("celMoonStage");
+
+      if (phaseEl) phaseEl.textContent = moon.phaseName;
+      if (illumEl) illumEl.textContent = moon.illumPercent + "% illuminated";
+      if (stageEl) {
+        var descriptor = moon.waxing ? "growing toward full" : "fading toward new";
+        stageEl.textContent = (moon.waxing ? "Waxing" : "Waning") + " · " + descriptor;
+      }
+
+      renderMoonSvg(moon.phaseFraction, moon.illumPercent);
+    }
+
+    /* ── Location (requested once, never blocks anything else) ── */
+    var celLat = null;
+    var celLng = null;
+    var locationRequested = false;
+
+    function requestLocationOnce() {
+      if (locationRequested) return;
+      locationRequested = true;
+
+      var locationEl = document.getElementById("celLocation");
+      try {
+        if (!navigator.geolocation) {
+          if (locationEl) locationEl.textContent = "Location: not shared";
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            celLat = pos.coords.latitude;
+            celLng = pos.coords.longitude;
+            if (locationEl) {
+              locationEl.textContent = "Location: " + celLat.toFixed(2) + ", " + celLng.toFixed(2);
+            }
+          },
+          function () {
+            if (locationEl) locationEl.textContent = "Location: not shared";
+          }
+        );
+      } catch (geoErr) {
+        if (locationEl) locationEl.textContent = "Location: not shared";
+      }
+    }
+
     function renderClock() {
       var moment = getActiveMoment();
 
@@ -2234,6 +2402,8 @@
           calendarOut.textContent = "This calendar is unavailable in your browser.";
         }
       }
+
+      renderMoon();
     }
 
     if (nowBtn) {
