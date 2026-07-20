@@ -982,6 +982,182 @@
       50%  { opacity: 1; }
       100% { opacity: 0.55; }
     }
+
+    /* ── Celestial panel — fixed, left-docked, collapsible ── */
+    .celestial-toggle {
+      position: fixed;
+      left: 20px;
+      bottom: 100px;
+      z-index: 5;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(6,10,22,0.65);
+      border: 1.5px solid rgba(34,211,238,0.55);
+      box-shadow: 0 0 14px rgba(34,211,238,0.30), 0 0 28px rgba(34,211,238,0.14);
+      color: #22d3ee;
+      font-size: 1.3rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+    }
+    .celestial-toggle:hover {
+      border-color: rgba(34,211,238,0.85);
+      box-shadow: 0 0 20px rgba(34,211,238,0.45), 0 0 40px rgba(34,211,238,0.22);
+      transform: translateY(-1px);
+    }
+
+    .celestial-panel {
+      position: fixed;
+      left: 20px;
+      bottom: 160px;
+      width: 320px;
+      max-height: 74vh;
+      overflow-y: auto;
+      z-index: 6;
+      border-radius: 20px;
+      padding: 24px;
+      background: transparent;
+      opacity: 0;
+      transform: scale(0.85) translateY(10px);
+      transform-origin: bottom left;
+      pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34,1.4,0.64,1);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .celestial-panel::-webkit-scrollbar { width: 6px; }
+    .celestial-panel::-webkit-scrollbar-track {
+      background: rgba(10,4,20,0.35);
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+    .celestial-panel::-webkit-scrollbar-thumb {
+      background: rgba(34,211,238,0.45);
+      border-radius: 8px;
+    }
+    .celestial-panel::-webkit-scrollbar-thumb:hover {
+      background: rgba(34,211,238,0.65);
+    }
+    .celestial-panel.is-open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    .cel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .cel-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .cel-close {
+      background: none;
+      border: none;
+      color: rgba(232,200,116,0.6);
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .cel-close:hover { color: rgba(232,200,116,0.95); }
+
+    .cel-section {
+      padding-top: 14px;
+      margin-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      color: #ccd0e8;
+      font-size: 0.85rem;
+    }
+    .cel-section:first-of-type {
+      padding-top: 0;
+      margin-top: 0;
+      border-top: none;
+    }
+
+    .cel-clock {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #e8fbff;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(34,211,238,0.55), 0 0 22px rgba(34,211,238,0.25);
+      text-align: center;
+    }
+    .cel-date {
+      margin-top: 4px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: #8892b8;
+      letter-spacing: 0.04em;
+    }
+
+    .cel-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #c8a84b;
+      margin-bottom: 6px;
+    }
+    .cel-input,
+    .cel-select {
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9px;
+      color: #e8e8ff;
+      font-size: 0.82rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+    .cel-input:focus,
+    .cel-select:focus { border-color: rgba(34,211,238,0.55); }
+    .cel-select { cursor: pointer; margin-bottom: 10px; }
+    .cel-now-btn {
+      margin-top: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 9px;
+      border: 1px solid rgba(34,211,238,0.3);
+      background: rgba(34,211,238,0.06);
+      color: #22d3ee;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .cel-now-btn:hover {
+      border-color: rgba(34,211,238,0.55);
+      background: rgba(34,211,238,0.12);
+    }
+    .cel-calendar-out {
+      margin-top: 4px;
+      color: #e8e8ff;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -1130,6 +1306,35 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Celestial panel — fixed, left-docked, collapsible -->
+  <button id="celestialToggle" class="celestial-toggle" aria-label="Celestial Panel" type="button">&#9789;</button>
+  <div class="celestial-panel bf-brand-rim" id="celestialPanel" aria-hidden="true">
+    <div class="cel-header">
+      <span class="cel-title">CELESTIAL</span>
+      <button type="button" class="cel-close" id="celestialClose" aria-label="Close">&#x2715;</button>
+    </div>
+
+    <div class="cel-section">
+      <div class="cel-clock" id="celClock">--:--:--</div>
+      <div class="cel-date" id="celDate"></div>
+    </div>
+
+    <div class="cel-section">
+      <label class="cel-label" for="celDateTime">Set date &amp; time</label>
+      <input type="datetime-local" class="cel-input" id="celDateTime" />
+      <button type="button" class="cel-now-btn" id="celNowBtn">Now</button>
+    </div>
+
+    <div class="cel-section">
+      <label class="cel-label" for="celCalendar">Calendar</label>
+      <select class="cel-select" id="celCalendar"></select>
+      <div class="cel-calendar-out" id="celCalendarOut"></div>
+    </div>
+
+    <div class="cel-section" id="celMoon">Moon — coming</div>
+    <div class="cel-section" id="celEclipse">Eclipse — coming</div>
   </div>
 
   <!-- ══════════════ SYNC SCREEN ══════════════ -->
@@ -1925,6 +2130,127 @@
 
     /* pre-fill the profile form on initial load, not only when the panel is opened */
     prefillProfile();
+  }());
+  </script>
+
+  <!-- Celestial panel — fully self-contained, no page-global references -->
+  <script>
+  (function () {
+    var toggleBtn   = document.getElementById("celestialToggle");
+    var panel       = document.getElementById("celestialPanel");
+    var closeBtn    = document.getElementById("celestialClose");
+    var clockEl     = document.getElementById("celClock");
+    var dateEl      = document.getElementById("celDate");
+    var dateTimeInput = document.getElementById("celDateTime");
+    var nowBtn      = document.getElementById("celNowBtn");
+    var calendarSelect = document.getElementById("celCalendar");
+    var calendarOut = document.getElementById("celCalendarOut");
+
+    if (!toggleBtn || !panel) return;
+
+    var isOpen = false;
+
+    function openPanel() {
+      isOpen = true;
+      panel.classList.add("is-open");
+      panel.setAttribute("aria-hidden", "false");
+    }
+    function closePanel() {
+      isOpen = false;
+      panel.classList.remove("is-open");
+      panel.setAttribute("aria-hidden", "true");
+    }
+
+    toggleBtn.addEventListener("click", function () {
+      if (isOpen) { closePanel(); } else { openPanel(); }
+    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () { closePanel(); });
+    }
+
+    var CALENDARS = [
+      { value: "gregory",           label: "Gregorian" },
+      { value: "hebrew",            label: "Hebrew" },
+      { value: "islamic",           label: "Islamic (Hijri)" },
+      { value: "islamic-umalqura",  label: "Islamic (Umm al-Qura)" },
+      { value: "persian",           label: "Persian (Solar Hijri)" },
+      { value: "indian",            label: "Indian National" },
+      { value: "chinese",           label: "Chinese" },
+      { value: "buddhist",          label: "Buddhist" },
+      { value: "japanese",          label: "Japanese" },
+      { value: "coptic",            label: "Coptic" },
+      { value: "ethiopic",          label: "Ethiopic" },
+      { value: "dangi",             label: "Korean" },
+      { value: "roc",               label: "Minguo" }
+    ];
+
+    if (calendarSelect) {
+      CALENDARS.forEach(function (cal) {
+        var opt = document.createElement("option");
+        opt.value = cal.value;
+        opt.textContent = cal.label;
+        calendarSelect.appendChild(opt);
+      });
+    }
+
+    function getActiveMoment() {
+      if (dateTimeInput && dateTimeInput.value) {
+        var parsed = new Date(dateTimeInput.value);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+      return new Date();
+    }
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function renderClock() {
+      var moment = getActiveMoment();
+
+      if (clockEl) {
+        clockEl.textContent =
+          pad2(moment.getHours()) + ":" +
+          pad2(moment.getMinutes()) + ":" +
+          pad2(moment.getSeconds());
+      }
+
+      if (dateEl) {
+        try {
+          dateEl.textContent = new Intl.DateTimeFormat(undefined, {
+            weekday: "long", year: "numeric", month: "long", day: "numeric"
+          }).format(moment);
+        } catch (e) {
+          dateEl.textContent = moment.toDateString();
+        }
+      }
+
+      if (calendarOut && calendarSelect) {
+        var selected = calendarSelect.value || "gregory";
+        try {
+          calendarOut.textContent = new Intl.DateTimeFormat(undefined, {
+            calendar: selected,
+            dateStyle: "full"
+          }).format(moment);
+        } catch (calErr) {
+          calendarOut.textContent = "This calendar is unavailable in your browser.";
+        }
+      }
+    }
+
+    if (nowBtn) {
+      nowBtn.addEventListener("click", function () {
+        if (dateTimeInput) dateTimeInput.value = "";
+        renderClock();
+      });
+    }
+    if (dateTimeInput) {
+      dateTimeInput.addEventListener("input", renderClock);
+    }
+    if (calendarSelect) {
+      calendarSelect.addEventListener("change", renderClock);
+    }
+
+    renderClock();
+    setInterval(renderClock, 1000);
   }());
   </script>
 
