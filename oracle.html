@@ -248,6 +248,15 @@
       color: #8892b8;
     }
 
+    .page-clock {
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      color: rgba(232,232,255,0.5);
+      margin-top: 8px;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(34,211,238,0.25);
+    }
+
     /* ════════════════════════════════════════
        SCENE — the moving abyss (fixed backdrop,
        drifts behind the whole page)
@@ -302,6 +311,25 @@
     @keyframes star-drift-near {
       0%   { background-position: 0px 0px,    0px 0px;    }
       100% { background-position: 0px -520px, 0px -520px; }
+    }
+
+    /* ── Ambient realistic moon — large, faint, behind all page content ── */
+    .abyss-moon {
+      position: absolute;
+      top: 8%;
+      right: 12%;
+      width: 260px;
+      height: 260px;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.5;
+      filter: blur(0.3px);
+      animation: abyss-moon-drift 120s ease-in-out infinite alternate;
+    }
+    .abyss-moon svg { width: 100%; height: 100%; display: block; }
+    @keyframes abyss-moon-drift {
+      0%   { transform: translate(0px, 0px); }
+      100% { transform: translate(-10px, 8px); }
     }
 
     /* ── Per-star twinkle — a few points quietly catch light and fade,
@@ -983,12 +1011,10 @@
       100% { opacity: 0.55; }
     }
 
-    /* ── Celestial panel — fixed, left-docked, collapsible ── */
+    /* ── Celestial panel — toggle docks beside the title, panel opens as a fixed overlay ── */
     .celestial-toggle {
-      position: fixed;
-      left: 20px;
-      bottom: 100px;
-      z-index: 5;
+      align-self: center;
+      flex-shrink: 0;
       width: 48px;
       height: 48px;
       border-radius: 50%;
@@ -1131,6 +1157,7 @@
     }
     .cel-input:focus,
     .cel-select:focus { border-color: rgba(34,211,238,0.55); }
+    .cel-select option { background: #0a0e1a; color: #e8e8ff; }
     .cel-select { cursor: pointer; margin-bottom: 10px; }
     .cel-now-btn {
       margin-top: 8px;
@@ -1204,6 +1231,9 @@
     <div class="star-layer star-far"></div>
     <div class="star-layer star-mid"></div>
     <div class="star-layer star-near"></div>
+
+    <!-- Ambient realistic moon, faint, behind all content -->
+    <div class="abyss-moon" id="abyssMoon" aria-hidden="true"></div>
 
     <!-- Per-star twinkle — independent slow flicker on top of the drift -->
     <div class="star-twinkle tw1"></div>
@@ -1343,8 +1373,8 @@
     </div>
   </div>
 
-  <!-- Celestial panel — fixed, left-docked, collapsible -->
-  <button id="celestialToggle" class="celestial-toggle" aria-label="Celestial Panel" type="button">&#9789;</button>
+  <!-- Celestial panel — the toggle button now lives in #chatScreen's
+       .agent-header, beside the title; only the overlay panel stays here -->
   <div class="celestial-panel bf-brand-rim" id="celestialPanel" aria-hidden="true">
     <div class="cel-header">
       <span class="cel-title">CELESTIAL</span>
@@ -1426,7 +1456,9 @@
       <div class="agent-header-text">
         <h1 class="agent-title">Termaximus &amp; The Oracle System</h1>
         <p class="agent-subtitle bf-gold-text">SYNCHRONIZED · <span id="syncedName"></span></p>
+        <div class="page-clock" id="pageClock" aria-hidden="true"></div>
       </div>
+      <button id="celestialToggle" class="celestial-toggle" aria-label="Celestial Panel" type="button">&#9789;</button>
     </header>
 
     <div class="oracle-messages bf-brand-rim" id="messageArea">
@@ -2339,6 +2371,63 @@
       renderMoonSvg(moon.phaseFraction, moon.illumPercent);
     }
 
+    /* ── Ambient realistic moon rendered into the abyss (.scene), behind
+       all page content — reuses getMoonData/getActiveMoment, has its own
+       element id so it never touches the panel's #celMoonSvg render. ── */
+    function renderAbyssMoon() {
+      var container = document.getElementById("abyssMoon");
+      if (!container) return;
+
+      var moment = getActiveMoment();
+      var moon = getMoonData(moment);
+
+      var size = 200;
+      var r = size / 2 - 10;
+      var cx = size / 2;
+      var cy = size / 2;
+      var litFraction = moon.illumPercent / 100;
+      var offset = litFraction * 2 * r;
+      var dir = moon.phaseFraction < 0.5 ? 1 : -1;
+      var shadowCx = cx + dir * offset;
+
+      var craters = [
+        { cx: 70,  cy: 60,  rx: 14, ry: 11 },
+        { cx: 120, cy: 50,  rx: 9,  ry: 8  },
+        { cx: 90,  cy: 100, rx: 18, ry: 14 },
+        { cx: 140, cy: 110, rx: 10, ry: 9  },
+        { cx: 60,  cy: 130, rx: 8,  ry: 7  },
+        { cx: 115, cy: 145, rx: 12, ry: 10 }
+      ];
+      var cratersMarkup = craters.map(function (c) {
+        return '<ellipse cx="' + c.cx + '" cy="' + c.cy + '" rx="' + c.rx + '" ry="' + c.ry + '" fill="rgba(120,118,105,0.32)"/>' +
+               '<ellipse cx="' + (c.cx - c.rx * 0.25) + '" cy="' + (c.cy - c.ry * 0.25) + '" rx="' + (c.rx * 0.4) + '" ry="' + (c.ry * 0.4) + '" fill="rgba(220,216,200,0.10)"/>';
+      }).join("");
+
+      container.innerHTML =
+        '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs>' +
+            '<radialGradient id="abyssMoonGlow" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="55%" stop-color="#e8e6dd" stop-opacity="0.18"/>' +
+              '<stop offset="100%" stop-color="#e8e6dd" stop-opacity="0"/>' +
+            '</radialGradient>' +
+            '<radialGradient id="abyssMoonBody" cx="42%" cy="38%" r="65%">' +
+              '<stop offset="0%" stop-color="#e8e6dd"/>' +
+              '<stop offset="100%" stop-color="#b8b5a8"/>' +
+            '</radialGradient>' +
+            '<clipPath id="abyssMoonClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
+            '<filter id="abyssMoonBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="6"/>' +
+            '</filter>' +
+          '</defs>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 30) + '" fill="url(#abyssMoonGlow)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="url(#abyssMoonBody)"/>' +
+          '<g clip-path="url(#abyssMoonClip)">' +
+            cratersMarkup +
+            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#05070f" filter="url(#abyssMoonBlur)"/>' +
+          '</g>' +
+        '</svg>';
+    }
+
     /* ── Location (requested once, never blocks anything else) ── */
     var celLat = null;
     var celLng = null;
@@ -2403,7 +2492,18 @@
         }
       }
 
+      var pageClockEl = document.getElementById("pageClock");
+      if (pageClockEl) {
+        var moonForPageClock = getMoonData(moment);
+        pageClockEl.textContent =
+          pad2(moment.getHours()) + ":" +
+          pad2(moment.getMinutes()) + ":" +
+          pad2(moment.getSeconds()) +
+          " · " + moonForPageClock.phaseName;
+      }
+
       renderMoon();
+      renderAbyssMoon();
     }
 
     if (nowBtn) {
