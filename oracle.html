@@ -822,7 +822,7 @@
       background: rgba(8, 12, 28, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.08);
       color: #ccd0e8;
-      font-style: italic;
+      font-style: normal;
       border-bottom-left-radius: 4px;
     }
     .from-user .msg-bubble {
@@ -846,17 +846,19 @@
       border-radius: 16px;
       border-bottom-left-radius: 4px;
     }
-    .oracle-thinking span {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #22d3ee;
-      animation: thinkDot 1.2s ease-in-out infinite;
+    .oracle-thinking-star {
+      font-size: 1rem;
+      line-height: 1;
+      color: #22d3ee;
+      margin-left: 4px;
+      display: inline-block;
+      animation: thinkStarTwinkle 2.4s ease-in-out infinite;
+      text-shadow: 0 0 8px rgba(34, 211, 238, 0.7);
     }
-    .oracle-thinking span:nth-child(2) { animation-delay: 0.2s; }
-    .oracle-thinking span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes thinkDot {
-      0%, 80%, 100% { transform: scale(0.65); opacity: 0.35; }
-      40%            { transform: scale(1);    opacity: 1;    }
+    @keyframes thinkStarTwinkle {
+      0%   { opacity: 0.4; transform: scale(0.85) rotate(0deg); }
+      50%  { opacity: 1;   transform: scale(1.15) rotate(180deg); }
+      100% { opacity: 0.4; transform: scale(0.85) rotate(360deg); }
     }
 
     /* Input row — plain flex row directly below the message card,
@@ -969,10 +971,16 @@
     .oracle-thinking-reviewing { align-items: center; }
     .oracle-thinking-label {
       font-size: 0.82rem;
-      font-style: italic;
+      font-style: normal;
       color: #ccd0e8;
       white-space: nowrap;
       margin-right: 6px;
+      animation: labelGlow 2.8s ease-in-out infinite;
+    }
+    @keyframes labelGlow {
+      0%   { opacity: 0.55; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.55; }
     }
   </style>
 </head>
@@ -1489,7 +1497,7 @@
         thinkingEl.className = "oracle-msg from-oracle";
         thinkingEl.innerHTML =
           '<span class="msg-sender">TERMAXIMUS</span>' +
-          '<div class="oracle-thinking' + (reviewingDocs ? ' oracle-thinking-reviewing' : '') + '"><span class="oracle-thinking-label">' + thinkingLabel + '</span><span></span><span></span><span></span></div>';
+          '<div class="oracle-thinking' + (reviewingDocs ? ' oracle-thinking-reviewing' : '') + '"><span class="oracle-thinking-label">' + thinkingLabel + '</span><span class="oracle-thinking-star" aria-hidden="true">✦</span></div>';
         messageArea.appendChild(thinkingEl);
         messageArea.scrollTop = messageArea.scrollHeight;
       } else if (thinkingEl) {
