@@ -1396,7 +1396,11 @@
       </div>
       <div class="cel-location" id="celLocation">Location: —</div>
     </div>
-    <div class="cel-section" id="celEclipse">Eclipse — coming</div>
+    <div class="cel-section" id="celEclipse">
+      <label class="cel-label">Eclipses</label>
+      <div id="celEclipseNextSolar" style="margin-top:8px;"></div>
+      <div id="celEclipseNextLunar" style="margin-top:8px;"></div>
+    </div>
   </div>
 
   <!-- ══════════════ SYNC SCREEN ══════════════ -->
@@ -2201,6 +2205,34 @@
   (function () {
     var MOON_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg";
 
+    // Curated upcoming eclipses (2026-2030). Finite list — top up with new entries as years pass.
+    var ECLIPSES = [
+      { date: "2026-02-17T00:00Z", type: "Annular Solar",   category: "solar", visibility: "Antarctica, southern Africa" },
+      { date: "2026-03-03T00:00Z", type: "Total Lunar",     category: "lunar", visibility: "East Asia, Americas, Australia" },
+      { date: "2026-08-12T00:00Z", type: "Total Solar",     category: "solar", visibility: "Arctic, Greenland, Iceland, Spain" },
+      { date: "2026-08-28T00:00Z", type: "Partial Lunar",   category: "lunar", visibility: "Americas, Europe, Africa" },
+      { date: "2027-02-06T00:00Z", type: "Annular Solar",   category: "solar", visibility: "South America, Africa" },
+      { date: "2027-02-20T00:00Z", type: "Penumbral Lunar", category: "lunar", visibility: "Americas, Europe, Africa, Asia" },
+      { date: "2027-07-18T00:00Z", type: "Penumbral Lunar", category: "lunar", visibility: "Africa, Asia, Australia" },
+      { date: "2027-08-02T00:00Z", type: "Total Solar",     category: "solar", visibility: "North Africa, Middle East, Asia" },
+      { date: "2027-08-17T00:00Z", type: "Penumbral Lunar", category: "lunar", visibility: "Americas, Africa, Europe" },
+      { date: "2028-01-12T00:00Z", type: "Partial Lunar",   category: "lunar", visibility: "Americas, Europe, Africa" },
+      { date: "2028-01-26T00:00Z", type: "Annular Solar",   category: "solar", visibility: "Americas, Europe, Africa" },
+      { date: "2028-07-06T00:00Z", type: "Partial Lunar",   category: "lunar", visibility: "Europe, Africa, Asia, Australia" },
+      { date: "2028-07-22T00:00Z", type: "Total Solar",     category: "solar", visibility: "Australia, New Zealand" },
+      { date: "2028-12-31T00:00Z", type: "Total Lunar",     category: "lunar", visibility: "Europe, Africa, Asia, Australia" },
+      { date: "2029-01-14T00:00Z", type: "Partial Solar",   category: "solar", visibility: "North America" },
+      { date: "2029-06-12T00:00Z", type: "Partial Solar",   category: "solar", visibility: "Arctic, Scandinavia" },
+      { date: "2029-06-26T00:00Z", type: "Total Lunar",     category: "lunar", visibility: "Americas, Europe, Africa, Asia" },
+      { date: "2029-07-11T00:00Z", type: "Partial Solar",   category: "solar", visibility: "Southern South America" },
+      { date: "2029-12-05T00:00Z", type: "Partial Solar",   category: "solar", visibility: "Southern South America, Antarctica" },
+      { date: "2029-12-20T00:00Z", type: "Total Lunar",     category: "lunar", visibility: "Americas, Europe, Africa, Asia" },
+      { date: "2030-06-01T00:00Z", type: "Annular Solar",   category: "solar", visibility: "Europe, Asia, Arctic" },
+      { date: "2030-06-15T00:00Z", type: "Partial Lunar",   category: "lunar", visibility: "Europe, Africa, Asia, Australia" },
+      { date: "2030-11-25T00:00Z", type: "Total Solar",     category: "solar", visibility: "Southern Africa, Australia" },
+      { date: "2030-12-09T00:00Z", type: "Penumbral Lunar", category: "lunar", visibility: "Americas, Europe, Africa" }
+    ];
+
     var toggleBtn   = document.getElementById("abyssMoon");
     var panel       = document.getElementById("celestialPanel");
     var closeBtn    = document.getElementById("celestialClose");
@@ -2580,6 +2612,61 @@
       }
     }
 
+    function findNextEclipse(category, moment) {
+      var upcoming = ECLIPSES
+        .filter(function (e) { return e.category === category; })
+        .map(function (e) { return { entry: e, time: new Date(e.date).getTime() }; })
+        .filter(function (x) { return x.time > moment.getTime(); })
+        .sort(function (a, b) { return a.time - b.time; });
+      return upcoming.length ? upcoming[0] : null;
+    }
+
+    function formatEclipseDate(d) {
+      try {
+        return new Intl.DateTimeFormat(undefined, {
+          month: "short", day: "numeric", year: "numeric"
+        }).format(d);
+      } catch (e) {
+        return d.toDateString();
+      }
+    }
+
+    function formatEclipseCountdown(ms) {
+      var totalHours = Math.floor(ms / 3600000);
+      var days = Math.floor(totalHours / 24);
+      var hours = totalHours % 24;
+      if (days > 0) return "in " + days + "d " + hours + "h";
+      if (hours > 0) return "in " + hours + "h";
+      return "in <1h";
+    }
+
+    function renderEclipseBlock(el, label, next, moment) {
+      if (!el) return;
+      if (!next) {
+        el.innerHTML =
+          '<div class="cel-label" style="margin-bottom:2px;">' + label + '</div>' +
+          '<div style="font-size:0.78rem;color:#8892b8;">no upcoming eclipse in records — list needs updating</div>';
+        return;
+      }
+      var d = new Date(next.entry.date);
+      var countdown = formatEclipseCountdown(d.getTime() - moment.getTime());
+      el.innerHTML =
+        '<div class="cel-label" style="margin-bottom:2px;">' + label + '</div>' +
+        '<div style="font-size:0.95rem;font-weight:700;color:#f5f3e8;">' + next.entry.type + '</div>' +
+        '<div style="margin-top:2px;font-size:0.78rem;color:#22d3ee;">' + formatEclipseDate(d) + ' &middot; ' + countdown + '</div>' +
+        '<div style="margin-top:2px;font-size:0.75rem;color:#8892b8;">' + next.entry.visibility + '</div>';
+    }
+
+    function renderEclipse() {
+      var solarEl = document.getElementById("celEclipseNextSolar");
+      var lunarEl = document.getElementById("celEclipseNextLunar");
+      if (!solarEl && !lunarEl) return;
+
+      var moment = getActiveMoment();
+      renderEclipseBlock(solarEl, "Next Solar:", findNextEclipse("solar", moment), moment);
+      renderEclipseBlock(lunarEl, "Next Lunar:", findNextEclipse("lunar", moment), moment);
+    }
+
     function renderClock() {
       var moment = getActiveMoment();
 
@@ -2617,6 +2704,7 @@
 
       renderMoon();
       renderAbyssMoon();
+      renderEclipse();
     }
 
     if (nowBtn) {
