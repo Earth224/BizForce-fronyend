@@ -2433,9 +2433,17 @@
               '<stop offset="60%" stop-color="#cfe0ff" stop-opacity="0.2"/>' +
               '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
             '</radialGradient>' +
+            '<filter id="smBackGlowBlur" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5"/></filter>' +
+            '<mask id="smBackGlowMask">' +
+              '<rect x="0" y="0" width="100" height="100" fill="#000"/>' +
+              '<g filter="url(#smBackGlowBlur)">' +
+                '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.45) + '" fill="#fff"/>' +
+                '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="#000"/>' +
+              '</g>' +
+            '</mask>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#smBackGlow)" mask="url(#smLitMask)"/>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="rgba(10,14,26,0.9)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.5) + '" fill="url(#smBackGlow)" mask="url(#smBackGlowMask)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="rgba(10,14,26,0.45)"/>' +
           '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#smLitMask)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#smBodyGlow)" mask="url(#smLitMask)" style="mix-blend-mode: screen;"/>' +
         '</svg>';
@@ -2534,8 +2542,16 @@
               '<stop offset="60%" stop-color="#cfe0ff" stop-opacity="0.2"/>' +
               '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
             '</radialGradient>' +
+            '<filter id="backGlowBlur" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>' +
+            '<mask id="backGlowMask">' +
+              '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
+              '<g filter="url(#backGlowBlur)">' +
+                '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.45) + '" fill="#fff"/>' +
+                '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="#000"/>' +
+              '</g>' +
+            '</mask>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#moonBackGlow)" mask="url(#moonLitMask)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.5) + '" fill="url(#moonBackGlow)" mask="url(#backGlowMask)"/>' +
           '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)" filter="url(#moonEdgeGlow)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#moonBodyGlow)" mask="url(#moonLitMask)" style="mix-blend-mode: screen;"/>' +
         '</svg>';
