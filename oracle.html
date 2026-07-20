@@ -2402,31 +2402,53 @@
       var container = document.getElementById("celMoonSvg");
       if (!container) return;
 
-      var size = 72;
-      var r = size / 2 - 3;
-      var cx = size / 2;
-      var cy = size / 2;
+      var size = 100;
+      var cx = 50;
+      var cy = 50;
+      var r = 38;
       var litFraction = illumPercent / 100;
       var offset = litFraction * 2 * r;
       var dir = phaseFraction < 0.5 ? 1 : -1;
       var shadowCx = cx + dir * offset;
+      var imgR = r * 1.18;
 
       container.innerHTML =
-        '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+        '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
           '<defs>' +
-            '<clipPath id="celMoonClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
-            '<radialGradient id="celMoonGlow" cx="50%" cy="50%" r="50%">' +
-              '<stop offset="60%" stop-color="#f5f3e8" stop-opacity="0.25"/>' +
-              '<stop offset="100%" stop-color="#f5f3e8" stop-opacity="0"/>' +
+            '<filter id="smTerminatorBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="2"/>' +
+            '</filter>' +
+            '<mask id="smLitMask">' +
+              '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
+              '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#fff"/>' +
+              '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#smTerminatorBlur)"/>' +
+            '</mask>' +
+            '<radialGradient id="smBodyGlow" cx="42%" cy="40%" r="65%">' +
+              '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>' +
+              '<stop offset="70%" stop-color="#eef2ff" stop-opacity="0.1"/>' +
+              '<stop offset="100%" stop-color="#eef2ff" stop-opacity="0"/>' +
             '</radialGradient>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 6) + '" fill="url(#celMoonGlow)"/>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#f5f3e8"/>' +
-          '<g clip-path="url(#celMoonClip)">' +
-            '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#0a0e1a"/>' +
-          '</g>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(245,243,232,0.15)" stroke-width="1"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="rgba(10,14,26,0.9)"/>' +
+          '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#smLitMask)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#smBodyGlow)" mask="url(#smLitMask)" style="mix-blend-mode: screen;"/>' +
         '</svg>';
+
+      var imgEl = container.querySelector("image");
+      if (imgEl) {
+        imgEl.addEventListener("error", function () {
+          container.innerHTML =
+            '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
+              '<defs>' +
+                '<clipPath id="smFallbackClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
+              '</defs>' +
+              '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#f5f3e8"/>' +
+              '<g clip-path="url(#smFallbackClip)">' +
+                '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#0a0e1a"/>' +
+              '</g>' +
+            '</svg>';
+        });
+      }
     }
 
     function renderMoon() {
