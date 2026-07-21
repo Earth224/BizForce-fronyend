@@ -106,6 +106,13 @@
     .form-textarea{resize:vertical;min-height:100px}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .field-hint{font-size:.72rem;color:#8892b8;margin:6px 0 0;line-height:1.4}
+    .digital-toggle-row{display:flex;align-items:center;gap:10px}
+    .digital-toggle-row input[type="checkbox"]{width:18px;height:18px;accent-color:#a855f7;cursor:pointer;flex-shrink:0}
+    .digital-toggle-row .form-label{margin-bottom:0;text-transform:none;letter-spacing:0;font-size:.85rem;color:#e8e8ff;cursor:pointer}
+    .digital-upload-status{display:inline-block;font-size:.78rem;margin-top:8px}
+    .digital-upload-status.status-uploading{color:#8892b8}
+    .digital-upload-status.status-success{color:#34d399}
+    .digital-upload-status.status-error{color:#f87171}
     .price-usd-wrap{position:relative}
     .price-usd-wrap .form-input{padding-left:28px}
     .price-usd-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#8892b8;font-size:.9rem;pointer-events:none}
@@ -217,6 +224,19 @@
       <input type="file" id="fMedia" accept="image/*,video/*" multiple style="display:none">
       <button type="button" class="btn-cancel" onclick="document.getElementById('fMedia').click()">Add Photos / Video</button>
       <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
+    <div class="form-group">
+      <div class="digital-toggle-row">
+        <input type="checkbox" id="listingIsDigital" onchange="onDigitalToggleChange()">
+        <label class="form-label" for="listingIsDigital">This is a digital product (deliver a file to the buyer)</label>
+      </div>
+    </div>
+    <div class="form-group" id="digitalFileRow" style="display:none">
+      <label class="form-label">Digital File</label>
+      <input type="file" id="listingDigitalFile" accept=".pdf,.doc,.docx,.txt,.md,.csv,.zip,.epub,image/*,audio/*,video/*" style="display:none">
+      <button type="button" class="btn-cancel" onclick="document.getElementById('listingDigitalFile').click()">Choose Digital File</button>
+      <span class="digital-upload-status" id="digitalUploadStatus"></span>
+      <p class="field-hint">Uploaded securely; only buyers who purchase receive a download link.</p>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
@@ -443,6 +463,7 @@ function openCreateModal() {
   document.getElementById("fTags").value = "";
   listingMedia = [];
   renderMediaPreview();
+  resetDigitalUploadState();
   document.getElementById("listingModal").classList.add("open");
 }
 
@@ -465,6 +486,27 @@ function closeModal() {
   document.getElementById("listingModal").classList.remove("open");
   listingMedia = [];
   renderMediaPreview();
+  resetDigitalUploadState();
+}
+
+function onDigitalToggleChange() {
+  var checked = document.getElementById("listingIsDigital").checked;
+  document.getElementById("digitalFileRow").style.display = checked ? "block" : "none";
+}
+
+function resetDigitalUploadState() {
+  document.getElementById("listingIsDigital").checked = false;
+  document.getElementById("digitalFileRow").style.display = "none";
+  document.getElementById("listingDigitalFile").value = "";
+  var statusEl = document.getElementById("digitalUploadStatus");
+  statusEl.textContent = "";
+  statusEl.className = "digital-upload-status";
+}
+
+function setDigitalUploadStatus(text, state) {
+  var statusEl = document.getElementById("digitalUploadStatus");
+  statusEl.textContent = text;
+  statusEl.className = "digital-upload-status" + (state ? " status-" + state : "");
 }
 
 function renderMediaPreview() {
@@ -531,15 +573,54 @@ async function submitListing() {
   if (!title) { showToast("Title is required", "error"); return; }
   if (!category) { showToast("Category is required", "error"); return; }
   if (price <= 0 && priceUsd === null) { showToast("Set a BFC price, a USD price, or both", "error"); return; }
+
+  var isDigital = document.getElementById("listingIsDigital").checked;
+  var digitalFile = document.getElementById("listingDigitalFile").files[0];
+  if (isDigital && !digitalFile) {
+    setDigitalUploadStatus("Please choose a digital file", "error");
+    return;
+  }
+
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
+
+  var digitalUpload = null;
+  if (isDigital) {
+    setDigitalUploadStatus("Uploading…", "uploading");
+    try {
+      var digitalForm = new FormData();
+      digitalForm.append("file", digitalFile);
+      var upRes = await fetch(API_URL + "/api/marketplace/upload-digital", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+        body: digitalForm
+      });
+      var upData = await upRes.json();
+      if (!upRes.ok || !upData.path) throw new Error(upData.error || "Digital file upload failed");
+      digitalUpload = { path: upData.path, fileName: upData.fileName || digitalFile.name };
+      setDigitalUploadStatus("Uploaded ✓ " + digitalUpload.fileName, "success");
+    } catch (e) {
+      setDigitalUploadStatus(e.message || "Digital file upload failed", "error");
+      btn.disabled = false;
+      return;
+    }
+  }
+
   try {
     var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
     var method = editingId ? "PUT" : "POST";
+    var body = { title, description: desc, category, price_bfc: price, price_usd: priceUsd, tags: tagsRaw, media: listingMedia };
+    if (isDigital && digitalUpload) {
+      body.is_digital = true;
+      body.digital_file_path = digitalUpload.path;
+      body.digital_file_name = digitalUpload.fileName;
+    } else {
+      body.is_digital = false;
+    }
     var res = await fetch(url, {
       method: method,
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description: desc, category, price_bfc: price, price_usd: priceUsd, tags: tagsRaw, media: listingMedia })
+      body: JSON.stringify(body)
     });
     if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
     closeModal();
