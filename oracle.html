@@ -763,6 +763,121 @@
       text-shadow: 0 0 6px rgba(232,200,116,0.3);
     }
 
+    .oracle-profile-num-select {
+      width: 100%;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(200,168,75,0.3);
+      border-radius: 9px;
+      color: #e8e8ff;
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    .oracle-profile-num-select:focus { border-color: rgba(232,200,116,0.6); }
+    .oracle-profile-num-select option { background: #0a0e1a; color: #e8e8ff; }
+
+    .numerology-system-output { margin-bottom: 14px; }
+    .num-sys-empty {
+      font-size: 0.78rem;
+      color: rgba(232,220,255,0.5);
+      text-align: center;
+      font-style: italic;
+      padding: 10px 4px;
+    }
+    .num-sys-pyramid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin: 6px 0 14px;
+    }
+    .num-sys-pyramid-row { display: flex; gap: 8px; justify-content: center; }
+    .num-sys-pyramid-cell {
+      min-width: 30px;
+      text-align: center;
+      padding: 5px 8px;
+      border-radius: 8px;
+      background: rgba(232,200,116,0.1);
+      border: 1px solid rgba(232,200,116,0.3);
+      color: #f4e4b8;
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+    .num-sys-pyramid-apex {
+      background: rgba(0,255,255,0.1);
+      border-color: rgba(0,255,255,0.35);
+      color: #9df6ff;
+    }
+    .num-sys-pyramid-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      text-align: center;
+    }
+    .num-sys-grid-title {
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.65);
+      margin: 12px 0 6px;
+      text-align: center;
+    }
+    .num-sys-inclusion-grid,
+    .num-sys-loshu-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .num-sys-inclusion-cell,
+    .num-sys-loshu-cell {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: rgba(232,220,255,0.35);
+    }
+    .num-sys-inclusion-cell.is-present,
+    .num-sys-loshu-cell.is-present {
+      background: rgba(232,200,116,0.12);
+      border-color: rgba(232,200,116,0.35);
+      color: #f4e4b8;
+    }
+    .num-sys-cell-num { font-weight: 800; font-size: 0.85rem; }
+    .num-sys-cell-count { font-size: 0.6rem; opacity: 0.75; }
+    .num-sys-karmic {
+      font-size: 0.78rem;
+      color: #ffb38a;
+      background: rgba(255,120,80,0.08);
+      border: 1px solid rgba(255,120,80,0.25);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 4px;
+    }
+    .num-sys-arrows-title {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.65);
+      margin: 10px 0 4px;
+    }
+    .num-sys-arrow-item {
+      font-size: 0.76rem;
+      padding: 3px 0;
+      color: #f4e4b8;
+    }
+    .num-sys-arrow-item.is-weak { color: rgba(232,220,255,0.5); }
+
     /* ════════════════════════════════════════
        SYNC CARD
     ════════════════════════════════════════ */
@@ -1339,6 +1454,17 @@
 
       <div class="oracle-profile-numerology" id="oracleProfileNumerology" style="display:none;">
         <div class="oracle-profile-numerology-title">Numerology</div>
+
+        <select class="oracle-profile-num-select" id="numerologySystemSelect">
+          <option value="pythagorean">Pythagorean (Western)</option>
+          <option value="chaldean">Chaldean (Ancient Babylonian)</option>
+          <option value="divineTriangle">The Divine Triangle</option>
+          <option value="kabbalah">Kabbalah (Hebrew Gematria)</option>
+          <option value="vedic">Vedic (Indian)</option>
+          <option value="chinese">Chinese (Lo Shu Grid)</option>
+        </select>
+        <div class="numerology-system-output" id="numerologySystemOutput"></div>
+
         <div class="oracle-profile-num-row">
           <span class="oracle-profile-num-label">Life Path</span>
           <span class="oracle-profile-num-value" id="numLifePath">—</span>
@@ -2046,6 +2172,8 @@
         .catch(function () {});
     }
 
+    var numerologyData = null;
+
     function fetchNumerology() {
       var section = document.getElementById("oracleProfileNumerology");
       if (!section) return;
@@ -2058,6 +2186,8 @@
       })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
+          numerologyData = data || null;
+
           if (!data ||
               (data.life_path   == null &&
                data.expression  == null &&
@@ -2074,8 +2204,155 @@
           if (su) su.textContent = data.soul_urge  != null ? data.soul_urge  : "—";
           if (bd) bd.textContent = data.birthday   != null ? data.birthday   : "—";
           section.style.display = "block";
+
+          var selectEl = document.getElementById("numerologySystemSelect");
+          renderNumerologySystem(selectEl ? selectEl.value : "pythagorean");
         })
         .catch(function () {}); /* leave hidden — soft-fail on error */
+    }
+
+    /* ── Multi-system numerology view — reads numerologyData.systems
+       (pythagorean/chaldean/divineTriangle/kabbalah/vedic/chinese, from
+       GET /api/oracle/numerology) and renders the system chosen in
+       #numerologySystemSelect into #numerologySystemOutput. Purely
+       additive to the four static rows above, which keep working as-is. ── */
+
+    function numSysRow(label, value) {
+      return '<div class="oracle-profile-num-row">' +
+        '<span class="oracle-profile-num-label">' + label + '</span>' +
+        '<span class="oracle-profile-num-value">' + (value != null ? value : "—") + '</span>' +
+      '</div>';
+    }
+
+    function renderNameSystemRows(sys) {
+      var html = "";
+      html += numSysRow("Life Path", sys.lifePath);
+      html += numSysRow("Expression", sys.expression);
+      html += numSysRow("Soul Urge", sys.soulUrge);
+      if (sys.personality != null) html += numSysRow("Personality", sys.personality);
+      if (sys.birthday    != null) html += numSysRow("Birthday", sys.birthday);
+      return html;
+    }
+
+    function renderDivineTriangle(sys) {
+      var base       = sys.base       || [];
+      var secondRow   = sys.secondRow || [];
+      var inclusion   = sys.inclusionTable || {};
+      var karmic      = sys.karmicLessons  || [];
+
+      var html = '<div class="num-sys-pyramid">';
+      html += '<div class="num-sys-pyramid-label">Apex</div>';
+      html += '<div class="num-sys-pyramid-row"><span class="num-sys-pyramid-cell num-sys-pyramid-apex">' +
+        (sys.apex != null ? sys.apex : "—") + '</span></div>';
+      html += '<div class="num-sys-pyramid-row">' +
+        secondRow.map(function (n) { return '<span class="num-sys-pyramid-cell">' + n + '</span>'; }).join("") +
+      '</div>';
+      html += '<div class="num-sys-pyramid-row">' +
+        base.map(function (n) { return '<span class="num-sys-pyramid-cell">' + n + '</span>'; }).join("") +
+      '</div>';
+      html += '<div class="num-sys-pyramid-label">Base (Month · Day · Year)</div>';
+      html += '</div>';
+
+      html += '<div class="num-sys-grid-title">Inclusion Table</div>';
+      html += '<div class="num-sys-inclusion-grid">';
+      for (var n = 1; n <= 9; n++) {
+        var count = inclusion[String(n)] || 0;
+        html += '<div class="num-sys-inclusion-cell' + (count > 0 ? ' is-present' : '') + '">' +
+          '<span class="num-sys-cell-num">' + n + '</span>' +
+          (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
+        '</div>';
+      }
+      html += '</div>';
+
+      html += '<div class="num-sys-grid-title">Karmic Lessons</div>';
+      html += karmic.length
+        ? '<div class="num-sys-karmic">' + karmic.join(", ") + ' <span style="opacity:.65;font-weight:400">(numbers missing from your name — karmic lessons)</span></div>'
+        : '<div class="num-sys-karmic" style="color:rgba(232,220,255,0.5)">None — every number 1-9 appears in your name.</div>';
+
+      return html;
+    }
+
+    function renderKabbalah(sys) {
+      var html = "";
+      html += numSysRow("Gematria Total", sys.gematriaTotal);
+      html += numSysRow("Reduced", sys.reduced);
+      html += numSysRow("Heart (Vowels)", sys.heart);
+      html += numSysRow("Foundation (Consonants)", sys.foundation);
+      return html;
+    }
+
+    function renderVedic(sys) {
+      var psychicValue = sys.psychicNumber != null
+        ? sys.psychicNumber + (sys.planetaryRuler ? " · ruled by " + sys.planetaryRuler : "")
+        : null;
+      var html = "";
+      html += numSysRow("Psychic Number", psychicValue);
+      html += numSysRow("Destiny Number", sys.destinyNumber);
+      html += numSysRow("Name Number", sys.nameNumber);
+      return html;
+    }
+
+    function renderLoShu(sys) {
+      var grid   = sys.grid            || {};
+      var strong = sys.arrowsOfStrength || [];
+      var weak   = sys.arrowsOfWeakness || [];
+      var layout = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+
+      var html = '<div class="num-sys-loshu-grid">';
+      layout.forEach(function (n) {
+        var count = grid[String(n)] || 0;
+        html += '<div class="num-sys-loshu-cell' + (count > 0 ? ' is-present' : '') + '">' +
+          '<span class="num-sys-cell-num">' + n + '</span>' +
+          (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
+        '</div>';
+      });
+      html += '</div>';
+
+      html += '<div class="num-sys-arrows-title">Arrows of Strength</div>';
+      html += strong.length
+        ? strong.map(function (a) { return '<div class="num-sys-arrow-item">' + a + '</div>'; }).join("")
+        : '<div class="num-sys-arrow-item is-weak">None</div>';
+
+      html += '<div class="num-sys-arrows-title">Arrows of Weakness</div>';
+      html += weak.length
+        ? weak.map(function (a) { return '<div class="num-sys-arrow-item is-weak">' + a + '</div>'; }).join("")
+        : '<div class="num-sys-arrow-item">None</div>';
+
+      return html;
+    }
+
+    function renderNumerologySystem(systemKey) {
+      var out = document.getElementById("numerologySystemOutput");
+      if (!out) return;
+
+      var systems = numerologyData && numerologyData.systems;
+      var sys = systems ? systems[systemKey] : null;
+
+      if (!sys) {
+        out.innerHTML = '<div class="num-sys-empty">Sync your birth data to see this chart.</div>';
+        return;
+      }
+
+      if (systemKey === "pythagorean" || systemKey === "chaldean") {
+        out.innerHTML = renderNameSystemRows(sys);
+      } else if (systemKey === "divineTriangle") {
+        out.innerHTML = renderDivineTriangle(sys);
+      } else if (systemKey === "kabbalah") {
+        out.innerHTML = renderKabbalah(sys);
+      } else if (systemKey === "vedic") {
+        out.innerHTML = renderVedic(sys);
+      } else if (systemKey === "chinese") {
+        out.innerHTML = renderLoShu(sys);
+      } else {
+        out.innerHTML = "";
+      }
+    }
+
+    var numerologySystemSelect = document.getElementById("numerologySystemSelect");
+    if (numerologySystemSelect) {
+      numerologySystemSelect.addEventListener("change", function () {
+        renderNumerologySystem(numerologySystemSelect.value);
+      });
     }
 
     /* Save control — reuses the exact same read-fields → build-payload →
