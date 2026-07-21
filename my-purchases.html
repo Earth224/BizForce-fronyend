@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — My Purchases</title>
+  <script>
+var token = localStorage.getItem("bf_token");
+if (!token) {
+    window.location.replace("/app.html");
+}
+  </script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+    .hero-title{margin:0 0 10px;font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:1rem;line-height:1.6}
+    .purchase-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+    .purchase-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s}
+    .purchase-card:hover{border-color:rgba(168,85,247,.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(168,85,247,.1)}
+    .purchase-title{font-size:1rem;font-weight:800;color:#f4f7ff;margin:0;line-height:1.3}
+    .purchase-amount-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+    .purchase-amount{font-size:1.15rem;font-weight:800;color:#34d399}
+    .status-tag{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid;width:fit-content}
+    .status-completed{color:#34d399;background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25)}
+    .status-other{color:#8892b8;background:rgba(136,146,184,.1);border-color:rgba(136,146,184,.25)}
+    .purchase-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding-top:4px}
+    .purchase-date{font-size:.7rem;color:#4a5280}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;border:1px solid}
+    .btn-download{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:#fbbf24}
+    .btn-download:hover{background:rgba(251,191,36,.2)}
+    .btn-download:disabled{opacity:.6;cursor:default}
+    .no-download{font-size:.78rem;color:#4a5280}
+    .dl-error{font-size:.7rem;color:#f87171;margin-top:6px;display:none}
+    .dl-error.show{display:block}
+    .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
+    .empty-msg a{color:#22d3ee;text-decoration:none;font-weight:700}
+    .empty-msg a:hover{text-decoration:underline}
+    .loading{text-align:center;padding:64px 24px;color:#8892b8}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Dashboard
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">MARKETPLACE</div>
+    <h1 class="hero-title">My Purchases</h1>
+    <p class="hero-sub">Every marketplace order you've made, with instant downloads for digital goods.</p>
+  </div>
+
+  <div class="purchase-grid" id="purchaseGrid"><div class="loading">Loading purchases...</div></div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var purchases = [];
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatPurchaseAmount(p) {
+  var isUsd = p.amount_usd !== null && p.amount_usd !== undefined;
+  return isUsd ? ("$" + ((p.amount_usd || 0) / 100).toFixed(2)) : (p.amount_bfc || 0).toLocaleString() + " BFC";
+}
+
+async function loadPurchases() {
+  try {
+    var res = await fetch(API_URL + "/api/purchases", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) throw new Error("Failed to load purchases");
+    var data = await res.json();
+    purchases = data.purchases || [];
+    renderGrid();
+  } catch (e) {
+    document.getElementById("purchaseGrid").innerHTML = '<div class="empty-msg">Could not load your purchases. Please try again.</div>';
+  }
+}
+
+function renderGrid() {
+  var grid = document.getElementById("purchaseGrid");
+  if (!purchases.length) {
+    grid.innerHTML = '<div class="empty-msg">You haven\'t made any purchases yet.<br><a href="marketplace.html">Browse the marketplace</a></div>';
+    return;
+  }
+  grid.innerHTML = purchases.map(function(p, idx) { return renderCard(p, idx); }).join("");
+}
+
+function renderCard(p, idx) {
+  var date = new Date(p.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
+  var statusClass = p.status === "completed" ? "status-completed" : "status-other";
+  var downloadArea = p.is_digital === true
+    ? '<button class="btn-sm btn-download" id="dl-btn-' + idx + '" onclick="downloadPurchase(' + idx + ')">Download</button>'
+    : '<span class="no-download">—</span>';
+  return '<div class="purchase-card">' +
+    '<span class="status-tag ' + statusClass + '">' + escapeHtml(p.status || "unknown") + '</span>' +
+    '<h3 class="purchase-title">' + escapeHtml(p.listing_title || "Untitled") + '</h3>' +
+    '<div class="purchase-amount-row">' +
+      '<span class="purchase-amount">' + escapeHtml(formatPurchaseAmount(p)) + '</span>' +
+    '</div>' +
+    '<div class="purchase-footer">' +
+      '<span class="purchase-date">' + date + '</span>' +
+      downloadArea +
+    '</div>' +
+    '<div class="dl-error" id="dl-err-' + idx + '">Download unavailable — try again.</div>' +
+  '</div>';
+}
+
+async function downloadPurchase(idx) {
+  var p = purchases[idx];
+  if (!p) return;
+  var btn = document.getElementById("dl-btn-" + idx);
+  var errEl = document.getElementById("dl-err-" + idx);
+  errEl.classList.remove("show");
+  btn.disabled = true;
+  var originalText = btn.textContent;
+  btn.textContent = "Preparing...";
+  try {
+    var res = await fetch(API_URL + "/api/purchases/" + p.id + "/download", { headers: { "Authorization": "Bearer " + token } });
+    var data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.error || "Download unavailable");
+    window.open(data.url, "_blank");
+  } catch (e) {
+    errEl.classList.add("show");
+  }
+  btn.disabled = false;
+  btn.textContent = originalText;
+}
+
+loadPurchases();
+</script>
+</body>
+</html>
