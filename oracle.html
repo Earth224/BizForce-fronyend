@@ -2125,14 +2125,20 @@
     }
 
     function makeStar(minR, maxR) {
+      var r = minR + Math.random() * (maxR - minR);
+      var baseAlpha = 0.12 + Math.pow(Math.random(), 2) * 0.8;
+      var scintillates = Math.random() < 0.25;
       return {
         x: Math.random() * cssWidth,
         y: Math.random() * cssHeight,
-        r: minR + Math.random() * (maxR - minR),
-        baseAlpha: 0.12 + Math.pow(Math.random(), 2) * 0.8,
+        r: r,
+        baseAlpha: baseAlpha,
         phase: Math.random() * Math.PI * 2,
         speed: 0.6 + Math.random() * 1.6,
-        tint: pickTint()
+        tint: pickTint(),
+        spiked: (r > (minR + (maxR - minR) * 0.6)) && (baseAlpha > 0.6),
+        scintillates: scintillates,
+        twinkleDepth: scintillates ? 0.6 : 0.12
       };
     }
 
@@ -2194,13 +2200,63 @@
 
     // ── Rendering ──────────────────────────────────────────────────────────
     function drawStarAt(px, py, star, alpha) {
-      var glowR = star.r * 3.2;
-      var g = ctx.createRadialGradient(px, py, 0, px, py, glowR);
-      g.addColorStop(0, "rgba(" + star.tint.r + "," + star.tint.g + "," + star.tint.b + "," + alpha + ")");
-      g.addColorStop(1, "rgba(" + star.tint.r + "," + star.tint.g + "," + star.tint.b + ",0)");
-      ctx.fillStyle = g;
+      var tint = star.tint;
+
+      // (a) soft outer halo — the subtle bloom
+      var haloR = star.r * 2.2;
+      var halo = ctx.createRadialGradient(px, py, 0, px, py, haloR);
+      halo.addColorStop(0, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.5) + ")");
+      halo.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + ",0)");
+      ctx.fillStyle = halo;
       ctx.beginPath();
-      ctx.arc(px, py, glowR, 0, Math.PI * 2);
+      ctx.arc(px, py, haloR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // diffraction spikes — bright stars only, drawn under the core
+      if (star.spiked && alpha > 0.35) {
+        var spikeLen   = star.r * 6;
+        var spikeAlpha = alpha * 0.5;
+        var spikeRgb   = tint.r + "," + tint.g + "," + tint.b;
+
+        ctx.lineWidth = 0.8;
+
+        var vSpike = ctx.createLinearGradient(px, py - spikeLen, px, py + spikeLen);
+        vSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
+        vSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
+        vSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
+        ctx.strokeStyle = vSpike;
+        ctx.beginPath();
+        ctx.moveTo(px, py - spikeLen);
+        ctx.lineTo(px, py + spikeLen);
+        ctx.stroke();
+
+        var hSpike = ctx.createLinearGradient(px - spikeLen, py, px + spikeLen, py);
+        hSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
+        hSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
+        hSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
+        ctx.strokeStyle = hSpike;
+        ctx.beginPath();
+        ctx.moveTo(px - spikeLen, py);
+        ctx.lineTo(px + spikeLen, py);
+        ctx.stroke();
+      }
+
+      // (b) sharp core, on top — crisp bright point rather than a fuzzy ball
+      var coreR = star.r * 0.7;
+      var centerColor = tint;
+      if (star.baseAlpha > 0.7) {
+        centerColor = {
+          r: Math.round(tint.r + (255 - tint.r) * 0.6),
+          g: Math.round(tint.g + (255 - tint.g) * 0.6),
+          b: Math.round(tint.b + (255 - tint.b) * 0.6)
+        };
+      }
+      var core = ctx.createRadialGradient(px, py, 0, px, py, coreR);
+      core.addColorStop(0, "rgba(" + centerColor.r + "," + centerColor.g + "," + centerColor.b + "," + alpha + ")");
+      core.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.15) + ")");
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(px, py, coreR, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -2252,7 +2308,7 @@
           var alpha = star.baseAlpha;
           if (!reducedMotion) {
             var tw = Math.sin(elapsed * star.speed + star.phase);
-            alpha = Math.max(0, Math.min(1, star.baseAlpha + tw * star.baseAlpha * 0.35));
+            alpha = Math.max(0, Math.min(1, star.baseAlpha + tw * star.baseAlpha * star.twinkleDepth));
           }
 
           drawStarWrapped(star, px, py, alpha);
