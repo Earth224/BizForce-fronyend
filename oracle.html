@@ -1034,6 +1034,18 @@
       opacity: 1;
       padding: 0 12px 12px;
     }
+    /* Display-only mode: plain, always-visible summary — no header, no
+       chevron, no collapse. .quantum-body's collapsed-by-default rule
+       above only applies inside .is-expanded, so it's overridden here. */
+    .quantum-card-plain .quantum-title-plain {
+      padding: 10px 12px 0;
+    }
+    .quantum-card-plain .quantum-body {
+      max-height: none;
+      opacity: 1;
+      overflow: visible;
+      padding: 8px 12px 12px;
+    }
     .quantum-section-title {
       font-size: 0.65rem;
       font-weight: 700;
@@ -2689,8 +2701,8 @@
           section.style.display = "block";
 
           var selectEl = document.getElementById("numerologySystemSelect");
-          renderNumerologySystem(selectEl ? selectEl.value : "pythagorean");
-          renderQuantumSynthesis();
+          renderNumerologySystem(selectEl ? selectEl.value : "pythagorean", true);
+          renderQuantumSynthesis(true);
         })
         .catch(function () {}); /* leave hidden — soft-fail on error */
     }
@@ -2988,8 +3000,8 @@
       });
     }
 
-    function numSysRow(label, value, systemKey, fieldKey, suffix) {
-      var tappable = !!(systemKey && fieldKey && value != null);
+    function numSysRow(label, value, systemKey, fieldKey, suffix, displayOnly) {
+      var tappable = !displayOnly && !!(systemKey && fieldKey && value != null);
       var attrs = tappable
         ? ' data-num-system="' + systemKey + '" data-num-field="' + fieldKey + '" data-num-value="' + value + '"'
         : '';
@@ -3007,8 +3019,8 @@
        elements (pyramid cells, inclusion/grid cells, karmic/arrow spans) —
        returns a ready-to-splice class+data-attrs string. Used by step 2's
        structured-system renderers below. ── */
-    function numTapAttrs(baseClass, systemKey, fieldKey, value) {
-      if (value == null) return 'class="' + baseClass + '"';
+    function numTapAttrs(baseClass, systemKey, fieldKey, value, displayOnly) {
+      if (displayOnly || value == null) return 'class="' + baseClass + '"';
       return 'class="' + baseClass + ' num-tappable" data-num-system="' + systemKey +
         '" data-num-field="' + fieldKey + '" data-num-value="' + value + '"';
     }
@@ -3018,13 +3030,13 @@
       return m ? m[0] : null;
     }
 
-    function renderNameSystemRows(sys, systemKey) {
+    function renderNameSystemRows(sys, systemKey, displayOnly) {
       var html = "";
-      html += numSysRow("Life Path", sys.lifePath, systemKey, "lifePath");
-      html += numSysRow("Expression", sys.expression, systemKey, "expression");
-      html += numSysRow("Soul Urge", sys.soulUrge, systemKey, "soulUrge");
-      if (sys.personality != null) html += numSysRow("Personality", sys.personality, systemKey, "personality");
-      if (sys.birthday    != null) html += numSysRow("Birthday", sys.birthday, systemKey, "birthday");
+      html += numSysRow("Life Path", sys.lifePath, systemKey, "lifePath", null, displayOnly);
+      html += numSysRow("Expression", sys.expression, systemKey, "expression", null, displayOnly);
+      html += numSysRow("Soul Urge", sys.soulUrge, systemKey, "soulUrge", null, displayOnly);
+      if (sys.personality != null) html += numSysRow("Personality", sys.personality, systemKey, "personality", null, displayOnly);
+      if (sys.birthday    != null) html += numSysRow("Birthday", sys.birthday, systemKey, "birthday", null, displayOnly);
       return html;
     }
 
@@ -3200,7 +3212,7 @@
       return svg;
     }
 
-    function renderDivineTriangle(sys) {
+    function renderDivineTriangle(sys, displayOnly) {
       var base       = sys.base       || [];
       var secondRow   = sys.secondRow || [];
       var inclusion   = sys.inclusionTable || {};
@@ -3209,16 +3221,16 @@
       var html = '<div class="num-sys-pyramid">';
       html += '<div class="num-sys-pyramid-label">Apex</div>';
       html += '<div class="num-sys-pyramid-row"><span ' +
-        numTapAttrs('num-sys-pyramid-cell num-sys-pyramid-apex', 'divineTriangle', 'apex', sys.apex) + '>' +
+        numTapAttrs('num-sys-pyramid-cell num-sys-pyramid-apex', 'divineTriangle', 'apex', sys.apex, displayOnly) + '>' +
         (sys.apex != null ? sys.apex : "—") + '</span></div>';
       html += '<div class="num-sys-pyramid-row">' +
         secondRow.map(function (n) {
-          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'secondRow', n) + '>' + n + '</span>';
+          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'secondRow', n, displayOnly) + '>' + n + '</span>';
         }).join("") +
       '</div>';
       html += '<div class="num-sys-pyramid-row">' +
         base.map(function (n) {
-          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'base', n) + '>' + n + '</span>';
+          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'base', n, displayOnly) + '>' + n + '</span>';
         }).join("") +
       '</div>';
       html += '<div class="num-sys-pyramid-label">Base (Month · Day · Year)</div>';
@@ -3228,7 +3240,7 @@
       html += '<div class="num-sys-inclusion-grid">';
       for (var n = 1; n <= 9; n++) {
         var count = inclusion[String(n)] || 0;
-        html += '<div ' + numTapAttrs('num-sys-inclusion-cell' + (count > 0 ? ' is-present' : ''), 'divineTriangle', 'inclusion', n) + '>' +
+        html += '<div ' + numTapAttrs('num-sys-inclusion-cell' + (count > 0 ? ' is-present' : ''), 'divineTriangle', 'inclusion', n, displayOnly) + '>' +
           '<span class="num-sys-cell-num">' + n + '</span>' +
           (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
         '</div>';
@@ -3239,7 +3251,7 @@
       html += karmic.length
         ? '<div class="num-sys-karmic">' +
             karmic.map(function (n) {
-              return '<span ' + numTapAttrs('num-sys-karmic-num', 'divineTriangle', 'karmic', n) + '>' + n + '</span>';
+              return '<span ' + numTapAttrs('num-sys-karmic-num', 'divineTriangle', 'karmic', n, displayOnly) + '>' + n + '</span>';
             }).join(", ") +
             ' <span style="opacity:.65;font-weight:400">(numbers missing from your name — karmic lessons)</span></div>'
         : '<div class="num-sys-karmic" style="color:rgba(232,220,255,0.5)">None — every number 1-9 appears in your name.</div>';
@@ -3247,25 +3259,25 @@
       return html;
     }
 
-    function renderKabbalah(sys) {
+    function renderKabbalah(sys, displayOnly) {
       var html = "";
-      html += numSysRow("Gematria Total", sys.gematriaTotal, "kabbalah", "gematriaTotal");
-      html += numSysRow("Reduced", sys.reduced, "kabbalah", "reduced");
-      html += numSysRow("Heart (Vowels)", sys.heart, "kabbalah", "heart");
-      html += numSysRow("Foundation (Consonants)", sys.foundation, "kabbalah", "foundation");
+      html += numSysRow("Gematria Total", sys.gematriaTotal, "kabbalah", "gematriaTotal", null, displayOnly);
+      html += numSysRow("Reduced", sys.reduced, "kabbalah", "reduced", null, displayOnly);
+      html += numSysRow("Heart (Vowels)", sys.heart, "kabbalah", "heart", null, displayOnly);
+      html += numSysRow("Foundation (Consonants)", sys.foundation, "kabbalah", "foundation", null, displayOnly);
       return html;
     }
 
-    function renderVedic(sys) {
+    function renderVedic(sys, displayOnly) {
       var html = "";
       var rulerSuffix = sys.planetaryRuler ? "· ruled by " + sys.planetaryRuler : null;
-      html += numSysRow("Psychic Number", sys.psychicNumber, "vedic", "psychicNumber", rulerSuffix);
-      html += numSysRow("Destiny Number", sys.destinyNumber, "vedic", "destinyNumber");
-      html += numSysRow("Name Number", sys.nameNumber, "vedic", "nameNumber");
+      html += numSysRow("Psychic Number", sys.psychicNumber, "vedic", "psychicNumber", rulerSuffix, displayOnly);
+      html += numSysRow("Destiny Number", sys.destinyNumber, "vedic", "destinyNumber", null, displayOnly);
+      html += numSysRow("Name Number", sys.nameNumber, "vedic", "nameNumber", null, displayOnly);
       return html;
     }
 
-    function renderLoShu(sys) {
+    function renderLoShu(sys, displayOnly) {
       var grid   = sys.grid            || {};
       var strong = sys.arrowsOfStrength || [];
       var weak   = sys.arrowsOfWeakness || [];
@@ -3274,7 +3286,7 @@
       var html = '<div class="num-sys-loshu-grid">';
       layout.forEach(function (n) {
         var count = grid[String(n)] || 0;
-        html += '<div ' + numTapAttrs('num-sys-loshu-cell' + (count > 0 ? ' is-present' : ''), 'chinese', 'grid', n) + '>' +
+        html += '<div ' + numTapAttrs('num-sys-loshu-cell' + (count > 0 ? ' is-present' : ''), 'chinese', 'grid', n, displayOnly) + '>' +
           '<span class="num-sys-cell-num">' + n + '</span>' +
           (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
         '</div>';
@@ -3284,14 +3296,14 @@
       html += '<div class="num-sys-arrows-title">Arrows of Strength</div>';
       html += strong.length
         ? strong.map(function (a) {
-            return '<div ' + numTapAttrs('num-sys-arrow-item', 'chinese', 'arrows', firstDigitIn(a)) + '>' + a + '</div>';
+            return '<div ' + numTapAttrs('num-sys-arrow-item', 'chinese', 'arrows', firstDigitIn(a), displayOnly) + '>' + a + '</div>';
           }).join("")
         : '<div class="num-sys-arrow-item is-weak">None</div>';
 
       html += '<div class="num-sys-arrows-title">Arrows of Weakness</div>';
       html += weak.length
         ? weak.map(function (a) {
-            return '<div ' + numTapAttrs('num-sys-arrow-item is-weak', 'chinese', 'arrows', firstDigitIn(a)) + '>' + a + '</div>';
+            return '<div ' + numTapAttrs('num-sys-arrow-item is-weak', 'chinese', 'arrows', firstDigitIn(a), displayOnly) + '>' + a + '</div>';
           }).join("")
         : '<div class="num-sys-arrow-item">None</div>';
 
@@ -3319,7 +3331,7 @@
       return QUANTUM_SYSTEM_LABELS[key] || key;
     }
 
-    function renderQuantumSynthesis() {
+    function renderQuantumSynthesis(displayOnly) {
       var container = document.getElementById("quantumSynthesisOutput");
       if (!container) return;
 
@@ -3341,28 +3353,21 @@
         ? "Your convergent number: " + quantum.convergences[0].number
         : "Cross-system soul pattern";
 
-      var html = '<div class="quantum-card' + (quantumSynthesisExpanded ? ' is-expanded' : '') + '" id="quantumCard">';
-      html += '<div class="quantum-header" id="quantumHeader">' +
-        '<span class="quantum-chevron" aria-hidden="true">&#x25B8;</span>' +
-        '<span class="quantum-title">Quantum Synthesis</span>' +
-        '<span class="quantum-teaser">' + teaser + '</span>' +
-      '</div>';
-
-      html += '<div class="quantum-body">';
+      var bodyHtml = "";
 
       if (hasConvergences) {
-        html += '<div class="quantum-section-title">Convergences</div>';
+        bodyHtml += '<div class="quantum-section-title">Convergences</div>';
         quantum.convergences.forEach(function (c) {
           var systemNames = c.systems.map(prettifySystemName).join(", ");
-          html += '<div class="quantum-convergence-row">' +
-            '<span ' + numTapAttrs('quantum-convergence-number', 'quantum', 'convergence', c.number) + '>' + c.number + '</span>' +
+          bodyHtml += '<div class="quantum-convergence-row">' +
+            '<span ' + numTapAttrs('quantum-convergence-number', 'quantum', 'convergence', c.number, displayOnly) + '>' + c.number + '</span>' +
             '<span class="quantum-convergence-detail">appears across ' + c.count + ' systems — ' + systemNames + '</span>' +
           '</div>';
         });
       }
 
       if (hasMasters) {
-        html += '<div class="quantum-section-title">Master Numbers</div>';
+        bodyHtml += '<div class="quantum-section-title">Master Numbers</div>';
         var byNumber = {};
         quantum.masterNumbers.forEach(function (m) {
           var key = String(m.number);
@@ -3370,7 +3375,7 @@
           byNumber[key].push(prettifySystemName(m.system) + " (" + m.field + ")");
         });
         Object.keys(byNumber).forEach(function (key) {
-          html += '<div class="quantum-master-row">' +
+          bodyHtml += '<div class="quantum-master-row">' +
             '<span class="quantum-master-number">' + key + '</span>' +
             ' — in ' + byNumber[key].join(", ") +
           '</div>';
@@ -3378,26 +3383,44 @@
       }
 
       if (hasKarmic) {
-        html += '<div class="quantum-section-title">Karmic Debt</div>';
+        bodyHtml += '<div class="quantum-section-title">Karmic Debt</div>';
         if (quantum.karmicDebt.found && quantum.karmicDebt.found.length) {
           quantum.karmicDebt.found.forEach(function (f) {
-            html += '<div class="quantum-karmic-row">' + f.number + ' — ' + f.source + '</div>';
+            bodyHtml += '<div class="quantum-karmic-row">' + f.number + ' — ' + f.source + '</div>';
           });
         }
         if (quantum.karmicDebt.karmicLessons && quantum.karmicDebt.karmicLessons.length) {
-          html += '<div class="quantum-karmic-row">Karmic lessons (missing from name): ' +
+          bodyHtml += '<div class="quantum-karmic-row">Karmic lessons (missing from name): ' +
             quantum.karmicDebt.karmicLessons.join(", ") + '</div>';
         }
         if (quantum.karmicDebt.note) {
-          html += '<div class="quantum-karmic-note">' + quantum.karmicDebt.note + '</div>';
+          bodyHtml += '<div class="quantum-karmic-note">' + quantum.karmicDebt.note + '</div>';
         }
       }
 
       if (hasSoulThread) {
-        html += '<div class="quantum-soul-thread">' + quantum.soulThread + '</div>';
+        bodyHtml += '<div class="quantum-soul-thread">' + quantum.soulThread + '</div>';
       }
 
-      html += '</div>'; /* .quantum-body */
+      if (displayOnly) {
+        /* Plain, always-visible summary — no header, no chevron, no
+           collapse toggle, no tap-to-expand. Convergence numbers above
+           were already rendered non-tappable via numTapAttrs(displayOnly). */
+        var html = '<div class="quantum-card quantum-card-plain">' +
+          '<div class="quantum-title quantum-title-plain">Quantum Synthesis</div>' +
+          '<div class="quantum-body">' + bodyHtml + '</div>' +
+        '</div>';
+        container.innerHTML = html;
+        return;
+      }
+
+      var html = '<div class="quantum-card' + (quantumSynthesisExpanded ? ' is-expanded' : '') + '" id="quantumCard">';
+      html += '<div class="quantum-header" id="quantumHeader">' +
+        '<span class="quantum-chevron" aria-hidden="true">&#x25B8;</span>' +
+        '<span class="quantum-title">Quantum Synthesis</span>' +
+        '<span class="quantum-teaser">' + teaser + '</span>' +
+      '</div>';
+      html += '<div class="quantum-body">' + bodyHtml + '</div>';
       html += '</div>'; /* .quantum-card */
 
       container.innerHTML = html;
@@ -3412,7 +3435,9 @@
       }
     }
 
-    function renderNumerologySystem(systemKey) {
+    function renderNumerologySystem(systemKey, displayOnly) {
+      displayOnly = displayOnly === undefined ? false : displayOnly;
+
       var out = document.getElementById("numerologySystemOutput");
       if (!out) return;
 
@@ -3427,16 +3452,16 @@
       }
 
       if (systemKey === "pythagorean" || systemKey === "chaldean") {
-        out.innerHTML = renderNameSystemRows(sys, systemKey);
+        out.innerHTML = renderNameSystemRows(sys, systemKey, displayOnly);
       } else if (systemKey === "divineTriangle") {
         var blueprintSvg = renderDivineTriangleBlueprintVisual();
-        out.innerHTML = (blueprintSvg ? '<div class="dtb-visual">' + blueprintSvg + '</div>' : '') + renderDivineTriangle(sys);
+        out.innerHTML = (blueprintSvg ? '<div class="dtb-visual">' + blueprintSvg + '</div>' : '') + renderDivineTriangle(sys, displayOnly);
       } else if (systemKey === "kabbalah") {
-        out.innerHTML = renderKabbalah(sys);
+        out.innerHTML = renderKabbalah(sys, displayOnly);
       } else if (systemKey === "vedic") {
-        out.innerHTML = renderVedic(sys);
+        out.innerHTML = renderVedic(sys, displayOnly);
       } else if (systemKey === "chinese") {
-        out.innerHTML = renderLoShu(sys);
+        out.innerHTML = renderLoShu(sys, displayOnly);
       } else {
         out.innerHTML = "";
       }
@@ -3445,7 +3470,7 @@
     var numerologySystemSelect = document.getElementById("numerologySystemSelect");
     if (numerologySystemSelect) {
       numerologySystemSelect.addEventListener("change", function () {
-        renderNumerologySystem(numerologySystemSelect.value);
+        renderNumerologySystem(numerologySystemSelect.value, true);
       });
     }
 
