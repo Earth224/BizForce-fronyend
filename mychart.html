@@ -168,6 +168,25 @@
       color: rgba(232,220,255,0.5);
       letter-spacing: 0.02em;
     }
+    /* Sun/Moon/Rising headline — the core identity of the chart, meant to
+       be the first thing the eye catches after the title. Renders only
+       once natal data resolves; gracefully absent (no birth time synced,
+       fetch failed) rather than showing a broken/partial line. */
+    .mychart-natal-summary {
+      margin-top: 16px;
+      font-size: clamp(0.95rem, 2.3vw, 1.2rem);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(232,220,255,0.92);
+    }
+    .mychart-natal-summary:empty { display: none; margin-top: 0; }
+    .mychart-natal-summary .mc-natal-sign {
+      background: linear-gradient(90deg, #f4e4b8, #ffe9b0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 800;
+    }
 
     /* ── Chart stage — main content, centered, transparent so the abyss
        shows through. Not an overlay here (unlike oracle.html's My Chart
@@ -507,6 +526,7 @@
     <div class="mychart-title-row">
       <h1 class="mychart-title">My Chart</h1>
       <p class="mychart-subtitle">Your interactive Divine Triangle blueprint</p>
+      <div class="mychart-natal-summary" id="mychartNatalSummary"></div>
     </div>
 
     <div class="my-chart-stage" id="myChartStage">
@@ -1616,8 +1636,33 @@
       }
     }
 
+    /* Sun/Moon/Rising headline beneath the title — the core identity of
+       the chart. Sun/Moon come from natalData.planets by name; Rising
+       from natalData.ascendant.sign (null when no birth time is synced,
+       in which case this renders nothing rather than a broken line). */
+    function renderNatalSummary(natalData) {
+      var el = document.getElementById("mychartNatalSummary");
+      if (!el) return;
+      if (!natalData) { el.innerHTML = ""; return; }
+
+      var sun  = (natalData.planets || []).filter(function (p) { return p.name === "Sun"; })[0];
+      var moon = (natalData.planets || []).filter(function (p) { return p.name === "Moon"; })[0];
+      var asc  = natalData.ascendant;
+
+      if (!sun || !moon || !asc || !sun.sign || !moon.sign || !asc.sign) {
+        el.innerHTML = "";
+        return;
+      }
+
+      el.innerHTML =
+        "&#9737; Sun in <span class=\"mc-natal-sign\">" + sun.sign + "</span> &middot; " +
+        "&#9789; Moon in <span class=\"mc-natal-sign\">" + moon.sign + "</span> &middot; " +
+        "ASC <span class=\"mc-natal-sign\">" + asc.sign + "</span> Rising";
+    }
+
     function renderNatalOrbit(natalData) {
       lastNatalData = natalData;
+      renderNatalSummary(natalData);
 
       var stage = document.getElementById("myChartStage");
       if (!stage || !natalData) return;
@@ -1639,30 +1684,50 @@
       var stageRect  = stage.getBoundingClientRect();
       var triangleEl = stage.querySelector(".dtb-visual-large");
 
-      /* CARD_HALF: half a chip's footprint including its glow, so cards
-         never clip against the stage edge. MIN_GAP: clear breathing room
-         between the triangle's own rendered edge and the ring — the
-         earlier +60 offset produced overlap once the triangle's real
-         painted extent (squares built outward, the diamond Wisdom
-         square) and chip padding are accounted for. */
-      var CARD_HALF = 55;
-      var MIN_GAP   = 70;
+      /* CARD_HALF_X/Y: half a chip's real footprint on each axis — cards
+         now carry longer text (house/angle labels), so these are sized
+         against the widest realistic card ("Ascendant · Rising · 1st
+         House cusp / Sagittarius 28.7°"), not the original short "Sun
+         Taurus 2.8°" cards. MIN_GAP: clear, generous breathing room
+         between the triangle's own rendered edge and the ring.
+         The ring is an ELLIPSE (radiusX/radiusY), not a circle, so a
+         typically-wider-than-tall viewport gets to use its full width
+         budget instead of being capped by the shorter height axis. */
+      var CARD_HALF_X = 130;
+      var CARD_HALF_Y = 40;
+      var MIN_GAP     = 90;
 
-      var maxRadius    = Math.min(stageRect.width, stageRect.height) / 2 - CARD_HALF;
+      /* Floored at 40 so the math stays sane (never negative) even on a
+         pathologically narrow viewport — below that, no fixed-size card
+         can avoid some clipping regardless of ring math. */
+      var maxRadiusX   = Math.max(40, stageRect.width  / 2 - CARD_HALF_X);
+      var maxRadiusY   = Math.max(40, stageRect.height / 2 - CARD_HALF_Y);
       var triangleSize = triangleEl ? triangleEl.getBoundingClientRect().width : 320;
 
       /* If the triangle at its natural size wouldn't leave room for a
-         comfortable gap before hitting maxRadius, shrink the triangle
-         itself (floor 200px) rather than crowd the ring against it —
-         this is what keeps the ring "always fitting" on small windows. */
-      var neededTriangleHalf = maxRadius - MIN_GAP;
+         comfortable gap on the TIGHTER of the two axes, shrink the
+         triangle itself (floor 200px) rather than crowd the ring against
+         it — this is what keeps the ring "always fitting" on small
+         windows, on either axis. */
+      var tightestMaxRadius  = Math.min(maxRadiusX, maxRadiusY);
+      var neededTriangleHalf = tightestMaxRadius - MIN_GAP;
       if (triangleEl && neededTriangleHalf * 2 < triangleSize) {
         var shrunkWidth = Math.max(200, neededTriangleHalf * 2);
         triangleEl.style.maxWidth = shrunkWidth + "px";
         triangleSize = shrunkWidth;
       }
 
-      var radius  = Math.max(80, Math.min(triangleSize / 2 + MIN_GAP, maxRadius));
+      /* clampRadius's floor is min(80, maxR) rather than a bare 80, so
+         the floor itself can never exceed maxR — otherwise on a small
+         enough screen the "never go below 80" floor could push the ring
+         past the "never exceed maxR" ceiling and clip cards off-edge. */
+      function clampRadius(desired, maxR) {
+        var floor = Math.min(80, maxR);
+        return Math.max(floor, Math.min(desired, maxR));
+      }
+      var desiredRadius = triangleSize / 2 + MIN_GAP;
+      var radiusX = clampRadius(desiredRadius, maxRadiusX);
+      var radiusY = clampRadius(desiredRadius, maxRadiusY);
       var centerX = stageRect.width / 2;
       var centerY = stageRect.height / 2;
       var count   = nodes.length;
@@ -1672,8 +1737,8 @@
 
       nodes.forEach(function (node, i) {
         var angle = (i / count) * Math.PI * 2 - Math.PI / 2; /* start at 12 o'clock, clockwise */
-        var x = centerX + radius * Math.cos(angle);
-        var y = centerY + radius * Math.sin(angle);
+        var x = centerX + radiusX * Math.cos(angle);
+        var y = centerY + radiusY * Math.sin(angle);
         var glyph = NATAL_GLYPHS[node.name] || node.name;
         var deg   = (node.degree != null) ? (Math.round(node.degree * 10) / 10) : null;
 
@@ -1688,7 +1753,7 @@
            array). */
         var detailText;
         if (node.kind === "angle") {
-          var angleLabel = (node.name === "ASC") ? "Ascendant · Rising" : "Midheaven";
+          var angleLabel = (node.name === "ASC") ? "Ascendant · Rising · 1st House cusp" : "Midheaven · 10th House cusp";
           detailText = angleLabel + (node.sign ? " / " + node.sign + (deg != null ? " " + deg + "°" : "") : "");
         } else {
           var house = houseForLongitude(natalData.houses, node.longitude);
