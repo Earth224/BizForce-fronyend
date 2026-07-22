@@ -194,22 +194,34 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      padding: 6px 10px;
+      padding: 7px 12px;
       border-radius: 10px;
-      background: rgba(10,4,20,0.7);
-      border: 1px solid rgba(168,85,247,0.35);
+      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(168,85,247,0.10)), rgba(10,4,20,0.78);
+      border: 1px solid rgba(168,85,247,0.5);
+      box-shadow: 0 0 14px rgba(168,85,247,0.25), 0 0 4px rgba(34,211,238,0.15);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       white-space: nowrap;
     }
+    /* Luminaries (Sun/Moon) and angles (ASC/MC) — the key placements,
+       given a stronger accent than the other eight nodes. */
+    .natal-node-luminary {
+      border-color: rgba(244,228,184,0.75);
+      box-shadow: 0 0 18px rgba(244,228,184,0.35), 0 0 6px rgba(255,210,120,0.25);
+    }
+    .natal-node-angle {
+      border-color: rgba(34,211,238,0.65);
+      box-shadow: 0 0 18px rgba(34,211,238,0.32), 0 0 6px rgba(168,85,247,0.2);
+    }
     .natal-node-glyph {
-      font-size: 1.05rem;
-      color: #f4e4b8;
+      font-size: 1.1rem;
+      color: #ffe9b0;
+      text-shadow: 0 0 6px rgba(255,210,120,0.5);
       line-height: 1;
     }
     .natal-node-detail {
-      font-size: 0.6rem;
-      color: rgba(232,220,255,0.75);
+      font-size: 0.62rem;
+      color: rgba(232,220,255,0.88);
       letter-spacing: 0.02em;
     }
     .my-chart-placeholder {
@@ -1382,10 +1394,25 @@
       svg += centerTapWrap('<text x="' + wisdomCenter.x + '" y="' + wisdomCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.wisdom)) + '</text>', "wisdom", centers.wisdom);
       svg += centerTapWrap('<text x="' + triangleCenter.x + '" y="' + triangleCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.triangle)) + '</text>', "triangle", centers.triangle);
 
-      [xMarkers.firstNameEnd, xMarkers.middleNameEnd].forEach(function (letter) {
-        if (!letter || !corners[letter]) return;
-        var pt = corners[letter];
-        svg += '<text x="' + pt.x + '" y="' + (pt.y - 10) + '" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.85)">&#x2715;</text>';
+      /* X-markers — the corner where a name completes. Rendered as a
+         small circled glyph (not a bare floating ✕) so it reads as an
+         intentional marker rather than a glitch; tappable only in the
+         interactive path (compact profile view stays subtle/inert). */
+      [
+        { key: "firstNameEnd",  letter: xMarkers.firstNameEnd },
+        { key: "middleNameEnd", letter: xMarkers.middleNameEnd }
+      ].forEach(function (marker) {
+        if (!marker.letter || !corners[marker.letter]) return;
+        var pt = corners[marker.letter];
+        var markerY = pt.y - 10;
+        var markerSvg =
+          '<circle cx="' + pt.x + '" cy="' + markerY + '" r="7" fill="rgba(10,4,20,0.55)" stroke="rgba(244,228,184,0.65)" stroke-width="1"/>' +
+          '<text x="' + pt.x + '" y="' + markerY + '" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="rgba(244,228,184,0.9)">&#x2715;</text>';
+        if (opts.interactive) {
+          svg += '<g class="mc-tappable" data-mc-type="xmarker" data-mc-which="' + marker.key + '">' + markerSvg + '</g>';
+        } else {
+          svg += markerSvg;
+        }
       });
 
       svg += '</svg>';
@@ -1498,15 +1525,33 @@
       }
       if (!nodes.length) return;
 
-      var stageRect    = stage.getBoundingClientRect();
-      var triangleEl   = stage.querySelector(".dtb-visual-large");
+      var stageRect  = stage.getBoundingClientRect();
+      var triangleEl = stage.querySelector(".dtb-visual-large");
+
+      /* CARD_HALF: half a chip's footprint including its glow, so cards
+         never clip against the stage edge. MIN_GAP: clear breathing room
+         between the triangle's own rendered edge and the ring — the
+         earlier +60 offset produced overlap once the triangle's real
+         painted extent (squares built outward, the diamond Wisdom
+         square) and chip padding are accounted for. */
+      var CARD_HALF = 55;
+      var MIN_GAP   = 70;
+
+      var maxRadius    = Math.min(stageRect.width, stageRect.height) / 2 - CARD_HALF;
       var triangleSize = triangleEl ? triangleEl.getBoundingClientRect().width : 320;
 
-      var nodeClearance = 46; /* half a chip's rough footprint, kept inside the stage edge */
-      var maxRadius     = Math.min(stageRect.width, stageRect.height) / 2 - nodeClearance;
-      var desiredRadius = triangleSize / 2 + 60;
-      var radius        = Math.max(80, Math.min(desiredRadius, maxRadius));
+      /* If the triangle at its natural size wouldn't leave room for a
+         comfortable gap before hitting maxRadius, shrink the triangle
+         itself (floor 200px) rather than crowd the ring against it —
+         this is what keeps the ring "always fitting" on small windows. */
+      var neededTriangleHalf = maxRadius - MIN_GAP;
+      if (triangleEl && neededTriangleHalf * 2 < triangleSize) {
+        var shrunkWidth = Math.max(200, neededTriangleHalf * 2);
+        triangleEl.style.maxWidth = shrunkWidth + "px";
+        triangleSize = shrunkWidth;
+      }
 
+      var radius  = Math.max(80, Math.min(triangleSize / 2 + MIN_GAP, maxRadius));
       var centerX = stageRect.width / 2;
       var centerY = stageRect.height / 2;
       var count   = nodes.length;
@@ -1521,8 +1566,12 @@
         var glyph = NATAL_GLYPHS[node.name] || node.name;
         var deg   = (node.degree != null) ? (Math.round(node.degree * 10) / 10) : null;
 
+        var accentClass = "";
+        if (node.name === "Sun" || node.name === "Moon") accentClass = " natal-node-luminary";
+        else if (node.name === "ASC" || node.name === "MC") accentClass = " natal-node-angle";
+
         var chip = document.createElement("div");
-        chip.className = "natal-node";
+        chip.className = "natal-node" + accentClass;
         chip.style.left = x + "px";
         chip.style.top  = y + "px";
         chip.innerHTML =
