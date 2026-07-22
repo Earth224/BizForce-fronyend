@@ -3862,7 +3862,8 @@
           return {
             illuminatedFraction: data.illuminatedFraction,
             waxing: !!data.waxing,
-            phaseAngle: data.phaseAngle
+            phaseAngle: data.phaseAngle,
+            phaseName: data.phaseName || null
           };
         })
         .catch(function () { return null; });
@@ -3873,6 +3874,7 @@
         if (result) {
           cachedRealMoonPhase = result;
           renderAbyssMoon(); /* repaint immediately once real data lands */
+          renderMoon();      /* keep the small panel moon in lockstep */
         }
       });
     }
@@ -3916,81 +3918,77 @@
         "A " + rx + " " + r + " 0 0 " + terminatorSweep + " " + topX + " " + topY + " Z";
     }
 
-    function renderMoonSvg(phaseFraction, illumPercent) {
-      var container = document.getElementById("celMoonSvg");
+    /* ── Small Celestial-panel moon — same elliptical-terminator geometry
+       as the big ambient moon (buildMoonTerminatorPath), just lighter-
+       weight: a flat stylized disc instead of the NASA photo, no glow
+       halo. Takes its container directly rather than looking it up, so
+       it stays reusable if the panel is ever redrawn from elsewhere. ── */
+    function drawSmallMoonSVG(container, phaseAngleDeg, illuminatedFraction, waxing) {
       if (!container) return;
 
       var size = 100;
-      var cx = 50;
-      var cy = 50;
-      var r = 38;
-      var litFraction = illumPercent / 100;
-      var offset = litFraction * 2 * r;
-      var dir = phaseFraction < 0.5 ? 1 : -1;
-      var shadowCx = cx + dir * offset;
-      var imgR = r * 1.18;
+      var cx = 50, cy = 50, r = 38;
+      var terminatorPath = buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing);
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
           '<defs>' +
             '<filter id="smTerminatorBlur" x="-50%" y="-50%" width="200%" height="200%">' +
-              '<feGaussianBlur stdDeviation="2"/>' +
+              '<feGaussianBlur stdDeviation="1.5"/>' +
             '</filter>' +
             '<mask id="smLitMask">' +
               '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
               '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#fff"/>' +
-              '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#smTerminatorBlur)"/>' +
+              '<path d="' + terminatorPath + '" fill="#000" filter="url(#smTerminatorBlur)"/>' +
             '</mask>' +
+            '<radialGradient id="smBackGlow" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="0%" stop-color="#cfe0ff" stop-opacity="0.5"/>' +
+              '<stop offset="60%" stop-color="#cfe0ff" stop-opacity="0.18"/>' +
+              '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
+            '</radialGradient>' +
             '<radialGradient id="smBodyGlow" cx="42%" cy="40%" r="65%">' +
               '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.3"/>' +
               '<stop offset="70%" stop-color="#eef2ff" stop-opacity="0.1"/>' +
               '<stop offset="100%" stop-color="#eef2ff" stop-opacity="0"/>' +
             '</radialGradient>' +
-            '<radialGradient id="smBackGlow" cx="50%" cy="50%" r="50%">' +
-              '<stop offset="0%" stop-color="#cfe0ff" stop-opacity="0.55"/>' +
-              '<stop offset="60%" stop-color="#cfe0ff" stop-opacity="0.2"/>' +
-              '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
-            '</radialGradient>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#smBackGlow)" mask="url(#smLitMask)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.1) + '" fill="url(#smBackGlow)" mask="url(#smLitMask)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="rgba(10,14,26,0.9)"/>' +
-          '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#smLitMask)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#f5f3e8" mask="url(#smLitMask)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#smBodyGlow)" mask="url(#smLitMask)" style="mix-blend-mode: screen;"/>' +
         '</svg>';
-
-      var imgEl = container.querySelector("image");
-      if (imgEl) {
-        imgEl.addEventListener("error", function () {
-          container.innerHTML =
-            '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
-              '<defs>' +
-                '<clipPath id="smFallbackClip"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/></clipPath>' +
-              '</defs>' +
-              '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#f5f3e8"/>' +
-              '<g clip-path="url(#smFallbackClip)">' +
-                '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#0a0e1a"/>' +
-              '</g>' +
-            '</svg>';
-        });
-      }
     }
 
     function renderMoon() {
       var moment = getActiveMoment();
       var moon = getMoonData(moment);
+      var isNow = !(dateTimeInput && dateTimeInput.value);
+
+      var waxing, phaseAngleDeg, illumPercent, phaseName;
+      if (isNow && cachedRealMoonPhase) {
+        waxing = cachedRealMoonPhase.waxing;
+        phaseAngleDeg = cachedRealMoonPhase.phaseAngle;
+        illumPercent = Math.round(cachedRealMoonPhase.illuminatedFraction * 100);
+        phaseName = cachedRealMoonPhase.phaseName || moon.phaseName;
+      } else {
+        waxing = moon.waxing;
+        phaseAngleDeg = moon.phaseFraction * 360;
+        illumPercent = moon.illumPercent;
+        phaseName = moon.phaseName;
+      }
 
       var phaseEl = document.getElementById("celMoonPhase");
       var illumEl = document.getElementById("celMoonIllum");
       var stageEl = document.getElementById("celMoonStage");
 
-      if (phaseEl) phaseEl.textContent = moon.phaseName;
-      if (illumEl) illumEl.textContent = moon.illumPercent + "% illuminated";
+      if (phaseEl) phaseEl.textContent = phaseName;
+      if (illumEl) illumEl.textContent = illumPercent + "% illuminated";
       if (stageEl) {
-        var descriptor = moon.waxing ? "growing toward full" : "fading toward new";
-        stageEl.textContent = (moon.waxing ? "Waxing" : "Waning") + " · " + descriptor;
+        var descriptor = waxing ? "growing toward full" : "fading toward new";
+        stageEl.textContent = (waxing ? "Waxing" : "Waning") + " · " + descriptor;
       }
 
-      renderMoonSvg(moon.phaseFraction, moon.illumPercent);
+      drawSmallMoonSVG(document.getElementById("celMoonSvg"), phaseAngleDeg, illumPercent / 100, waxing);
     }
 
     /* ── Ambient realistic moon rendered into the abyss (.scene), behind
