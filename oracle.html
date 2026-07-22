@@ -3115,9 +3115,13 @@
             '</mask>' +
             '<radialGradient id="moonGlowGrad" cx="50%" cy="50%" r="50%">' +
               '<stop offset="0%" stop-color="#bfe0ff" stop-opacity="0.7"/>' +
-              '<stop offset="55%" stop-color="#9ec9ff" stop-opacity="0.35"/>' +
+              '<stop offset="40%" stop-color="#9ec9ff" stop-opacity="0.3"/>' +
+              '<stop offset="75%" stop-color="#9ec9ff" stop-opacity="0"/>' +
               '<stop offset="100%" stop-color="#9ec9ff" stop-opacity="0"/>' +
             '</radialGradient>' +
+            '<filter id="moonGlowSoftBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="6"/>' +
+            '</filter>' +
             '<radialGradient id="moonBodyGlow" cx="42%" cy="40%" r="65%">' +
               '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>' +
               '<stop offset="70%" stop-color="#eef2ff" stop-opacity="0.12"/>' +
@@ -3132,7 +3136,7 @@
               '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
             '</radialGradient>' +
           '</defs>' +
-          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.35) + '" fill="url(#moonGlowGrad)" mask="url(#glowMask)" style="mix-blend-mode: screen;"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.6) + '" fill="url(#moonGlowGrad)" mask="url(#glowMask)" filter="url(#moonGlowSoftBlur)" style="mix-blend-mode: screen;"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#moonBackGlow)" mask="url(#moonLitMask)"/>' +
           '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)" filter="url(#moonEdgeGlow)"/>' +
           '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#moonBodyGlow)" mask="url(#moonLitMask)" style="mix-blend-mode: screen;"/>' +
