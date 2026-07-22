@@ -325,14 +325,33 @@
       margin: 12px 0 6px;
     }
 
-    /* ── "Ask Termaximus about this" — a live AI reading appended below
-       the authored bones of every tap panel. Button uses the brand
-       cyan/violet/gold gradient border so it reads as a distinct, special
-       action, not just another info row. ── */
-    .mc-ask-row {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+    /* ── "Ask Termaximus" — a standalone panel off to the LEFT of the
+       stage (mirrors #mcInfoPanel's fixed/glass treatment but anchored
+       left instead of right), deliberately separate from the triangle/
+       orbit so it never crowds the chart itself. Persistent across taps
+       (not recreated each time), so its click listener is attached once
+       and reads the current tap context from a module-level variable. ── */
+    .mc-ask-panel {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      width: 300px;
+      max-width: calc(100vw - 48px);
+      max-height: calc(100vh - 160px);
+      z-index: 2;
+      background: rgba(10,4,20,0.88);
+      border-right: 2px solid rgba(244,228,184,0.35);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .mc-ask-panel-label {
+      font-size: 0.78rem;
+      font-style: italic;
+      line-height: 1.5;
+      color: rgba(232,220,255,0.55);
     }
     .mc-ask-btn {
       display: inline-flex;
@@ -352,6 +371,7 @@
       font-weight: 700;
       letter-spacing: 0.02em;
       cursor: pointer;
+      flex-shrink: 0;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .mc-ask-btn:hover:not(:disabled) {
@@ -362,11 +382,11 @@
       opacity: 0.6;
       cursor: default;
     }
-    /* The live reply — styled distinctly from the authored content above
-       it (italic, violet accent border, indented) so it visibly reads as
-       "Termaximus speaking live" rather than more static copy. */
+    /* The live reply — styled distinctly (italic, gold accent border) so
+       it visibly reads as "Termaximus speaking live". Scrolls on its own
+       within the panel's capped height, since this panel is persistent
+       (not inside #mcInfoBody's own scroll region anymore). */
     .mc-oracle-reply {
-      margin-top: 10px;
       padding: 10px 12px;
       border-left: 2px solid rgba(244,228,184,0.4);
       font-style: italic;
@@ -374,8 +394,13 @@
       line-height: 1.6;
       color: rgba(244,228,184,0.92);
       white-space: pre-wrap;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(244,228,184,0.4) rgba(10,4,20,0.35);
     }
-    .mc-oracle-reply:empty { display: none; }
+    .mc-oracle-reply:empty { display: none; padding: 0; border: none; }
     .mc-oracle-reply-loading {
       color: rgba(232,220,255,0.55);
       font-style: normal;
@@ -492,6 +517,14 @@
   <div class="mc-info-panel" id="mcInfoPanel" aria-hidden="true">
     <button type="button" class="mc-info-close" id="mcInfoClose" aria-label="Close">&#x2715;</button>
     <div class="mc-info-body" id="mcInfoBody"></div>
+  </div>
+
+  <!-- Standalone "Ask Termaximus" — deliberately off to the left, away
+       from the triangle/orbit, so it never crowds the chart itself. -->
+  <div class="mc-ask-panel" id="mcAskPanel">
+    <div class="mc-ask-panel-label" id="mcAskLabel">Tap a part of your chart, then ask Termaximus.</div>
+    <button type="button" class="mc-ask-btn" id="mcAskBtn" style="display:none;">&#x2726; Ask Termaximus</button>
+    <div class="mc-oracle-reply" id="mcOracleReply"></div>
   </div>
 
   <!-- ══════════ Live canvas starfield — copied VERBATIM from oracle.html,
@@ -1308,7 +1341,6 @@
       (blueprint.lines || []).forEach(function (l) { linesById[l.id] = l; });
       var interior = blueprint.interior || {};
       var centers  = blueprint.centers  || {};
-      var xMarkers = blueprint.xMarkers || {};
 
       function centerDisplay(obj) {
         if (!obj || obj.reduced == null) return "—";
@@ -1397,7 +1429,7 @@
         { key: "AG", p1: corners.A, p2: corners.G }
       ];
 
-      var svg = '<svg viewBox="0 0 320 320" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">';
+      var svg = '<svg viewBox="0 0 320 320" width="100%" xmlns="http://www.w3.org/2000/svg">';
 
       svg += '<defs>' +
         '<linearGradient id="dtbYouthFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
@@ -1459,27 +1491,6 @@
       svg += centerTapWrap('<text x="' + powerCenter.x + '" y="' + powerCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#d9b3ff">' + escapeXml(centerDisplay(centers.power)) + '</text>', "power", centers.power);
       svg += centerTapWrap('<text x="' + wisdomCenter.x + '" y="' + wisdomCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.wisdom)) + '</text>', "wisdom", centers.wisdom);
       svg += centerTapWrap('<text x="' + triangleCenter.x + '" y="' + triangleCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.triangle)) + '</text>', "triangle", centers.triangle);
-
-      /* X-markers — the corner where a name completes. Rendered as a
-         small circled glyph (not a bare floating ✕) so it reads as an
-         intentional marker rather than a glitch; tappable only in the
-         interactive path (compact profile view stays subtle/inert). */
-      [
-        { key: "firstNameEnd",  letter: xMarkers.firstNameEnd },
-        { key: "middleNameEnd", letter: xMarkers.middleNameEnd }
-      ].forEach(function (marker) {
-        if (!marker.letter || !corners[marker.letter]) return;
-        var pt = corners[marker.letter];
-        var markerY = pt.y - 10;
-        var markerSvg =
-          '<circle cx="' + pt.x + '" cy="' + markerY + '" r="7" fill="rgba(10,4,20,0.55)" stroke="rgba(244,228,184,0.65)" stroke-width="1"/>' +
-          '<text x="' + pt.x + '" y="' + markerY + '" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="rgba(244,228,184,0.9)">&#x2715;</text>';
-        if (opts.interactive) {
-          svg += '<g class="mc-tappable" data-mc-type="xmarker" data-mc-which="' + marker.key + '">' + markerSvg + '</g>';
-        } else {
-          svg += markerSvg;
-        }
-      });
 
       svg += '</svg>';
 
@@ -1544,7 +1555,6 @@
       })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
-          console.log("[Stage D1 TEMP — remove after confirming field names] natal response:", data);
           if (!data || !data.available) return null;
           return data;
         })
@@ -1571,6 +1581,41 @@
       ASC: "ASC", MC: "MC"
     };
 
+    /* Which house a longitude falls in, from the natal response's 12
+       cusps — the response gives planets {name,sign,degree,longitude}
+       with NO house field of their own (confirmed from the real
+       /api/oracle/natal shape), so this is a genuine "which cusp
+       interval contains this longitude" search, generic to any house
+       system (not hardcoded to whole-sign's exact-30°-per-house math),
+       using the houses array's own {house, longitude} cusps. */
+    function houseForLongitude(houses, longitude) {
+      if (!houses || houses.length !== 12 || longitude == null) return null;
+      var sorted = houses.slice().sort(function (a, b) { return a.longitude - b.longitude; });
+      var lon = ((longitude % 360) + 360) % 360;
+      for (var i = 0; i < sorted.length; i++) {
+        var start = sorted[i].longitude;
+        var end   = sorted[(i + 1) % sorted.length].longitude;
+        if (start < end) {
+          if (lon >= start && lon < end) return sorted[i].house;
+        } else {
+          /* this interval wraps past 360 (e.g. start=350, end=20) */
+          if (lon >= start || lon < end) return sorted[i].house;
+        }
+      }
+      return null;
+    }
+
+    function ordinalSuffix(n) {
+      var v = n % 100;
+      if (v >= 11 && v <= 13) return n + "th";
+      switch (n % 10) {
+        case 1: return n + "st";
+        case 2: return n + "nd";
+        case 3: return n + "rd";
+        default: return n + "th";
+      }
+    }
+
     function renderNatalOrbit(natalData) {
       lastNatalData = natalData;
 
@@ -1581,13 +1626,13 @@
       if (existing) existing.parentNode.removeChild(existing);
 
       var nodes = (natalData.planets || []).map(function (p) {
-        return { name: p.name, sign: p.sign, degree: p.degree };
+        return { name: p.name, sign: p.sign, degree: p.degree, longitude: p.longitude, kind: "planet" };
       });
       if (natalData.ascendant) {
-        nodes.push({ name: "ASC", sign: natalData.ascendant.sign, degree: natalData.ascendant.degree });
+        nodes.push({ name: "ASC", sign: natalData.ascendant.sign, degree: natalData.ascendant.degree, longitude: natalData.ascendant.longitude, kind: "angle" });
       }
       if (natalData.midheaven) {
-        nodes.push({ name: "MC", sign: natalData.midheaven.sign, degree: natalData.midheaven.degree });
+        nodes.push({ name: "MC", sign: natalData.midheaven.sign, degree: natalData.midheaven.degree, longitude: natalData.midheaven.longitude, kind: "angle" });
       }
       if (!nodes.length) return;
 
@@ -1634,7 +1679,21 @@
 
         var accentClass = "";
         if (node.name === "Sun" || node.name === "Moon") accentClass = " natal-node-luminary";
-        else if (node.name === "ASC" || node.name === "MC") accentClass = " natal-node-angle";
+        else if (node.kind === "angle") accentClass = " natal-node-angle";
+
+        /* ASC = the 1st-house cusp, MC = the 10th — angles, not planets,
+           so they're labeled as such rather than given a house number.
+           Planet house comes from houseForLongitude (the response has no
+           per-planet house field; this is computed from the houses cusp
+           array). */
+        var detailText;
+        if (node.kind === "angle") {
+          var angleLabel = (node.name === "ASC") ? "Ascendant · Rising" : "Midheaven";
+          detailText = angleLabel + (node.sign ? " / " + node.sign + (deg != null ? " " + deg + "°" : "") : "");
+        } else {
+          var house = houseForLongitude(natalData.houses, node.longitude);
+          detailText = (node.sign || "") + (deg != null ? " " + deg + "°" : "") + (house ? " · " + ordinalSuffix(house) + " House" : "");
+        }
 
         var chip = document.createElement("div");
         chip.className = "natal-node" + accentClass;
@@ -1642,7 +1701,7 @@
         chip.style.top  = y + "px";
         chip.innerHTML =
           '<span class="natal-node-glyph">' + glyph + '</span>' +
-          '<span class="natal-node-detail">' + (node.sign || "") + (deg != null ? " " + deg + "°" : "") + '</span>';
+          '<span class="natal-node-detail">' + detailText + '</span>';
         wrap.appendChild(chip);
       });
 
@@ -1743,12 +1802,7 @@
       },
       eraFraming: "Each of the triangle's nine perimeter lines governs a distinct nine-year era. The experiences that land within a line's age range are, in this tradition, read as that era's own curriculum — not random events, but the specific lessons a soul is held to have arranged for that particular nine-year chapter.",
       lifeLesson: "The triangle's own center — the Life Lesson Number — is read as the single thread woven through every era: not one chapter's assignment but the master curriculum of the whole incarnation, the theme every square's building ultimately serves.",
-      interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from.",
-      /* X-marker (name-completion threshold) content, Part E. */
-      xmarkers: {
-        firstNameEnd: "This marks where your first name completes on the blueprint — a foundational threshold, the point where your first identity-vibration is fully sounded and the next begins to gather. In this tradition, the corners where a name ends are read as thresholds: not gentle transitions but genuine turning points, where the book holds that changes and events tend to cluster.",
-        middleNameEnd: "This marks where your middle name completes on the blueprint — a deeper, more private identity-vibration reaching its own completion, layered beneath the more public threshold of the first name. Where it falls is read the same way: a turning point, a corner where the life-map holds that change tends to concentrate."
-      }
+      interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
     };
 
     var MC_INTERIOR_TITLES = {
@@ -1893,19 +1947,10 @@
       return html;
     }
 
-    function buildMcXmarkerHtml(which) {
-      var text  = DT_LIFEMAP.xmarkers[which];
-      var title = (which === "middleNameEnd") ? "Threshold &middot; Middle Name Completes" : "Threshold &middot; First Name Completes";
-      var html  = '<div class="mc-info-heading">' + title + '</div>';
-      html += '<div class="mc-info-body-text mc-info-wisdom">' + (text || "A threshold where a name completes on the blueprint.") + '</div>';
-      return html;
-    }
-
     function buildMcInfoHtml(type, data) {
       if (type === "line")     return buildMcLineHtml(data.line, data.square, data.ageRange);
       if (type === "center")   return buildMcCenterHtml(data.center, data.value);
       if (type === "interior") return buildMcInteriorHtml(data.interior, data.value);
-      if (type === "xmarker")  return buildMcXmarkerHtml(data.which);
       return "";
     }
 
@@ -1979,19 +2024,45 @@
           " on the interior of my Divine Triangle — what does this foundation mean for me?";
       }
 
-      if (type === "xmarker") {
-        var whichName = data.which === "middleNameEnd" ? "middle" : "first";
-        return "On my blueprint, my " + whichName + " name completes at this threshold. Speak personally about what this turning point means in the arc of my life.";
-      }
-
       return "Speak personally about this element of my Divine Triangle blueprint.";
     }
 
-    function buildMcAskBlockHtml() {
-      return '<div class="mc-ask-row">' +
-        '<button type="button" class="mc-ask-btn" id="mcAskBtn">&#x2726; Ask Termaximus about this</button>' +
-        '</div>' +
-        '<div class="mc-oracle-reply" id="mcOracleReply"></div>';
+    /* Short descriptive label for the standalone button/heading, e.g.
+       "Line DE" / "your Life Lesson" / "your Power Square" / "your Birth
+       Month" — matches whatever was just tapped. */
+    function mcAskLabelFor(type, data) {
+      if (type === "line") return "Line " + data.line;
+      if (type === "center") {
+        if (data.center === "triangle") return "your Life Lesson";
+        var info = DT_LIFEMAP.squares[data.center];
+        return info ? "your " + info.title.replace(/^The /, "") : "this center";
+      }
+      if (type === "interior") {
+        var names = { AD: "your Birth Month", DG: "your Birth Day", AG: "your Birth Year" };
+        return names[data.interior] || "this interior line";
+      }
+      return "this element";
+    }
+
+    /* The ask panel is persistent (not recreated per tap, unlike
+       #mcInfoBody), so its click listener is attached once elsewhere and
+       reads whatever was most recently tapped from this variable. */
+    var mcCurrentTap = null;
+
+    function updateMcAskPanelForTap(type, data) {
+      mcCurrentTap = { type: type, data: data };
+
+      var labelEl = document.getElementById("mcAskLabel");
+      var askBtn  = document.getElementById("mcAskBtn");
+      var replyEl = document.getElementById("mcOracleReply");
+      if (!labelEl || !askBtn || !replyEl) return;
+
+      labelEl.style.display = "none";
+      askBtn.style.display = "";
+      askBtn.disabled = false;
+      askBtn.textContent = "✦ Ask Termaximus about " + mcAskLabelFor(type, data);
+      replyEl.className = "mc-oracle-reply";
+      replyEl.textContent = "";
     }
 
     var mcAskInFlight = false;
@@ -2002,6 +2073,8 @@
       var askBtn  = document.getElementById("mcAskBtn");
       var replyEl = document.getElementById("mcOracleReply");
       if (!askBtn || !replyEl) return;
+
+      var label = mcAskLabelFor(type, data);
 
       if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) {
         replyEl.className = "mc-oracle-reply mc-oracle-reply-error";
@@ -2037,13 +2110,13 @@
           replyEl.className = "mc-oracle-reply mc-oracle-reply-live";
           replyEl.textContent = reply;
           askBtn.disabled = false;
-          askBtn.textContent = "✦ Ask again";
+          askBtn.textContent = "✦ Ask again about " + label;
         })
         .catch(function () {
           replyEl.className = "mc-oracle-reply mc-oracle-reply-error";
           replyEl.textContent = "The Oracle is silent for a moment — try again.";
           askBtn.disabled = false;
-          askBtn.textContent = "✦ Ask Termaximus about this";
+          askBtn.textContent = "✦ Ask Termaximus about " + label;
         })
         .then(function () {
           mcAskInFlight = false;
@@ -2068,20 +2141,15 @@
 
       if (openMcInfoAnchor === anchorEl) { closeMcInfo(); return; }
 
-      /* Fresh per element: rebuilding innerHTML here also wipes any prior
-         reply/button state, so a newly-tapped element always starts with
-         a clean "Ask Termaximus" button and an empty reply area. */
-      body.innerHTML = buildMcInfoHtml(type, data) + buildMcAskBlockHtml();
+      body.innerHTML = buildMcInfoHtml(type, data);
       panel.classList.add("is-open");
       panel.setAttribute("aria-hidden", "false");
       openMcInfoAnchor = anchorEl;
 
-      var askBtn = document.getElementById("mcAskBtn");
-      if (askBtn) {
-        askBtn.addEventListener("click", function () {
-          askTermaximusAbout(type, data);
-        });
-      }
+      /* Standalone left-side panel — activates fresh for whatever was
+         just tapped (see FIX 3: lives off to the left, not inside this
+         info panel, so it never crowds the triangle/orbit). */
+      updateMcAskPanelForTap(type, data);
     }
 
     var myChartStageEl = document.getElementById("myChartStage");
@@ -2098,8 +2166,7 @@
           ageRange: target.getAttribute("data-mc-agerange"),
           center:   target.getAttribute("data-mc-center"),
           interior: target.getAttribute("data-mc-interior"),
-          value:    target.getAttribute("data-mc-value"),
-          which:    target.getAttribute("data-mc-which")
+          value:    target.getAttribute("data-mc-value")
         });
       });
     }
@@ -2109,6 +2176,18 @@
       mcInfoCloseBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         closeMcInfo();
+      });
+    }
+
+    /* The ask button is a persistent element (unlike #mcInfoBody's
+       contents, it's never rebuilt via innerHTML), so its listener is
+       attached exactly once here and reads whichever element was most
+       recently tapped from mcCurrentTap at click time. */
+    var mcAskBtnEl = document.getElementById("mcAskBtn");
+    if (mcAskBtnEl) {
+      mcAskBtnEl.addEventListener("click", function () {
+        if (!mcCurrentTap) return;
+        askTermaximusAbout(mcCurrentTap.type, mcCurrentTap.data);
       });
     }
 
