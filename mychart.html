@@ -325,6 +325,72 @@
       margin: 12px 0 6px;
     }
 
+    /* ── "Ask Termaximus about this" — a live AI reading appended below
+       the authored bones of every tap panel. Button uses the brand
+       cyan/violet/gold gradient border so it reads as a distinct, special
+       action, not just another info row. ── */
+    .mc-ask-row {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .mc-ask-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      justify-content: center;
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background:
+        linear-gradient(rgba(10,4,20,0.9), rgba(10,4,20,0.9)) padding-box,
+        linear-gradient(90deg, #22d3ee, #a855f7, #f4e4b8) border-box;
+      color: #f4e4b8;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .mc-ask-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 0 16px rgba(168,85,247,0.3);
+    }
+    .mc-ask-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    /* The live reply — styled distinctly from the authored content above
+       it (italic, violet accent border, indented) so it visibly reads as
+       "Termaximus speaking live" rather than more static copy. */
+    .mc-oracle-reply {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-left: 2px solid rgba(244,228,184,0.4);
+      font-style: italic;
+      font-size: 0.85em;
+      line-height: 1.6;
+      color: rgba(244,228,184,0.92);
+      white-space: pre-wrap;
+    }
+    .mc-oracle-reply:empty { display: none; }
+    .mc-oracle-reply-loading {
+      color: rgba(232,220,255,0.55);
+      font-style: normal;
+      animation: mcOraclePulse 1.4s ease-in-out infinite;
+    }
+    @keyframes mcOraclePulse {
+      0%, 100% { opacity: 0.45; }
+      50%       { opacity: 0.9; }
+    }
+    .mc-oracle-reply-error {
+      color: rgba(232,220,255,0.6);
+      font-style: normal;
+      border-left-color: rgba(232,220,255,0.3);
+    }
+
     /* ── num-info-panel family — copied from oracle.html for openNumInfo/
        NUM_MEANINGS parity; unused by the mc-tappable engine (which uses
        its own openMcInfo/#mcInfoPanel instead, since openNumInfo's DOM-
@@ -1843,6 +1909,147 @@
       return "";
     }
 
+    /* ── "Ask Termaximus about this" — composes a context-rich, first-
+       person message from the SAME data the panel's authored content
+       already pulled (blueprint.lines/processes/centers/interior,
+       DT_LIFEMAP), then POSTs it through the real chat endpoint
+       (confirmed: POST /api/oracle, FormData body, Authorization:
+       Bearer bf_token, returns { reply }) — mirroring oracle.html's
+       sendMessage() exactly. The backend already injects the user's
+       numerology/seeker-profile context server-side, but NOT the
+       Divine Triangle blueprint or natal data, so the specific tapped
+       facts (letter, ages, events, vibration) are included in the
+       message text itself. ── */
+    function buildMcAskMessage(type, data) {
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+
+      function squareLabel(key) {
+        var info = DT_LIFEMAP.squares[key];
+        return info ? info.title.replace(/^The /, "").replace(/ Square$/, "") : (key || "");
+      }
+
+      if (type === "line") {
+        var lineId = data.line;
+        var lineObj = blueprint && blueprint.lines ? blueprint.lines.filter(function (l) { return l.id === lineId; })[0] : null;
+        var processes = blueprint && blueprint.processes;
+        var major = processes && processes.major ? processes.major.filter(function (m) { return m.lineId === lineId; })[0] : null;
+        var minor = processes && processes.minor ? processes.minor.filter(function (m) { return m.lineId === lineId; })[0] : null;
+        var displayAgeRange = data.ageRange ? data.ageRange.split("-").join("–") : "";
+
+        var letterPart = "an unrecorded letter";
+        if (lineObj && lineObj.letter) {
+          var letterDisplay = (lineObj.ordinal === lineObj.reduced) ? String(lineObj.reduced) : (lineObj.ordinal + "/" + lineObj.reduced);
+          letterPart = lineObj.letter.toUpperCase() + " (" + letterDisplay + ")";
+        }
+
+        var eventParts = [];
+        [major, minor].forEach(function (proc) {
+          if (!proc || !proc.results) return;
+          proc.results.slice().sort(function (a, b) { return a.age - b.age; }).forEach(function (r) {
+            var val = (r.type.unreduced === r.type.reduced) ? String(r.type.reduced) : (r.type.unreduced + "/" + r.type.reduced);
+            eventParts.push("age " + r.age + " brings a " + val + " experience");
+          });
+        });
+        var eventsText = eventParts.length ? eventParts.join("; ") : "no specific ages are marked";
+
+        return "Speak to me personally about my life-era on Line " + lineId + " — my " + squareLabel(data.square) +
+          " years, ages " + displayAgeRange + ". The letter sounded here is " + letterPart +
+          ". Within these years these experiences arise: " + eventsText +
+          ". What is the deeper personal significance of this chapter of my life?";
+      }
+
+      if (type === "center") {
+        var centerObj = blueprint && blueprint.centers && blueprint.centers[data.center];
+        var vals = mcFullValue(centerObj, data.value);
+
+        if (data.center === "triangle") {
+          return "My Life Lesson number is " + vals.display + ", the thread woven through my whole chart. Speak personally about what this master lesson means for my life and how it repeats across my eras.";
+        }
+        var squareInfo = DT_LIFEMAP.squares[data.center];
+        return "Speak personally about my " + squareLabel(data.center) + " Square, ages " +
+          (squareInfo ? squareInfo.ageRange : "") + ", and its governing vibration " + vals.display +
+          " — what does this life-stage mean for me and how do I move through it?";
+      }
+
+      if (type === "interior") {
+        var interiorObj = blueprint && blueprint.interior && blueprint.interior[data.interior];
+        var interiorVals = mcFullValue(interiorObj, data.value);
+        var which = data.interior === "AD" ? "month" : data.interior === "DG" ? "day" : "year";
+        return "Speak personally about my birth " + which + " vibration " + interiorVals.display +
+          " on the interior of my Divine Triangle — what does this foundation mean for me?";
+      }
+
+      if (type === "xmarker") {
+        var whichName = data.which === "middleNameEnd" ? "middle" : "first";
+        return "On my blueprint, my " + whichName + " name completes at this threshold. Speak personally about what this turning point means in the arc of my life.";
+      }
+
+      return "Speak personally about this element of my Divine Triangle blueprint.";
+    }
+
+    function buildMcAskBlockHtml() {
+      return '<div class="mc-ask-row">' +
+        '<button type="button" class="mc-ask-btn" id="mcAskBtn">&#x2726; Ask Termaximus about this</button>' +
+        '</div>' +
+        '<div class="mc-oracle-reply" id="mcOracleReply"></div>';
+    }
+
+    var mcAskInFlight = false;
+
+    function askTermaximusAbout(type, data) {
+      if (mcAskInFlight) return;
+
+      var askBtn  = document.getElementById("mcAskBtn");
+      var replyEl = document.getElementById("mcOracleReply");
+      if (!askBtn || !replyEl) return;
+
+      if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) {
+        replyEl.className = "mc-oracle-reply mc-oracle-reply-error";
+        replyEl.textContent = "The Oracle is silent for a moment — try again.";
+        return;
+      }
+
+      var message = buildMcAskMessage(type, data);
+
+      mcAskInFlight = true;
+      askBtn.disabled = true;
+      askBtn.textContent = "Termaximus is contemplating…";
+      replyEl.className = "mc-oracle-reply mc-oracle-reply-loading";
+      replyEl.textContent = "Termaximus is contemplating…";
+
+      var formData = new FormData();
+      formData.append("message", message);
+
+      fetch(API_URL + "/api/oracle", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token },
+        body: formData
+      })
+        .then(function (r) {
+          if (r.ok) return r.json();
+          return r.json().catch(function () { return null; }).then(function (errBody) {
+            return Promise.reject((errBody && errBody.error) || null);
+          });
+        })
+        .then(function (resData) {
+          var reply = resData && resData.reply;
+          if (!reply) throw new Error("empty reply");
+          replyEl.className = "mc-oracle-reply mc-oracle-reply-live";
+          replyEl.textContent = reply;
+          askBtn.disabled = false;
+          askBtn.textContent = "✦ Ask again";
+        })
+        .catch(function () {
+          replyEl.className = "mc-oracle-reply mc-oracle-reply-error";
+          replyEl.textContent = "The Oracle is silent for a moment — try again.";
+          askBtn.disabled = false;
+          askBtn.textContent = "✦ Ask Termaximus about this";
+        })
+        .then(function () {
+          mcAskInFlight = false;
+        });
+    }
+
     var openMcInfoAnchor = null;
 
     function closeMcInfo() {
@@ -1861,10 +2068,20 @@
 
       if (openMcInfoAnchor === anchorEl) { closeMcInfo(); return; }
 
-      body.innerHTML = buildMcInfoHtml(type, data);
+      /* Fresh per element: rebuilding innerHTML here also wipes any prior
+         reply/button state, so a newly-tapped element always starts with
+         a clean "Ask Termaximus" button and an empty reply area. */
+      body.innerHTML = buildMcInfoHtml(type, data) + buildMcAskBlockHtml();
       panel.classList.add("is-open");
       panel.setAttribute("aria-hidden", "false");
       openMcInfoAnchor = anchorEl;
+
+      var askBtn = document.getElementById("mcAskBtn");
+      if (askBtn) {
+        askBtn.addEventListener("click", function () {
+          askTermaximusAbout(type, data);
+        });
+      }
     }
 
     var myChartStageEl = document.getElementById("myChartStage");
