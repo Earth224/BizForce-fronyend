@@ -197,7 +197,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 50vh;
+      min-height: 70vh;
+      padding-bottom: 24px;
     }
     /* ── Natal orbit — Stage D1, visual placement only. pointer-events:
        none on the wrapper since tap interactions aren't wired yet. ── */
@@ -359,33 +360,15 @@
       margin: 12px 0 6px;
     }
 
-    /* ── "Ask Termaximus" — a standalone panel off to the LEFT of the
-       stage (mirrors #mcInfoPanel's fixed/glass treatment but anchored
-       left instead of right), deliberately separate from the triangle/
-       orbit so it never crowds the chart itself. Persistent across taps
-       (not recreated each time), so its click listener is attached once
-       and reads the current tap context from a module-level variable. ── */
-    .mc-ask-panel {
-      position: fixed;
-      left: 24px;
-      bottom: 24px;
-      width: 300px;
-      max-width: calc(100vw - 48px);
-      max-height: calc(100vh - 160px);
-      z-index: 2;
-      background: rgba(10,4,20,0.88);
-      border-right: 2px solid rgba(244,228,184,0.35);
-      border-radius: 14px;
-      padding: 16px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .mc-ask-panel-label {
-      font-size: 0.78rem;
-      font-style: italic;
-      line-height: 1.5;
-      color: rgba(232,220,255,0.55);
+    /* ── "Ask Termaximus about this" — lives INSIDE #mcInfoBody, appended
+       below the authored content for whatever was tapped. (A prior pass
+       moved this to a standalone floating panel in the stage's corner;
+       reverted — it belongs only in the tap panel.) Button uses the
+       brand cyan/violet/gold gradient border. ── */
+    .mc-ask-row {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
     .mc-ask-btn {
       display: inline-flex;
@@ -405,7 +388,6 @@
       font-weight: 700;
       letter-spacing: 0.02em;
       cursor: pointer;
-      flex-shrink: 0;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .mc-ask-btn:hover:not(:disabled) {
@@ -417,10 +399,11 @@
       cursor: default;
     }
     /* The live reply — styled distinctly (italic, gold accent border) so
-       it visibly reads as "Termaximus speaking live". Scrolls on its own
-       within the panel's capped height, since this panel is persistent
-       (not inside #mcInfoBody's own scroll region anymore). */
+       it visibly reads as "Termaximus speaking live". Scrolls along with
+       the rest of #mcInfoBody's own scroll region — no separate scroll
+       handling needed now that it lives inside the tap panel again. */
     .mc-oracle-reply {
+      margin-top: 10px;
       padding: 10px 12px;
       border-left: 2px solid rgba(244,228,184,0.4);
       font-style: italic;
@@ -428,13 +411,8 @@
       line-height: 1.6;
       color: rgba(244,228,184,0.92);
       white-space: pre-wrap;
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(244,228,184,0.4) rgba(10,4,20,0.35);
     }
-    .mc-oracle-reply:empty { display: none; padding: 0; border: none; }
+    .mc-oracle-reply:empty { display: none; padding: 0; border: none; margin-top: 0; }
     .mc-oracle-reply-loading {
       color: rgba(232,220,255,0.55);
       font-style: normal;
@@ -519,113 +497,6 @@
 
     /* ── Divine Triangle blueprint sizing wrapper (from renderDivineTriangleBlueprintVisual's opts.large/maxWidth path) ── */
     .dtb-visual-large svg { display: block; width: 100%; height: auto; }
-
-    /* ── WISDOM TRADITIONS — educational cosmology panels, pure authored
-       content (no per-user data, no backend). Sits below the chart as
-       its own clearly-separated section. ── */
-    .wisdom-section {
-      margin-top: 48px;
-      padding: 32px 0 40px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .wisdom-section-header {
-      text-align: center;
-      margin-bottom: 28px;
-    }
-    .wisdom-section-title {
-      font-size: clamp(1.3rem, 3vw, 1.7rem);
-      font-weight: 800;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: linear-gradient(90deg, #22d3ee, #a855f7);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      margin: 0;
-    }
-    .wisdom-section-subtitle {
-      margin: 8px 0 0;
-      font-size: 0.85rem;
-      color: rgba(232,220,255,0.5);
-      letter-spacing: 0.02em;
-    }
-    .cosmology-list {
-      max-width: 760px;
-      margin: 0 auto;
-    }
-    /* Collapsible card — mirrors oracle.html's .quantum-card pattern
-       (header + chevron + max-height/opacity body transition), scaled up
-       for longer-form content and multiple simultaneous cards open. */
-    .cosmology-card {
-      background: rgba(10,4,20,0.65);
-      border-left: 2px solid rgba(168,85,247,0.4);
-      border-radius: 10px;
-      margin-bottom: 14px;
-      overflow: hidden;
-    }
-    .cosmology-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .cosmology-chevron {
-      font-size: 0.65rem;
-      color: #a855f7;
-      transition: transform 0.25s ease;
-      flex-shrink: 0;
-    }
-    .cosmology-card.is-expanded .cosmology-chevron { transform: rotate(90deg); }
-    .cosmology-glyph {
-      font-size: 1.3rem;
-      color: #f4e4b8;
-      flex-shrink: 0;
-      line-height: 1;
-    }
-    .cosmology-header-text { flex: 1; min-width: 0; }
-    .cosmology-name {
-      font-size: 0.85rem;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      background: linear-gradient(90deg, #22d3ee, #a855f7);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    .cosmology-tagline {
-      margin-top: 2px;
-      font-size: 0.72rem;
-      color: rgba(232,220,255,0.55);
-    }
-    .cosmology-body {
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      transition: max-height 0.4s ease, opacity 0.3s ease;
-      padding: 0 16px;
-    }
-    .cosmology-card.is-expanded .cosmology-body {
-      max-height: 3000px;
-      opacity: 1;
-      padding: 0 16px 18px;
-    }
-    .cosmology-section-heading {
-      font-size: 0.75rem;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: #9df6ff;
-      margin: 14px 0 6px;
-    }
-    .cosmology-section-heading:first-child { margin-top: 12px; }
-    .cosmology-section-body {
-      font-size: 0.85em;
-      line-height: 1.6;
-      color: rgba(232,220,255,0.88);
-      margin: 0 0 4px;
-    }
   </style>
 </head>
 <body>
@@ -654,27 +525,11 @@
     <div class="my-chart-stage" id="myChartStage">
       <div class="my-chart-placeholder">Chart loading&hellip;</div>
     </div>
-
-    <section class="wisdom-section" id="wisdomSection">
-      <div class="wisdom-section-header">
-        <h2 class="wisdom-section-title">Wisdom Traditions</h2>
-        <p class="wisdom-section-subtitle">The number and cosmos philosophies of the world's sacred traditions.</p>
-      </div>
-      <div class="cosmology-list" id="cosmologyList"></div>
-    </section>
   </div>
 
   <div class="mc-info-panel" id="mcInfoPanel" aria-hidden="true">
     <button type="button" class="mc-info-close" id="mcInfoClose" aria-label="Close">&#x2715;</button>
     <div class="mc-info-body" id="mcInfoBody"></div>
-  </div>
-
-  <!-- Standalone "Ask Termaximus" — deliberately off to the left, away
-       from the triangle/orbit, so it never crowds the chart itself. -->
-  <div class="mc-ask-panel" id="mcAskPanel">
-    <div class="mc-ask-panel-label" id="mcAskLabel">Tap a part of your chart, then ask Termaximus.</div>
-    <button type="button" class="mc-ask-btn" id="mcAskBtn" style="display:none;">&#x2726; Ask Termaximus</button>
-    <div class="mc-oracle-reply" id="mcOracleReply"></div>
   </div>
 
   <!-- ══════════ Live canvas starfield — copied VERBATIM from oracle.html,
@@ -1860,8 +1715,21 @@
          clip slightly at the edge, but they will never overlap each
          other. That trade-off is deliberate. */
       var radius  = Math.max(minRadiusForSpacing, Math.min(desiredRadius, maxRadius));
-      var centerX = stageRect.width / 2;
-      var centerY = stageRect.height / 2;
+
+      /* Center the ring on the TRIANGLE's own visual center, not the
+         stage's geometric center — guarantees the ring and the triangle
+         share a center point exactly, regardless of how the triangle sits
+         within the stage's flex box. Read fresh here (after the possible
+         shrink above) so a resized triangle's rect is up to date. */
+      var centerX, centerY;
+      var triangleRectNow = triangleEl ? triangleEl.getBoundingClientRect() : null;
+      if (triangleRectNow) {
+        centerX = (triangleRectNow.left + triangleRectNow.width / 2) - stageRect.left;
+        centerY = (triangleRectNow.top + triangleRectNow.height / 2) - stageRect.top;
+      } else {
+        centerX = stageRect.width / 2;
+        centerY = stageRect.height / 2;
+      }
 
       var wrap = document.createElement("div");
       wrap.className = "natal-orbit";
@@ -2004,75 +1872,6 @@
       lifeLesson: "The triangle's own center — the Life Lesson Number — is read as the single thread woven through every era: not one chapter's assignment but the master curriculum of the whole incarnation, the theme every square's building ultimately serves.",
       interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
     };
-
-    /* ═══ WISDOM TRADITIONS — pure authored educational content, no
-       per-user data, no backend. Mirrors the DT_LIFEMAP/NUM_MEANINGS
-       object pattern: one entry per tradition, rendered by a small
-       build*Html function. Only "egyptian" exists so far; COSMOLOGY_ORDER
-       is the fixed six-tradition display order the other five slot into
-       as they're authored (the render loop already tolerates missing
-       keys, so adding an entry is the only step needed later). ═══ */
-    var COSMOLOGIES = {
-      egyptian: {
-        name: "Ancient Egyptian · Kemetic",
-        glyph: "𓂀",
-        tagline: "The house of Djehuti (Thoth) — number as the architecture of Ma'at.",
-        sections: [
-          { heading: "The Cosmos as Ma'at", body: "At the heart of Kemetic thought stands Ma'at — the principle of truth, balance, and cosmic order that holds the universe in coherence. Creation is not a single act but a continual restoration of balance against the pull of isfet (chaos). Number, in this world, is not counting but the very architecture of that order: the measure by which the cosmos is kept true. Djehuti — whom the Greeks called Thoth and later Hermes — is the divine scribe and reckoner, god of equilibrium, who records whether the heart balances against Ma'at's feather in the weighing of the soul." },
-          { heading: "Three — the Sign of Plurality", body: "Three was the Egyptians' fundamental symbol of plurality and completeness; the hieroglyph for 'many' was three strokes. The triad of deities — three gods forming one complete system — expressed a whole that is more than its parts. Three is the first true multiplicity, the pattern of a living wholeness." },
-          { heading: "Eight — the Ogdoad of Hermopolis", body: "At Hermopolis — Khemnu, the 'Eight-Town,' the city sacred to Thoth — the Ogdoad were eight primordial deities embodying the state before creation: Nun and Naunet (the waters), Heh and Hauhet (infinity), Kek and Kauket (darkness), Amun and Amaunet (hiddenness). Eight is the fertile darkness, the pregnant chaos out of which the ordered world is born." },
-          { heading: "Nine — the Ennead, Intensified Three", body: "Nine, the Ennead, is 'three threes' — an intensified three, the number of 'all the gods,' of totality and dominion. The Great Ennead of Heliopolis, centered on Atum, mapped the full family of creation. Nine is completeness raised to its highest power: all, everything, the whole pantheon of forces." },
-          { heading: "Seven & Forty-Two — Completion and Judgment", body: "Seven signified completion and spiritual perfection — the seven principles of Ma'at to be lived. In the Hall of Judgment, the soul recited the 42 Declarations (the 'negative confessions') before the weighing of the heart — 42 affirmations of a life lived in balance. To pass was to have kept Ma'at; number here is the measure of a life." },
-          { heading: "The Wisdom", body: "Kemetic number is cosmological, not arithmetic: each number names a force in the ongoing work of holding chaos at bay and truth in place. To understand your numbers in this light is to ask not 'what do they predict' but 'how do they keep me in balance with Ma'at.' This is the lineage of Thoth — the reckoner who weighs the heart — and the root from which the Hermetic tradition itself would later flow." }
-        ]
-      }
-    };
-
-    var COSMOLOGY_ORDER = ["egyptian", "moorish", "dogon", "ifa", "nativeAmerican", "arabIslamic"];
-
-    function buildCosmologyCardHtml(key) {
-      var c = COSMOLOGIES[key];
-      if (!c) return "";
-
-      var sectionsHtml = (c.sections || []).map(function (s) {
-        return '<div class="cosmology-section-heading">' + s.heading + '</div>' +
-          '<div class="cosmology-section-body">' + s.body + '</div>';
-      }).join("");
-
-      return '<div class="cosmology-card" data-cosmology="' + key + '">' +
-        '<div class="cosmology-header">' +
-          '<span class="cosmology-chevron" aria-hidden="true">&#x25B8;</span>' +
-          '<span class="cosmology-glyph">' + (c.glyph || "") + '</span>' +
-          '<div class="cosmology-header-text">' +
-            '<div class="cosmology-name">' + c.name + '</div>' +
-            '<div class="cosmology-tagline">' + c.tagline + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="cosmology-body">' + sectionsHtml + '</div>' +
-      '</div>';
-    }
-
-    function renderCosmologies() {
-      var container = document.getElementById("cosmologyList");
-      if (!container) return;
-
-      var html = COSMOLOGY_ORDER
-        .filter(function (key) { return !!COSMOLOGIES[key]; })
-        .map(buildCosmologyCardHtml)
-        .join("");
-      container.innerHTML = html;
-
-      var cards = container.querySelectorAll(".cosmology-card");
-      for (var i = 0; i < cards.length; i++) {
-        (function (card) {
-          var header = card.querySelector(".cosmology-header");
-          if (!header) return;
-          header.addEventListener("click", function () {
-            card.classList.toggle("is-expanded");
-          });
-        })(cards[i]);
-      }
-    }
 
     var MC_INTERIOR_TITLES = {
       AD: "Birth Month",
@@ -2296,9 +2095,9 @@
       return "Speak personally about this element of my Divine Triangle blueprint.";
     }
 
-    /* Short descriptive label for the standalone button/heading, e.g.
-       "Line DE" / "your Life Lesson" / "your Power Square" / "your Birth
-       Month" — matches whatever was just tapped. */
+    /* Short descriptive label for the button, e.g. "Line DE" / "your Life
+       Lesson" / "your Power Square" / "your Birth Month" — matches
+       whatever was just tapped. */
     function mcAskLabelFor(type, data) {
       if (type === "line") return "Line " + data.line;
       if (type === "center") {
@@ -2313,25 +2112,16 @@
       return "this element";
     }
 
-    /* The ask panel is persistent (not recreated per tap, unlike
-       #mcInfoBody), so its click listener is attached once elsewhere and
-       reads whatever was most recently tapped from this variable. */
-    var mcCurrentTap = null;
-
-    function updateMcAskPanelForTap(type, data) {
-      mcCurrentTap = { type: type, data: data };
-
-      var labelEl = document.getElementById("mcAskLabel");
-      var askBtn  = document.getElementById("mcAskBtn");
-      var replyEl = document.getElementById("mcOracleReply");
-      if (!labelEl || !askBtn || !replyEl) return;
-
-      labelEl.style.display = "none";
-      askBtn.style.display = "";
-      askBtn.disabled = false;
-      askBtn.textContent = "✦ Ask Termaximus about " + mcAskLabelFor(type, data);
-      replyEl.className = "mc-oracle-reply";
-      replyEl.textContent = "";
+    /* Ask-Termaximus block — appended below the authored content inside
+       #mcInfoBody every time a chart element is tapped (openMcInfo
+       rebuilds this innerHTML fresh each time, so the button/reply always
+       start clean for whatever was just tapped). */
+    function buildMcAskBlockHtml(type, data) {
+      var label = mcAskLabelFor(type, data);
+      return '<div class="mc-ask-row">' +
+        '<button type="button" class="mc-ask-btn" id="mcAskBtn">&#x2726; Ask Termaximus about ' + label + '</button>' +
+        '</div>' +
+        '<div class="mc-oracle-reply" id="mcOracleReply"></div>';
     }
 
     var mcAskInFlight = false;
@@ -2410,15 +2200,17 @@
 
       if (openMcInfoAnchor === anchorEl) { closeMcInfo(); return; }
 
-      body.innerHTML = buildMcInfoHtml(type, data);
+      body.innerHTML = buildMcInfoHtml(type, data) + buildMcAskBlockHtml(type, data);
       panel.classList.add("is-open");
       panel.setAttribute("aria-hidden", "false");
       openMcInfoAnchor = anchorEl;
 
-      /* Standalone left-side panel — activates fresh for whatever was
-         just tapped (see FIX 3: lives off to the left, not inside this
-         info panel, so it never crowds the triangle/orbit). */
-      updateMcAskPanelForTap(type, data);
+      var askBtn = document.getElementById("mcAskBtn");
+      if (askBtn) {
+        askBtn.addEventListener("click", function () {
+          askTermaximusAbout(type, data);
+        });
+      }
     }
 
     var myChartStageEl = document.getElementById("myChartStage");
@@ -2448,24 +2240,11 @@
       });
     }
 
-    /* The ask button is a persistent element (unlike #mcInfoBody's
-       contents, it's never rebuilt via innerHTML), so its listener is
-       attached exactly once here and reads whichever element was most
-       recently tapped from mcCurrentTap at click time. */
-    var mcAskBtnEl = document.getElementById("mcAskBtn");
-    if (mcAskBtnEl) {
-      mcAskBtnEl.addEventListener("click", function () {
-        if (!mcCurrentTap) return;
-        askTermaximusAbout(mcCurrentTap.type, mcCurrentTap.data);
-      });
-    }
-
     /* ═══ STEP 3 — wire it on load ═══ */
     renderMyChart();
     renderAbyssMoon();
     refreshRealMoonPhase();
     setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
-    renderCosmologies(); /* pure authored content — no data dependency, safe to render immediately */
   }());
   </script>
 
