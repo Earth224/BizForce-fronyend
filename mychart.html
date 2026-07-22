@@ -206,41 +206,56 @@
       inset: 0;
       pointer-events: none;
     }
+    /* Fixed, uniform, compact footprint for EVERY card — no per-card
+       sizing to content anymore (that's what let long angle-card text
+       balloon those chips unevenly). Two short lines only; anything
+       that would overflow a line is ellipsis-truncated rather than
+       stretching the chip. */
     .natal-node {
       position: absolute;
       transform: translate(-50%, -50%);
+      box-sizing: border-box;
+      width: 140px;
+      min-height: 44px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 2px;
-      padding: 7px 12px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(168,85,247,0.10)), rgba(10,4,20,0.78);
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(168,85,247,0.10)), rgba(10,4,20,0.8);
       border: 1px solid rgba(168,85,247,0.5);
-      box-shadow: 0 0 14px rgba(168,85,247,0.25), 0 0 4px rgba(34,211,238,0.15);
+      box-shadow: 0 0 10px rgba(168,85,247,0.2);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      white-space: nowrap;
     }
     /* Luminaries (Sun/Moon) and angles (ASC/MC) — the key placements,
-       given a stronger accent than the other eight nodes. */
+       given a stronger accent than the other eight nodes, but the SAME
+       fixed size as every other card. */
     .natal-node-luminary {
       border-color: rgba(244,228,184,0.75);
-      box-shadow: 0 0 18px rgba(244,228,184,0.35), 0 0 6px rgba(255,210,120,0.25);
+      box-shadow: 0 0 14px rgba(244,228,184,0.3);
     }
     .natal-node-angle {
       border-color: rgba(34,211,238,0.65);
-      box-shadow: 0 0 18px rgba(34,211,238,0.32), 0 0 6px rgba(168,85,247,0.2);
+      box-shadow: 0 0 14px rgba(34,211,238,0.28);
     }
-    .natal-node-glyph {
-      font-size: 1.1rem;
+    .natal-node-line1,
+    .natal-node-line2 {
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .natal-node-line1 {
+      font-size: 0.72rem;
+      font-weight: 700;
       color: #ffe9b0;
-      text-shadow: 0 0 6px rgba(255,210,120,0.5);
-      line-height: 1;
     }
-    .natal-node-detail {
+    .natal-node-line2 {
       font-size: 0.62rem;
-      color: rgba(232,220,255,0.88);
+      color: rgba(232,220,255,0.8);
       letter-spacing: 0.02em;
     }
     .my-chart-placeholder {
@@ -504,6 +519,113 @@
 
     /* ── Divine Triangle blueprint sizing wrapper (from renderDivineTriangleBlueprintVisual's opts.large/maxWidth path) ── */
     .dtb-visual-large svg { display: block; width: 100%; height: auto; }
+
+    /* ── WISDOM TRADITIONS — educational cosmology panels, pure authored
+       content (no per-user data, no backend). Sits below the chart as
+       its own clearly-separated section. ── */
+    .wisdom-section {
+      margin-top: 48px;
+      padding: 32px 0 40px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .wisdom-section-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .wisdom-section-title {
+      font-size: clamp(1.3rem, 3vw, 1.7rem);
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0;
+    }
+    .wisdom-section-subtitle {
+      margin: 8px 0 0;
+      font-size: 0.85rem;
+      color: rgba(232,220,255,0.5);
+      letter-spacing: 0.02em;
+    }
+    .cosmology-list {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    /* Collapsible card — mirrors oracle.html's .quantum-card pattern
+       (header + chevron + max-height/opacity body transition), scaled up
+       for longer-form content and multiple simultaneous cards open. */
+    .cosmology-card {
+      background: rgba(10,4,20,0.65);
+      border-left: 2px solid rgba(168,85,247,0.4);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .cosmology-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .cosmology-chevron {
+      font-size: 0.65rem;
+      color: #a855f7;
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .cosmology-card.is-expanded .cosmology-chevron { transform: rotate(90deg); }
+    .cosmology-glyph {
+      font-size: 1.3rem;
+      color: #f4e4b8;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .cosmology-header-text { flex: 1; min-width: 0; }
+    .cosmology-name {
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .cosmology-tagline {
+      margin-top: 2px;
+      font-size: 0.72rem;
+      color: rgba(232,220,255,0.55);
+    }
+    .cosmology-body {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.3s ease;
+      padding: 0 16px;
+    }
+    .cosmology-card.is-expanded .cosmology-body {
+      max-height: 3000px;
+      opacity: 1;
+      padding: 0 16px 18px;
+    }
+    .cosmology-section-heading {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #9df6ff;
+      margin: 14px 0 6px;
+    }
+    .cosmology-section-heading:first-child { margin-top: 12px; }
+    .cosmology-section-body {
+      font-size: 0.85em;
+      line-height: 1.6;
+      color: rgba(232,220,255,0.88);
+      margin: 0 0 4px;
+    }
   </style>
 </head>
 <body>
@@ -532,6 +654,14 @@
     <div class="my-chart-stage" id="myChartStage">
       <div class="my-chart-placeholder">Chart loading&hellip;</div>
     </div>
+
+    <section class="wisdom-section" id="wisdomSection">
+      <div class="wisdom-section-header">
+        <h2 class="wisdom-section-title">Wisdom Traditions</h2>
+        <p class="wisdom-section-subtitle">The number and cosmos philosophies of the world's sacred traditions.</p>
+      </div>
+      <div class="cosmology-list" id="cosmologyList"></div>
+    </section>
   </div>
 
   <div class="mc-info-panel" id="mcInfoPanel" aria-hidden="true">
@@ -1684,61 +1814,62 @@
       var stageRect  = stage.getBoundingClientRect();
       var triangleEl = stage.querySelector(".dtb-visual-large");
 
-      /* CARD_HALF_X/Y: half a chip's real footprint on each axis — cards
-         now carry longer text (house/angle labels), so these are sized
-         against the widest realistic card ("Ascendant · Rising · 1st
-         House cusp / Sagittarius 28.7°"), not the original short "Sun
-         Taurus 2.8°" cards. MIN_GAP: clear, generous breathing room
-         between the triangle's own rendered edge and the ring.
-         The ring is an ELLIPSE (radiusX/radiusY), not a circle, so a
-         typically-wider-than-tall viewport gets to use its full width
-         budget instead of being capped by the shorter height axis. */
-      var CARD_HALF_X = 130;
-      var CARD_HALF_Y = 40;
-      var MIN_GAP     = 90;
+      /* A CIRCLE, not an ellipse — deliberate change from the previous
+         version. An ellipse has tighter curvature (and therefore tighter
+         card-to-card spacing) at the ends of its minor axis, which is
+         exactly what caused the Sun/Moon/MC cards to collide at the top:
+         uniform ANGULAR spacing on an ellipse does not mean uniform
+         PHYSICAL spacing. A circle has identical chord distance between
+         every adjacent pair at any angle, so "evenly spaced by angle" and
+         "evenly spaced physically" become the same guarantee.
 
-      /* Floored at 40 so the math stays sane (never negative) even on a
-         pathologically narrow viewport — below that, no fixed-size card
-         can avoid some clipping regardless of ring math. */
-      var maxRadiusX   = Math.max(40, stageRect.width  / 2 - CARD_HALF_X);
-      var maxRadiusY   = Math.max(40, stageRect.height / 2 - CARD_HALF_Y);
+         CARD_WIDTH/CARD_HEIGHT match the fixed compact-card CSS exactly.
+         CARD_GAP is the minimum clear gap enforced between adjacent card
+         EDGES (not just centers). minRadiusForSpacing is the radius below
+         which two 30°-apart cards would start to overlap — this is a hard
+         floor, not a suggestion: no-overlap is preferred over full
+         on-screen containment on a screen too small for both (see below). */
+      var CARD_WIDTH  = 140;
+      var CARD_HEIGHT = 44;
+      var CARD_GAP    = 16;
+      var MIN_GAP     = 60; /* clearance between the triangle's edge and the ring */
+
+      var count        = nodes.length;
+      var stepAngleRad = (Math.PI * 2) / count;
+      var minRadiusForSpacing = (CARD_WIDTH + CARD_GAP) / (2 * Math.sin(stepAngleRad / 2));
+
+      var cardHalfDiag = Math.sqrt(Math.pow(CARD_WIDTH / 2, 2) + Math.pow(CARD_HEIGHT / 2, 2));
+      var maxRadius    = Math.max(40, Math.min(stageRect.width, stageRect.height) / 2 - cardHalfDiag);
       var triangleSize = triangleEl ? triangleEl.getBoundingClientRect().width : 320;
 
       /* If the triangle at its natural size wouldn't leave room for a
-         comfortable gap on the TIGHTER of the two axes, shrink the
-         triangle itself (floor 200px) rather than crowd the ring against
-         it — this is what keeps the ring "always fitting" on small
-         windows, on either axis. */
-      var tightestMaxRadius  = Math.min(maxRadiusX, maxRadiusY);
-      var neededTriangleHalf = tightestMaxRadius - MIN_GAP;
+         comfortable gap before hitting maxRadius, shrink the triangle
+         itself (floor 200px) — this only affects the triangle-clearance
+         term below, not the no-overlap floor, which is independent of
+         triangle size entirely. */
+      var neededTriangleHalf = maxRadius - MIN_GAP;
       if (triangleEl && neededTriangleHalf * 2 < triangleSize) {
         var shrunkWidth = Math.max(200, neededTriangleHalf * 2);
         triangleEl.style.maxWidth = shrunkWidth + "px";
         triangleSize = shrunkWidth;
       }
 
-      /* clampRadius's floor is min(80, maxR) rather than a bare 80, so
-         the floor itself can never exceed maxR — otherwise on a small
-         enough screen the "never go below 80" floor could push the ring
-         past the "never exceed maxR" ceiling and clip cards off-edge. */
-      function clampRadius(desired, maxR) {
-        var floor = Math.min(80, maxR);
-        return Math.max(floor, Math.min(desired, maxR));
-      }
-      var desiredRadius = triangleSize / 2 + MIN_GAP;
-      var radiusX = clampRadius(desiredRadius, maxRadiusX);
-      var radiusY = clampRadius(desiredRadius, maxRadiusY);
+      var desiredRadius = Math.max(triangleSize / 2 + MIN_GAP, minRadiusForSpacing);
+      /* minRadiusForSpacing wins even over maxRadius (the on-screen
+         ceiling) — on a screen too small for both constraints, cards may
+         clip slightly at the edge, but they will never overlap each
+         other. That trade-off is deliberate. */
+      var radius  = Math.max(minRadiusForSpacing, Math.min(desiredRadius, maxRadius));
       var centerX = stageRect.width / 2;
       var centerY = stageRect.height / 2;
-      var count   = nodes.length;
 
       var wrap = document.createElement("div");
       wrap.className = "natal-orbit";
 
       nodes.forEach(function (node, i) {
         var angle = (i / count) * Math.PI * 2 - Math.PI / 2; /* start at 12 o'clock, clockwise */
-        var x = centerX + radiusX * Math.cos(angle);
-        var y = centerY + radiusY * Math.sin(angle);
+        var x = centerX + radius * Math.cos(angle);
+        var y = centerY + radius * Math.sin(angle);
         var glyph = NATAL_GLYPHS[node.name] || node.name;
         var deg   = (node.degree != null) ? (Math.round(node.degree * 10) / 10) : null;
 
@@ -1746,18 +1877,22 @@
         if (node.name === "Sun" || node.name === "Moon") accentClass = " natal-node-luminary";
         else if (node.kind === "angle") accentClass = " natal-node-angle";
 
-        /* ASC = the 1st-house cusp, MC = the 10th — angles, not planets,
-           so they're labeled as such rather than given a house number.
+        /* Shortened to two compact lines — the long "1st House cusp"/
+           "10th House cusp" phrasing moved out of the card face entirely
+           (it'll live in the tap panel next pass); the card itself just
+           needs to read at a glance. ASC = the 1st-house cusp, MC = the
+           10th, so neither gets a house number the way planets do.
            Planet house comes from houseForLongitude (the response has no
            per-planet house field; this is computed from the houses cusp
            array). */
-        var detailText;
+        var line1, line2;
         if (node.kind === "angle") {
-          var angleLabel = (node.name === "ASC") ? "Ascendant · Rising · 1st House cusp" : "Midheaven · 10th House cusp";
-          detailText = angleLabel + (node.sign ? " / " + node.sign + (deg != null ? " " + deg + "°" : "") : "");
+          line1 = (node.name === "ASC") ? "ASC · Rising" : "MC · Midheaven";
+          line2 = (node.sign || "") + (deg != null ? " " + deg + "°" : "");
         } else {
           var house = houseForLongitude(natalData.houses, node.longitude);
-          detailText = (node.sign || "") + (deg != null ? " " + deg + "°" : "") + (house ? " · " + ordinalSuffix(house) + " House" : "");
+          line1 = glyph + " " + (node.sign || "") + (deg != null ? " " + deg + "°" : "");
+          line2 = house ? ordinalSuffix(house) + " House" : "";
         }
 
         var chip = document.createElement("div");
@@ -1765,8 +1900,8 @@
         chip.style.left = x + "px";
         chip.style.top  = y + "px";
         chip.innerHTML =
-          '<span class="natal-node-glyph">' + glyph + '</span>' +
-          '<span class="natal-node-detail">' + detailText + '</span>';
+          '<div class="natal-node-line1">' + line1 + '</div>' +
+          (line2 ? '<div class="natal-node-line2">' + line2 + '</div>' : '');
         wrap.appendChild(chip);
       });
 
@@ -1797,7 +1932,7 @@
 
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
       if (blueprint) {
-        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(680px, 62vw)", interactive: true });
         loadAndRenderOrbit();
         return;
       }
@@ -1810,7 +1945,7 @@
 
         var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
         if (loadedBlueprint) {
-          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(680px, 62vw)", interactive: true });
           loadAndRenderOrbit();
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
@@ -1869,6 +2004,75 @@
       lifeLesson: "The triangle's own center — the Life Lesson Number — is read as the single thread woven through every era: not one chapter's assignment but the master curriculum of the whole incarnation, the theme every square's building ultimately serves.",
       interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
     };
+
+    /* ═══ WISDOM TRADITIONS — pure authored educational content, no
+       per-user data, no backend. Mirrors the DT_LIFEMAP/NUM_MEANINGS
+       object pattern: one entry per tradition, rendered by a small
+       build*Html function. Only "egyptian" exists so far; COSMOLOGY_ORDER
+       is the fixed six-tradition display order the other five slot into
+       as they're authored (the render loop already tolerates missing
+       keys, so adding an entry is the only step needed later). ═══ */
+    var COSMOLOGIES = {
+      egyptian: {
+        name: "Ancient Egyptian · Kemetic",
+        glyph: "𓂀",
+        tagline: "The house of Djehuti (Thoth) — number as the architecture of Ma'at.",
+        sections: [
+          { heading: "The Cosmos as Ma'at", body: "At the heart of Kemetic thought stands Ma'at — the principle of truth, balance, and cosmic order that holds the universe in coherence. Creation is not a single act but a continual restoration of balance against the pull of isfet (chaos). Number, in this world, is not counting but the very architecture of that order: the measure by which the cosmos is kept true. Djehuti — whom the Greeks called Thoth and later Hermes — is the divine scribe and reckoner, god of equilibrium, who records whether the heart balances against Ma'at's feather in the weighing of the soul." },
+          { heading: "Three — the Sign of Plurality", body: "Three was the Egyptians' fundamental symbol of plurality and completeness; the hieroglyph for 'many' was three strokes. The triad of deities — three gods forming one complete system — expressed a whole that is more than its parts. Three is the first true multiplicity, the pattern of a living wholeness." },
+          { heading: "Eight — the Ogdoad of Hermopolis", body: "At Hermopolis — Khemnu, the 'Eight-Town,' the city sacred to Thoth — the Ogdoad were eight primordial deities embodying the state before creation: Nun and Naunet (the waters), Heh and Hauhet (infinity), Kek and Kauket (darkness), Amun and Amaunet (hiddenness). Eight is the fertile darkness, the pregnant chaos out of which the ordered world is born." },
+          { heading: "Nine — the Ennead, Intensified Three", body: "Nine, the Ennead, is 'three threes' — an intensified three, the number of 'all the gods,' of totality and dominion. The Great Ennead of Heliopolis, centered on Atum, mapped the full family of creation. Nine is completeness raised to its highest power: all, everything, the whole pantheon of forces." },
+          { heading: "Seven & Forty-Two — Completion and Judgment", body: "Seven signified completion and spiritual perfection — the seven principles of Ma'at to be lived. In the Hall of Judgment, the soul recited the 42 Declarations (the 'negative confessions') before the weighing of the heart — 42 affirmations of a life lived in balance. To pass was to have kept Ma'at; number here is the measure of a life." },
+          { heading: "The Wisdom", body: "Kemetic number is cosmological, not arithmetic: each number names a force in the ongoing work of holding chaos at bay and truth in place. To understand your numbers in this light is to ask not 'what do they predict' but 'how do they keep me in balance with Ma'at.' This is the lineage of Thoth — the reckoner who weighs the heart — and the root from which the Hermetic tradition itself would later flow." }
+        ]
+      }
+    };
+
+    var COSMOLOGY_ORDER = ["egyptian", "moorish", "dogon", "ifa", "nativeAmerican", "arabIslamic"];
+
+    function buildCosmologyCardHtml(key) {
+      var c = COSMOLOGIES[key];
+      if (!c) return "";
+
+      var sectionsHtml = (c.sections || []).map(function (s) {
+        return '<div class="cosmology-section-heading">' + s.heading + '</div>' +
+          '<div class="cosmology-section-body">' + s.body + '</div>';
+      }).join("");
+
+      return '<div class="cosmology-card" data-cosmology="' + key + '">' +
+        '<div class="cosmology-header">' +
+          '<span class="cosmology-chevron" aria-hidden="true">&#x25B8;</span>' +
+          '<span class="cosmology-glyph">' + (c.glyph || "") + '</span>' +
+          '<div class="cosmology-header-text">' +
+            '<div class="cosmology-name">' + c.name + '</div>' +
+            '<div class="cosmology-tagline">' + c.tagline + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="cosmology-body">' + sectionsHtml + '</div>' +
+      '</div>';
+    }
+
+    function renderCosmologies() {
+      var container = document.getElementById("cosmologyList");
+      if (!container) return;
+
+      var html = COSMOLOGY_ORDER
+        .filter(function (key) { return !!COSMOLOGIES[key]; })
+        .map(buildCosmologyCardHtml)
+        .join("");
+      container.innerHTML = html;
+
+      var cards = container.querySelectorAll(".cosmology-card");
+      for (var i = 0; i < cards.length; i++) {
+        (function (card) {
+          var header = card.querySelector(".cosmology-header");
+          if (!header) return;
+          header.addEventListener("click", function () {
+            card.classList.toggle("is-expanded");
+          });
+        })(cards[i]);
+      }
+    }
 
     var MC_INTERIOR_TITLES = {
       AD: "Birth Month",
@@ -2261,6 +2465,7 @@
     renderAbyssMoon();
     refreshRealMoonPhase();
     setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
+    renderCosmologies(); /* pure authored content — no data dependency, safe to render immediately */
   }());
   </script>
 
