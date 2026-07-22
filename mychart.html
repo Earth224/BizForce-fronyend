@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — My Chart</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --mirror-f-clr: #c8a84b;
+    }
+
+    /* ── BizForce page chrome — same recipe as oracle.html ── */
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      color: #e8e8ff;
+      background: #070b18;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: #070b18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Abyss — copied verbatim from oracle.html's .scene/.star-canvas/
+       .abyss-moon rules so the background is pixel-identical. ── */
+    .scene {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; overflow: hidden;
+    }
+    .star-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+    }
+    .abyss-moon {
+      position: absolute;
+      top: 8%;
+      right: 12%;
+      width: 260px;
+      height: 260px;
+      z-index: 0;
+      pointer-events: none;
+      filter: blur(0.3px);
+      animation: abyss-moon-drift 120s ease-in-out infinite alternate;
+    }
+    .abyss-moon svg { width: 100%; height: 100%; display: block; }
+    @keyframes abyss-moon-drift {
+      0%   { transform: translate(0px, 0px); }
+      100% { transform: translate(-10px, 8px); }
+    }
+
+    /* ── Page content — sits above the abyss, transparent so it shows
+       through everywhere except the info panel's own tinted background. ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .back-link:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    .brand-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .mychart-title-row {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .mychart-title {
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 0;
+    }
+    .mychart-subtitle {
+      margin: 8px 0 0;
+      font-size: 0.85rem;
+      color: rgba(232,220,255,0.5);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Chart stage — main content, centered, transparent so the abyss
+       shows through. Not an overlay here (unlike oracle.html's My Chart
+       panel) — this IS the page. ── */
+    .my-chart-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50vh;
+    }
+    .my-chart-placeholder {
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      font-style: italic;
+      color: rgba(232, 220, 255, 0.45);
+    }
+
+    /* ── Interactivity — tappable blueprint elements + the fixed info
+       panel, copied unchanged from oracle.html's My Chart engine. ── */
+    .mc-tappable { cursor: pointer; }
+    .mc-info-panel {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: 340px;
+      max-width: calc(100vw - 48px);
+      max-height: 60vh;
+      overflow-y: auto;
+      z-index: 2;
+      background: rgba(10,4,20,0.88);
+      border-left: 2px solid rgba(168,85,247,0.4);
+      border-radius: 14px;
+      padding: 18px 20px;
+      opacity: 0;
+      transform: scale(0.92) translateY(12px);
+      transform-origin: bottom right;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168,85,247,0.45) rgba(10,4,20,0.35);
+    }
+    .mc-info-panel.is-open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+    .mc-info-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      color: rgba(232,220,255,0.5);
+      font-size: 0.75rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+    .mc-info-close:hover { color: rgba(232,220,255,0.9); }
+    .mc-info-body {
+      font-size: 0.85em;
+      color: rgba(232,220,255,0.85);
+      line-height: 1.55;
+      padding-right: 20px;
+    }
+    .mc-info-heading {
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #f4e4b8;
+      margin-bottom: 8px;
+    }
+    .mc-info-value {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #9df6ff;
+      margin-bottom: 8px;
+    }
+    .mc-info-section-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      margin: 12px 0 4px;
+    }
+    .mc-info-section-title:first-of-type { margin-top: 4px; }
+    .mc-info-row { margin-bottom: 3px; }
+    .mc-info-body-text { margin: 0 0 8px; }
+    .mc-info-body-text:last-child { margin-bottom: 0; }
+    .mc-info-wisdom { font-style: italic; color: rgba(232,220,255,0.7); }
+    .mc-info-number-heading {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9df6ff;
+      margin: 12px 0 6px;
+    }
+
+    /* ── num-info-panel family — copied from oracle.html for openNumInfo/
+       NUM_MEANINGS parity; unused by the mc-tappable engine (which uses
+       its own openMcInfo/#mcInfoPanel instead, since openNumInfo's DOM-
+       sibling insertion doesn't work for SVG elements) but kept present
+       and functional in case future compact-row UI needs it here too. ── */
+    .num-info-panel {
+      position: relative;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease;
+      background: rgba(10,4,20,0.6);
+      border-radius: 10px;
+      margin: 0 0 8px;
+    }
+    .num-info-panel.is-open {
+      max-height: 600px;
+      opacity: 1;
+      margin: 4px 0 8px;
+    }
+    .num-info-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: rgba(232,220,255,0.5);
+      font-size: 0.7rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+    .num-info-close:hover { color: rgba(232,220,255,0.9); }
+    .num-info-section {
+      padding: 12px 14px;
+      font-size: 0.85em;
+      color: rgba(232,220,255,0.85);
+      line-height: 1.55;
+    }
+    .num-info-field { border-left: 2px solid rgba(232,200,116,0.4); padding-right: 26px; }
+    .num-info-number { border-left: 2px solid rgba(0,255,255,0.35); }
+    .num-info-heading {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #f4e4b8;
+      margin-bottom: 6px;
+    }
+    .num-info-heading-cyan { color: #9df6ff; }
+    .num-info-derived-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.45);
+      margin-bottom: 3px;
+    }
+    .num-info-body { margin: 0 0 8px; }
+    .num-info-body:last-child { margin-bottom: 0; }
+    .num-info-wisdom { font-style: italic; color: rgba(232,220,255,0.7); }
+    .num-info-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 0 14px;
+    }
+
+    /* ── Divine Triangle blueprint sizing wrapper (from renderDivineTriangleBlueprintVisual's opts.large/maxWidth path) ── */
+    .dtb-visual-large svg { display: block; width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════ SCENE — the moving abyss (copied verbatim from oracle.html) ══════════ -->
+  <div class="scene" aria-hidden="true">
+    <canvas class="star-canvas" id="starCanvas" aria-hidden="true"></canvas>
+    <div class="abyss-moon" id="abyssMoon" aria-hidden="true"></div>
+  </div>
+
+  <div class="page">
+    <nav class="top-nav">
+      <a class="back-link" href="oracle.html">&#8592; Back to Oracle</a>
+      <span class="brand-badge">BizForce AI</span>
+    </nav>
+
+    <div class="mychart-title-row">
+      <h1 class="mychart-title">My Chart</h1>
+      <p class="mychart-subtitle">Your interactive Divine Triangle blueprint</p>
+    </div>
+
+    <div class="my-chart-stage" id="myChartStage">
+      <div class="my-chart-placeholder">Chart loading&hellip;</div>
+    </div>
+  </div>
+
+  <div class="mc-info-panel" id="mcInfoPanel" aria-hidden="true">
+    <button type="button" class="mc-info-close" id="mcInfoClose" aria-label="Close">&#x2715;</button>
+    <div class="mc-info-body" id="mcInfoBody"></div>
+  </div>
+
+  <!-- ══════════ Live canvas starfield — copied VERBATIM from oracle.html,
+       unchanged. Only depends on #starCanvas existing. ══════════ -->
+  <script>
+  (function () {
+    var canvas = document.getElementById("starCanvas");
+    if (!canvas) return;
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    var DPR_CAP = 2;
+    var cssWidth  = window.innerWidth;
+    var cssHeight = window.innerHeight;
+
+    var nebulaCanvas = document.createElement("canvas");
+    var nebulaCtx     = null;
+
+    function renderNebula() {
+      nebulaCanvas.width  = canvas.width;
+      nebulaCanvas.height = canvas.height;
+      nebulaCtx = nebulaCanvas.getContext("2d");
+      var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+      nebulaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      var span = Math.max(cssWidth, cssHeight);
+      var clouds = [
+        { x: cssWidth * 0.18, y: cssHeight * 0.22, r: span * 0.55, color: "168,85,247",  alpha: 0.06 }, /* violet */
+        { x: cssWidth * 0.82, y: cssHeight * 0.68, r: span * 0.5,  color: "34,211,238",  alpha: 0.05 }, /* cyan */
+        { x: cssWidth * 0.52, y: cssHeight * 0.85, r: span * 0.4,  color: "52,211,153",  alpha: 0.035 } /* emerald whisper */
+      ];
+
+      clouds.forEach(function (c) {
+        var g = nebulaCtx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+        g.addColorStop(0, "rgba(" + c.color + "," + c.alpha + ")");
+        g.addColorStop(1, "rgba(" + c.color + ",0)");
+        nebulaCtx.fillStyle = g;
+        nebulaCtx.fillRect(0, 0, cssWidth, cssHeight);
+      });
+    }
+
+    function resize() {
+      cssWidth  = window.innerWidth;
+      cssHeight = window.innerHeight;
+      var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+      canvas.width  = Math.round(cssWidth  * dpr);
+      canvas.height = Math.round(cssHeight * dpr);
+      canvas.style.width  = cssWidth  + "px";
+      canvas.style.height = cssHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      renderNebula();
+    }
+    resize();
+
+    var resizeTimer = null;
+    window.addEventListener("resize", function () {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    });
+
+    // ── Star generation ──────────────────────────────────────────────────
+    var TINTS = [
+      { r: 34,  g: 211, b: 238 }, /* cyan */
+      { r: 139, g: 92,  b: 246 }, /* violet-blue */
+      { r: 251, g: 191, b: 36  }  /* warm gold */
+    ];
+
+    function pickTint() {
+      if (Math.random() < 1 / 6) {
+        return TINTS[Math.floor(Math.random() * TINTS.length)];
+      }
+      return { r: 255, g: 255, b: 255 };
+    }
+
+    function makeStar(minR, maxR) {
+      var r = minR + Math.random() * (maxR - minR);
+      var baseAlpha = 0.12 + Math.pow(Math.random(), 2) * 0.8;
+      var scintillates = Math.random() < 0.25;
+      return {
+        x: Math.random() * cssWidth,
+        y: Math.random() * cssHeight,
+        r: r,
+        baseAlpha: baseAlpha,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.6 + Math.random() * 1.6,
+        tint: pickTint(),
+        spiked: (r > (minR + (maxR - minR) * 0.6)) && (baseAlpha > 0.6),
+        scintillates: scintillates,
+        twinkleDepth: scintillates ? 0.6 : 0.12
+      };
+    }
+
+    var LAYERS = [
+      { count: 240, minR: 0.4, maxR: 0.9, parallax: 0.15, offsetX: 0, offsetY: 0, stars: [] }, /* far */
+      { count: 120, minR: 0.8, maxR: 1.6, parallax: 0.4,  offsetX: 0, offsetY: 0, stars: [] }, /* mid */
+      { count: 50,  minR: 1.4, maxR: 2.6, parallax: 1.0,  offsetX: 0, offsetY: 0, stars: [] }  /* near */
+    ];
+
+    LAYERS.forEach(function (layer) {
+      for (var i = 0; i < layer.count; i++) {
+        layer.stars.push(makeStar(layer.minR, layer.maxR));
+      }
+    });
+
+    var BASE_DRIFT_X   = 8;    /* px/sec at parallax factor 1 */
+    var BASE_DRIFT_Y   = -4.5; /* px/sec at parallax factor 1 */
+    var PARALLAX_PX    = 45;   /* max px shift at parallax factor 1 */
+    var PARALLAX_EASE  = 0.05;
+
+    // ── Parallax input — mouse (desktop) or device tilt (phone) ──────────
+    var targetOffsetX = 0, targetOffsetY = 0;
+    var currentOffsetX = 0, currentOffsetY = 0;
+
+    if (!reducedMotion) {
+      window.addEventListener("mousemove", function (e) {
+        targetOffsetX = (e.clientX / cssWidth)  * 2 - 1;
+        targetOffsetY = (e.clientY / cssHeight) * 2 - 1;
+      });
+
+      var orientationEnabled = false;
+      function setTargetFromOrientation(e) {
+        if (e.gamma == null || e.beta == null) return;
+        var gamma = Math.max(-45, Math.min(45, e.gamma));
+        var beta  = Math.max(-45, Math.min(45, e.beta - 45));
+        targetOffsetX = gamma / 45;
+        targetOffsetY = beta / 45;
+      }
+      function enableOrientation() {
+        if (orientationEnabled) return;
+        orientationEnabled = true;
+        window.addEventListener("deviceorientation", setTargetFromOrientation);
+      }
+
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        var requestOrientationPermission = function () {
+          DeviceOrientationEvent.requestPermission().then(function (state) {
+            if (state === "granted") enableOrientation();
+          }).catch(function () { /* fall back silently to mouse/no-parallax */ });
+          document.removeEventListener("touchend", requestOrientationPermission);
+          document.removeEventListener("click", requestOrientationPermission);
+        };
+        document.addEventListener("touchend", requestOrientationPermission, { once: true });
+        document.addEventListener("click", requestOrientationPermission, { once: true });
+      } else if (typeof window.DeviceOrientationEvent !== "undefined") {
+        enableOrientation();
+      }
+    }
+
+    // ── Rendering ──────────────────────────────────────────────────────────
+    function drawStarAt(px, py, star, alpha) {
+      var tint = star.tint;
+
+      // (a) soft outer halo — the subtle bloom
+      var haloR = star.r * 2.2;
+      var halo = ctx.createRadialGradient(px, py, 0, px, py, haloR);
+      halo.addColorStop(0, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.5) + ")");
+      halo.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + ",0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(px, py, haloR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // diffraction spikes — bright stars only, drawn under the core
+      if (star.spiked && alpha > 0.35) {
+        var spikeLen   = star.r * 6;
+        var spikeAlpha = alpha * 0.5;
+        var spikeRgb   = tint.r + "," + tint.g + "," + tint.b;
+
+        ctx.lineWidth = 0.8;
+
+        var vSpike = ctx.createLinearGradient(px, py - spikeLen, px, py + spikeLen);
+        vSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
+        vSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
+        vSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
+        ctx.strokeStyle = vSpike;
+        ctx.beginPath();
+        ctx.moveTo(px, py - spikeLen);
+        ctx.lineTo(px, py + spikeLen);
+        ctx.stroke();
+
+        var hSpike = ctx.createLinearGradient(px - spikeLen, py, px + spikeLen, py);
+        hSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
+        hSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
+        hSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
+        ctx.strokeStyle = hSpike;
+        ctx.beginPath();
+        ctx.moveTo(px - spikeLen, py);
+        ctx.lineTo(px + spikeLen, py);
+        ctx.stroke();
+      }
+
+      // (b) sharp core, on top — crisp bright point rather than a fuzzy ball
+      var coreR = star.r * 0.7;
+      var centerColor = tint;
+      if (star.baseAlpha > 0.7) {
+        centerColor = {
+          r: Math.round(tint.r + (255 - tint.r) * 0.6),
+          g: Math.round(tint.g + (255 - tint.g) * 0.6),
+          b: Math.round(tint.b + (255 - tint.b) * 0.6)
+        };
+      }
+      var core = ctx.createRadialGradient(px, py, 0, px, py, coreR);
+      core.addColorStop(0, "rgba(" + centerColor.r + "," + centerColor.g + "," + centerColor.b + "," + alpha + ")");
+      core.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.15) + ")");
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(px, py, coreR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawStarWrapped(star, px, py, alpha) {
+      var glowR = star.r * 3.2;
+      drawStarAt(px, py, star, alpha);
+      if (px < glowR)                drawStarAt(px + cssWidth,  py, star, alpha);
+      if (px > cssWidth - glowR)     drawStarAt(px - cssWidth,  py, star, alpha);
+      if (py < glowR)                drawStarAt(px, py + cssHeight, star, alpha);
+      if (py > cssHeight - glowR)    drawStarAt(px, py - cssHeight, star, alpha);
+    }
+
+    // ── Animation loop ────────────────────────────────────────────────────
+    var running  = false;
+    var rafId    = null;
+    var lastTime = null;
+    var elapsed  = 0;
+
+    function frame(now) {
+      if (!running) return;
+      if (lastTime == null) lastTime = now;
+      var dt = (now - lastTime) / 1000;
+      lastTime = now;
+      if (!reducedMotion) elapsed += dt;
+
+      if (!reducedMotion) {
+        currentOffsetX += (targetOffsetX - currentOffsetX) * PARALLAX_EASE;
+        currentOffsetY += (targetOffsetY - currentOffsetY) * PARALLAX_EASE;
+      }
+
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+      if (nebulaCtx) {
+        ctx.drawImage(nebulaCanvas, 0, 0, canvas.width, canvas.height, 0, 0, cssWidth, cssHeight);
+      }
+
+      LAYERS.forEach(function (layer) {
+        if (!reducedMotion) {
+          layer.offsetX += BASE_DRIFT_X * layer.parallax * dt;
+          layer.offsetY += BASE_DRIFT_Y * layer.parallax * dt;
+        }
+
+        var parallaxShiftX = currentOffsetX * layer.parallax * PARALLAX_PX;
+        var parallaxShiftY = currentOffsetY * layer.parallax * PARALLAX_PX;
+
+        layer.stars.forEach(function (star) {
+          var px = ((star.x + layer.offsetX + parallaxShiftX) % cssWidth  + cssWidth)  % cssWidth;
+          var py = ((star.y + layer.offsetY + parallaxShiftY) % cssHeight + cssHeight) % cssHeight;
+
+          var alpha = star.baseAlpha;
+          if (!reducedMotion) {
+            var tw = Math.sin(elapsed * star.speed + star.phase);
+            alpha = Math.max(0, Math.min(1, star.baseAlpha + tw * star.baseAlpha * star.twinkleDepth));
+          }
+
+          drawStarWrapped(star, px, py, alpha);
+        });
+      });
+
+      rafId = requestAnimationFrame(frame);
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      lastTime = null;
+      rafId = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) stop(); else start();
+    });
+
+    if (!document.hidden) start();
+  }());
+  </script>
+
+  <!-- ══════════ Chart engine — numerology data, blueprint SVG, My Chart
+       interactivity, and the ambient moon. Adapted from oracle.html's
+       corner-star/celestial IIFEs: trimmed of everything specific to the
+       Oracle chat page (corner-star drag, Oracle Profile panel, the
+       compact numerology dropdown, the Celestial panel's clock/calendar/
+       eclipse UI) — this page only needs the data loader, the blueprint
+       renderer, and the moon. ══════════ -->
+  <script>
+  (function () {
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var token = localStorage.getItem("bf_token");
+
+    /* ═══ Moon — copied from oracle.html's celestial IIFE, trimmed of the
+       Celestial panel's clock/calendar/eclipse/date-picker/drag code,
+       which this page has none of. getActiveMoment() always returns
+       "now" here since there's no date/time picker to override it. ═══ */
+    var MOON_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg";
+
+    function getActiveMoment() {
+      return new Date();
+    }
+
+    var SYNODIC_MONTH = 29.53058867;
+    var KNOWN_NEW_MOON_UTC = Date.UTC(2000, 0, 6, 18, 14, 0);
+
+    function getMoonData(date) {
+      var daysSinceNew = (date.getTime() - KNOWN_NEW_MOON_UTC) / 86400000;
+      var cycles = daysSinceNew / SYNODIC_MONTH;
+      var phaseFraction = cycles - Math.floor(cycles);
+      if (phaseFraction < 0) phaseFraction += 1;
+
+      var illumPercent = Math.round((1 - Math.cos(phaseFraction * 2 * Math.PI)) / 2 * 100);
+
+      return {
+        illumPercent: illumPercent,
+        phaseFraction: phaseFraction,
+        waxing: phaseFraction < 0.5
+      };
+    }
+
+    /* Real moon phase from GET /api/moon (astronomy-engine) — fetched once
+       on load and every 30 minutes thereafter. Falls back to the local
+       synodic approximation above on any network/response failure. */
+    var cachedRealMoonPhase = null;
+
+    function fetchRealMoonPhase() {
+      if (typeof API_URL === "undefined") return Promise.resolve(null);
+      return fetch(API_URL + "/api/moon")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || data.error || data.illuminatedFraction == null) return null;
+          return {
+            illuminatedFraction: data.illuminatedFraction,
+            waxing: !!data.waxing,
+            phaseAngle: data.phaseAngle,
+            phaseName: data.phaseName || null
+          };
+        })
+        .catch(function () { return null; });
+    }
+
+    function refreshRealMoonPhase() {
+      fetchRealMoonPhase().then(function (result) {
+        if (result) {
+          cachedRealMoonPhase = result;
+          renderAbyssMoon(); /* repaint immediately once real data lands */
+        }
+      });
+    }
+
+    /* Elliptical terminator path — identical geometry to oracle.html's
+       buildMoonTerminatorPath. See oracle.html for the full derivation
+       notes (crescent/gibbous bulge-direction logic). */
+    function buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing) {
+      var theta = (phaseAngleDeg * Math.PI) / 180;
+      var cosTheta = Math.cos(theta);
+      var rx = Math.abs(r * cosTheta);
+      var bulgeTowardLit = cosTheta > 0;
+
+      var topX = cx, topY = cy - r;
+      var bottomX = cx, bottomY = cy + r;
+
+      var limbSweep = waxing ? 0 : 1;
+      var terminatorSweep = waxing
+        ? (bulgeTowardLit ? 0 : 1)
+        : (bulgeTowardLit ? 1 : 0);
+
+      return "M " + topX + " " + topY + " " +
+        "A " + r + " " + r + " 0 0 " + limbSweep + " " + bottomX + " " + bottomY + " " +
+        "A " + rx + " " + r + " 0 0 " + terminatorSweep + " " + topX + " " + topY + " Z";
+    }
+
+    function renderAbyssMoon() {
+      var container = document.getElementById("abyssMoon");
+      if (!container) return;
+
+      var moment = getActiveMoment();
+      var moon = getMoonData(moment);
+
+      var waxing, phaseAngleDeg;
+      if (cachedRealMoonPhase) {
+        waxing = cachedRealMoonPhase.waxing;
+        phaseAngleDeg = cachedRealMoonPhase.phaseAngle;
+      } else {
+        waxing = moon.waxing;
+        phaseAngleDeg = moon.phaseFraction * 360;
+      }
+
+      var size = 200;
+      var r = size / 2 - 10;
+      var cx = size / 2;
+      var cy = size / 2;
+      var imgR = r * 1.18;
+      var terminatorPath = buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing);
+
+      container.innerHTML =
+        '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
+          '<defs>' +
+            '<filter id="moonTerminatorBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="4"/>' +
+            '</filter>' +
+            '<mask id="moonLitMask">' +
+              '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
+              '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#fff"/>' +
+              '<path d="' + terminatorPath + '" fill="#000" filter="url(#moonTerminatorBlur)"/>' +
+            '</mask>' +
+            '<filter id="glowMaskBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="8"/>' +
+            '</filter>' +
+            '<mask id="glowMask">' +
+              '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
+              '<g filter="url(#glowMaskBlur)">' +
+                '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.05) + '" fill="#fff"/>' +
+                '<path d="' + terminatorPath + '" fill="#000"/>' +
+              '</g>' +
+            '</mask>' +
+            '<radialGradient id="moonGlowGrad" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="0%" stop-color="#bfe0ff" stop-opacity="0.75"/>' +
+              '<stop offset="45%" stop-color="#9ec9ff" stop-opacity="0.55"/>' +
+              '<stop offset="80%" stop-color="#9ec9ff" stop-opacity="0.12"/>' +
+              '<stop offset="100%" stop-color="#9ec9ff" stop-opacity="0"/>' +
+            '</radialGradient>' +
+            '<filter id="moonGlowSoftBlur" x="-50%" y="-50%" width="200%" height="200%">' +
+              '<feGaussianBlur stdDeviation="3"/>' +
+            '</filter>' +
+            '<radialGradient id="moonBodyGlow" cx="42%" cy="40%" r="65%">' +
+              '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>' +
+              '<stop offset="70%" stop-color="#eef2ff" stop-opacity="0.12"/>' +
+              '<stop offset="100%" stop-color="#eef2ff" stop-opacity="0"/>' +
+            '</radialGradient>' +
+            '<filter id="moonEdgeGlow" x="-60%" y="-60%" width="220%" height="220%">' +
+              '<feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#dfe8ff" flood-opacity="0.9"/>' +
+            '</filter>' +
+            '<radialGradient id="moonBackGlow" cx="50%" cy="50%" r="50%">' +
+              '<stop offset="0%" stop-color="#cfe0ff" stop-opacity="0.55"/>' +
+              '<stop offset="60%" stop-color="#cfe0ff" stop-opacity="0.2"/>' +
+              '<stop offset="100%" stop-color="#cfe0ff" stop-opacity="0"/>' +
+            '</radialGradient>' +
+          '</defs>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.28) + '" fill="url(#moonGlowGrad)" mask="url(#glowMask)" filter="url(#moonGlowSoftBlur)" style="mix-blend-mode: screen;"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.15) + '" fill="url(#moonBackGlow)" mask="url(#moonLitMask)"/>' +
+          '<image href="' + MOON_IMG_URL + '" x="' + (cx - imgR) + '" y="' + (cy - imgR) + '" width="' + (2 * imgR) + '" height="' + (2 * imgR) + '" preserveAspectRatio="xMidYMid slice" mask="url(#moonLitMask)" filter="url(#moonEdgeGlow)"/>' +
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="url(#moonBodyGlow)" mask="url(#moonLitMask)" style="mix-blend-mode: screen;"/>' +
+        '</svg>';
+
+      var imgEl = container.querySelector("image");
+      if (imgEl) {
+        imgEl.addEventListener("error", function () {
+          container.style.display = "none";
+        });
+      }
+    }
+
+    /* ═══ NUM_MEANINGS + openNumInfo family — copied verbatim from
+       oracle.html. Not currently called by the mc-tappable engine below
+       (which uses its own openMcInfo/#mcInfoPanel instead, since
+       openNumInfo's DOM-sibling insertion doesn't work for SVG elements)
+       but kept present/functional, per instruction, for future use. ═══ */
+    var NUM_MEANINGS = {
+      pythagorean: {
+        lifePath: {
+          title: "Life Path",
+          derivation: "Derived by reducing every digit of the full birth date — month, day, and year folded together and summed until a single digit (or a master number, 11/22/33) remains. In the Pythagorean current this is read as the primary curriculum: the terrain the soul agreed to walk before arrival.",
+          wisdom: "Not a prophecy but a compass — it names the lesson a life keeps circling back to, in whatever costume the day's events wear."
+        },
+        expression: {
+          title: "Expression (Destiny)",
+          derivation: "Every letter of the full birth name is converted to a number (A=1 through I=9, repeating in cycles of nine) and summed, then reduced. Because it draws on the name given at birth, this is read as the shape of a life's outer work — what a person is built to do and become known for.",
+          wisdom: "Where Life Path is the road, Expression is the vehicle — the native capacities and instruments carried onto that road."
+        },
+        soulUrge: {
+          title: "Soul Urge (Heart's Desire)",
+          derivation: "Only the vowels of the birth name are converted and summed. Stripping away the consonants is meant to strip away the outer persona, leaving what the tradition calls the private motive — what a person wants when no one is measuring the wanting.",
+          wisdom: "This is the number people rarely announce, because it is not what they do but why they'd do it even if no one saw."
+        },
+        personality: {
+          title: "Personality",
+          derivation: "Only the consonants of the birth name are converted and summed — the mirror image of Soul Urge. Where the vowels are read as the private interior, the consonants are read as the outer shell: the first impression, the mask worn before trust is earned.",
+          wisdom: "Not falseness — armor. What a stranger meets at the door, before the house itself is entered."
+        },
+        birthday: {
+          title: "Birthday",
+          derivation: "Simply the calendar day of birth (1 through 31), taken on its own rather than folded into the larger Life Path sum. In this system it is treated as a minor modifier — a specific inflection layered onto the Life Path's broader theme.",
+          wisdom: "A smaller note played over the main chord — it colors the Life Path without overriding it."
+        }
+      },
+      chaldean: {
+        lifePath: {
+          title: "Life Path (Chaldean)",
+          derivation: "Calculated identically to the Western/Pythagorean Life Path — the full birth date reduced by digit-sum — since date arithmetic carries no letter-value system and both traditions agree on it. Chaldean numerology's real departure begins with the name, not the date.",
+          wisdom: "Same road, read by an older map — Life Path itself doesn't change between systems, only what's built to walk it."
+        },
+        expression: {
+          title: "Expression (Chaldean)",
+          derivation: "The Chaldean system assigns each letter a value from 1 to 8 only — no letter is ever given a 9, since 9 was held sacred and considered too potent to hand to an individual letter. Values are arranged by ancient sound-vibration rather than alphabet order, so a letter's number reflects the tone the tradition believed it carried.",
+          wisdom: "An older and more esoteric layer than the Pythagorean count — favored by those who read numerology as vibration first and arithmetic second."
+        },
+        soulUrge: {
+          title: "Soul Urge (Chaldean)",
+          derivation: "The vowels of the name, valued under the same 1-8 Chaldean sound-map, summed and reduced. As in the Western system this isolates the felt, private undercurrent of the name — but here it is read as vibrational resonance rather than pure numeric symbolism.",
+          wisdom: "The same inner note, tuned to an older instrument."
+        },
+        personality: {
+          title: "Personality (Chaldean)",
+          derivation: "The consonants of the name under the Chaldean 1-8 map, summed and reduced — the outward-facing counterpart to Chaldean Soul Urge.",
+          wisdom: "The public frequency a name gives off, in the Chaldean reading of sound."
+        }
+      },
+      kabbalah: {
+        gematriaTotal: {
+          title: "Gematria Total",
+          derivation: "The raw sum of the birth name's letters, each converted to its Hebrew-transliterated value under the Western Kabbalistic gematria table — a far larger scale than the Pythagorean 1-9 count, since Hebrew letters carry values into the hundreds. This total is the name's full, uncompressed vibrational weight before any reduction.",
+          wisdom: "The whole sound of a name, before it is folded down into something speakable."
+        },
+        reduced: {
+          title: "Reduced",
+          derivation: "The Gematria Total folded down by repeated digit-summing until a single root number (or preserved master number) remains — the same reduction method used across the numerology traditions, applied here to the much larger Kabbalistic sum.",
+          wisdom: "The single note left standing after the whole chord has been compressed."
+        },
+        heart: {
+          title: "Heart (Vowels)",
+          derivation: "The gematria value of only the name's vowels. In Kabbalistic thought, vowels are the breath moving through a word — unwritten in the original Hebrew alphabet, supplied by the reader's own voice — so this number is read as the animating, hidden soul of the name rather than its visible structure.",
+          wisdom: "What gives the name its breath, not its shape."
+        },
+        foundation: {
+          title: "Foundation (Consonants)",
+          derivation: "The gematria value of only the name's consonants — in Hebrew, the fixed skeleton onto which vowels (breath) are placed. This is read as the outer vessel: the structure a name stands on, as distinct from the breath that moves through it.",
+          wisdom: "The vessel a name is poured into — form, before it's given voice."
+        }
+      },
+      vedic: {
+        psychicNumber: {
+          title: "Psychic Number (Moolank)",
+          derivation: "Derived from the birth day alone, reduced to a single digit — this system holds no master numbers. In Vedic numerology this is held to be the self as one experiences oneself from the inside, strongest and most visible in youth, and each digit 1 through 9 is tied to a planetary ruler in this tradition (1 Sun, 2 Moon, 3 Jupiter, 4 Rahu, 5 Mercury, 6 Venus, 7 Ketu, 8 Saturn, 9 Mars).",
+          wisdom: "The face turned inward — how a person meets themselves before they've decided how to meet the world."
+        },
+        destinyNumber: {
+          title: "Destiny Number (Bhagyank)",
+          derivation: "Derived from the complete birth date — day, month, and year folded together and reduced. Where the Psychic Number is the inner self, the Destiny Number is read in this tradition as the outward fate: circumstance, opportunity, and what life tends to hand back in return.",
+          wisdom: "Not what a person wants, but what the world keeps offering regardless."
+        },
+        nameNumber: {
+          title: "Name Number",
+          derivation: "The birth name valued under the Chaldean 1-8 letter map — Vedic name numerology inherits the Chaldean system rather than the Pythagorean one — summed and fully reduced. This is read as the name's social and vibrational signature, the frequency it broadcasts to others.",
+          wisdom: "The note a name strikes in a room before a single word is spoken."
+        }
+      },
+      divineTriangle: {
+        apex: {
+          title: "Apex",
+          derivation: "The single number at the top of the pyramid, reached by adding the two Second Row numbers together and reducing. It is the final synthesis the entire birth-date pyramid builds toward — the point every lower row funnels into.",
+          wisdom: "Not a separate fate from the base — the base's own conclusion, carried to its highest point."
+        },
+        secondRow: {
+          title: "Second Row",
+          derivation: "Formed by adding each adjacent pair of Base numbers (month+day, day+year) and reducing. This row is the meeting point between the raw birth-date elements below it and the single apex above — the first synthesis, before the final one.",
+          wisdom: "Where the separate pieces of a birth date first start speaking to each other."
+        },
+        base: {
+          title: "Base (Month · Day · Year)",
+          derivation: "The birth month, day, and year, each reduced independently to its own single digit or preserved master number. These three form the foundation row of the pyramid — the raw, unblended material everything above it is built from.",
+          wisdom: "The three original notes, before anything is done to combine them."
+        },
+        inclusion: {
+          title: "Inclusion Table",
+          derivation: "A tally of how many times each digit 1 through 9 appears across the full birth name, once every letter is converted under the Pythagorean letter-value map. A number appearing often is read as an emphasized energy — present, insistent, perhaps overused; a number appearing even once is simply available to draw on.",
+          wisdom: "Not what's missing that matters here, but what keeps repeating — the note a name can't stop striking."
+        },
+        karmic: {
+          title: "Karmic Lessons",
+          derivation: "The numbers that appear zero times in the Inclusion Table — digits entirely absent from the birth name. In the Divine Triangle tradition, an absent number is held to mark a lesson the soul did not bring in as a natural gift and must instead acquire deliberately through lived experience. This reduced pyramid (base, second row, apex, and inclusion table) is one layer of the fuller Divine Triangle system as originally developed by Javane and Bunker — the complete life-blueprint construction goes deeper than what's shown here.",
+          wisdom: "What a name never says is sometimes exactly what a life is here to learn to say."
+        }
+      },
+      chinese: {
+        grid: {
+          title: "Lo Shu Grid",
+          derivation: "The digits of the full birth date are placed into a fixed 3×3 arrangement (the classic Lo Shu magic square: 4-9-2 / 3-5-7 / 8-1-6), and each cell is marked by how many times that digit actually occurs in the date. A cell with a count is a number the nativity carries; an empty cell is a number the birth date itself never touched.",
+          wisdom: "A birth date's own reflection, arranged in the oldest grid this tradition knows."
+        },
+        arrows: {
+          title: "Arrows",
+          derivation: "Any full line of the grid — a row, column, or diagonal — where all three numbers are present is read as an Arrow of Strength: a complete line, said to mark a pronounced natural gift. The same line with all three numbers entirely absent is read as an Arrow of Weakness: a gap in the nativity, held in this tradition to mark an area calling for conscious development rather than a fixed deficiency.",
+          wisdom: "A full line is a gift already in hand; an empty one is simply a gift not yet built."
+        }
+      },
+      quantum: {
+        convergence: {
+          title: "Convergence",
+          derivation: "When the same core number is arrived at independently by systems built on entirely different foundations — one drawn from the name, another from the birth date, one counted in Western letter-values, another in Chaldean, Hebrew gematria, or the Vedic tradition's own day-based reckoning — its repeated appearance is not redundancy. Each system reaches the number by a route that shares nothing with the others, so agreement across them is read here as a signal reinforced from multiple independent directions at once. This convergence view is a synthesis layer built on top of the six systems already computed, not a seventh calculation of its own.",
+          wisdom: "Not one voice repeating itself, but several unrelated voices saying the same thing — held here as the soul's most insistent frequency."
+        }
+      },
+      numbers: {
+        "1": {
+          essence: "The number of the sole originator — first cause, the spark before the sequence begins. In the Pythagorean current it is the monad: unity, will, the courage to begin something that has no precedent.",
+          shadow: "Untempered, this same independence can curdle into isolation or a refusal to be led — the pioneer who cannot stand to follow, even when following would serve.",
+          wisdom: "Ones are asked to lead without needing followers to prove the leading was real."
+        },
+        "2": {
+          essence: "The number of the pair — relationship, receptivity, the diplomat's instinct for the space between two things. Where 1 acts, 2 listens and joins.",
+          shadow: "Taken too far, this becomes dependence, or a self dissolved entirely into keeping the peace, unable to name its own want.",
+          wisdom: "Twos are asked to stay soft without disappearing."
+        },
+        "3": {
+          essence: "The number of expression — creativity, communication, joy given outward form in word, art, or performance.",
+          shadow: "Scattered, this becomes surface without depth — talk that never becomes work, charm spent instead of invested.",
+          wisdom: "Threes are asked to finish what their joy started."
+        },
+        "4": {
+          essence: "The number of the foundation — four walls, four seasons, the square that holds weight. Order, discipline, the patient labor of building something meant to outlast the mood that started it.",
+          shadow: "Rigid, it becomes a refusal of anything unplanned — a structure so complete it leaves no room for the living thing it was built to house.",
+          wisdom: "Fours are asked to build a house, not a cage."
+        },
+        "5": {
+          essence: "The number of change — restless, curious, unwilling to be fenced. Freedom, travel, the senses fully engaged with a world in motion.",
+          shadow: "Unanchored, this becomes scattering — motion for its own sake, commitments abandoned the moment they become routine.",
+          wisdom: "Fives are asked to be free inside a promise, not instead of one."
+        },
+        "6": {
+          essence: "The number of responsibility and care — the nurturer, most associated with home, family, and service freely given. Harmony achieved not by avoidance but by tending.",
+          shadow: "Overextended, this becomes martyrdom or control disguised as love — care that will not let the cared-for grow past needing it.",
+          wisdom: "Sixes are asked to love without needing to be needed."
+        },
+        "7": {
+          essence: "In the Pythagorean current, 7 is held to be the number of the seeker — introspection, the inward turn, faith arrived at through study and solitude rather than inheritance. It is the number most associated with the philosopher and the mystic.",
+          shadow: "Withdrawn too far, this becomes isolation mistaken for depth, or a skepticism so total it refuses even the evidence of joy.",
+          wisdom: "Sevens are asked to bring what they find in solitude back to the company of others."
+        },
+        "8": {
+          essence: "The number of power made material — ambition, authority, the just exchange of effort for reward. Where 4 built the foundation, 8 is what rises on it and is recognized by the world.",
+          shadow: "Unchecked, this becomes the mistaking of net worth for self-worth — power held past the point it serves anyone, including its holder.",
+          wisdom: "Eights are asked to rule the material world without being ruled by it."
+        },
+        "9": {
+          essence: "The number of completion — the last of the single digits, holding something of all the numbers before it. Compassion widened past the personal into the universal; the number of endings that clear ground for a new beginning.",
+          shadow: "Diffused, this becomes a love so general it forgets the person in front of it, or an inability to let anything actually end.",
+          wisdom: "Nines are asked to let go with both hands open, not clenched."
+        },
+        "11": {
+          essence: "A master number — traditionally held at its full charge rather than reduced to 2. In the Pythagorean-derived tradition it is the number of the illuminator: heightened intuition, spiritual insight, a sensitivity to what others cannot yet name.",
+          shadow: "That same voltage, ungrounded, becomes anxiety, overwhelm, or a visionary gift that never gets built into anything usable.",
+          wisdom: "Elevens are asked to carry the current without being electrocuted by it — grounding isn't a betrayal of the gift, it's what lets the gift be given."
+        },
+        "22": {
+          essence: "The 'master builder' — doubled 11, but where 11 illuminates, 22 is said in this tradition to construct: visionary insight paired with 4's discipline, capable of building something of lasting, even world-altering, scale.",
+          shadow: "The weight of that potential, unmet, becomes its own burden — a sense of having been built for more than one's life has yet held, or paralysis before so large a canvas.",
+          wisdom: "Twenty-twos are asked to lay one brick at a time, trusting the size of the vision without being crushed by it."
+        },
+        "33": {
+          essence: "The rarest of the commonly-cited master numbers — the 'master teacher,' combining 3's expression and 6's devotion into a love expressed through selfless service and teaching, held by tradition to be uncommon to see fully lived.",
+          shadow: "Because so much is asked of it, this number is said to carry the deepest risk of self-sacrifice without boundary — teaching or giving until nothing is left to teach or give from.",
+          wisdom: "Thirty-threes are asked to remember that the teacher must also be taught, and the giver must also receive."
+        }
+      }
+    };
+
+    var openNumInfoPanel  = null;
+    var openNumInfoAnchor = null;
+
+    function closeNumInfo() {
+      if (openNumInfoPanel && openNumInfoPanel.parentNode) {
+        openNumInfoPanel.parentNode.removeChild(openNumInfoPanel);
+      }
+      openNumInfoPanel  = null;
+      openNumInfoAnchor = null;
+    }
+
+    function buildNumInfoHtml(systemKey, fieldKey, numberValue) {
+      var fieldMeta  = NUM_MEANINGS[systemKey] && NUM_MEANINGS[systemKey][fieldKey];
+      var numberMeta = NUM_MEANINGS.numbers && NUM_MEANINGS.numbers[String(numberValue)];
+
+      var html = '<button type="button" class="num-info-close" aria-label="Close">&#x2715;</button>';
+
+      if (fieldMeta) {
+        html +=
+          '<div class="num-info-section num-info-field">' +
+            '<div class="num-info-heading">' + fieldMeta.title + '</div>' +
+            '<div class="num-info-derived-label">How it&rsquo;s derived</div>' +
+            '<div class="num-info-body">' + fieldMeta.derivation + '</div>' +
+            '<div class="num-info-body num-info-wisdom">' + fieldMeta.wisdom + '</div>' +
+          '</div>';
+      }
+
+      if (fieldMeta && numberMeta) {
+        html += '<div class="num-info-divider"></div>';
+      }
+
+      if (numberMeta) {
+        html +=
+          '<div class="num-info-section num-info-number">' +
+            '<div class="num-info-heading num-info-heading-cyan">The Number ' + numberValue + '</div>' +
+            '<div class="num-info-body">' + numberMeta.essence + '</div>' +
+            '<div class="num-info-body">' + numberMeta.shadow + '</div>' +
+            '<div class="num-info-body num-info-wisdom">' + numberMeta.wisdom + '</div>' +
+          '</div>';
+      }
+
+      if (!fieldMeta && !numberMeta) {
+        html += '<div class="num-info-section"><div class="num-info-body">No meaning recorded yet for this number.</div></div>';
+      }
+
+      return html;
+    }
+
+    function openNumInfo(anchorEl, systemKey, fieldKey, numberValue) {
+      var isSameAnchor = (openNumInfoAnchor === anchorEl);
+
+      closeNumInfo();
+
+      if (isSameAnchor) return;
+
+      var panel = document.createElement("div");
+      panel.className = "num-info-panel";
+      panel.innerHTML = buildNumInfoHtml(systemKey, fieldKey, numberValue);
+
+      if (anchorEl.nextSibling) {
+        anchorEl.parentNode.insertBefore(panel, anchorEl.nextSibling);
+      } else {
+        anchorEl.parentNode.appendChild(panel);
+      }
+
+      var closeBtn = panel.querySelector(".num-info-close");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          closeNumInfo();
+        });
+      }
+
+      openNumInfoPanel  = panel;
+      openNumInfoAnchor = anchorEl;
+
+      requestAnimationFrame(function () {
+        panel.classList.add("is-open");
+      });
+    }
+
+    function escapeXml(str) {
+      return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    /* ═══ Divine Triangle blueprint — copied verbatim from oracle.html,
+       including the interactive:true / mc-tappable hook path. ═══ */
+    function renderDivineTriangleBlueprintVisual(opts) {
+      opts = opts || {};
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      if (!blueprint) return "";
+
+      var linesById = {};
+      (blueprint.lines || []).forEach(function (l) { linesById[l.id] = l; });
+      var interior = blueprint.interior || {};
+      var centers  = blueprint.centers  || {};
+      var xMarkers = blueprint.xMarkers || {};
+
+      function centerDisplay(obj) {
+        if (!obj || obj.reduced == null) return "—";
+        return (obj.unreduced === obj.reduced) ? String(obj.reduced) : (obj.unreduced + "/" + obj.reduced);
+      }
+
+      function lineDisplay(line) {
+        if (!line) return "";
+        var letter = (line.letter || "?").toUpperCase();
+        var nums = (line.ordinal === line.reduced) ? String(line.reduced) : (line.ordinal + "/" + line.reduced);
+        return letter + " " + nums;
+      }
+
+      function labelPosAway(p1, p2, ref, dist) {
+        var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        var dx = mx - ref.x, dy = my - ref.y;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: mx + (dx / len) * dist, y: my + (dy / len) * dist };
+      }
+
+      function labelPosToward(p1, p2, ref, dist) {
+        var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        var dx = ref.x - mx, dy = ref.y - my;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: mx + (dx / len) * dist, y: my + (dy / len) * dist };
+      }
+
+      function pointsAttr(poly) {
+        return poly.map(function (p) { return p.x + "," + p.y; }).join(" ");
+      }
+
+      var SQUARE_OF_LINE = {
+        AB: "youth", BC: "youth", CD: "youth",
+        DE: "power", EF: "power", FG: "power",
+        GH: "wisdom", HI: "wisdom", IA: "wisdom"
+      };
+
+      var corners = {
+        D: { x: 110, y: 215 },
+        A: { x: 110, y: 125 },
+        G: { x: 200, y: 215 },
+        B: { x: 20,  y: 125 },
+        C: { x: 20,  y: 215 },
+        E: { x: 110, y: 305 },
+        F: { x: 200, y: 305 },
+        H: { x: 290, y: 125 },
+        I: { x: 200, y: 35 }
+      };
+
+      var youthCenter = {
+        x: (corners.A.x + corners.B.x + corners.C.x + corners.D.x) / 4,
+        y: (corners.A.y + corners.B.y + corners.C.y + corners.D.y) / 4
+      };
+      var powerCenter = {
+        x: (corners.D.x + corners.E.x + corners.F.x + corners.G.x) / 4,
+        y: (corners.D.y + corners.E.y + corners.F.y + corners.G.y) / 4
+      };
+      var wisdomCenter = {
+        x: (corners.G.x + corners.H.x + corners.I.x + corners.A.x) / 4,
+        y: (corners.G.y + corners.H.y + corners.I.y + corners.A.y) / 4
+      };
+      var triangleCenter = {
+        x: (corners.A.x + corners.D.x + corners.G.x) / 3,
+        y: (corners.A.y + corners.D.y + corners.G.y) / 3
+      };
+
+      var youthPoly  = [corners.A, corners.B, corners.C, corners.D];
+      var powerPoly  = [corners.D, corners.E, corners.F, corners.G];
+      var wisdomPoly = [corners.G, corners.H, corners.I, corners.A];
+
+      var perimeterEdges = [
+        { id: "AB", p1: corners.A, p2: corners.B, center: youthCenter },
+        { id: "BC", p1: corners.B, p2: corners.C, center: youthCenter },
+        { id: "CD", p1: corners.C, p2: corners.D, center: youthCenter },
+        { id: "DE", p1: corners.D, p2: corners.E, center: powerCenter },
+        { id: "EF", p1: corners.E, p2: corners.F, center: powerCenter },
+        { id: "FG", p1: corners.F, p2: corners.G, center: powerCenter },
+        { id: "GH", p1: corners.G, p2: corners.H, center: wisdomCenter },
+        { id: "HI", p1: corners.H, p2: corners.I, center: wisdomCenter },
+        { id: "IA", p1: corners.I, p2: corners.A, center: wisdomCenter }
+      ];
+
+      var interiorEdges = [
+        { key: "AD", p1: corners.A, p2: corners.D },
+        { key: "DG", p1: corners.D, p2: corners.G },
+        { key: "AG", p1: corners.A, p2: corners.G }
+      ];
+
+      var svg = '<svg viewBox="0 0 320 320" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">';
+
+      svg += '<defs>' +
+        '<linearGradient id="dtbYouthFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#22d3ee" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#00ffff" stop-opacity="0.04"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="dtbPowerFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#a855f7" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#8a5cff" stop-opacity="0.04"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="dtbWisdomFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#f4e4b8" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#f4e4b8" stop-opacity="0.03"/>' +
+        '</linearGradient>' +
+      '</defs>';
+
+      svg += '<polygon points="' + pointsAttr(youthPoly)  + '" fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
+      svg += '<polygon points="' + pointsAttr(powerPoly)  + '" fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
+      svg += '<polygon points="' + pointsAttr(wisdomPoly) + '" fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
+
+      svg += '<polygon points="' + pointsAttr([corners.A, corners.D, corners.G]) + '" fill="none" stroke="rgba(168,85,247,0.5)" stroke-width="1.2"/>';
+
+      perimeterEdges.forEach(function (edge) {
+        var line = linesById[edge.id];
+        var pos  = labelPosAway(edge.p1, edge.p2, edge.center, 13);
+        var textEl = '<text x="' + pos.x + '" y="' + pos.y + '" text-anchor="middle" dominant-baseline="middle" ' +
+          'font-size="9" fill="rgba(232,220,255,0.85)">' + escapeXml(lineDisplay(line)) + '</text>';
+        if (opts.interactive) {
+          var square = SQUARE_OF_LINE[edge.id] || "";
+          var ageRange = line ? line.ageRange : "";
+          svg += '<g class="mc-tappable" data-mc-type="line" data-mc-line="' + edge.id +
+            '" data-mc-square="' + square + '" data-mc-agerange="' + ageRange + '">' + textEl + '</g>';
+        } else {
+          svg += textEl;
+        }
+      });
+
+      interiorEdges.forEach(function (edge) {
+        var data = interior[edge.key];
+        if (!data) return;
+        var pos = labelPosToward(edge.p1, edge.p2, triangleCenter, 10);
+        var textEl = '<text x="' + pos.x + '" y="' + pos.y + '" text-anchor="middle" dominant-baseline="middle" ' +
+          'font-size="8" fill="rgba(217,179,255,0.8)">' + escapeXml(centerDisplay(data)) + '</text>';
+        if (opts.interactive) {
+          svg += '<g class="mc-tappable" data-mc-type="interior" data-mc-interior="' + edge.key +
+            '" data-mc-value="' + data.reduced + '">' + textEl + '</g>';
+        } else {
+          svg += textEl;
+        }
+      });
+
+      function centerTapWrap(textEl, centerKey, centerObj) {
+        if (!opts.interactive) return textEl;
+        var val = centerObj && centerObj.reduced != null ? centerObj.reduced : "";
+        return '<g class="mc-tappable" data-mc-type="center" data-mc-center="' + centerKey +
+          '" data-mc-value="' + val + '">' + textEl + '</g>';
+      }
+      svg += centerTapWrap('<text x="' + youthCenter.x + '" y="' + youthCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#9df6ff">' + escapeXml(centerDisplay(centers.youth)) + '</text>', "youth", centers.youth);
+      svg += centerTapWrap('<text x="' + powerCenter.x + '" y="' + powerCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#d9b3ff">' + escapeXml(centerDisplay(centers.power)) + '</text>', "power", centers.power);
+      svg += centerTapWrap('<text x="' + wisdomCenter.x + '" y="' + wisdomCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.wisdom)) + '</text>', "wisdom", centers.wisdom);
+      svg += centerTapWrap('<text x="' + triangleCenter.x + '" y="' + triangleCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.triangle)) + '</text>', "triangle", centers.triangle);
+
+      [xMarkers.firstNameEnd, xMarkers.middleNameEnd].forEach(function (letter) {
+        if (!letter || !corners[letter]) return;
+        var pt = corners[letter];
+        svg += '<text x="' + pt.x + '" y="' + (pt.y - 10) + '" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.85)">&#x2715;</text>';
+      });
+
+      svg += '</svg>';
+
+      if (opts.large || opts.maxWidth) {
+        var maxWidth = opts.maxWidth || "640px";
+        return '<div class="dtb-visual-large" style="max-width:' + maxWidth + '; width:100%;">' + svg + '</div>';
+      }
+      return svg;
+    }
+
+    /* ═══ Numerology data loader — adapted from oracle.html's
+       fetchNumerology(). TRIMMED (deliberately, not a blind copy): the
+       original also populates #numLifePath/#numExpression/etc. and calls
+       renderNumerologySystem()/renderQuantumSynthesis() — all profile-box
+       UI this page doesn't have, so those calls are dropped. The in-flight
+       promise guard, the actual fetch, and the numerologyData assignment
+       are otherwise identical. ═══ */
+    var numerologyData = null;
+    var numerologyFetchPromise = null;
+
+    function fetchNumerology() {
+      if (numerologyFetchPromise) return numerologyFetchPromise;
+      if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) {
+        return Promise.resolve(null);
+      }
+
+      numerologyFetchPromise = fetch(API_URL + "/api/oracle/numerology", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          numerologyData = data || null;
+          return numerologyData;
+        })
+        .catch(function () { return null; })
+        .then(function (result) {
+          numerologyFetchPromise = null;
+          return result;
+        });
+
+      return numerologyFetchPromise;
+    }
+
+    /* ═══ My Chart — loads data if needed, then renders the big
+       interactive blueprint as the page's main content. Same load-then-
+       render-then-recheck shape as oracle.html's renderMyChart fix. ═══ */
+    function renderMyChart() {
+      var stage = document.getElementById("myChartStage");
+      if (!stage) return;
+
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      if (blueprint) {
+        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+        return;
+      }
+
+      stage.innerHTML = '<div class="my-chart-placeholder">Chart loading&hellip;</div>';
+
+      fetchNumerology().then(function () {
+        var freshStage = document.getElementById("myChartStage");
+        if (!freshStage) return;
+
+        var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+        if (loadedBlueprint) {
+          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+        } else {
+          freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
+        }
+      });
+    }
+
+    /* ═══ My Chart interactivity — copied verbatim from oracle.html's
+       mc-* engine. ═══ */
+    var LIFE_STAGE_TEXT = {
+      youth:  "Youth — formation, roughly birth through age 27.",
+      power:  "Power — building and doing, roughly ages 27 through 54.",
+      wisdom: "Wisdom — mastery and integration, roughly ages 54 through 81."
+    };
+    var MC_CENTER_TITLES = {
+      youth: "Youth Square Center",
+      power: "Power Square Center",
+      wisdom: "Wisdom Square Center",
+      triangle: "Life Lesson Number"
+    };
+    var MC_INTERIOR_TITLES = {
+      AD: "Birth Month",
+      DG: "Birth Day",
+      AG: "Birth Year"
+    };
+
+    function mcNumberMeaningHtml(value) {
+      var meta = NUM_MEANINGS.numbers && NUM_MEANINGS.numbers[String(value)];
+      if (!meta) return "";
+      return '<div class="mc-info-number-heading">The Number ' + value + '</div>' +
+        '<div class="mc-info-body-text">' + meta.essence + '</div>' +
+        '<div class="mc-info-body-text">' + meta.shadow + '</div>' +
+        '<div class="mc-info-body-text mc-info-wisdom">' + meta.wisdom + '</div>';
+    }
+
+    function mcExperienceRows(results) {
+      return results.map(function (r) {
+        var val = (r.type.unreduced === r.type.reduced) ? r.type.reduced : (r.type.unreduced + "/" + r.type.reduced);
+        return '<div class="mc-info-row">Age ' + r.age + ' &mdash; ' + val + ' experience</div>';
+      }).join("");
+    }
+
+    function buildMcLineHtml(lineId, square, ageRange) {
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      var processes = blueprint && blueprint.processes;
+      var major = processes && processes.major ? processes.major.filter(function (m) { return m.lineId === lineId; })[0] : null;
+      var minor = processes && processes.minor ? processes.minor.filter(function (m) { return m.lineId === lineId; })[0] : null;
+      var squareLabel = square ? (square.charAt(0).toUpperCase() + square.slice(1)) : "";
+
+      var html = '<div class="mc-info-heading">Line ' + lineId + ' &middot; ' + squareLabel + ' square &middot; ages ' + ageRange + '</div>';
+
+      if (major && major.results && major.results.length) {
+        html += '<div class="mc-info-section-title">Major Process</div>' + mcExperienceRows(major.results);
+      }
+      if (minor && minor.results && minor.results.length) {
+        html += '<div class="mc-info-section-title">Minor Process</div>' + mcExperienceRows(minor.results);
+      }
+      if (square && LIFE_STAGE_TEXT[square]) {
+        html += '<div class="mc-info-body-text mc-info-wisdom" style="margin-top:10px;">' + LIFE_STAGE_TEXT[square] + '</div>';
+      }
+      return html;
+    }
+
+    function buildMcCenterHtml(centerKey, value) {
+      var html = '<div class="mc-info-heading">' + (MC_CENTER_TITLES[centerKey] || centerKey) + '</div>';
+      if (value !== null && value !== "") {
+        html += '<div class="mc-info-value">' + value + '</div>';
+      }
+      if (centerKey === "triangle") {
+        html += '<div class="mc-info-body-text mc-info-wisdom">This is the Life Lesson Number &mdash; the theme every side of the triangle builds toward.</div>';
+      }
+      html += mcNumberMeaningHtml(value);
+      return html;
+    }
+
+    function buildMcInteriorHtml(interiorKey, value) {
+      var html = '<div class="mc-info-heading">' + (MC_INTERIOR_TITLES[interiorKey] || interiorKey) + '</div>';
+      if (value !== null && value !== "") {
+        html += '<div class="mc-info-value">' + value + '</div>';
+      }
+      html += mcNumberMeaningHtml(value);
+      return html;
+    }
+
+    function buildMcInfoHtml(type, data) {
+      if (type === "line")     return buildMcLineHtml(data.line, data.square, data.ageRange);
+      if (type === "center")   return buildMcCenterHtml(data.center, data.value);
+      if (type === "interior") return buildMcInteriorHtml(data.interior, data.value);
+      return "";
+    }
+
+    var openMcInfoAnchor = null;
+
+    function closeMcInfo() {
+      var panel = document.getElementById("mcInfoPanel");
+      if (panel) {
+        panel.classList.remove("is-open");
+        panel.setAttribute("aria-hidden", "true");
+      }
+      openMcInfoAnchor = null;
+    }
+
+    function openMcInfo(anchorEl, type, data) {
+      var panel = document.getElementById("mcInfoPanel");
+      var body  = document.getElementById("mcInfoBody");
+      if (!panel || !body) return;
+
+      if (openMcInfoAnchor === anchorEl) { closeMcInfo(); return; }
+
+      body.innerHTML = buildMcInfoHtml(type, data);
+      panel.classList.add("is-open");
+      panel.setAttribute("aria-hidden", "false");
+      openMcInfoAnchor = anchorEl;
+    }
+
+    var myChartStageEl = document.getElementById("myChartStage");
+    if (myChartStageEl) {
+      myChartStageEl.addEventListener("click", function (e) {
+        var target = e.target.closest ? e.target.closest(".mc-tappable") : null;
+        if (!target) return;
+        var type = target.getAttribute("data-mc-type");
+        if (!type) return;
+
+        openMcInfo(target, type, {
+          line:     target.getAttribute("data-mc-line"),
+          square:   target.getAttribute("data-mc-square"),
+          ageRange: target.getAttribute("data-mc-agerange"),
+          center:   target.getAttribute("data-mc-center"),
+          interior: target.getAttribute("data-mc-interior"),
+          value:    target.getAttribute("data-mc-value")
+        });
+      });
+    }
+
+    var mcInfoCloseBtn = document.getElementById("mcInfoClose");
+    if (mcInfoCloseBtn) {
+      mcInfoCloseBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeMcInfo();
+      });
+    }
+
+    /* ═══ STEP 3 — wire it on load ═══ */
+    renderMyChart();
+    renderAbyssMoon();
+    refreshRealMoonPhase();
+    setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
+  }());
+  </script>
+
+</body>
+</html>
