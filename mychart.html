@@ -231,6 +231,7 @@
     }
     .mc-info-section-title:first-of-type { margin-top: 4px; }
     .mc-info-row { margin-bottom: 3px; }
+    .mc-info-row-phrase { font-style: italic; color: rgba(232,220,255,0.55); }
     .mc-info-body-text { margin: 0 0 8px; }
     .mc-info-body-text:last-child { margin-bottom: 0; }
     .mc-info-wisdom { font-style: italic; color: rgba(232,220,255,0.7); }
@@ -1333,19 +1334,38 @@
       });
     }
 
-    /* ═══ My Chart interactivity — copied verbatim from oracle.html's
-       mc-* engine. ═══ */
-    var LIFE_STAGE_TEXT = {
-      youth:  "Youth — formation, roughly birth through age 27.",
-      power:  "Power — building and doing, roughly ages 27 through 54.",
-      wisdom: "Wisdom — mastery and integration, roughly ages 54 through 81."
+    /* ═══ My Chart interactivity — Stage C: position-specific life-map
+       content from the real processes data, replacing the earlier
+       generic-number-meaning panel. DT_LIFEMAP is authored interpretive
+       content for the Divine Triangle method itself (squares/eras/life
+       lesson/interior spine) — phrased as the tradition's own framework,
+       not asserted as settled fact, same voice as NUM_MEANINGS. ═══ */
+    var DT_LIFEMAP = {
+      squares: {
+        youth: {
+          title: "The Youth Square",
+          ages: "0–27",
+          stage: "Formation",
+          meaning: "The Youth square is the raw material of self — the years the tradition holds as formation and character-seeding, before the world has yet asked much of you. What moves through these three lines is less what you DO than what you become: the instincts, wounds, and native gifts that everything built afterward will stand on."
+        },
+        power: {
+          title: "The Power Square",
+          ages: "27–54",
+          stage: "Building",
+          meaning: "The Power square is where formation turns into action. In the Divine Triangle method this is the building era — worldly consequence, the years a life is tested by what it does rather than what it merely contains. What was seeded in Youth is spent, built with, or confronted here."
+        },
+        wisdom: {
+          title: "The Wisdom Square",
+          ages: "54–81",
+          stage: "Mastery",
+          meaning: "The Wisdom square is the harvest and teaching years — the tradition's picture of mastery, where the fruits of building either ripen into integration or reveal what still needs tending. This is read less as decline than as the era a life is meant to distill down to what it actually learned."
+        }
+      },
+      eraFraming: "Each of the triangle's nine perimeter lines governs a distinct nine-year era. The experiences that land within a line's age range are, in this tradition, read as that era's own curriculum — not random events, but the specific lessons a soul is held to have arranged for that particular nine-year chapter.",
+      lifeLesson: "The triangle's own center — the Life Lesson Number — is read as the single thread woven through every era: not one chapter's assignment but the master curriculum of the whole incarnation, the theme every square's building ultimately serves.",
+      interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
     };
-    var MC_CENTER_TITLES = {
-      youth: "Youth Square Center",
-      power: "Power Square Center",
-      wisdom: "Wisdom Square Center",
-      triangle: "Life Lesson Number"
-    };
+
     var MC_INTERIOR_TITLES = {
       AD: "Birth Month",
       DG: "Birth Day",
@@ -1361,11 +1381,38 @@
         '<div class="mc-info-body-text mc-info-wisdom">' + meta.wisdom + '</div>';
     }
 
-    function mcExperienceRows(results) {
-      return results.map(function (r) {
-        var val = (r.type.unreduced === r.type.reduced) ? r.type.reduced : (r.type.unreduced + "/" + r.type.reduced);
-        return '<div class="mc-info-row">Age ' + r.age + ' &mdash; ' + val + ' experience</div>';
+    /* First clause of a number's essence (split on the em-dash every
+       essence entry uses, e.g. "The number of change — restless..." ->
+       "The number of change") — a one-phrase gloss to keep the per-age
+       experience list scannable rather than repeating full paragraphs. */
+    function mcShortEssencePhrase(reducedValue) {
+      var meta = NUM_MEANINGS.numbers && NUM_MEANINGS.numbers[String(reducedValue)];
+      if (!meta || !meta.essence) return "";
+      return meta.essence.split("—")[0].trim();
+    }
+
+    function mcProcessRows(results) {
+      var sorted = results.slice().sort(function (a, b) { return a.age - b.age; });
+      return sorted.map(function (r) {
+        var val = (r.type.unreduced === r.type.reduced) ? String(r.type.reduced) : (r.type.unreduced + "/" + r.type.reduced);
+        var phrase = mcShortEssencePhrase(r.type.reduced);
+        return '<div class="mc-info-row">Age ' + r.age + ' &mdash; a ' + val + ' experience' +
+          (phrase ? ' <span class="mc-info-row-phrase">(' + phrase + ')</span>' : '') +
+          '</div>';
       }).join("");
+    }
+
+    /* Centers/interior only carry their REDUCED value via data-mc-value
+       (see renderDivineTriangleBlueprintVisual's centerTapWrap/interior
+       hooks) — these look up the full {unreduced, reduced} pair from
+       numerologyData directly, so the panel can show "74/11" the same
+       way the blueprint SVG itself does, not just the bare "11". */
+    function mcFullValue(obj, fallback) {
+      if (!obj || obj.reduced == null) return { display: fallback, reduced: fallback };
+      return {
+        display: (obj.unreduced === obj.reduced) ? String(obj.reduced) : (obj.unreduced + "/" + obj.reduced),
+        reduced: obj.reduced
+      };
     }
 
     function buildMcLineHtml(lineId, square, ageRange) {
@@ -1373,40 +1420,54 @@
       var processes = blueprint && blueprint.processes;
       var major = processes && processes.major ? processes.major.filter(function (m) { return m.lineId === lineId; })[0] : null;
       var minor = processes && processes.minor ? processes.minor.filter(function (m) { return m.lineId === lineId; })[0] : null;
-      var squareLabel = square ? (square.charAt(0).toUpperCase() + square.slice(1)) : "";
+      var squareInfo = DT_LIFEMAP.squares[square];
+      var squareTitle = squareInfo ? squareInfo.title : (square ? square.charAt(0).toUpperCase() + square.slice(1) + " Square" : "");
+      var displayAgeRange = ageRange ? ageRange.split("-").join("–") : "";
 
-      var html = '<div class="mc-info-heading">Line ' + lineId + ' &middot; ' + squareLabel + ' square &middot; ages ' + ageRange + '</div>';
+      var html = '<div class="mc-info-heading">Line ' + lineId + ' &middot; ' + squareTitle + ' &middot; Ages ' + displayAgeRange + '</div>';
+      html += '<div class="mc-info-body-text mc-info-wisdom">' + DT_LIFEMAP.eraFraming + '</div>';
 
       if (major && major.results && major.results.length) {
-        html += '<div class="mc-info-section-title">Major Process</div>' + mcExperienceRows(major.results);
+        html += '<div class="mc-info-section-title">Major Process &mdash; The Wider Arc</div>' + mcProcessRows(major.results);
       }
       if (minor && minor.results && minor.results.length) {
-        html += '<div class="mc-info-section-title">Minor Process</div>' + mcExperienceRows(minor.results);
+        html += '<div class="mc-info-section-title">Minor Process &mdash; The Personal Current</div>' + mcProcessRows(minor.results);
       }
-      if (square && LIFE_STAGE_TEXT[square]) {
-        html += '<div class="mc-info-body-text mc-info-wisdom" style="margin-top:10px;">' + LIFE_STAGE_TEXT[square] + '</div>';
+      if (squareInfo) {
+        html += '<div class="mc-info-body-text mc-info-wisdom" style="margin-top:10px;">' + squareInfo.meaning + '</div>';
       }
       return html;
     }
 
     function buildMcCenterHtml(centerKey, value) {
-      var html = '<div class="mc-info-heading">' + (MC_CENTER_TITLES[centerKey] || centerKey) + '</div>';
-      if (value !== null && value !== "") {
-        html += '<div class="mc-info-value">' + value + '</div>';
-      }
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      var centerObj = blueprint && blueprint.centers && blueprint.centers[centerKey];
+      var vals = mcFullValue(centerObj, value);
+
       if (centerKey === "triangle") {
-        html += '<div class="mc-info-body-text mc-info-wisdom">This is the Life Lesson Number &mdash; the theme every side of the triangle builds toward.</div>';
+        var html = '<div class="mc-info-heading">Your Life Lesson &middot; ' + vals.display + '</div>';
+        html += '<div class="mc-info-body-text mc-info-wisdom">' + DT_LIFEMAP.lifeLesson + '</div>';
+        html += mcNumberMeaningHtml(vals.reduced);
+        return html;
       }
-      html += mcNumberMeaningHtml(value);
+
+      var squareInfo = DT_LIFEMAP.squares[centerKey];
+      var html = '<div class="mc-info-heading">' + (squareInfo ? squareInfo.title : centerKey) + ' &middot; Governing Vibration ' + vals.display + '</div>';
+      if (squareInfo) {
+        html += '<div class="mc-info-body-text">' + squareInfo.meaning + '</div>';
+      }
+      html += mcNumberMeaningHtml(vals.reduced);
       return html;
     }
 
     function buildMcInteriorHtml(interiorKey, value) {
-      var html = '<div class="mc-info-heading">' + (MC_INTERIOR_TITLES[interiorKey] || interiorKey) + '</div>';
-      if (value !== null && value !== "") {
-        html += '<div class="mc-info-value">' + value + '</div>';
-      }
-      html += mcNumberMeaningHtml(value);
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      var interiorObj = blueprint && blueprint.interior && blueprint.interior[interiorKey];
+      var vals = mcFullValue(interiorObj, value);
+
+      var html = '<div class="mc-info-heading">' + (MC_INTERIOR_TITLES[interiorKey] || interiorKey) + ' &middot; ' + vals.display + '</div>';
+      html += '<div class="mc-info-body-text mc-info-wisdom">' + DT_LIFEMAP.interiorNote + '</div>';
+      html += mcNumberMeaningHtml(vals.reduced);
       return html;
     }
 
