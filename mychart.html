@@ -68,6 +68,32 @@
       100% { transform: translate(-10px, 8px); }
     }
 
+    /* ── Shooting star — copied verbatim from oracle.html ── */
+    .shoot-star {
+      position: absolute;
+      top: 0; left: 0;
+      width: 90px;
+      height: 1px;
+      border-radius: 1px;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 0;
+      transform-origin: right center;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(200,210,255,0.05) 18%,
+        rgba(220,228,255,0.55) 52%,
+        rgba(210,220,255,0.10) 82%,
+        transparent 100%
+      );
+    }
+    @keyframes shoot-fly {
+      0%   { opacity: 0;    transform: translateX(0);                       }
+      8%   { opacity: 0.65;                                                 }
+      75%  { opacity: 0.45;                                                 }
+      100% { opacity: 0;    transform: translateX(var(--shoot-dist,260px)); }
+    }
+
     /* ── Page content — sits above the abyss, transparent so it shows
        through everywhere except the info panel's own tinted background. ── */
     .page {
@@ -169,8 +195,7 @@
       bottom: 24px;
       width: 340px;
       max-width: calc(100vw - 48px);
-      max-height: 60vh;
-      overflow-y: auto;
+      max-height: calc(100vh - 160px);
       z-index: 2;
       background: rgba(10,4,20,0.88);
       border-left: 2px solid rgba(168,85,247,0.4);
@@ -181,8 +206,8 @@
       transform-origin: bottom right;
       pointer-events: none;
       transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.4,0.64,1);
-      scrollbar-width: thin;
-      scrollbar-color: rgba(168,85,247,0.45) rgba(10,4,20,0.35);
+      display: flex;
+      flex-direction: column;
     }
     .mc-info-panel.is-open {
       opacity: 1;
@@ -200,9 +225,20 @@
       cursor: pointer;
       line-height: 1;
       padding: 4px;
+      flex-shrink: 0;
     }
     .mc-info-close:hover { color: rgba(232,220,255,0.9); }
+    /* Only the content area scrolls — the close button (positioned
+       absolute, a sibling of this element, not a descendant) stays
+       pinned to the panel's corner regardless of scroll position.
+       flex:1 + min-height:0 is what lets a flex child actually shrink
+       below its content height and become the scrolling region. */
     .mc-info-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168,85,247,0.45) rgba(10,4,20,0.35);
       font-size: 0.85em;
       color: rgba(232,220,255,0.85);
       line-height: 1.55;
@@ -321,6 +357,9 @@
   <div class="scene" aria-hidden="true">
     <canvas class="star-canvas" id="starCanvas" aria-hidden="true"></canvas>
     <div class="abyss-moon" id="abyssMoon" aria-hidden="true"></div>
+
+    <!-- Occasional shooting star -->
+    <div class="shoot-star" id="sceneShootStar"></div>
   </div>
 
   <div class="page">
@@ -630,6 +669,58 @@
     });
 
     if (!document.hidden) start();
+  }());
+  </script>
+
+  <!-- Independent shooting-star driver — copied verbatim from oracle.html,
+       scene background only. -->
+  <script>
+  (function () {
+    var star = document.getElementById("sceneShootStar");
+    if (!star) return;
+
+    function fireSceneShoot() {
+      var W = window.innerWidth;
+      var H = window.innerHeight;
+      var edge = Math.floor(Math.random() * 4);
+      var top, left, angle;
+
+      if (edge === 0) {        /* top edge — travel downward, 55–125° */
+        top   = -20;
+        left  = -40 + Math.random() * (W + 80);
+        angle = 55 + Math.random() * 70;
+      } else if (edge === 1) { /* right edge — travel leftward, 145–215° */
+        top   = -40 + Math.random() * (H + 80);
+        left  = W + 20;
+        angle = 145 + Math.random() * 70;
+      } else if (edge === 2) { /* bottom edge — travel upward, 235–305° */
+        top   = H + 20;
+        left  = -40 + Math.random() * (W + 80);
+        angle = 235 + Math.random() * 70;
+      } else {                 /* left edge — travel rightward, -35 to 35° */
+        top   = -40 + Math.random() * (H + 80);
+        left  = -20;
+        angle = -35 + Math.random() * 70;
+      }
+
+      var t    = Math.random();
+      var dur  = (1.2 + t * 1.6).toFixed(2);
+      var len  = Math.round(60 + t * 70);
+      var dist = Math.round(220 + t * 280);
+
+      star.style.animation = "none";
+      star.offsetHeight; /* force reflow to restart */
+      star.style.top    = top   + "px";
+      star.style.left   = left  + "px";
+      star.style.rotate = angle + "deg";
+      star.style.width  = len   + "px";
+      star.style.setProperty("--shoot-dist", dist + "px");
+      star.style.animation = "shoot-fly " + dur + "s ease-out forwards";
+
+      setTimeout(fireSceneShoot, 6000 + Math.random() * 10000);
+    }
+
+    setTimeout(fireSceneShoot, 3000 + Math.random() * 4000);
   }());
   </script>
 
