@@ -974,6 +974,117 @@
       margin: 0 14px;
     }
 
+    /* ── Quantum Synthesis card — collapsible, violet-accented (the
+       numerology title gradient's other stop), sits above the system
+       dropdown. Default collapsed; header tap expands/collapses. ── */
+    .quantum-card {
+      background: rgba(10,4,20,0.6);
+      border-left: 2px solid rgba(168,85,247,0.4);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .quantum-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .quantum-chevron {
+      font-size: 0.65rem;
+      color: #a855f7;
+      transition: transform 0.25s ease;
+      flex-shrink: 0;
+    }
+    .quantum-card.is-expanded .quantum-chevron { transform: rotate(90deg); }
+    .quantum-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #a855f7, #d9b3ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      flex-shrink: 0;
+    }
+    .quantum-teaser {
+      font-size: 0.72rem;
+      color: rgba(232,220,255,0.55);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-left: auto;
+      text-align: right;
+    }
+    .quantum-body {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease;
+      padding: 0 12px;
+    }
+    .quantum-card.is-expanded .quantum-body {
+      max-height: 800px;
+      opacity: 1;
+      padding: 0 12px 12px;
+    }
+    .quantum-section-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #d9b3ff;
+      margin: 10px 0 6px;
+    }
+    .quantum-convergence-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 4px 0;
+    }
+    .quantum-convergence-number {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #d9b3ff;
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.35);
+      border-radius: 6px;
+      padding: 1px 8px;
+      flex-shrink: 0;
+    }
+    .quantum-convergence-detail {
+      font-size: 0.76rem;
+      color: rgba(232,220,255,0.7);
+      line-height: 1.4;
+    }
+    .quantum-master-row, .quantum-karmic-row {
+      font-size: 0.76rem;
+      color: rgba(232,220,255,0.75);
+      padding: 3px 0;
+    }
+    .quantum-master-number {
+      font-weight: 800;
+      color: #f4e4b8;
+    }
+    .quantum-karmic-note {
+      font-size: 0.68rem;
+      color: rgba(232,220,255,0.4);
+      font-style: italic;
+      margin-top: 4px;
+    }
+    .quantum-soul-thread {
+      font-size: 0.78rem;
+      font-style: italic;
+      color: rgba(217,179,255,0.85);
+      border-top: 1px solid rgba(168,85,247,0.2);
+      margin-top: 10px;
+      padding-top: 8px;
+    }
+
     /* ════════════════════════════════════════
        SYNC CARD
     ════════════════════════════════════════ */
@@ -1548,6 +1659,8 @@
 
       <div class="oracle-profile-numerology" id="oracleProfileNumerology" style="display:none;">
         <div class="oracle-profile-numerology-title">Numerology</div>
+
+        <div id="quantumSynthesisOutput"></div>
 
         <select class="oracle-profile-num-select" id="numerologySystemSelect">
           <option value="pythagorean">Pythagorean (Western)</option>
@@ -2575,6 +2688,7 @@
 
           var selectEl = document.getElementById("numerologySystemSelect");
           renderNumerologySystem(selectEl ? selectEl.value : "pythagorean");
+          renderQuantumSynthesis();
         })
         .catch(function () {}); /* leave hidden — soft-fail on error */
     }
@@ -2717,6 +2831,13 @@
           title: "Arrows",
           derivation: "Any full line of the grid — a row, column, or diagonal — where all three numbers are present is read as an Arrow of Strength: a complete line, said to mark a pronounced natural gift. The same line with all three numbers entirely absent is read as an Arrow of Weakness: a gap in the nativity, held in this tradition to mark an area calling for conscious development rather than a fixed deficiency.",
           wisdom: "A full line is a gift already in hand; an empty one is simply a gift not yet built."
+        }
+      },
+      quantum: {
+        convergence: {
+          title: "Convergence",
+          derivation: "When the same core number is arrived at independently by systems built on entirely different foundations — one drawn from the name, another from the birth date, one counted in Western letter-values, another in Chaldean, Hebrew gematria, or the Vedic tradition's own day-based reckoning — its repeated appearance is not redundancy. Each system reaches the number by a route that shares nothing with the others, so agreement across them is read here as a signal reinforced from multiple independent directions at once. This convergence view is a synthesis layer built on top of the six systems already computed, not a seventh calculation of its own.",
+          wisdom: "Not one voice repeating itself, but several unrelated voices saying the same thing — held here as the soul's most insistent frequency."
         }
       },
       numbers: {
@@ -3001,6 +3122,120 @@
         : '<div class="num-sys-arrow-item">None</div>';
 
       return html;
+    }
+
+    /* ── Quantum Synthesis panel — surfaces numerologyData.quantum (from
+       computeQuantumSynthesis on the backend), independent of the system
+       dropdown. Renders as a collapsible card, default collapsed, so it
+       never dominates the box. Reuses openNumInfo/the delegated listener
+       unchanged — convergence numbers just carry the same num-tappable +
+       data-num-* pattern every other tappable number already uses. ── */
+    var quantumSynthesisExpanded = false;
+
+    var QUANTUM_SYSTEM_LABELS = {
+      pythagorean: "Pythagorean",
+      chaldean: "Chaldean",
+      vedic: "Vedic",
+      divineTriangle: "Divine Triangle",
+      kabbalah: "Kabbalah",
+      chinese: "Chinese"
+    };
+
+    function prettifySystemName(key) {
+      return QUANTUM_SYSTEM_LABELS[key] || key;
+    }
+
+    function renderQuantumSynthesis() {
+      var container = document.getElementById("quantumSynthesisOutput");
+      if (!container) return;
+
+      var quantum = numerologyData && numerologyData.quantum;
+      var hasConvergences = !!(quantum && quantum.convergences && quantum.convergences.length);
+      var hasMasters      = !!(quantum && quantum.masterNumbers && quantum.masterNumbers.length);
+      var hasKarmic       = !!(quantum && quantum.karmicDebt && (
+        (quantum.karmicDebt.found && quantum.karmicDebt.found.length) ||
+        (quantum.karmicDebt.karmicLessons && quantum.karmicDebt.karmicLessons.length)
+      ));
+      var hasSoulThread = !!(quantum && quantum.soulThread);
+
+      if (!quantum || (!hasConvergences && !hasMasters && !hasKarmic && !hasSoulThread)) {
+        container.innerHTML = "";
+        return;
+      }
+
+      var teaser = hasConvergences
+        ? "Your convergent number: " + quantum.convergences[0].number
+        : "Cross-system soul pattern";
+
+      var html = '<div class="quantum-card' + (quantumSynthesisExpanded ? ' is-expanded' : '') + '" id="quantumCard">';
+      html += '<div class="quantum-header" id="quantumHeader">' +
+        '<span class="quantum-chevron" aria-hidden="true">&#x25B8;</span>' +
+        '<span class="quantum-title">Quantum Synthesis</span>' +
+        '<span class="quantum-teaser">' + teaser + '</span>' +
+      '</div>';
+
+      html += '<div class="quantum-body">';
+
+      if (hasConvergences) {
+        html += '<div class="quantum-section-title">Convergences</div>';
+        quantum.convergences.forEach(function (c) {
+          var systemNames = c.systems.map(prettifySystemName).join(", ");
+          html += '<div class="quantum-convergence-row">' +
+            '<span ' + numTapAttrs('quantum-convergence-number', 'quantum', 'convergence', c.number) + '>' + c.number + '</span>' +
+            '<span class="quantum-convergence-detail">appears across ' + c.count + ' systems — ' + systemNames + '</span>' +
+          '</div>';
+        });
+      }
+
+      if (hasMasters) {
+        html += '<div class="quantum-section-title">Master Numbers</div>';
+        var byNumber = {};
+        quantum.masterNumbers.forEach(function (m) {
+          var key = String(m.number);
+          if (!byNumber[key]) byNumber[key] = [];
+          byNumber[key].push(prettifySystemName(m.system) + " (" + m.field + ")");
+        });
+        Object.keys(byNumber).forEach(function (key) {
+          html += '<div class="quantum-master-row">' +
+            '<span class="quantum-master-number">' + key + '</span>' +
+            ' — in ' + byNumber[key].join(", ") +
+          '</div>';
+        });
+      }
+
+      if (hasKarmic) {
+        html += '<div class="quantum-section-title">Karmic Debt</div>';
+        if (quantum.karmicDebt.found && quantum.karmicDebt.found.length) {
+          quantum.karmicDebt.found.forEach(function (f) {
+            html += '<div class="quantum-karmic-row">' + f.number + ' — ' + f.source + '</div>';
+          });
+        }
+        if (quantum.karmicDebt.karmicLessons && quantum.karmicDebt.karmicLessons.length) {
+          html += '<div class="quantum-karmic-row">Karmic lessons (missing from name): ' +
+            quantum.karmicDebt.karmicLessons.join(", ") + '</div>';
+        }
+        if (quantum.karmicDebt.note) {
+          html += '<div class="quantum-karmic-note">' + quantum.karmicDebt.note + '</div>';
+        }
+      }
+
+      if (hasSoulThread) {
+        html += '<div class="quantum-soul-thread">' + quantum.soulThread + '</div>';
+      }
+
+      html += '</div>'; /* .quantum-body */
+      html += '</div>'; /* .quantum-card */
+
+      container.innerHTML = html;
+
+      var headerEl = document.getElementById("quantumHeader");
+      if (headerEl) {
+        headerEl.addEventListener("click", function () {
+          quantumSynthesisExpanded = !quantumSynthesisExpanded;
+          var cardEl = document.getElementById("quantumCard");
+          if (cardEl) cardEl.classList.toggle("is-expanded", quantumSynthesisExpanded);
+        });
+      }
     }
 
     function renderNumerologySystem(systemKey) {
