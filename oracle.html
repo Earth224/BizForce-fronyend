@@ -2258,6 +2258,7 @@
         if (el) el.style.display = "none";
       });
       myChartView.style.display = "flex";
+      if (typeof window.renderMyChart === "function") window.renderMyChart();
     }
 
     function closeMyChart() {
@@ -3203,7 +3204,8 @@
       return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function renderDivineTriangleBlueprintVisual() {
+    function renderDivineTriangleBlueprintVisual(opts) {
+      opts = opts || {};
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
       if (!blueprint) return "";
 
@@ -3361,6 +3363,15 @@
       });
 
       svg += '</svg>';
+
+      // Default (no opts): identical bare-svg return as before — the
+      // compact profile-box call site is untouched and byte-for-byte the
+      // same. Only opts.large/opts.maxWidth (My Chart, Stage 2) adds a
+      // self-contained sizing wrapper; the viewBox/geometry never changes.
+      if (opts.large || opts.maxWidth) {
+        var maxWidth = opts.maxWidth || "640px";
+        return '<div class="dtb-visual-large" style="max-width:' + maxWidth + '; width:100%;">' + svg + '</div>';
+      }
       return svg;
     }
 
@@ -3762,6 +3773,28 @@
 
     /* pre-fill the profile form on initial load, not only when the panel is opened */
     prefillProfile();
+
+    /* ── My Chart, Stage 2 — the large centered blueprint. Lives in this
+       IIFE (not the earlier My Chart toggle script) because numerologyData
+       and renderDivineTriangleBlueprintVisual are private to this closure;
+       exposed on window so the toggle's OPEN handler (a separate script
+       block) can call it. No tap-interactions yet — display only. ── */
+    function renderMyChart() {
+      var stage = document.getElementById("myChartStage");
+      if (!stage) return;
+
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      if (!blueprint) {
+        stage.innerHTML = '<div class="my-chart-placeholder">' +
+          (numerologyData ? "Sync your birth data to see your chart." : "Chart loading&hellip;") +
+          '</div>';
+        return;
+      }
+
+      stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)" });
+    }
+
+    window.renderMyChart = renderMyChart;
   }());
   </script>
 
