@@ -894,6 +894,86 @@
     }
     .num-sys-arrow-item.is-weak { color: rgba(232,220,255,0.5); }
 
+    /* ── Tappable numerology rows (Pythagorean/Chaldean, step 1) ── */
+    .num-tappable { cursor: pointer; transition: background 0.2s ease; border-radius: 6px; }
+    .num-tappable:hover { background: rgba(255,255,255,0.04); }
+    .num-tap-hint {
+      font-size: 0.68rem;
+      color: rgba(232,220,255,0.4);
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+    .num-row-suffix {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: rgba(232,220,255,0.45);
+      margin-left: 4px;
+    }
+    .num-sys-karmic-num { padding: 1px 3px; border-radius: 4px; }
+
+    /* ── Collapsible educational info panel ── */
+    .num-info-panel {
+      position: relative;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease;
+      background: rgba(10,4,20,0.6);
+      border-radius: 10px;
+      margin: 0 0 8px;
+    }
+    .num-info-panel.is-open {
+      max-height: 600px;
+      opacity: 1;
+      margin: 4px 0 8px;
+    }
+    .num-info-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      background: transparent;
+      border: none;
+      color: rgba(232,220,255,0.5);
+      font-size: 0.7rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+    .num-info-close:hover { color: rgba(232,220,255,0.9); }
+    .num-info-section {
+      padding: 12px 14px;
+      font-size: 0.85em;
+      color: rgba(232,220,255,0.85);
+      line-height: 1.55;
+    }
+    .num-info-field { border-left: 2px solid rgba(232,200,116,0.4); padding-right: 26px; }
+    .num-info-number { border-left: 2px solid rgba(0,255,255,0.35); }
+    .num-info-heading {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #f4e4b8;
+      margin-bottom: 6px;
+    }
+    .num-info-heading-cyan { color: #9df6ff; }
+    .num-info-derived-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.45);
+      margin-bottom: 3px;
+    }
+    .num-info-body { margin: 0 0 8px; }
+    .num-info-body:last-child { margin-bottom: 0; }
+    .num-info-wisdom { font-style: italic; color: rgba(232,220,255,0.7); }
+    .num-info-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 0 14px;
+    }
+
     /* ════════════════════════════════════════
        SYNC CARD
     ════════════════════════════════════════ */
@@ -2505,20 +2585,323 @@
        #numerologySystemSelect into #numerologySystemOutput. Purely
        additive to the four static rows above, which keep working as-is. ── */
 
-    function numSysRow(label, value) {
-      return '<div class="oracle-profile-num-row">' +
+    /* ── Educational content for the tappable info panels (step 1: content
+       + engine + Pythagorean/Chaldean wiring only). NUM_MEANINGS[system][field]
+       explains HOW that field is derived; NUM_MEANINGS.numbers[n] holds the
+       universal essence/shadow/wisdom of the core number itself, independent
+       of system. Tradition-specific or contested readings are phrased as the
+       tradition's view, not stated as settled fact. ── */
+    var NUM_MEANINGS = {
+      pythagorean: {
+        lifePath: {
+          title: "Life Path",
+          derivation: "Derived by reducing every digit of the full birth date — month, day, and year folded together and summed until a single digit (or a master number, 11/22/33) remains. In the Pythagorean current this is read as the primary curriculum: the terrain the soul agreed to walk before arrival.",
+          wisdom: "Not a prophecy but a compass — it names the lesson a life keeps circling back to, in whatever costume the day's events wear."
+        },
+        expression: {
+          title: "Expression (Destiny)",
+          derivation: "Every letter of the full birth name is converted to a number (A=1 through I=9, repeating in cycles of nine) and summed, then reduced. Because it draws on the name given at birth, this is read as the shape of a life's outer work — what a person is built to do and become known for.",
+          wisdom: "Where Life Path is the road, Expression is the vehicle — the native capacities and instruments carried onto that road."
+        },
+        soulUrge: {
+          title: "Soul Urge (Heart's Desire)",
+          derivation: "Only the vowels of the birth name are converted and summed. Stripping away the consonants is meant to strip away the outer persona, leaving what the tradition calls the private motive — what a person wants when no one is measuring the wanting.",
+          wisdom: "This is the number people rarely announce, because it is not what they do but why they'd do it even if no one saw."
+        },
+        personality: {
+          title: "Personality",
+          derivation: "Only the consonants of the birth name are converted and summed — the mirror image of Soul Urge. Where the vowels are read as the private interior, the consonants are read as the outer shell: the first impression, the mask worn before trust is earned.",
+          wisdom: "Not falseness — armor. What a stranger meets at the door, before the house itself is entered."
+        },
+        birthday: {
+          title: "Birthday",
+          derivation: "Simply the calendar day of birth (1 through 31), taken on its own rather than folded into the larger Life Path sum. In this system it is treated as a minor modifier — a specific inflection layered onto the Life Path's broader theme.",
+          wisdom: "A smaller note played over the main chord — it colors the Life Path without overriding it."
+        }
+      },
+      chaldean: {
+        lifePath: {
+          title: "Life Path (Chaldean)",
+          derivation: "Calculated identically to the Western/Pythagorean Life Path — the full birth date reduced by digit-sum — since date arithmetic carries no letter-value system and both traditions agree on it. Chaldean numerology's real departure begins with the name, not the date.",
+          wisdom: "Same road, read by an older map — Life Path itself doesn't change between systems, only what's built to walk it."
+        },
+        expression: {
+          title: "Expression (Chaldean)",
+          derivation: "The Chaldean system assigns each letter a value from 1 to 8 only — no letter is ever given a 9, since 9 was held sacred and considered too potent to hand to an individual letter. Values are arranged by ancient sound-vibration rather than alphabet order, so a letter's number reflects the tone the tradition believed it carried.",
+          wisdom: "An older and more esoteric layer than the Pythagorean count — favored by those who read numerology as vibration first and arithmetic second."
+        },
+        soulUrge: {
+          title: "Soul Urge (Chaldean)",
+          derivation: "The vowels of the name, valued under the same 1-8 Chaldean sound-map, summed and reduced. As in the Western system this isolates the felt, private undercurrent of the name — but here it is read as vibrational resonance rather than pure numeric symbolism.",
+          wisdom: "The same inner note, tuned to an older instrument."
+        },
+        personality: {
+          title: "Personality (Chaldean)",
+          derivation: "The consonants of the name under the Chaldean 1-8 map, summed and reduced — the outward-facing counterpart to Chaldean Soul Urge.",
+          wisdom: "The public frequency a name gives off, in the Chaldean reading of sound."
+        }
+      },
+      kabbalah: {
+        gematriaTotal: {
+          title: "Gematria Total",
+          derivation: "The raw sum of the birth name's letters, each converted to its Hebrew-transliterated value under the Western Kabbalistic gematria table — a far larger scale than the Pythagorean 1-9 count, since Hebrew letters carry values into the hundreds. This total is the name's full, uncompressed vibrational weight before any reduction.",
+          wisdom: "The whole sound of a name, before it is folded down into something speakable."
+        },
+        reduced: {
+          title: "Reduced",
+          derivation: "The Gematria Total folded down by repeated digit-summing until a single root number (or preserved master number) remains — the same reduction method used across the numerology traditions, applied here to the much larger Kabbalistic sum.",
+          wisdom: "The single note left standing after the whole chord has been compressed."
+        },
+        heart: {
+          title: "Heart (Vowels)",
+          derivation: "The gematria value of only the name's vowels. In Kabbalistic thought, vowels are the breath moving through a word — unwritten in the original Hebrew alphabet, supplied by the reader's own voice — so this number is read as the animating, hidden soul of the name rather than its visible structure.",
+          wisdom: "What gives the name its breath, not its shape."
+        },
+        foundation: {
+          title: "Foundation (Consonants)",
+          derivation: "The gematria value of only the name's consonants — in Hebrew, the fixed skeleton onto which vowels (breath) are placed. This is read as the outer vessel: the structure a name stands on, as distinct from the breath that moves through it.",
+          wisdom: "The vessel a name is poured into — form, before it's given voice."
+        }
+      },
+      vedic: {
+        psychicNumber: {
+          title: "Psychic Number (Moolank)",
+          derivation: "Derived from the birth day alone, reduced to a single digit — this system holds no master numbers. In Vedic numerology this is held to be the self as one experiences oneself from the inside, strongest and most visible in youth, and each digit 1 through 9 is tied to a planetary ruler in this tradition (1 Sun, 2 Moon, 3 Jupiter, 4 Rahu, 5 Mercury, 6 Venus, 7 Ketu, 8 Saturn, 9 Mars).",
+          wisdom: "The face turned inward — how a person meets themselves before they've decided how to meet the world."
+        },
+        destinyNumber: {
+          title: "Destiny Number (Bhagyank)",
+          derivation: "Derived from the complete birth date — day, month, and year folded together and reduced. Where the Psychic Number is the inner self, the Destiny Number is read in this tradition as the outward fate: circumstance, opportunity, and what life tends to hand back in return.",
+          wisdom: "Not what a person wants, but what the world keeps offering regardless."
+        },
+        nameNumber: {
+          title: "Name Number",
+          derivation: "The birth name valued under the Chaldean 1-8 letter map — Vedic name numerology inherits the Chaldean system rather than the Pythagorean one — summed and fully reduced. This is read as the name's social and vibrational signature, the frequency it broadcasts to others.",
+          wisdom: "The note a name strikes in a room before a single word is spoken."
+        }
+      },
+      divineTriangle: {
+        apex: {
+          title: "Apex",
+          derivation: "The single number at the top of the pyramid, reached by adding the two Second Row numbers together and reducing. It is the final synthesis the entire birth-date pyramid builds toward — the point every lower row funnels into.",
+          wisdom: "Not a separate fate from the base — the base's own conclusion, carried to its highest point."
+        },
+        secondRow: {
+          title: "Second Row",
+          derivation: "Formed by adding each adjacent pair of Base numbers (month+day, day+year) and reducing. This row is the meeting point between the raw birth-date elements below it and the single apex above — the first synthesis, before the final one.",
+          wisdom: "Where the separate pieces of a birth date first start speaking to each other."
+        },
+        base: {
+          title: "Base (Month · Day · Year)",
+          derivation: "The birth month, day, and year, each reduced independently to its own single digit or preserved master number. These three form the foundation row of the pyramid — the raw, unblended material everything above it is built from.",
+          wisdom: "The three original notes, before anything is done to combine them."
+        },
+        inclusion: {
+          title: "Inclusion Table",
+          derivation: "A tally of how many times each digit 1 through 9 appears across the full birth name, once every letter is converted under the Pythagorean letter-value map. A number appearing often is read as an emphasized energy — present, insistent, perhaps overused; a number appearing even once is simply available to draw on.",
+          wisdom: "Not what's missing that matters here, but what keeps repeating — the note a name can't stop striking."
+        },
+        karmic: {
+          title: "Karmic Lessons",
+          derivation: "The numbers that appear zero times in the Inclusion Table — digits entirely absent from the birth name. In the Divine Triangle tradition, an absent number is held to mark a lesson the soul did not bring in as a natural gift and must instead acquire deliberately through lived experience. This reduced pyramid (base, second row, apex, and inclusion table) is one layer of the fuller Divine Triangle system as originally developed by Javane and Bunker — the complete life-blueprint construction goes deeper than what's shown here.",
+          wisdom: "What a name never says is sometimes exactly what a life is here to learn to say."
+        }
+      },
+      chinese: {
+        grid: {
+          title: "Lo Shu Grid",
+          derivation: "The digits of the full birth date are placed into a fixed 3×3 arrangement (the classic Lo Shu magic square: 4-9-2 / 3-5-7 / 8-1-6), and each cell is marked by how many times that digit actually occurs in the date. A cell with a count is a number the nativity carries; an empty cell is a number the birth date itself never touched.",
+          wisdom: "A birth date's own reflection, arranged in the oldest grid this tradition knows."
+        },
+        arrows: {
+          title: "Arrows",
+          derivation: "Any full line of the grid — a row, column, or diagonal — where all three numbers are present is read as an Arrow of Strength: a complete line, said to mark a pronounced natural gift. The same line with all three numbers entirely absent is read as an Arrow of Weakness: a gap in the nativity, held in this tradition to mark an area calling for conscious development rather than a fixed deficiency.",
+          wisdom: "A full line is a gift already in hand; an empty one is simply a gift not yet built."
+        }
+      },
+      numbers: {
+        "1": {
+          essence: "The number of the sole originator — first cause, the spark before the sequence begins. In the Pythagorean current it is the monad: unity, will, the courage to begin something that has no precedent.",
+          shadow: "Untempered, this same independence can curdle into isolation or a refusal to be led — the pioneer who cannot stand to follow, even when following would serve.",
+          wisdom: "Ones are asked to lead without needing followers to prove the leading was real."
+        },
+        "2": {
+          essence: "The number of the pair — relationship, receptivity, the diplomat's instinct for the space between two things. Where 1 acts, 2 listens and joins.",
+          shadow: "Taken too far, this becomes dependence, or a self dissolved entirely into keeping the peace, unable to name its own want.",
+          wisdom: "Twos are asked to stay soft without disappearing."
+        },
+        "3": {
+          essence: "The number of expression — creativity, communication, joy given outward form in word, art, or performance.",
+          shadow: "Scattered, this becomes surface without depth — talk that never becomes work, charm spent instead of invested.",
+          wisdom: "Threes are asked to finish what their joy started."
+        },
+        "4": {
+          essence: "The number of the foundation — four walls, four seasons, the square that holds weight. Order, discipline, the patient labor of building something meant to outlast the mood that started it.",
+          shadow: "Rigid, it becomes a refusal of anything unplanned — a structure so complete it leaves no room for the living thing it was built to house.",
+          wisdom: "Fours are asked to build a house, not a cage."
+        },
+        "5": {
+          essence: "The number of change — restless, curious, unwilling to be fenced. Freedom, travel, the senses fully engaged with a world in motion.",
+          shadow: "Unanchored, this becomes scattering — motion for its own sake, commitments abandoned the moment they become routine.",
+          wisdom: "Fives are asked to be free inside a promise, not instead of one."
+        },
+        "6": {
+          essence: "The number of responsibility and care — the nurturer, most associated with home, family, and service freely given. Harmony achieved not by avoidance but by tending.",
+          shadow: "Overextended, this becomes martyrdom or control disguised as love — care that will not let the cared-for grow past needing it.",
+          wisdom: "Sixes are asked to love without needing to be needed."
+        },
+        "7": {
+          essence: "In the Pythagorean current, 7 is held to be the number of the seeker — introspection, the inward turn, faith arrived at through study and solitude rather than inheritance. It is the number most associated with the philosopher and the mystic.",
+          shadow: "Withdrawn too far, this becomes isolation mistaken for depth, or a skepticism so total it refuses even the evidence of joy.",
+          wisdom: "Sevens are asked to bring what they find in solitude back to the company of others."
+        },
+        "8": {
+          essence: "The number of power made material — ambition, authority, the just exchange of effort for reward. Where 4 built the foundation, 8 is what rises on it and is recognized by the world.",
+          shadow: "Unchecked, this becomes the mistaking of net worth for self-worth — power held past the point it serves anyone, including its holder.",
+          wisdom: "Eights are asked to rule the material world without being ruled by it."
+        },
+        "9": {
+          essence: "The number of completion — the last of the single digits, holding something of all the numbers before it. Compassion widened past the personal into the universal; the number of endings that clear ground for a new beginning.",
+          shadow: "Diffused, this becomes a love so general it forgets the person in front of it, or an inability to let anything actually end.",
+          wisdom: "Nines are asked to let go with both hands open, not clenched."
+        },
+        "11": {
+          essence: "A master number — traditionally held at its full charge rather than reduced to 2. In the Pythagorean-derived tradition it is the number of the illuminator: heightened intuition, spiritual insight, a sensitivity to what others cannot yet name.",
+          shadow: "That same voltage, ungrounded, becomes anxiety, overwhelm, or a visionary gift that never gets built into anything usable.",
+          wisdom: "Elevens are asked to carry the current without being electrocuted by it — grounding isn't a betrayal of the gift, it's what lets the gift be given."
+        },
+        "22": {
+          essence: "The 'master builder' — doubled 11, but where 11 illuminates, 22 is said in this tradition to construct: visionary insight paired with 4's discipline, capable of building something of lasting, even world-altering, scale.",
+          shadow: "The weight of that potential, unmet, becomes its own burden — a sense of having been built for more than one's life has yet held, or paralysis before so large a canvas.",
+          wisdom: "Twenty-twos are asked to lay one brick at a time, trusting the size of the vision without being crushed by it."
+        },
+        "33": {
+          essence: "The rarest of the commonly-cited master numbers — the 'master teacher,' combining 3's expression and 6's devotion into a love expressed through selfless service and teaching, held by tradition to be uncommon to see fully lived.",
+          shadow: "Because so much is asked of it, this number is said to carry the deepest risk of self-sacrifice without boundary — teaching or giving until nothing is left to teach or give from.",
+          wisdom: "Thirty-threes are asked to remember that the teacher must also be taught, and the giver must also receive."
+        }
+      }
+    };
+
+    /* ── Collapsible educational info panel — only one open at a time ── */
+    var openNumInfoPanel  = null;
+    var openNumInfoAnchor = null;
+
+    function closeNumInfo() {
+      if (openNumInfoPanel && openNumInfoPanel.parentNode) {
+        openNumInfoPanel.parentNode.removeChild(openNumInfoPanel);
+      }
+      openNumInfoPanel  = null;
+      openNumInfoAnchor = null;
+    }
+
+    function buildNumInfoHtml(systemKey, fieldKey, numberValue) {
+      var fieldMeta  = NUM_MEANINGS[systemKey] && NUM_MEANINGS[systemKey][fieldKey];
+      var numberMeta = NUM_MEANINGS.numbers && NUM_MEANINGS.numbers[String(numberValue)];
+
+      var html = '<button type="button" class="num-info-close" aria-label="Close">&#x2715;</button>';
+
+      if (fieldMeta) {
+        html +=
+          '<div class="num-info-section num-info-field">' +
+            '<div class="num-info-heading">' + fieldMeta.title + '</div>' +
+            '<div class="num-info-derived-label">How it&rsquo;s derived</div>' +
+            '<div class="num-info-body">' + fieldMeta.derivation + '</div>' +
+            '<div class="num-info-body num-info-wisdom">' + fieldMeta.wisdom + '</div>' +
+          '</div>';
+      }
+
+      if (fieldMeta && numberMeta) {
+        html += '<div class="num-info-divider"></div>';
+      }
+
+      if (numberMeta) {
+        html +=
+          '<div class="num-info-section num-info-number">' +
+            '<div class="num-info-heading num-info-heading-cyan">The Number ' + numberValue + '</div>' +
+            '<div class="num-info-body">' + numberMeta.essence + '</div>' +
+            '<div class="num-info-body">' + numberMeta.shadow + '</div>' +
+            '<div class="num-info-body num-info-wisdom">' + numberMeta.wisdom + '</div>' +
+          '</div>';
+      }
+
+      if (!fieldMeta && !numberMeta) {
+        html += '<div class="num-info-section"><div class="num-info-body">No meaning recorded yet for this number.</div></div>';
+      }
+
+      return html;
+    }
+
+    function openNumInfo(anchorEl, systemKey, fieldKey, numberValue) {
+      var isSameAnchor = (openNumInfoAnchor === anchorEl);
+
+      closeNumInfo();
+
+      if (isSameAnchor) return; /* toggle: tapping the same row again just closes it */
+
+      var panel = document.createElement("div");
+      panel.className = "num-info-panel";
+      panel.innerHTML = buildNumInfoHtml(systemKey, fieldKey, numberValue);
+
+      if (anchorEl.nextSibling) {
+        anchorEl.parentNode.insertBefore(panel, anchorEl.nextSibling);
+      } else {
+        anchorEl.parentNode.appendChild(panel);
+      }
+
+      var closeBtn = panel.querySelector(".num-info-close");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          closeNumInfo();
+        });
+      }
+
+      openNumInfoPanel  = panel;
+      openNumInfoAnchor = anchorEl;
+
+      requestAnimationFrame(function () {
+        panel.classList.add("is-open");
+      });
+    }
+
+    function numSysRow(label, value, systemKey, fieldKey, suffix) {
+      var tappable = !!(systemKey && fieldKey && value != null);
+      var attrs = tappable
+        ? ' data-num-system="' + systemKey + '" data-num-field="' + fieldKey + '" data-num-value="' + value + '"'
+        : '';
+      var rowClass = 'oracle-profile-num-row' + (tappable ? ' num-tappable' : '');
+      return '<div class="' + rowClass + '"' + attrs + '>' +
         '<span class="oracle-profile-num-label">' + label + '</span>' +
-        '<span class="oracle-profile-num-value">' + (value != null ? value : "—") + '</span>' +
+        '<span class="oracle-profile-num-value">' + (value != null ? value : "—") +
+          (tappable ? ' <span class="num-tap-hint" aria-hidden="true">&#x24D8;</span>' : '') +
+          (suffix ? ' <span class="num-row-suffix">' + suffix + '</span>' : '') +
+        '</span>' +
       '</div>';
     }
 
-    function renderNameSystemRows(sys) {
+    /* ── Same tappable/attrs pattern as numSysRow, generalized for non-row
+       elements (pyramid cells, inclusion/grid cells, karmic/arrow spans) —
+       returns a ready-to-splice class+data-attrs string. Used by step 2's
+       structured-system renderers below. ── */
+    function numTapAttrs(baseClass, systemKey, fieldKey, value) {
+      if (value == null) return 'class="' + baseClass + '"';
+      return 'class="' + baseClass + ' num-tappable" data-num-system="' + systemKey +
+        '" data-num-field="' + fieldKey + '" data-num-value="' + value + '"';
+    }
+
+    function firstDigitIn(str) {
+      var m = String(str).match(/\d/);
+      return m ? m[0] : null;
+    }
+
+    function renderNameSystemRows(sys, systemKey) {
       var html = "";
-      html += numSysRow("Life Path", sys.lifePath);
-      html += numSysRow("Expression", sys.expression);
-      html += numSysRow("Soul Urge", sys.soulUrge);
-      if (sys.personality != null) html += numSysRow("Personality", sys.personality);
-      if (sys.birthday    != null) html += numSysRow("Birthday", sys.birthday);
+      html += numSysRow("Life Path", sys.lifePath, systemKey, "lifePath");
+      html += numSysRow("Expression", sys.expression, systemKey, "expression");
+      html += numSysRow("Soul Urge", sys.soulUrge, systemKey, "soulUrge");
+      if (sys.personality != null) html += numSysRow("Personality", sys.personality, systemKey, "personality");
+      if (sys.birthday    != null) html += numSysRow("Birthday", sys.birthday, systemKey, "birthday");
       return html;
     }
 
@@ -2530,13 +2913,18 @@
 
       var html = '<div class="num-sys-pyramid">';
       html += '<div class="num-sys-pyramid-label">Apex</div>';
-      html += '<div class="num-sys-pyramid-row"><span class="num-sys-pyramid-cell num-sys-pyramid-apex">' +
+      html += '<div class="num-sys-pyramid-row"><span ' +
+        numTapAttrs('num-sys-pyramid-cell num-sys-pyramid-apex', 'divineTriangle', 'apex', sys.apex) + '>' +
         (sys.apex != null ? sys.apex : "—") + '</span></div>';
       html += '<div class="num-sys-pyramid-row">' +
-        secondRow.map(function (n) { return '<span class="num-sys-pyramid-cell">' + n + '</span>'; }).join("") +
+        secondRow.map(function (n) {
+          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'secondRow', n) + '>' + n + '</span>';
+        }).join("") +
       '</div>';
       html += '<div class="num-sys-pyramid-row">' +
-        base.map(function (n) { return '<span class="num-sys-pyramid-cell">' + n + '</span>'; }).join("") +
+        base.map(function (n) {
+          return '<span ' + numTapAttrs('num-sys-pyramid-cell', 'divineTriangle', 'base', n) + '>' + n + '</span>';
+        }).join("") +
       '</div>';
       html += '<div class="num-sys-pyramid-label">Base (Month · Day · Year)</div>';
       html += '</div>';
@@ -2545,7 +2933,7 @@
       html += '<div class="num-sys-inclusion-grid">';
       for (var n = 1; n <= 9; n++) {
         var count = inclusion[String(n)] || 0;
-        html += '<div class="num-sys-inclusion-cell' + (count > 0 ? ' is-present' : '') + '">' +
+        html += '<div ' + numTapAttrs('num-sys-inclusion-cell' + (count > 0 ? ' is-present' : ''), 'divineTriangle', 'inclusion', n) + '>' +
           '<span class="num-sys-cell-num">' + n + '</span>' +
           (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
         '</div>';
@@ -2554,7 +2942,11 @@
 
       html += '<div class="num-sys-grid-title">Karmic Lessons</div>';
       html += karmic.length
-        ? '<div class="num-sys-karmic">' + karmic.join(", ") + ' <span style="opacity:.65;font-weight:400">(numbers missing from your name — karmic lessons)</span></div>'
+        ? '<div class="num-sys-karmic">' +
+            karmic.map(function (n) {
+              return '<span ' + numTapAttrs('num-sys-karmic-num', 'divineTriangle', 'karmic', n) + '>' + n + '</span>';
+            }).join(", ") +
+            ' <span style="opacity:.65;font-weight:400">(numbers missing from your name — karmic lessons)</span></div>'
         : '<div class="num-sys-karmic" style="color:rgba(232,220,255,0.5)">None — every number 1-9 appears in your name.</div>';
 
       return html;
@@ -2562,21 +2954,19 @@
 
     function renderKabbalah(sys) {
       var html = "";
-      html += numSysRow("Gematria Total", sys.gematriaTotal);
-      html += numSysRow("Reduced", sys.reduced);
-      html += numSysRow("Heart (Vowels)", sys.heart);
-      html += numSysRow("Foundation (Consonants)", sys.foundation);
+      html += numSysRow("Gematria Total", sys.gematriaTotal, "kabbalah", "gematriaTotal");
+      html += numSysRow("Reduced", sys.reduced, "kabbalah", "reduced");
+      html += numSysRow("Heart (Vowels)", sys.heart, "kabbalah", "heart");
+      html += numSysRow("Foundation (Consonants)", sys.foundation, "kabbalah", "foundation");
       return html;
     }
 
     function renderVedic(sys) {
-      var psychicValue = sys.psychicNumber != null
-        ? sys.psychicNumber + (sys.planetaryRuler ? " · ruled by " + sys.planetaryRuler : "")
-        : null;
       var html = "";
-      html += numSysRow("Psychic Number", psychicValue);
-      html += numSysRow("Destiny Number", sys.destinyNumber);
-      html += numSysRow("Name Number", sys.nameNumber);
+      var rulerSuffix = sys.planetaryRuler ? "· ruled by " + sys.planetaryRuler : null;
+      html += numSysRow("Psychic Number", sys.psychicNumber, "vedic", "psychicNumber", rulerSuffix);
+      html += numSysRow("Destiny Number", sys.destinyNumber, "vedic", "destinyNumber");
+      html += numSysRow("Name Number", sys.nameNumber, "vedic", "nameNumber");
       return html;
     }
 
@@ -2589,7 +2979,7 @@
       var html = '<div class="num-sys-loshu-grid">';
       layout.forEach(function (n) {
         var count = grid[String(n)] || 0;
-        html += '<div class="num-sys-loshu-cell' + (count > 0 ? ' is-present' : '') + '">' +
+        html += '<div ' + numTapAttrs('num-sys-loshu-cell' + (count > 0 ? ' is-present' : ''), 'chinese', 'grid', n) + '>' +
           '<span class="num-sys-cell-num">' + n + '</span>' +
           (count > 0 ? '<span class="num-sys-cell-count">×' + count + '</span>' : '') +
         '</div>';
@@ -2598,12 +2988,16 @@
 
       html += '<div class="num-sys-arrows-title">Arrows of Strength</div>';
       html += strong.length
-        ? strong.map(function (a) { return '<div class="num-sys-arrow-item">' + a + '</div>'; }).join("")
+        ? strong.map(function (a) {
+            return '<div ' + numTapAttrs('num-sys-arrow-item', 'chinese', 'arrows', firstDigitIn(a)) + '>' + a + '</div>';
+          }).join("")
         : '<div class="num-sys-arrow-item is-weak">None</div>';
 
       html += '<div class="num-sys-arrows-title">Arrows of Weakness</div>';
       html += weak.length
-        ? weak.map(function (a) { return '<div class="num-sys-arrow-item is-weak">' + a + '</div>'; }).join("")
+        ? weak.map(function (a) {
+            return '<div ' + numTapAttrs('num-sys-arrow-item is-weak', 'chinese', 'arrows', firstDigitIn(a)) + '>' + a + '</div>';
+          }).join("")
         : '<div class="num-sys-arrow-item">None</div>';
 
       return html;
@@ -2616,13 +3010,15 @@
       var systems = numerologyData && numerologyData.systems;
       var sys = systems ? systems[systemKey] : null;
 
+      closeNumInfo(); /* switching systems (or reloading) invalidates any open panel */
+
       if (!sys) {
         out.innerHTML = '<div class="num-sys-empty">Sync your birth data to see this chart.</div>';
         return;
       }
 
       if (systemKey === "pythagorean" || systemKey === "chaldean") {
-        out.innerHTML = renderNameSystemRows(sys);
+        out.innerHTML = renderNameSystemRows(sys, systemKey);
       } else if (systemKey === "divineTriangle") {
         out.innerHTML = renderDivineTriangle(sys);
       } else if (systemKey === "kabbalah") {
@@ -2640,6 +3036,23 @@
     if (numerologySystemSelect) {
       numerologySystemSelect.addEventListener("change", function () {
         renderNumerologySystem(numerologySystemSelect.value);
+      });
+    }
+
+    /* ── Delegated tap handler — only rows carrying data-num-system/
+       data-num-field (Pythagorean/Chaldean, step 1) respond; the other
+       four systems have no such attributes yet, so clicks on them simply
+       find no .num-tappable ancestor and do nothing. ── */
+    var numerologySystemOutputEl = document.getElementById("numerologySystemOutput");
+    if (numerologySystemOutputEl) {
+      numerologySystemOutputEl.addEventListener("click", function (e) {
+        var row = e.target.closest ? e.target.closest(".num-tappable") : null;
+        if (!row) return;
+        var rowSystemKey = row.getAttribute("data-num-system");
+        var rowFieldKey  = row.getAttribute("data-num-field");
+        var rowValue     = row.getAttribute("data-num-value");
+        if (!rowSystemKey || !rowFieldKey) return;
+        openNumInfo(row, rowSystemKey, rowFieldKey, rowValue);
       });
     }
 
