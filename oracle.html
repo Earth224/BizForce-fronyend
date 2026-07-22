@@ -3843,6 +3843,79 @@
       };
     }
 
+    /* ── Real moon phase from the backend (GET /api/moon, astronomy-engine).
+       Fetched once on load and every 30 minutes thereafter — the phase
+       barely moves minute to minute, so there's no need to hit the API on
+       every 1s renderClock tick. Falls back to null (and thus to the local
+       synodic approximation above) on any network/response failure, and is
+       only trusted for the CURRENT moment — if the user has picked a custom
+       date/time via #celDateTime, getActiveMoment() is no longer "now", so
+       real "right now" API data would misrepresent their chosen date. ── */
+    var cachedRealMoonPhase = null;
+
+    function fetchRealMoonPhase() {
+      if (typeof API_URL === "undefined") return Promise.resolve(null);
+      return fetch(API_URL + "/api/moon")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || data.error || data.illuminatedFraction == null) return null;
+          return {
+            illuminatedFraction: data.illuminatedFraction,
+            waxing: !!data.waxing,
+            phaseAngle: data.phaseAngle
+          };
+        })
+        .catch(function () { return null; });
+    }
+
+    function refreshRealMoonPhase() {
+      fetchRealMoonPhase().then(function (result) {
+        if (result) {
+          cachedRealMoonPhase = result;
+          renderAbyssMoon(); /* repaint immediately once real data lands */
+        }
+      });
+    }
+
+    /* ── Elliptical terminator path — replaces the old offset-circle shadow.
+       The terminator (day/night boundary) projects onto the visible disc as
+       a half-ellipse: semi-major axis = r (full vertical radius), semi-minor
+       axis = r*|cos(phaseAngle)| (the horizontal bulge). Sign of cos(angle)
+       flips which side the ellipse bulges toward:
+         - crescent (0-90 / 270-360, cos > 0): illuminated < 50%, so the dark
+           region is nearly the whole disc — the terminator bulges TOWARD
+           the lit edge, leaving only a thin lit sliver.
+         - gibbous (90-270, cos < 0): illuminated > 50%, so the dark region
+           is a thin sliver — the terminator bulges TOWARD the dark edge.
+         - quarter (angle ~90/270, cos ~0): rx ~0, terminator degenerates to
+           a near-straight vertical line (SVG treats rx=0 as a straight line).
+       The dark region is built as one closed path: a circular arc (radius r)
+       for the true outer limb on the dark side, plus an elliptical arc
+       (rx, r) for the terminator, filled black inside the mask. ── */
+    function buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing) {
+      var theta = (phaseAngleDeg * Math.PI) / 180;
+      var cosTheta = Math.cos(theta);
+      var rx = Math.abs(r * cosTheta);
+      var bulgeTowardLit = cosTheta > 0;
+
+      var topX = cx, topY = cy - r;
+      var bottomX = cx, bottomY = cy + r;
+
+      // Outer limb (top -> bottom): waxing = dark on left (sweep 0),
+      // waning = dark on right (sweep 1).
+      var limbSweep = waxing ? 0 : 1;
+
+      // Terminator (bottom -> top): bulge direction depends on which side
+      // is lit AND whether this is a crescent or gibbous phase.
+      var terminatorSweep = waxing
+        ? (bulgeTowardLit ? 0 : 1)
+        : (bulgeTowardLit ? 1 : 0);
+
+      return "M " + topX + " " + topY + " " +
+        "A " + r + " " + r + " 0 0 " + limbSweep + " " + bottomX + " " + bottomY + " " +
+        "A " + rx + " " + r + " 0 0 " + terminatorSweep + " " + topX + " " + topY + " Z";
+    }
+
     function renderMoonSvg(phaseFraction, illumPercent) {
       var container = document.getElementById("celMoonSvg");
       if (!container) return;
@@ -3929,16 +4002,23 @@
 
       var moment = getActiveMoment();
       var moon = getMoonData(moment);
+      var isNow = !(dateTimeInput && dateTimeInput.value);
+
+      var waxing, phaseAngleDeg;
+      if (isNow && cachedRealMoonPhase) {
+        waxing = cachedRealMoonPhase.waxing;
+        phaseAngleDeg = cachedRealMoonPhase.phaseAngle;
+      } else {
+        waxing = moon.waxing;
+        phaseAngleDeg = moon.phaseFraction * 360; /* same 0/90/180/270 convention as the real API */
+      }
 
       var size = 200;
       var r = size / 2 - 10;
       var cx = size / 2;
       var cy = size / 2;
-      var litFraction = moon.illumPercent / 100;
-      var offset = litFraction * 2 * r;
-      var dir = moon.phaseFraction < 0.5 ? 1 : -1;
-      var shadowCx = cx + dir * offset;
       var imgR = r * 1.18;
+      var terminatorPath = buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing);
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
@@ -3949,7 +4029,7 @@
             '<mask id="moonLitMask">' +
               '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
               '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 0.97) + '" fill="#fff"/>' +
-              '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000" filter="url(#moonTerminatorBlur)"/>' +
+              '<path d="' + terminatorPath + '" fill="#000" filter="url(#moonTerminatorBlur)"/>' +
             '</mask>' +
             '<filter id="glowMaskBlur" x="-50%" y="-50%" width="200%" height="200%">' +
               '<feGaussianBlur stdDeviation="8"/>' +
@@ -3958,7 +4038,7 @@
               '<rect x="0" y="0" width="' + size + '" height="' + size + '" fill="#000"/>' +
               '<g filter="url(#glowMaskBlur)">' +
                 '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r * 1.05) + '" fill="#fff"/>' +
-                '<circle cx="' + shadowCx + '" cy="' + cy + '" r="' + r + '" fill="#000"/>' +
+                '<path d="' + terminatorPath + '" fill="#000"/>' +
               '</g>' +
             '</mask>' +
             '<radialGradient id="moonGlowGrad" cx="50%" cy="50%" r="50%">' +
@@ -4140,6 +4220,9 @@
 
     renderClock();
     setInterval(renderClock, 1000);
+
+    refreshRealMoonPhase();
+    setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
   }());
   </script>
 
