@@ -2822,14 +2822,24 @@
 
     var numerologyData = null;
 
+    /* ── In-flight guard: if a fetch is already running, callers (the
+       profile panel AND My Chart) share the same promise instead of
+       firing a second request. Cleared once settled so a later legitimate
+       re-fetch (e.g. after re-sync with new birth data) isn't blocked. ── */
+    var numerologyFetchPromise = null;
+
     function fetchNumerology() {
+      if (numerologyFetchPromise) return numerologyFetchPromise;
+
       var section = document.getElementById("oracleProfileNumerology");
-      if (!section) return;
+      if (!section) return Promise.resolve(null);
       section.style.display = "none";
 
-      if (typeof API_URL === "undefined" || typeof token === "undefined") return;
+      if (typeof API_URL === "undefined" || typeof token === "undefined") {
+        return Promise.resolve(null);
+      }
 
-      fetch(API_URL + "/api/oracle/numerology", {
+      numerologyFetchPromise = fetch(API_URL + "/api/oracle/numerology", {
         headers: { "Authorization": "Bearer " + token }
       })
         .then(function (r) { return r.ok ? r.json() : null; })
@@ -2841,7 +2851,7 @@
                data.expression  == null &&
                data.soul_urge   == null &&
                data.birthday    == null)) {
-            return; /* leave hidden — soft-fail on empty result */
+            return numerologyData; /* leave hidden — soft-fail on empty result */
           }
           var lp = document.getElementById("numLifePath");
           var ex = document.getElementById("numExpression");
@@ -2856,8 +2866,15 @@
           var selectEl = document.getElementById("numerologySystemSelect");
           renderNumerologySystem(selectEl ? selectEl.value : "pythagorean", true);
           renderQuantumSynthesis(true);
+          return numerologyData;
         })
-        .catch(function () {}); /* leave hidden — soft-fail on error */
+        .catch(function () { return null; }) /* leave hidden — soft-fail on error */
+        .then(function (result) {
+          numerologyFetchPromise = null;
+          return result;
+        });
+
+      return numerologyFetchPromise;
     }
 
     /* ── Multi-system numerology view — reads numerologyData.systems
@@ -3778,20 +3795,39 @@
        IIFE (not the earlier My Chart toggle script) because numerologyData
        and renderDivineTriangleBlueprintVisual are private to this closure;
        exposed on window so the toggle's OPEN handler (a separate script
-       block) can call it. No tap-interactions yet — display only. ── */
+       block) can call it. No tap-interactions yet — display only.
+
+       numerologyData is otherwise only populated when the Oracle Profile
+       panel is opened (fetchNumerology() is only called from openProfile()).
+       If My Chart is opened first, numerologyData is still null — so this
+       ensures the data by calling fetchNumerology() itself (which shares
+       an in-flight fetch rather than double-requesting) and re-renders
+       once it resolves, instead of hanging on the loading message. Safe
+       to call repeatedly across open/close/reopen: it re-queries the
+       stage element and re-reads numerologyData fresh each time. ── */
     function renderMyChart() {
       var stage = document.getElementById("myChartStage");
       if (!stage) return;
 
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
-      if (!blueprint) {
-        stage.innerHTML = '<div class="my-chart-placeholder">' +
-          (numerologyData ? "Sync your birth data to see your chart." : "Chart loading&hellip;") +
-          '</div>';
+      if (blueprint) {
+        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)" });
         return;
       }
 
-      stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)" });
+      stage.innerHTML = '<div class="my-chart-placeholder">Chart loading&hellip;</div>';
+
+      fetchNumerology().then(function () {
+        var freshStage = document.getElementById("myChartStage");
+        if (!freshStage) return;
+
+        var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+        if (loadedBlueprint) {
+          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)" });
+        } else {
+          freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
+        }
+      });
     }
 
     window.renderMyChart = renderMyChart;
