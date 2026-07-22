@@ -173,11 +173,44 @@
        shows through. Not an overlay here (unlike oracle.html's My Chart
        panel) — this IS the page. ── */
     .my-chart-stage {
+      position: relative;
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       min-height: 50vh;
+    }
+    /* ── Natal orbit — Stage D1, visual placement only. pointer-events:
+       none on the wrapper since tap interactions aren't wired yet. ── */
+    .natal-orbit {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .natal-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(10,4,20,0.7);
+      border: 1px solid rgba(168,85,247,0.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      white-space: nowrap;
+    }
+    .natal-node-glyph {
+      font-size: 1.05rem;
+      color: #f4e4b8;
+      line-height: 1;
+    }
+    .natal-node-detail {
+      font-size: 0.6rem;
+      color: rgba(232,220,255,0.75);
+      letter-spacing: 0.02em;
     }
     .my-chart-placeholder {
       font-size: 1rem;
@@ -1397,6 +1430,125 @@
       return numerologyFetchPromise;
     }
 
+    /* ═══ Natal chart loader — Stage D1, mirrors fetchNumerology exactly
+       (same API_URL/token/Authorization header, same in-flight guard
+       shape). Confirmed live against the real backend before this was
+       built: GET /api/oracle/natal returns { available, timeKnown,
+       planets:[{name,sign,degree,longitude}], ascendant:{sign,degree,
+       longitude}, midheaven:{...}, houses, moonUncertain }. Resolves to
+       null on any failure OR on { available:false, ... } so the caller
+       can degrade gracefully (triangle alone, no orbit, no error shown). ═══ */
+    var natalFetchPromise = null;
+
+    function fetchNatal() {
+      if (natalFetchPromise) return natalFetchPromise;
+      if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) {
+        return Promise.resolve(null);
+      }
+
+      natalFetchPromise = fetch(API_URL + "/api/oracle/natal", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          console.log("[Stage D1 TEMP — remove after confirming field names] natal response:", data);
+          if (!data || !data.available) return null;
+          return data;
+        })
+        .catch(function () { return null; })
+        .then(function (result) {
+          natalFetchPromise = null;
+          return result;
+        });
+
+      return natalFetchPromise;
+    }
+
+    /* ═══ Natal orbit — Stage D1, visual placement only (no taps yet).
+       Places the 10 planets + Ascendant + Midheaven as a ring of chips
+       around the centered triangle. Radius is computed from the actual
+       rendered triangle size and stage box at render time (not a fixed
+       CSS value), so it clears the triangle and stays inside the stage
+       on any window size; recomputed on resize. ═══ */
+    var lastNatalData = null;
+
+    var NATAL_GLYPHS = {
+      Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
+      Jupiter: "♃", Saturn: "♄", Uranus: "♅", Neptune: "♆", Pluto: "♇",
+      ASC: "ASC", MC: "MC"
+    };
+
+    function renderNatalOrbit(natalData) {
+      lastNatalData = natalData;
+
+      var stage = document.getElementById("myChartStage");
+      if (!stage || !natalData) return;
+
+      var existing = stage.querySelector(".natal-orbit");
+      if (existing) existing.parentNode.removeChild(existing);
+
+      var nodes = (natalData.planets || []).map(function (p) {
+        return { name: p.name, sign: p.sign, degree: p.degree };
+      });
+      if (natalData.ascendant) {
+        nodes.push({ name: "ASC", sign: natalData.ascendant.sign, degree: natalData.ascendant.degree });
+      }
+      if (natalData.midheaven) {
+        nodes.push({ name: "MC", sign: natalData.midheaven.sign, degree: natalData.midheaven.degree });
+      }
+      if (!nodes.length) return;
+
+      var stageRect    = stage.getBoundingClientRect();
+      var triangleEl   = stage.querySelector(".dtb-visual-large");
+      var triangleSize = triangleEl ? triangleEl.getBoundingClientRect().width : 320;
+
+      var nodeClearance = 46; /* half a chip's rough footprint, kept inside the stage edge */
+      var maxRadius     = Math.min(stageRect.width, stageRect.height) / 2 - nodeClearance;
+      var desiredRadius = triangleSize / 2 + 60;
+      var radius        = Math.max(80, Math.min(desiredRadius, maxRadius));
+
+      var centerX = stageRect.width / 2;
+      var centerY = stageRect.height / 2;
+      var count   = nodes.length;
+
+      var wrap = document.createElement("div");
+      wrap.className = "natal-orbit";
+
+      nodes.forEach(function (node, i) {
+        var angle = (i / count) * Math.PI * 2 - Math.PI / 2; /* start at 12 o'clock, clockwise */
+        var x = centerX + radius * Math.cos(angle);
+        var y = centerY + radius * Math.sin(angle);
+        var glyph = NATAL_GLYPHS[node.name] || node.name;
+        var deg   = (node.degree != null) ? (Math.round(node.degree * 10) / 10) : null;
+
+        var chip = document.createElement("div");
+        chip.className = "natal-node";
+        chip.style.left = x + "px";
+        chip.style.top  = y + "px";
+        chip.innerHTML =
+          '<span class="natal-node-glyph">' + glyph + '</span>' +
+          '<span class="natal-node-detail">' + (node.sign || "") + (deg != null ? " " + deg + "°" : "") + '</span>';
+        wrap.appendChild(chip);
+      });
+
+      stage.appendChild(wrap);
+    }
+
+    var natalOrbitResizeTimer = null;
+    window.addEventListener("resize", function () {
+      if (!lastNatalData) return;
+      if (natalOrbitResizeTimer) clearTimeout(natalOrbitResizeTimer);
+      natalOrbitResizeTimer = setTimeout(function () {
+        renderNatalOrbit(lastNatalData);
+      }, 150);
+    });
+
+    function loadAndRenderOrbit() {
+      fetchNatal().then(function (natalData) {
+        if (natalData) renderNatalOrbit(natalData);
+      });
+    }
+
     /* ═══ My Chart — loads data if needed, then renders the big
        interactive blueprint as the page's main content. Same load-then-
        render-then-recheck shape as oracle.html's renderMyChart fix. ═══ */
@@ -1407,6 +1559,7 @@
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
       if (blueprint) {
         stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+        loadAndRenderOrbit();
         return;
       }
 
@@ -1419,6 +1572,7 @@
         var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
         if (loadedBlueprint) {
           freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(560px, 80vw)", interactive: true });
+          loadAndRenderOrbit();
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
         }
