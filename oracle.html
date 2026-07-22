@@ -798,6 +798,8 @@
     .oracle-profile-num-select option { background: #0a0e1a; color: #e8e8ff; }
 
     .numerology-system-output { margin-bottom: 14px; }
+    .dtb-visual { margin-bottom: 14px; }
+    .dtb-visual svg { display: block; width: 100%; height: auto; }
     .num-sys-empty {
       font-size: 0.78rem;
       color: rgba(232,220,255,0.5);
@@ -3026,6 +3028,178 @@
       return html;
     }
 
+    /* ── Divine Triangle BLUEPRINT — the real Javane & Bunker geometry:
+       a right triangle (vertices A, D, G; right angle at D) with a square
+       built outward on each side — Youth on the AD leg, Power on the DG
+       leg, Wisdom on the AG hypotenuse (the classic Pythagorean squares-
+       on-a-right-triangle diagram). Fixed viewBox/geometry computed once
+       in plain JS, moon-style (see renderAbyssMoon). Stage 2: compact
+       static view only — no tap-interactions or processes timeline yet. ── */
+    function escapeXml(str) {
+      return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function renderDivineTriangleBlueprintVisual() {
+      var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
+      if (!blueprint) return "";
+
+      var linesById = {};
+      (blueprint.lines || []).forEach(function (l) { linesById[l.id] = l; });
+      var interior = blueprint.interior || {};
+      var centers  = blueprint.centers  || {};
+      var xMarkers = blueprint.xMarkers || {};
+
+      function centerDisplay(obj) {
+        if (!obj || obj.reduced == null) return "—";
+        return (obj.unreduced === obj.reduced) ? String(obj.reduced) : (obj.unreduced + "/" + obj.reduced);
+      }
+
+      function lineDisplay(line) {
+        if (!line) return "";
+        var letter = (line.letter || "?").toUpperCase();
+        var nums = (line.ordinal === line.reduced) ? String(line.reduced) : (line.ordinal + "/" + line.reduced);
+        return letter + " " + nums;
+      }
+
+      // Offsets the edge midpoint AWAY from a reference point (used for
+      // perimeter labels, pushed outward from their square's own center).
+      function labelPosAway(p1, p2, ref, dist) {
+        var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        var dx = mx - ref.x, dy = my - ref.y;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: mx + (dx / len) * dist, y: my + (dy / len) * dist };
+      }
+
+      // Offsets the edge midpoint TOWARD a reference point (used for
+      // interior-line labels, pulled inward toward the triangle's own
+      // centroid so they sit in the empty space inside the triangle
+      // rather than inside a square or on top of the square's own label).
+      function labelPosToward(p1, p2, ref, dist) {
+        var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+        var dx = ref.x - mx, dy = ref.y - my;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        return { x: mx + (dx / len) * dist, y: my + (dy / len) * dist };
+      }
+
+      function pointsAttr(poly) {
+        return poly.map(function (p) { return p.x + "," + p.y; }).join(" ");
+      }
+
+      // ── Fixed geometry (viewBox 0 0 320 320) — the same for every user;
+      // only the labels/values below are data-driven. ──
+      var corners = {
+        D: { x: 110, y: 215 },
+        A: { x: 110, y: 125 },
+        G: { x: 200, y: 215 },
+        B: { x: 20,  y: 125 },
+        C: { x: 20,  y: 215 },
+        E: { x: 110, y: 305 },
+        F: { x: 200, y: 305 },
+        H: { x: 290, y: 125 },
+        I: { x: 200, y: 35 }
+      };
+
+      var youthCenter = {
+        x: (corners.A.x + corners.B.x + corners.C.x + corners.D.x) / 4,
+        y: (corners.A.y + corners.B.y + corners.C.y + corners.D.y) / 4
+      };
+      var powerCenter = {
+        x: (corners.D.x + corners.E.x + corners.F.x + corners.G.x) / 4,
+        y: (corners.D.y + corners.E.y + corners.F.y + corners.G.y) / 4
+      };
+      var wisdomCenter = {
+        x: (corners.G.x + corners.H.x + corners.I.x + corners.A.x) / 4,
+        y: (corners.G.y + corners.H.y + corners.I.y + corners.A.y) / 4
+      };
+      var triangleCenter = {
+        x: (corners.A.x + corners.D.x + corners.G.x) / 3,
+        y: (corners.A.y + corners.D.y + corners.G.y) / 3
+      };
+
+      var youthPoly  = [corners.A, corners.B, corners.C, corners.D];
+      var powerPoly  = [corners.D, corners.E, corners.F, corners.G];
+      var wisdomPoly = [corners.G, corners.H, corners.I, corners.A];
+
+      var perimeterEdges = [
+        { id: "AB", p1: corners.A, p2: corners.B, center: youthCenter },
+        { id: "BC", p1: corners.B, p2: corners.C, center: youthCenter },
+        { id: "CD", p1: corners.C, p2: corners.D, center: youthCenter },
+        { id: "DE", p1: corners.D, p2: corners.E, center: powerCenter },
+        { id: "EF", p1: corners.E, p2: corners.F, center: powerCenter },
+        { id: "FG", p1: corners.F, p2: corners.G, center: powerCenter },
+        { id: "GH", p1: corners.G, p2: corners.H, center: wisdomCenter },
+        { id: "HI", p1: corners.H, p2: corners.I, center: wisdomCenter },
+        { id: "IA", p1: corners.I, p2: corners.A, center: wisdomCenter }
+      ];
+
+      var interiorEdges = [
+        { key: "AD", p1: corners.A, p2: corners.D },
+        { key: "DG", p1: corners.D, p2: corners.G },
+        { key: "AG", p1: corners.A, p2: corners.G }
+      ];
+
+      var svg = '<svg viewBox="0 0 320 320" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">';
+
+      svg += '<defs>' +
+        '<linearGradient id="dtbYouthFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#22d3ee" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#00ffff" stop-opacity="0.04"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="dtbPowerFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#a855f7" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#8a5cff" stop-opacity="0.04"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="dtbWisdomFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
+          '<stop offset="0%" stop-color="#f4e4b8" stop-opacity="0.14"/>' +
+          '<stop offset="100%" stop-color="#f4e4b8" stop-opacity="0.03"/>' +
+        '</linearGradient>' +
+      '</defs>';
+
+      // Squares — transparent-ish gradient fills so a future starfield
+      // layer could show through; distinct stroke per square family.
+      svg += '<polygon points="' + pointsAttr(youthPoly)  + '" fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
+      svg += '<polygon points="' + pointsAttr(powerPoly)  + '" fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
+      svg += '<polygon points="' + pointsAttr(wisdomPoly) + '" fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
+
+      // Triangle — unfilled, soft violet outline tying the three squares together.
+      svg += '<polygon points="' + pointsAttr([corners.A, corners.D, corners.G]) + '" fill="none" stroke="rgba(168,85,247,0.5)" stroke-width="1.2"/>';
+
+      // Perimeter edge labels (letter + ordinal/reduced), small and legible.
+      perimeterEdges.forEach(function (edge) {
+        var line = linesById[edge.id];
+        var pos  = labelPosAway(edge.p1, edge.p2, edge.center, 13);
+        svg += '<text x="' + pos.x + '" y="' + pos.y + '" text-anchor="middle" dominant-baseline="middle" ' +
+          'font-size="9" fill="rgba(232,220,255,0.85)">' + escapeXml(lineDisplay(line)) + '</text>';
+      });
+
+      // Interior line labels (Month/Day/Year), pulled toward the triangle's
+      // own centroid so they sit in its empty interior space.
+      var interiorLabels = { AD: "Month", DG: "Day", AG: "Year" };
+      interiorEdges.forEach(function (edge) {
+        var data = interior[edge.key];
+        if (!data) return;
+        var pos = labelPosToward(edge.p1, edge.p2, triangleCenter, 10);
+        svg += '<text x="' + pos.x + '" y="' + pos.y + '" text-anchor="middle" dominant-baseline="middle" ' +
+          'font-size="8" fill="rgba(217,179,255,0.8)">' + escapeXml(centerDisplay(data)) + '</text>';
+      });
+
+      // Four center totals.
+      svg += '<text x="' + youthCenter.x + '" y="' + youthCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#9df6ff">' + escapeXml(centerDisplay(centers.youth)) + '</text>';
+      svg += '<text x="' + powerCenter.x + '" y="' + powerCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#d9b3ff">' + escapeXml(centerDisplay(centers.power)) + '</text>';
+      svg += '<text x="' + wisdomCenter.x + '" y="' + wisdomCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.wisdom)) + '</text>';
+      svg += '<text x="' + triangleCenter.x + '" y="' + triangleCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.triangle)) + '</text>';
+
+      // X-markers — where a name completes.
+      [xMarkers.firstNameEnd, xMarkers.middleNameEnd].forEach(function (letter) {
+        if (!letter || !corners[letter]) return;
+        var pt = corners[letter];
+        svg += '<text x="' + pt.x + '" y="' + (pt.y - 10) + '" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.85)">&#x2715;</text>';
+      });
+
+      svg += '</svg>';
+      return svg;
+    }
+
     function renderDivineTriangle(sys) {
       var base       = sys.base       || [];
       var secondRow   = sys.secondRow || [];
@@ -3255,7 +3429,8 @@
       if (systemKey === "pythagorean" || systemKey === "chaldean") {
         out.innerHTML = renderNameSystemRows(sys, systemKey);
       } else if (systemKey === "divineTriangle") {
-        out.innerHTML = renderDivineTriangle(sys);
+        var blueprintSvg = renderDivineTriangleBlueprintVisual();
+        out.innerHTML = (blueprintSvg ? '<div class="dtb-visual">' + blueprintSvg + '</div>' : '') + renderDivineTriangle(sys);
       } else if (systemKey === "kabbalah") {
         out.innerHTML = renderKabbalah(sys);
       } else if (systemKey === "vedic") {
