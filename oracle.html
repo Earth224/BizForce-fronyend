@@ -201,6 +201,104 @@
       color: transparent;
     }
 
+    .top-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .my-chart-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .my-chart-toggle:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    /* ── My Chart — full-screen takeover (Stage 1: toggle + shell only).
+       position:fixed with a near-transparent background so #starCanvas/
+       #abyssMoon (both z-index 0, inside .scene) keep showing through;
+       z-index 4 sits above .page (1) but below the corner star (5) and
+       the floating profile/celestial panels (6), so if either of those
+       happens to be open already, it still renders on top, untouched. ── */
+    .my-chart-view {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      background: rgba(6, 3, 16, 0.35);
+      padding: 32px 24px;
+    }
+    .my-chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .my-chart-title {
+      font-size: clamp(1.3rem, 3vw, 1.7rem);
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .my-chart-close {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      background: rgba(12, 18, 38, 0.6);
+      color: #22d3ee;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .my-chart-close:hover {
+      border-color: rgba(0, 229, 255, 0.55);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    .my-chart-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .my-chart-placeholder {
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      font-style: italic;
+      color: rgba(232, 220, 255, 0.45);
+    }
+
     .agent-header {
       display: flex;
       align-items: flex-start;
@@ -1763,7 +1861,10 @@
   <div id="chatScreen" class="page hidden">
 
     <nav class="top-nav">
-      <a class="back-link" href="dashboard.html">&#8592; Dashboard</a>
+      <div class="top-nav-left">
+        <a class="back-link" href="dashboard.html">&#8592; Dashboard</a>
+        <button type="button" class="my-chart-toggle" id="myChartToggle">&#x2726; My Chart</button>
+      </div>
       <span class="brand-badge">BizForce AI</span>
     </nav>
 
@@ -1803,6 +1904,17 @@
           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
         </svg>
       </button>
+    </div>
+  </div>
+
+  <!-- ══════════════ MY CHART — full-screen takeover (Stage 1: shell only) ══════════════ -->
+  <div id="myChartView" class="my-chart-view" style="display:none;">
+    <div class="my-chart-header">
+      <span class="my-chart-title">My Chart</span>
+      <button type="button" class="my-chart-close" id="myChartClose">&#x2715; Close</button>
+    </div>
+    <div class="my-chart-stage" id="myChartStage">
+      <div class="my-chart-placeholder">Your cosmic chart</div>
     </div>
   </div>
 
@@ -2121,6 +2233,46 @@
       wrap.appendChild(bubble);
       messageArea.appendChild(wrap);
       messageArea.scrollTop = messageArea.scrollHeight;
+    }
+
+    /* ── My Chart — Stage 1: toggle + full-screen shell only. Hides just
+       the chat column (messages/attach chips/input bar), leaving the
+       header (and its My Chart toggle) and the abyss untouched. Does not
+       touch the profile/celestial panels — their own open/closed state
+       is independent and left exactly as it was. Prior inline
+       style.display values are captured before hiding so closing restores
+       them exactly, rather than guessing "block"/"flex". ── */
+    var myChartToggle = document.getElementById("myChartToggle");
+    var myChartClose  = document.getElementById("myChartClose");
+    var myChartView   = document.getElementById("myChartView");
+    var oracleInputBar = document.querySelector(".oracle-input-bar");
+    var myChartHiddenEls = [messageArea, attachChips, oracleInputBar];
+    var myChartPrevDisplay = [];
+
+    function openMyChart() {
+      if (!myChartView) return;
+      myChartPrevDisplay = myChartHiddenEls.map(function (el) {
+        return el ? el.style.display : null;
+      });
+      myChartHiddenEls.forEach(function (el) {
+        if (el) el.style.display = "none";
+      });
+      myChartView.style.display = "flex";
+    }
+
+    function closeMyChart() {
+      if (!myChartView) return;
+      myChartView.style.display = "none";
+      myChartHiddenEls.forEach(function (el, i) {
+        if (el) el.style.display = myChartPrevDisplay[i] || "";
+      });
+    }
+
+    if (myChartToggle) {
+      myChartToggle.addEventListener("click", openMyChart);
+    }
+    if (myChartClose) {
+      myChartClose.addEventListener("click", closeMyChart);
     }
   </script>
 
