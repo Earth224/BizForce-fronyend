@@ -564,6 +564,14 @@
     .mc-tappable:hover .mc-square-wisdom {
       stroke: rgba(244,228,184,0.95);
     }
+    .mc-square-dim {
+      opacity: 0.45;
+      transition: opacity 0.4s ease;
+    }
+    .mc-square-active {
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
     .mc-square-label {
       pointer-events: none;
       letter-spacing: 0.18em;
@@ -1820,6 +1828,57 @@
         { key: "AG", p1: corners.A, p2: corners.G }
       ];
 
+      /* Life-position computation, moved ahead of the square polygons so
+         the active-square class can be decided before they're drawn. The
+         marker circles themselves are still drawn later, after the
+         perimeterEdges forEach loop, using lifeMarkerPoint computed here. */
+      var lifeMarkerPoint = null;
+      var lifeMarkerActiveSquare = "";
+      if (opts.interactive) {
+        var lifeMarkerBirthRaw = numerologyData && numerologyData.birth_date;
+        if (lifeMarkerBirthRaw) {
+          var lifeMarkerBirth = new Date(lifeMarkerBirthRaw + "T00:00:00");
+          if (!isNaN(lifeMarkerBirth.getTime())) {
+            var lifeMarkerNow = new Date();
+            var lifeMarkerAge = lifeMarkerNow.getFullYear() - lifeMarkerBirth.getFullYear();
+            var lifeMarkerLastBday = new Date(lifeMarkerNow.getFullYear(), lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
+            if (lifeMarkerLastBday.getTime() > lifeMarkerNow.getTime()) {
+              lifeMarkerAge -= 1;
+              lifeMarkerLastBday.setFullYear(lifeMarkerLastBday.getFullYear() - 1);
+            }
+            var lifeMarkerNextBday = new Date(lifeMarkerLastBday.getFullYear() + 1, lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
+            var lifeMarkerYearSpanMs = lifeMarkerNextBday.getTime() - lifeMarkerLastBday.getTime();
+            var lifeMarkerElapsedMs = lifeMarkerNow.getTime() - lifeMarkerLastBday.getTime();
+            lifeMarkerAge += lifeMarkerYearSpanMs > 0 ? (lifeMarkerElapsedMs / lifeMarkerYearSpanMs) : 0;
+
+            if (lifeMarkerAge >= 0) {
+              var lifeMarkerEdgeIndex = Math.floor(lifeMarkerAge / 9);
+              var lifeMarkerFraction;
+              if (lifeMarkerEdgeIndex > 8) {
+                lifeMarkerEdgeIndex = 8;
+                lifeMarkerFraction = 1;
+              } else {
+                lifeMarkerFraction = (lifeMarkerAge % 9) / 9;
+              }
+              var lifeMarkerEdge = perimeterEdges[lifeMarkerEdgeIndex];
+              lifeMarkerPoint = {
+                x: lifeMarkerEdge.p1.x + (lifeMarkerEdge.p2.x - lifeMarkerEdge.p1.x) * lifeMarkerFraction,
+                y: lifeMarkerEdge.p1.y + (lifeMarkerEdge.p2.y - lifeMarkerEdge.p1.y) * lifeMarkerFraction
+              };
+
+              if (lifeMarkerEdgeIndex <= 2) lifeMarkerActiveSquare = "youth";
+              else if (lifeMarkerEdgeIndex <= 5) lifeMarkerActiveSquare = "power";
+              else lifeMarkerActiveSquare = "wisdom";
+            }
+          }
+        }
+      }
+
+      function activeSquareClass(squareKey) {
+        if (!lifeMarkerActiveSquare) return "";
+        return squareKey === lifeMarkerActiveSquare ? " mc-square-active" : " mc-square-dim";
+      }
+
       var svg = '<svg viewBox="0 0 320 320" width="100%" xmlns="http://www.w3.org/2000/svg">';
 
       svg += '<defs>' +
@@ -1837,9 +1896,9 @@
         '</linearGradient>' +
       '</defs>';
 
-      var youthSquareEl  = '<polygon points="' + pointsAttr(youthPoly)  + '"' + (opts.interactive ? ' class="mc-square-youth"'  : '') + ' fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
-      var powerSquareEl  = '<polygon points="' + pointsAttr(powerPoly)  + '"' + (opts.interactive ? ' class="mc-square-power"'  : '') + ' fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
-      var wisdomSquareEl = '<polygon points="' + pointsAttr(wisdomPoly) + '"' + (opts.interactive ? ' class="mc-square-wisdom"' : '') + ' fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
+      var youthSquareEl  = '<polygon points="' + pointsAttr(youthPoly)  + '"' + (opts.interactive ? ' class="mc-square-youth'  + activeSquareClass("youth")  + '"' : '') + ' fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
+      var powerSquareEl  = '<polygon points="' + pointsAttr(powerPoly)  + '"' + (opts.interactive ? ' class="mc-square-power'  + activeSquareClass("power")  + '"' : '') + ' fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
+      var wisdomSquareEl = '<polygon points="' + pointsAttr(wisdomPoly) + '"' + (opts.interactive ? ' class="mc-square-wisdom' + activeSquareClass("wisdom") + '"' : '') + ' fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
 
       function squareTapWrap(polyEl, squareKey, centerObj) {
         if (!opts.interactive) return polyEl;
@@ -1873,42 +1932,9 @@
         }
       });
 
-      if (opts.interactive) {
-        var lifeMarkerBirthRaw = numerologyData && numerologyData.birth_date;
-        if (lifeMarkerBirthRaw) {
-          var lifeMarkerBirth = new Date(lifeMarkerBirthRaw + "T00:00:00");
-          if (!isNaN(lifeMarkerBirth.getTime())) {
-            var lifeMarkerNow = new Date();
-            var lifeMarkerAge = lifeMarkerNow.getFullYear() - lifeMarkerBirth.getFullYear();
-            var lifeMarkerLastBday = new Date(lifeMarkerNow.getFullYear(), lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
-            if (lifeMarkerLastBday.getTime() > lifeMarkerNow.getTime()) {
-              lifeMarkerAge -= 1;
-              lifeMarkerLastBday.setFullYear(lifeMarkerLastBday.getFullYear() - 1);
-            }
-            var lifeMarkerNextBday = new Date(lifeMarkerLastBday.getFullYear() + 1, lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
-            var lifeMarkerYearSpanMs = lifeMarkerNextBday.getTime() - lifeMarkerLastBday.getTime();
-            var lifeMarkerElapsedMs = lifeMarkerNow.getTime() - lifeMarkerLastBday.getTime();
-            lifeMarkerAge += lifeMarkerYearSpanMs > 0 ? (lifeMarkerElapsedMs / lifeMarkerYearSpanMs) : 0;
-
-            if (lifeMarkerAge >= 0) {
-              var lifeMarkerEdgeIndex = Math.floor(lifeMarkerAge / 9);
-              var lifeMarkerFraction;
-              if (lifeMarkerEdgeIndex > 8) {
-                lifeMarkerEdgeIndex = 8;
-                lifeMarkerFraction = 1;
-              } else {
-                lifeMarkerFraction = (lifeMarkerAge % 9) / 9;
-              }
-              var lifeMarkerEdge = perimeterEdges[lifeMarkerEdgeIndex];
-              var lifeMarkerPoint = {
-                x: lifeMarkerEdge.p1.x + (lifeMarkerEdge.p2.x - lifeMarkerEdge.p1.x) * lifeMarkerFraction,
-                y: lifeMarkerEdge.p1.y + (lifeMarkerEdge.p2.y - lifeMarkerEdge.p1.y) * lifeMarkerFraction
-              };
-              svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="9" class="mc-life-marker-halo"/>';
-              svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="4" class="mc-life-marker"/>';
-            }
-          }
-        }
+      if (lifeMarkerPoint) {
+        svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="9" class="mc-life-marker-halo"/>';
+        svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="4" class="mc-life-marker"/>';
       }
 
       interiorEdges.forEach(function (edge) {
