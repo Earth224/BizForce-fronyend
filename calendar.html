@@ -1815,23 +1815,7 @@
     }
 
     // ---------------------------------------------------------------------
-    // 12. Chinese lunisolar — honestly not implemented
-    // ---------------------------------------------------------------------
-    function chineseNotAvailable() {
-      return {
-        available: false,
-        reason: 'requires astronomical calculation (true new moon times + solar terms) — needs a library. Not implemented; not faked.',
-      };
-    }
-
-    // ---------------------------------------------------------------------
-    // 12b. Chinese lunisolar — table-driven data + conversion math.
-    //
-    // NOT YET WIRED IN. This is additive, unreferenced code: convertDate,
-    // daysInMonth, monthsInYear, calendarMonthStartJdn, CALENDARS, and
-    // renderCalendarPage's "coming soon" branch are untouched, and
-    // chineseNotAvailable() above still stands. Wiring this in (removing
-    // the coming-soon markers) is a separate, later step.
+    // 12. Chinese lunisolar — table-driven data + conversion math.
     //
     // CHINESE_YEAR_TABLE holds 201 entries for years 1900-2100 inclusive
     // (index 0 = year 1900), copied verbatim -- integer-for-integer, not a
@@ -2040,6 +2024,12 @@
           return gregorianDaysInMonth(year, month);
         case 'indianNational':
           return sakaDaysInMonth(month, year + 78);
+        // `month` here is the chronological index (1-based) -- see
+        // decodeChineseYear's `lengths` array, which is chronological too.
+        case 'chinese': {
+          var chineseEntry = decodeChineseYear(year);
+          return chineseEntry ? chineseEntry.lengths[month - 1] : 29;
+        }
         case 'mayan':
           return null; // no months -- Long Count is positional
         default:
@@ -2062,6 +2052,10 @@
         case 'ethiopic':
         case 'egyptian':
           return 13; // 12x30 + 1 epagomenal "month"
+        case 'chinese': {
+          var chineseYearInfo = decodeChineseYear(year);
+          return chineseYearInfo ? chineseYearInfo.monthCount : 12; // 12, or 13 in a leap year
+        }
         case 'mayan':
           return null; // no months -- Long Count is positional
         default:
@@ -2093,6 +2087,22 @@
       var japanese = japaneseFromJdn(jdn, g);
       var indianNational = sakaFromJdn(jdn);
 
+      var chineseRaw = jdnToChinese(jdn);
+      var chinese = chineseRaw
+        ? {
+            year: chineseRaw.year,
+            month: chineseRaw.month,
+            leap: chineseRaw.leap,
+            day: chineseRaw.day,
+            monthIndex: chineseRaw.monthIndex,
+            monthName: chineseMonthLabel(chineseRaw.month, chineseRaw.leap),
+          }
+        : {
+            available: false,
+            reason: 'Chinese lunisolar dates are only tabulated for years ' +
+              CHINESE_TABLE_START_YEAR + ' to ' + CHINESE_TABLE_END_YEAR + '.',
+          };
+
       return {
         jdn: jdn,
         gregorian: { year: g.year, month: g.month, day: g.day, monthName: GREGORIAN_MONTH_NAMES[g.month - 1] },
@@ -2106,7 +2116,7 @@
         buddhist: buddhist,
         japanese: japanese,
         indianNational: indianNational,
-        chinese: chineseNotAvailable(),
+        chinese: chinese,
       };
     }
 
@@ -2341,7 +2351,7 @@
       { value: "japanese",       label: "Japanese · Era" },
       { value: "mayan",          label: "Mayan · Long Count" },
       { value: "egyptian",       label: "Egyptian · Civil" },
-      { value: "chinese",        label: "Chinese — coming soon", disabled: true }
+      { value: "chinese",        label: "Chinese" }
     ];
 
     function mod(n, m) { return ((n % m) + m) % m; }
@@ -2538,6 +2548,7 @@
         case 'buddhist':       return buddhistToJdn(year, month, 1);
         case 'japanese':       return gregorianToJDN(year, month, 1); // year = Gregorian year here
         case 'indianNational': return sakaToJdn(year, month, 1);
+        case 'chinese':        return chineseToJdn(year, month, 1); // month = chronological index
         default:                return null;
       }
     }
@@ -2578,7 +2589,6 @@
     }
 
     function currentVisibleJdnRange() {
-      if (activeCalendar === 'chinese') return null;
       if (activeCalendar === 'mayan') {
         var monthStartJdn = mayanViewMonthStartJdn();
         var daysInHaabMonth = mayanMonthIndex < 18 ? 20 : 5;
@@ -2787,21 +2797,6 @@
     function renderCalendarPage() {
       var calendar = activeCalendar;
 
-      if (calendar === 'chinese') {
-        if (calGridSubtitle) {
-          calGridSubtitle.textContent = "Coming soon";
-          calGridSubtitle.classList.remove('cal-subtitle-stacked');
-        }
-        calPage.innerHTML =
-          '<div class="cal-mayan-note">Chinese lunisolar conversion needs real astronomical ' +
-          'new-moon and solar-term calculations. Not implemented — flagged honestly rather ' +
-          'than faked.</div>';
-        if (calPrevBtn) calPrevBtn.style.visibility = "hidden";
-        if (calNextBtn) calNextBtn.style.visibility = "hidden";
-        if (calTodayBtn) calTodayBtn.style.visibility = "hidden";
-        return;
-      }
-
       if (calPrevBtn) calPrevBtn.style.visibility = "visible";
       if (calNextBtn) calNextBtn.style.visibility = "visible";
       if (calTodayBtn) calTodayBtn.style.visibility = "visible";
@@ -2819,8 +2814,6 @@
     // month count fresh each time (handles Hebrew's 12<->13 leap-year
     // Adar II swing and the 13-month Coptic/Ethiopic/Egyptian shape).
     function goToAdjacentMonth(direction) {
-      if (activeCalendar === 'chinese') return;
-
       if (activeCalendar === 'mayan') {
         mayanMonthIndex += direction;
         if (mayanMonthIndex > 18) { mayanMonthIndex = 0; mayanCycleOffset += 1; }
@@ -2873,7 +2866,7 @@
     // in -- creating a continuous "flip" illusion, direction-dependent
     // on prev vs next.
     function turnPage(direction) {
-      if (!calPage || activeCalendar === 'chinese') { goToAdjacentMonth(direction); return; }
+      if (!calPage) { goToAdjacentMonth(direction); return; }
       var outClass = direction > 0 ? 'cal-page-out-next' : 'cal-page-out-prev';
       var inClass  = direction > 0 ? 'cal-page-in-next'  : 'cal-page-in-prev';
 
@@ -2961,8 +2954,6 @@
       } else if (activeCalendar === 'japanese') {
         var j = conv.japanese;
         parts = nativeHeaderHtml('japanese', j.month, j.label + ' · ' + j.monthName + ' ' + j.day);
-      } else if (activeCalendar === 'chinese') {
-        parts = { html: 'Chinese (coming soon)', stacked: false };
       } else if (activeCalendar === 'egyptian') {
         var ce = conv.egyptian;
         var secondary = nativeMonthName('egyptian', ce.month, true);
