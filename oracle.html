@@ -812,7 +812,7 @@
     .oracle-profile-num-select {
       width: 100%;
       padding: 9px 12px;
-      background: rgba(255,255,255,0.04);
+      background-color: rgba(10,4,20,0.7);
       border: 1px solid rgba(200,168,75,0.3);
       border-radius: 9px;
       color: #e8e8ff;
@@ -820,11 +820,20 @@
       font-family: inherit;
       outline: none;
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, background-color 0.2s;
       box-sizing: border-box;
       margin-bottom: 12px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 34px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23e8c874' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
     }
+    .oracle-profile-num-select::-ms-expand { display: none; }
     .oracle-profile-num-select:focus { border-color: rgba(232,200,116,0.6); }
+    .oracle-profile-num-select:hover { border-color: rgba(232,200,116,0.5); background-color: rgba(10,4,20,0.85); }
     .oracle-profile-num-select option { background: #0a0e1a; color: #e8e8ff; }
 
     .numerology-system-output { margin-bottom: 14px; }
@@ -1510,7 +1519,20 @@
     .cel-input:focus,
     .cel-select:focus { border-color: rgba(34,211,238,0.55); }
     .cel-select option { background: #0a0e1a; color: #e8e8ff; }
-    .cel-select { cursor: pointer; margin-bottom: 10px; }
+    .cel-select {
+      cursor: pointer;
+      margin-bottom: 10px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 34px;
+      background-color: rgba(10,4,20,0.7);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2322d3ee' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .cel-select::-ms-expand { display: none; }
+    .cel-select:hover { border-color: rgba(34,211,238,0.4); background-color: rgba(10,4,20,0.85); }
     .cel-now-btn {
       margin-top: 8px;
       width: 100%;
@@ -3741,6 +3763,19 @@
       );
     }
 
+    function jdnToGregorian(jdn) {
+      var a = jdn + 32044;
+      var b = Math.floor((4 * a + 3) / 146097);
+      var c = a - Math.floor((146097 * b) / 4);
+      var d = Math.floor((4 * c + 3) / 1461);
+      var e = c - Math.floor((1461 * d) / 4);
+      var m = Math.floor((5 * e + 2) / 153);
+      var day = e - Math.floor((153 * m + 2) / 5) + 1;
+      var month = m + 3 - 12 * Math.floor(m / 10);
+      var year = 100 * b + d - 4800 + Math.floor(m / 10);
+      return { year: year, month: month, day: day };
+    }
+
     function gregorianPartsOf(date) {
       return {
         year: date.getFullYear(),
@@ -3943,7 +3978,257 @@
       return { year: year, month: month, day: day, monthName: EGYPTIAN_MONTH_NAMES[month - 1] };
     }
 
-    // 6. Chinese lunisolar — honestly not implemented (needs an astronomical
+    // 6. Persian / Solar Hijri (Jalali) — 33-year-cycle arithmetic
+    // approximation (leap test: (25*year + 11) % 33 < 8). Epoch JDN of
+    // 1 Farvardin AP 1, verified against two independent published Nowruz
+    // dates in test-calendars.js (1403 AP = 2024-03-20, 1400 AP = 2021-03-21).
+    var PERSIAN_EPOCH_JDN = 1948320;
+
+    var PERSIAN_MONTH_NAMES = [
+      'Farvardin', 'Ordibehesht', 'Khordad', 'Tir', 'Mordad', 'Shahrivar',
+      'Mehr', 'Aban', 'Azar', 'Dey', 'Bahman', 'Esfand',
+    ];
+
+    function persianIsLeap(year) {
+      return ((25 * year + 11) % 33) < 8;
+    }
+
+    function persianDaysInYear(year) {
+      return persianIsLeap(year) ? 366 : 365;
+    }
+
+    function persianDaysBeforeYear(year) {
+      var days = 0, y;
+      if (year >= 1) {
+        for (y = 1; y < year; y++) days += persianDaysInYear(y);
+      } else {
+        for (y = year; y < 1; y++) days -= persianDaysInYear(y);
+      }
+      return days;
+    }
+
+    function persianDaysInMonth(year, month) {
+      if (month <= 6) return 31;
+      if (month <= 11) return 30;
+      return persianIsLeap(year) ? 30 : 29; // Esfand
+    }
+
+    function persianToJdn(year, month, day) {
+      var days = persianDaysBeforeYear(year);
+      for (var m = 1; m < month; m++) days += persianDaysInMonth(year, m);
+      return PERSIAN_EPOCH_JDN + days + day - 1;
+    }
+
+    function jdnToPersian(jdn) {
+      var year = Math.floor((jdn - PERSIAN_EPOCH_JDN) / 365.25) + 1;
+      while (persianToJdn(year, 1, 1) > jdn) year--;
+      while (persianToJdn(year + 1, 1, 1) <= jdn) year++;
+      var dayOfYear = jdn - persianToJdn(year, 1, 1) + 1;
+      var month = 1, remaining = dayOfYear;
+      while (remaining > persianDaysInMonth(year, month)) {
+        remaining -= persianDaysInMonth(year, month);
+        month++;
+      }
+      return { year: year, month: month, day: remaining };
+    }
+
+    // 7. Coptic — 12x30 + 5/6 epagomenal days ("Pi Kogi Enavot"), leap-year
+    // rule aligned with the Julian calendar (year % 4 === 3). Epoch JDN of
+    // 1 Thout AM 1, verified against the published anchor 1 Thout 1742 AM =
+    // 2025-09-11 in test-calendars.js.
+    var COPTIC_EPOCH_JDN = 1825030;
+
+    var COPTIC_MONTH_NAMES = [
+      'Thout', 'Paopi', 'Hathor', 'Koiak', 'Tobi', 'Meshir', 'Paremhat',
+      'Paremoude', 'Pashons', 'Paoni', 'Epip', 'Mesori', 'Pi Kogi Enavot',
+    ];
+
+    function copticIsLeap(year) {
+      return ((year % 4) + 4) % 4 === 3;
+    }
+
+    function copticDaysInYear(year) {
+      return copticIsLeap(year) ? 366 : 365;
+    }
+
+    function copticDaysBeforeYear(year) {
+      var days = 0, y;
+      if (year >= 1) {
+        for (y = 1; y < year; y++) days += copticDaysInYear(y);
+      } else {
+        for (y = year; y < 1; y++) days -= copticDaysInYear(y);
+      }
+      return days;
+    }
+
+    function copticDaysInMonth(year, month) {
+      if (month <= 12) return 30;
+      return copticIsLeap(year) ? 6 : 5; // epagomenal days
+    }
+
+    function copticToJdn(year, month, day) {
+      var days = copticDaysBeforeYear(year);
+      for (var m = 1; m < month; m++) days += copticDaysInMonth(year, m);
+      return COPTIC_EPOCH_JDN + days + day - 1;
+    }
+
+    function jdnToCoptic(jdn) {
+      var year = Math.floor((jdn - COPTIC_EPOCH_JDN) / 365.25) + 1;
+      while (copticToJdn(year, 1, 1) > jdn) year--;
+      while (copticToJdn(year + 1, 1, 1) <= jdn) year++;
+      var dayOfYear = jdn - copticToJdn(year, 1, 1) + 1;
+      var month = 1, remaining = dayOfYear;
+      while (remaining > copticDaysInMonth(year, month)) {
+        remaining -= copticDaysInMonth(year, month);
+        month++;
+      }
+      return { year: year, month: month, day: remaining };
+    }
+
+    // 8. Ethiopic — same 12x30 + 5/6 epagomenal structure as Coptic (shared
+    // ancestry), own epoch (Ethiopian era, ~8 CE). Epoch JDN of 1 Meskerem
+    // EE 1, verified against the published anchor 1 Meskerem 2018 EE =
+    // 2025-09-11 in test-calendars.js.
+    var ETHIOPIC_EPOCH_JDN = 1724221;
+
+    var ETHIOPIC_MONTH_NAMES = [
+      'Meskerem', 'Tikimt', 'Hidar', 'Tahsas', 'Tir', 'Yekatit', 'Megabit',
+      'Miazia', 'Ginbot', 'Sene', 'Hamle', 'Nehase', 'Pagume',
+    ];
+
+    function ethiopicIsLeap(year) {
+      return ((year % 4) + 4) % 4 === 3;
+    }
+
+    function ethiopicDaysInYear(year) {
+      return ethiopicIsLeap(year) ? 366 : 365;
+    }
+
+    function ethiopicDaysBeforeYear(year) {
+      var days = 0, y;
+      if (year >= 1) {
+        for (y = 1; y < year; y++) days += ethiopicDaysInYear(y);
+      } else {
+        for (y = year; y < 1; y++) days -= ethiopicDaysInYear(y);
+      }
+      return days;
+    }
+
+    function ethiopicDaysInMonth(year, month) {
+      if (month <= 12) return 30;
+      return ethiopicIsLeap(year) ? 6 : 5; // Pagume
+    }
+
+    function ethiopicToJdn(year, month, day) {
+      var days = ethiopicDaysBeforeYear(year);
+      for (var m = 1; m < month; m++) days += ethiopicDaysInMonth(year, m);
+      return ETHIOPIC_EPOCH_JDN + days + day - 1;
+    }
+
+    function jdnToEthiopic(jdn) {
+      var year = Math.floor((jdn - ETHIOPIC_EPOCH_JDN) / 365.25) + 1;
+      while (ethiopicToJdn(year, 1, 1) > jdn) year--;
+      while (ethiopicToJdn(year + 1, 1, 1) <= jdn) year++;
+      var dayOfYear = jdn - ethiopicToJdn(year, 1, 1) + 1;
+      var month = 1, remaining = dayOfYear;
+      while (remaining > ethiopicDaysInMonth(year, month)) {
+        remaining -= ethiopicDaysInMonth(year, month);
+        month++;
+      }
+      return { year: year, month: month, day: remaining };
+    }
+
+    // 9. Buddhist (Thai) — civil calendar, simple +543 year offset, same
+    // months/days as Gregorian.
+    function buddhistFromGregorianParts(g) {
+      return {
+        year: g.year + 543,
+        month: g.month,
+        day: g.day,
+        monthName: GREGORIAN_MONTH_NAMES[g.month - 1],
+      };
+    }
+
+    // 10. Japanese — Gregorian months/days, era-numbered year. Only the
+    // three most recent eras are tabulated (Showa onward); dates before
+    // that honestly fall back to a plain Gregorian year rather than
+    // guessing at Taisho/Meiji/earlier.
+    var JAPANESE_ERAS = [
+      { name: 'Reiwa',  startJdn: gregorianToJDN(2019, 5, 1),   startYear: 2019 },
+      { name: 'Heisei', startJdn: gregorianToJDN(1989, 1, 8),   startYear: 1989 },
+      { name: 'Showa',  startJdn: gregorianToJDN(1926, 12, 25), startYear: 1926 }
+    ];
+
+    function japaneseFromJdn(jdn, g) {
+      for (var i = 0; i < JAPANESE_ERAS.length; i++) {
+        var era = JAPANESE_ERAS[i];
+        if (jdn >= era.startJdn) {
+          var eraYear = g.year - era.startYear + 1;
+          return {
+            era: era.name,
+            eraYear: eraYear,
+            label: eraYear === 1 ? (era.name + " gannen") : (era.name + " " + eraYear),
+            month: g.month,
+            day: g.day,
+            monthName: GREGORIAN_MONTH_NAMES[g.month - 1],
+          };
+        }
+      }
+      return {
+        era: null,
+        eraYear: null,
+        label: g.year + " (pre-Showa — era not tabulated)",
+        month: g.month,
+        day: g.day,
+        monthName: GREGORIAN_MONTH_NAMES[g.month - 1],
+      };
+    }
+
+    // 11. Indian National (Saka) — solar calendar, Chaitra 1 falls on 21
+    // or 22 March depending on the Gregorian leap pattern of the year it
+    // falls in.
+    var SAKA_MONTH_NAMES = [
+      'Chaitra', 'Vaishakha', 'Jyeshtha', 'Ashadha', 'Shravana', 'Bhadra',
+      'Ashwin', 'Kartika', 'Agrahayana', 'Pausha', 'Magha', 'Phalguna',
+    ];
+
+    function isGregorianLeapYear(year) {
+      return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    }
+
+    function sakaChaitra1Jdn(gregorianYearOfChaitra1) {
+      var day = isGregorianLeapYear(gregorianYearOfChaitra1) ? 21 : 22;
+      return gregorianToJDN(gregorianYearOfChaitra1, 3, day);
+    }
+
+    function sakaDaysInMonth(month, gregorianYearOfChaitra1) {
+      if (month === 1) return isGregorianLeapYear(gregorianYearOfChaitra1) ? 31 : 30;
+      if (month >= 2 && month <= 6) return 31;
+      return 30;
+    }
+
+    function sakaFromJdn(jdn) {
+      var g = jdnToGregorian(jdn);
+      var chaitra1ThisYear = sakaChaitra1Jdn(g.year);
+      var gregorianYearOfChaitra1, year;
+      if (jdn >= chaitra1ThisYear) {
+        gregorianYearOfChaitra1 = g.year;
+        year = g.year - 78;
+      } else {
+        gregorianYearOfChaitra1 = g.year - 1;
+        year = g.year - 79;
+      }
+      var chaitra1Jdn = sakaChaitra1Jdn(gregorianYearOfChaitra1);
+      var dayOfYear = jdn - chaitra1Jdn + 1;
+      var month = 1, remaining = dayOfYear;
+      while (remaining > sakaDaysInMonth(month, gregorianYearOfChaitra1)) {
+        remaining -= sakaDaysInMonth(month, gregorianYearOfChaitra1);
+        month++;
+      }
+      return { year: year, month: month, day: remaining, monthName: SAKA_MONTH_NAMES[month - 1] };
+    }
+
+    // 12. Chinese lunisolar — honestly not implemented (needs an astronomical
     // ephemeris for true new moons + solar terms; a fixed-offset guess would
     // silently produce wrong dates, so this is flagged instead of faked).
     function chineseNotAvailable() {
@@ -3962,6 +4247,12 @@
       var hebrew = jdToHebrew(jdn);
       var mayan = mayanFromJdn(jdn);
       var egyptian = egyptianFromJdn(jdn);
+      var persian = jdnToPersian(jdn);
+      var coptic = jdnToCoptic(jdn);
+      var ethiopic = jdnToEthiopic(jdn);
+      var buddhist = buddhistFromGregorianParts(g);
+      var japanese = japaneseFromJdn(jdn, g);
+      var indianNational = sakaFromJdn(jdn);
 
       return {
         jdn: jdn,
@@ -3970,6 +4261,12 @@
         hebrew: { year: hebrew.year, month: hebrew.month, day: hebrew.day, monthName: HEBREW_MONTH_NAMES[hebrew.month] },
         mayan: mayan,
         egyptian: egyptian,
+        persian: { year: persian.year, month: persian.month, day: persian.day, monthName: PERSIAN_MONTH_NAMES[persian.month - 1] },
+        coptic: { year: coptic.year, month: coptic.month, day: coptic.day, monthName: COPTIC_MONTH_NAMES[coptic.month - 1] },
+        ethiopic: { year: ethiopic.year, month: ethiopic.month, day: ethiopic.day, monthName: ETHIOPIC_MONTH_NAMES[ethiopic.month - 1] },
+        buddhist: buddhist,
+        japanese: japanese,
+        indianNational: indianNational,
         chinese: chineseNotAvailable(),
       };
     }
@@ -4117,12 +4414,18 @@
     restoreMoonPosition();
 
     var CALENDARS = [
-      { value: "gregorian", label: "Gregorian" },
-      { value: "hijri",     label: "Hijri (Islamic, tabular)" },
-      { value: "hebrew",    label: "Hebrew" },
-      { value: "mayan",     label: "Mayan (Long Count)" },
-      { value: "egyptian",  label: "Egyptian (civil)" },
-      { value: "chinese",   label: "Chinese (coming soon)", disabled: true }
+      { value: "gregorian",     label: "Gregorian" },
+      { value: "hijri",         label: "Hijri · Islamic" },
+      { value: "hebrew",        label: "Hebrew" },
+      { value: "persian",       label: "Persian · Solar Hijri" },
+      { value: "coptic",        label: "Coptic" },
+      { value: "ethiopic",      label: "Ethiopic" },
+      { value: "indianNational", label: "Indian National · Saka" },
+      { value: "buddhist",      label: "Buddhist · Thai" },
+      { value: "japanese",      label: "Japanese · Era" },
+      { value: "mayan",         label: "Mayan · Long Count" },
+      { value: "egyptian",      label: "Egyptian · Civil" },
+      { value: "chinese",       label: "Chinese — coming soon", disabled: true }
     ];
 
     if (calendarSelect) {
@@ -4215,6 +4518,30 @@
             }
             return e.day + " " + e.monthName + ", Year " + e.year;
           }
+
+          case "persian":
+            return r.persian.day + " " + r.persian.monthName + " " + r.persian.year;
+
+          case "coptic":
+            // Month 13 ("Pi Kogi Enavot") already covers the epagomenal
+            // days by name — no special-casing needed like Egyptian.
+            return r.coptic.day + " " + r.coptic.monthName + " " + r.coptic.year + " AM";
+
+          case "ethiopic":
+            // Month 13 ("Pagume") already covers the epagomenal days.
+            return r.ethiopic.day + " " + r.ethiopic.monthName + " " + r.ethiopic.year + " EE";
+
+          case "buddhist":
+            return r.buddhist.day + " " + r.buddhist.monthName + " " + r.buddhist.year + " BE";
+
+          case "japanese": {
+            var j = r.japanese;
+            var eraLabel = j.eraYear === 1 ? (j.era + " gannen") : (j.era ? (j.era + " " + j.eraYear) : j.label);
+            return eraLabel + " · " + j.monthName + " " + j.day;
+          }
+
+          case "indianNational":
+            return r.indianNational.day + " " + r.indianNational.monthName + " " + r.indianNational.year;
 
           case "chinese":
             // Should be unreachable — the option is disabled in the dropdown —
@@ -4621,6 +4948,24 @@
                 break;
               case "egyptian":
                 rawText = "raw: year=" + convForOut.egyptian.year + " month=" + convForOut.egyptian.month + " day=" + convForOut.egyptian.day + " (epoch: Era of Nabonassar)";
+                break;
+              case "persian":
+                rawText = "raw: year=" + convForOut.persian.year + " month=" + convForOut.persian.month + " day=" + convForOut.persian.day + " (33-year-cycle approximation)";
+                break;
+              case "coptic":
+                rawText = "raw: year=" + convForOut.coptic.year + " month=" + convForOut.coptic.month + " day=" + convForOut.coptic.day + " (Era of Martyrs, 284 CE)";
+                break;
+              case "ethiopic":
+                rawText = "raw: year=" + convForOut.ethiopic.year + " month=" + convForOut.ethiopic.month + " day=" + convForOut.ethiopic.day + " (Ethiopian era, ~8 CE)";
+                break;
+              case "buddhist":
+                rawText = "Gregorian year + 543 = " + convForOut.buddhist.year;
+                break;
+              case "japanese":
+                rawText = convForOut.japanese.era ? ("Era: " + convForOut.japanese.era + " (started " + JAPANESE_ERAS.filter(function (e) { return e.name === convForOut.japanese.era; })[0].startYear + ")") : "Pre-Showa — era not tabulated";
+                break;
+              case "indianNational":
+                rawText = "raw: year=" + convForOut.indianNational.year + " month=" + convForOut.indianNational.month + " day=" + convForOut.indianNational.day + " (Saka era)";
                 break;
               case "chinese":
                 rawText = "Chinese calendar coming soon — needs an astronomical library.";
