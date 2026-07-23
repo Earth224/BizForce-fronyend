@@ -2928,6 +2928,14 @@
     // aligned) and renders exactly as it did before this existed.
     var WEEK_STRUCTURE = {
       default: { columns: 7, labels: WEEKDAY_LABELS, alignToWeekday: true },
+      // Egyptian civil calendar has no seven-day week: each 30-day month is
+      // exactly three decades of ten days, so a month always fills three
+      // complete rows of ten with no leading blank cells (the 13th "month",
+      // the five epagomenal days, just fills a single partial row).
+      // Columns are labeled with Roman numerals (day position within the
+      // decade, I-X) rather than Arabic numerals so the header row reads
+      // distinctly from the Arabic day numbers inside the cells below it.
+      egyptian: { columns: 10, labels: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"], alignToWeekday: false },
     };
 
     function weekStructureFor(calendar) {
