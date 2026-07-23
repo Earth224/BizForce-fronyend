@@ -743,6 +743,13 @@
       font-family: 'Noto Sans Arabic', 'Traditional Arabic', 'Segoe UI', Tahoma, sans-serif;
       font-size: 0.95rem;
     }
+    /* Greek-script birth name -- own font stack for full polytonic glyph
+       coverage (accents/breathings). Left-to-right, unlike the Arabic
+       field above -- Greek's natural direction. */
+    .oracle-profile-field input.oracle-profile-input-greek {
+      font-family: 'Noto Sans', 'Palatino Linotype', 'Segoe UI', serif;
+      font-size: 0.95rem;
+    }
     .oracle-profile-hint {
       display: block;
       margin-top: 6px;
@@ -1814,6 +1821,11 @@
         <span class="oracle-profile-hint">Required for an accurate Abjad reading — Latin transliteration cannot distinguish letters like ص (90) from س (60).</span>
       </div>
       <div class="oracle-profile-field">
+        <label for="birthNameGreekInput" class="bf-gold-text">Birth Name in Greek (optional)</label>
+        <input type="text" id="birthNameGreekInput" class="oracle-profile-input-greek" placeholder="Το όνομα στα ελληνικά" />
+        <span class="oracle-profile-hint">Required for an accurate isopsephy reading — Latin transliteration cannot distinguish η (8) from ε (5), or ω (800) from ο (70).</span>
+      </div>
+      <div class="oracle-profile-field">
         <label for="birthDateInput" class="bf-gold-text">Birth Date</label>
         <input type="date" id="birthDateInput" />
       </div>
@@ -1851,6 +1863,7 @@
           <option value="divineTriangle">The Divine Triangle</option>
           <option value="kabbalah">Kabbalah (Hebrew Gematria)</option>
           <option value="abjad">Abjad · ʿIlm al-Ḥurūf (Arabic)</option>
+          <option value="isopsephy">Isopsephy · Greek</option>
           <option value="vedic">Vedic (Indian)</option>
           <option value="chinese">Chinese (Lo Shu Grid)</option>
         </select>
@@ -2056,6 +2069,7 @@
 
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
       var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
+      var birthNameGreekInput  = document.getElementById("birthNameGreekInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -2066,6 +2080,7 @@
       var syncPayload = {
         birth_name:        birthNameInput,
         birth_name_arabic: birthNameArabicInput,
+        birth_name_greek:  birthNameGreekInput,
         birth_date:        birthDateInput,
         birth_time:        birthTimeInput,
         birth_place:       birthPlaceInput,
@@ -2832,6 +2847,7 @@
           var d        = result.data;
           var nameEl   = document.getElementById("birthNameInput");
           var nameArEl = document.getElementById("birthNameArabicInput");
+          var nameGrEl = document.getElementById("birthNameGreekInput");
           var dateEl   = document.getElementById("birthDateInput");
           var timeEl   = document.getElementById("birthTimeInput");
           var placeEl  = document.getElementById("birthPlaceInput");
@@ -2840,6 +2856,7 @@
           var lifeEl   = document.getElementById("lifeDetailsInput");
           if (nameEl  && d.birth_name)       nameEl.value  = d.birth_name;
           if (nameArEl && d.birth_name_arabic) nameArEl.value = d.birth_name_arabic;
+          if (nameGrEl && d.birth_name_greek)  nameGrEl.value = d.birth_name_greek;
           if (dateEl  && d.birth_date)       dateEl.value  = d.birth_date;
           if (timeEl  && d.birth_time)       timeEl.value  = d.birth_time;
           if (placeEl && d.birth_place)      placeEl.value = d.birth_place;
@@ -3001,6 +3018,18 @@
           title: "Reduced",
           derivation: "The Abjad Total folded down by repeated digit-summing until a single root number remains (master numbers 11, 22, and 33 preserved, as in the other systems here). Where the total is the name's uncompressed sum, the reduced value is the single vibration the tradition reads it as resolving toward.",
           wisdom: "What remains when the whole sum is spoken as one syllable."
+        }
+      },
+      isopsephy: {
+        total: {
+          title: "Isopsephy Total",
+          derivation: "The sum of the birth name's letters under the Greek alphabetic numeral system — each of the 24 letters carrying a value from 1 to 800, joined by three archaic numeral letters (stigma 6, koppa 90, sampi 900) that fill the gaps. Isopsephy (from isos, 'equal', and psephos, 'pebble') was practiced across the Hellenistic world, appearing in graffiti at Pompeii, in the Sibylline Oracles, and in early Christian writing — most famously in the value 888 given to Ἰησοῦς. It shares a Semitic root with Hebrew gematria and Arabic Abjad, though each tradition developed independently.",
+          wisdom: "The name counted in pebbles, as the Greeks reckoned before numerals had shapes of their own."
+        },
+        reduced: {
+          title: "Reduced",
+          derivation: "The Isopsephy Total folded down by repeated digit-summing until a single root number remains (master numbers 11, 22, and 33 preserved, as elsewhere here). The total is the name's full count; the reduced value is the single vibration the tradition reads it as resolving toward.",
+          wisdom: "The whole count spoken as one syllable."
         }
       },
       vedic: {
@@ -3538,6 +3567,18 @@
       return html;
     }
 
+    /* Same refusal-to-fabricate shape as renderAbjad above -- sys.available
+       is false whenever no Greek-script name is on file. */
+    function renderIsopsephy(sys, displayOnly) {
+      if (!sys.available) {
+        return '<div class="num-sys-empty">Add your name in Greek script in your Oracle Profile to compute an isopsephy reading. This system reads the actual Greek letters — a Latin transliteration would produce a number that looks authoritative but isn\'t.</div>';
+      }
+      var html = "";
+      html += numSysRow("Isopsephy Total", sys.total, "isopsephy", "total", null, displayOnly);
+      html += numSysRow("Reduced", sys.reduced, "isopsephy", "reduced", null, displayOnly);
+      return html;
+    }
+
     function renderVedic(sys, displayOnly) {
       var html = "";
       var rulerSuffix = sys.planetaryRuler ? "· ruled by " + sys.planetaryRuler : null;
@@ -3595,6 +3636,7 @@
       divineTriangle: "Divine Triangle",
       kabbalah: "Kabbalah",
       abjad: "Abjad",
+      isopsephy: "Isopsephy",
       chinese: "Chinese"
     };
 
@@ -3731,6 +3773,8 @@
         out.innerHTML = renderKabbalah(sys, displayOnly);
       } else if (systemKey === "abjad") {
         out.innerHTML = renderAbjad(sys, displayOnly);
+      } else if (systemKey === "isopsephy") {
+        out.innerHTML = renderIsopsephy(sys, displayOnly);
       } else if (systemKey === "vedic") {
         out.innerHTML = renderVedic(sys, displayOnly);
       } else if (systemKey === "chinese") {
@@ -3775,6 +3819,7 @@
 
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
       var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
+      var birthNameGreekInput  = document.getElementById("birthNameGreekInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -3793,6 +3838,7 @@
       var syncPayload = {
         birth_name:        birthNameInput,
         birth_name_arabic: birthNameArabicInput,
+        birth_name_greek:  birthNameGreekInput,
         birth_date:        birthDateInput,
         birth_time:        birthTimeInput,
         birth_place:       birthPlaceInput,
