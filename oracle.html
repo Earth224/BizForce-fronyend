@@ -1502,8 +1502,7 @@
       color: #c8a84b;
       margin-bottom: 6px;
     }
-    .cel-input,
-    .cel-select {
+    .cel-input {
       width: 100%;
       padding: 9px 12px;
       background: rgba(255,255,255,0.04);
@@ -1516,23 +1515,106 @@
       transition: border-color 0.2s;
       box-sizing: border-box;
     }
-    .cel-input:focus,
-    .cel-select:focus { border-color: rgba(34,211,238,0.55); }
-    .cel-select option { background: #0a0e1a; color: #e8e8ff; }
-    .cel-select {
-      cursor: pointer;
+    .cel-input:focus { border-color: rgba(34,211,238,0.55); }
+
+    /* ── Custom calendar dropdown — trigger button + absolutely positioned
+       option list. Replaces the native <select> that used to live here:
+       a browser always renders a <select>'s OPEN list with its own OS
+       chrome (white/blue on most systems) no matter what CSS is applied
+       to the closed control, so it can't be themed. ── */
+    .cel-dd {
+      position: relative;
       margin-bottom: 10px;
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      padding-right: 34px;
-      background-color: rgba(10,4,20,0.7);
+    }
+    .cel-dd-trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 12px;
+      background-color: rgba(10,4,20,0.8);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 9px;
+      color: #e8e8ff;
+      font-size: 0.82rem;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .cel-dd-trigger:hover,
+    .cel-dd-trigger.is-open {
+      border-color: rgba(34,211,238,0.6);
+      background-color: rgba(10,4,20,0.92);
+    }
+    .cel-dd-trigger-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cel-dd-chevron {
+      flex-shrink: 0;
+      width: 10px;
+      height: 6px;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2322d3ee' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
+      background-position: center;
+      transition: transform 0.2s;
     }
-    .cel-select::-ms-expand { display: none; }
-    .cel-select:hover { border-color: rgba(34,211,238,0.4); background-color: rgba(10,4,20,0.85); }
+    .cel-dd-trigger.is-open .cel-dd-chevron { transform: rotate(180deg); }
+    .cel-dd-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      margin: 0;
+      padding: 6px;
+      list-style: none;
+      max-height: 280px;
+      overflow-y: auto;
+      background: rgba(6,3,16,0.96);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .cel-dd-list[hidden] { display: none; }
+    .cel-dd-option {
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: rgba(232,220,255,0.92);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cel-dd-option:hover,
+    .cel-dd-option.is-focused {
+      background: linear-gradient(90deg, rgba(34,211,238,0.16), rgba(168,85,247,0.16));
+    }
+    .cel-dd-option.is-selected {
+      color: #f5f3e8;
+      font-weight: 700;
+    }
+    .cel-dd-option.is-selected::after {
+      content: "\2713";
+      color: #22d3ee;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+    .cel-dd-option.is-disabled {
+      color: rgba(232,220,255,0.32);
+      cursor: not-allowed;
+    }
+    .cel-dd-option.is-disabled:hover { background: none; }
     .cel-now-btn {
       margin-top: 8px;
       width: 100%;
@@ -1761,8 +1843,14 @@
     </div>
 
     <div class="cel-section">
-      <label class="cel-label" for="celCalendar">Calendar</label>
-      <select class="cel-select" id="celCalendar"></select>
+      <label class="cel-label" id="celCalendarLabel">Calendar</label>
+      <div class="cel-dd" id="celCalendarDropdown">
+        <button type="button" class="cel-dd-trigger" id="celCalendarTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="celCalendarLabel">
+          <span class="cel-dd-trigger-label" id="celCalendarTriggerLabel">Gregorian</span>
+          <span class="cel-dd-chevron" aria-hidden="true"></span>
+        </button>
+        <ul class="cel-dd-list" id="celCalendarList" role="listbox" tabindex="-1" hidden></ul>
+      </div>
       <div class="cel-calendar-out" id="celCalendarOut"></div>
     </div>
 
@@ -4318,7 +4406,9 @@
     var dateEl      = document.getElementById("celDate");
     var dateTimeInput = document.getElementById("celDateTime");
     var nowBtn      = document.getElementById("celNowBtn");
-    var calendarSelect = document.getElementById("celCalendar");
+    var celCalendarTrigger      = document.getElementById("celCalendarTrigger");
+    var celCalendarTriggerLabel = document.getElementById("celCalendarTriggerLabel");
+    var celCalendarList         = document.getElementById("celCalendarList");
     var calendarOut = document.getElementById("celCalendarOut");
 
     if (!toggleBtn || !panel) return;
@@ -4420,6 +4510,100 @@
 
     restoreMoonPosition();
 
+    // ---------------------------------------------------------------------
+    // Custom dropdown component -- trigger button + absolutely positioned
+    // option list, replacing a native <select> (browsers won't let CSS
+    // theme a native select's open list). Click-outside and Escape both
+    // close it; clicking a non-disabled option selects it and fires
+    // onChange. Self-contained -- mychart.html has its own copy of this
+    // same function for its calendar panel's dropdown.
+    // ---------------------------------------------------------------------
+    function initCelDropdown(opts) {
+      var trigger = opts.trigger;
+      var triggerLabel = opts.triggerLabel;
+      var list = opts.list;
+      var options = opts.options;
+      var currentValue = opts.value;
+
+      function labelFor(value) {
+        for (var i = 0; i < options.length; i++) {
+          if (options[i].value === value) return options[i].label;
+        }
+        return value;
+      }
+
+      function renderList() {
+        list.innerHTML = "";
+        options.forEach(function (opt) {
+          var li = document.createElement("li");
+          var classes = "cel-dd-option";
+          if (opt.disabled) classes += " is-disabled";
+          if (opt.value === currentValue) classes += " is-selected";
+          li.className = classes;
+          li.setAttribute("role", "option");
+          li.setAttribute("data-value", opt.value);
+          li.setAttribute("aria-selected", opt.value === currentValue ? "true" : "false");
+          li.setAttribute("aria-disabled", opt.disabled ? "true" : "false");
+          li.textContent = opt.label;
+          if (!opt.disabled) {
+            li.addEventListener("click", function () {
+              setValue(opt.value);
+              close();
+              trigger.focus();
+            });
+          }
+          list.appendChild(li);
+        });
+      }
+
+      function isOpen() { return !list.hidden; }
+
+      function onOutsideClick(e) {
+        if (!trigger.contains(e.target) && !list.contains(e.target)) close();
+      }
+
+      function onKeyDown(e) {
+        if (e.key === "Escape") {
+          close();
+          trigger.focus();
+        }
+      }
+
+      function open() {
+        renderList();
+        list.hidden = false;
+        trigger.classList.add("is-open");
+        trigger.setAttribute("aria-expanded", "true");
+        document.addEventListener("mousedown", onOutsideClick, true);
+        document.addEventListener("keydown", onKeyDown, true);
+      }
+
+      function close() {
+        list.hidden = true;
+        trigger.classList.remove("is-open");
+        trigger.setAttribute("aria-expanded", "false");
+        document.removeEventListener("mousedown", onOutsideClick, true);
+        document.removeEventListener("keydown", onKeyDown, true);
+      }
+
+      function setValue(value) {
+        currentValue = value;
+        triggerLabel.textContent = labelFor(value);
+        if (opts.onChange) opts.onChange(value);
+      }
+
+      trigger.addEventListener("click", function () {
+        if (isOpen()) { close(); } else { open(); }
+      });
+
+      triggerLabel.textContent = labelFor(currentValue);
+
+      return {
+        setValue: setValue,
+        getValue: function () { return currentValue; }
+      };
+    }
+
     var CALENDARS = [
       { value: "gregorian",     label: "Gregorian" },
       { value: "hijri",         label: "Hijri · Islamic" },
@@ -4435,15 +4619,19 @@
       { value: "chinese",       label: "Chinese — coming soon", disabled: true }
     ];
 
-    if (calendarSelect) {
-      CALENDARS.forEach(function (cal) {
-        var opt = document.createElement("option");
-        opt.value = cal.value;
-        opt.textContent = cal.label;
-        if (cal.disabled) opt.disabled = true;
-        calendarSelect.appendChild(opt);
+    if (celCalendarTrigger && celCalendarTriggerLabel && celCalendarList) {
+      initCelDropdown({
+        trigger: celCalendarTrigger,
+        triggerLabel: celCalendarTriggerLabel,
+        list: celCalendarList,
+        options: CALENDARS,
+        value: activeCalendar,
+        onChange: function (value) {
+          activeCalendar = value;
+          try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
+          renderClock();
+        }
       });
-      calendarSelect.value = activeCalendar;
     }
 
     function getActiveMoment() {
@@ -5004,13 +5192,6 @@
     }
     if (dateTimeInput) {
       dateTimeInput.addEventListener("input", renderClock);
-    }
-    if (calendarSelect) {
-      calendarSelect.addEventListener("change", function () {
-        activeCalendar = calendarSelect.value;
-        try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
-        renderClock();
-      });
     }
 
     renderClock();

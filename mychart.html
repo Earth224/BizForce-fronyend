@@ -188,67 +188,53 @@
       font-weight: 800;
     }
 
-    /* ── Content row — calendar panel (left) + chart stage, side by side.
-       This wrapper takes over the vertical flex:1 growth that
-       .my-chart-stage used to have directly from .page; .my-chart-stage
-       keeps its own internal centering untouched so the triangle/orbit
-       math (which reads live getBoundingClientRect() off #myChartStage
-       at render time) is unaffected by the new sibling. ── */
-    .mychart-content-row {
-      flex: 1;
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
-      gap: 24px;
-      min-height: 70vh;
-    }
-
-    /* ── Calendar panel — left side, Corporate Noir dark glass matching
-       oracle.html's Celestial panel controls (reused verbatim below). ── */
+    /* ── Calendar panel — COMPACT FLOATING card, upper-left, clear of the
+       centered triangle/orbit. Sized to its own content (no forced
+       height), NOT part of the page's flex flow, so #myChartStage goes
+       back to full page width exactly as before the panel existed. ── */
     .mychart-calendar-panel {
-      flex: 0 0 300px;
-      width: 300px;
-      max-width: 300px;
+      position: fixed;
+      top: 96px;
+      left: 24px;
+      z-index: 2;
+      width: 240px;
       background: rgba(10,4,20,0.55);
       border: 1px solid rgba(34,211,238,0.18);
       border-radius: 16px;
-      padding: 20px;
+      padding: 16px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
     .mychart-calendar-title {
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       font-weight: 800;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.16em;
       text-transform: uppercase;
       background: linear-gradient(90deg, #22d3ee, #a855f7);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       color: transparent;
-      margin: 0 0 16px;
+      margin: 0 0 12px;
     }
 
-    /* On narrow screens, stack the panel above the chart instead of
-       squeezing both into too little width. */
-    @media (max-width: 900px) {
-      .mychart-content-row {
-        flex-direction: column;
-        min-height: auto;
-      }
+    /* On narrow screens a fixed upper-left card would sit on top of the
+       centered triangle — drop it back into normal document flow instead
+       (full width, above the chart) so it never covers anything. */
+    @media (max-width: 640px) {
       .mychart-calendar-panel {
-        flex: 0 0 auto;
-        width: 100%;
-        max-width: 100%;
-      }
-      .my-chart-stage {
-        min-height: 60vh;
+        position: static;
+        width: auto;
+        margin: 0 0 20px;
       }
     }
 
     /* ── Cel-* controls — copied verbatim from oracle.html's Celestial
-       panel CSS so the calendar dropdown/button/output match exactly
-       (dark glass select, cyan chevron, no native browser appearance). ── */
+       panel CSS so the calendar label/button/output match exactly
+       (dark glass, cyan accents). The dropdown itself is now a custom
+       trigger+list component (.cel-dd*, defined further below) instead
+       of a native <select> — browsers can't theme a native <select>'s
+       open list, which is exactly the problem this replaces. ── */
     .cel-label {
       display: block;
       font-size: 0.68rem;
@@ -258,32 +244,6 @@
       color: #c8a84b;
       margin-bottom: 6px;
     }
-    .cel-select {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 9px;
-      color: #e8e8ff;
-      font-size: 0.82rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-      box-sizing: border-box;
-      cursor: pointer;
-      margin-bottom: 10px;
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      padding-right: 34px;
-      background-color: rgba(10,4,20,0.7);
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2322d3ee' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-    }
-    .cel-select:focus { border-color: rgba(34,211,238,0.55); }
-    .cel-select option { background: #0a0e1a; color: #e8e8ff; }
-    .cel-select::-ms-expand { display: none; }
-    .cel-select:hover { border-color: rgba(34,211,238,0.4); background-color: rgba(10,4,20,0.85); }
     .cel-now-btn {
       margin-top: 8px;
       width: 100%;
@@ -311,16 +271,114 @@
       line-height: 1.5;
     }
 
+    /* ── Custom calendar dropdown — trigger button + absolutely positioned
+       option list. Replaces a native <select>, whose OPEN list a browser
+       always renders with its own OS chrome (white/blue on most systems)
+       no matter what CSS is applied to the closed control. ── */
+    .cel-dd {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .cel-dd-trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 9px 12px;
+      background-color: rgba(10,4,20,0.8);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 9px;
+      color: #e8e8ff;
+      font-size: 0.82rem;
+      font-family: inherit;
+      text-align: left;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .cel-dd-trigger:hover,
+    .cel-dd-trigger.is-open {
+      border-color: rgba(34,211,238,0.6);
+      background-color: rgba(10,4,20,0.92);
+    }
+    .cel-dd-trigger-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cel-dd-chevron {
+      flex-shrink: 0;
+      width: 10px;
+      height: 6px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2322d3ee' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: transform 0.2s;
+    }
+    .cel-dd-trigger.is-open .cel-dd-chevron { transform: rotate(180deg); }
+    .cel-dd-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      margin: 0;
+      padding: 6px;
+      list-style: none;
+      max-height: 280px;
+      overflow-y: auto;
+      background: rgba(6,3,16,0.96);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .cel-dd-list[hidden] { display: none; }
+    .cel-dd-option {
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: rgba(232,220,255,0.92);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cel-dd-option:hover,
+    .cel-dd-option.is-focused {
+      background: linear-gradient(90deg, rgba(34,211,238,0.16), rgba(168,85,247,0.16));
+    }
+    .cel-dd-option.is-selected {
+      color: #f5f3e8;
+      font-weight: 700;
+    }
+    .cel-dd-option.is-selected::after {
+      content: "\2713";
+      color: #22d3ee;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+    .cel-dd-option.is-disabled {
+      color: rgba(232,220,255,0.32);
+      cursor: not-allowed;
+    }
+    .cel-dd-option.is-disabled:hover { background: none; }
+
     /* ── Chart stage — main content, centered, transparent so the abyss
        shows through. Not an overlay here (unlike oracle.html's My Chart
        panel) — this IS the page. ── */
     .my-chart-stage {
       position: relative;
       flex: 1;
-      min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 70vh;
       padding-bottom: 24px;
     }
     /* ── Natal orbit — Stage D1, visual placement only. pointer-events:
@@ -639,27 +697,31 @@
       <span class="brand-badge">BizForce AI</span>
     </nav>
 
+    <div class="mychart-calendar-panel" id="calendarPanel">
+      <div class="mychart-calendar-title">Calendar</div>
+
+      <label class="cel-label" id="mcCalendarLabel">Tradition</label>
+      <div class="cel-dd" id="mcCalendarDropdown">
+        <button type="button" class="cel-dd-trigger" id="mcCalendarTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="mcCalendarLabel">
+          <span class="cel-dd-trigger-label" id="mcCalendarTriggerLabel">Gregorian</span>
+          <span class="cel-dd-chevron" aria-hidden="true"></span>
+        </button>
+        <ul class="cel-dd-list" id="mcCalendarList" role="listbox" tabindex="-1" hidden></ul>
+      </div>
+
+      <div class="cel-calendar-out" id="mcCalendarToday"></div>
+
+      <button type="button" class="cel-now-btn" id="mcOpenFullCalendar">&#x26F6; Open Full Calendar</button>
+    </div>
+
     <div class="mychart-title-row">
       <h1 class="mychart-title">My Chart</h1>
       <p class="mychart-subtitle">Your interactive Divine Triangle blueprint</p>
       <div class="mychart-natal-summary" id="mychartNatalSummary"></div>
     </div>
 
-    <div class="mychart-content-row">
-      <div class="mychart-calendar-panel" id="calendarPanel">
-        <div class="mychart-calendar-title">Calendar</div>
-
-        <label class="cel-label" for="mcCalendarSelect">Tradition</label>
-        <select class="cel-select" id="mcCalendarSelect"></select>
-
-        <div class="cel-calendar-out" id="mcCalendarToday"></div>
-
-        <button type="button" class="cel-now-btn" id="mcOpenFullCalendar">&#x26F6; Open Full Calendar</button>
-      </div>
-
-      <div class="my-chart-stage" id="myChartStage">
-        <div class="my-chart-placeholder">Chart loading&hellip;</div>
-      </div>
+    <div class="my-chart-stage" id="myChartStage">
+      <div class="my-chart-placeholder">Chart loading&hellip;</div>
     </div>
   </div>
 
@@ -3121,6 +3183,101 @@
     }
 
     // ---------------------------------------------------------------------
+    // Custom dropdown component -- trigger button + absolutely positioned
+    // option list, replacing a native <select> (browsers won't let CSS
+    // theme a native select's open list). Click-outside and Escape both
+    // close it; clicking a non-disabled option selects it and fires
+    // onChange. Self-contained, no dependency on the calendar engine
+    // above -- reusable for the other calendar dropdown (oracle.html has
+    // its own copy of this same function).
+    // ---------------------------------------------------------------------
+    function initCelDropdown(opts) {
+      var trigger = opts.trigger;
+      var triggerLabel = opts.triggerLabel;
+      var list = opts.list;
+      var options = opts.options;
+      var currentValue = opts.value;
+
+      function labelFor(value) {
+        for (var i = 0; i < options.length; i++) {
+          if (options[i].value === value) return options[i].label;
+        }
+        return value;
+      }
+
+      function renderList() {
+        list.innerHTML = "";
+        options.forEach(function (opt) {
+          var li = document.createElement("li");
+          var classes = "cel-dd-option";
+          if (opt.disabled) classes += " is-disabled";
+          if (opt.value === currentValue) classes += " is-selected";
+          li.className = classes;
+          li.setAttribute("role", "option");
+          li.setAttribute("data-value", opt.value);
+          li.setAttribute("aria-selected", opt.value === currentValue ? "true" : "false");
+          li.setAttribute("aria-disabled", opt.disabled ? "true" : "false");
+          li.textContent = opt.label;
+          if (!opt.disabled) {
+            li.addEventListener("click", function () {
+              setValue(opt.value);
+              close();
+              trigger.focus();
+            });
+          }
+          list.appendChild(li);
+        });
+      }
+
+      function isOpen() { return !list.hidden; }
+
+      function onOutsideClick(e) {
+        if (!trigger.contains(e.target) && !list.contains(e.target)) close();
+      }
+
+      function onKeyDown(e) {
+        if (e.key === "Escape") {
+          close();
+          trigger.focus();
+        }
+      }
+
+      function open() {
+        renderList();
+        list.hidden = false;
+        trigger.classList.add("is-open");
+        trigger.setAttribute("aria-expanded", "true");
+        document.addEventListener("mousedown", onOutsideClick, true);
+        document.addEventListener("keydown", onKeyDown, true);
+      }
+
+      function close() {
+        list.hidden = true;
+        trigger.classList.remove("is-open");
+        trigger.setAttribute("aria-expanded", "false");
+        document.removeEventListener("mousedown", onOutsideClick, true);
+        document.removeEventListener("keydown", onKeyDown, true);
+      }
+
+      function setValue(value) {
+        currentValue = value;
+        triggerLabel.textContent = labelFor(value);
+        if (opts.onChange) opts.onChange(value);
+      }
+
+      trigger.addEventListener("click", function () {
+        if (isOpen()) { close(); } else { open(); }
+      });
+
+      triggerLabel.textContent = labelFor(currentValue);
+
+      return {
+        setValue: setValue,
+        getValue: function () { return currentValue; }
+      };
+    }
+
+    // ---------------------------------------------------------------------
     // Panel wiring -- dropdown, today's date readout, "Open Full Calendar"
     // button (inert placeholder; the full-screen grid is the next step)
     // ---------------------------------------------------------------------
@@ -3139,20 +3296,11 @@
       { value: "chinese",        label: "Chinese — coming soon", disabled: true }
     ];
 
-    var mcCalendarSelect = document.getElementById("mcCalendarSelect");
-    var mcCalendarToday  = document.getElementById("mcCalendarToday");
-    var mcOpenFullBtn    = document.getElementById("mcOpenFullCalendar");
-
-    if (mcCalendarSelect) {
-      CALENDARS.forEach(function (cal) {
-        var opt = document.createElement("option");
-        opt.value = cal.value;
-        opt.textContent = cal.label;
-        if (cal.disabled) opt.disabled = true;
-        mcCalendarSelect.appendChild(opt);
-      });
-      mcCalendarSelect.value = activeCalendar;
-    }
+    var mcCalendarTrigger      = document.getElementById("mcCalendarTrigger");
+    var mcCalendarTriggerLabel = document.getElementById("mcCalendarTriggerLabel");
+    var mcCalendarList         = document.getElementById("mcCalendarList");
+    var mcCalendarToday        = document.getElementById("mcCalendarToday");
+    var mcOpenFullBtn          = document.getElementById("mcOpenFullCalendar");
 
     function renderCalendarToday() {
       if (mcCalendarToday) {
@@ -3160,11 +3308,18 @@
       }
     }
 
-    if (mcCalendarSelect) {
-      mcCalendarSelect.addEventListener("change", function () {
-        activeCalendar = mcCalendarSelect.value;
-        try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
-        renderCalendarToday();
+    if (mcCalendarTrigger && mcCalendarTriggerLabel && mcCalendarList) {
+      initCelDropdown({
+        trigger: mcCalendarTrigger,
+        triggerLabel: mcCalendarTriggerLabel,
+        list: mcCalendarList,
+        options: CALENDARS,
+        value: activeCalendar,
+        onChange: function (value) {
+          activeCalendar = value;
+          try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
+          renderCalendarToday();
+        }
       });
     }
 
