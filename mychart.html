@@ -583,6 +583,184 @@
       margin-bottom: 10px;
     }
 
+    /* ── Day cells become clickable once they carry a real jdn (blank
+       leading cells never get data-jdn, so this selector naturally
+       excludes them) -- Part C. ── */
+    .cal-day-cell[data-jdn] {
+      cursor: pointer;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .cal-day-cell[data-jdn]:hover {
+      border-color: rgba(34,211,238,0.4);
+      background: rgba(255,255,255,0.045);
+    }
+    /* Event-type dots -- up to 3, color-coded, pinned to the cell's
+       bottom edge so they don't push the day number/Gregorian line
+       around as events are added (keeps cells compact per spec). */
+    .cal-day-dots {
+      display: flex;
+      gap: 3px;
+      margin-top: auto;
+    }
+    .cal-day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Day-detail panel — a second modal layered above the calendar
+       overlay (z-index 60 > overlay's 50). Same dark-glass language,
+       smaller and centered. ── */
+    .cal-day-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(6,3,16,0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .cal-day-panel.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .cal-day-panel-inner {
+      width: 100%;
+      max-width: 420px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      background: rgba(10,4,20,0.92);
+      border: 1px solid rgba(168,85,247,0.3);
+      border-radius: 18px;
+      padding: 20px 22px 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .cal-day-panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .cal-day-panel-date {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f4e4b8;
+    }
+    .cal-day-panel-greg {
+      font-size: 0.75rem;
+      color: rgba(232,220,255,0.5);
+      margin-top: 2px;
+    }
+    .cal-day-no-events {
+      font-size: 0.78rem;
+      color: rgba(232,220,255,0.4);
+      font-style: italic;
+      margin-bottom: 14px;
+    }
+    .cal-day-event {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 8px;
+    }
+    .cal-day-event-main { flex: 1; min-width: 0; }
+    .cal-day-event-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #e8e8ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cal-day-event-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cal-day-event-notes {
+      font-size: 0.72rem;
+      color: rgba(232,220,255,0.55);
+      margin-top: 3px;
+    }
+    .cal-day-event-recurring {
+      font-size: 0.62rem;
+      color: rgba(168,85,247,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 3px;
+    }
+    .cal-day-event-delete {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,100,100,0.25);
+      background: rgba(255,80,80,0.06);
+      color: #ff9d9d;
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .cal-day-event-delete:hover {
+      border-color: rgba(255,100,100,0.6);
+      background: rgba(255,80,80,0.16);
+    }
+    .cal-day-panel-form {
+      margin-top: 6px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .cal-day-input,
+    .cal-day-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background-color: rgba(10,4,20,0.8);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9px;
+      color: #e8e8ff;
+      font-size: 0.82rem;
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .cal-day-input:focus,
+    .cal-day-textarea:focus { border-color: rgba(34,211,238,0.55); }
+    .cal-day-textarea { resize: vertical; min-height: 60px; }
+    .cal-day-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: rgba(232,220,255,0.75);
+      margin-bottom: 14px;
+      cursor: pointer;
+    }
+    .cal-day-checkbox-row input { accent-color: #22d3ee; }
+    .cal-day-panel-error {
+      font-size: 0.76rem;
+      color: #ff9d9d;
+      margin-bottom: 10px;
+    }
+
     /* ── Chart stage — main content, centered, transparent so the abyss
        shows through. Not an overlay here (unlike oracle.html's My Chart
        panel) — this IS the page. ── */
@@ -964,6 +1142,50 @@
       </div>
 
       <div class="cal-overlay-body" id="calOverlayBody"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ Day-detail panel — opens on top of the calendar overlay
+       when a day cell is clicked; view/add/delete events for that day.
+       Escape closes this first, then the calendar overlay on a second
+       press (see onOverlayKeyDown). ══════════ -->
+  <div class="cal-day-panel" id="calDayPanel" aria-hidden="true">
+    <div class="cal-day-panel-inner">
+      <div class="cal-day-panel-header">
+        <div>
+          <div class="cal-day-panel-date" id="calDayPanelDate">&mdash;</div>
+          <div class="cal-day-panel-greg" id="calDayPanelGreg">&mdash;</div>
+        </div>
+        <button type="button" class="cal-overlay-close" id="calDayPanelClose" aria-label="Close">&#x2715;</button>
+      </div>
+
+      <div class="cal-day-panel-events" id="calDayPanelEvents"></div>
+
+      <form class="cal-day-panel-form" id="calDayPanelForm">
+        <label class="cel-label" for="calEventTitle">Title</label>
+        <input type="text" class="cal-day-input" id="calEventTitle" maxlength="200" placeholder="e.g. Mom's birthday" required />
+
+        <label class="cel-label" id="calEventTypeLabel">Type</label>
+        <div class="cel-dd" id="calEventTypeDropdown">
+          <button type="button" class="cel-dd-trigger" id="calEventTypeTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventTypeLabel">
+            <span class="cel-dd-trigger-label" id="calEventTypeTriggerLabel">Other</span>
+            <span class="cel-dd-chevron" aria-hidden="true"></span>
+          </button>
+          <ul class="cel-dd-list" id="calEventTypeList" role="listbox" tabindex="-1" hidden></ul>
+        </div>
+
+        <label class="cel-label" for="calEventNotes">Notes (optional)</label>
+        <textarea class="cal-day-textarea" id="calEventNotes" maxlength="2000" rows="3"></textarea>
+
+        <label class="cal-day-checkbox-row" for="calEventRecurring">
+          <input type="checkbox" id="calEventRecurring" />
+          <span>Recurring annually</span>
+        </label>
+
+        <div class="cal-day-panel-error" id="calDayPanelError" hidden></div>
+
+        <button type="submit" class="cal-today-btn" id="calEventSaveBtn">Save Event</button>
+      </form>
     </div>
   </div>
 
@@ -3563,6 +3785,7 @@
           if (calendarOverlay && calendarOverlay.classList.contains("is-open")) {
             resetOverlayViewToToday();
             renderCalendarOverlay();
+            refreshEventsForCurrentView();
           }
         }
       });
@@ -3595,6 +3818,33 @@
     var WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     function mod(n, m) { return ((n % m) + m) % m; }
+
+    // Same API_URL/token/Authorization-header pattern as fetchNumerology/
+    // fetchNatal/the oracle chat POST elsewhere on this page (this script
+    // block is its own separate IIFE/scope, so those can't be reused
+    // directly -- redeclaring here mirrors them exactly rather than
+    // inventing a new auth convention).
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var token = localStorage.getItem("bf_token");
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function eventTypeColor(type) {
+      switch (type) {
+        case 'reminder':    return '#22d3ee';
+        case 'anniversary': return '#a855f7';
+        case 'birthday':    return '#f4e4b8';
+        case 'vacation':    return '#34d399';
+        default:            return '#8892b8';
+      }
+    }
 
     var calendarOverlay    = document.getElementById("calendarOverlay");
     var calOverlayTitle    = document.getElementById("calOverlayTitle");
@@ -3676,6 +3926,87 @@
       }
     }
 
+    // ---------------------------------------------------------------------
+    // Calendar events -- loaded from the backend and cached by jdn (Part A).
+    // Events anchor to jdn, not a calendar-specific date, so the SAME
+    // cached event renders correctly as a marker regardless of which of
+    // the 11 calendars is active.
+    // ---------------------------------------------------------------------
+    var eventsCache = {};      // jdn (number) -> array of event rows
+    var eventsRequestSeq = 0;  // guards against a stale response landing after a newer nav
+
+    // Mayan's Haab' month-start JDN, factored out of renderMayanView so
+    // currentVisibleJdnRange() can compute the same boundary without
+    // duplicating the cycle-anchor math.
+    function mayanViewMonthStartJdn() {
+      var todayJ = todayJdn();
+      var todayHaabCount = mod(todayJ - MAYA_EPOCH_JDN + 347, 365);
+      var cycleAnchorJdn = todayJ - todayHaabCount + 365 * mayanCycleOffset;
+      var monthStartOffset = mayanMonthIndex < 18 ? mayanMonthIndex * 20 : 360;
+      return cycleAnchorJdn + monthStartOffset;
+    }
+
+    // The [startJdn, endJdn] span currently on screen, for whichever
+    // calendar/view is active -- null when there's no real grid to load
+    // events for (Chinese).
+    function currentVisibleJdnRange() {
+      if (activeCalendar === 'chinese') return null;
+      if (activeCalendar === 'mayan') {
+        var monthStartJdn = mayanViewMonthStartJdn();
+        var daysInHaabMonth = mayanMonthIndex < 18 ? 20 : 5;
+        return { startJdn: monthStartJdn, endJdn: monthStartJdn + daysInHaabMonth - 1 };
+      }
+      var monthStartJdn2 = calendarMonthStartJdn(activeCalendar, overlayViewYear, overlayViewMonth);
+      var totalDays = daysInMonth(activeCalendar, overlayViewYear, overlayViewMonth);
+      return { startJdn: monthStartJdn2, endJdn: monthStartJdn2 + totalDays - 1 };
+    }
+
+    // Loads events for the currently-visible range, updates eventsCache,
+    // and repaints (the grid, plus the day panel's own event list if it's
+    // open). Failure is silent -- the grid was already painted without
+    // markers before this ran, so there's nothing to roll back and
+    // nothing worth surfacing as an error for a background refresh.
+    function refreshEventsForCurrentView() {
+      var range = currentVisibleJdnRange();
+      if (!range) return;
+      if (!token) return;
+
+      var seq = ++eventsRequestSeq;
+      fetch(API_URL + "/api/calendar/events?startJdn=" + range.startJdn + "&endJdn=" + range.endJdn, {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (seq !== eventsRequestSeq) return; // superseded by a newer nav/switch
+          var byJdn = {};
+          var events = (data && data.events) || [];
+          events.forEach(function (ev) {
+            if (!byJdn[ev.jdn]) byJdn[ev.jdn] = [];
+            byJdn[ev.jdn].push(ev);
+          });
+          eventsCache = byJdn;
+          renderCalendarOverlay();
+          if (calDayPanel && calDayPanel.classList.contains("is-open") && dayPanelJdn !== null) {
+            renderDayPanelEvents(dayPanelJdn);
+          }
+        })
+        .catch(function () { /* grid already rendered without markers -- fine */ });
+    }
+
+    // Up to 3 color-coded dots for a day cell, plus a tooltip listing the
+    // event titles (Part B). Returns '' when there are no events, so
+    // empty cells stay exactly as compact as before.
+    function dayMarkersHtml(dayJdn) {
+      var events = eventsCache[dayJdn];
+      if (!events || !events.length) return '';
+      var shown = events.slice(0, 3);
+      var titles = events.map(function (ev) { return ev.title; }).join(', ');
+      var dots = shown.map(function (ev) {
+        return '<span class="cal-day-dot" style="background:' + eventTypeColor(ev.event_type) + ';"></span>';
+      }).join('');
+      return '<div class="cal-day-dots" title="' + escapeHtml(titles) + '">' + dots + '</div>';
+    }
+
     // Renders one calendar's month as a 7-column grid: weekday headers,
     // leading blank cells for the day-1 offset (from weekdayFromJdn),
     // then each day 1..daysInMonth showing its own-calendar day number
@@ -3711,9 +4042,10 @@
         var gd = jdnToGregorian(dayJdn);
         var isToday = dayJdn === todayJ;
         html +=
-          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '">' +
+          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '" data-jdn="' + dayJdn + '">' +
             '<div class="cal-day-num">' + d + '</div>' +
             '<div class="cal-day-greg">' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
+            dayMarkersHtml(dayJdn) +
           '</div>';
       }
       html += '</div>';
@@ -3735,10 +4067,7 @@
 
       calOverlaySubtitle.textContent = "Positional Long Count — not month-based";
 
-      var todayHaabCount = mod(todayJ - MAYA_EPOCH_JDN + 347, 365);
-      var cycleAnchorJdn = todayJ - todayHaabCount + 365 * mayanCycleOffset;
-      var monthStartOffset = mayanMonthIndex < 18 ? mayanMonthIndex * 20 : 360;
-      var monthStartJdn = cycleAnchorJdn + monthStartOffset;
+      var monthStartJdn = mayanViewMonthStartJdn();
       var daysInHaabMonth = mayanMonthIndex < 18 ? 20 : 5;
       var monthName = HAAB_NAMES[mayanMonthIndex];
       var startWeekday = weekdayFromJdn(monthStartJdn);
@@ -3784,9 +4113,10 @@
         var gd = jdnToGregorian(dayJdn);
         var isToday = dayJdn === todayJ;
         html +=
-          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '">' +
+          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '" data-jdn="' + dayJdn + '">' +
             '<div class="cal-day-num">' + d + '</div>' +
             '<div class="cal-day-greg">' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
+            dayMarkersHtml(dayJdn) +
           '</div>';
       }
       html += '</div>';
@@ -3850,6 +4180,7 @@
         if (mayanMonthIndex > 18) { mayanMonthIndex = 0; mayanCycleOffset += 1; }
         else if (mayanMonthIndex < 0) { mayanMonthIndex = 18; mayanCycleOffset -= 1; }
         renderCalendarOverlay();
+        refreshEventsForCurrentView();
         return;
       }
 
@@ -3868,6 +4199,7 @@
           overlayViewMonth = order[idx];
         }
         renderCalendarOverlay();
+        refreshEventsForCurrentView();
         return;
       }
 
@@ -3886,30 +4218,296 @@
       overlayViewYear = year;
       overlayViewMonth = month;
       renderCalendarOverlay();
+      refreshEventsForCurrentView();
     }
 
     function goToToday() {
       resetOverlayViewToToday();
       renderCalendarOverlay();
+      refreshEventsForCurrentView();
     }
 
+    // Escape closes the day-detail panel FIRST if it's open (Part D) --
+    // both panels share this one listener (attached/detached together
+    // with the calendar overlay's own lifecycle, since the day panel can
+    // only ever be open while the overlay is), so checking the day
+    // panel's state first and returning is enough to guarantee a single
+    // Escape press never closes both at once.
     function onOverlayKeyDown(e) {
-      if (e.key === "Escape") closeCalendarOverlay();
+      if (e.key !== "Escape") return;
+      if (calDayPanel && calDayPanel.classList.contains("is-open")) {
+        closeDayPanel();
+        return;
+      }
+      closeCalendarOverlay();
     }
 
     function openCalendarOverlay() {
       resetOverlayViewToToday();
       renderCalendarOverlay();
+      refreshEventsForCurrentView();
       calendarOverlay.classList.add("is-open");
       calendarOverlay.setAttribute("aria-hidden", "false");
       document.addEventListener("keydown", onOverlayKeyDown);
     }
 
     function closeCalendarOverlay() {
+      closeDayPanel(); // never leave an orphaned open day panel underneath
       calendarOverlay.classList.remove("is-open");
       calendarOverlay.setAttribute("aria-hidden", "true");
       document.removeEventListener("keydown", onOverlayKeyDown);
     }
+
+    // ---------------------------------------------------------------------
+    // Day-detail panel -- view/add/delete events for one day (Part C).
+    // ---------------------------------------------------------------------
+    var calDayPanel        = document.getElementById("calDayPanel");
+    var calDayPanelDate    = document.getElementById("calDayPanelDate");
+    var calDayPanelGreg    = document.getElementById("calDayPanelGreg");
+    var calDayPanelEvents  = document.getElementById("calDayPanelEvents");
+    var calDayPanelClose   = document.getElementById("calDayPanelClose");
+    var calDayPanelForm    = document.getElementById("calDayPanelForm");
+    var calEventTitleInput = document.getElementById("calEventTitle");
+    var calEventNotesInput = document.getElementById("calEventNotes");
+    var calEventRecurringInput = document.getElementById("calEventRecurring");
+    var calDayPanelError   = document.getElementById("calDayPanelError");
+    var calEventSaveBtn    = document.getElementById("calEventSaveBtn");
+
+    var calEventTypeTrigger      = document.getElementById("calEventTypeTrigger");
+    var calEventTypeTriggerLabel = document.getElementById("calEventTypeTriggerLabel");
+    var calEventTypeList         = document.getElementById("calEventTypeList");
+
+    var EVENT_TYPE_OPTIONS = [
+      { value: "reminder",    label: "Reminder" },
+      { value: "anniversary", label: "Anniversary" },
+      { value: "birthday",    label: "Birthday" },
+      { value: "vacation",    label: "Vacation" },
+      { value: "other",       label: "Other" }
+    ];
+
+    var dayPanelJdn = null;         // which day the panel is currently showing
+    var selectedEventType = "other";
+
+    if (calEventTypeTrigger && calEventTypeTriggerLabel && calEventTypeList) {
+      initCelDropdown({
+        trigger: calEventTypeTrigger,
+        triggerLabel: calEventTypeTriggerLabel,
+        list: calEventTypeList,
+        options: EVENT_TYPE_OPTIONS,
+        value: selectedEventType,
+        onChange: function (value) { selectedEventType = value; }
+      });
+    }
+
+    function showDayPanelError(msg) {
+      if (!calDayPanelError) return;
+      calDayPanelError.textContent = msg;
+      calDayPanelError.hidden = false;
+    }
+
+    function clearDayPanelError() {
+      if (!calDayPanelError) return;
+      calDayPanelError.hidden = true;
+      calDayPanelError.textContent = "";
+    }
+
+    // Date header: the active calendar's own representation of this jdn,
+    // plus its Gregorian equivalent underneath for orientation -- same
+    // spirit as the grid cells' own day-number + muted-Gregorian pairing.
+    function renderDayPanelHeader(jdn) {
+      var g = jdnToGregorian(jdn);
+      var gregDate = new Date(g.year, g.month - 1, g.day);
+      var conv = convertDate(gregDate);
+      var activeLabel;
+
+      if (activeCalendar === 'mayan') {
+        activeLabel = conv.mayan.longCount;
+      } else if (activeCalendar === 'japanese') {
+        activeLabel = conv.japanese.label + " · " + conv.japanese.monthName + " " + conv.japanese.day;
+      } else if (activeCalendar === 'chinese') {
+        activeLabel = "Chinese (coming soon)";
+      } else {
+        var c = conv[activeCalendar];
+        activeLabel = c.day + " " + c.monthName + " " + c.year + yearSuffixFor(activeCalendar);
+      }
+
+      if (calDayPanelDate) calDayPanelDate.textContent = activeLabel;
+      if (calDayPanelGreg) calDayPanelGreg.textContent = GREGORIAN_MONTH_NAMES[g.month - 1] + " " + g.day + ", " + g.year;
+    }
+
+    function renderDayPanelEvents(jdn) {
+      if (!calDayPanelEvents) return;
+      var events = eventsCache[jdn] || [];
+
+      if (!events.length) {
+        calDayPanelEvents.innerHTML = '<div class="cal-day-no-events">No events on this day yet.</div>';
+        return;
+      }
+
+      var html = '';
+      events.forEach(function (ev) {
+        html +=
+          '<div class="cal-day-event">' +
+            '<div class="cal-day-event-main">' +
+              '<div class="cal-day-event-title">' +
+                '<span class="cal-day-event-dot" style="background:' + eventTypeColor(ev.event_type) + ';"></span>' +
+                escapeHtml(ev.title) +
+              '</div>' +
+              (ev.notes ? '<div class="cal-day-event-notes">' + escapeHtml(ev.notes) + '</div>' : '') +
+              (ev.recurring ? '<div class="cal-day-event-recurring">Repeats annually</div>' : '') +
+            '</div>' +
+            '<button type="button" class="cal-day-event-delete" data-event-id="' + escapeHtml(ev.id) + '" aria-label="Delete event">&#x2715;</button>' +
+          '</div>';
+      });
+      calDayPanelEvents.innerHTML = html;
+    }
+
+    function openDayPanel(jdn) {
+      if (!calDayPanel) return;
+      dayPanelJdn = jdn;
+      clearDayPanelError();
+      if (calEventTitleInput) calEventTitleInput.value = "";
+      if (calEventNotesInput) calEventNotesInput.value = "";
+      if (calEventRecurringInput) calEventRecurringInput.checked = false;
+      renderDayPanelHeader(jdn);
+      renderDayPanelEvents(jdn);
+      calDayPanel.classList.add("is-open");
+      calDayPanel.setAttribute("aria-hidden", "false");
+    }
+
+    function closeDayPanel() {
+      if (!calDayPanel) return;
+      calDayPanel.classList.remove("is-open");
+      calDayPanel.setAttribute("aria-hidden", "true");
+      dayPanelJdn = null;
+    }
+
+    function saveCalendarEvent() {
+      clearDayPanelError();
+      if (dayPanelJdn === null) return;
+
+      var title = calEventTitleInput ? calEventTitleInput.value.trim() : "";
+      if (!title) {
+        showDayPanelError("Title is required.");
+        return;
+      }
+      if (!token) {
+        showDayPanelError("Not signed in — please refresh and try again.");
+        return;
+      }
+
+      var payload = {
+        jdn: dayPanelJdn,
+        title: title,
+        event_type: selectedEventType,
+        notes: calEventNotesInput ? calEventNotesInput.value.trim() : "",
+        recurring: !!(calEventRecurringInput && calEventRecurringInput.checked)
+      };
+
+      if (calEventSaveBtn) { calEventSaveBtn.disabled = true; calEventSaveBtn.textContent = "Saving…"; }
+
+      fetch(API_URL + "/api/calendar/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function (result) {
+          if (calEventSaveBtn) { calEventSaveBtn.disabled = false; calEventSaveBtn.textContent = "Save Event"; }
+
+          if (!result.ok) {
+            showDayPanelError((result.body && result.body.error) || "Couldn't save that event — try again.");
+            return;
+          }
+
+          // Optimistic update -- paint the new marker/list entry
+          // immediately instead of waiting on a second round trip, then
+          // reconcile with the server in the background.
+          var created = result.body && result.body.event;
+          if (created) {
+            if (!eventsCache[created.jdn]) eventsCache[created.jdn] = [];
+            eventsCache[created.jdn].push(created);
+          }
+
+          if (calEventTitleInput) calEventTitleInput.value = "";
+          if (calEventNotesInput) calEventNotesInput.value = "";
+          if (calEventRecurringInput) calEventRecurringInput.checked = false;
+
+          renderCalendarOverlay();
+          renderDayPanelEvents(dayPanelJdn);
+          refreshEventsForCurrentView();
+        })
+        .catch(function () {
+          if (calEventSaveBtn) { calEventSaveBtn.disabled = false; calEventSaveBtn.textContent = "Save Event"; }
+          showDayPanelError("Couldn't save that event — check your connection and try again.");
+        });
+    }
+
+    function deleteCalendarEvent(eventId) {
+      if (!token) return;
+
+      fetch(API_URL + "/api/calendar/events/" + encodeURIComponent(eventId), {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function (result) {
+          if (!result.ok) {
+            showDayPanelError((result.body && result.body.error) || "Couldn't delete that event — try again.");
+            return;
+          }
+
+          // Optimistic removal from the cache, then reconcile in the background.
+          Object.keys(eventsCache).forEach(function (jdnKey) {
+            eventsCache[jdnKey] = eventsCache[jdnKey].filter(function (ev) { return ev.id !== eventId; });
+          });
+
+          renderCalendarOverlay();
+          if (dayPanelJdn !== null) renderDayPanelEvents(dayPanelJdn);
+          refreshEventsForCurrentView();
+        })
+        .catch(function () {
+          showDayPanelError("Couldn't delete that event — check your connection and try again.");
+        });
+    }
+
+    // Delegated listeners -- attached once, survive every grid/list
+    // re-render since re-rendering only replaces innerHTML, not these
+    // container elements themselves.
+    if (calOverlayBody) {
+      calOverlayBody.addEventListener("click", function (e) {
+        var cell = e.target.closest(".cal-day-cell[data-jdn]");
+        if (!cell) return;
+        var jdn = Number(cell.getAttribute("data-jdn"));
+        if (Number.isFinite(jdn)) openDayPanel(jdn);
+      });
+    }
+    if (calDayPanelEvents) {
+      calDayPanelEvents.addEventListener("click", function (e) {
+        var btn = e.target.closest(".cal-day-event-delete");
+        if (!btn) return;
+        var eventId = btn.getAttribute("data-event-id");
+        if (eventId) deleteCalendarEvent(eventId);
+      });
+    }
+    if (calDayPanelForm) {
+      calDayPanelForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        saveCalendarEvent();
+      });
+    }
+    if (calDayPanelClose) calDayPanelClose.addEventListener("click", closeDayPanel);
 
     if (mcOpenFullBtn && calendarOverlay) {
       mcOpenFullBtn.addEventListener("click", openCalendarOverlay);
