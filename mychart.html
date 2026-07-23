@@ -369,6 +369,220 @@
     }
     .cel-dd-option.is-disabled:hover { background: none; }
 
+    /* ── Full-screen calendar overlay — semi-transparent + blurred, NOT
+       opaque, so the abyss (#starCanvas, z-index 0) still shows through
+       behind it. z-index above everything else on this page. ── */
+    .calendar-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(6,3,16,0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .calendar-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .cal-overlay-panel {
+      width: 100%;
+      max-width: 760px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      background: rgba(10,4,20,0.55);
+      border: 1px solid rgba(34,211,238,0.22);
+      border-radius: 20px;
+      padding: 24px 28px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .cal-overlay-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .cal-overlay-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .cal-overlay-subtitle {
+      margin-top: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f4e4b8;
+    }
+    .cal-overlay-close {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: rgba(232,220,255,0.7);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cal-overlay-close:hover {
+      color: #f5f3e8;
+      border-color: rgba(255,255,255,0.3);
+    }
+    .cal-overlay-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .cal-nav-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(34,211,238,0.3);
+      background: rgba(34,211,238,0.06);
+      color: #22d3ee;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .cal-nav-btn:hover {
+      border-color: rgba(34,211,238,0.6);
+      background: rgba(34,211,238,0.14);
+    }
+    .cal-today-btn {
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.08);
+      color: #e8c8ff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .cal-today-btn:hover {
+      border-color: rgba(168,85,247,0.65);
+      background: rgba(168,85,247,0.16);
+    }
+
+    /* ── Month grid — shared by the normal per-calendar grid and the
+       Mayan Haab' cycle view. ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .cal-grid-weekday {
+      text-align: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      padding-bottom: 6px;
+    }
+    .cal-day-cell {
+      min-height: 60px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .cal-day-cell.is-blank {
+      border-color: transparent;
+      background: transparent;
+    }
+    .cal-day-num {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #e8e8ff;
+    }
+    .cal-day-greg {
+      font-size: 0.6rem;
+      color: rgba(232,220,255,0.4);
+    }
+    .cal-day-cell.is-today {
+      border-color: rgba(34,211,238,0.7);
+      background: rgba(34,211,238,0.1);
+      box-shadow: 0 0 14px rgba(34,211,238,0.3);
+    }
+    .cal-day-cell.is-today .cal-day-num { color: #22d3ee; }
+
+    /* ── Mayan special view — Long Count/Tzolk'in/Haab' stat cards +
+       explanatory note above the (navigable) Haab' cycle grid. ── */
+    .cal-mayan-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .cal-mayan-stat {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .cal-mayan-stat-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      margin-bottom: 6px;
+    }
+    .cal-mayan-stat-value {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #f5f3e8;
+    }
+    .cal-mayan-longcount { grid-column: 1 / -1; }
+    .cal-mayan-longcount .cal-mayan-stat-value {
+      font-size: 1.55rem;
+      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .cal-mayan-note {
+      font-size: 0.76rem;
+      color: rgba(232,220,255,0.6);
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .cal-mayan-month-label {
+      text-align: center;
+      font-weight: 700;
+      color: #f4e4b8;
+      margin-bottom: 10px;
+    }
+
     /* ── Chart stage — main content, centered, transparent so the abyss
        shows through. Not an overlay here (unlike oracle.html's My Chart
        panel) — this IS the page. ── */
@@ -728,6 +942,29 @@
   <div class="mc-info-panel" id="mcInfoPanel" aria-hidden="true">
     <button type="button" class="mc-info-close" id="mcInfoClose" aria-label="Close">&#x2715;</button>
     <div class="mc-info-body" id="mcInfoBody"></div>
+  </div>
+
+  <!-- ══════════ Full-screen calendar overlay — opened by the panel's
+       "Open Full Calendar" button. Semi-transparent + backdrop-blur so
+       the abyss (#starCanvas) still shows through, not opaque. ══════════ -->
+  <div class="calendar-overlay" id="calendarOverlay" aria-hidden="true">
+    <div class="cal-overlay-panel">
+      <div class="cal-overlay-header">
+        <div class="cal-overlay-titles">
+          <div class="cal-overlay-title" id="calOverlayTitle">Calendar</div>
+          <div class="cal-overlay-subtitle" id="calOverlaySubtitle">&mdash;</div>
+        </div>
+        <button type="button" class="cal-overlay-close" id="calOverlayClose" aria-label="Close">&#x2715;</button>
+      </div>
+
+      <div class="cal-overlay-nav">
+        <button type="button" class="cal-nav-btn" id="calPrevBtn" aria-label="Previous">&#x2039;</button>
+        <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
+        <button type="button" class="cal-nav-btn" id="calNextBtn" aria-label="Next">&#x203A;</button>
+      </div>
+
+      <div class="cal-overlay-body" id="calOverlayBody"></div>
+    </div>
   </div>
 
   <!-- ══════════ Live canvas starfield — copied VERBATIM from oracle.html,
@@ -3319,18 +3556,368 @@
           activeCalendar = value;
           try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
           renderCalendarToday();
+          // Part E: if the overlay is open when the calendar changes,
+          // jump it to "today" in the newly selected calendar and
+          // re-render immediately rather than leaving it showing a
+          // month/grid that no longer matches the dropdown.
+          if (calendarOverlay && calendarOverlay.classList.contains("is-open")) {
+            resetOverlayViewToToday();
+            renderCalendarOverlay();
+          }
         }
       });
     }
 
-    if (mcOpenFullBtn) {
-      mcOpenFullBtn.addEventListener("click", function () {
-        // Placeholder -- full-screen month grid is the next build step.
-        console.log("[calendar] Open Full Calendar clicked. activeCalendar =", activeCalendar);
-      });
+    renderCalendarToday();
+
+    // ---------------------------------------------------------------------
+    // Full-screen calendar overlay -- month grid for the 10 navigable
+    // calendars, a dedicated Long-Count/Tzolk'in/Haab' view for Mayan
+    // (Part D: honest, not a fake grid -- Mayan has no months), and a
+    // simple "coming soon" note for Chinese (unreachable via the
+    // dropdown, which disables it, but handled defensively anyway).
+    // ---------------------------------------------------------------------
+    var CALENDAR_DISPLAY_NAMES = {
+      gregorian: "Gregorian Calendar",
+      hijri: "Hijri Calendar",
+      hebrew: "Hebrew Calendar",
+      persian: "Persian Calendar",
+      coptic: "Coptic Calendar",
+      ethiopic: "Ethiopic Calendar",
+      indianNational: "Indian National Calendar",
+      buddhist: "Buddhist Calendar",
+      japanese: "Japanese Calendar",
+      mayan: "Mayan Calendar",
+      egyptian: "Egyptian Calendar",
+      chinese: "Chinese Calendar"
+    };
+
+    var WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    function mod(n, m) { return ((n % m) + m) % m; }
+
+    var calendarOverlay    = document.getElementById("calendarOverlay");
+    var calOverlayTitle    = document.getElementById("calOverlayTitle");
+    var calOverlaySubtitle = document.getElementById("calOverlaySubtitle");
+    var calOverlayBody     = document.getElementById("calOverlayBody");
+    var calOverlayClose    = document.getElementById("calOverlayClose");
+    var calPrevBtn         = document.getElementById("calPrevBtn");
+    var calNextBtn         = document.getElementById("calNextBtn");
+    var calTodayBtn        = document.getElementById("calTodayBtn");
+
+    // Navigation state for the 10 month-based calendars. For every
+    // calendar except Japanese this is that calendar's OWN year number
+    // (Hebrew year, Coptic year, Buddhist year, ...) -- exactly what
+    // daysInMonth()/monthsInYear()/the *ToJdn functions already expect.
+    // Japanese is the one exception: daysInMonth('japanese', year, month)
+    // and the day-1 JDN below both key off the plain GREGORIAN year
+    // (Japanese months/days ARE Gregorian months/days), so overlayViewYear
+    // holds the Gregorian year whenever activeCalendar === "japanese".
+    var overlayViewYear = null;
+    var overlayViewMonth = null;
+
+    // Mayan has no year-numbered months at all (see Part D) -- its own,
+    // separate nav state: which of the 18 Haab' months (or index 18 =
+    // Wayeb') is showing, and how many whole 365-day Haab' cycles away
+    // from the cycle that contains today.
+    var mayanMonthIndex = 0;
+    var mayanCycleOffset = 0;
+
+    // Given a calendar + its OWN (year, month), the JDN of that month's
+    // day 1 -- dispatches to the already-validated *ToJdn function for
+    // each calendar (ported from test-calendars.js / oracle.html).
+    function calendarMonthStartJdn(calendar, year, month) {
+      switch (calendar) {
+        case 'gregorian':      return gregorianToJDN(year, month, 1);
+        case 'hijri':          return islamicToJd(year, month, 1);
+        case 'hebrew':         return hebrewToJd(year, month, 1);
+        case 'persian':        return persianToJdn(year, month, 1);
+        case 'coptic':         return copticToJdn(year, month, 1);
+        case 'ethiopic':       return ethiopicToJdn(year, month, 1);
+        case 'egyptian':       return egyptianToJdn(year, month, 1);
+        case 'buddhist':       return buddhistToJdn(year, month, 1);
+        case 'japanese':       return gregorianToJDN(year, month, 1); // year = Gregorian year here
+        case 'indianNational': return sakaToJdn(year, month, 1);
+        default:                return null;
+      }
     }
 
-    renderCalendarToday();
+    function yearSuffixFor(calendar) {
+      switch (calendar) {
+        case 'hijri':    return ' AH';
+        case 'coptic':   return ' AM';
+        case 'ethiopic': return ' EE';
+        case 'buddhist': return ' BE';
+        default:         return '';
+      }
+    }
+
+    function todayJdn() {
+      var now = new Date();
+      return gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    }
+
+    function resetOverlayViewToToday() {
+      var conv = convertDate(new Date());
+      if (activeCalendar === 'mayan') {
+        var todayHaab = mayanFromJdn(todayJdn()).haab;
+        mayanMonthIndex = todayHaab.month - 1; // haab.month is 1-indexed, HAAB_NAMES is 0-indexed
+        mayanCycleOffset = 0;
+        return;
+      }
+      if (activeCalendar === 'japanese') {
+        overlayViewYear = conv.gregorian.year;
+        overlayViewMonth = conv.japanese.month;
+        return;
+      }
+      if (conv[activeCalendar]) {
+        overlayViewYear = conv[activeCalendar].year;
+        overlayViewMonth = conv[activeCalendar].month;
+      }
+    }
+
+    // Renders one calendar's month as a 7-column grid: weekday headers,
+    // leading blank cells for the day-1 offset (from weekdayFromJdn),
+    // then each day 1..daysInMonth showing its own-calendar day number
+    // plus its (smaller, muted) Gregorian equivalent for orientation.
+    function renderMonthGrid(calendar, year, month) {
+      var monthStartJdn = calendarMonthStartJdn(calendar, year, month);
+      var g0 = jdnToGregorian(monthStartJdn);
+      var conv0 = convertDate(new Date(g0.year, g0.month - 1, g0.day));
+
+      var monthLabel, yearLabel;
+      if (calendar === 'japanese') {
+        monthLabel = conv0.japanese.monthName;
+        yearLabel = conv0.japanese.label;
+      } else {
+        monthLabel = conv0[calendar].monthName;
+        yearLabel = conv0[calendar].year + yearSuffixFor(calendar);
+      }
+      calOverlaySubtitle.textContent = monthLabel + " " + yearLabel;
+
+      var totalDays = daysInMonth(calendar, year, month);
+      var startWeekday = weekdayFromJdn(monthStartJdn);
+      var todayJ = todayJdn();
+
+      var html = '<div class="cal-grid">';
+      WEEKDAY_LABELS.forEach(function (w) {
+        html += '<div class="cal-grid-weekday">' + w + '</div>';
+      });
+      for (var b = 0; b < startWeekday; b++) {
+        html += '<div class="cal-day-cell is-blank"></div>';
+      }
+      for (var d = 1; d <= totalDays; d++) {
+        var dayJdn = monthStartJdn + (d - 1);
+        var gd = jdnToGregorian(dayJdn);
+        var isToday = dayJdn === todayJ;
+        html +=
+          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '">' +
+            '<div class="cal-day-num">' + d + '</div>' +
+            '<div class="cal-day-greg">' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
+          '</div>';
+      }
+      html += '</div>';
+      calOverlayBody.innerHTML = html;
+    }
+
+    // Mayan special view (Part D): the Long Count is positional, not
+    // month-based, so this is deliberately NOT a fake month grid. Shows
+    // today's Long Count/Tzolk'in/Haab' as fixed stat cards (these are
+    // always "today", not navigable -- there is no "next Long Count"),
+    // then a navigable Haab' cycle grid (18 x 20-day months + 5-day
+    // Wayeb') below, since Haab' is the only month-shaped structure this
+    // calendar has. Haab' has no year number of its own, so navigation
+    // is tracked as (month index, whole-cycle offset from today's cycle)
+    // rather than a year+month pair.
+    function renderMayanView() {
+      var todayJ = todayJdn();
+      var todayMayan = mayanFromJdn(todayJ);
+
+      calOverlaySubtitle.textContent = "Positional Long Count — not month-based";
+
+      var todayHaabCount = mod(todayJ - MAYA_EPOCH_JDN + 347, 365);
+      var cycleAnchorJdn = todayJ - todayHaabCount + 365 * mayanCycleOffset;
+      var monthStartOffset = mayanMonthIndex < 18 ? mayanMonthIndex * 20 : 360;
+      var monthStartJdn = cycleAnchorJdn + monthStartOffset;
+      var daysInHaabMonth = mayanMonthIndex < 18 ? 20 : 5;
+      var monthName = HAAB_NAMES[mayanMonthIndex];
+      var startWeekday = weekdayFromJdn(monthStartJdn);
+
+      var html = '';
+      html += '<div class="cal-mayan-stats">';
+      html +=
+        '<div class="cal-mayan-stat cal-mayan-longcount">' +
+          '<div class="cal-mayan-stat-label">Long Count (Today)</div>' +
+          '<div class="cal-mayan-stat-value">' + todayMayan.longCount + '</div>' +
+        '</div>';
+      html +=
+        '<div class="cal-mayan-stat">' +
+          '<div class="cal-mayan-stat-label">Tzolk\'in (Today)</div>' +
+          '<div class="cal-mayan-stat-value">' + todayMayan.tzolkin.number + ' ' + todayMayan.tzolkin.name + '</div>' +
+        '</div>';
+      html +=
+        '<div class="cal-mayan-stat">' +
+          '<div class="cal-mayan-stat-label">Haab\' (Today)</div>' +
+          '<div class="cal-mayan-stat-value">' + todayMayan.haab.day + ' ' + todayMayan.haab.monthName + '</div>' +
+        '</div>';
+      html += '</div>';
+
+      html +=
+        '<div class="cal-mayan-note">The Maya Long Count is a positional day-count ' +
+        '(baktun.katun.tun.winal.kin) — it has no months or years the way most ' +
+        'calendars do, so the stats above are always "today" and don\'t change when ' +
+        'you navigate. The grid below instead shows the Haab\', an 18-month-of-20-days ' +
+        '+ 5-day Wayeb\' cycle that repeats every 365 days with no year number of its ' +
+        'own; Prev/Next move between its months.</div>';
+
+      html += '<div class="cal-mayan-month-label">' + monthName + '</div>';
+
+      html += '<div class="cal-grid">';
+      WEEKDAY_LABELS.forEach(function (w) {
+        html += '<div class="cal-grid-weekday">' + w + '</div>';
+      });
+      for (var b = 0; b < startWeekday; b++) {
+        html += '<div class="cal-day-cell is-blank"></div>';
+      }
+      for (var d = 1; d <= daysInHaabMonth; d++) {
+        var dayJdn = monthStartJdn + (d - 1);
+        var gd = jdnToGregorian(dayJdn);
+        var isToday = dayJdn === todayJ;
+        html +=
+          '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + '">' +
+            '<div class="cal-day-num">' + d + '</div>' +
+            '<div class="cal-day-greg">' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
+          '</div>';
+      }
+      html += '</div>';
+
+      calOverlayBody.innerHTML = html;
+    }
+
+    function renderCalendarOverlay() {
+      var calendar = activeCalendar;
+      if (calOverlayTitle) calOverlayTitle.textContent = CALENDAR_DISPLAY_NAMES[calendar] || "Calendar";
+
+      if (calendar === 'chinese') {
+        if (calOverlaySubtitle) calOverlaySubtitle.textContent = "Coming soon";
+        calOverlayBody.innerHTML =
+          '<div class="cal-mayan-note">Chinese lunisolar conversion needs real astronomical ' +
+          'new-moon and solar-term calculations. Not implemented — flagged honestly rather ' +
+          'than faked.</div>';
+        if (calPrevBtn) calPrevBtn.style.visibility = "hidden";
+        if (calNextBtn) calNextBtn.style.visibility = "hidden";
+        if (calTodayBtn) calTodayBtn.style.visibility = "hidden";
+        return;
+      }
+
+      if (calPrevBtn) calPrevBtn.style.visibility = "visible";
+      if (calNextBtn) calNextBtn.style.visibility = "visible";
+      if (calTodayBtn) calTodayBtn.style.visibility = "visible";
+
+      if (calendar === 'mayan') {
+        renderMayanView();
+        return;
+      }
+
+      renderMonthGrid(calendar, overlayViewYear, overlayViewMonth);
+    }
+
+    // Hebrew's month NUMBERS are not in chronological order -- the
+    // day-counting year starts at Tishrei (7), runs 7,8,...,12,(13 if
+    // leap), then wraps to 1,2,...,6 (Elul), exactly the walk order
+    // hebrewToJd/jdToHebrew build internally. A naive "month+1, wrap at
+    // monthsInYear" would break at both the Elul(6)->Tishrei(7) and the
+    // Adar(12/13)->Nisan(1) boundaries, so Hebrew gets its own ordered
+    // walk instead of the generic numeric +1/-1 used by every other
+    // month-based calendar here (all of which DO number 1..N
+    // chronologically).
+    var HEBREW_MONTH_ORDER_LEAP   = [7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 4, 5, 6];
+    var HEBREW_MONTH_ORDER_COMMON = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+
+    function hebrewMonthOrder(year) {
+      return hebrewMonthsInYear(year) === 13 ? HEBREW_MONTH_ORDER_LEAP : HEBREW_MONTH_ORDER_COMMON;
+    }
+
+    // Moves the overlay's view forward/backward by one month, correctly
+    // rolling over year boundaries and re-deriving the target year's
+    // month count fresh each time (handles Hebrew's 12<->13 leap-year
+    // Adar II swing and the 13-month Coptic/Ethiopic/Egyptian shape).
+    function goToAdjacentMonth(direction) {
+      if (activeCalendar === 'chinese') return;
+
+      if (activeCalendar === 'mayan') {
+        mayanMonthIndex += direction;
+        if (mayanMonthIndex > 18) { mayanMonthIndex = 0; mayanCycleOffset += 1; }
+        else if (mayanMonthIndex < 0) { mayanMonthIndex = 18; mayanCycleOffset -= 1; }
+        renderCalendarOverlay();
+        return;
+      }
+
+      if (activeCalendar === 'hebrew') {
+        var order = hebrewMonthOrder(overlayViewYear);
+        var idx = order.indexOf(overlayViewMonth) + direction;
+        if (idx < 0) {
+          overlayViewYear -= 1;
+          var prevOrder = hebrewMonthOrder(overlayViewYear);
+          overlayViewMonth = prevOrder[prevOrder.length - 1];
+        } else if (idx >= order.length) {
+          overlayViewYear += 1;
+          var nextOrder = hebrewMonthOrder(overlayViewYear);
+          overlayViewMonth = nextOrder[0];
+        } else {
+          overlayViewMonth = order[idx];
+        }
+        renderCalendarOverlay();
+        return;
+      }
+
+      // Every other calendar here numbers its months 1..N in
+      // chronological order, so simple +1/-1 with a monthsInYear wrap
+      // is correct.
+      var year = overlayViewYear;
+      var month = overlayViewMonth + direction;
+      if (direction > 0) {
+        var totalMonthsThisYear = monthsInYear(activeCalendar, year);
+        if (month > totalMonthsThisYear) { year += 1; month = 1; }
+      } else if (month < 1) {
+        year -= 1;
+        month = monthsInYear(activeCalendar, year);
+      }
+      overlayViewYear = year;
+      overlayViewMonth = month;
+      renderCalendarOverlay();
+    }
+
+    function goToToday() {
+      resetOverlayViewToToday();
+      renderCalendarOverlay();
+    }
+
+    function onOverlayKeyDown(e) {
+      if (e.key === "Escape") closeCalendarOverlay();
+    }
+
+    function openCalendarOverlay() {
+      resetOverlayViewToToday();
+      renderCalendarOverlay();
+      calendarOverlay.classList.add("is-open");
+      calendarOverlay.setAttribute("aria-hidden", "false");
+      document.addEventListener("keydown", onOverlayKeyDown);
+    }
+
+    function closeCalendarOverlay() {
+      calendarOverlay.classList.remove("is-open");
+      calendarOverlay.setAttribute("aria-hidden", "true");
+      document.removeEventListener("keydown", onOverlayKeyDown);
+    }
+
+    if (mcOpenFullBtn && calendarOverlay) {
+      mcOpenFullBtn.addEventListener("click", openCalendarOverlay);
+    }
+    if (calOverlayClose) calOverlayClose.addEventListener("click", closeCalendarOverlay);
+    if (calPrevBtn) calPrevBtn.addEventListener("click", function () { goToAdjacentMonth(-1); });
+    if (calNextBtn) calNextBtn.addEventListener("click", function () { goToAdjacentMonth(1); });
+    if (calTodayBtn) calTodayBtn.addEventListener("click", goToToday);
   }());
   </script>
 
