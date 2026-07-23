@@ -1825,6 +1825,161 @@
     }
 
     // ---------------------------------------------------------------------
+    // 12b. Chinese lunisolar — table-driven data + conversion math.
+    //
+    // NOT YET WIRED IN. This is additive, unreferenced code: convertDate,
+    // daysInMonth, monthsInYear, calendarMonthStartJdn, CALENDARS, and
+    // renderCalendarPage's "coming soon" branch are untouched, and
+    // chineseNotAvailable() above still stands. Wiring this in (removing
+    // the coming-soon markers) is a separate, later step.
+    //
+    // CHINESE_YEAR_TABLE holds 201 entries for years 1900-2100 inclusive
+    // (index 0 = year 1900), copied verbatim -- integer-for-integer, not a
+    // single value altered -- from chinese-calendar-table.js, which was
+    // generated from astronomy-engine and validated there against known
+    // Chinese New Year dates, known leap-month positions, and a full
+    // 72,684-day (Jan 1 1901 - Dec 31 2099) round-trip with zero failures.
+    //
+    // Bit layout per entry (a plain JS number, bits counted from 0):
+    //   bits 0-3   : leap month number for that Chinese year (0 = no leap
+    //                month that year, 1-12 = a leap month follows that
+    //                numbered month)
+    //   bits 4-16  : thirteen month-length flags, in chronological order
+    //                starting at month 1 (bit 4 = the year's first month,
+    //                bit 16 = the 13th month slot, only meaningful when a
+    //                leap month exists that year); a set bit means that
+    //                month has 30 days, unset means 29
+    //   bits 17-21 : Chinese New Year day-of-month (1-31)
+    //   bits 22-23 : Chinese New Year Gregorian month (1 or 2)
+    var CHINESE_TABLE_START_YEAR = 1900;
+    var CHINESE_TABLE_END_YEAR = 2100;
+
+    var CHINESE_YEAR_TABLE = [
+      8351016, 10908960, 9497168, 8086693, 10511536, 8956336, 7558500, 10114720, 8697232, 7173410,
+      9729312, 8237654, 10793552, 9217200, 7678645, 10267344, 8935072, 7255698, 9886352, 8640807,
+      11065632, 9491024, 7972053, 10528096, 9055072, 7428948, 10120512, 8710800, 7334178, 9759008,
+      8180326, 10638000, 9217392, 7678821, 10270112, 8940864, 7400595, 9860240, 8350007, 10922288,
+      9458352, 7775670, 10398416, 9066144, 7583060, 10140224, 8696976, 7186738, 9742672, 8082135,
+      10638176, 9218768, 7821989, 10246944, 8837712, 7460003, 10015904, 8300888, 10791280, 9459040,
+      7908182, 10399056, 9071904, 7531092, 10152528, 8676512, 6998387, 9611696, 8213927, 10639008,
+      9221776, 7828773, 10401056, 8827472, 7300276, 9872560, 8342200, 10758864, 9328336, 7911062,
+      10541712, 9099552, 7590484, 10146384, 8758490, 11052384, 9579360, 8018774, 10644816, 9235088,
+      7858469, 10414368, 8966752, 7251299, 9741680, 8342888, 10892704, 9334096, 7957653, 10515600,
+      9070896, 7426740, 9982640, 8562096, 7165346, 9590432, 8107351, 10795584, 9352336, 7711029,
+      10266960, 8803024, 7252692, 9743184, 8346281, 10902816, 9493072, 7984294, 10540192, 9095504,
+      7557860, 9983328, 8563536, 7166754, 9727264, 8055382, 10646096, 9200816, 7653749, 10144432,
+      8803744, 7253347, 9877136, 8353067, 10925344, 9482832, 7972022, 10396848, 8932016, 7361973,
+      9984720, 8566432, 7189794, 9754912, 8245847, 10670672, 9217360, 7686869, 10242912, 8674128,
+      7264931, 9890960, 8644904, 10938656, 9491040, 7906662, 10397040, 8932704, 7368020, 9991504,
+      8680592, 7006515, 9595184, 8082103, 10638000, 9086384, 7689637, 10245792, 8828496, 7304356,
+      9876640, 8366424, 10922320, 9327312, 7776982, 10398544, 9067168, 7387732, 10017360, 8705184,
+      7194963, 9619808, 8099047, 10638688, 9218896, 7691045, 10251552, 8841808, 7398564, 9726128,
+      8178040, 10767024, 9328048, 7777638, 10401440, 9073952, 7565908, 10007120, 8562864, 7031218,
+      9587376
+    ];
+
+    // Returns null when year is outside [CHINESE_TABLE_START_YEAR,
+    // CHINESE_TABLE_END_YEAR] -- otherwise the decoded shape: leapMonth
+    // (0 = none), monthCount (12 or 13), lengths (array of 29/30 in
+    // chronological order, one entry per month including the leap if any),
+    // cnyMonth and cnyDay (that year's Chinese New Year, Gregorian).
+    function decodeChineseYear(year) {
+      if (year < CHINESE_TABLE_START_YEAR || year > CHINESE_TABLE_END_YEAR) return null;
+      var value = CHINESE_YEAR_TABLE[year - CHINESE_TABLE_START_YEAR];
+
+      var leapMonth = value & 0xF;
+      var monthCount = leapMonth > 0 ? 13 : 12;
+      var lengths = [];
+      for (var i = 0; i < monthCount; i++) {
+        lengths.push(((value >> (4 + i)) & 1) === 1 ? 30 : 29);
+      }
+      var cnyDay = (value >> 17) & 0x1F;
+      var cnyMonth = (value >> 22) & 0x3;
+
+      return { leapMonth: leapMonth, monthCount: monthCount, lengths: lengths, cnyMonth: cnyMonth, cnyDay: cnyDay };
+    }
+
+    // Chronological index (1-based: 1 = the year's first month in time
+    // order) -> { number, leap }. The leap month occupies the index
+    // immediately after the month it follows and takes that month's
+    // number, so months after it shift down by one relative to a raw
+    // count. No leap that year (leapMonth === 0): index and number match.
+    function chineseMonthIndexToNumber(index, leapMonth) {
+      if (leapMonth === 0) return { number: index, leap: false };
+      if (index <= leapMonth) return { number: index, leap: false };
+      if (index === leapMonth + 1) return { number: leapMonth, leap: true };
+      return { number: index - 1, leap: false };
+    }
+
+    // Inverse of chineseMonthIndexToNumber.
+    function chineseNumberToMonthIndex(number, leap, leapMonth) {
+      if (leapMonth === 0) return number;
+      if (leap) return leapMonth + 1;
+      if (number <= leapMonth) return number;
+      return number + 1;
+    }
+
+    // year + chronological month index (1-based) + day -> JDN. Chinese New
+    // Year's own JDN comes from the decoded cnyMonth/cnyDay via the same
+    // gregorianToJDN used by every other calendar in this file; the target
+    // month's offset is the summed length of every chronologically earlier
+    // month that year.
+    function chineseToJdn(year, monthIndex, day) {
+      var entry = decodeChineseYear(year);
+      if (!entry) return null;
+
+      var cnyJdn = gregorianToJDN(year, entry.cnyMonth, entry.cnyDay);
+      var offset = 0;
+      for (var i = 0; i < monthIndex - 1; i++) offset += entry.lengths[i];
+
+      return cnyJdn + offset + day - 1;
+    }
+
+    // JDN -> { year, month, leap, day, monthIndex }. `month` is the
+    // traditional month number (leap months share their preceding month's
+    // number); `monthIndex` is the chronological (1-based) index. The
+    // Chinese year is resolved by comparing jdn against that Gregorian
+    // year's own Chinese New Year JDN, stepping back one year if jdn falls
+    // before it. Returns null if the resolved year falls outside the table.
+    function jdnToChinese(jdn) {
+      var g = jdnToGregorian(jdn);
+      var year = g.year;
+
+      var entry = decodeChineseYear(year);
+      if (!entry) return null;
+      var cnyJdn = gregorianToJDN(year, entry.cnyMonth, entry.cnyDay);
+
+      if (jdn < cnyJdn) {
+        year -= 1;
+        entry = decodeChineseYear(year);
+        if (!entry) return null;
+        cnyJdn = gregorianToJDN(year, entry.cnyMonth, entry.cnyDay);
+      }
+
+      var offset = jdn - cnyJdn;
+      var idx0 = 0; // 0-based into entry.lengths
+      while (idx0 < entry.monthCount && offset >= entry.lengths[idx0]) {
+        offset -= entry.lengths[idx0];
+        idx0++;
+      }
+
+      var monthIndex = idx0 + 1; // 1-based, matching chineseMonthIndexToNumber's convention
+      var mapping = chineseMonthIndexToNumber(monthIndex, entry.leapMonth);
+
+      return { year: year, month: mapping.number, leap: mapping.leap, day: offset + 1, monthIndex: monthIndex };
+    }
+
+    var CHINESE_MONTH_NAMES = [
+      'First Month', 'Second Month', 'Third Month', 'Fourth Month',
+      'Fifth Month', 'Sixth Month', 'Seventh Month', 'Eighth Month',
+      'Ninth Month', 'Tenth Month', 'Eleventh Month', 'Twelfth Month',
+    ];
+
+    function chineseMonthLabel(number, leap) {
+      return (leap ? 'Leap ' : '') + CHINESE_MONTH_NAMES[number - 1];
+    }
+
+    // ---------------------------------------------------------------------
     // 13. Reverse conversions (calendar -> JDN) + universal daysInMonth/
     //     monthsInYear/weekdayFromJdn.
     // ---------------------------------------------------------------------
