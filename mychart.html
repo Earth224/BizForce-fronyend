@@ -489,6 +489,17 @@
       box-shadow: 0 0 10px rgba(168,85,247,0.2);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    /* Individual cards opt back into pointer events even though the
+       .natal-orbit wrapper stays pointer-events:none — the empty space
+       between cards remains click-through to the Divine Triangle. */
+    .natal-node {
+      pointer-events: auto;
+    }
+    .natal-node:hover {
+      border-color: rgba(52,211,153,0.55);
+      box-shadow: 0 0 12px rgba(52,211,153,0.25);
     }
     /* Luminaries (Sun/Moon) and angles (ASC/MC) — the key placements,
        given a stronger accent than the other eight nodes, but the SAME
@@ -2195,20 +2206,28 @@
            Planet house comes from houseForLongitude (the response has no
            per-planet house field; this is computed from the houses cusp
            array). */
-        var line1, line2;
+        var line1, line2, house;
         if (node.kind === "angle") {
           line1 = (node.name === "ASC") ? "ASC · Rising" : "MC · Midheaven";
           line2 = (node.sign || "") + (deg != null ? " " + deg + "°" : "");
         } else {
-          var house = houseForLongitude(natalData.houses, node.longitude);
+          house = houseForLongitude(natalData.houses, node.longitude);
           line1 = glyph + " " + (node.sign || "") + (deg != null ? " " + deg + "°" : "");
           line2 = house ? ordinalSuffix(house) + " House" : "";
         }
 
         var chip = document.createElement("div");
-        chip.className = "natal-node" + accentClass;
+        chip.className = "natal-node mc-tappable" + accentClass;
         chip.style.left = x + "px";
         chip.style.top  = y + "px";
+        chip.setAttribute("data-mc-type", "natal");
+        chip.setAttribute("data-mc-name", node.name);
+        chip.setAttribute("data-mc-sign", node.sign || "");
+        chip.setAttribute("data-mc-degree", deg != null ? deg : "");
+        chip.setAttribute("data-mc-kind", node.kind);
+        if (node.kind !== "angle") {
+          chip.setAttribute("data-mc-house", house != null ? house : "");
+        }
         chip.innerHTML =
           '<div class="natal-node-line1">' + line1 + '</div>' +
           (line2 ? '<div class="natal-node-line2">' + line2 + '</div>' : '');
@@ -2632,11 +2651,35 @@
       return html;
     }
 
+    /* Natal placement panel -- PLACEHOLDER content only (heading + house
+       line); interpretive prose per planet/sign/house is a separate
+       authoring pass, same as DT_LIFEMAP was for the blueprint. */
+    function buildMcNatalHtml(data) {
+      var subtitle = (data.sign || "") + (data.degree ? " " + data.degree + "°" : "");
+
+      var heading = (data.kind === "angle")
+        ? ((data.name === "ASC") ? "Ascendant &middot; Rising" : "Midheaven")
+        : (data.name || "");
+      if (subtitle) heading += " &middot; " + subtitle;
+
+      var html = '<div class="mc-info-heading">' + heading + '</div>';
+
+      if (data.kind !== "angle" && data.house) {
+        var houseNum = parseInt(data.house, 10);
+        if (!isNaN(houseNum)) {
+          html += '<div class="mc-info-body-text">This placement falls in the ' + ordinalSuffix(houseNum) + ' House.</div>';
+        }
+      }
+
+      return html;
+    }
+
     function buildMcInfoHtml(type, data) {
       if (type === "line")     return buildMcLineHtml(data.line, data.square, data.ageRange);
       if (type === "center")   return buildMcCenterHtml(data.center, data.value);
       if (type === "interior") return buildMcInteriorHtml(data.interior, data.value);
       if (type === "tzolkin")  return buildMcTzolkinHtml(data);
+      if (type === "natal")    return buildMcNatalHtml(data);
       return "";
     }
 
@@ -2770,6 +2813,18 @@
           " of 260. What does this day sign and tone mean for who I am?";
       }
 
+      if (type === "natal") {
+        var bodyName = (data.kind === "angle")
+          ? ((data.name === "ASC") ? "Ascendant (Rising)" : "Midheaven")
+          : (data.name || "this placement");
+        var signPart   = data.sign   ? " in " + data.sign : "";
+        var degreePart = data.degree ? " at " + data.degree + "°" : "";
+        var houseNum   = (data.kind !== "angle" && data.house) ? parseInt(data.house, 10) : NaN;
+        var housePart  = !isNaN(houseNum) ? ", sitting in my " + ordinalSuffix(houseNum) + " House" : "";
+        return "Speak personally about my " + bodyName + signPart + degreePart + housePart +
+          " — what does this placement mean for me?";
+      }
+
       return "Speak personally about this element of my Divine Triangle blueprint.";
     }
 
@@ -2788,6 +2843,12 @@
         return names[data.interior] || "this interior line";
       }
       if (type === "tzolkin") return "your Tzolk'in Birth Signature";
+      if (type === "natal") {
+        var body = (data.kind === "angle")
+          ? ((data.name === "ASC") ? "your Ascendant" : "your Midheaven")
+          : (data.name || "this placement");
+        return data.sign ? body + " in " + data.sign : body;
+      }
       return "this element";
     }
 
@@ -2906,7 +2967,12 @@
           ageRange: target.getAttribute("data-mc-agerange"),
           center:   target.getAttribute("data-mc-center"),
           interior: target.getAttribute("data-mc-interior"),
-          value:    target.getAttribute("data-mc-value")
+          value:    target.getAttribute("data-mc-value"),
+          name:     target.getAttribute("data-mc-name"),
+          kind:     target.getAttribute("data-mc-kind"),
+          sign:     target.getAttribute("data-mc-sign"),
+          degree:   target.getAttribute("data-mc-degree"),
+          house:    target.getAttribute("data-mc-house")
         });
       });
     }
