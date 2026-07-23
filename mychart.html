@@ -2336,6 +2336,62 @@
       interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
     };
 
+    /* Natal placement authored content -- same voice/purpose as DT_LIFEMAP,
+       but for the ten planets plus ASC/MC on the natal orbit. Keys match
+       the body names exactly as they appear in data-mc-name. */
+    var NATAL_MEANINGS = {
+      bodies: {
+        Sun: {
+          title: "The Sun · The Vital Principle",
+          governs: "The Sun is not your personality but the animating spark beneath it — what you are before circumstance had its say. It governs vitality, the will, the father, authority, and the heart in both senses: the organ that drives the blood and the centre around which everything else orbits."
+        },
+        Moon: {
+          title: "The Moon · The Receptive Vessel",
+          governs: "The Moon is the reflective principle — it holds no light of its own and rules everything in you that receives. Instinct, memory, the body's tides, the mother, and what you return to when you are unguarded. It shows how you are nourished, and how you nourish."
+        },
+        Mercury: {
+          title: "Mercury · The Messenger",
+          governs: "Mercury is the faculty of mind — speech, reason, commerce, and the crossing between worlds. This is Hermes-Thoth himself, the one who moves freely between mortal and divine, which is precisely why the same planet governs the merchant's ledger and the magician's art."
+        },
+        Venus: {
+          title: "Venus · The Principle of Attraction",
+          governs: "Venus rules what draws together rather than what forces. Value, love, beauty, union, art. She shows what you find worth having and the magnetism by which you acquire it — and where that pull may be indulged past its usefulness."
+        },
+        Mars: {
+          title: "Mars · The Principle of Separation",
+          governs: "Mars is will made kinetic — desire, courage, anger, the cut that divides one thing from another. He governs how you meet resistance, whether you meet it at all, and what you are willing to burn to get through."
+        },
+        Jupiter: {
+          title: "Jupiter · The Greater Benefic",
+          governs: "Jupiter is the principle of expansion — faith, philosophy, law, largesse, the impulse toward more. He shows where life gives you room and where fortune tends to find you, and equally where you may mistake room for licence and overreach."
+        },
+        Saturn: {
+          title: "Saturn · The Greater Malefic",
+          governs: "Saturn is limitation, form, and time — bone, boundary, consequence. He is the teacher whose lessons arrive only through duration: he withholds until the thing is earned, and what he finally grants, he does not take back."
+        },
+        Uranus: {
+          title: "Uranus · The Sudden Deliverance",
+          governs: "Uranus is the shock that liberates — the lightning that splits the tower. He governs genius, revolt, and the abrupt break in a pattern that had grown too settled to leave willingly. Where he sits, life does not evolve gradually; it ruptures."
+        },
+        Neptune: {
+          title: "Neptune · The Dissolving Veil",
+          governs: "Neptune dissolves boundary. Mysticism, vision, compassion, glamour and deception all issue from the same faculty — the veil grown thin. Where he sits, you see further than the senses permit, and must be most careful about what you are actually seeing."
+        },
+        Pluto: {
+          title: "Pluto · The Underworld Power",
+          governs: "Pluto rules what is buried and what returns changed. Compulsion, taboo, hidden force, and the destruction that is not an ending but a precondition. Where he sits, nothing is reformed gently — it is taken apart and rebuilt from beneath."
+        },
+        ASC: {
+          title: "The Ascendant · Rising",
+          governs: "This is the degree rising on the eastern horizon at your first breath — not a planet at all, but the point where heaven met earth at your entry. It governs the body, the manner, and the face you present before you have chosen to present anything. Every house in your chart is measured from here: it is the doorway the whole structure hangs on."
+        },
+        MC: {
+          title: "The Midheaven",
+          governs: "The Midheaven is the highest point the ecliptic reaches in your chart — the culmination. It governs vocation, public standing, and the direction of your calling. Not what you do for money, but what you are for in the eyes of the world, and what you will be known for having stood for."
+        }
+      }
+    };
+
     /* Mayan Tzolk'in Birth Signature -- interpretive content for the 20 day
        signs (nawal) and 13 Galactic Tones of the 260-day sacred count,
        authored in the same voice as DT_LIFEMAP: the tradition's own
@@ -2651,9 +2707,10 @@
       return html;
     }
 
-    /* Natal placement panel -- PLACEHOLDER content only (heading + house
-       line); interpretive prose per planet/sign/house is a separate
-       authoring pass, same as DT_LIFEMAP was for the blueprint. */
+    /* Natal placement panel -- heading, then NATAL_MEANINGS' authored
+       title/governs when the body has an entry, then the house line
+       (planets only) last. Falls back to heading + house line alone when
+       no NATAL_MEANINGS entry matches data.name. */
     function buildMcNatalHtml(data) {
       var subtitle = (data.sign || "") + (data.degree ? " " + data.degree + "°" : "");
 
@@ -2663,6 +2720,12 @@
       if (subtitle) heading += " &middot; " + subtitle;
 
       var html = '<div class="mc-info-heading">' + heading + '</div>';
+
+      var meaning = NATAL_MEANINGS.bodies[data.name];
+      if (meaning) {
+        html += '<div class="mc-info-section-title">' + meaning.title + '</div>';
+        html += '<div class="mc-info-body-text">' + meaning.governs + '</div>';
+      }
 
       if (data.kind !== "angle" && data.house) {
         var houseNum = parseInt(data.house, 10);
