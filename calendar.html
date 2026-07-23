@@ -386,7 +386,7 @@
 
     .cal-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(var(--cal-cols, 7), 1fr);
       gap: 10px;
     }
     .cal-grid-weekday {
@@ -2719,7 +2719,8 @@
       }
 
       var totalDays = daysInMonth(calendar, year, month);
-      var startWeekday = weekdayFromJdn(monthStartJdn);
+      var weekStruct = weekStructureFor(calendar);
+      var startWeekday = weekStruct.alignToWeekday ? weekdayFromJdn(monthStartJdn) : 0;
       var todayJ = todayJdn();
       var holidayMap = holidaysByJdnForRange(calendar, year, monthStartJdn, totalDays);
 
@@ -2727,8 +2728,8 @@
       if (!HOLIDAYS[calendar]) {
         html += '<div class="cal-no-holidays-note">' + escapeHtml(NO_HOLIDAYS_NOTE) + '</div>';
       }
-      html += '<div class="cal-grid">';
-      WEEKDAY_LABELS.forEach(function (w) {
+      html += '<div class="cal-grid" style="--cal-cols:' + weekStruct.columns + '">';
+      weekStruct.labels.forEach(function (w) {
         html += '<div class="cal-grid-weekday">' + w + '</div>';
       });
       for (var b = 0; b < startWeekday; b++) {
@@ -2769,7 +2770,8 @@
       var monthStartJdn = mayanViewMonthStartJdn();
       var daysInHaabMonth = mayanMonthIndex < 18 ? 20 : 5;
       var monthName = HAAB_NAMES[mayanMonthIndex];
-      var startWeekday = weekdayFromJdn(monthStartJdn);
+      var weekStruct = weekStructureFor('mayan');
+      var startWeekday = weekStruct.alignToWeekday ? weekdayFromJdn(monthStartJdn) : 0;
 
       var html = '';
       html += '<div class="cal-mayan-stats">';
@@ -2801,8 +2803,8 @@
       html += '<div class="cal-no-holidays-note">' + escapeHtml(NO_HOLIDAYS_NOTE) + '</div>';
       html += '<div class="cal-mayan-month-label">' + monthName + '</div>';
 
-      html += '<div class="cal-grid">';
-      WEEKDAY_LABELS.forEach(function (w) {
+      html += '<div class="cal-grid" style="--cal-cols:' + weekStruct.columns + '">';
+      weekStruct.labels.forEach(function (w) {
         html += '<div class="cal-grid-weekday">' + w + '</div>';
       });
       for (var b = 0; b < startWeekday; b++) {
@@ -2917,6 +2919,20 @@
     }
 
     var WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // Per-calendar week structure: column count, header labels (length
+    // must equal columns), and whether the month's first day should be
+    // offset by leading blank cells so it lands under its correct weekday
+    // column. Additive scaffolding only -- no per-calendar overrides yet,
+    // so every calendar resolves to `default` (7 columns, Sun-Sat,
+    // aligned) and renders exactly as it did before this existed.
+    var WEEK_STRUCTURE = {
+      default: { columns: 7, labels: WEEKDAY_LABELS, alignToWeekday: true },
+    };
+
+    function weekStructureFor(calendar) {
+      return WEEK_STRUCTURE[calendar] || WEEK_STRUCTURE.default;
+    }
 
     // ---------------------------------------------------------------------
     // Day-detail panel -- view/add/delete events for one day (markup/logic
