@@ -750,6 +750,12 @@
       font-family: 'Noto Sans', 'Palatino Linotype', 'Segoe UI', serif;
       font-size: 0.95rem;
     }
+    /* Hebrew-script birth name -- own font stack and right-to-left, same
+       direction as the Arabic field above. */
+    .oracle-profile-field input.oracle-profile-input-hebrew {
+      font-family: 'Noto Sans Hebrew', 'Arial Hebrew', 'David', 'Segoe UI', sans-serif;
+      font-size: 0.95rem;
+    }
     .oracle-profile-hint {
       display: block;
       margin-top: 6px;
@@ -1826,6 +1832,11 @@
         <span class="oracle-profile-hint">Required for an accurate isopsephy reading — Latin transliteration cannot distinguish η (8) from ε (5), or ω (800) from ο (70).</span>
       </div>
       <div class="oracle-profile-field">
+        <label for="birthNameHebrewInput" class="bf-gold-text">Birth Name in Hebrew (optional)</label>
+        <input type="text" id="birthNameHebrewInput" class="oracle-profile-input-hebrew" dir="rtl" placeholder="השם בעברית" />
+        <span class="oracle-profile-hint">Required for an accurate gematria reading — Latin transliteration cannot distinguish ט (9) from ת (400), or כ (20) from ק (100).</span>
+      </div>
+      <div class="oracle-profile-field">
         <label for="birthDateInput" class="bf-gold-text">Birth Date</label>
         <input type="date" id="birthDateInput" />
       </div>
@@ -1862,6 +1873,7 @@
           <option value="chaldean">Chaldean (Ancient Babylonian)</option>
           <option value="divineTriangle">The Divine Triangle</option>
           <option value="kabbalah">Kabbalah (Hebrew Gematria)</option>
+          <option value="hebrewGematria">Gematria · Hebrew Script</option>
           <option value="abjad">Abjad · ʿIlm al-Ḥurūf (Arabic)</option>
           <option value="isopsephy">Isopsephy · Greek</option>
           <option value="vedic">Vedic (Indian)</option>
@@ -2070,6 +2082,7 @@
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
       var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
       var birthNameGreekInput  = document.getElementById("birthNameGreekInput").value.trim();
+      var birthNameHebrewInput = document.getElementById("birthNameHebrewInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -2081,6 +2094,7 @@
         birth_name:        birthNameInput,
         birth_name_arabic: birthNameArabicInput,
         birth_name_greek:  birthNameGreekInput,
+        birth_name_hebrew: birthNameHebrewInput,
         birth_date:        birthDateInput,
         birth_time:        birthTimeInput,
         birth_place:       birthPlaceInput,
@@ -2848,6 +2862,7 @@
           var nameEl   = document.getElementById("birthNameInput");
           var nameArEl = document.getElementById("birthNameArabicInput");
           var nameGrEl = document.getElementById("birthNameGreekInput");
+          var nameHeEl = document.getElementById("birthNameHebrewInput");
           var dateEl   = document.getElementById("birthDateInput");
           var timeEl   = document.getElementById("birthTimeInput");
           var placeEl  = document.getElementById("birthPlaceInput");
@@ -2857,6 +2872,7 @@
           if (nameEl  && d.birth_name)       nameEl.value  = d.birth_name;
           if (nameArEl && d.birth_name_arabic) nameArEl.value = d.birth_name_arabic;
           if (nameGrEl && d.birth_name_greek)  nameGrEl.value = d.birth_name_greek;
+          if (nameHeEl && d.birth_name_hebrew) nameHeEl.value = d.birth_name_hebrew;
           if (dateEl  && d.birth_date)       dateEl.value  = d.birth_date;
           if (timeEl  && d.birth_time)       timeEl.value  = d.birth_time;
           if (placeEl && d.birth_place)      placeEl.value = d.birth_place;
@@ -3006,6 +3022,18 @@
           title: "Foundation (Consonants)",
           derivation: "The gematria value of only the name's consonants — in Hebrew, the fixed skeleton onto which vowels (breath) are placed. This is read as the outer vessel: the structure a name stands on, as distinct from the breath that moves through it.",
           wisdom: "The vessel a name is poured into — form, before it's given voice."
+        }
+      },
+      hebrewGematria: {
+        total: {
+          title: "Gematria Total",
+          derivation: "The sum of the birth name's letters under mispar hechrachi — the standard absolute values of the twenty-two Hebrew letters, from א (1) through ת (400). This is the reckoning used across Talmudic and Kabbalistic sources, where the five final forms (ך ם ן ף ץ) carry the same value as their base letters. Gematria treats the letters as more than notation: in this tradition they are the elements creation itself was spoken through, so a name's sum is read as its weight in that speech.",
+          wisdom: "The name as it is written in the letters the world was made from."
+        },
+        reduced: {
+          title: "Reduced",
+          derivation: "The Gematria Total folded down by repeated digit-summing until a single root number remains (master numbers 11, 22, and 33 preserved, as elsewhere here). The total is the name's full count; the reduced value is the single vibration it resolves toward.",
+          wisdom: "The whole count spoken as one syllable."
         }
       },
       abjad: {
@@ -3551,6 +3579,21 @@
       return html;
     }
 
+    /* Hebrew gematria computed from actual Hebrew script -- deliberately
+       separate from renderKabbalah above, which renders the pre-existing
+       Latin-transliteration system. Same refusal-to-fabricate shape as
+       renderAbjad/renderIsopsephy: sys.available is false whenever no
+       Hebrew-script name is on file. */
+    function renderHebrewGematria(sys, displayOnly) {
+      if (!sys.available) {
+        return '<div class="num-sys-empty">Add your name in Hebrew script in your Oracle Profile to compute a gematria reading. This system reads the actual Hebrew letters — a Latin transliteration would produce a number that looks authoritative but isn\'t.</div>';
+      }
+      var html = "";
+      html += numSysRow("Gematria Total", sys.total, "hebrewGematria", "total", null, displayOnly);
+      html += numSysRow("Reduced", sys.reduced, "hebrewGematria", "reduced", null, displayOnly);
+      return html;
+    }
+
     /* Abjad, unlike every other system rendered here, can genuinely have
        nothing to show -- sys.available is false whenever no Arabic-script
        name is on file, since computeAbjad refuses to fabricate a number
@@ -3635,6 +3678,7 @@
       vedic: "Vedic",
       divineTriangle: "Divine Triangle",
       kabbalah: "Kabbalah",
+      hebrewGematria: "Gematria",
       abjad: "Abjad",
       isopsephy: "Isopsephy",
       chinese: "Chinese"
@@ -3771,6 +3815,8 @@
         out.innerHTML = (blueprintSvg ? '<div class="dtb-visual">' + blueprintSvg + '</div>' : '') + renderDivineTriangle(sys, displayOnly);
       } else if (systemKey === "kabbalah") {
         out.innerHTML = renderKabbalah(sys, displayOnly);
+      } else if (systemKey === "hebrewGematria") {
+        out.innerHTML = renderHebrewGematria(sys, displayOnly);
       } else if (systemKey === "abjad") {
         out.innerHTML = renderAbjad(sys, displayOnly);
       } else if (systemKey === "isopsephy") {
@@ -3820,6 +3866,7 @@
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
       var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
       var birthNameGreekInput  = document.getElementById("birthNameGreekInput").value.trim();
+      var birthNameHebrewInput = document.getElementById("birthNameHebrewInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -3839,6 +3886,7 @@
         birth_name:        birthNameInput,
         birth_name_arabic: birthNameArabicInput,
         birth_name_greek:  birthNameGreekInput,
+        birth_name_hebrew: birthNameHebrewInput,
         birth_date:        birthDateInput,
         birth_time:        birthTimeInput,
         birth_place:       birthPlaceInput,
