@@ -3046,6 +3046,18 @@
           wisdom: "The whole count spoken as one syllable."
         }
       },
+      misparGadol: {
+        total: {
+          title: "Mispar Gadol · The Great Number",
+          derivation: "The same Hebrew letters of your name, summed under the second convention: the five sofit finals — kaf, mem, nun, pe, tzadi — take their own greater values of 500, 600, 700, 800 and 900 rather than folding back to the value of their base letter. Only a name containing a final form will differ from the standard reading.",
+          wisdom: "The sofit is a letter that has reached the end of a word — the same sound, having arrived. Mispar gadol counts that arrival as worth more than the letter mid-flight. Where your standard total speaks of what the letters are, the great number speaks of what they become when they complete."
+        },
+        reduced: {
+          title: "Mispar Gadol · Reduced",
+          derivation: "The great number folded to a single digit by the same reduction used throughout, master numbers preserved where they appear.",
+          wisdom: "Two readings of one name are not a contradiction to be resolved. The tradition holds both because each is looking at something the other cannot see — the letters as values, and the letters as endings."
+        }
+      },
       abjad: {
         total: {
           title: "Abjad Total",
@@ -3601,6 +3613,13 @@
       var html = "";
       html += numSysRow("Gematria Total", sys.total, "hebrewGematria", "total", null, displayOnly);
       html += numSysRow("Reduced", sys.reduced, "hebrewGematria", "reduced", null, displayOnly);
+
+      var misparGadol = numerologyData && numerologyData.systems && numerologyData.systems.misparGadol;
+      if (misparGadol && misparGadol.available) {
+        html += numSysRow("Mispar Gadol Total", misparGadol.total, "misparGadol", "total", null, displayOnly);
+        html += numSysRow("Mispar Gadol Reduced", misparGadol.reduced, "misparGadol", "reduced", null, displayOnly);
+      }
+
       return html;
     }
 
