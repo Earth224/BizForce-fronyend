@@ -553,6 +553,20 @@
     .mc-tappable:hover .mc-square-wisdom {
       stroke: rgba(244,228,184,0.95);
     }
+    .mc-square-label {
+      pointer-events: none;
+      letter-spacing: 0.18em;
+      font-weight: 600;
+    }
+    .mc-square-label-youth {
+      fill: rgba(34,211,238,0.85);
+    }
+    .mc-square-label-power {
+      fill: rgba(168,85,247,0.85);
+    }
+    .mc-square-label-wisdom {
+      fill: rgba(244,228,184,0.9);
+    }
     .mc-info-panel {
       position: fixed;
       right: 24px;
@@ -1850,8 +1864,22 @@
         return '<g class="mc-tappable" data-mc-type="center" data-mc-center="' + centerKey +
           '" data-mc-value="' + val + '">' + textEl + '</g>';
       }
+
+      var CENTER_NUM_FONT_SIZE = 13;
+      var SQUARE_LABEL_FONT_SIZE = CENTER_NUM_FONT_SIZE * 0.45;
+      var SQUARE_LABEL_OFFSET = CENTER_NUM_FONT_SIZE * 1.6;
+
+      function squareLabel(center, squareKey, label) {
+        return '<text x="' + center.x + '" y="' + (center.y - SQUARE_LABEL_OFFSET) + '" text-anchor="middle" ' +
+          'dominant-baseline="middle" font-size="' + SQUARE_LABEL_FONT_SIZE +
+          '" class="mc-square-label mc-square-label-' + squareKey + '">' + label + '</text>';
+      }
+
+      svg += squareLabel(youthCenter, "youth", "YOUTH");
       svg += centerTapWrap('<text x="' + youthCenter.x + '" y="' + youthCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#9df6ff">' + escapeXml(centerDisplay(centers.youth)) + '</text>', "youth", centers.youth);
+      svg += squareLabel(powerCenter, "power", "POWER");
       svg += centerTapWrap('<text x="' + powerCenter.x + '" y="' + powerCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#d9b3ff">' + escapeXml(centerDisplay(centers.power)) + '</text>', "power", centers.power);
+      svg += squareLabel(wisdomCenter, "wisdom", "WISDOM");
       svg += centerTapWrap('<text x="' + wisdomCenter.x + '" y="' + wisdomCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.wisdom)) + '</text>', "wisdom", centers.wisdom);
       svg += centerTapWrap('<text x="' + triangleCenter.x + '" y="' + triangleCenter.y + '" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="800" fill="#f4e4b8">' + escapeXml(centerDisplay(centers.triangle)) + '</text>', "triangle", centers.triangle);
 
