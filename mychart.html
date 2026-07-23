@@ -541,6 +541,18 @@
     .mc-tappable[data-mc-type="line"]:hover text {
       fill: #34d399;
     }
+    .mc-square-youth, .mc-square-power, .mc-square-wisdom {
+      transition: stroke 0.25s ease;
+    }
+    .mc-tappable:hover .mc-square-youth {
+      stroke: rgba(34,211,238,0.9);
+    }
+    .mc-tappable:hover .mc-square-power {
+      stroke: rgba(168,85,247,0.9);
+    }
+    .mc-tappable:hover .mc-square-wisdom {
+      stroke: rgba(244,228,184,0.95);
+    }
     .mc-info-panel {
       position: fixed;
       right: 24px;
@@ -1782,9 +1794,20 @@
         '</linearGradient>' +
       '</defs>';
 
-      svg += '<polygon points="' + pointsAttr(youthPoly)  + '" fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
-      svg += '<polygon points="' + pointsAttr(powerPoly)  + '" fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
-      svg += '<polygon points="' + pointsAttr(wisdomPoly) + '" fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
+      var youthSquareEl  = '<polygon points="' + pointsAttr(youthPoly)  + '"' + (opts.interactive ? ' class="mc-square-youth"'  : '') + ' fill="url(#dtbYouthFill)"  stroke="rgba(34,211,238,0.4)" stroke-width="1.5"/>';
+      var powerSquareEl  = '<polygon points="' + pointsAttr(powerPoly)  + '"' + (opts.interactive ? ' class="mc-square-power"'  : '') + ' fill="url(#dtbPowerFill)"  stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>';
+      var wisdomSquareEl = '<polygon points="' + pointsAttr(wisdomPoly) + '"' + (opts.interactive ? ' class="mc-square-wisdom"' : '') + ' fill="url(#dtbWisdomFill)" stroke="rgba(244,228,184,0.45)" stroke-width="1.5"/>';
+
+      function squareTapWrap(polyEl, squareKey, centerObj) {
+        if (!opts.interactive) return polyEl;
+        var val = centerObj && centerObj.reduced != null ? centerObj.reduced : "";
+        return '<g class="mc-tappable" data-mc-type="center" data-mc-center="' + squareKey +
+          '" data-mc-value="' + val + '">' + polyEl + '</g>';
+      }
+
+      svg += squareTapWrap(youthSquareEl,  "youth",  centers.youth);
+      svg += squareTapWrap(powerSquareEl,  "power",  centers.power);
+      svg += squareTapWrap(wisdomSquareEl, "wisdom", centers.wisdom);
 
       svg += '<polygon points="' + pointsAttr([corners.A, corners.D, corners.G]) + '" fill="none" stroke="rgba(168,85,247,0.5)" stroke-width="1.2"/>';
 
