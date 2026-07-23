@@ -567,6 +567,24 @@
     .mc-square-label-wisdom {
       fill: rgba(244,228,184,0.9);
     }
+    .mc-life-marker-halo {
+      pointer-events: none;
+      fill: #fbbf24;
+      opacity: 0.18;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: mcLifeMarkerPulse 2.6s ease-in-out infinite;
+    }
+    .mc-life-marker {
+      pointer-events: none;
+      fill: #fbbf24;
+      filter: drop-shadow(0 0 5px rgba(251,191,36,0.8));
+    }
+    @keyframes mcLifeMarkerPulse {
+      0%   { transform: scale(1);    opacity: 0.18; }
+      50%  { transform: scale(1.5); opacity: 0.05; }
+      100% { transform: scale(1);    opacity: 0.18; }
+    }
     .mc-info-panel {
       position: fixed;
       right: 24px;
@@ -1843,6 +1861,44 @@
           svg += textEl;
         }
       });
+
+      if (opts.interactive) {
+        var lifeMarkerBirthRaw = numerologyData && numerologyData.birth_date;
+        if (lifeMarkerBirthRaw) {
+          var lifeMarkerBirth = new Date(lifeMarkerBirthRaw + "T00:00:00");
+          if (!isNaN(lifeMarkerBirth.getTime())) {
+            var lifeMarkerNow = new Date();
+            var lifeMarkerAge = lifeMarkerNow.getFullYear() - lifeMarkerBirth.getFullYear();
+            var lifeMarkerLastBday = new Date(lifeMarkerNow.getFullYear(), lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
+            if (lifeMarkerLastBday.getTime() > lifeMarkerNow.getTime()) {
+              lifeMarkerAge -= 1;
+              lifeMarkerLastBday.setFullYear(lifeMarkerLastBday.getFullYear() - 1);
+            }
+            var lifeMarkerNextBday = new Date(lifeMarkerLastBday.getFullYear() + 1, lifeMarkerBirth.getMonth(), lifeMarkerBirth.getDate());
+            var lifeMarkerYearSpanMs = lifeMarkerNextBday.getTime() - lifeMarkerLastBday.getTime();
+            var lifeMarkerElapsedMs = lifeMarkerNow.getTime() - lifeMarkerLastBday.getTime();
+            lifeMarkerAge += lifeMarkerYearSpanMs > 0 ? (lifeMarkerElapsedMs / lifeMarkerYearSpanMs) : 0;
+
+            if (lifeMarkerAge >= 0) {
+              var lifeMarkerEdgeIndex = Math.floor(lifeMarkerAge / 9);
+              var lifeMarkerFraction;
+              if (lifeMarkerEdgeIndex > 8) {
+                lifeMarkerEdgeIndex = 8;
+                lifeMarkerFraction = 1;
+              } else {
+                lifeMarkerFraction = (lifeMarkerAge % 9) / 9;
+              }
+              var lifeMarkerEdge = perimeterEdges[lifeMarkerEdgeIndex];
+              var lifeMarkerPoint = {
+                x: lifeMarkerEdge.p1.x + (lifeMarkerEdge.p2.x - lifeMarkerEdge.p1.x) * lifeMarkerFraction,
+                y: lifeMarkerEdge.p1.y + (lifeMarkerEdge.p2.y - lifeMarkerEdge.p1.y) * lifeMarkerFraction
+              };
+              svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="9" class="mc-life-marker-halo"/>';
+              svg += '<circle cx="' + lifeMarkerPoint.x + '" cy="' + lifeMarkerPoint.y + '" r="4" class="mc-life-marker"/>';
+            }
+          }
+        }
+      }
 
       interiorEdges.forEach(function (edge) {
         var data = interior[edge.key];
