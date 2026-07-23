@@ -4273,8 +4273,15 @@
 
     /* Active calendar selection — module-level state for this panel.
        Every date-display point below reads this via
-       formatDateForActiveCalendar() instead of hardcoding Gregorian. */
+       formatDateForActiveCalendar() instead of hardcoding Gregorian.
+       Persisted via localStorage so picking a calendar here carries over
+       to mychart.html's calendar panel, and vice versa. */
+    var ACTIVE_CALENDAR_KEY = "bf_active_calendar";
     var activeCalendar = "gregorian";
+    try {
+      var storedActiveCalendar = localStorage.getItem(ACTIVE_CALENDAR_KEY);
+      if (storedActiveCalendar) activeCalendar = storedActiveCalendar;
+    } catch (e) {}
 
     // Curated upcoming eclipses (2026-2030). Finite list — top up with new entries as years pass.
     var ECLIPSES = [
@@ -5001,6 +5008,7 @@
     if (calendarSelect) {
       calendarSelect.addEventListener("change", function () {
         activeCalendar = calendarSelect.value;
+        try { localStorage.setItem(ACTIVE_CALENDAR_KEY, activeCalendar); } catch (e) {}
         renderClock();
       });
     }
