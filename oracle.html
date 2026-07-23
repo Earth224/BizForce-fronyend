@@ -735,6 +735,21 @@
       resize: vertical;
       min-height: 90px;
     }
+    /* Arabic-script birth name -- own font stack (the inherited body font
+       has no Arabic glyph coverage) and right-to-left, since that's the
+       script's natural direction, unlike every other Latin-script field
+       here. */
+    .oracle-profile-field input.oracle-profile-input-arabic {
+      font-family: 'Noto Sans Arabic', 'Traditional Arabic', 'Segoe UI', Tahoma, sans-serif;
+      font-size: 0.95rem;
+    }
+    .oracle-profile-hint {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.7rem;
+      line-height: 1.5;
+      color: rgba(232,220,255,0.5);
+    }
     .oracle-profile-save {
       display: block;
       width: 100%;
@@ -1794,6 +1809,11 @@
         <input type="text" id="birthNameInput" placeholder="Your full birth name" autocomplete="name" />
       </div>
       <div class="oracle-profile-field">
+        <label for="birthNameArabicInput" class="bf-gold-text">Birth Name in Arabic (optional)</label>
+        <input type="text" id="birthNameArabicInput" class="oracle-profile-input-arabic" dir="rtl" placeholder="الاسم بالعربية" />
+        <span class="oracle-profile-hint">Required for an accurate Abjad reading — Latin transliteration cannot distinguish letters like ص (90) from س (60).</span>
+      </div>
+      <div class="oracle-profile-field">
         <label for="birthDateInput" class="bf-gold-text">Birth Date</label>
         <input type="date" id="birthDateInput" />
       </div>
@@ -1830,6 +1850,7 @@
           <option value="chaldean">Chaldean (Ancient Babylonian)</option>
           <option value="divineTriangle">The Divine Triangle</option>
           <option value="kabbalah">Kabbalah (Hebrew Gematria)</option>
+          <option value="abjad">Abjad · ʿIlm al-Ḥurūf (Arabic)</option>
           <option value="vedic">Vedic (Indian)</option>
           <option value="chinese">Chinese (Lo Shu Grid)</option>
         </select>
@@ -2034,6 +2055,7 @@
       if (!d) { showSyncError("Your birth date is required."); return; }
 
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
+      var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -2042,13 +2064,14 @@
       var lifeDetailsInput     = document.getElementById("lifeDetailsInput").value.trim();
 
       var syncPayload = {
-        birth_name:       birthNameInput,
-        birth_date:       birthDateInput,
-        birth_time:       birthTimeInput,
-        birth_place:      birthPlaceInput,
-        current_location: currentLocationInput,
-        path_focus:       pathFocusInput,
-        life_details:     lifeDetailsInput
+        birth_name:        birthNameInput,
+        birth_name_arabic: birthNameArabicInput,
+        birth_date:        birthDateInput,
+        birth_time:        birthTimeInput,
+        birth_place:       birthPlaceInput,
+        current_location:  currentLocationInput,
+        path_focus:        pathFocusInput,
+        life_details:      lifeDetailsInput
       };
 
       syncBtn.disabled = true;
@@ -2808,6 +2831,7 @@
           if (!result || !result.synced || !result.data) return;
           var d        = result.data;
           var nameEl   = document.getElementById("birthNameInput");
+          var nameArEl = document.getElementById("birthNameArabicInput");
           var dateEl   = document.getElementById("birthDateInput");
           var timeEl   = document.getElementById("birthTimeInput");
           var placeEl  = document.getElementById("birthPlaceInput");
@@ -2815,6 +2839,7 @@
           var pathEl   = document.getElementById("pathFocusInput");
           var lifeEl   = document.getElementById("lifeDetailsInput");
           if (nameEl  && d.birth_name)       nameEl.value  = d.birth_name;
+          if (nameArEl && d.birth_name_arabic) nameArEl.value = d.birth_name_arabic;
           if (dateEl  && d.birth_date)       dateEl.value  = d.birth_date;
           if (timeEl  && d.birth_time)       timeEl.value  = d.birth_time;
           if (placeEl && d.birth_place)      placeEl.value = d.birth_place;
@@ -2964,6 +2989,18 @@
           title: "Foundation (Consonants)",
           derivation: "The gematria value of only the name's consonants — in Hebrew, the fixed skeleton onto which vowels (breath) are placed. This is read as the outer vessel: the structure a name stands on, as distinct from the breath that moves through it.",
           wisdom: "The vessel a name is poured into — form, before it's given voice."
+        }
+      },
+      abjad: {
+        total: {
+          title: "Abjad Total",
+          derivation: "The sum of the birth name's letters under the Abjad Hawwaz sequence — the Eastern (Mashriqi) ordering in which each of the 28 Arabic letters carries a value from 1 to 1000. Also called Hisab al-Jummal, this system has been used for over a thousand years in Islamic civilization for chronograms, manuscript numbering, and the contemplative science of letters known as ʿIlm al-Ḥurūf. It shares a Semitic root with Hebrew gematria and Greek isopsephy, though each developed independently.",
+          wisdom: "The name's full weight in the oldest reckoning of the Arabic letters — before it is folded into a single note."
+        },
+        reduced: {
+          title: "Reduced",
+          derivation: "The Abjad Total folded down by repeated digit-summing until a single root number remains (master numbers 11, 22, and 33 preserved, as in the other systems here). Where the total is the name's uncompressed sum, the reduced value is the single vibration the tradition reads it as resolving toward.",
+          wisdom: "What remains when the whole sum is spoken as one syllable."
         }
       },
       vedic: {
@@ -3485,6 +3522,22 @@
       return html;
     }
 
+    /* Abjad, unlike every other system rendered here, can genuinely have
+       nothing to show -- sys.available is false whenever no Arabic-script
+       name is on file, since computeAbjad refuses to fabricate a number
+       from a Latin transliteration. That branch shows an honest prompt
+       instead of numSysRow's usual "—" placeholder, which would otherwise
+       look like a real (if unknown) value rather than "not computed". */
+    function renderAbjad(sys, displayOnly) {
+      if (!sys.available) {
+        return '<div class="num-sys-empty">Add your name in Arabic script in your Oracle Profile to compute an Abjad reading. This system reads the actual Arabic letters — a Latin transliteration would produce a number that looks authoritative but isn\'t.</div>';
+      }
+      var html = "";
+      html += numSysRow("Abjad Total", sys.total, "abjad", "total", null, displayOnly);
+      html += numSysRow("Reduced", sys.reduced, "abjad", "reduced", null, displayOnly);
+      return html;
+    }
+
     function renderVedic(sys, displayOnly) {
       var html = "";
       var rulerSuffix = sys.planetaryRuler ? "· ruled by " + sys.planetaryRuler : null;
@@ -3541,6 +3594,7 @@
       vedic: "Vedic",
       divineTriangle: "Divine Triangle",
       kabbalah: "Kabbalah",
+      abjad: "Abjad",
       chinese: "Chinese"
     };
 
@@ -3675,6 +3729,8 @@
         out.innerHTML = (blueprintSvg ? '<div class="dtb-visual">' + blueprintSvg + '</div>' : '') + renderDivineTriangle(sys, displayOnly);
       } else if (systemKey === "kabbalah") {
         out.innerHTML = renderKabbalah(sys, displayOnly);
+      } else if (systemKey === "abjad") {
+        out.innerHTML = renderAbjad(sys, displayOnly);
       } else if (systemKey === "vedic") {
         out.innerHTML = renderVedic(sys, displayOnly);
       } else if (systemKey === "chinese") {
@@ -3718,6 +3774,7 @@
       if (typeof API_URL === "undefined" || typeof token === "undefined") return;
 
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
+      var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
       var birthDateInput       = document.getElementById("birthDateInput").value.trim();
       var birthTimeInput       = document.getElementById("birthTimeInput").value.trim();
       var birthPlaceInput      = document.getElementById("birthPlaceInput").value.trim();
@@ -3734,13 +3791,14 @@
       }
 
       var syncPayload = {
-        birth_name:       birthNameInput,
-        birth_date:       birthDateInput,
-        birth_time:       birthTimeInput,
-        birth_place:      birthPlaceInput,
-        current_location: currentLocationInput,
-        path_focus:       pathFocusInput,
-        life_details:     lifeDetailsInput
+        birth_name:        birthNameInput,
+        birth_name_arabic: birthNameArabicInput,
+        birth_date:        birthDateInput,
+        birth_time:        birthTimeInput,
+        birth_place:       birthPlaceInput,
+        current_location:  currentLocationInput,
+        path_focus:        pathFocusInput,
+        life_details:      lifeDetailsInput
       };
 
       if (saveBtn) saveBtn.disabled = true;
