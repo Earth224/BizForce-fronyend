@@ -2731,6 +2731,8 @@
         yearLabel = conv0[calendar].year + yearSuffixFor(calendar);
       }
 
+      var totalDays = daysInMonth(calendar, year, month);
+
       var latinLine = monthLabel + ' ' + yearLabel;
       if (calendar === 'egyptian') {
         var season = egyptianSeasonFor(monthNum);
@@ -2743,15 +2745,19 @@
         }
       }
 
+      var chineseLatinLine = monthLabel + ' ' + yearLabel;
+      if (calendar === 'chinese') {
+        chineseLatinLine += ' — 上旬 shang xun (first ten), 中旬 zhong xun (middle ten), 下旬 xia xun (last ten) — this month has ' + totalDays + ' days';
+      }
+
       var subtitleParts = (calendar === 'chinese')
-        ? chineseNativeHeaderHtml(monthNum, conv0.chinese.leap, monthLabel + ' ' + yearLabel)
+        ? chineseNativeHeaderHtml(monthNum, conv0.chinese.leap, chineseLatinLine)
         : nativeHeaderHtml(calendar, monthNum, latinLine);
       if (calGridSubtitle) {
         calGridSubtitle.innerHTML = subtitleParts.html;
         calGridSubtitle.classList.toggle('cal-subtitle-stacked', subtitleParts.stacked);
       }
 
-      var totalDays = daysInMonth(calendar, year, month);
       var weekStruct = weekStructureFor(calendar);
       var startWeekday = weekStruct.alignToWeekday ? weekdayFromJdn(monthStartJdn) : 0;
       var todayJ = todayJdn();
@@ -2969,6 +2975,14 @@
       // decade, I-X) rather than Arabic numerals so the header row reads
       // distinctly from the Arabic day numbers inside the cells below it.
       egyptian: { columns: 10, labels: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"], alignToWeekday: false },
+      // Traditional Chinese months are read in three xun (旬) of ten days:
+      // shang xun (上旬, days 1-10), zhong xun (中旬, days 11-20), and xia
+      // xun (下旬, days 21-end). Each grid row is one xun -- with 10
+      // columns and no leading blanks, row 1 is shang xun, row 2 is zhong
+      // xun, and row 3 is xia xun. Because Chinese months are 29 or 30
+      // days, that third row runs only 9 or 10 cells long; a short final
+      // row is the authentic shape of the month, not a rendering defect.
+      chinese: { columns: 10, labels: ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"], alignToWeekday: false },
     };
 
     function weekStructureFor(calendar) {
