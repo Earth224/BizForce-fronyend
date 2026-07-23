@@ -528,6 +528,19 @@
     /* ── Interactivity — tappable blueprint elements + the fixed info
        panel, copied unchanged from oracle.html's My Chart engine. ── */
     .mc-tappable { cursor: pointer; }
+    .mc-tappable[data-mc-type="line"] .mc-line-hit {
+      transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    }
+    .mc-tappable[data-mc-type="line"] text {
+      transition: fill 0.2s ease;
+    }
+    .mc-tappable[data-mc-type="line"]:hover .mc-line-hit {
+      stroke: rgba(52,211,153,0.55);
+      stroke-width: 3;
+    }
+    .mc-tappable[data-mc-type="line"]:hover text {
+      fill: #34d399;
+    }
     .mc-info-panel {
       position: fixed;
       right: 24px;
@@ -1783,8 +1796,10 @@
         if (opts.interactive) {
           var square = SQUARE_OF_LINE[edge.id] || "";
           var ageRange = line ? line.ageRange : "";
+          var hitLine = '<line x1="' + edge.p1.x + '" y1="' + edge.p1.y + '" x2="' + edge.p2.x + '" y2="' + edge.p2.y +
+            '" class="mc-line-hit" stroke="transparent" stroke-width="18" stroke-linecap="round"/>';
           svg += '<g class="mc-tappable" data-mc-type="line" data-mc-line="' + edge.id +
-            '" data-mc-square="' + square + '" data-mc-agerange="' + ageRange + '">' + textEl + '</g>';
+            '" data-mc-square="' + square + '" data-mc-agerange="' + ageRange + '">' + hitLine + textEl + '</g>';
         } else {
           svg += textEl;
         }
