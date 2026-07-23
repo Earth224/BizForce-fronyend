@@ -3711,6 +3711,274 @@
   (function () {
     var MOON_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg";
 
+    /* ══════════════════════════════════════════════════════════════════
+       Multi-calendar conversion engine — ported UNCHANGED from the
+       validated test-calendars.js smoke test (Gregorian/Mayan/Hijri/
+       Hebrew all PASS against known-anchor dates there; Egyptian is
+       computed against a documented epoch; Chinese is intentionally not
+       implemented — see chineseNotAvailable() below). Do not hand-edit
+       the math in this block without re-running test-calendars.js.
+       ══════════════════════════════════════════════════════════════════ */
+
+    // 1. Gregorian <-> Julian Day Number
+    var GREGORIAN_MONTH_NAMES = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
+    function gregorianToJDN(year, month, day) {
+      var a = Math.floor((14 - month) / 12);
+      var y = year + 4800 - a;
+      var m = month + 12 * a - 3;
+      return (
+        day +
+        Math.floor((153 * m + 2) / 5) +
+        365 * y +
+        Math.floor(y / 4) -
+        Math.floor(y / 100) +
+        Math.floor(y / 400) -
+        32045
+      );
+    }
+
+    function gregorianPartsOf(date) {
+      return {
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+      };
+    }
+
+    // 2. Hijri (tabular/arithmetic civil Islamic calendar)
+    var ISLAMIC_EPOCH = 1948440; // JDN of 1 Muharram, AH 1
+
+    var ISLAMIC_MONTH_NAMES = [
+      'Muharram', "Safar", "Rabi' al-awwal", "Rabi' al-thani",
+      'Jumada al-awwal', 'Jumada al-thani', 'Rajab', "Sha'ban",
+      'Ramadan', 'Shawwal', "Dhu al-Qi'dah", 'Dhu al-Hijjah',
+    ];
+
+    function islamicToJd(year, month, day) {
+      return (
+        day +
+        Math.ceil(29.5 * (month - 1)) +
+        (year - 1) * 354 +
+        Math.floor((3 + 11 * year) / 30) +
+        ISLAMIC_EPOCH -
+        1
+      );
+    }
+
+    function jdToIslamic(jd) {
+      jd = Math.floor(jd);
+      var year = Math.floor((30 * (jd - ISLAMIC_EPOCH) + 10646) / 10631);
+      var month = Math.min(
+        12,
+        Math.ceil((jd - (29 + islamicToJd(year, 1, 1))) / 29.5) + 1
+      );
+      var day = jd - islamicToJd(year, month, 1) + 1;
+      return { year: year, month: month, day: day };
+    }
+
+    // 3. Hebrew (Dershowitz & Reingold arithmetic algorithm, JD-based)
+    // JDN of 1 Tishrei, AM 1 — verified against two independent, well-
+    // documented anchors (Rosh Hashanah 5760 = 1999-09-11 and 5761 =
+    // 2000-09-30) in test-calendars.js.
+    var HEBREW_EPOCH_JDN = 347998;
+
+    var HEBREW_MONTH_NAMES = {
+      1: 'Nisan', 2: 'Iyyar', 3: 'Sivan', 4: 'Tammuz', 5: 'Av', 6: 'Elul',
+      7: 'Tishrei', 8: 'Cheshvan', 9: 'Kislev', 10: 'Tevet', 11: 'Shevat',
+      12: 'Adar', 13: 'Adar II',
+    };
+
+    function hebrewIsLeapYear(year) {
+      return (7 * year + 1) % 19 < 7;
+    }
+
+    function hebrewMonthsInYear(year) {
+      return hebrewIsLeapYear(year) ? 13 : 12;
+    }
+
+    function hebrewElapsedDays(year) {
+      var monthsElapsed = Math.floor((235 * year - 234) / 19);
+      var partElapsed = 12084 + 13753 * monthsElapsed;
+      var day = 29 * monthsElapsed + Math.floor(partElapsed / 25920);
+      if ((3 * (day + 1)) % 7 < 3) day += 1;
+      return day;
+    }
+
+    function hebrewDaysInYear(year) {
+      return hebrewElapsedDays(year + 1) - hebrewElapsedDays(year);
+    }
+
+    function hebrewLongCheshvan(year) {
+      return hebrewDaysInYear(year) % 10 === 5;
+    }
+
+    function hebrewShortKislev(year) {
+      return hebrewDaysInYear(year) % 10 === 3;
+    }
+
+    function hebrewDaysInMonth(year, month) {
+      if ([2, 4, 6, 10, 13].indexOf(month) !== -1) return 29; // Iyyar, Tammuz, Elul, Tevet, Adar II
+      if (month === 12 && !hebrewIsLeapYear(year)) return 29; // Adar (non-leap)
+      if (month === 8 && !hebrewLongCheshvan(year)) return 29; // Cheshvan short
+      if (month === 9 && hebrewShortKislev(year)) return 29; // Kislev short
+      return 30;
+    }
+
+    function hebrewToJd(year, month, day) {
+      var jd = HEBREW_EPOCH_JDN + hebrewElapsedDays(year) + day - 1;
+      var monthsInYear = hebrewMonthsInYear(year);
+      var m;
+      if (month < 7) {
+        for (m = 7; m <= monthsInYear; m++) jd += hebrewDaysInMonth(year, m);
+        for (m = 1; m < month; m++) jd += hebrewDaysInMonth(year, m);
+      } else {
+        for (m = 7; m < month; m++) jd += hebrewDaysInMonth(year, m);
+      }
+      return jd;
+    }
+
+    function jdToHebrew(jd) {
+      jd = Math.floor(jd);
+      // Rough year estimate, then walk to the exact year via Tishrei 1 boundaries.
+      var year = Math.floor((jd - HEBREW_EPOCH_JDN) / 365.2468) - 1;
+      while (hebrewToJd(year + 1, 7, 1) <= jd) year++;
+      while (hebrewToJd(year, 7, 1) > jd) year--;
+
+      var order = [];
+      var monthsInYear = hebrewMonthsInYear(year);
+      var m;
+      for (m = 7; m <= monthsInYear; m++) order.push(m);
+      for (m = 1; m <= 6; m++) order.push(m);
+      var month = order[0];
+      for (var i = 0; i < order.length; i++) {
+        var start = hebrewToJd(year, order[i], 1);
+        var end = start + hebrewDaysInMonth(year, order[i]);
+        if (jd >= start && jd < end) {
+          month = order[i];
+          break;
+        }
+      }
+      var day = jd - hebrewToJd(year, month, 1) + 1;
+      return { year: year, month: month, day: day };
+    }
+
+    // 4. Mayan Long Count, Tzolk'in, Haab'
+    var MAYA_EPOCH_JDN = 584283; // GMT correlation: JDN of Long Count 0.0.0.0.0
+
+    var TZOLKIN_NAMES = [
+      'Imix', 'Ik', 'Akbal', 'Kan', 'Chicchan', 'Cimi', 'Manik', 'Lamat',
+      'Muluc', 'Oc', 'Chuen', 'Eb', 'Ben', 'Ix', 'Men', 'Cib', 'Caban',
+      'Etznab', 'Cauac', 'Ahau',
+    ];
+
+    var HAAB_NAMES = [
+      'Pop', 'Wo', 'Sip', "Sotz'", 'Sek', 'Xul', "Yaxk'in", 'Mol', "Ch'en",
+      'Yax', "Sak'", 'Keh', 'Mak', "K'ank'in", 'Muwan', 'Pax', "K'ayab",
+      "Kumk'u", "Wayeb'",
+    ];
+
+    function mayanFromJdn(jdn) {
+      var totalDays = jdn - MAYA_EPOCH_JDN;
+
+      var remainder = totalDays;
+      var baktun = Math.floor(remainder / 144000);
+      remainder -= baktun * 144000;
+      var katun = Math.floor(remainder / 7200);
+      remainder -= katun * 7200;
+      var tun = Math.floor(remainder / 360);
+      remainder -= tun * 360;
+      var winal = Math.floor(remainder / 20);
+      var kin = remainder - winal * 20;
+
+      // Tzolk'in: day 0.0.0.0.0 = 4 Ahau
+      var mod = function (n, m) { return ((n % m) + m) % m; };
+      var tzolkinNumber = mod(totalDays + 3, 13) + 1;
+      var tzolkinNameIndex = mod(totalDays + 19, 20);
+
+      // Haab': day 0.0.0.0.0 = 8 Cumku (Kumk'u), month index 17 (0-based), day-in-month 7 (0-based)
+      var haabCount = mod(totalDays + 347, 365);
+      var haabMonthIndex, haabDay;
+      if (haabCount < 360) {
+        haabMonthIndex = Math.floor(haabCount / 20);
+        haabDay = (haabCount % 20) + 1;
+      } else {
+        haabMonthIndex = 18; // Wayeb'
+        haabDay = haabCount - 360 + 1;
+      }
+
+      return {
+        longCount: baktun + "." + katun + "." + tun + "." + winal + "." + kin,
+        baktun: baktun, katun: katun, tun: tun, winal: winal, kin: kin,
+        totalDays: totalDays,
+        tzolkin: { number: tzolkinNumber, name: TZOLKIN_NAMES[tzolkinNameIndex] },
+        haab: { day: haabDay, month: haabMonthIndex + 1, monthName: HAAB_NAMES[haabMonthIndex] },
+      };
+    }
+
+    // 5. Egyptian civil calendar (365 days, no leap year)
+    var EGYPTIAN_EPOCH_JDN = 1448638; // 1 Thoth, Year 1 of Nabonassar (26 Feb 747 BCE Julian)
+
+    var EGYPTIAN_MONTH_NAMES = [
+      'Thoth', 'Phaophi', 'Athyr', 'Choiak', 'Tybi', 'Mechir', 'Phamenoth',
+      'Pharmuthi', 'Pachons', 'Payni', 'Epiphi', 'Mesore', 'Epagomenal Days',
+    ];
+
+    function egyptianFromJdn(jdn) {
+      var mod = function (n, m) { return ((n % m) + m) % m; };
+      var daysSinceEpoch = jdn - EGYPTIAN_EPOCH_JDN;
+      var year = Math.floor(daysSinceEpoch / 365) + 1;
+      var dayOfYear = mod(daysSinceEpoch, 365); // 0-364
+      var month, day;
+      if (dayOfYear < 360) {
+        month = Math.floor(dayOfYear / 30) + 1;
+        day = (dayOfYear % 30) + 1;
+      } else {
+        month = 13; // epagomenal days
+        day = dayOfYear - 360 + 1; // 1-5
+      }
+      return { year: year, month: month, day: day, monthName: EGYPTIAN_MONTH_NAMES[month - 1] };
+    }
+
+    // 6. Chinese lunisolar — honestly not implemented (needs an astronomical
+    // ephemeris for true new moons + solar terms; a fixed-offset guess would
+    // silently produce wrong dates, so this is flagged instead of faked).
+    function chineseNotAvailable() {
+      return {
+        available: false,
+        reason: 'requires astronomical calculation (true new moon times + solar terms) — needs a library. Not implemented; not faked.',
+      };
+    }
+
+    // convertDate — same shape/logic as the validated test-calendars.js version
+    function convertDate(gregorianDate) {
+      var g = gregorianPartsOf(gregorianDate);
+      var jdn = gregorianToJDN(g.year, g.month, g.day);
+
+      var hijri = jdToIslamic(jdn);
+      var hebrew = jdToHebrew(jdn);
+      var mayan = mayanFromJdn(jdn);
+      var egyptian = egyptianFromJdn(jdn);
+
+      return {
+        jdn: jdn,
+        gregorian: { year: g.year, month: g.month, day: g.day, monthName: GREGORIAN_MONTH_NAMES[g.month - 1] },
+        hijri: { year: hijri.year, month: hijri.month, day: hijri.day, monthName: ISLAMIC_MONTH_NAMES[hijri.month - 1] },
+        hebrew: { year: hebrew.year, month: hebrew.month, day: hebrew.day, monthName: HEBREW_MONTH_NAMES[hebrew.month] },
+        mayan: mayan,
+        egyptian: egyptian,
+        chinese: chineseNotAvailable(),
+      };
+    }
+
+    /* Active calendar selection — module-level state for this panel.
+       Every date-display point below reads this via
+       formatDateForActiveCalendar() instead of hardcoding Gregorian. */
+    var activeCalendar = "gregorian";
+
     // Curated upcoming eclipses (2026-2030). Finite list — top up with new entries as years pass.
     var ECLIPSES = [
       { date: "2026-02-17T00:00Z", type: "Annular Solar",   category: "solar", visibility: "Antarctica, southern Africa" },
@@ -3849,19 +4117,12 @@
     restoreMoonPosition();
 
     var CALENDARS = [
-      { value: "gregory",           label: "Gregorian" },
-      { value: "hebrew",            label: "Hebrew" },
-      { value: "islamic",           label: "Islamic (Hijri)" },
-      { value: "islamic-umalqura",  label: "Islamic (Umm al-Qura)" },
-      { value: "persian",           label: "Persian (Solar Hijri)" },
-      { value: "indian",            label: "Indian National" },
-      { value: "chinese",           label: "Chinese" },
-      { value: "buddhist",          label: "Buddhist" },
-      { value: "japanese",          label: "Japanese" },
-      { value: "coptic",            label: "Coptic" },
-      { value: "ethiopic",          label: "Ethiopic" },
-      { value: "dangi",             label: "Korean" },
-      { value: "roc",               label: "Minguo" }
+      { value: "gregorian", label: "Gregorian" },
+      { value: "hijri",     label: "Hijri (Islamic, tabular)" },
+      { value: "hebrew",    label: "Hebrew" },
+      { value: "mayan",     label: "Mayan (Long Count)" },
+      { value: "egyptian",  label: "Egyptian (civil)" },
+      { value: "chinese",   label: "Chinese (coming soon)", disabled: true }
     ];
 
     if (calendarSelect) {
@@ -3869,8 +4130,10 @@
         var opt = document.createElement("option");
         opt.value = cal.value;
         opt.textContent = cal.label;
+        if (cal.disabled) opt.disabled = true;
         calendarSelect.appendChild(opt);
       });
+      calendarSelect.value = activeCalendar;
     }
 
     function getActiveMoment() {
@@ -3893,6 +4156,76 @@
         var ampm = h >= 12 ? "PM" : "AM";
         var h12 = h % 12 || 12;
         return h12 + ":" + pad2(moment.getMinutes()) + ":" + pad2(moment.getSeconds()) + " " + ampm;
+      }
+    }
+
+    function formatGregorian(jsDate) {
+      try {
+        return new Intl.DateTimeFormat(undefined, {
+          weekday: "long", year: "numeric", month: "long", day: "numeric"
+        }).format(jsDate);
+      } catch (e) {
+        return jsDate.toDateString();
+      }
+    }
+
+    // Traditional names for the 5 Egyptian epagomenal days (outside the 12
+    // civil months) — not part of the validated JDN math, purely a display
+    // label layered on top of egyptianFromJdn()'s month===13/day 1-5 output.
+    var EGYPTIAN_EPAGOMENAL_NAMES = [
+      'Birth of Osiris', 'Birth of Horus', 'Birth of Set', 'Birth of Isis', 'Birth of Nephthys'
+    ];
+
+    /* ONE place that decides "format this date in the active calendar."
+       Every date-display point calls this instead of hardcoding Gregorian.
+       Falls back to Gregorian on any conversion error (Part E safety net) —
+       the clock/date must never break because a calendar conversion threw. */
+    function formatDateForActiveCalendar(jsDate) {
+      if (activeCalendar === "gregorian") return formatGregorian(jsDate);
+
+      var r;
+      try {
+        r = convertDate(jsDate);
+      } catch (e) {
+        return formatGregorian(jsDate);
+      }
+
+      try {
+        switch (activeCalendar) {
+          case "hijri":
+            return r.hijri.day + " " + r.hijri.monthName + " " + r.hijri.year + " AH";
+
+          case "hebrew":
+            return r.hebrew.day + " " + r.hebrew.monthName + " " + r.hebrew.year;
+
+          case "mayan": {
+            var m = r.mayan;
+            var s = m.longCount;
+            if (m.tzolkin && m.haab) {
+              s += " · " + m.tzolkin.number + " " + m.tzolkin.name + " " + m.haab.day + " " + m.haab.monthName;
+            }
+            return s;
+          }
+
+          case "egyptian": {
+            var e = r.egyptian;
+            if (e.month === 13) {
+              var epaName = EGYPTIAN_EPAGOMENAL_NAMES[e.day - 1] || ("Epagomenal Day " + e.day);
+              return epaName + ", Year " + e.year;
+            }
+            return e.day + " " + e.monthName + ", Year " + e.year;
+          }
+
+          case "chinese":
+            // Should be unreachable — the option is disabled in the dropdown —
+            // but never fake a Chinese date if this is somehow hit.
+            return formatGregorian(jsDate);
+
+          default:
+            return formatGregorian(jsDate);
+        }
+      } catch (e2) {
+        return formatGregorian(jsDate);
       }
     }
 
@@ -4264,31 +4597,46 @@
       }
 
       if (dateEl) {
-        try {
-          dateEl.textContent = new Intl.DateTimeFormat(undefined, {
-            weekday: "long", year: "numeric", month: "long", day: "numeric"
-          }).format(moment);
-        } catch (e) {
-          dateEl.textContent = moment.toDateString();
-        }
+        dateEl.textContent = formatDateForActiveCalendar(moment);
       }
 
-      if (calendarOut && calendarSelect) {
-        var selected = calendarSelect.value || "gregory";
-        try {
-          calendarOut.textContent = new Intl.DateTimeFormat(undefined, {
-            calendar: selected,
-            dateStyle: "full"
-          }).format(moment);
-        } catch (calErr) {
-          calendarOut.textContent = "This calendar is unavailable in your browser.";
+      /* Secondary line: raw numeric breakdown for the active calendar (mirrors
+         the "raw:" verify lines in test-calendars.js) — kept distinct from
+         dateEl's pretty string above rather than duplicating it. */
+      if (calendarOut) {
+        var rawText = "";
+        if (activeCalendar !== "gregorian") {
+          try {
+            var convForOut = convertDate(moment);
+            switch (activeCalendar) {
+              case "hijri":
+                rawText = "raw: year=" + convForOut.hijri.year + " month=" + convForOut.hijri.month + " day=" + convForOut.hijri.day;
+                break;
+              case "hebrew":
+                rawText = "raw: year=" + convForOut.hebrew.year + " month=" + convForOut.hebrew.month + " day=" + convForOut.hebrew.day;
+                break;
+              case "mayan":
+                rawText = "Tzolk'in " + convForOut.mayan.tzolkin.number + " " + convForOut.mayan.tzolkin.name +
+                  " · Haab' " + convForOut.mayan.haab.day + " " + convForOut.mayan.haab.monthName;
+                break;
+              case "egyptian":
+                rawText = "raw: year=" + convForOut.egyptian.year + " month=" + convForOut.egyptian.month + " day=" + convForOut.egyptian.day + " (epoch: Era of Nabonassar)";
+                break;
+              case "chinese":
+                rawText = "Chinese calendar coming soon — needs an astronomical library.";
+                break;
+            }
+          } catch (calErr) {
+            rawText = "";
+          }
         }
+        calendarOut.textContent = rawText;
       }
 
       var pageClockEl = document.getElementById("pageClock");
       if (pageClockEl) {
         var moonForPageClock = getMoonData(moment);
-        pageClockEl.textContent = formatTime12(moment) + " · " + moonForPageClock.phaseName;
+        pageClockEl.textContent = formatDateForActiveCalendar(moment) + " · " + formatTime12(moment) + " · " + moonForPageClock.phaseName;
       }
 
       renderMoon();
@@ -4306,7 +4654,10 @@
       dateTimeInput.addEventListener("input", renderClock);
     }
     if (calendarSelect) {
-      calendarSelect.addEventListener("change", renderClock);
+      calendarSelect.addEventListener("change", function () {
+        activeCalendar = calendarSelect.value;
+        renderClock();
+      });
     }
 
     renderClock();
