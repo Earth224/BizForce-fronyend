@@ -1567,6 +1567,27 @@
       return { year: year, month: month, day: day, monthName: EGYPTIAN_MONTH_NAMES[month - 1] };
     }
 
+    // The Egyptian civil year's three seasons, four months each, in order:
+    // Akhet (the Nile flood/inundation), Peret (the emergence of crops as
+    // the flood recedes), Shemu (the harvest before the flood returns).
+    // The 13th "month" (the 5 epagomenal days) belongs to none of them --
+    // it sits outside the season cycle entirely.
+    var EGYPTIAN_SEASONS = [
+      { name: 'Akhet', meaning: 'Inundation', startMonth: 1, endMonth: 4 },
+      { name: 'Peret', meaning: 'Emergence', startMonth: 5, endMonth: 8 },
+      { name: 'Shemu', meaning: 'Harvest', startMonth: 9, endMonth: 12 },
+    ];
+
+    // Returns the season entry a given Egyptian month number falls in, or
+    // null for month 13 (the epagomenal days, outside the season cycle).
+    function egyptianSeasonFor(month) {
+      for (var i = 0; i < EGYPTIAN_SEASONS.length; i++) {
+        var season = EGYPTIAN_SEASONS[i];
+        if (month >= season.startMonth && month <= season.endMonth) return season;
+      }
+      return null;
+    }
+
     // ---------------------------------------------------------------------
     // 6. Persian / Solar Hijri (Jalali) — 33-year-cycle arithmetic approximation
     // ---------------------------------------------------------------------
@@ -2710,9 +2731,21 @@
         yearLabel = conv0[calendar].year + yearSuffixFor(calendar);
       }
 
+      var latinLine = monthLabel + ' ' + yearLabel;
+      if (calendar === 'egyptian') {
+        var season = egyptianSeasonFor(monthNum);
+        if (season) {
+          var ordinalWords = ['first', 'second', 'third', 'fourth'];
+          var positionInSeason = monthNum - season.startMonth; // 0-based
+          latinLine += ' — ' + season.name + ' (' + season.meaning + '), ' + ordinalWords[positionInSeason] + ' of four';
+        } else {
+          latinLine += ' — outside the season cycle (epagomenal days)';
+        }
+      }
+
       var subtitleParts = (calendar === 'chinese')
         ? chineseNativeHeaderHtml(monthNum, conv0.chinese.leap, monthLabel + ' ' + yearLabel)
-        : nativeHeaderHtml(calendar, monthNum, monthLabel + ' ' + yearLabel);
+        : nativeHeaderHtml(calendar, monthNum, latinLine);
       if (calGridSubtitle) {
         calGridSubtitle.innerHTML = subtitleParts.html;
         calGridSubtitle.classList.toggle('cal-subtitle-stacked', subtitleParts.stacked);
