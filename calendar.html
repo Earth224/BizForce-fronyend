@@ -2165,6 +2165,15 @@
         '一月', '二月', '三月', '四月', '五月', '六月',
         '七月', '八月', '九月', '十月', '十一月', '十二月',
       ],
+      // The first month has its own traditional name, zhengyue (正月),
+      // rather than being called "one-month" the way months 2-10 are
+      // literally numbered; the eleventh and twelfth similarly keep their
+      // traditional names, dongyue (冬月, "winter month") and layue (臘月,
+      // "sacrifice/year-end month"), rather than "eleven-month"/"twelve-month".
+      chinese: [
+        '正月', '二月', '三月', '四月', '五月', '六月',
+        '七月', '八月', '九月', '十月', '冬月', '臘月',
+      ],
     };
 
     var EGYPTIAN_MONTH_NAMES_COPTIC = NATIVE_MONTH_NAMES.coptic.slice(0, 12);
@@ -2177,6 +2186,7 @@
       ethiopic:       { rtl: false, fontStack: "'Noto Sans Ethiopic','Nyala','Abyssinica SIL',sans-serif" },
       indianNational: { rtl: false, fontStack: "'Noto Sans Devanagari','Nirmala UI','Mangal',sans-serif" },
       japanese:       { rtl: false, fontStack: "'Noto Sans JP','Yu Gothic','Hiragino Sans','Meiryo',sans-serif" },
+      chinese:        { rtl: false, fontStack: "'Noto Sans SC','Microsoft YaHei','PingFang SC',sans-serif" },
     };
 
     function nativeMonthName(calendar, month, useEgyptianCopticSecondary) {
@@ -2213,6 +2223,24 @@
       if (!nativeName) return { html: escapeHtml(latinLine), stacked: false };
       return {
         html: nativeScriptSpan(calendar, nativeName, 'cal-native-script-lg') +
+              '<span class="cal-native-latin-line">' + escapeHtml(latinLine) + '</span>',
+        stacked: true
+      };
+    }
+
+    // Chinese-only wrapper around the same logic as nativeHeaderHtml. The
+    // leap flag has no place in nativeMonthName's/nativeHeaderHtml's
+    // signature -- no other calendar here has a leap-MONTH concept, only
+    // leap-YEARS (Hebrew) or epagomenal days -- so rather than widen those
+    // signatures for Chinese alone, the 閏 (leap) prefix is applied here,
+    // at the two call sites that already have the converted Chinese
+    // object's `leap` flag in scope.
+    function chineseNativeHeaderHtml(month, leap, latinLine) {
+      var nativeName = nativeMonthName('chinese', month);
+      if (!nativeName) return { html: escapeHtml(latinLine), stacked: false };
+      if (leap) nativeName = '閏' + nativeName;
+      return {
+        html: nativeScriptSpan('chinese', nativeName, 'cal-native-script-lg') +
               '<span class="cal-native-latin-line">' + escapeHtml(latinLine) + '</span>',
         stacked: true
       };
@@ -2682,7 +2710,9 @@
         yearLabel = conv0[calendar].year + yearSuffixFor(calendar);
       }
 
-      var subtitleParts = nativeHeaderHtml(calendar, monthNum, monthLabel + ' ' + yearLabel);
+      var subtitleParts = (calendar === 'chinese')
+        ? chineseNativeHeaderHtml(monthNum, conv0.chinese.leap, monthLabel + ' ' + yearLabel)
+        : nativeHeaderHtml(calendar, monthNum, monthLabel + ' ' + yearLabel);
       if (calGridSubtitle) {
         calGridSubtitle.innerHTML = subtitleParts.html;
         calGridSubtitle.classList.toggle('cal-subtitle-stacked', subtitleParts.stacked);
@@ -2961,6 +2991,9 @@
           ? escapeHtml(ce.monthName) + ' ' + nativeScriptSpan('coptic', secondary, 'cal-native-secondary')
           : escapeHtml(ce.monthName);
         parts = { html: escapeHtml(String(ce.day)) + ' ' + monthPart + escapeHtml(' ' + ce.year + yearSuffixFor('egyptian')), stacked: false };
+      } else if (activeCalendar === 'chinese') {
+        var cc = conv.chinese;
+        parts = chineseNativeHeaderHtml(cc.month, cc.leap, cc.day + " " + cc.monthName + " " + cc.year + yearSuffixFor('chinese'));
       } else {
         var c = conv[activeCalendar];
         parts = nativeHeaderHtml(activeCalendar, c.month, c.day + " " + c.monthName + " " + c.year + yearSuffixFor(activeCalendar));
