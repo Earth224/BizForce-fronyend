@@ -229,6 +229,62 @@
       }
     }
 
+    /* ── Tzolk'in Birth Signature card — COMPACT FLOATING card, upper-
+       right, mirroring .mychart-calendar-panel's shape/position pattern
+       on the opposite side. Gold-tinted border (vs. the calendar panel's
+       cyan) so it reads as a distinct personal-reading surface, not
+       another calendar-tradition control. Starts hidden inline (display:
+       none in the markup) — renderTzolkinCard() only reveals it once a
+       birth date actually resolves to a signature; see PART F. ── */
+    .mychart-tzolkin-card {
+      position: fixed;
+      top: 96px;
+      right: 24px;
+      z-index: 2;
+      width: 240px;
+      background: rgba(10,4,20,0.55);
+      border: 1px solid rgba(232,200,116,0.25);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .mychart-tzolkin-card:hover {
+      border-color: rgba(232,200,116,0.5);
+      background: rgba(10,4,20,0.7);
+    }
+    .mychart-tzolkin-title {
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #e8c874, #ffe9b0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin: 0 0 10px;
+    }
+    .mychart-tzolkin-line1 {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #f5f3e8;
+    }
+    .mychart-tzolkin-line2 {
+      margin-top: 2px;
+      font-size: 0.76rem;
+      color: rgba(232,220,255,0.6);
+    }
+    @media (max-width: 640px) {
+      .mychart-tzolkin-card {
+        position: static;
+        width: auto;
+        margin: 0 0 20px;
+      }
+    }
+
     /* ── Cel-* controls — copied verbatim from oracle.html's Celestial
        panel CSS so the calendar label/button/output match exactly
        (dark glass, cyan accents). The dropdown itself is now a custom
@@ -734,6 +790,12 @@
       <div class="cel-calendar-out" id="mcCalendarToday"></div>
 
       <a class="cel-now-btn" id="mcOpenFullCalendar" href="calendar.html">&#x26F6; Open Full Calendar</a>
+    </div>
+
+    <div class="mychart-tzolkin-card" id="mcTzolkinCard" style="display:none;">
+      <div class="mychart-tzolkin-title">Tzolk&rsquo;in</div>
+      <div class="mychart-tzolkin-line1" id="mcTzolkinLine1">&mdash;</div>
+      <div class="mychart-tzolkin-line2" id="mcTzolkinLine2">&mdash;</div>
     </div>
 
     <div class="mychart-title-row">
@@ -2022,6 +2084,7 @@
       if (blueprint) {
         stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(680px, 62vw)", interactive: true });
         loadAndRenderOrbit();
+        renderTzolkinCard();
         return;
       }
 
@@ -2038,6 +2101,7 @@
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
         }
+        renderTzolkinCard();
       });
     }
 
@@ -2091,6 +2155,156 @@
       eraFraming: "Each of the triangle's nine perimeter lines governs a distinct nine-year era. The experiences that land within a line's age range are, in this tradition, read as that era's own curriculum — not random events, but the specific lessons a soul is held to have arranged for that particular nine-year chapter.",
       lifeLesson: "The triangle's own center — the Life Lesson Number — is read as the single thread woven through every era: not one chapter's assignment but the master curriculum of the whole incarnation, the theme every square's building ultimately serves.",
       interiorNote: "The three interior lines — Month, Day, and Year — are the triangle's own spine: the fixed birthdate at its center, the foundation every perimeter era and every square is built outward from."
+    };
+
+    /* Mayan Tzolk'in Birth Signature -- interpretive content for the 20 day
+       signs (nawal) and 13 Galactic Tones of the 260-day sacred count,
+       authored in the same voice as DT_LIFEMAP: the tradition's own
+       reading of a sign's character, not asserted as settled fact. Keys
+       match TZOLKIN_NAMES exactly (calendar-engine script, further down
+       in this document). */
+    var TZOLKIN_MEANINGS = {
+      Imix: {
+        glyphName: "Crocodile / Primordial Waters",
+        essence: "Imix opens the count as the primordial waters the whole cycle is born from — the tradition reads it as raw origination: nurturing, maternal, the source-energy before anything has yet taken shape. Those who carry it are read as natural beginners and providers, comfortable standing at the start of things.",
+        shadow: "Its characteristic pitfall is an oversensitivity that curdles into moodiness or a need to control the nest it has built, mistaking protection of the source for possession of it.",
+        gift: "Lived well, Imix offers a deep, steady nurturing force — the capacity to originate and sustain what others need to grow, without needing to hold onto it."
+      },
+      Ik: {
+        glyphName: "Wind / Breath",
+        essence: "Ik is read as breath and spirit in motion — communication, ideas, the life-force that animates a body but belongs to no one. Those who carry it are held to be natural communicators and idea-people, restless until a thought becomes speech or motion.",
+        shadow: "Its shadow is scattering — so many ideas moving through that none take root, or a restlessness that reads to others as inconsistency.",
+        gift: "Its gift is inspiration carried clearly: the ability to give voice and breath to what others cannot yet articulate for themselves."
+      },
+      Akbal: {
+        glyphName: "Night / House",
+        essence: "Akbal is the house of night — introspection, dreams, the inner mystery a life is built around. The tradition reads it as depth-seeking: comfort in darkness, intuition, and the quiet interior work most people avoid.",
+        shadow: "Its pitfall is withdrawal that hardens into isolation, or a fear of the dark turning into avoidance of the very introspection this sign is suited for.",
+        gift: "Its gift is intuitive depth — the capacity to sit with what is unseen and unspoken until it becomes understanding, and to offer that understanding as shelter to others."
+      },
+      Kan: {
+        glyphName: "Seed / Lizard",
+        essence: "Kan carries the seed of what is not yet grown — potential, fertility, the patient promise of a future harvest. Those who carry it are read as natural cultivators, drawn to planting ideas, ventures, or people that will take time to ripen.",
+        shadow: "Its shadow is impatience with process, or scattering seed without ever tending what has been planted.",
+        gift: "Its gift is abundance grown honestly — the discipline to nurture potential all the way to fruit rather than moving on before the harvest."
+      },
+      Chicchan: {
+        glyphName: "Serpent",
+        essence: "Chicchan carries the life-force itself — instinct, vitality, the body's own wisdom moving beneath conscious thought. The tradition reads it as raw survival intelligence: passionate, perceptive, quick to sense danger or opportunity before it is named.",
+        shadow: "Its pitfall is that same intensity turned inward as jealousy, fear, or a coiled defensiveness that strikes before it needs to.",
+        gift: "Its gift is a vital, embodied wisdom — instinct trusted and channeled rather than feared, capable of healing as readily as it senses threat."
+      },
+      Cimi: {
+        glyphName: "Death / Transformer",
+        essence: "Cimi is read not as an ending but as the transformer — the sign that governs letting go so something new can begin. Those who carry it are held to have a natural sensitivity to endings, thresholds, and the ancestral dead.",
+        shadow: "Its shadow is a fatalism or fear of change that clings to what has already finished, refusing the very transformation the sign exists to carry.",
+        gift: "Its gift is graceful release — the ability to close a chapter cleanly and help others do the same, so that what comes next can actually arrive."
+      },
+      Manik: {
+        glyphName: "Deer / Hand",
+        essence: "Manik is the healing hand — skill, dexterity, the gentle precision of a hunter who takes only what is needed. The tradition reads it as cooperative competence: capable hands, a light touch, and an instinct for what a situation actually requires.",
+        shadow: "Its pitfall is an over-giving that empties the hand before it can heal anything else, or a gentleness that avoids necessary confrontation.",
+        gift: "Its gift is skillful service — competence placed in the service of others without losing its own gentleness in the process."
+      },
+      Lamat: {
+        glyphName: "Star / Rabbit",
+        essence: "Lamat is the evening star — harmony, abundance, art, and the playful fertility associated with Venus in this tradition. Those who carry it are read as natural artists and harmonizers, drawn to beauty and to multiplying good fortune outward.",
+        shadow: "Its shadow is a hedonism or restlessness that scatters abundance rather than cultivating it, chasing pleasure past the point of harmony.",
+        gift: "Its gift is beauty made generous — the capacity to create harmony and share abundance rather than hoard it."
+      },
+      Muluc: {
+        glyphName: "Water / Offering",
+        essence: "Muluc is the offering — emotion, water, the sacred exchange between people and between a person and the unseen. The tradition reads it as deep feeling given form: generous, empathic, moved to offer what it has.",
+        shadow: "Its pitfall is emotional flooding — feeling so much, or giving so freely, that boundaries dissolve along with the water's edges.",
+        gift: "Its gift is purification through generosity — emotion offered cleanly, without needing anything returned, which is exactly what makes the offering sacred."
+      },
+      Oc: {
+        glyphName: "Dog",
+        essence: "Oc carries loyalty and guidance — companionship, an instinct for fairness, and the steady faithfulness the tradition associates with the dog as guide between worlds. Those who carry it are read as devoted, dependable, and quick to sense what is right.",
+        shadow: "Its shadow is a loyalty given uncritically, following a person or cause past the point it deserves the devotion.",
+        gift: "Its gift is unconditional companionship — presence and guidance offered faithfully, and a natural sense of justice that others learn to trust."
+      },
+      Chuen: {
+        glyphName: "Monkey / Artisan",
+        essence: "Chuen is the artisan and trickster — creativity, playfulness, the weaving together of ideas into something genuinely new. The tradition reads it as inventive intelligence: quick, witty, unafraid to play with what is serious.",
+        shadow: "Its pitfall is cleverness without follow-through, or humor used to deflect rather than to connect.",
+        gift: "Its gift is playful mastery — the ability to make even skilled, difficult work look like art, and to bring lightness into whatever it touches."
+      },
+      Eb: {
+        glyphName: "Road / Human",
+        essence: "Eb is the road walked in human free will — cooperation, destiny, the daily path a person chooses one step at a time. Those who carry it are read as diligent and communal, at their best in service to something shared.",
+        shadow: "Its shadow is a self-doubt that hesitates at every fork, or a martyrdom that serves the road while forgetting the walker.",
+        gift: "Its gift is grounded cooperation — steady, humble progress made in company, trusting the path even when it cannot see the destination."
+      },
+      Ben: {
+        glyphName: "Reed / Skywalker",
+        essence: "Ben is the reed that grows straight and tall — authority, structure, the pillar a family or community leans on. The tradition reads it as natural leadership: upright, principled, oriented toward growth reaching upward.",
+        shadow: "Its pitfall is rigidity — standing so straight that it cannot bend, mistaking authority for inflexibility.",
+        gift: "Its gift is steady, principled leadership — a structure others can genuinely lean on, strong enough to bend without breaking."
+      },
+      Ix: {
+        glyphName: "Jaguar / Magician",
+        essence: "Ix carries the jaguar's magic — feminine power, the earth's wild wisdom, shamanic receptivity to what cannot be seen directly. Those who carry it are read as intuitive and quietly powerful, at home in ambiguity others find unsettling.",
+        shadow: "Its shadow is a secretiveness or wariness that keeps its real power hidden even from itself.",
+        gift: "Its gift is earthed magic — receptive, instinctive wisdom used in service of healing and protection rather than concealment."
+      },
+      Men: {
+        glyphName: "Eagle",
+        essence: "Men is the eagle's far sight — vision, ambition, the capacity to rise above a situation and see its whole shape. The tradition reads it as a mind oriented toward the horizon: hopeful, farsighted, uncomfortable staying small.",
+        shadow: "Its pitfall is a vision so lofty it loses touch with the ground, or ambition that outpaces patience.",
+        gift: "Its gift is clarity from altitude — the ability to see the larger pattern and orient others toward it, without losing sight of what is directly underfoot."
+      },
+      Cib: {
+        glyphName: "Vulture / Warrior / Owl",
+        essence: "Cib carries the wisdom of the elders — forgiveness, conscience, the karmic memory an owl or vulture is read as keeping watch over. Those who carry it are held to have an old, reflective quality, drawn to questions of right and wrong.",
+        shadow: "Its shadow is a harsh self-judgment or grudge-holding that mistakes conscience for punishment.",
+        gift: "Its gift is earned wisdom offered as forgiveness — the capacity to hold a hard truth and still choose compassion."
+      },
+      Caban: {
+        glyphName: "Earth",
+        essence: "Caban is the earth in motion — synchronicity, evolution, the intelligence the tradition reads as moving through the ground itself. Those who carry it are held to notice patterns and timing others miss, navigating by a kind of inner compass.",
+        shadow: "Its pitfall is restlessness mistaken for progress — movement for its own sake, without the earth's patience underneath it.",
+        gift: "Its gift is evolutionary intelligence — a sensitivity to synchronicity and timing that, followed patiently, moves a life forward in step with something larger than planning."
+      },
+      Etznab: {
+        glyphName: "Mirror / Flint",
+        essence: "Etznab is the obsidian mirror — truth, clarity, the sword-edge of discernment that cuts through illusion. The tradition reads it as an uncompromising honesty: sharp perception, quick to see what is real beneath what is presented.",
+        shadow: "Its shadow is a cutting quality turned careless — truth delivered as a blade rather than a mirror, wounding where it meant only to clarify.",
+        gift: "Its gift is clean, healing clarity — the willingness to reflect what is true, including to oneself, in service of what actually needs to be seen."
+      },
+      Cauac: {
+        glyphName: "Storm",
+        essence: "Cauac is the purifying storm — upheaval that clears the way for renewal, activation, and communal transformation. Those who carry it are read as catalytic: capable of stirring necessary change, especially within a community.",
+        shadow: "Its pitfall is volatility for its own sake — stirring storms that never resolve into the renewal they were meant to clear space for.",
+        gift: "Its gift is transformative activation — the courage to bring the necessary storm, and the follow-through to let it actually renew what it disturbed."
+      },
+      Ahau: {
+        glyphName: "Sun / Lord",
+        essence: "Ahau closes the count as the solar lord — enlightenment, mastery, the culmination every sign before it has been building toward. The tradition reads it as radiant completion: a natural authority earned rather than claimed.",
+        shadow: "Its shadow is a pride or self-importance that mistakes radiance for superiority, forgetting the nineteen signs it stands on.",
+        gift: "Its gift is illuminated mastery — the capacity to shine in a way that lights the whole cycle behind it, and to lead by that light rather than by demand."
+      }
+    };
+
+    /* The 13 Galactic Tones -- the count's other axis, cycling independently
+       of the 20 day signs. Each tone is read as a distinct QUALITY OF
+       ACTION the day sign's energy moves through, not a sign of its own;
+       "meaning" is written to complete the sentence "Tone N here means the
+       sign's energy is expressed through ___." */
+    var TONE_MEANINGS = {
+      1: { name: "Magnetic", meaning: "unification — this is read as a first-tone purpose-setting energy, drawing every part of the day sign's character toward a single, clear intention." },
+      2: { name: "Lunar", meaning: "polarity — this tone is read as surfacing the challenge or duality within the day sign's energy, the friction that has to be met before it can move further." },
+      3: { name: "Electric", meaning: "activation — this tone is read as bonding the day sign's energy to service, the spark that turns intention into a first, active step." },
+      4: { name: "Self-Existing", meaning: "definition — this tone is read as giving the day sign's energy a concrete form, measuring and structuring what tone 3 activated." },
+      5: { name: "Overtone", meaning: "radiance — this tone is read as empowerment, the day sign's energy stepping into confident, visible expression." },
+      6: { name: "Rhythmic", meaning: "balance — this tone is read as organizing the day sign's energy into equality and steady flow, distributing its force evenly." },
+      7: { name: "Resonant", meaning: "attunement — this tone is read as channeling the day sign's energy inward, aligning it with something larger than the individual carrying it." },
+      8: { name: "Galactic", meaning: "harmony — this tone is read as integrity, the day sign's energy becoming a model others can pattern themselves on." },
+      9: { name: "Solar", meaning: "intention — this tone is read as the day sign's energy pulsing toward realization, the drive that carries a purpose to completion." },
+      10: { name: "Planetary", meaning: "manifestation — this tone is read as perfecting the day sign's energy in physical, tangible form." },
+      11: { name: "Spectral", meaning: "liberation — this tone is read as releasing the day sign's energy from whatever has bound or limited its expression." },
+      12: { name: "Crystal", meaning: "cooperation — this tone is read as dedicating the day sign's energy to a shared, universal purpose beyond the self." },
+      13: { name: "Cosmic", meaning: "transcendence — this tone is read as the day sign's energy reaching its endurance and completion, the last breath of the thirteen-tone cycle before the count begins again." }
     };
 
     var MC_INTERIOR_TITLES = {
@@ -2235,11 +2449,88 @@
       return html;
     }
 
+    /* Mayan Tzolk'in Birth Signature reading -- data is { daySign, tone,
+       kin } as computed by renderTzolkinCard() (see below). Day-sign/tone
+       content pulled from TZOLKIN_MEANINGS/TONE_MEANINGS above; same
+       heading/section-title/wisdom CSS classes as every other panel here. */
+    function buildMcTzolkinHtml(data) {
+      var signInfo = TZOLKIN_MEANINGS[data.daySign] || {};
+      var toneInfo = TONE_MEANINGS[data.tone] || {};
+
+      var html = '<div class="mc-info-heading">Tone ' + data.tone + ' ' + data.daySign + ' &middot; Kin ' + data.kin + '</div>';
+      html += '<div class="mc-info-body-text mc-info-wisdom">The Tzolk\'in is the Maya sacred count of 260 days &mdash; thirteen tones cycling through twenty day signs. This is the tradition\'s own reading of your birth date\'s place in that count: a day sign and tone read as the character you arrived carrying, not a fixed fate.</div>';
+
+      html += '<div class="mc-info-section-title">' + data.daySign + (signInfo.glyphName ? ' &middot; ' + signInfo.glyphName : '') + '</div>';
+      if (signInfo.essence) html += '<div class="mc-info-body-text">' + signInfo.essence + '</div>';
+      if (signInfo.shadow)  html += '<div class="mc-info-body-text"><strong>Shadow:</strong> ' + signInfo.shadow + '</div>';
+      if (signInfo.gift)    html += '<div class="mc-info-body-text mc-info-wisdom"><strong>Gift:</strong> ' + signInfo.gift + '</div>';
+
+      html += '<div class="mc-info-section-title">Tone ' + data.tone + (toneInfo.name ? ' &middot; ' + toneInfo.name : '') + '</div>';
+      if (toneInfo.meaning) html += '<div class="mc-info-body-text">Here, tone ' + data.tone + ' means ' + data.daySign + '\'s energy is expressed through ' + toneInfo.meaning + '</div>';
+
+      html += '<div class="mc-info-body-text mc-info-wisdom" style="margin-top:8px;">Kin ' + data.kin + ' of 260 &mdash; your exact position in the full Tzolk\'in count, the one day out of the whole 260-day cycle this sign-and-tone pairing belongs to.</div>';
+      return html;
+    }
+
     function buildMcInfoHtml(type, data) {
       if (type === "line")     return buildMcLineHtml(data.line, data.square, data.ageRange);
       if (type === "center")   return buildMcCenterHtml(data.center, data.value);
       if (type === "interior") return buildMcInteriorHtml(data.interior, data.value);
+      if (type === "tzolkin")  return buildMcTzolkinHtml(data);
       return "";
+    }
+
+    /* Tzolk'in Birth Signature card -- populates/reveals #mcTzolkinCard from
+       numerologyData.birth_date. mayanFromJdn/gregorianToJDN live in the
+       calendar-engine <script> further down this document, which hasn't
+       run yet the moment THIS script's own top-level code executes, but
+       has always finished by the time this function is actually called
+       (either from fetchNumerology()'s async .then(), or from a later
+       renderMyChart() call) -- see the "window.mayanFromJdn = ..." bridge
+       at the bottom of that script for why this ordering is safe.
+       PART F: birth_date missing, unparseable, or the bridge not yet
+       available all fall through to hiding the card entirely rather than
+       showing a broken/partial reading. */
+    var mcTzolkinData = null;
+
+    function renderTzolkinCard() {
+      var card = document.getElementById("mcTzolkinCard");
+      if (!card) return;
+
+      var birthDate = numerologyData && numerologyData.birth_date;
+      if (!birthDate || typeof window.mayanFromJdn !== "function" || typeof window.gregorianToJDN !== "function") {
+        card.style.display = "none";
+        mcTzolkinData = null;
+        return;
+      }
+
+      // CRITICAL: parse as local midnight, not bare new Date("YYYY-MM-DD"),
+      // which parses as UTC midnight and shifts the day backward in
+      // negative-UTC-offset timezones -- corrupting the signature.
+      var parsed = new Date(birthDate + "T00:00:00");
+      if (isNaN(parsed.getTime())) {
+        card.style.display = "none";
+        mcTzolkinData = null;
+        return;
+      }
+
+      var jdn = window.gregorianToJDN(parsed.getFullYear(), parsed.getMonth() + 1, parsed.getDate());
+      var mayan = window.mayanFromJdn(jdn);
+      if (!mayan || !mayan.tzolkin) {
+        card.style.display = "none";
+        mcTzolkinData = null;
+        return;
+      }
+
+      mcTzolkinData = { daySign: mayan.tzolkin.name, tone: mayan.tzolkin.number, kin: mayan.tzolkin.kin };
+
+      var signInfo = TZOLKIN_MEANINGS[mcTzolkinData.daySign] || {};
+      var line1 = document.getElementById("mcTzolkinLine1");
+      var line2 = document.getElementById("mcTzolkinLine2");
+      if (line1) line1.textContent = mcTzolkinData.tone + " " + mcTzolkinData.daySign + " · Kin " + mcTzolkinData.kin;
+      if (line2) line2.textContent = signInfo.glyphName || "";
+
+      card.style.display = "";
     }
 
     /* ── "Ask Termaximus about this" — composes a context-rich, first-
@@ -2312,6 +2603,13 @@
           " on the interior of my Divine Triangle — what does this foundation mean for me?";
       }
 
+      if (type === "tzolkin") {
+        var signInfo = TZOLKIN_MEANINGS[data.daySign] || {};
+        return "Speak personally about my Mayan Tzolk'in birth signature — Tone " + data.tone + " " + data.daySign +
+          (signInfo.glyphName ? " (" + signInfo.glyphName + ")" : "") + ", Kin " + data.kin +
+          " of 260. What does this day sign and tone mean for who I am?";
+      }
+
       return "Speak personally about this element of my Divine Triangle blueprint.";
     }
 
@@ -2329,6 +2627,7 @@
         var names = { AD: "your Birth Month", DG: "your Birth Day", AG: "your Birth Year" };
         return names[data.interior] || "this interior line";
       }
+      if (type === "tzolkin") return "your Tzolk'in Birth Signature";
       return "this element";
     }
 
@@ -2457,6 +2756,18 @@
       mcInfoCloseBtn.addEventListener("click", function (e) {
         e.stopPropagation();
         closeMcInfo();
+      });
+    }
+
+    // Tzolk'in card lives outside #myChartStage (it's a fixed upper-right
+    // panel, not part of the blueprint), so it isn't caught by that
+    // delegated listener above -- wire it directly, same openMcInfo call
+    // shape, using the { daySign, tone, kin } computed by renderTzolkinCard().
+    var mcTzolkinCardEl = document.getElementById("mcTzolkinCard");
+    if (mcTzolkinCardEl) {
+      mcTzolkinCardEl.addEventListener("click", function () {
+        if (!mcTzolkinData) return;
+        openMcInfo(mcTzolkinCardEl, "tzolkin", mcTzolkinData);
       });
     }
 
@@ -2672,6 +2983,11 @@
       var mod = function (n, m) { return ((n % m) + m) % m; };
       var tzolkinNumber = mod(totalDays + 3, 13) + 1;
       var tzolkinNameIndex = mod(totalDays + 19, 20);
+      // Kin -- the day's 1-260 position in the full Tzolk'in count (distinct
+      // from the Long Count's own 0-19 "kin" component below). Offset 159
+      // derived so totalDays=0 (Long Count epoch, 4 Ahau) lands on kin 160,
+      // the standard alignment.
+      var tzolkinKin = mod(totalDays + 159, 260) + 1;
 
       var haabCount = mod(totalDays + 347, 365);
       var haabMonthIndex, haabDay;
@@ -2687,7 +3003,7 @@
         longCount: baktun + "." + katun + "." + tun + "." + winal + "." + kin,
         baktun: baktun, katun: katun, tun: tun, winal: winal, kin: kin,
         totalDays: totalDays,
-        tzolkin: { number: tzolkinNumber, name: TZOLKIN_NAMES[tzolkinNameIndex] },
+        tzolkin: { number: tzolkinNumber, name: TZOLKIN_NAMES[tzolkinNameIndex], kin: tzolkinKin },
         haab: { day: haabDay, month: haabMonthIndex + 1, monthName: HAAB_NAMES[haabMonthIndex] },
       };
     }
@@ -3561,6 +3877,14 @@
     }
 
     renderCalendarToday();
+
+    // Bridge for the Tzolk'in Birth Signature card, defined in the My
+    // Chart script ABOVE this one in the document (so it runs first --
+    // these names don't exist yet when that script's own top-level code
+    // runs, only by the time its async fetch callbacks/click handlers
+    // fire, which is always after this whole script has finished).
+    window.mayanFromJdn = mayanFromJdn;
+    window.gregorianToJDN = gregorianToJDN;
   }());
   </script>
 
