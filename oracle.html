@@ -1492,6 +1492,21 @@
       color: #8892b8;
       letter-spacing: 0.04em;
     }
+    /* ── Native-script month names (Stage 5) -- prominent native form,
+       Latin transliteration always visible as a smaller muted companion
+       (never native-only). Reused everywhere a month name displays. ── */
+    .cel-native-script {
+      font-weight: 700;
+    }
+    .cel-native-latin-inline {
+      font-weight: 600;
+      color: rgba(232,220,255,0.55);
+    }
+    .cel-native-secondary {
+      font-size: 0.85em;
+      color: rgba(232,220,255,0.45);
+      margin-left: 2px;
+    }
 
     .cel-label {
       display: block;
@@ -4359,6 +4374,129 @@
       };
     }
 
+    // ---------------------------------------------------------------------
+    // Native-script month names (Stage 5) — same data/logic as
+    // mychart.html's copy (ported verbatim, matching the established
+    // copy-verbatim pattern between these two files). Each entry is the
+    // SAME shape as that calendar's own *_MONTH_NAMES (Hebrew: object
+    // keyed 1-13; everything else: array indexed month-1). Accuracy over
+    // completeness: any month a native form wasn't confidently verifiable
+    // for is simply absent, and nativeMonthName() falls back to
+    // Latin-only for it.
+    //
+    // Mayan and Egyptian are deliberately NOT primary-native: Unicode has
+    // no Mayan hieroglyph block at all (faking it with lookalike glyphs
+    // would be dishonest, not "native script"), and while an Egyptian
+    // Hieroglyphs block exists, font support for it is unreliable enough
+    // (many systems render empty boxes) that it's not safe as a primary
+    // label. Egyptian instead gets an OPTIONAL secondary annotation using
+    // Coptic-script forms (EGYPTIAN_MONTH_NAMES_COPTIC below) since the
+    // Coptic calendar's month names are the direct linguistic descendants
+    // of the ancient Egyptian civil calendar's.
+    var NATIVE_MONTH_NAMES = {
+      hebrew: {
+        1: 'ניסן', 2: 'אייר', 3: 'סיון', 4: 'תמוז', 5: 'אב', 6: 'אלול',
+        7: 'תשרי', 8: 'חשון', 9: 'כסלו', 10: 'טבת', 11: 'שבט',
+        12: 'אדר', 13: 'אדר ב׳',
+      },
+      hijri: [
+        'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الآخرة',
+        'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+      ],
+      persian: [
+        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+      ],
+      coptic: [
+        'Ⲑⲱⲟⲩⲧ', 'Ⲡⲁⲱⲡⲉ', 'Ⲁⲑⲱⲣ', 'Ⲕⲟⲓⲁⲕ', 'Ⲧⲱⲃⲓ', 'Ⲙⲉϣⲓⲣ',
+        'Ⲡⲁⲣⲉⲙϩⲁⲧ', 'Ⲡⲁⲣⲙⲟⲩⲧⲉ', 'Ⲡⲁϣⲟⲛⲥ', 'Ⲡⲁⲱⲛⲉ', 'Ⲉⲡⲏⲡ', 'Ⲙⲉⲥⲱⲣⲓ',
+        'Ⲡⲓⲕⲟⲩϫⲓ ⲛ̀ⲁⲃⲟⲧ',
+      ],
+      ethiopic: [
+        'መስከረም', 'ጥቅምት', 'ኅዳር', 'ታኅሣሥ', 'ጥር', 'የካቲት',
+        'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜ',
+      ],
+      indianNational: [
+        'चैत्र', 'वैशाख', 'ज्येष्ठ', 'आषाढ', 'श्रावण', 'भाद्र',
+        'आश्विन', 'कार्तिक', 'अग्रहायण', 'पौष', 'माघ', 'फाल्गुन',
+      ],
+      // Modern numeric kanji months -- Japanese months/days ARE Gregorian
+      // months/days (see japaneseFromJdn), so this is indexed month-1
+      // exactly like GREGORIAN_MONTH_NAMES.
+      japanese: [
+        '一月', '二月', '三月', '四月', '五月', '六月',
+        '七月', '八月', '九月', '十月', '十一月', '十二月',
+      ],
+    };
+
+    // Egyptian's OPTIONAL secondary annotation (not primary -- see note
+    // above). Same 12 civil-month words as Coptic; index 12 (epagomenal
+    // days) has no distinct native form given, so it's simply absent and
+    // falls back to Latin-only, same as any other unverified entry.
+    var EGYPTIAN_MONTH_NAMES_COPTIC = NATIVE_MONTH_NAMES.coptic.slice(0, 12);
+
+    // rtl: true for Hebrew script and Perso-Arabic scripts (Hijri's
+    // Arabic and Persian's Perso-Arabic are both genuinely RTL, even
+    // though the task brief named "Hebrew and Arabic" specifically as
+    // examples -- Persian would render backwards if treated as LTR, so
+    // it gets the same handling). fontStack lists common system fonts
+    // for that script, most-likely-installed first; if none are present
+    // the browser falls back to its default font for that Unicode range
+    // -- the glyphs may still not render on some systems, which is why
+    // the Latin transliteration is NEVER hidden, only ever a companion.
+    var NATIVE_SCRIPT_META = {
+      hebrew:         { rtl: true,  fontStack: "'Noto Sans Hebrew','Arial Hebrew','David',sans-serif" },
+      hijri:          { rtl: true,  fontStack: "'Noto Sans Arabic','Traditional Arabic','Segoe UI',Tahoma,sans-serif" },
+      persian:        { rtl: true,  fontStack: "'Noto Sans Arabic','Tahoma','Segoe UI',sans-serif" },
+      coptic:         { rtl: false, fontStack: "'Noto Sans Coptic','Antinoou','New Athena Unicode',sans-serif" },
+      ethiopic:       { rtl: false, fontStack: "'Noto Sans Ethiopic','Nyala','Abyssinica SIL',sans-serif" },
+      indianNational: { rtl: false, fontStack: "'Noto Sans Devanagari','Nirmala UI','Mangal',sans-serif" },
+      japanese:       { rtl: false, fontStack: "'Noto Sans JP','Yu Gothic','Hiragino Sans','Meiryo',sans-serif" },
+    };
+
+    // Looks up a calendar's native month name using that calendar's own
+    // *_MONTH_NAMES indexing convention (Hebrew: key by month number
+    // 1-13 directly; everything else: array, so month-1). Returns null
+    // -- never a guess -- when there's no verified entry, so callers can
+    // cleanly fall back to Latin-only.
+    function nativeMonthName(calendar, month, useEgyptianCopticSecondary) {
+      if (calendar === 'egyptian') {
+        return useEgyptianCopticSecondary ? (EGYPTIAN_MONTH_NAMES_COPTIC[month - 1] || null) : null;
+      }
+      var map = NATIVE_MONTH_NAMES[calendar];
+      if (!map) return null;
+      var name = calendar === 'hebrew' ? map[month] : map[month - 1];
+      return name || null;
+    }
+
+    // escapeHtml — needed once innerHTML is used for date displays that
+    // now carry native-script markup; wasn't needed anywhere on this page
+    // before Stage 5 since every date display was plain .textContent.
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Wraps a native-script string with the RTL/font handling it needs
+    // (Part C/D): dir="rtl" + unicode-bidi:isolate for RTL scripts (so
+    // the text renders correctly and doesn't scramble surrounding Latin
+    // text), plus a font-family stack naming real system fonts for that
+    // script. HTML-escaped -- always safe to drop straight into an
+    // innerHTML string.
+    function nativeScriptSpan(calendar, nativeText, extraClass) {
+      if (!nativeText) return '';
+      var meta = NATIVE_SCRIPT_META[calendar];
+      if (!meta) return escapeHtml(nativeText);
+      var cls = 'cel-native-script' + (extraClass ? ' ' + extraClass : '');
+      var dirAttr = meta.rtl ? ' dir="rtl"' : '';
+      var style = 'font-family:' + meta.fontStack + ';' + (meta.rtl ? 'unicode-bidi:isolate;' : '');
+      return '<span class="' + cls + '"' + dirAttr + ' style="' + style + '">' + escapeHtml(nativeText) + '</span>';
+    }
+
     /* Active calendar selection — module-level state for this panel.
        Every date-display point below reads this via
        formatDateForActiveCalendar() instead of hardcoding Gregorian.
@@ -4751,6 +4889,99 @@
       }
     }
 
+    // Same shape/branches as formatDateForActiveCalendar above, but emits
+    // HTML with the month name shown in its native script (Stage 5) plus
+    // the Latin transliteration as a small muted companion -- never the
+    // native script alone (Part B). formatDateForActiveCalendar itself is
+    // left untouched since it still returns a plain string for callers
+    // that need one; this is a parallel function for the callers that
+    // switched from .textContent to .innerHTML to make room for this.
+    function formatDateForActiveCalendarHtml(jsDate) {
+      if (activeCalendar === "gregorian") return escapeHtml(formatGregorian(jsDate));
+
+      var r;
+      try {
+        r = convertDate(jsDate);
+      } catch (e) {
+        return escapeHtml(formatGregorian(jsDate));
+      }
+
+      function inline(calendar, day, monthName, month, suffix) {
+        var native = nativeMonthName(calendar, month);
+        var monthHtml = native
+          ? nativeScriptSpan(calendar, native) + ' <span class="cel-native-latin-inline">(' + escapeHtml(monthName) + ')</span>'
+          : escapeHtml(monthName);
+        return escapeHtml(String(day)) + ' ' + monthHtml + escapeHtml(suffix);
+      }
+
+      try {
+        switch (activeCalendar) {
+          case "hijri":
+            return inline('hijri', r.hijri.day, r.hijri.monthName, r.hijri.month, ' ' + r.hijri.year + ' AH');
+
+          case "hebrew":
+            return inline('hebrew', r.hebrew.day, r.hebrew.monthName, r.hebrew.month, ' ' + r.hebrew.year);
+
+          case "mayan": {
+            var m = r.mayan;
+            var s = escapeHtml(m.longCount);
+            if (m.tzolkin && m.haab) {
+              s += ' · ' + escapeHtml(m.tzolkin.number + ' ' + m.tzolkin.name + ' ' + m.haab.day + ' ' + m.haab.monthName);
+            }
+            return s;
+          }
+
+          case "egyptian": {
+            var e = r.egyptian;
+            if (e.month === 13) {
+              var epaName = EGYPTIAN_EPAGOMENAL_NAMES[e.day - 1] || ("Epagomenal Day " + e.day);
+              return escapeHtml(epaName + ", Year " + e.year);
+            }
+            // Optional secondary Coptic-script annotation (Part A note) --
+            // Egyptian's own month name stays primary/Latin.
+            var secondary = nativeMonthName('egyptian', e.month, true);
+            var monthHtml = secondary
+              ? escapeHtml(e.monthName) + ' ' + nativeScriptSpan('coptic', secondary, 'cel-native-secondary')
+              : escapeHtml(e.monthName);
+            return escapeHtml(String(e.day)) + ' ' + monthHtml + escapeHtml(", Year " + e.year);
+          }
+
+          case "persian":
+            return inline('persian', r.persian.day, r.persian.monthName, r.persian.month, ' ' + r.persian.year);
+
+          case "coptic":
+            return inline('coptic', r.coptic.day, r.coptic.monthName, r.coptic.month, ' ' + r.coptic.year + ' AM');
+
+          case "ethiopic":
+            return inline('ethiopic', r.ethiopic.day, r.ethiopic.monthName, r.ethiopic.month, ' ' + r.ethiopic.year + ' EE');
+
+          case "buddhist":
+            return escapeHtml(r.buddhist.day + " " + r.buddhist.monthName + " " + r.buddhist.year + " BE");
+
+          case "japanese": {
+            var j = r.japanese;
+            var eraLabel = j.eraYear === 1 ? (j.era + " gannen") : (j.era ? (j.era + " " + j.eraYear) : j.label);
+            var nativeJ = nativeMonthName('japanese', j.month);
+            var monthHtmlJ = nativeJ
+              ? nativeScriptSpan('japanese', nativeJ) + ' <span class="cel-native-latin-inline">(' + escapeHtml(j.monthName) + ')</span>'
+              : escapeHtml(j.monthName);
+            return escapeHtml(eraLabel) + ' · ' + monthHtmlJ + ' ' + escapeHtml(String(j.day));
+          }
+
+          case "indianNational":
+            return inline('indianNational', r.indianNational.day, r.indianNational.monthName, r.indianNational.month, ' ' + r.indianNational.year);
+
+          case "chinese":
+            return escapeHtml(formatGregorian(jsDate));
+
+          default:
+            return escapeHtml(formatGregorian(jsDate));
+        }
+      } catch (e2) {
+        return escapeHtml(formatGregorian(jsDate));
+      }
+    }
+
     /* ── Moon phase (standard synodic-month calculation) ── */
     var SYNODIC_MONTH = 29.53058867;
     var KNOWN_NEW_MOON_UTC = Date.UTC(2000, 0, 6, 18, 14, 0);
@@ -5119,7 +5350,7 @@
       }
 
       if (dateEl) {
-        dateEl.textContent = formatDateForActiveCalendar(moment);
+        dateEl.innerHTML = formatDateForActiveCalendarHtml(moment);
       }
 
       /* Secondary line: raw numeric breakdown for the active calendar (mirrors
@@ -5176,7 +5407,8 @@
       var pageClockEl = document.getElementById("pageClock");
       if (pageClockEl) {
         var moonForPageClock = getMoonData(moment);
-        pageClockEl.textContent = formatDateForActiveCalendar(moment) + " · " + formatTime12(moment) + " · " + moonForPageClock.phaseName;
+        pageClockEl.innerHTML = formatDateForActiveCalendarHtml(moment) + " · " +
+          escapeHtml(formatTime12(moment)) + " · " + escapeHtml(moonForPageClock.phaseName);
       }
 
       renderMoon();
