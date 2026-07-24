@@ -721,7 +721,6 @@
       box-sizing: border-box;
       margin-bottom: 10px;
       transition: border-color 0.2s;
-      color-scheme: dark;
     }
     .cal-day-input:focus,
     .cal-day-textarea:focus { border-color: rgba(34,211,238,0.55); }
@@ -741,6 +740,14 @@
     }
     .cal-day-reminder-row {
       margin-bottom: 14px;
+    }
+    .cal-day-reminder-time-row {
+      display: flex;
+      gap: 8px;
+    }
+    .cal-day-reminder-time-row .cel-dd {
+      flex: 1;
+      min-width: 0;
     }
     .cal-day-panel-error {
       font-size: 0.76rem;
@@ -861,8 +868,30 @@
             <ul class="cel-dd-list" id="calEventReminderWhenList" role="listbox" tabindex="-1" hidden></ul>
           </div>
 
-          <label class="cel-label" for="calEventReminderTime">Time of day</label>
-          <input type="time" class="cal-day-input" id="calEventReminderTime" value="09:00" />
+          <label class="cel-label" id="calEventReminderTimeLabel">Time of day</label>
+          <div class="cal-day-reminder-time-row">
+            <div class="cel-dd" id="calEventReminderHourDropdown">
+              <button type="button" class="cel-dd-trigger" id="calEventReminderHourTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventReminderTimeLabel">
+                <span class="cel-dd-trigger-label" id="calEventReminderHourTriggerLabel">9</span>
+                <span class="cel-dd-chevron" aria-hidden="true"></span>
+              </button>
+              <ul class="cel-dd-list" id="calEventReminderHourList" role="listbox" tabindex="-1" hidden></ul>
+            </div>
+            <div class="cel-dd" id="calEventReminderMinuteDropdown">
+              <button type="button" class="cel-dd-trigger" id="calEventReminderMinuteTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventReminderTimeLabel">
+                <span class="cel-dd-trigger-label" id="calEventReminderMinuteTriggerLabel">00</span>
+                <span class="cel-dd-chevron" aria-hidden="true"></span>
+              </button>
+              <ul class="cel-dd-list" id="calEventReminderMinuteList" role="listbox" tabindex="-1" hidden></ul>
+            </div>
+            <div class="cel-dd" id="calEventReminderAmPmDropdown">
+              <button type="button" class="cel-dd-trigger" id="calEventReminderAmPmTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventReminderTimeLabel">
+                <span class="cel-dd-trigger-label" id="calEventReminderAmPmTriggerLabel">AM</span>
+                <span class="cel-dd-chevron" aria-hidden="true"></span>
+              </button>
+              <ul class="cel-dd-list" id="calEventReminderAmPmList" role="listbox" tabindex="-1" hidden></ul>
+            </div>
+          </div>
         </div>
 
         <div class="cal-day-panel-error" id="calDayPanelError" hidden></div>
@@ -3422,7 +3451,16 @@
     var calEventReminderWhenTrigger    = document.getElementById("calEventReminderWhenTrigger");
     var calEventReminderWhenTriggerLabel = document.getElementById("calEventReminderWhenTriggerLabel");
     var calEventReminderWhenList       = document.getElementById("calEventReminderWhenList");
-    var calEventReminderTimeInput      = document.getElementById("calEventReminderTime");
+
+    var calEventReminderHourTrigger        = document.getElementById("calEventReminderHourTrigger");
+    var calEventReminderHourTriggerLabel   = document.getElementById("calEventReminderHourTriggerLabel");
+    var calEventReminderHourList           = document.getElementById("calEventReminderHourList");
+    var calEventReminderMinuteTrigger      = document.getElementById("calEventReminderMinuteTrigger");
+    var calEventReminderMinuteTriggerLabel = document.getElementById("calEventReminderMinuteTriggerLabel");
+    var calEventReminderMinuteList         = document.getElementById("calEventReminderMinuteList");
+    var calEventReminderAmPmTrigger        = document.getElementById("calEventReminderAmPmTrigger");
+    var calEventReminderAmPmTriggerLabel   = document.getElementById("calEventReminderAmPmTriggerLabel");
+    var calEventReminderAmPmList           = document.getElementById("calEventReminderAmPmList");
 
     var EVENT_TYPE_OPTIONS = [
       { value: "reminder",    label: "Reminder" },
@@ -3445,10 +3483,26 @@
       { value: 10080, label: "1 week before" }
     ];
 
+    var REMINDER_HOUR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (h) {
+      return { value: h, label: String(h) };
+    });
+
+    var REMINDER_MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(function (m) {
+      return { value: m, label: m < 10 ? "0" + m : String(m) };
+    });
+
+    var REMINDER_AMPM_OPTIONS = [
+      { value: "AM", label: "AM" },
+      { value: "PM", label: "PM" }
+    ];
+
     var dayPanelJdn = null;         // which day the panel is currently showing
     var selectedEventType = "other";
     var selectedRecurCalendar = activeCalendar; // reset to activeCalendar fresh in openDayPanel
     var selectedReminderMinutesBefore = 0;      // reset to 0 fresh in openDayPanel
+    var selectedReminderHour = 9;               // reset to 9 fresh in openDayPanel
+    var selectedReminderMinute = 0;             // reset to 0 fresh in openDayPanel
+    var selectedReminderAmPm = "AM";            // reset to AM fresh in openDayPanel
 
     if (calEventTypeTrigger && calEventTypeTriggerLabel && calEventTypeList) {
       initCelDropdown({
@@ -3498,6 +3552,45 @@
         options: REMINDER_WHEN_OPTIONS,
         value: selectedReminderMinutesBefore,
         onChange: function (value) { selectedReminderMinutesBefore = value; }
+      });
+    }
+
+    // Time of day, as three .cel-dd dropdowns (hour / minute / AM-PM)
+    // instead of a native <input type="time">, so it matches the panel's
+    // dark theme instead of falling back to the OS-native time picker.
+    var calEventReminderHourDd = null;
+    if (calEventReminderHourTrigger && calEventReminderHourTriggerLabel && calEventReminderHourList) {
+      calEventReminderHourDd = initCelDropdown({
+        trigger: calEventReminderHourTrigger,
+        triggerLabel: calEventReminderHourTriggerLabel,
+        list: calEventReminderHourList,
+        options: REMINDER_HOUR_OPTIONS,
+        value: selectedReminderHour,
+        onChange: function (value) { selectedReminderHour = value; }
+      });
+    }
+
+    var calEventReminderMinuteDd = null;
+    if (calEventReminderMinuteTrigger && calEventReminderMinuteTriggerLabel && calEventReminderMinuteList) {
+      calEventReminderMinuteDd = initCelDropdown({
+        trigger: calEventReminderMinuteTrigger,
+        triggerLabel: calEventReminderMinuteTriggerLabel,
+        list: calEventReminderMinuteList,
+        options: REMINDER_MINUTE_OPTIONS,
+        value: selectedReminderMinute,
+        onChange: function (value) { selectedReminderMinute = value; }
+      });
+    }
+
+    var calEventReminderAmPmDd = null;
+    if (calEventReminderAmPmTrigger && calEventReminderAmPmTriggerLabel && calEventReminderAmPmList) {
+      calEventReminderAmPmDd = initCelDropdown({
+        trigger: calEventReminderAmPmTrigger,
+        triggerLabel: calEventReminderAmPmTriggerLabel,
+        list: calEventReminderAmPmList,
+        options: REMINDER_AMPM_OPTIONS,
+        value: selectedReminderAmPm,
+        onChange: function (value) { selectedReminderAmPm = value; }
       });
     }
 
@@ -3643,7 +3736,9 @@
       if (calEventRemindMeInput) calEventRemindMeInput.checked = false;
       if (calEventReminderRow) calEventReminderRow.hidden = true;
       if (calEventReminderWhenDd) calEventReminderWhenDd.setValue(0);
-      if (calEventReminderTimeInput) calEventReminderTimeInput.value = "09:00";
+      if (calEventReminderHourDd) calEventReminderHourDd.setValue(9);
+      if (calEventReminderMinuteDd) calEventReminderMinuteDd.setValue(0);
+      if (calEventReminderAmPmDd) calEventReminderAmPmDd.setValue("AM");
       renderDayPanelHeader(jdn);
       renderDayPanelEvents(jdn);
       calDayPanel.classList.add("is-open");
@@ -3683,10 +3778,14 @@
 
       if (remindMe) {
         var remindG = jdnToGregorian(dayPanelJdn);
-        var timeValue = (calEventReminderTimeInput && calEventReminderTimeInput.value) ? calEventReminderTimeInput.value : "09:00";
-        var timeParts = timeValue.split(":");
-        var remindHours = parseInt(timeParts[0], 10) || 0;
-        var remindMinutes = parseInt(timeParts[1], 10) || 0;
+
+        // 12-hour + AM/PM -> 24-hour: 12 AM is midnight (0), 12 PM is noon
+        // (12), every other hour just adds 12 in the PM half.
+        var remindHours = selectedReminderHour % 12;
+        if (selectedReminderAmPm === "PM") {
+          remindHours += 12;
+        }
+        var remindMinutes = selectedReminderMinute;
         var eventLocalDate = new Date(remindG.year, remindG.month - 1, remindG.day, remindHours, remindMinutes, 0, 0);
 
         reminderMinutesBefore = selectedReminderMinutesBefore;
@@ -3740,7 +3839,9 @@
           if (calEventRemindMeInput) calEventRemindMeInput.checked = false;
           if (calEventReminderRow) calEventReminderRow.hidden = true;
           if (calEventReminderWhenDd) calEventReminderWhenDd.setValue(0);
-          if (calEventReminderTimeInput) calEventReminderTimeInput.value = "09:00";
+          if (calEventReminderHourDd) calEventReminderHourDd.setValue(9);
+          if (calEventReminderMinuteDd) calEventReminderMinuteDd.setValue(0);
+          if (calEventReminderAmPmDd) calEventReminderAmPmDd.setValue("AM");
 
           renderCalendarPage();
           renderDayPanelEvents(dayPanelJdn);
