@@ -2520,6 +2520,21 @@
 
     var NO_HOLIDAYS_NOTE = "Major festivals in this tradition follow lunar/lunisolar reckoning this calendar's arithmetic doesn't represent — omitted rather than shown incorrectly.";
 
+    // Per-calendar reasons for the three calendars with no HOLIDAYS entry
+    // (buddhist, indianNational, mayan) -- an explained omission reads as
+    // rigor rather than a gap, the same principle the letter-science
+    // numerology systems already follow when they refuse to compute a
+    // number from a Latin transliteration rather than the real script.
+    var NO_HOLIDAYS_REASONS = {
+      buddhist: "The major Buddhist observance days — the uposatha days and Vesak — follow the traditional lunar calendar, not the solar Buddhist Era year this engine computes. Placing them would require lunar reckoning this calendar does not carry, so they are omitted rather than approximated.",
+      indianNational: "The Hindu festival cycle follows regional lunisolar calendars, not the arithmetic Saka reckoning implemented here, and the same festival falls on different days by region. They are omitted rather than given a single false date.",
+      mayan: "The Long Count is a continuous positional day count with no annual festival cycle to mark. The ceremonial structure of the Maya calendar lives in the Tzolk'in day signs and tones, which are shown on the My Chart page rather than as calendar holidays.",
+    };
+
+    function noHolidaysNoteFor(calendar) {
+      return NO_HOLIDAYS_REASONS[calendar] || NO_HOLIDAYS_NOTE;
+    }
+
     // Resolves every HOLIDAYS entry for one calendar year into individual
     // {jdn, name, note, isRange} days -- ranges are expanded day-by-day
     // via JDN arithmetic (not hardcoded end dates), so variable month
@@ -2800,7 +2815,7 @@
 
       var html = '';
       if (!HOLIDAYS[calendar]) {
-        html += '<div class="cal-no-holidays-note">' + escapeHtml(NO_HOLIDAYS_NOTE) + '</div>';
+        html += '<div class="cal-no-holidays-note">' + escapeHtml(noHolidaysNoteFor(calendar)) + '</div>';
       }
       html += '<div class="cal-grid" style="--cal-cols:' + weekStruct.columns + '">';
       weekStruct.labels.forEach(function (w) {
@@ -2874,7 +2889,7 @@
         '+ 5-day Wayeb\' cycle that repeats every 365 days with no year number of its ' +
         'own; Prev/Next move between its months.</div>';
 
-      html += '<div class="cal-no-holidays-note">' + escapeHtml(NO_HOLIDAYS_NOTE) + '</div>';
+      html += '<div class="cal-no-holidays-note">' + escapeHtml(noHolidaysNoteFor('mayan')) + '</div>';
       html += '<div class="cal-mayan-month-label">' + monthName + '</div>';
 
       html += '<div class="cal-grid" style="--cal-cols:' + weekStruct.columns + '">';
