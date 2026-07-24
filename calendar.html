@@ -2492,6 +2492,27 @@
         { month: 1, day: 1, name: "Shogatsu (New Year)" },
         { month: 5, day: 3, name: "Constitution Day" },
         { month: 8, day: 15, name: "Obon (approximate)" }
+      ],
+      // month/day here are TRADITIONAL Chinese lunar month/day numbers, not
+      // chronological month indices -- resolveHolidayEntries converts them
+      // via chineseNumberToMonthIndex before calling calendarMonthStartJdn.
+      // Qingming (清明) is deliberately absent: it is a solar term (the
+      // zhongqi/jieqi system), not a fixed lunar month/day, so it cannot be
+      // placed by lunar month and day the way every entry below is.
+      chinese: [
+        { month: 1, day: 1, name: "Spring Festival 春節", note: "Chinese New Year" },
+        { month: 1, day: 15, name: "Lantern Festival 元宵節" },
+        { month: 2, day: 2, name: "Dragon Head Raising 龍抬頭" },
+        { month: 3, day: 3, name: "Shangsi Festival 上巳節" },
+        { month: 5, day: 5, name: "Dragon Boat Festival 端午節" },
+        { month: 7, day: 7, name: "Qixi 七夕", note: "Double Seventh" },
+        { month: 7, day: 15, name: "Ghost Festival 中元節" },
+        { month: 8, day: 15, name: "Mid-Autumn Festival 中秋節" },
+        { month: 9, day: 9, name: "Double Ninth 重陽節" },
+        { month: 10, day: 1, name: "Winter Clothing Festival 寒衣節" },
+        { month: 10, day: 15, name: "Xiayuan Festival 下元節" },
+        { month: 12, day: 8, name: "Laba Festival 臘八節" },
+        { month: 12, day: 23, name: "Little New Year 小年", note: "Northern China observes the 23rd; southern China observes the 24th." }
       ]
       // buddhist, indianNational, mayan: deliberately no entries -- see
       // NO_HOLIDAYS_NOTE below.
@@ -2511,6 +2532,20 @@
         var month = entry.month;
         if (entry.lastAdarOfYear) {
           month = hebrewMonthsInYear(year) === 13 ? 13 : 12;
+        }
+        // Chinese HOLIDAYS entries are keyed by TRADITIONAL month number,
+        // but calendarMonthStartJdn('chinese', ...) expects the
+        // CHRONOLOGICAL month index -- the two diverge after a leap month
+        // (e.g. 2025's leap 6th month makes chronological index 7 the leap
+        // sixth month, not the seventh). Converting here, rather than
+        // leaving callers to do it, is what keeps a holiday defined as
+        // "month 7" from silently landing a full lunar month early in a
+        // leap year. If the year isn't in the Chinese table at all, skip
+        // the entry instead of guessing.
+        if (calendar === 'chinese') {
+          var chineseYearEntry = decodeChineseYear(year);
+          if (!chineseYearEntry) return;
+          month = chineseNumberToMonthIndex(month, false, chineseYearEntry.leapMonth);
         }
         var startJdn;
         try {
