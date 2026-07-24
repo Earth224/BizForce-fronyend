@@ -678,6 +678,13 @@
       letter-spacing: 0.06em;
       margin-top: 3px;
     }
+    .cal-day-event-reminder {
+      font-size: 0.62rem;
+      color: rgba(34,211,238,0.85);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 3px;
+    }
     .cal-day-event-delete {
       flex-shrink: 0;
       width: 24px;
@@ -714,6 +721,7 @@
       box-sizing: border-box;
       margin-bottom: 10px;
       transition: border-color 0.2s;
+      color-scheme: dark;
     }
     .cal-day-input:focus,
     .cal-day-textarea:focus { border-color: rgba(34,211,238,0.55); }
@@ -729,6 +737,9 @@
     }
     .cal-day-checkbox-row input { accent-color: #22d3ee; }
     .cal-day-recur-calendar-row {
+      margin-bottom: 14px;
+    }
+    .cal-day-reminder-row {
       margin-bottom: 14px;
     }
     .cal-day-panel-error {
@@ -833,6 +844,25 @@
             </button>
             <ul class="cel-dd-list" id="calEventRecurCalendarList" role="listbox" tabindex="-1" hidden></ul>
           </div>
+        </div>
+
+        <label class="cal-day-checkbox-row" for="calEventRemindMe">
+          <input type="checkbox" id="calEventRemindMe" />
+          <span>Remind me</span>
+        </label>
+
+        <div class="cal-day-reminder-row" id="calEventReminderRow" hidden>
+          <label class="cel-label" id="calEventReminderWhenLabel">When</label>
+          <div class="cel-dd" id="calEventReminderWhenDropdown">
+            <button type="button" class="cel-dd-trigger" id="calEventReminderWhenTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventReminderWhenLabel">
+              <span class="cel-dd-trigger-label" id="calEventReminderWhenTriggerLabel">At the time of the event</span>
+              <span class="cel-dd-chevron" aria-hidden="true"></span>
+            </button>
+            <ul class="cel-dd-list" id="calEventReminderWhenList" role="listbox" tabindex="-1" hidden></ul>
+          </div>
+
+          <label class="cel-label" for="calEventReminderTime">Time of day</label>
+          <input type="time" class="cal-day-input" id="calEventReminderTime" value="09:00" />
         </div>
 
         <div class="cal-day-panel-error" id="calDayPanelError" hidden></div>
@@ -3387,6 +3417,13 @@
     var calEventRecurCalendarTriggerLabel = document.getElementById("calEventRecurCalendarTriggerLabel");
     var calEventRecurCalendarList         = document.getElementById("calEventRecurCalendarList");
 
+    var calEventRemindMeInput          = document.getElementById("calEventRemindMe");
+    var calEventReminderRow            = document.getElementById("calEventReminderRow");
+    var calEventReminderWhenTrigger    = document.getElementById("calEventReminderWhenTrigger");
+    var calEventReminderWhenTriggerLabel = document.getElementById("calEventReminderWhenTriggerLabel");
+    var calEventReminderWhenList       = document.getElementById("calEventReminderWhenList");
+    var calEventReminderTimeInput      = document.getElementById("calEventReminderTime");
+
     var EVENT_TYPE_OPTIONS = [
       { value: "reminder",    label: "Reminder" },
       { value: "anniversary", label: "Anniversary" },
@@ -3397,9 +3434,21 @@
       { value: "other",       label: "Other" }
     ];
 
+    var REMINDER_WHEN_OPTIONS = [
+      { value: 0,     label: "At the time of the event" },
+      { value: 10,    label: "10 minutes before" },
+      { value: 30,    label: "30 minutes before" },
+      { value: 60,    label: "1 hour before" },
+      { value: 120,   label: "2 hours before" },
+      { value: 1440,  label: "1 day before" },
+      { value: 2880,  label: "2 days before" },
+      { value: 10080, label: "1 week before" }
+    ];
+
     var dayPanelJdn = null;         // which day the panel is currently showing
     var selectedEventType = "other";
     var selectedRecurCalendar = activeCalendar; // reset to activeCalendar fresh in openDayPanel
+    var selectedReminderMinutesBefore = 0;      // reset to 0 fresh in openDayPanel
 
     if (calEventTypeTrigger && calEventTypeTriggerLabel && calEventTypeList) {
       initCelDropdown({
@@ -3436,6 +3485,48 @@
       calEventRecurringInput.addEventListener("change", function () {
         calEventRecurCalendarRow.hidden = !calEventRecurringInput.checked;
       });
+    }
+
+    // "When" offset for the reminder -- same .cel-dd component as the
+    // other dropdowns here, not a native <select>.
+    var calEventReminderWhenDd = null;
+    if (calEventReminderWhenTrigger && calEventReminderWhenTriggerLabel && calEventReminderWhenList) {
+      calEventReminderWhenDd = initCelDropdown({
+        trigger: calEventReminderWhenTrigger,
+        triggerLabel: calEventReminderWhenTriggerLabel,
+        list: calEventReminderWhenList,
+        options: REMINDER_WHEN_OPTIONS,
+        value: selectedReminderMinutesBefore,
+        onChange: function (value) { selectedReminderMinutesBefore = value; }
+      });
+    }
+
+    // The When/Time-of-day controls only make sense once "Remind me" is
+    // checked -- hidden otherwise, same reveal pattern as recurrence above.
+    if (calEventRemindMeInput && calEventReminderRow) {
+      calEventRemindMeInput.addEventListener("change", function () {
+        calEventReminderRow.hidden = !calEventRemindMeInput.checked;
+      });
+    }
+
+    // Phrases how far before the event a set reminder will fire, from the
+    // stored reminder_minutes_before offset. Mirrors the backend's
+    // formatReminderBody in server.js (largest whole unit that fits).
+    function reminderOffsetLabel(minutesBefore) {
+      if (!minutesBefore) return "at the time of the event";
+      if (minutesBefore % 10080 === 0) {
+        var weeks = minutesBefore / 10080;
+        return weeks + " week" + (weeks === 1 ? "" : "s") + " before";
+      }
+      if (minutesBefore % 1440 === 0) {
+        var days = minutesBefore / 1440;
+        return days + " day" + (days === 1 ? "" : "s") + " before";
+      }
+      if (minutesBefore % 60 === 0) {
+        var hours = minutesBefore / 60;
+        return hours + " hour" + (hours === 1 ? "" : "s") + " before";
+      }
+      return minutesBefore + " minute" + (minutesBefore === 1 ? "" : "s") + " before";
     }
 
     function showDayPanelError(msg) {
@@ -3531,6 +3622,7 @@
               '</div>' +
               (ev.notes ? '<div class="cal-day-event-notes">' + escapeHtml(ev.notes) + '</div>' : '') +
               (ev.recurring ? '<div class="cal-day-event-recurring">Repeats annually in ' + escapeHtml(calendarLabelFor(ev.recur_calendar)) + '</div>' : '') +
+              (ev.remind_at ? '<div class="cal-day-event-reminder">Reminder set — ' + escapeHtml(reminderOffsetLabel(ev.reminder_minutes_before)) + '</div>' : '') +
               anniversaryHtml +
             '</div>' +
             '<button type="button" class="cal-day-event-delete" data-event-id="' + escapeHtml(ev.id) + '" aria-label="Delete event">&#x2715;</button>' +
@@ -3548,6 +3640,10 @@
       if (calEventRecurringInput) calEventRecurringInput.checked = false;
       if (calEventRecurCalendarDd) calEventRecurCalendarDd.setValue(activeCalendar);
       if (calEventRecurCalendarRow) calEventRecurCalendarRow.hidden = true;
+      if (calEventRemindMeInput) calEventRemindMeInput.checked = false;
+      if (calEventReminderRow) calEventReminderRow.hidden = true;
+      if (calEventReminderWhenDd) calEventReminderWhenDd.setValue(0);
+      if (calEventReminderTimeInput) calEventReminderTimeInput.value = "09:00";
       renderDayPanelHeader(jdn);
       renderDayPanelEvents(jdn);
       calDayPanel.classList.add("is-open");
@@ -3576,13 +3672,36 @@
       }
 
       var isRecurring = !!(calEventRecurringInput && calEventRecurringInput.checked);
+
+      // remind_at is computed here rather than on the backend: the event's
+      // day (dayPanelJdn) plus the chosen local Time of day gives the
+      // instant the event occurs, then the chosen minutes-before offset is
+      // subtracted to get the actual instant to fire the reminder.
+      var remindMe = !!(calEventRemindMeInput && calEventRemindMeInput.checked);
+      var remindAtIso = null;
+      var reminderMinutesBefore = null;
+
+      if (remindMe) {
+        var remindG = jdnToGregorian(dayPanelJdn);
+        var timeValue = (calEventReminderTimeInput && calEventReminderTimeInput.value) ? calEventReminderTimeInput.value : "09:00";
+        var timeParts = timeValue.split(":");
+        var remindHours = parseInt(timeParts[0], 10) || 0;
+        var remindMinutes = parseInt(timeParts[1], 10) || 0;
+        var eventLocalDate = new Date(remindG.year, remindG.month - 1, remindG.day, remindHours, remindMinutes, 0, 0);
+
+        reminderMinutesBefore = selectedReminderMinutesBefore;
+        remindAtIso = new Date(eventLocalDate.getTime() - reminderMinutesBefore * 60000).toISOString();
+      }
+
       var payload = {
         jdn: dayPanelJdn,
         title: title,
         event_type: selectedEventType,
         notes: calEventNotesInput ? calEventNotesInput.value.trim() : "",
         recurring: isRecurring,
-        recur_calendar: isRecurring ? selectedRecurCalendar : "gregorian"
+        recur_calendar: isRecurring ? selectedRecurCalendar : "gregorian",
+        remind_at: remindAtIso,
+        reminder_minutes_before: reminderMinutesBefore
       };
 
       if (calEventSaveBtn) { calEventSaveBtn.disabled = true; calEventSaveBtn.textContent = "Saving…"; }
@@ -3618,6 +3737,10 @@
           if (calEventNotesInput) calEventNotesInput.value = "";
           if (calEventRecurringInput) calEventRecurringInput.checked = false;
           if (calEventRecurCalendarRow) calEventRecurCalendarRow.hidden = true;
+          if (calEventRemindMeInput) calEventRemindMeInput.checked = false;
+          if (calEventReminderRow) calEventReminderRow.hidden = true;
+          if (calEventReminderWhenDd) calEventReminderWhenDd.setValue(0);
+          if (calEventReminderTimeInput) calEventReminderTimeInput.value = "09:00";
 
           renderCalendarPage();
           renderDayPanelEvents(dayPanelJdn);
