@@ -519,12 +519,16 @@
               <div class="toggle-copy">
                 <div class="toggle-title">Notifications</div>
                 <div class="toggle-desc">Enable in-app notifications.</div>
-                <span class="pref-saved" id="notifSaved"></span>
+                <div class="msg" id="notifStatus"></div>
               </div>
               <label class="toggle-switch">
                 <input type="checkbox" id="notifToggle" />
                 <span class="toggle-slider"></span>
               </label>
+            </div>
+            <div class="btn-row" id="notifTestRow" style="display:none;">
+              <button class="btn" id="notifTestBtn" type="button">Send Test Notification</button>
+              <span class="msg" id="notifTestMsg"></span>
             </div>
           </section>
         </div>
@@ -803,7 +807,10 @@
       var notifToggle = document.getElementById("notifToggle");
       var tmxSaved = document.getElementById("tmxSaved");
       var mistSaved = document.getElementById("mistSaved");
-      var notifSaved = document.getElementById("notifSaved");
+      var notifStatus = document.getElementById("notifStatus");
+      var notifTestRow = document.getElementById("notifTestRow");
+      var notifTestBtn = document.getElementById("notifTestBtn");
+      var notifTestMsg = document.getElementById("notifTestMsg");
 
       function showPrefSaved(el, ok) {
         el.textContent = ok ? "Saved" : "Couldn't save";
@@ -835,7 +842,6 @@
 
       function applyPreferencesFromLocalStorage() {
         tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
-        notifToggle.checked = localStorage.getItem("bf_notifications") === "1";
         tmxPositionSelect.value = localStorage.getItem("tmx_mist_corner") || "top-right";
       }
 
@@ -861,9 +867,6 @@
 
           tmxPositionSelect.value = prefs.mist_position || "top-right";
           localStorage.setItem("tmx_mist_corner", tmxPositionSelect.value);
-
-          notifToggle.checked = prefs.notifications_enabled === true;
-          localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
         })
         .catch(function () {
           applyPreferencesFromLocalStorage();
@@ -884,10 +887,202 @@
         putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
       });
 
+      /* ── Notifications (real push subscription, not a stored preference) ── */
+      function setNotifStatus(text, cls) {
+        notifStatus.textContent = text;
+        notifStatus.className = "msg" + (cls ? " " + cls : "");
+      }
+
+      function pushSupported() {
+        return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+      }
+
+      function urlBase64ToUint8Array(base64String) {
+        var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        var rawData = window.atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+        for (var i = 0; i < rawData.length; i++) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+      }
+
+      function refreshNotifUI() {
+        if (!pushSupported()) {
+          notifToggle.checked = false;
+          notifToggle.disabled = true;
+          notifTestRow.style.display = "none";
+          setNotifStatus("Not supported by this browser.", "err");
+          return Promise.resolve();
+        }
+
+        if (Notification.permission === "denied") {
+          notifToggle.checked = false;
+          notifTestRow.style.display = "none";
+          setNotifStatus("Permission denied — re-enable notifications for this site in your browser settings; the prompt will not appear again.", "err");
+          return Promise.resolve();
+        }
+
+        return navigator.serviceWorker.getRegistration()
+          .then(function (reg) {
+            return reg ? reg.pushManager.getSubscription() : null;
+          })
+          .then(function (sub) {
+            notifToggle.checked = !!sub;
+            if (sub) {
+              setNotifStatus("Enabled.", "ok");
+              notifTestRow.style.display = "flex";
+            } else {
+              setNotifStatus("Disabled.", "");
+              notifTestRow.style.display = "none";
+            }
+          })
+          .catch(function () {
+            notifToggle.checked = false;
+            notifTestRow.style.display = "none";
+            setNotifStatus("Disabled.", "");
+          });
+      }
+
+      function enablePush() {
+        notifToggle.disabled = true;
+        setNotifStatus("Enabling…", "");
+
+        navigator.serviceWorker.register("/sw.js")
+          .then(function (reg) {
+            return Notification.requestPermission().then(function (permission) {
+              if (permission !== "granted") {
+                var err = new Error("permission not granted");
+                err.permissionDenied = true;
+                throw err;
+              }
+              return reg;
+            });
+          })
+          .then(function (reg) {
+            return fetch(API_URL + "/api/push/public-key", {
+              headers: { "Authorization": "Bearer " + token }
+            })
+              .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+              .then(function (res) {
+                if (!res.ok || !res.data || !res.data.publicKey) {
+                  throw new Error("no public key");
+                }
+                return reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(res.data.publicKey)
+                });
+              });
+          })
+          .then(function (subscription) {
+            var sub = subscription.toJSON();
+            return fetch(API_URL + "/api/push/subscribe", {
+              method: "POST",
+              headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ endpoint: sub.endpoint, keys: sub.keys })
+            });
+          })
+          .then(function (r) {
+            if (!r.ok) throw new Error("save subscription failed");
+            notifToggle.disabled = false;
+            notifToggle.checked = true;
+            setNotifStatus("Enabled.", "ok");
+            notifTestRow.style.display = "flex";
+          })
+          .catch(function (err) {
+            notifToggle.disabled = false;
+            notifToggle.checked = false;
+            notifTestRow.style.display = "none";
+            if (err && err.permissionDenied) {
+              if (Notification.permission === "denied") {
+                setNotifStatus("Permission denied — re-enable notifications for this site in your browser settings; the prompt will not appear again.", "err");
+              } else {
+                setNotifStatus("Permission was not granted.", "err");
+              }
+            } else {
+              setNotifStatus("Couldn't enable notifications — please try again.", "err");
+            }
+          });
+      }
+
+      function disablePush() {
+        notifToggle.disabled = true;
+
+        navigator.serviceWorker.getRegistration()
+          .then(function (reg) {
+            return reg ? reg.pushManager.getSubscription() : null;
+          })
+          .then(function (sub) {
+            if (!sub) return null;
+            var endpoint = sub.endpoint;
+            return sub.unsubscribe().then(function () {
+              return fetch(API_URL + "/api/push/subscribe", {
+                method: "DELETE",
+                headers: {
+                  "Authorization": "Bearer " + token,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ endpoint: endpoint })
+              });
+            });
+          })
+          .then(function () {
+            notifToggle.disabled = false;
+            notifToggle.checked = false;
+            notifTestRow.style.display = "none";
+            setNotifStatus("Disabled.", "");
+          })
+          .catch(function () {
+            notifToggle.disabled = false;
+            notifToggle.checked = false;
+            notifTestRow.style.display = "none";
+            setNotifStatus("Disabled.", "");
+          });
+      }
+
       notifToggle.addEventListener("change", function () {
-        localStorage.setItem("bf_notifications", notifToggle.checked ? "1" : "0");
-        putPreferences({ notifications_enabled: notifToggle.checked }, notifSaved);
+        if (notifToggle.checked) {
+          enablePush();
+        } else {
+          disablePush();
+        }
       });
+
+      notifTestBtn.addEventListener("click", function () {
+        notifTestBtn.disabled = true;
+        notifTestMsg.textContent = "";
+        notifTestMsg.className = "msg";
+
+        fetch(API_URL + "/api/push/test", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            notifTestBtn.disabled = false;
+            if (res.ok && res.data) {
+              var sent = res.data.sent || 0;
+              notifTestMsg.textContent = "Sent to " + sent + " device" + (sent === 1 ? "" : "s") + ".";
+              notifTestMsg.className = "msg ok";
+            } else {
+              notifTestMsg.textContent = (res.data && res.data.error) || "Could not send test notification.";
+              notifTestMsg.className = "msg err";
+            }
+          })
+          .catch(function () {
+            notifTestBtn.disabled = false;
+            notifTestMsg.textContent = "Network error — could not send test notification.";
+            notifTestMsg.className = "msg err";
+          });
+      });
+
+      refreshNotifUI();
 
       /* ── Account ── */
       var acctIdentity = document.getElementById("acctIdentity");
