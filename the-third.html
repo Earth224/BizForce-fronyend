@@ -426,6 +426,111 @@
     .third-constellation-line strong {
       color: #9df6ff;
     }
+
+    /* ── Taker picker — new step between the CTA and the test run. Reuses
+       .third-panel for the glass shell and the option-button language
+       from .third-test-option for the two choice buttons. ── */
+    .third-taker-prompt {
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: rgba(232,220,255,0.92);
+      margin: 0 0 24px;
+    }
+    .third-taker-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+    .third-taker-choice {
+      flex: 1 1 180px;
+      max-width: 240px;
+      padding: 20px 18px;
+      border-radius: 14px;
+      background: rgba(10,4,20,0.5);
+      border: 1px solid rgba(34,211,238,0.2);
+      color: rgba(232,220,255,0.92);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .third-taker-choice:hover {
+      border-color: rgba(34,211,238,0.6);
+      box-shadow: 0 0 16px rgba(34,211,238,0.18);
+      transform: translateY(-1px);
+    }
+    .third-taker-guest-form {
+      margin-top: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .third-taker-guest-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+    }
+    .third-taker-guest-input {
+      width: 100%;
+      max-width: 320px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(10,4,20,0.6);
+      border: 1px solid rgba(34,211,238,0.25);
+      color: #e8e8ff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .third-taker-guest-input:focus {
+      border-color: rgba(34,211,238,0.6);
+    }
+    .third-taker-start-btn {
+      padding: 12px 32px;
+      font-size: 0.85rem;
+    }
+    .third-taker-start-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .third-taker-start-btn:disabled:hover {
+      border-color: rgba(168,85,247,0.4);
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ── Results-view attribution + save status ── */
+    .third-result-taker-line {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      margin: 0 0 16px;
+    }
+    .third-save-status {
+      margin: 16px 0 0;
+      font-size: 0.8rem;
+      font-style: italic;
+      color: rgba(232,220,255,0.55);
+    }
+    .third-save-status:empty {
+      display: none;
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -551,6 +656,21 @@
       <button type="button" class="third-cta-btn" id="beginTheThird">Begin The Inner I.Q Test</button>
     </div>
 
+    <div class="third-section third-taker-view" id="thirdTakerView" hidden>
+      <div class="third-panel third-taker-panel">
+        <p class="third-taker-prompt">Who is taking the test?</p>
+        <div class="third-taker-choices">
+          <button type="button" class="third-taker-choice" id="thirdTakerSelfBtn">Myself</button>
+          <button type="button" class="third-taker-choice" id="thirdTakerGuestBtn">Someone else</button>
+        </div>
+        <div class="third-taker-guest-form" id="thirdTakerGuestForm" hidden>
+          <label class="third-taker-guest-label" for="thirdTakerGuestInput">Their name</label>
+          <input type="text" class="third-taker-guest-input" id="thirdTakerGuestInput" maxlength="60" autocomplete="off" />
+          <button type="button" class="third-cta-btn third-taker-start-btn" id="thirdTakerStartBtn" disabled>Start</button>
+        </div>
+      </div>
+    </div>
+
     <div class="third-section third-test-view" id="thirdTestView" hidden>
       <div class="third-panel third-test-panel">
         <div class="third-test-progress" id="thirdTestProgress"></div>
@@ -561,8 +681,10 @@
 
     <div class="third-section third-results-view" id="thirdResultsView" hidden>
       <div class="third-panel third-results-panel">
+        <p class="third-result-taker-line" id="thirdResultTakerLine"></p>
         <h2 class="third-section-title">Your Constellation</h2>
         <div id="constellationOut"></div>
+        <p class="third-save-status" id="thirdSaveStatus"></p>
       </div>
     </div>
   </div>
@@ -1142,15 +1264,28 @@
     var FACULTY_ORDER = ["verbalAnalogical", "spatialGeometric", "numericalSequential", "relationalClassificatory", "workingMemory", "quantumConscious"];
 
     var innerIqResult = null;
+    var takerName = null;
+    var takerKind = null;
 
     (function () {
       var beginBtn         = document.getElementById("beginTheThird");
+      var takerViewEl        = document.getElementById("thirdTakerView");
+      var takerSelfBtn       = document.getElementById("thirdTakerSelfBtn");
+      var takerGuestBtn      = document.getElementById("thirdTakerGuestBtn");
+      var takerGuestFormEl   = document.getElementById("thirdTakerGuestForm");
+      var takerGuestInputEl  = document.getElementById("thirdTakerGuestInput");
+      var takerStartBtn      = document.getElementById("thirdTakerStartBtn");
       var testViewEl        = document.getElementById("thirdTestView");
       var resultsViewEl     = document.getElementById("thirdResultsView");
       var progressEl        = document.getElementById("thirdTestProgress");
       var questionEl        = document.getElementById("thirdTestQuestion");
       var optionsEl         = document.getElementById("thirdTestOptions");
       var constellationOutEl = document.getElementById("constellationOut");
+      var resultTakerLineEl = document.getElementById("thirdResultTakerLine");
+      var saveStatusEl      = document.getElementById("thirdSaveStatus");
+
+      var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+      var token = localStorage.getItem("bf_token");
 
       var introEls = [
         document.getElementById("thirdHero"),
@@ -1159,7 +1294,7 @@
         document.getElementById("thirdCtaRow")
       ];
 
-      if (!beginBtn || !testViewEl || !resultsViewEl) return;
+      if (!beginBtn || !takerViewEl || !testViewEl || !resultsViewEl) return;
 
       /* Pure Fisher-Yates shuffle — returns a new array in randomized
          order and never touches the array passed in, so INNER_IQ_BANK
@@ -1314,6 +1449,37 @@
         constellationOutEl.innerHTML = html;
       }
 
+      function saveResult() {
+        if (saveStatusEl) {
+          saveStatusEl.textContent = "";
+        }
+
+        fetch(API_URL + "/api/inner-iq/results", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            taker_name: takerName,
+            taker_kind: takerKind,
+            cognitive: innerIqResult,
+            personality: null
+          })
+        })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("save failed")); })
+          .then(function () {
+            if (saveStatusEl) {
+              saveStatusEl.textContent = "Saved to " + takerName + "'s profile";
+            }
+          })
+          .catch(function () {
+            if (saveStatusEl) {
+              saveStatusEl.textContent = "Couldn't save this result right now — it's still shown above.";
+            }
+          });
+      }
+
       function finishTest() {
         var result = {};
         FACULTY_ORDER.forEach(function (facultyKey) {
@@ -1325,10 +1491,15 @@
         innerIqResult = result;
         console.log(innerIqResult);
 
+        if (resultTakerLineEl) {
+          resultTakerLineEl.textContent = "Results for " + takerName;
+        }
         renderConstellationSummary(result);
 
         testViewEl.hidden = true;
         resultsViewEl.hidden = false;
+
+        saveResult();
       }
 
       function beginTest() {
@@ -1341,7 +1512,44 @@
         renderCurrentItem();
       }
 
-      beginBtn.addEventListener("click", beginTest);
+      function showTakerPicker() {
+        introEls.forEach(function (el) { if (el) el.style.display = "none"; });
+        resultsViewEl.hidden = true;
+        testViewEl.hidden = true;
+
+        takerGuestFormEl.hidden = true;
+        takerGuestInputEl.value = "";
+        takerStartBtn.disabled = true;
+
+        takerViewEl.hidden = false;
+      }
+
+      takerGuestInputEl.addEventListener("input", function () {
+        takerStartBtn.disabled = !takerGuestInputEl.value.trim();
+      });
+
+      takerSelfBtn.addEventListener("click", function () {
+        takerName = "Self";
+        takerKind = "self";
+        takerViewEl.hidden = true;
+        beginTest();
+      });
+
+      takerGuestBtn.addEventListener("click", function () {
+        takerGuestFormEl.hidden = false;
+        takerGuestInputEl.focus();
+      });
+
+      takerStartBtn.addEventListener("click", function () {
+        var name = takerGuestInputEl.value.trim();
+        if (!name) return;
+        takerName = name;
+        takerKind = "guest";
+        takerViewEl.hidden = true;
+        beginTest();
+      });
+
+      beginBtn.addEventListener("click", showTakerPicker);
     }());
   </script>
 
