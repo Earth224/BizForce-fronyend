@@ -1429,7 +1429,20 @@
         return { label: FACULTY_LABELS.quantumConscious, leans: leans };
       }
 
-      function renderConstellationSummary(result) {
+      /* Renders one result object into the results view — used for both
+         the just-finished live run and, later, a saved row reopened from
+         history. Reads everything from `result` (same shape as what
+         gets POSTed to /api/inner-iq/results: five objective faculties
+         with .label/.percentage, plus quantumConscious with .label/.leans)
+         rather than touching innerIqResult directly, so a saved result's
+         stored lean tallies render identically to a live one. `takerLabel`
+         is optional — when omitted, the attribution line falls back to
+         the current live-run takerName, matching prior behavior. */
+      function renderResults(result, takerLabel) {
+        if (resultTakerLineEl) {
+          resultTakerLineEl.textContent = "Results for " + (takerLabel || takerName);
+        }
+
         var html = "";
         FACULTY_ORDER.forEach(function (facultyKey) {
           if (facultyKey === "quantumConscious") return;
@@ -1491,10 +1504,7 @@
         innerIqResult = result;
         console.log(innerIqResult);
 
-        if (resultTakerLineEl) {
-          resultTakerLineEl.textContent = "Results for " + takerName;
-        }
-        renderConstellationSummary(result);
+        renderResults(innerIqResult, takerName);
 
         testViewEl.hidden = true;
         resultsViewEl.hidden = false;
