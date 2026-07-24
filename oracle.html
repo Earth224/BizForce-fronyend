@@ -1694,6 +1694,41 @@
       font-size: 0.82rem;
       line-height: 1.5;
     }
+    .cel-today-events {
+      margin-top: 6px;
+    }
+    .cel-today-events-heading {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.55);
+      margin-bottom: 4px;
+    }
+    .cel-today-event {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #e8e8ff;
+      line-height: 1.4;
+    }
+    .cel-today-event-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cel-today-events-more {
+      font-size: 0.72rem;
+      color: rgba(232,220,255,0.55);
+      margin-top: 2px;
+    }
+    .cel-open-full-cal {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+    }
 
     .cel-moon-row {
       display: flex;
@@ -1923,6 +1958,8 @@
         <ul class="cel-dd-list" id="celCalendarList" role="listbox" tabindex="-1" hidden></ul>
       </div>
       <div class="cel-calendar-out" id="celCalendarOut"></div>
+      <div class="cel-today-events" id="celTodayEvents"></div>
+      <a class="cel-now-btn cel-open-full-cal" id="celOpenFullCalendar" href="calendar.html">&#x26F6; Open Full Calendar</a>
     </div>
 
     <div class="cel-section" id="celMoon">
@@ -5773,6 +5810,59 @@
       renderEclipse();
     }
 
+    /* ── Today's events — compact ambient readout beneath the calendar
+       output. Same event-type colour mapping as calendar.html's
+       eventTypeColor(). Fetched once on load, not tied to renderClock or
+       any user-picked date, since this always reflects real "today". ── */
+    function eventTypeColor(type) {
+      switch (type) {
+        case "reminder":    return "#22d3ee";
+        case "anniversary": return "#a855f7";
+        case "birthday":    return "#f4e4b8";
+        case "vacation":    return "#34d399";
+        case "work":        return "#fbbf24";
+        case "personal":    return "#f472b6";
+        default:            return "#8892b8";
+      }
+    }
+
+    function renderTodayEvents(events) {
+      var el = document.getElementById("celTodayEvents");
+      if (!el) return;
+      if (!events || !events.length) { el.innerHTML = ""; return; }
+
+      var shown = events.slice(0, 4);
+      var extra = events.length - shown.length;
+
+      var html = '<div class="cel-today-events-heading">Today</div>';
+      shown.forEach(function (ev) {
+        html += '<div class="cel-today-event">' +
+          '<span class="cel-today-event-dot" style="background:' + eventTypeColor(ev.event_type) + ';"></span>' +
+          escapeHtml(ev.title) +
+          '</div>';
+      });
+      if (extra > 0) {
+        html += '<div class="cel-today-events-more">+' + extra + ' more</div>';
+      }
+      el.innerHTML = html;
+    }
+
+    function fetchTodayEvents() {
+      if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) return;
+
+      var now = new Date();
+      var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+      fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          renderTodayEvents((data && data.events) || []);
+        })
+        .catch(function () {});
+    }
+
     if (nowBtn) {
       nowBtn.addEventListener("click", function () {
         if (dateTimeInput) dateTimeInput.value = "";
@@ -5788,6 +5878,8 @@
 
     refreshRealMoonPhase();
     setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
+
+    fetchTodayEvents();
   }());
   </script>
 
