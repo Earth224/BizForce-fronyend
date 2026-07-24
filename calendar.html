@@ -721,6 +721,9 @@
       cursor: pointer;
     }
     .cal-day-checkbox-row input { accent-color: #22d3ee; }
+    .cal-day-recur-calendar-row {
+      margin-bottom: 14px;
+    }
     .cal-day-panel-error {
       font-size: 0.76rem;
       color: #ff9d9d;
@@ -813,6 +816,17 @@
           <input type="checkbox" id="calEventRecurring" />
           <span>Recurring annually</span>
         </label>
+
+        <div class="cal-day-recur-calendar-row" id="calEventRecurCalendarRow" hidden>
+          <label class="cel-label" id="calEventRecurCalendarLabel">Repeats in</label>
+          <div class="cel-dd" id="calEventRecurCalendarDropdown">
+            <button type="button" class="cel-dd-trigger" id="calEventRecurCalendarTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="calEventRecurCalendarLabel">
+              <span class="cel-dd-trigger-label" id="calEventRecurCalendarTriggerLabel">Gregorian</span>
+              <span class="cel-dd-chevron" aria-hidden="true"></span>
+            </button>
+            <ul class="cel-dd-list" id="calEventRecurCalendarList" role="listbox" tabindex="-1" hidden></ul>
+          </div>
+        </div>
 
         <div class="cal-day-panel-error" id="calDayPanelError" hidden></div>
 
@@ -2541,6 +2555,13 @@
       { value: "chinese",        label: "Chinese" }
     ];
 
+    function calendarLabelFor(value) {
+      for (var i = 0; i < CALENDARS.length; i++) {
+        if (CALENDARS[i].value === value) return CALENDARS[i].label;
+      }
+      return value;
+    }
+
     function mod(n, m) { return ((n % m) + m) % m; }
 
     function eventTypeColor(type) {
@@ -2549,6 +2570,8 @@
         case 'anniversary': return '#a855f7';
         case 'birthday':    return '#f4e4b8';
         case 'vacation':    return '#34d399';
+        case 'work':        return '#fbbf24';
+        case 'personal':    return '#f472b6';
         default:            return '#8892b8';
       }
     }
@@ -3219,16 +3242,24 @@
     var calEventTypeTriggerLabel = document.getElementById("calEventTypeTriggerLabel");
     var calEventTypeList         = document.getElementById("calEventTypeList");
 
+    var calEventRecurCalendarRow          = document.getElementById("calEventRecurCalendarRow");
+    var calEventRecurCalendarTrigger      = document.getElementById("calEventRecurCalendarTrigger");
+    var calEventRecurCalendarTriggerLabel = document.getElementById("calEventRecurCalendarTriggerLabel");
+    var calEventRecurCalendarList         = document.getElementById("calEventRecurCalendarList");
+
     var EVENT_TYPE_OPTIONS = [
       { value: "reminder",    label: "Reminder" },
       { value: "anniversary", label: "Anniversary" },
       { value: "birthday",    label: "Birthday" },
       { value: "vacation",    label: "Vacation" },
+      { value: "work",        label: "Work" },
+      { value: "personal",    label: "Personal" },
       { value: "other",       label: "Other" }
     ];
 
     var dayPanelJdn = null;         // which day the panel is currently showing
     var selectedEventType = "other";
+    var selectedRecurCalendar = activeCalendar; // reset to activeCalendar fresh in openDayPanel
 
     if (calEventTypeTrigger && calEventTypeTriggerLabel && calEventTypeList) {
       initCelDropdown({
@@ -3238,6 +3269,32 @@
         options: EVENT_TYPE_OPTIONS,
         value: selectedEventType,
         onChange: function (value) { selectedEventType = value; }
+      });
+    }
+
+    // Which calendar a recurring event repeats in -- same .cel-dd component
+    // as the Type field above and the Tradition selector, not a native
+    // <select> (can't be themed). Defaults to whatever calendar is active
+    // when the panel opens (see openDayPanel), since an event created
+    // while viewing e.g. Zoroastrian most likely means to recur in
+    // Zoroastrian, not always Gregorian.
+    var calEventRecurCalendarDd = null;
+    if (calEventRecurCalendarTrigger && calEventRecurCalendarTriggerLabel && calEventRecurCalendarList) {
+      calEventRecurCalendarDd = initCelDropdown({
+        trigger: calEventRecurCalendarTrigger,
+        triggerLabel: calEventRecurCalendarTriggerLabel,
+        list: calEventRecurCalendarList,
+        options: CALENDARS,
+        value: selectedRecurCalendar,
+        onChange: function (value) { selectedRecurCalendar = value; }
+      });
+    }
+
+    // The recur-calendar selector only makes sense once "Recurring
+    // annually" is checked -- hidden otherwise.
+    if (calEventRecurringInput && calEventRecurCalendarRow) {
+      calEventRecurringInput.addEventListener("change", function () {
+        calEventRecurCalendarRow.hidden = !calEventRecurringInput.checked;
       });
     }
 
@@ -3322,7 +3379,7 @@
                 escapeHtml(ev.title) +
               '</div>' +
               (ev.notes ? '<div class="cal-day-event-notes">' + escapeHtml(ev.notes) + '</div>' : '') +
-              (ev.recurring ? '<div class="cal-day-event-recurring">Repeats annually</div>' : '') +
+              (ev.recurring ? '<div class="cal-day-event-recurring">Repeats annually in ' + escapeHtml(calendarLabelFor(ev.recur_calendar)) + '</div>' : '') +
             '</div>' +
             '<button type="button" class="cal-day-event-delete" data-event-id="' + escapeHtml(ev.id) + '" aria-label="Delete event">&#x2715;</button>' +
           '</div>';
@@ -3337,6 +3394,8 @@
       if (calEventTitleInput) calEventTitleInput.value = "";
       if (calEventNotesInput) calEventNotesInput.value = "";
       if (calEventRecurringInput) calEventRecurringInput.checked = false;
+      if (calEventRecurCalendarDd) calEventRecurCalendarDd.setValue(activeCalendar);
+      if (calEventRecurCalendarRow) calEventRecurCalendarRow.hidden = true;
       renderDayPanelHeader(jdn);
       renderDayPanelEvents(jdn);
       calDayPanel.classList.add("is-open");
@@ -3364,12 +3423,14 @@
         return;
       }
 
+      var isRecurring = !!(calEventRecurringInput && calEventRecurringInput.checked);
       var payload = {
         jdn: dayPanelJdn,
         title: title,
         event_type: selectedEventType,
         notes: calEventNotesInput ? calEventNotesInput.value.trim() : "",
-        recurring: !!(calEventRecurringInput && calEventRecurringInput.checked)
+        recurring: isRecurring,
+        recur_calendar: isRecurring ? selectedRecurCalendar : "gregorian"
       };
 
       if (calEventSaveBtn) { calEventSaveBtn.disabled = true; calEventSaveBtn.textContent = "Saving…"; }
@@ -3404,6 +3465,7 @@
           if (calEventTitleInput) calEventTitleInput.value = "";
           if (calEventNotesInput) calEventNotesInput.value = "";
           if (calEventRecurringInput) calEventRecurringInput.checked = false;
+          if (calEventRecurCalendarRow) calEventRecurCalendarRow.hidden = true;
 
           renderCalendarPage();
           renderDayPanelEvents(dayPanelJdn);
