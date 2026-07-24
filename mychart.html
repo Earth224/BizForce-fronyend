@@ -330,6 +330,36 @@
       font-size: 0.82rem;
       line-height: 1.5;
     }
+    .cal-today-events {
+      margin-top: 6px;
+    }
+    .cal-today-events-heading {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.55);
+      margin-bottom: 4px;
+    }
+    .cal-today-event {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #e8e8ff;
+      line-height: 1.4;
+    }
+    .cal-today-event-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cal-today-events-more {
+      font-size: 0.72rem;
+      color: rgba(232,220,255,0.55);
+      margin-top: 2px;
+    }
 
     /* ── Custom calendar dropdown — trigger button + absolutely positioned
        option list. Replaces a native <select>, whose OPEN list a browser
@@ -864,6 +894,8 @@
       </div>
 
       <div class="cel-calendar-out" id="mcCalendarToday"></div>
+
+      <div class="cal-today-events" id="mcTodayEvents"></div>
 
       <a class="cel-now-btn" id="mcOpenFullCalendar" href="calendar.html">&#x26F6; Open Full Calendar</a>
     </div>
@@ -4350,6 +4382,63 @@
       }
     }
 
+    // ── Today's events — compact ambient readout beneath the today
+    // readout. Same API_URL/token/Authorization-header pattern this file's
+    // other API calls use (fetchNumerology/fetchNatal/oracle chat, all in
+    // the script above this one) -- this IIFE is its own self-contained
+    // closure so it needs its own copies, not a reference to those.
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var token = localStorage.getItem("bf_token");
+
+    function eventTypeColor(type) {
+      switch (type) {
+        case "reminder":    return "#22d3ee";
+        case "anniversary": return "#a855f7";
+        case "birthday":    return "#f4e4b8";
+        case "vacation":    return "#34d399";
+        case "work":        return "#fbbf24";
+        case "personal":    return "#f472b6";
+        default:            return "#8892b8";
+      }
+    }
+
+    function renderTodayEvents(events) {
+      var el = document.getElementById("mcTodayEvents");
+      if (!el) return;
+      if (!events || !events.length) { el.innerHTML = ""; return; }
+
+      var shown = events.slice(0, 4);
+      var extra = events.length - shown.length;
+
+      var html = '<div class="cal-today-events-heading">Today</div>';
+      shown.forEach(function (ev) {
+        html += '<div class="cal-today-event">' +
+          '<span class="cal-today-event-dot" style="background:' + eventTypeColor(ev.event_type) + ';"></span>' +
+          escapeHtml(ev.title) +
+          '</div>';
+      });
+      if (extra > 0) {
+        html += '<div class="cal-today-events-more">+' + extra + ' more</div>';
+      }
+      el.innerHTML = html;
+    }
+
+    function fetchTodayEvents() {
+      if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) return;
+
+      var now = new Date();
+      var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+      fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          renderTodayEvents((data && data.events) || []);
+        })
+        .catch(function () {});
+    }
+
     if (mcCalendarTrigger && mcCalendarTriggerLabel && mcCalendarList) {
       initCelDropdown({
         trigger: mcCalendarTrigger,
@@ -4366,6 +4455,7 @@
     }
 
     renderCalendarToday();
+    fetchTodayEvents();
 
     // Bridge for the Tzolk'in Birth Signature card, defined in the My
     // Chart script ABOVE this one in the document (so it runs first --
