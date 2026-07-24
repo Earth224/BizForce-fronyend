@@ -330,7 +330,11 @@
 
     /* ── CTA ── */
     .third-cta-row {
-      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
       margin: 64px 0 24px;
     }
     .third-cta-btn {
@@ -356,6 +360,18 @@
       border-color: rgba(168,85,247,0.7);
       box-shadow: 0 0 24px rgba(168,85,247,0.3);
       transform: translateY(-2px);
+    }
+    /* Secondary variant — cyan glass instead of the primary's violet
+       gradient, same recipe as .back-link, for actions that sit beside
+       the main CTA without competing with it. */
+    .third-cta-btn-secondary {
+      background: rgba(12,18,38,0.6);
+      border-color: rgba(34,211,238,0.3);
+      color: #22d3ee;
+    }
+    .third-cta-btn-secondary:hover {
+      border-color: rgba(34,211,238,0.6);
+      box-shadow: 0 0 20px rgba(34,211,238,0.2);
     }
 
     /* ── Test engine — shared glass panel used by both the test view and
@@ -531,6 +547,115 @@
       display: none;
       margin: 0;
     }
+
+    /* ── Saved Profiles view — reuses .third-panel for the glass shell;
+       rows follow the same tinted-card language as .third-test-option. ── */
+    .third-saved-panel {
+      max-width: 720px;
+    }
+    #savedProfilesList {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .third-saved-empty {
+      text-align: center;
+      font-size: 0.88rem;
+      color: rgba(232,220,255,0.6);
+      margin: 8px 0;
+    }
+    .third-saved-status-line {
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(232,220,255,0.5);
+      margin: 8px 0;
+    }
+    .third-saved-row {
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(10,4,20,0.5);
+      border: 1px solid rgba(34,211,238,0.2);
+    }
+    .third-saved-row-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .third-saved-row-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: rgba(232,220,255,0.95);
+    }
+    .third-saved-row-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(34,211,238,0.12);
+      border: 1px solid rgba(34,211,238,0.35);
+      color: #22d3ee;
+    }
+    .third-saved-row-badge.is-guest {
+      background: rgba(168,85,247,0.12);
+      border-color: rgba(168,85,247,0.35);
+      color: #c9a3fb;
+    }
+    .third-saved-row-meta {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: rgba(232,220,255,0.55);
+    }
+    .third-saved-row-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+    }
+    .third-saved-row-btn {
+      padding: 7px 16px;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid rgba(34,211,238,0.3);
+      background: rgba(34,211,238,0.08);
+      color: #22d3ee;
+      transition: all 0.2s ease;
+    }
+    .third-saved-row-btn:hover {
+      border-color: rgba(34,211,238,0.6);
+      background: rgba(34,211,238,0.15);
+    }
+    .third-saved-row-delete {
+      border-color: rgba(255,110,110,0.3);
+      background: rgba(255,110,110,0.06);
+      color: #ff9d9d;
+    }
+    .third-saved-row-delete:hover {
+      border-color: rgba(255,110,110,0.55);
+      background: rgba(255,110,110,0.12);
+    }
+    .third-saved-row-status {
+      margin: 8px 0 0;
+      font-size: 0.74rem;
+      font-style: italic;
+      color: #ff9d9d;
+    }
+    .third-saved-row-status:empty {
+      display: none;
+      margin: 0;
+    }
+    .third-saved-back-row,
+    .third-results-back-row {
+      margin-top: 24px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -654,6 +779,17 @@
 
     <div class="third-cta-row" id="thirdCtaRow">
       <button type="button" class="third-cta-btn" id="beginTheThird">Begin The Inner I.Q Test</button>
+      <button type="button" class="third-cta-btn third-cta-btn-secondary" id="viewSavedProfiles">Saved Profiles</button>
+    </div>
+
+    <div class="third-section third-saved-view" id="thirdSavedView" hidden>
+      <div class="third-panel third-saved-panel">
+        <h2 class="third-section-title">Saved Profiles</h2>
+        <div id="savedProfilesList"></div>
+        <div class="third-saved-back-row">
+          <button type="button" class="third-cta-btn third-cta-btn-secondary" id="thirdSavedBackBtn">&#8592; Back</button>
+        </div>
+      </div>
     </div>
 
     <div class="third-section third-taker-view" id="thirdTakerView" hidden>
@@ -685,6 +821,9 @@
         <h2 class="third-section-title">Your Constellation</h2>
         <div id="constellationOut"></div>
         <p class="third-save-status" id="thirdSaveStatus"></p>
+        <div class="third-results-back-row" id="thirdResultsBackRow" hidden>
+          <button type="button" class="third-cta-btn third-cta-btn-secondary" id="thirdResultsBackBtn">&#8592; Back to Saved Profiles</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1269,6 +1408,10 @@
 
     (function () {
       var beginBtn         = document.getElementById("beginTheThird");
+      var viewSavedProfilesBtn = document.getElementById("viewSavedProfiles");
+      var savedViewEl        = document.getElementById("thirdSavedView");
+      var savedProfilesListEl = document.getElementById("savedProfilesList");
+      var savedBackBtn       = document.getElementById("thirdSavedBackBtn");
       var takerViewEl        = document.getElementById("thirdTakerView");
       var takerSelfBtn       = document.getElementById("thirdTakerSelfBtn");
       var takerGuestBtn      = document.getElementById("thirdTakerGuestBtn");
@@ -1283,6 +1426,8 @@
       var constellationOutEl = document.getElementById("constellationOut");
       var resultTakerLineEl = document.getElementById("thirdResultTakerLine");
       var saveStatusEl      = document.getElementById("thirdSaveStatus");
+      var resultsBackRowEl  = document.getElementById("thirdResultsBackRow");
+      var resultsBackBtn    = document.getElementById("thirdResultsBackBtn");
 
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
       var token = localStorage.getItem("bf_token");
@@ -1294,7 +1439,13 @@
         document.getElementById("thirdCtaRow")
       ];
 
-      if (!beginBtn || !takerViewEl || !testViewEl || !resultsViewEl) return;
+      // Tracks how the results view was most recently entered — "live"
+      // from just finishing a test run, or "saved" from opening a row in
+      // the Saved Profiles list — so the results view's back control only
+      // shows (and only points at the saved list) in the latter case.
+      var resultsViewSource = "live";
+
+      if (!beginBtn || !savedViewEl || !takerViewEl || !testViewEl || !resultsViewEl) return;
 
       /* Pure Fisher-Yates shuffle — returns a new array in randomized
          order and never touches the array passed in, so INNER_IQ_BANK
@@ -1462,6 +1613,172 @@
         constellationOutEl.innerHTML = html;
       }
 
+      /* ═══ Saved Profiles — list, open, delete ═══ */
+
+      function formatSavedDate(isoString) {
+        var d = new Date(isoString);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      }
+
+      /* Reads the same shape renderResults does — five objective
+         faculties with .label/.percentage — to find the single
+         highest-scoring one for a saved row's one-line summary. */
+      function highestObjectiveFaculty(cognitive) {
+        var best = null;
+        FACULTY_ORDER.forEach(function (facultyKey) {
+          if (facultyKey === "quantumConscious") return;
+          var r = cognitive && cognitive[facultyKey];
+          if (!r) return;
+          if (!best || r.percentage > best.percentage) {
+            best = { label: r.label, percentage: r.percentage };
+          }
+        });
+        return best;
+      }
+
+      function openSavedProfile(row) {
+        resultsViewSource = "saved";
+        if (resultsBackRowEl) resultsBackRowEl.hidden = false;
+        if (saveStatusEl) saveStatusEl.textContent = "";
+
+        savedViewEl.hidden = true;
+        renderResults(row.cognitive, row.taker_name);
+        resultsViewEl.hidden = false;
+      }
+
+      function deleteSavedProfile(row, rowEl) {
+        var confirmed = window.confirm("Delete this saved result for " + row.taker_name + "?");
+        if (!confirmed) return;
+
+        var statusEl = rowEl.querySelector(".third-saved-row-status");
+        if (statusEl) statusEl.textContent = "";
+
+        fetch(API_URL + "/api/inner-iq/results/" + row.id, {
+          method: "DELETE",
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("delete failed")); })
+          .then(function () {
+            if (rowEl.parentNode) rowEl.parentNode.removeChild(rowEl);
+            if (!savedProfilesListEl.children.length) {
+              renderSavedProfilesList([]);
+            }
+          })
+          .catch(function () {
+            if (statusEl) {
+              statusEl.textContent = "Couldn't delete this result right now.";
+            }
+          });
+      }
+
+      function buildSavedProfileRow(row) {
+        var rowEl = document.createElement("div");
+        rowEl.className = "third-saved-row";
+
+        var mainEl = document.createElement("div");
+        mainEl.className = "third-saved-row-main";
+
+        var nameEl = document.createElement("span");
+        nameEl.className = "third-saved-row-name";
+        nameEl.textContent = row.taker_name;
+        mainEl.appendChild(nameEl);
+
+        var isGuest = row.taker_kind === "guest";
+        var badgeEl = document.createElement("span");
+        badgeEl.className = "third-saved-row-badge" + (isGuest ? " is-guest" : "");
+        badgeEl.textContent = isGuest ? "Guest" : "Self";
+        mainEl.appendChild(badgeEl);
+
+        rowEl.appendChild(mainEl);
+
+        var metaEl = document.createElement("div");
+        metaEl.className = "third-saved-row-meta";
+        var metaText = formatSavedDate(row.created_at);
+        var best = highestObjectiveFaculty(row.cognitive);
+        if (best) {
+          metaText += (metaText ? " · " : "") + "Highest: " + best.label + " (" + best.percentage + "%)";
+        }
+        metaEl.textContent = metaText;
+        rowEl.appendChild(metaEl);
+
+        var actionsEl = document.createElement("div");
+        actionsEl.className = "third-saved-row-actions";
+
+        var openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "third-saved-row-btn third-saved-row-open";
+        openBtn.textContent = "Open";
+        openBtn.addEventListener("click", function () { openSavedProfile(row); });
+        actionsEl.appendChild(openBtn);
+
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "third-saved-row-btn third-saved-row-delete";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", function () { deleteSavedProfile(row, rowEl); });
+        actionsEl.appendChild(deleteBtn);
+
+        rowEl.appendChild(actionsEl);
+
+        var statusEl = document.createElement("p");
+        statusEl.className = "third-saved-row-status";
+        rowEl.appendChild(statusEl);
+
+        return rowEl;
+      }
+
+      function renderSavedProfilesList(rows) {
+        savedProfilesListEl.innerHTML = "";
+
+        if (!rows.length) {
+          var emptyEl = document.createElement("p");
+          emptyEl.className = "third-saved-empty";
+          emptyEl.textContent = "No profiles saved yet — take the test to save your first constellation.";
+          savedProfilesListEl.appendChild(emptyEl);
+          return;
+        }
+
+        rows.forEach(function (row) {
+          savedProfilesListEl.appendChild(buildSavedProfileRow(row));
+        });
+      }
+
+      function renderSavedProfilesError() {
+        savedProfilesListEl.innerHTML = "";
+
+        var errorEl = document.createElement("p");
+        errorEl.className = "third-saved-empty";
+        errorEl.textContent = "Couldn't load saved profiles.";
+        savedProfilesListEl.appendChild(errorEl);
+
+        var retryBtn = document.createElement("button");
+        retryBtn.type = "button";
+        retryBtn.className = "third-cta-btn third-cta-btn-secondary";
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", loadSavedProfiles);
+        savedProfilesListEl.appendChild(retryBtn);
+      }
+
+      function loadSavedProfiles() {
+        savedProfilesListEl.innerHTML = "";
+        var loadingEl = document.createElement("p");
+        loadingEl.className = "third-saved-status-line";
+        loadingEl.textContent = "Loading saved profiles…";
+        savedProfilesListEl.appendChild(loadingEl);
+
+        fetch(API_URL + "/api/inner-iq/results", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("load failed")); })
+          .then(function (data) {
+            renderSavedProfilesList((data && data.results) || []);
+          })
+          .catch(function () {
+            renderSavedProfilesError();
+          });
+      }
+
       function saveResult() {
         if (saveStatusEl) {
           saveStatusEl.textContent = "";
@@ -1504,6 +1821,12 @@
         innerIqResult = result;
         console.log(innerIqResult);
 
+        // A fresh live result always overrides whatever the results view
+        // was previously showing -- back control stays hidden, exactly
+        // as before this view had a "reached from saved profiles" state.
+        resultsViewSource = "live";
+        if (resultsBackRowEl) resultsBackRowEl.hidden = true;
+
         renderResults(innerIqResult, takerName);
 
         testViewEl.hidden = true;
@@ -1514,6 +1837,7 @@
 
       function beginTest() {
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
+        savedViewEl.hidden = true;
         resultsViewEl.hidden = true;
         flatItems = buildRun();
         currentIndex = 0;
@@ -1524,6 +1848,7 @@
 
       function showTakerPicker() {
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
+        savedViewEl.hidden = true;
         resultsViewEl.hidden = true;
         testViewEl.hidden = true;
 
@@ -1532,6 +1857,16 @@
         takerStartBtn.disabled = true;
 
         takerViewEl.hidden = false;
+      }
+
+      function showSavedProfiles() {
+        introEls.forEach(function (el) { if (el) el.style.display = "none"; });
+        takerViewEl.hidden = true;
+        testViewEl.hidden = true;
+        resultsViewEl.hidden = true;
+
+        savedViewEl.hidden = false;
+        loadSavedProfiles();
       }
 
       takerGuestInputEl.addEventListener("input", function () {
@@ -1560,6 +1895,21 @@
       });
 
       beginBtn.addEventListener("click", showTakerPicker);
+
+      viewSavedProfilesBtn.addEventListener("click", showSavedProfiles);
+
+      savedBackBtn.addEventListener("click", function () {
+        savedViewEl.hidden = true;
+        introEls.forEach(function (el) { if (el) el.style.display = ""; });
+      });
+
+      if (resultsBackBtn) {
+        resultsBackBtn.addEventListener("click", function () {
+          if (resultsViewSource !== "saved") return;
+          resultsViewEl.hidden = true;
+          savedViewEl.hidden = false;
+        });
+      }
     }());
   </script>
 
