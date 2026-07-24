@@ -656,6 +656,60 @@
       margin-top: 24px;
       text-align: center;
     }
+
+    /* ── Part 2 bridge — offers the personality assessment after the
+       cognitive test finishes, before results are shown or saved. ── */
+    .third-bridge-prompt {
+      text-align: center;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: rgba(232,220,255,0.88);
+      margin: 0 0 26px;
+    }
+    .third-bridge-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    /* ── Personality scale — five discrete buttons instead of a variable
+       option list, same tinted-card language as .third-test-option. ── */
+    .third-scale-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .third-scale-btn {
+      flex: 1 1 120px;
+      max-width: 160px;
+      padding: 12px 10px;
+      border-radius: 12px;
+      background: rgba(10,4,20,0.5);
+      border: 1px solid rgba(34,211,238,0.2);
+      color: rgba(232,220,255,0.9);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .third-scale-btn:hover {
+      border-color: rgba(34,211,238,0.6);
+      box-shadow: 0 0 16px rgba(34,211,238,0.18);
+      transform: translateY(-1px);
+    }
+
+    /* ── Personality results section — appended below the cognitive
+       constellation in the same results panel; hidden entirely when a
+       result (live or saved) has no personality data. ── */
+    .third-personality-title {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
   </style>
 </head>
 <body>
@@ -815,11 +869,30 @@
       </div>
     </div>
 
+    <div class="third-section third-bridge-view" id="thirdBridgeView" hidden>
+      <div class="third-panel third-bridge-panel">
+        <p class="third-bridge-prompt">Your cognitive constellation is ready. Continue to Part 2 — a short personality assessment — or skip straight to your results.</p>
+        <div class="third-bridge-actions">
+          <button type="button" class="third-cta-btn" id="thirdBridgeContinueBtn">Continue to Part 2</button>
+          <button type="button" class="third-cta-btn third-cta-btn-secondary" id="thirdBridgeSkipBtn">Skip for now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="third-section third-personality-view" id="thirdPersonalityView" hidden>
+      <div class="third-panel third-test-panel">
+        <div class="third-test-progress" id="thirdPersonalityProgress"></div>
+        <p class="third-test-question" id="thirdPersonalityQuestion"></p>
+        <div class="third-scale-options" id="thirdPersonalityScale"></div>
+      </div>
+    </div>
+
     <div class="third-section third-results-view" id="thirdResultsView" hidden>
       <div class="third-panel third-results-panel">
         <p class="third-result-taker-line" id="thirdResultTakerLine"></p>
         <h2 class="third-section-title">Your Constellation</h2>
         <div id="constellationOut"></div>
+        <div id="personalityOut" hidden></div>
         <p class="third-save-status" id="thirdSaveStatus"></p>
         <div class="third-results-back-row" id="thirdResultsBackRow" hidden>
           <button type="button" class="third-cta-btn third-cta-btn-secondary" id="thirdResultsBackBtn">&#8592; Back to Saved Profiles</button>
@@ -1402,7 +1475,77 @@
     };
     var FACULTY_ORDER = ["verbalAnalogical", "spatialGeometric", "numericalSequential", "relationalClassificatory", "workingMemory", "quantumConscious"];
 
+    /* ═══ Part 2 — Big Five (OCEAN) personality assessment, public-domain
+       IPIP-style items. Runs after the cognitive test, optionally, via
+       the bridge panel. ═══ */
+    var BIG_FIVE_BANK = {
+      openness: [
+        { q: "I have a vivid imagination and a rich inner world.", reverse: false },
+        { q: "I am drawn to abstract ideas and philosophical questions.", reverse: false },
+        { q: "I enjoy encountering art, music, or ideas unlike anything familiar.", reverse: false },
+        { q: "I prefer routine and familiar things over novelty.", reverse: true },
+        { q: "I rarely think about the deeper meaning of things.", reverse: true }
+      ],
+      conscientiousness: [
+        { q: "I make plans and follow through with them.", reverse: false },
+        { q: "I keep my commitments even when it is difficult.", reverse: false },
+        { q: "I pay attention to detail and rarely leave things unfinished.", reverse: false },
+        { q: "I often leave things until the last minute.", reverse: true },
+        { q: "I tend to be careless with my belongings and obligations.", reverse: true }
+      ],
+      extraversion: [
+        { q: "I feel energized after spending time around other people.", reverse: false },
+        { q: "I start conversations easily, even with strangers.", reverse: false },
+        { q: "I enjoy being the center of attention.", reverse: false },
+        { q: "I prefer solitude to large gatherings.", reverse: true },
+        { q: "I often stay quiet and in the background in groups.", reverse: true }
+      ],
+      agreeableness: [
+        { q: "I feel genuine concern for the wellbeing of others.", reverse: false },
+        { q: "I try to see a disagreement from the other person's side.", reverse: false },
+        { q: "I forgive easily and hold few grudges.", reverse: false },
+        { q: "I can be blunt or harsh with people when I disagree.", reverse: true },
+        { q: "I put my own interests ahead of others without much hesitation.", reverse: true }
+      ],
+      neuroticism: [
+        { q: "I often feel tense, worried, or on edge.", reverse: false },
+        { q: "My mood can shift quickly and without clear cause.", reverse: false },
+        { q: "I dwell on things that have gone wrong.", reverse: false },
+        { q: "I stay calm and steady under pressure.", reverse: true },
+        { q: "I rarely feel anxious or overwhelmed.", reverse: true }
+      ]
+    };
+
+    var BIG_FIVE_LABELS = {
+      openness: "Openness",
+      conscientiousness: "Conscientiousness",
+      extraversion: "Extraversion",
+      agreeableness: "Agreeableness",
+      neuroticism: "Neuroticism"
+    };
+    var BIG_FIVE_ORDER = ["openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"];
+
+    /* Short, neutral, non-clinical two-word labels for each dimension's
+       two poles — traits, never diagnoses. Whichever pole a dimension's
+       percentage falls closer to (>=50 high, <50 low) is the one shown. */
+    var BIG_FIVE_POLE_LABELS = {
+      openness: { high: "highly imaginative", low: "practically minded" },
+      conscientiousness: { high: "highly organized", low: "loosely structured" },
+      extraversion: { high: "socially energized", low: "quietly reserved" },
+      agreeableness: { high: "warmly cooperative", low: "firmly independent" },
+      neuroticism: { high: "emotionally reactive", low: "steadily calm" }
+    };
+
+    var PERSONALITY_SCALE_OPTIONS = [
+      { value: 1, label: "Strongly Disagree" },
+      { value: 2, label: "Disagree" },
+      { value: 3, label: "Neutral" },
+      { value: 4, label: "Agree" },
+      { value: 5, label: "Strongly Agree" }
+    ];
+
     var innerIqResult = null;
+    var personalityResult = null;
     var takerName = null;
     var takerKind = null;
 
@@ -1419,11 +1562,19 @@
       var takerGuestInputEl  = document.getElementById("thirdTakerGuestInput");
       var takerStartBtn      = document.getElementById("thirdTakerStartBtn");
       var testViewEl        = document.getElementById("thirdTestView");
+      var bridgeViewEl       = document.getElementById("thirdBridgeView");
+      var bridgeContinueBtn  = document.getElementById("thirdBridgeContinueBtn");
+      var bridgeSkipBtn      = document.getElementById("thirdBridgeSkipBtn");
+      var personalityViewEl  = document.getElementById("thirdPersonalityView");
+      var personalityProgressEl = document.getElementById("thirdPersonalityProgress");
+      var personalityQuestionEl = document.getElementById("thirdPersonalityQuestion");
+      var personalityScaleEl    = document.getElementById("thirdPersonalityScale");
       var resultsViewEl     = document.getElementById("thirdResultsView");
       var progressEl        = document.getElementById("thirdTestProgress");
       var questionEl        = document.getElementById("thirdTestQuestion");
       var optionsEl         = document.getElementById("thirdTestOptions");
       var constellationOutEl = document.getElementById("constellationOut");
+      var personalityOutEl  = document.getElementById("personalityOut");
       var resultTakerLineEl = document.getElementById("thirdResultTakerLine");
       var saveStatusEl      = document.getElementById("thirdSaveStatus");
       var resultsBackRowEl  = document.getElementById("thirdResultsBackRow");
@@ -1445,7 +1596,7 @@
       // shows (and only points at the saved list) in the latter case.
       var resultsViewSource = "live";
 
-      if (!beginBtn || !savedViewEl || !takerViewEl || !testViewEl || !resultsViewEl) return;
+      if (!beginBtn || !savedViewEl || !takerViewEl || !testViewEl || !bridgeViewEl || !personalityViewEl || !resultsViewEl) return;
 
       /* Pure Fisher-Yates shuffle — returns a new array in randomized
          order and never touches the array passed in, so INNER_IQ_BANK
@@ -1524,27 +1675,88 @@
         return run;
       }
 
+      /* Part 2's item order is randomized across all five dimensions
+         mixed together (interleaved, not grouped by dimension) using the
+         same shuffleArray helper the cognitive test uses — there are no
+         per-item options to shuffle here, just the 25-item order. */
+      function buildPersonalityRun() {
+        var flat = [];
+        BIG_FIVE_ORDER.forEach(function (dimensionKey) {
+          BIG_FIVE_BANK[dimensionKey].forEach(function (item) {
+            flat.push({ dimensionKey: dimensionKey, item: item });
+          });
+        });
+        return shuffleArray(flat);
+      }
+
       var flatItems = [];
       var currentIndex = 0;
       var responses = [];
+
+      // For a quantumConscious item, the option tap is only step one --
+      // it's held here while step two (strength) is shown, then both are
+      // combined into the one responses[] entry for that item.
+      var pendingQuantumOptionIndex = null;
+
+      // QCA measures a tendency, not a fact, so after picking the option
+      // that best fits, the person also says how strongly it fits. The
+      // weight is what lets scoreQuantumConscious tell "held sometimes"
+      // apart from "held almost always" instead of just counting picks.
+      var QUANTUM_STRENGTH_OPTIONS = [
+        { value: 1, label: "Sometimes / it depends" },
+        { value: 2, label: "Often" },
+        { value: 3, label: "Almost always" }
+      ];
+
+      var personalityItems = [];
+      var personalityIndex = 0;
+      var personalityResponses = [];
 
       function renderCurrentItem() {
         var entry = flatItems[currentIndex];
         progressEl.textContent = FACULTY_LABELS[entry.facultyKey] + " · Question " + (entry.indexInFaculty + 1) + " of " + entry.countInFaculty;
         questionEl.textContent = entry.item.q;
+        pendingQuantumOptionIndex = null;
+        renderOptionChoices(entry);
+      }
+
+      function renderOptionChoices(entry) {
         optionsEl.innerHTML = "";
         entry.item.options.forEach(function (optionText, optionIndex) {
           var btn = document.createElement("button");
           btn.type = "button";
           btn.className = "third-test-option";
           btn.textContent = optionText;
-          btn.addEventListener("click", function () { handleAnswer(optionIndex); });
+          btn.addEventListener("click", function () {
+            if (entry.facultyKey === "quantumConscious") {
+              // Step one done -- swap the same panel over to step two
+              // (strength) rather than advancing yet.
+              pendingQuantumOptionIndex = optionIndex;
+              renderStrengthChoices(entry);
+            } else {
+              handleAnswer(optionIndex);
+            }
+          });
           optionsEl.appendChild(btn);
         });
       }
 
-      function handleAnswer(optionIndex) {
-        responses[currentIndex] = optionIndex;
+      function renderStrengthChoices(entry) {
+        optionsEl.innerHTML = "";
+        QUANTUM_STRENGTH_OPTIONS.forEach(function (opt) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "third-test-option";
+          btn.textContent = opt.label;
+          btn.addEventListener("click", function () {
+            handleAnswer({ optionIndex: pendingQuantumOptionIndex, strength: opt.value });
+          });
+          optionsEl.appendChild(btn);
+        });
+      }
+
+      function handleAnswer(answer) {
+        responses[currentIndex] = answer;
         currentIndex++;
         if (currentIndex < flatItems.length) {
           renderCurrentItem();
@@ -1569,27 +1781,92 @@
         };
       }
 
+      /* Weighted, not counted: each quantumConscious answer carries a
+         strength (1 Sometimes, 2 Often, 3 Almost always), and that
+         weight -- not a flat +1 -- is what accumulates onto the chosen
+         lean tag. leans ends up in the same { tag: number } shape as
+         before, so renderResults and the save payload need no changes;
+         the numbers themselves just now mean "total weight" rather than
+         "times picked". */
       function scoreQuantumConscious() {
         var leans = {};
         for (var i = 0; i < flatItems.length; i++) {
           var entry = flatItems[i];
           if (entry.facultyKey !== "quantumConscious") continue;
-          var lean = entry.item.leans[responses[i]];
-          leans[lean] = (leans[lean] || 0) + 1;
+          var response = responses[i];
+          var lean = entry.item.leans[response.optionIndex];
+          leans[lean] = (leans[lean] || 0) + response.strength;
         }
         return { label: FACULTY_LABELS.quantumConscious, leans: leans };
       }
 
-      /* Renders one result object into the results view — used for both
-         the just-finished live run and, later, a saved row reopened from
-         history. Reads everything from `result` (same shape as what
-         gets POSTed to /api/inner-iq/results: five objective faculties
-         with .label/.percentage, plus quantumConscious with .label/.leans)
-         rather than touching innerIqResult directly, so a saved result's
-         stored lean tallies render identically to a live one. `takerLabel`
-         is optional — when omitted, the attribution line falls back to
-         the current live-run takerName, matching prior behavior. */
-      function renderResults(result, takerLabel) {
+      function renderCurrentPersonalityItem() {
+        var entry = personalityItems[personalityIndex];
+        personalityProgressEl.textContent = "Personality · Question " + (personalityIndex + 1) + " of " + personalityItems.length;
+        personalityQuestionEl.textContent = entry.item.q;
+        personalityScaleEl.innerHTML = "";
+        PERSONALITY_SCALE_OPTIONS.forEach(function (opt) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "third-scale-btn";
+          btn.textContent = opt.label;
+          btn.addEventListener("click", function () { handlePersonalityAnswer(opt.value); });
+          personalityScaleEl.appendChild(btn);
+        });
+      }
+
+      function handlePersonalityAnswer(value) {
+        personalityResponses[personalityIndex] = value;
+        personalityIndex++;
+        if (personalityIndex < personalityItems.length) {
+          renderCurrentPersonalityItem();
+        } else {
+          finishPersonality();
+        }
+      }
+
+      /* Per dimension: non-reverse items score the raw 1-5 answer,
+         reverse-keyed items score (6 - answer), summed and converted to
+         a percentage of the dimension's max (5 items × 5 points = 25). */
+      function scorePersonality() {
+        var result = {};
+        BIG_FIVE_ORDER.forEach(function (dimensionKey) {
+          var sum = 0;
+          var count = 0;
+          for (var i = 0; i < personalityItems.length; i++) {
+            if (personalityItems[i].dimensionKey !== dimensionKey) continue;
+            var item = personalityItems[i].item;
+            var raw = personalityResponses[i];
+            sum += item.reverse ? (6 - raw) : raw;
+            count++;
+          }
+          result[dimensionKey] = {
+            label: BIG_FIVE_LABELS[dimensionKey],
+            percentage: Math.round((sum / (count * 5)) * 100)
+          };
+        });
+        return result;
+      }
+
+      /* Neutral, non-clinical two-word label for whichever pole a
+         dimension's percentage leans toward. */
+      function spectrumLabel(dimensionKey, percentage) {
+        var poles = BIG_FIVE_POLE_LABELS[dimensionKey];
+        return percentage >= 50 ? poles.high : poles.low;
+      }
+
+      /* Renders one result into the results view — used for both the
+         just-finished live run and a saved row reopened from history.
+         Reads everything from its arguments (same shape as what gets
+         POSTed to /api/inner-iq/results: `cognitive` has five objective
+         faculties with .label/.percentage plus quantumConscious with
+         .label/.leans; `personality` has five dimensions with
+         .label/.percentage, or is null/absent) rather than touching
+         innerIqResult/personalityResult directly, so a saved result's
+         stored data renders identically to a live one. `takerLabel` is
+         optional — when omitted, the attribution line falls back to the
+         current live-run takerName, matching prior behavior. */
+      function renderResults(cognitive, personality, takerLabel) {
         if (resultTakerLineEl) {
           resultTakerLineEl.textContent = "Results for " + (takerLabel || takerName);
         }
@@ -1597,11 +1874,11 @@
         var html = "";
         FACULTY_ORDER.forEach(function (facultyKey) {
           if (facultyKey === "quantumConscious") return;
-          var r = result[facultyKey];
+          var r = cognitive[facultyKey];
           html += '<p class="third-constellation-line"><strong>' + r.label + ':</strong> ' + r.percentage + '%</p>';
         });
 
-        var qc = result.quantumConscious;
+        var qc = cognitive.quantumConscious;
         var leanParts = [];
         for (var leanKey in qc.leans) {
           if (Object.prototype.hasOwnProperty.call(qc.leans, leanKey)) {
@@ -1611,6 +1888,21 @@
         html += '<p class="third-constellation-line"><strong>' + qc.label + ':</strong> ' + (leanParts.length ? leanParts.join(", ") : "no leanings recorded") + '</p>';
 
         constellationOutEl.innerHTML = html;
+
+        if (personality && personalityOutEl) {
+          var pHtml = '<h2 class="third-section-title third-personality-title">Personality</h2>';
+          BIG_FIVE_ORDER.forEach(function (dimensionKey) {
+            var d = personality[dimensionKey];
+            if (!d) return;
+            var pole = spectrumLabel(dimensionKey, d.percentage);
+            pHtml += '<p class="third-constellation-line"><strong>' + d.label + ':</strong> ' + d.percentage + '% — ' + pole + '</p>';
+          });
+          personalityOutEl.innerHTML = pHtml;
+          personalityOutEl.hidden = false;
+        } else if (personalityOutEl) {
+          personalityOutEl.innerHTML = "";
+          personalityOutEl.hidden = true;
+        }
       }
 
       /* ═══ Saved Profiles — list, open, delete ═══ */
@@ -1643,7 +1935,7 @@
         if (saveStatusEl) saveStatusEl.textContent = "";
 
         savedViewEl.hidden = true;
-        renderResults(row.cognitive, row.taker_name);
+        renderResults(row.cognitive, row.personality, row.taker_name);
         resultsViewEl.hidden = false;
       }
 
@@ -1794,7 +2086,7 @@
             taker_name: takerName,
             taker_kind: takerKind,
             cognitive: innerIqResult,
-            personality: null
+            personality: personalityResult
           })
         })
           .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("save failed")); })
@@ -1808,6 +2100,38 @@
               saveStatusEl.textContent = "Couldn't save this result right now — it's still shown above.";
             }
           });
+      }
+
+      /* Shows the results view and saves — the single, shared endpoint
+         both the "skip Part 2" and "finish Part 2" paths funnel into, so
+         exactly one row is ever POSTed per attempt (personalityResult is
+         either null, from skip, or a scored object, from finishing Part
+         2 — never a second save call). */
+      function finishAttempt() {
+        renderResults(innerIqResult, personalityResult, takerName);
+        resultsViewEl.hidden = false;
+        saveResult();
+      }
+
+      function showBridge() {
+        testViewEl.hidden = true;
+        bridgeViewEl.hidden = false;
+      }
+
+      function beginPersonalityTest() {
+        personalityItems = buildPersonalityRun();
+        personalityIndex = 0;
+        personalityResponses = [];
+        personalityViewEl.hidden = false;
+        renderCurrentPersonalityItem();
+      }
+
+      function finishPersonality() {
+        personalityResult = scorePersonality();
+        console.log(personalityResult);
+
+        personalityViewEl.hidden = true;
+        finishAttempt();
       }
 
       function finishTest() {
@@ -1827,21 +2151,21 @@
         resultsViewSource = "live";
         if (resultsBackRowEl) resultsBackRowEl.hidden = true;
 
-        renderResults(innerIqResult, takerName);
-
-        testViewEl.hidden = true;
-        resultsViewEl.hidden = false;
-
-        saveResult();
+        // Neither the results view nor the save happens yet -- the
+        // bridge panel decides whether Part 2 runs first.
+        showBridge();
       }
 
       function beginTest() {
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
         savedViewEl.hidden = true;
+        bridgeViewEl.hidden = true;
+        personalityViewEl.hidden = true;
         resultsViewEl.hidden = true;
         flatItems = buildRun();
         currentIndex = 0;
         responses = [];
+        personalityResult = null;
         testViewEl.hidden = false;
         renderCurrentItem();
       }
@@ -1849,6 +2173,8 @@
       function showTakerPicker() {
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
         savedViewEl.hidden = true;
+        bridgeViewEl.hidden = true;
+        personalityViewEl.hidden = true;
         resultsViewEl.hidden = true;
         testViewEl.hidden = true;
 
@@ -1863,6 +2189,8 @@
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
         takerViewEl.hidden = true;
         testViewEl.hidden = true;
+        bridgeViewEl.hidden = true;
+        personalityViewEl.hidden = true;
         resultsViewEl.hidden = true;
 
         savedViewEl.hidden = false;
@@ -1892,6 +2220,17 @@
         takerKind = "guest";
         takerViewEl.hidden = true;
         beginTest();
+      });
+
+      bridgeContinueBtn.addEventListener("click", function () {
+        bridgeViewEl.hidden = true;
+        beginPersonalityTest();
+      });
+
+      bridgeSkipBtn.addEventListener("click", function () {
+        bridgeViewEl.hidden = true;
+        personalityResult = null;
+        finishAttempt();
       });
 
       beginBtn.addEventListener("click", showTakerPicker);
