@@ -671,6 +671,13 @@
       letter-spacing: 0.06em;
       margin-top: 3px;
     }
+    .cal-day-event-anniversary {
+      font-size: 0.62rem;
+      color: rgba(244,228,184,0.85);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 3px;
+    }
     .cal-day-event-delete {
       flex-shrink: 0;
       width: 24px;
@@ -2882,6 +2889,113 @@
     var eventsCache = {};      // jdn (number) -> array of event rows
     var eventsRequestSeq = 0;  // guards against a stale response landing after a newer nav
 
+    // A JDN's {year, month, day} within a given calendar -- null when that
+    // calendar can't place this JDN at all (Mayan, which has no
+    // month-numbered year the way the others do) or when the target
+    // calendar's own conversion is unavailable for it (Chinese outside its
+    // table range). Japanese is special-cased to the Gregorian year:
+    // japaneseFromJdn's object carries an era/eraYear, not a plain .year,
+    // and calendarMonthStartJdn/daysInMonth/monthsInYear all key Japanese
+    // off the Gregorian year (Japanese months/days ARE Gregorian).
+    function convertJdnToCalendarParts(calendar, jdn) {
+      var g = jdnToGregorian(jdn);
+      if (calendar === 'japanese') {
+        return { year: g.year, month: g.month, day: g.day };
+      }
+      var conv;
+      try {
+        conv = convertDate(new Date(g.year, g.month - 1, g.day));
+      } catch (e) {
+        return null;
+      }
+      var part = conv[calendar];
+      if (!part) return null;
+      if (calendar === 'chinese' && part.available === false) return null;
+      if (part.year == null || part.month == null || part.day == null) return null;
+      return { year: part.year, month: part.month, day: part.day };
+    }
+
+    // Expands one calendar_events row into the JDN(s) it actually falls on
+    // within [startJdn, endJdn]. A non-recurring event occurs on exactly
+    // its stored jdn, if that's in range. A recurring event repeats every
+    // year IN THE CALENDAR IT WAS CREATED IN (event.recur_calendar) -- a
+    // Hebrew-anchored birthday recurs on the same Hebrew month/day every
+    // Hebrew year, not the same Gregorian month/day every Gregorian year --
+    // which is why the anchor month/day and the candidate years are both
+    // resolved through that calendar, not Gregorian, before rebuilding a
+    // JDN via calendarMonthStartJdn (the same to-JDN math
+    // resolveHolidayEntries already uses for the same reason).
+    function expandRecurringOccurrences(event, startJdn, endJdn) {
+      if (!event.recurring) {
+        return (event.jdn >= startJdn && event.jdn <= endJdn) ? [event.jdn] : [];
+      }
+
+      var calendar = event.recur_calendar || 'gregorian';
+
+      var anchor = convertJdnToCalendarParts(calendar, event.jdn);
+      if (!anchor) return [];
+
+      // Which calendar-years the visible range could touch -- convert
+      // both ends of the range into the same calendar and walk every year
+      // from the earlier to the later, inclusive. Do not assume the range
+      // sits inside a single calendar year.
+      var startParts = convertJdnToCalendarParts(calendar, startJdn);
+      var endParts = convertJdnToCalendarParts(calendar, endJdn);
+      if (!startParts || !endParts) return [];
+
+      var firstYear = Math.min(startParts.year, endParts.year);
+      var lastYear = Math.max(startParts.year, endParts.year);
+
+      var occurrences = [];
+      for (var year = firstYear; year <= lastYear; year++) {
+        var monthForYear = anchor.month;
+
+        // Chinese: HOLIDAYS-style month numbers here are TRADITIONAL, but
+        // calendarMonthStartJdn/daysInMonth expect the CHRONOLOGICAL month
+        // index, and the two diverge after a leap month -- same conversion
+        // resolveHolidayEntries already does, for the same reason (an
+        // event anchored to "month 7" must not silently land a lunar
+        // month early in a leap year). Guard: skip this year entirely if
+        // Chinese's table doesn't cover it.
+        if (calendar === 'chinese') {
+          var chineseYearEntry = decodeChineseYear(year);
+          if (!chineseYearEntry) continue;
+          monthForYear = chineseNumberToMonthIndex(anchor.month, false, chineseYearEntry.leapMonth);
+        }
+
+        // Guard: the resulting month doesn't exist in this year (e.g. a
+        // Hebrew Adar II anniversary when this target year has only 12
+        // months). monthsInYear returning null also catches calendars with
+        // no month-numbered year structure at all (Mayan).
+        var yearMonthCount = monthsInYear(calendar, year);
+        if (yearMonthCount == null || monthForYear > yearMonthCount) continue;
+
+        // Guard: the day exceeds that month's actual length this year
+        // (e.g. day 30 of a 29-day lunar month).
+        var monthLength = daysInMonth(calendar, year, monthForYear);
+        if (monthLength == null || anchor.day > monthLength) continue;
+
+        // Guard: the target calendar has no JDN mapping at all for this
+        // year/month (covers Chinese outside its table range redundantly
+        // with the check above, and anything else lacking a
+        // calendarMonthStartJdn case).
+        var monthStart;
+        try {
+          monthStart = calendarMonthStartJdn(calendar, year, monthForYear);
+        } catch (e) {
+          continue;
+        }
+        if (monthStart == null || !Number.isFinite(monthStart)) continue;
+
+        var candidateJdn = monthStart + anchor.day - 1;
+        if (candidateJdn >= startJdn && candidateJdn <= endJdn) {
+          occurrences.push(candidateJdn);
+        }
+      }
+
+      return occurrences;
+    }
+
     function refreshEventsForCurrentView() {
       var range = currentVisibleJdnRange();
       if (!range) return;
@@ -2909,16 +3023,42 @@
         .catch(function () { /* grid already rendered without markers -- fine */ });
     }
 
+    // eventsCache is bucketed by each event's STORED jdn, but a recurring
+    // event's occurrence on some other day can land on a completely
+    // different JDN than that bucket key -- so "what occurs on day X" now
+    // has to walk every cached event through expandRecurringOccurrences
+    // rather than trust the bucket keys alone.
+    function allCachedEvents() {
+      var all = [];
+      Object.keys(eventsCache).forEach(function (key) {
+        eventsCache[key].forEach(function (ev) { all.push(ev); });
+      });
+      return all;
+    }
+
+    // Every cached event occurring on exactly dayJdn, each wrapped with
+    // whether this is the event's original stored date or a later
+    // recurring anniversary (occurrenceJdn !== event.jdn).
+    function eventsOccurringOn(dayJdn) {
+      var out = [];
+      allCachedEvents().forEach(function (ev) {
+        if (expandRecurringOccurrences(ev, dayJdn, dayJdn).length) {
+          out.push({ event: ev, occurrenceJdn: dayJdn, isAnniversary: !!ev.recurring && dayJdn !== ev.jdn });
+        }
+      });
+      return out;
+    }
+
     // Up to 3 color-coded dots for a day cell, plus a tooltip listing the
     // event titles. Returns '' when there are no events, so empty cells
     // stay exactly as compact as before.
     function dayMarkersHtml(dayJdn) {
-      var events = eventsCache[dayJdn];
-      if (!events || !events.length) return '';
-      var shown = events.slice(0, 3);
-      var titles = events.map(function (ev) { return ev.title; }).join(', ');
-      var dots = shown.map(function (ev) {
-        return '<span class="cal-day-dot" style="background:' + eventTypeColor(ev.event_type) + ';"></span>';
+      var occurring = eventsOccurringOn(dayJdn);
+      if (!occurring.length) return '';
+      var shown = occurring.slice(0, 3);
+      var titles = occurring.map(function (o) { return o.event.title; }).join(', ');
+      var dots = shown.map(function (o) {
+        return '<span class="cal-day-dot" style="background:' + eventTypeColor(o.event.event_type) + ';"></span>';
       }).join('');
       return '<div class="cal-day-dots" title="' + escapeHtml(titles) + '">' + dots + '</div>';
     }
@@ -3362,15 +3502,26 @@
 
     function renderDayPanelEvents(jdn) {
       if (!calDayPanelEvents) return;
-      var events = eventsCache[jdn] || [];
+      var occurring = eventsOccurringOn(jdn);
 
-      if (!events.length) {
+      if (!occurring.length) {
         calDayPanelEvents.innerHTML = '<div class="cal-day-no-events">No events on this day yet.</div>';
         return;
       }
 
       var html = '';
-      events.forEach(function (ev) {
+      occurring.forEach(function (o) {
+        var ev = o.event;
+
+        var anniversaryHtml = '';
+        if (o.isAnniversary) {
+          var recurCalendar = ev.recur_calendar || 'gregorian';
+          var originalParts = convertJdnToCalendarParts(recurCalendar, ev.jdn);
+          var originalYearText = originalParts ? String(originalParts.year) : '?';
+          anniversaryHtml = '<div class="cal-day-event-anniversary">Anniversary — originally ' +
+            escapeHtml(originalYearText) + ' (' + escapeHtml(calendarLabelFor(recurCalendar)) + ')</div>';
+        }
+
         html +=
           '<div class="cal-day-event">' +
             '<div class="cal-day-event-main">' +
@@ -3380,6 +3531,7 @@
               '</div>' +
               (ev.notes ? '<div class="cal-day-event-notes">' + escapeHtml(ev.notes) + '</div>' : '') +
               (ev.recurring ? '<div class="cal-day-event-recurring">Repeats annually in ' + escapeHtml(calendarLabelFor(ev.recur_calendar)) + '</div>' : '') +
+              anniversaryHtml +
             '</div>' +
             '<button type="button" class="cal-day-event-delete" data-event-id="' + escapeHtml(ev.id) + '" aria-label="Delete event">&#x2715;</button>' +
           '</div>';
