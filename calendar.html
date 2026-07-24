@@ -469,6 +469,17 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
+
+    /* Zoroastrian ruz (day) name -- the day names ARE the substance of
+       this calendar, so every cell shows one, not just ceremonial days.
+       Muted gold, consistent in hue with .cal-day-holiday-name above but
+       lower-key (not bold, lower opacity) since it's routine metadata on
+       every cell rather than a special marker. */
+    .cal-day-ruz {
+      font-size: 0.66rem;
+      color: rgba(244,228,184,0.65);
+      line-height: 1.2;
+    }
     .cal-no-holidays-note {
       text-align: center;
       font-size: 0.78rem;
@@ -2170,6 +2181,8 @@
           var chineseEntry = decodeChineseYear(year);
           return chineseEntry ? chineseEntry.lengths[month - 1] : 29;
         }
+        case 'zoroastrian':
+          return month <= 12 ? 30 : (zoroastrianYearIsLeap(year) ? 6 : 5);
         case 'mayan':
           return null; // no months -- Long Count is positional
         default:
@@ -2196,6 +2209,8 @@
           var chineseYearInfo = decodeChineseYear(year);
           return chineseYearInfo ? chineseYearInfo.monthCount : 12; // 12, or 13 in a leap year
         }
+        case 'zoroastrian':
+          return 13; // 12x30 + the Gatha days
         case 'mayan':
           return null; // no months -- Long Count is positional
         default:
@@ -2243,6 +2258,8 @@
               CHINESE_TABLE_START_YEAR + ' to ' + CHINESE_TABLE_END_YEAR + '.',
           };
 
+      var zoroastrian = jdnToZoroastrian(jdn);
+
       return {
         jdn: jdn,
         gregorian: { year: g.year, month: g.month, day: g.day, monthName: GREGORIAN_MONTH_NAMES[g.month - 1] },
@@ -2257,6 +2274,7 @@
         japanese: japanese,
         indianNational: indianNational,
         chinese: chinese,
+        zoroastrian: zoroastrian,
       };
     }
 
@@ -2512,6 +2530,7 @@
       { value: "hijri",          label: "Hijri · Islamic" },
       { value: "hebrew",         label: "Hebrew" },
       { value: "persian",        label: "Persian · Solar Hijri" },
+      { value: "zoroastrian",    label: "Zoroastrian · Fasli" },
       { value: "coptic",         label: "Coptic" },
       { value: "ethiopic",       label: "Ethiopic" },
       { value: "indianNational", label: "Indian National · Saka" },
@@ -2767,6 +2786,7 @@
         case 'japanese':       return gregorianToJDN(year, month, 1); // year = Gregorian year here
         case 'indianNational': return sakaToJdn(year, month, 1);
         case 'chinese':        return chineseToJdn(year, month, 1); // month = chronological index
+        case 'zoroastrian':    return zoroastrianToJdn(year, month, 1);
         default:                return null;
       }
     }
@@ -2913,6 +2933,9 @@
           latinLine += ' — outside the season cycle (epagomenal days)';
         }
       }
+      if (calendar === 'zoroastrian') {
+        latinLine += ' — Fasli reckoning, Nowruz fixed to 21 March; four weeks marked by the Creator days (ruz 1, 8, 15, 23)';
+      }
 
       var chineseLatinLine = monthLabel + ' ' + yearLabel;
       if (calendar === 'chinese') {
@@ -2948,9 +2971,17 @@
         var gd = jdnToGregorian(dayJdn);
         var isToday = dayJdn === todayJ;
         var hol = holidayCellParts(dayJdn, holidayMap);
+        // The ruz (day) name IS the substance of the Zoroastrian calendar,
+        // so every cell shows one, not just ceremonial days. Calling
+        // jdnToZoroastrian directly (rather than the full convertDate)
+        // avoids recomputing every other calendar for each day cell.
+        var ruzHtml = (calendar === 'zoroastrian')
+          ? '<div class="cal-day-ruz">' + escapeHtml(jdnToZoroastrian(dayJdn).ruzName) + '</div>'
+          : '';
         html +=
           '<div class="cal-day-cell' + (isToday ? ' is-today' : '') + hol.cls + '" data-jdn="' + dayJdn + '">' +
             '<div class="cal-day-num">' + d + '</div>' +
+            ruzHtml +
             '<div class="cal-day-greg">' + WEEKDAY_LABELS[weekdayFromJdn(dayJdn)] + ' ' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
             hol.html +
             dayMarkersHtml(dayJdn) +
@@ -3152,6 +3183,15 @@
       // days, that third row runs only 9 or 10 cells long; a short final
       // row is the authentic shape of the month, not a rendering defect.
       chinese: { columns: 10, labels: ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"], alignToWeekday: false },
+      // The Zoroastrian month has no seven-day week either: it divides
+      // into four UNEVEN weeks of 7, 7, 8, and 8 days, marked by the four
+      // Creator days at ruz 1, 8, 15, and 23 (ZOROASTRIAN_CREATOR_DAYS).
+      // With an 8-column grid and no leading blanks, row 1 (ruz 1-7) and
+      // row 2 (ruz 8-14) each end one column short of the row's width --
+      // that trailing gap is where the week genuinely ends, not a
+      // rendering fault. Columns are simply labeled 1-8, the position
+      // within the row, since there is no native week-day name to show.
+      zoroastrian: { columns: 8, labels: ["1", "2", "3", "4", "5", "6", "7", "8"], alignToWeekday: false },
     };
 
     function weekStructureFor(calendar) {
