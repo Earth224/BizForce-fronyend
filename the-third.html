@@ -357,6 +357,75 @@
       box-shadow: 0 0 24px rgba(168,85,247,0.3);
       transform: translateY(-2px);
     }
+
+    /* ── Test engine — shared glass panel used by both the test view and
+       the results view, plus their own layout rules. Same recipe as
+       .third-faculty-card/.third-manifesto: dark translucent fill, tinted
+       border, blurred backdrop. ── */
+    .third-panel {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 34px;
+      background: rgba(10,4,20,0.55);
+      border: 1px solid rgba(34,211,238,0.25);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .third-test-progress {
+      text-align: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(232,220,255,0.5);
+      margin: 0 0 20px;
+    }
+    .third-test-question {
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: rgba(232,220,255,0.95);
+      margin: 0 0 26px;
+    }
+    .third-test-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .third-test-option {
+      display: block;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      background: rgba(10,4,20,0.5);
+      border: 1px solid rgba(34,211,238,0.2);
+      color: rgba(232,220,255,0.9);
+      font-family: inherit;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .third-test-option:hover {
+      border-color: rgba(34,211,238,0.6);
+      box-shadow: 0 0 16px rgba(34,211,238,0.18);
+      transform: translateY(-1px);
+    }
+    .third-results-panel .third-section-title {
+      margin-bottom: 20px;
+    }
+    .third-constellation-line {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: rgba(232,220,255,0.85);
+      margin: 0 0 8px;
+    }
+    .third-constellation-line strong {
+      color: #9df6ff;
+    }
   </style>
 </head>
 <body>
@@ -376,13 +445,13 @@
       <span class="brand-badge">BizForce AI</span>
     </nav>
 
-    <div class="third-hero">
+    <div class="third-hero" id="thirdHero">
       <h1 class="third-title">The Inner I.Q Test</h1>
       <p class="third-subtitle">A cognition diagnostic, remastered — mapping the faculties of a mind without ranking the worth of a person.</p>
       <p class="third-manifesto">The intelligence test you were raised to trust was not built to help you. Alfred Binet designed the first scale in 1905 to find French schoolchildren who needed more support — a humane aim. American eugenicists took his work and inverted it: into a ruler for innate human worth, used to screen immigrants at Ellis Island, to justify forced sterilization, and to manufacture the score gaps later used to segregate and diminish Black Americans. The number it produced was never neutral. The Inner I.Q Test keeps the real diagnostic craft — the measuring of genuine cognitive faculties — and severs it from the ranking. It returns not a verdict but a constellation. Six faculties, lit to the degree you carry them, including one the old instrument could not even conceive of. Know thyself.</p>
     </div>
 
-    <div class="third-section">
+    <div class="third-section" id="thirdCompareSection">
       <h2 class="third-section-title">The Old Instrument vs. The Inner I.Q Test</h2>
       <div class="third-compare">
         <div class="third-compare-heads">
@@ -448,7 +517,7 @@
       </div>
     </div>
 
-    <div class="third-section">
+    <div class="third-section" id="thirdFacultiesSection">
       <h2 class="third-section-title">The Six Faculties</h2>
       <div class="third-faculties-grid">
         <div class="third-faculty-card">
@@ -478,8 +547,23 @@
       </div>
     </div>
 
-    <div class="third-cta-row">
+    <div class="third-cta-row" id="thirdCtaRow">
       <button type="button" class="third-cta-btn" id="beginTheThird">Begin The Inner I.Q Test</button>
+    </div>
+
+    <div class="third-section third-test-view" id="thirdTestView" hidden>
+      <div class="third-panel third-test-panel">
+        <div class="third-test-progress" id="thirdTestProgress"></div>
+        <p class="third-test-question" id="thirdTestQuestion"></p>
+        <div class="third-test-options" id="thirdTestOptions"></div>
+      </div>
+    </div>
+
+    <div class="third-section third-results-view" id="thirdResultsView" hidden>
+      <div class="third-panel third-results-panel">
+        <h2 class="third-section-title">Your Constellation</h2>
+        <div id="constellationOut"></div>
+      </div>
     </div>
   </div>
 
@@ -993,6 +1077,208 @@
     refreshRealMoonPhase();
     setInterval(refreshRealMoonPhase, 30 * 60 * 1000);
   }());
+  </script>
+
+  <!-- ══════════ Test engine + item bank — additive only; does not touch
+       the hero, comparison, six-faculties, abyss, or moon above. Not
+       wrapped in its own IIFE at the top level (unlike the scripts above)
+       because INNER_IQ_BANK and innerIqResult are page-scope on purpose —
+       the next build (the visual constellation + Termaximus reading)
+       needs to read innerIqResult once scoring finishes. ══════════ -->
+  <script>
+    var INNER_IQ_BANK = {
+      verbalAnalogical: [
+        { q: "Ocean is to drop as crowd is to —", options: ["person","noise","gather","many"], answer: 0 },
+        { q: "Light is to shadow as sound is to —", options: ["echo","silence","music","ear"], answer: 1 },
+        { q: "A key unlocks a door. A question unlocks a —", options: ["lock","door","mind","word"], answer: 2 },
+        { q: "Seed is to forest as spark is to —", options: ["fire","match","heat","smoke"], answer: 0 },
+        { q: "Author is to book as architect is to —", options: ["city","building","plan","stone"], answer: 1 }
+      ],
+      spatialGeometric: [
+        { q: "A square is rotated 90 degrees four times. What does it look like at the end?", options: ["A triangle","Unchanged","A diamond","Larger"], answer: 1 },
+        { q: "If you fold a flat cross of six squares into a cube, how many faces will the cube have?", options: ["four","five","six","eight"], answer: 2 },
+        { q: "A shape has three sides of equal length. Rotated, it still shows three equal sides. It is a —", options: ["square","rectangle","equilateral triangle","pentagon"], answer: 2 },
+        { q: "Two mirrors face each other. An object between them produces —", options: ["one reflection","two reflections","no reflection","many reflections"], answer: 3 },
+        { q: "A cube is painted on all sides then cut once through the middle. The two new inner faces are —", options: ["painted","unpainted","half-painted","striped"], answer: 1 }
+      ],
+      numericalSequential: [
+        { q: "2, 4, 8, 16, —", options: ["18","24","32","20"], answer: 2 },
+        { q: "1, 1, 2, 3, 5, 8, —", options: ["11","13","10","12"], answer: 1 },
+        { q: "81, 27, 9, 3, —", options: ["1","0","2","3"], answer: 0 },
+        { q: "2, 3, 5, 7, 11, —", options: ["12","13","14","15"], answer: 1 },
+        { q: "1, 4, 9, 16, 25, —", options: ["30","36","35","49"], answer: 1 }
+      ],
+      relationalClassificatory: [
+        { q: "Which does not belong: whale, shark, dolphin, seal?", options: ["whale","shark","dolphin","seal"], answer: 1 },
+        { q: "Which does not belong: gold, silver, iron, ruby?", options: ["gold","silver","iron","ruby"], answer: 3 },
+        { q: "Which does not belong: circle, sphere, square, triangle?", options: ["circle","sphere","square","triangle"], answer: 1 },
+        { q: "Which does not belong: sight, hearing, memory, taste?", options: ["sight","hearing","memory","taste"], answer: 2 },
+        { q: "Which does not belong: river, lake, ocean, mountain?", options: ["river","lake","ocean","mountain"], answer: 3 }
+      ],
+      workingMemory: [
+        { q: "Remember: 7, 2, 9. What is the sum of the first and last?", options: ["9","11","16","14"], answer: 2 },
+        { q: "The sequence is blue, red, green, yellow. What was the second colour?", options: ["blue","red","green","yellow"], answer: 1 },
+        { q: "Count backward from 20 by threes: 20, 17, 14, — what comes next?", options: ["12","11","10","13"], answer: 1 },
+        { q: "Remember the word MIRROR spelled backward. What is the third letter from the start of the reversed spelling?", options: ["R","O","I","M"], answer: 1 },
+        { q: "Hold these: apple, 4, north. Which one is a direction?", options: ["apple","4","north","none"], answer: 2 }
+      ],
+      quantumConscious: [
+        { q: "A statement reads: 'This sentence is false.' Your first instinct is to —", options: ["Decide it must be true or false","Sit with it as both at once","Reject it as broken","Rewrite it so it resolves"], leans: ["resolve","hold","reject","resolve"] },
+        { q: "You see shapes in drifting clouds. This is —", options: ["The mind inventing false patterns","A real way of perceiving meaning","A distraction","A childish habit"], leans: ["reject","pattern","reject","reject"] },
+        { q: "Two teachers give you opposite advice, both wise. You —", options: ["Pick the more logical one","Hold both as true in different moments","Conclude one is wrong","Ask a third to break the tie"], leans: ["resolve","hold","resolve","resolve"] },
+        { q: "An answer arrives before you have reasoned it out. You —", options: ["Distrust it until proven","Follow it and reason later","Discard it as a guess","Ignore the feeling"], leans: ["linear","intuitive","linear","linear"] },
+        { q: "The universe is best imagined as —", options: ["A machine of cause and effect","A web where everything touches everything","A random accident","A set of fixed laws"], leans: ["linear","pattern","reject","linear"] }
+      ]
+    };
+
+    var FACULTY_LABELS = {
+      verbalAnalogical: "Verbal-Analogical",
+      spatialGeometric: "Spatial-Geometric",
+      numericalSequential: "Numerical-Sequential",
+      relationalClassificatory: "Relational-Classificatory",
+      workingMemory: "Working Memory & Recall",
+      quantumConscious: "Quantum-Conscious Awareness"
+    };
+    var FACULTY_ORDER = ["verbalAnalogical", "spatialGeometric", "numericalSequential", "relationalClassificatory", "workingMemory", "quantumConscious"];
+
+    var innerIqResult = null;
+
+    (function () {
+      var beginBtn         = document.getElementById("beginTheThird");
+      var testViewEl        = document.getElementById("thirdTestView");
+      var resultsViewEl     = document.getElementById("thirdResultsView");
+      var progressEl        = document.getElementById("thirdTestProgress");
+      var questionEl        = document.getElementById("thirdTestQuestion");
+      var optionsEl         = document.getElementById("thirdTestOptions");
+      var constellationOutEl = document.getElementById("constellationOut");
+
+      var introEls = [
+        document.getElementById("thirdHero"),
+        document.getElementById("thirdCompareSection"),
+        document.getElementById("thirdFacultiesSection"),
+        document.getElementById("thirdCtaRow")
+      ];
+
+      if (!beginBtn || !testViewEl || !resultsViewEl) return;
+
+      /* Flatten all six faculties into one ordered list of items so the
+         engine can walk them one at a time regardless of faculty size. */
+      var flatItems = [];
+      FACULTY_ORDER.forEach(function (facultyKey) {
+        var items = INNER_IQ_BANK[facultyKey];
+        items.forEach(function (item, idx) {
+          flatItems.push({
+            facultyKey: facultyKey,
+            indexInFaculty: idx,
+            countInFaculty: items.length,
+            item: item
+          });
+        });
+      });
+
+      var currentIndex = 0;
+      var responses = [];
+
+      function renderCurrentItem() {
+        var entry = flatItems[currentIndex];
+        progressEl.textContent = FACULTY_LABELS[entry.facultyKey] + " · Question " + (entry.indexInFaculty + 1) + " of " + entry.countInFaculty;
+        questionEl.textContent = entry.item.q;
+        optionsEl.innerHTML = "";
+        entry.item.options.forEach(function (optionText, optionIndex) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "third-test-option";
+          btn.textContent = optionText;
+          btn.addEventListener("click", function () { handleAnswer(optionIndex); });
+          optionsEl.appendChild(btn);
+        });
+      }
+
+      function handleAnswer(optionIndex) {
+        responses[currentIndex] = optionIndex;
+        currentIndex++;
+        if (currentIndex < flatItems.length) {
+          renderCurrentItem();
+        } else {
+          finishTest();
+        }
+      }
+
+      function scoreObjectiveFaculty(facultyKey) {
+        var items = INNER_IQ_BANK[facultyKey];
+        var correct = 0;
+        for (var i = 0; i < flatItems.length; i++) {
+          if (flatItems[i].facultyKey === facultyKey && responses[i] === flatItems[i].item.answer) {
+            correct++;
+          }
+        }
+        return {
+          label: FACULTY_LABELS[facultyKey],
+          correct: correct,
+          total: items.length,
+          percentage: Math.round((correct / items.length) * 100)
+        };
+      }
+
+      function scoreQuantumConscious() {
+        var leans = {};
+        for (var i = 0; i < flatItems.length; i++) {
+          var entry = flatItems[i];
+          if (entry.facultyKey !== "quantumConscious") continue;
+          var lean = entry.item.leans[responses[i]];
+          leans[lean] = (leans[lean] || 0) + 1;
+        }
+        return { label: FACULTY_LABELS.quantumConscious, leans: leans };
+      }
+
+      function renderConstellationSummary(result) {
+        var html = "";
+        FACULTY_ORDER.forEach(function (facultyKey) {
+          if (facultyKey === "quantumConscious") return;
+          var r = result[facultyKey];
+          html += '<p class="third-constellation-line"><strong>' + r.label + ':</strong> ' + r.percentage + '%</p>';
+        });
+
+        var qc = result.quantumConscious;
+        var leanParts = [];
+        for (var leanKey in qc.leans) {
+          if (Object.prototype.hasOwnProperty.call(qc.leans, leanKey)) {
+            leanParts.push(leanKey + " ×" + qc.leans[leanKey]);
+          }
+        }
+        html += '<p class="third-constellation-line"><strong>' + qc.label + ':</strong> ' + (leanParts.length ? leanParts.join(", ") : "no leanings recorded") + '</p>';
+
+        constellationOutEl.innerHTML = html;
+      }
+
+      function finishTest() {
+        var result = {};
+        FACULTY_ORDER.forEach(function (facultyKey) {
+          result[facultyKey] = facultyKey === "quantumConscious"
+            ? scoreQuantumConscious()
+            : scoreObjectiveFaculty(facultyKey);
+        });
+
+        innerIqResult = result;
+        console.log(innerIqResult);
+
+        renderConstellationSummary(result);
+
+        testViewEl.hidden = true;
+        resultsViewEl.hidden = false;
+      }
+
+      function beginTest() {
+        introEls.forEach(function (el) { if (el) el.style.display = "none"; });
+        resultsViewEl.hidden = true;
+        currentIndex = 0;
+        responses = [];
+        testViewEl.hidden = false;
+        renderCurrentItem();
+      }
+
+      beginBtn.addEventListener("click", beginTest);
+    }());
   </script>
 
 </body>
