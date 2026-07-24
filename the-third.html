@@ -1161,21 +1161,84 @@
 
       if (!beginBtn || !testViewEl || !resultsViewEl) return;
 
-      /* Flatten all six faculties into one ordered list of items so the
-         engine can walk them one at a time regardless of faculty size. */
-      var flatItems = [];
-      FACULTY_ORDER.forEach(function (facultyKey) {
-        var items = INNER_IQ_BANK[facultyKey];
-        items.forEach(function (item, idx) {
-          flatItems.push({
-            facultyKey: facultyKey,
-            indexInFaculty: idx,
-            countInFaculty: items.length,
-            item: item
+      /* Pure Fisher-Yates shuffle — returns a new array in randomized
+         order and never touches the array passed in, so INNER_IQ_BANK
+         stays pristine for every future attempt. */
+      function shuffleArray(array) {
+        var copy = array.slice();
+        for (var i = copy.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var temp = copy[i];
+          copy[i] = copy[j];
+          copy[j] = temp;
+        }
+        return copy;
+      }
+
+      /* Shuffle one item's option order while keeping each option paired
+         to whatever made it meaningful before the shuffle — the answer
+         index for the five objective faculties, or the lean tag for
+         quantumConscious — by shuffling text/answer/lean together as a
+         single unit, then recomputing the index-based fields from where
+         each unit landed. Returns a brand-new item object; the bank
+         item passed in is only read, never mutated. */
+      function shuffleItem(item, isQuantum) {
+        var pairs = [];
+        item.options.forEach(function (optionText, idx) {
+          pairs.push({
+            text: optionText,
+            isAnswer: !isQuantum && idx === item.answer,
+            lean: isQuantum ? item.leans[idx] : undefined
           });
         });
-      });
+        var shuffledPairs = shuffleArray(pairs);
 
+        var newOptions = [];
+        var newLeans = [];
+        var newAnswer = -1;
+        shuffledPairs.forEach(function (pair, idx) {
+          newOptions.push(pair.text);
+          if (isQuantum) {
+            newLeans.push(pair.lean);
+          } else if (pair.isAnswer) {
+            newAnswer = idx;
+          }
+        });
+
+        var shuffled = { q: item.q, options: newOptions };
+        if (isQuantum) {
+          shuffled.leans = newLeans;
+        } else {
+          shuffled.answer = newAnswer;
+        }
+        return shuffled;
+      }
+
+      /* Build one freshly randomized attempt from the pristine
+         INNER_IQ_BANK: faculties stay in their fixed pedagogical order
+         (FACULTY_ORDER is not shuffled), but each faculty's item order is
+         shuffled, and each item's own option order is shuffled via
+         shuffleItem above. Called once per attempt from beginTest(), so
+         a second attempt reshuffles from the untouched bank rather than
+         from a previous run's already-shuffled copy. */
+      function buildRun() {
+        var run = [];
+        FACULTY_ORDER.forEach(function (facultyKey) {
+          var isQuantum = facultyKey === "quantumConscious";
+          var shuffledItems = shuffleArray(INNER_IQ_BANK[facultyKey]);
+          shuffledItems.forEach(function (item, idx) {
+            run.push({
+              facultyKey: facultyKey,
+              indexInFaculty: idx,
+              countInFaculty: shuffledItems.length,
+              item: shuffleItem(item, isQuantum)
+            });
+          });
+        });
+        return run;
+      }
+
+      var flatItems = [];
       var currentIndex = 0;
       var responses = [];
 
@@ -1271,6 +1334,7 @@
       function beginTest() {
         introEls.forEach(function (el) { if (el) el.style.display = "none"; });
         resultsViewEl.hidden = true;
+        flatItems = buildRun();
         currentIndex = 0;
         responses = [];
         testViewEl.hidden = false;
