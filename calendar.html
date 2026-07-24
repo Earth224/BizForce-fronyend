@@ -1985,6 +1985,125 @@
     }
 
     // ---------------------------------------------------------------------
+    // 12b. Zoroastrian (Fasli) calendar — data + conversion math.
+    //
+    // NOT YET WIRED IN. This is additive, unreferenced code: convertDate,
+    // daysInMonth, monthsInYear, calendarMonthStartJdn, CALENDARS,
+    // WEEK_STRUCTURE, and HOLIDAYS are all untouched. Wiring this in is a
+    // separate, later step.
+    //
+    // This is the FASLI variant specifically: Nowruz (New Year) is fixed
+    // to 21 March every Gregorian year, tied to the vernal equinox, with
+    // an intercalary 6th Gatha day added exactly when needed to keep it
+    // there. The two other living variants do NOT do this: Shahanshahi and
+    // Qadimi never intercalate at all, so both have drifted away from the
+    // equinox over the centuries (by different amounts, since they split
+    // from each other at a different point historically) and are not
+    // implemented here.
+    //
+    // Structure: 12 months of exactly 30 days, followed by 5 Gatha days —
+    // 365 days total. In a leap year a 6th Gatha day is added (366 days).
+    // The year beginning 21 March of Gregorian year G is leap when G+1 is
+    // a Gregorian leap year -- i.e. the leap day inserted is whichever one
+    // keeps the FOLLOWING Nowruz on 21 March despite the Gregorian leap
+    // day that would otherwise have fallen in between.
+    //
+    // Era: the year beginning 21 March of Gregorian year G is Anno
+    // Yazdegerdi (AY) year G - 630. Verified: 21 March 2026 begins AY 1396
+    // (2026 - 630 = 1396).
+    var ZOROASTRIAN_MONTH_NAMES = [
+      'Farvardin', 'Ardwahisht', 'Hordad', 'Tir', 'Amurdad', 'Shahrewar',
+      'Mihr', 'Aban', 'Adar', 'Day', 'Vohuman', 'Spandarmad',
+      'Gatha Days',
+    ];
+
+    // The 30 ruz (day) names, cycling identically inside every month --
+    // day 1 of any month is always Ohrmazd, day 2 always Vohuman, and so on.
+    var ZOROASTRIAN_RUZ_NAMES = [
+      'Ohrmazd', 'Vohuman', 'Ardwahisht', 'Shahrewar', 'Spandarmad', 'Hordad',
+      'Amurdad', 'Day-pa-Adar', 'Adar', 'Aban', 'Khwarshed', 'Mah',
+      'Tir', 'Gosh', 'Day-pa-Mihr', 'Mihr', 'Srosh', 'Rashnu',
+      'Frawardin', 'Warharan', 'Ram', 'Gowad', 'Day-pa-Den', 'Den',
+      'Ard', 'Ashtad', 'Asman', 'Zam', 'Mahraspand', 'Anagran',
+    ];
+
+    // The 5 Gatha days that follow month 12 (Spandarmad). A 6th day,
+    // Avardad-sal-Gah, is appended after these in a leap year (see
+    // zoroastrianYearIsLeap below) to keep the following Nowruz on 21 March.
+    var ZOROASTRIAN_GATHA_NAMES = [
+      'Ahunawad', 'Ushtawad', 'Spentomad', 'Wohukhshathra', 'Wahishtoist',
+    ];
+
+    // The four "Creator days" (ruz 1 Ohrmazd, 8 Day-pa-Adar, 15 Day-pa-Mihr,
+    // 23 Day-pa-Den -- the three "Day" ruz plus Ohrmazd itself) that divide
+    // each 30-day month into four weeks of 7, 7, 8, and 8 days. The
+    // tradition marks each of these four days with a Jashan (celebration)
+    // of Dadvah, the Creator.
+    var ZOROASTRIAN_CREATOR_DAYS = [1, 8, 15, 23];
+
+    // The JDN of 21 March (Nowruz) of the given Gregorian year.
+    function zoroastrianNowruzJdn(gregorianYear) {
+      return gregorianToJDN(gregorianYear, 3, 21);
+    }
+
+    // The AY year beginning 21 March of Gregorian year (ayYear + 630) has
+    // a 6th Gatha day exactly when the FOLLOWING Gregorian year (that
+    // year + 1) is itself a Gregorian leap year -- this is what keeps the
+    // next Nowruz fixed on 21 March despite that intervening 29 February.
+    function zoroastrianYearIsLeap(ayYear) {
+      var g = ayYear + 630 + 1;
+      return (g % 4 === 0 && g % 100 !== 0) || g % 400 === 0;
+    }
+
+    // AY year + month (1-12 regular, 13 = Gatha days) + day -> JDN. Nowruz
+    // of that AY year is the anchor (via zoroastrianNowruzJdn, itself built
+    // on the existing gregorianToJDN); every month before the target is
+    // exactly 30 days, including month 13 itself starting at day 361 of
+    // the year (offset 360) -- no special-casing needed for the Gatha days.
+    function zoroastrianToJdn(ayYear, month, day) {
+      var nowruzJdn = zoroastrianNowruzJdn(ayYear + 630);
+      var offset = (month - 1) * 30 + (day - 1);
+      return nowruzJdn + offset;
+    }
+
+    // JDN -> { year, month, day, monthName, ruzName }. The AY year is
+    // resolved by comparing jdn against that Gregorian year's own 21 March
+    // Nowruz JDN, stepping back one Gregorian year if jdn falls before it
+    // -- same pattern jdnToChinese uses against Chinese New Year. ruzName
+    // holds the day-name for months 1-12 (ZOROASTRIAN_RUZ_NAMES, day 1-30)
+    // or, for month 13, the Gatha day name instead (day 6, only reachable
+    // in a leap year, is Avardad-sal-Gah rather than an indexed entry).
+    function jdnToZoroastrian(jdn) {
+      var g = jdnToGregorian(jdn);
+      var gregorianYear = g.year;
+      var nowruzJdn = zoroastrianNowruzJdn(gregorianYear);
+
+      if (jdn < nowruzJdn) {
+        gregorianYear -= 1;
+        nowruzJdn = zoroastrianNowruzJdn(gregorianYear);
+      }
+
+      var ayYear = gregorianYear - 630;
+      var dayOfYear = jdn - nowruzJdn; // 0-based
+      var month, day;
+      if (dayOfYear < 360) {
+        month = Math.floor(dayOfYear / 30) + 1;
+        day = (dayOfYear % 30) + 1;
+      } else {
+        month = 13;
+        day = dayOfYear - 360 + 1;
+      }
+
+      var result = { year: ayYear, month: month, day: day, monthName: ZOROASTRIAN_MONTH_NAMES[month - 1] };
+      if (month <= 12) {
+        result.ruzName = ZOROASTRIAN_RUZ_NAMES[day - 1];
+      } else {
+        result.ruzName = ZOROASTRIAN_GATHA_NAMES[day - 1] || 'Avardad-sal-Gah';
+      }
+      return result;
+    }
+
+    // ---------------------------------------------------------------------
     // 13. Reverse conversions (calendar -> JDN) + universal daysInMonth/
     //     monthsInYear/weekdayFromJdn.
     // ---------------------------------------------------------------------
