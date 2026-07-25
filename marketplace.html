@@ -509,6 +509,12 @@ function setDigitalUploadStatus(text, state) {
   statusEl.className = "digital-upload-status" + (state ? " status-" + state : "");
 }
 
+function formatDigitalFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 function renderMediaPreview() {
   var container = document.getElementById("mediaPreview");
   var html = listingMedia.map(function(item, index) {
@@ -709,6 +715,15 @@ document.getElementById("fMedia").addEventListener("change", function() {
   files.forEach(function(file) {
     uploadListingMedia(file);
   });
+});
+
+document.getElementById("listingDigitalFile").addEventListener("change", function() {
+  var file = this.files[0];
+  if (!file) {
+    setDigitalUploadStatus("", null);
+    return;
+  }
+  setDigitalUploadStatus(file.name + " · " + formatDigitalFileSize(file.size), "success");
 });
 
 renderCategoryPills();
