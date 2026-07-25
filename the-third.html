@@ -710,6 +710,42 @@
       padding-top: 20px;
       border-top: 1px solid rgba(255,255,255,0.08);
     }
+
+    /* ── Termaximus reading — sits below the constellation/personality
+       sections in the results panel. Loading/error status reuses the
+       page's muted-italic line language; the reply is a violet-bordered
+       glass card (mirrors .third-manifesto), split into readable
+       paragraphs. ── */
+    .third-termaximus-row {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+    }
+    .third-termaximus-status {
+      margin: 14px 0 0;
+      font-size: 0.85rem;
+      font-style: italic;
+      text-align: center;
+      color: rgba(232,220,255,0.6);
+    }
+    .third-termaximus-reply {
+      margin-top: 16px;
+      padding: 20px 22px;
+      border-radius: 14px;
+      background: rgba(10,4,20,0.5);
+      border: 1px solid rgba(168,85,247,0.25);
+      text-align: left;
+    }
+    .third-termaximus-reply p {
+      margin: 0 0 12px;
+      font-size: 0.92rem;
+      line-height: 1.7;
+      color: rgba(232,220,255,0.9);
+    }
+    .third-termaximus-reply p:last-child {
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body>
@@ -893,6 +929,10 @@
         <h2 class="third-section-title">Your Constellation</h2>
         <div id="constellationOut"></div>
         <div id="personalityOut" hidden></div>
+        <div class="third-termaximus-row">
+          <button type="button" class="third-cta-btn" id="askTermaximusReading">Ask Termaximus to read this</button>
+        </div>
+        <div id="termaximusReadingOut"></div>
         <p class="third-save-status" id="thirdSaveStatus"></p>
         <div class="third-results-back-row" id="thirdResultsBackRow" hidden>
           <button type="button" class="third-cta-btn third-cta-btn-secondary" id="thirdResultsBackBtn">&#8592; Back to Saved Profiles</button>
@@ -1549,6 +1589,11 @@
     var takerName = null;
     var takerKind = null;
 
+    // Whatever renderResults most recently rendered -- live finish or a
+    // reopened saved profile -- so the Termaximus reading always reads
+    // the currently displayed result rather than assuming a live run.
+    var lastRenderedResult = null;
+
     (function () {
       var beginBtn         = document.getElementById("beginTheThird");
       var viewSavedProfilesBtn = document.getElementById("viewSavedProfiles");
@@ -1579,6 +1624,8 @@
       var saveStatusEl      = document.getElementById("thirdSaveStatus");
       var resultsBackRowEl  = document.getElementById("thirdResultsBackRow");
       var resultsBackBtn    = document.getElementById("thirdResultsBackBtn");
+      var askTermaximusBtn  = document.getElementById("askTermaximusReading");
+      var termaximusReadingOutEl = document.getElementById("termaximusReadingOut");
 
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
       var token = localStorage.getItem("bf_token");
@@ -1863,10 +1910,29 @@
          .label/.leans; `personality` has five dimensions with
          .label/.percentage, or is null/absent) rather than touching
          innerIqResult/personalityResult directly, so a saved result's
-         stored data renders identically to a live one. `takerLabel` is
-         optional — when omitted, the attribution line falls back to the
-         current live-run takerName, matching prior behavior. */
-      function renderResults(cognitive, personality, takerLabel) {
+         stored data renders identically to a live one. `takerLabel`/
+         `takerKindArg` are optional — when omitted, they fall back to
+         the current live-run takerName/takerKind, matching prior
+         behavior. Also stashes everything in lastRenderedResult and
+         resets the Termaximus reading area, so "ask Termaximus" always
+         reads whatever is currently on screen and never a stale reply
+         left over from a previously viewed result. */
+      function renderResults(cognitive, personality, takerLabel, takerKindArg) {
+        lastRenderedResult = {
+          cognitive: cognitive,
+          personality: personality,
+          takerLabel: takerLabel || takerName,
+          takerKind: takerKindArg || takerKind
+        };
+
+        if (askTermaximusBtn) {
+          askTermaximusBtn.disabled = false;
+          askTermaximusBtn.textContent = "Ask Termaximus to read this";
+        }
+        if (termaximusReadingOutEl) {
+          termaximusReadingOutEl.innerHTML = "";
+        }
+
         if (resultTakerLineEl) {
           resultTakerLineEl.textContent = "Results for " + (takerLabel || takerName);
         }
@@ -1905,6 +1971,159 @@
         }
       }
 
+      /* ═══ Termaximus reading — reads whatever renderResults last
+         rendered (live finish or reopened saved profile), via the exact
+         Oracle contract confirmed working elsewhere in this app: POST
+         API_URL + /api/oracle, multipart FormData with a `message`
+         field, no Content-Type header set (the browser sets the
+         multipart boundary), Authorization: Bearer <token>, and the
+         reply read from data.reply. ═══ */
+
+      var termaximusInFlight = false;
+
+      function buildTermaximusPrompt(result) {
+        var lines = [];
+
+        var takerKindWord = result.takerKind === "guest" ? "guest" : "self";
+        lines.push("Read the following cognitive and character constellation for " + result.takerLabel + " (" + takerKindWord + ").");
+        lines.push("");
+
+        lines.push("Cognitive faculties:");
+        FACULTY_ORDER.forEach(function (facultyKey) {
+          if (facultyKey === "quantumConscious") return;
+          var r = result.cognitive[facultyKey];
+          if (!r) return;
+          lines.push("- " + r.label + ": " + r.percentage + "%");
+        });
+
+        var qc = result.cognitive.quantumConscious;
+        if (qc) {
+          var leanParts = [];
+          for (var leanKey in qc.leans) {
+            if (Object.prototype.hasOwnProperty.call(qc.leans, leanKey)) {
+              leanParts.push(leanKey + " (weight " + qc.leans[leanKey] + ")");
+            }
+          }
+          lines.push("- Quantum-Conscious Awareness weighted leanings: " + (leanParts.length ? leanParts.join(", ") : "no leanings recorded"));
+        }
+
+        if (result.personality) {
+          lines.push("");
+          lines.push("Personality (Big Five):");
+          BIG_FIVE_ORDER.forEach(function (dimensionKey) {
+            var d = result.personality[dimensionKey];
+            if (!d) return;
+            var pole = spectrumLabel(dimensionKey, d.percentage);
+            lines.push("- " + d.label + ": " + d.percentage + "% (" + pole + ")");
+          });
+        }
+
+        lines.push("");
+        lines.push(
+          "Read this as a cognitive and character constellation, in your own Hermetic register. " +
+          "Interpret the shape of this mind and character as self-knowledge -- faculty by faculty, " +
+          "trait by trait -- in the spirit of \"know thyself.\" This is never a clinical diagnosis and " +
+          "never reduces to a single IQ number. Name what each strong and weak faculty means. Describe " +
+          "how the faculties combine. Say what the quantum-conscious leanings suggest about how this " +
+          "mind moves. Say what the personality traits reveal about character. Offer this as a " +
+          "portrait, not a verdict."
+        );
+
+        return lines.join("\n");
+      }
+
+      function setTermaximusStatus(text) {
+        if (!termaximusReadingOutEl) return;
+        termaximusReadingOutEl.innerHTML = "";
+        if (!text) return;
+        var p = document.createElement("p");
+        p.className = "third-termaximus-status";
+        p.textContent = text;
+        termaximusReadingOutEl.appendChild(p);
+      }
+
+      function renderTermaximusReply(reply) {
+        if (!termaximusReadingOutEl) return;
+
+        var wrap = document.createElement("div");
+        wrap.className = "third-termaximus-reply";
+
+        var wrote = false;
+        reply.split(/\n{2,}/).forEach(function (raw) {
+          var text = raw.trim();
+          if (!text) return;
+          wrote = true;
+          var p = document.createElement("p");
+          p.textContent = text;
+          wrap.appendChild(p);
+        });
+        if (!wrote) {
+          var fallbackP = document.createElement("p");
+          fallbackP.textContent = reply;
+          wrap.appendChild(fallbackP);
+        }
+
+        termaximusReadingOutEl.innerHTML = "";
+        termaximusReadingOutEl.appendChild(wrap);
+      }
+
+      function askTermaximusReadingHandler() {
+        if (termaximusInFlight) return;
+        if (!lastRenderedResult) return;
+
+        if (typeof API_URL === "undefined" || typeof token === "undefined" || !token) {
+          setTermaximusStatus("The Oracle is silent for a moment — try again.");
+          return;
+        }
+
+        var message = buildTermaximusPrompt(lastRenderedResult);
+
+        termaximusInFlight = true;
+        if (askTermaximusBtn) {
+          askTermaximusBtn.disabled = true;
+          askTermaximusBtn.textContent = "Termaximus is contemplating…";
+        }
+        setTermaximusStatus("Termaximus is contemplating your constellation…");
+
+        var formData = new FormData();
+        formData.append("message", message);
+
+        fetch(API_URL + "/api/oracle", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          body: formData
+        })
+          .then(function (r) {
+            if (r.ok) return r.json();
+            return r.json().catch(function () { return null; }).then(function (errBody) {
+              return Promise.reject((errBody && errBody.error) || null);
+            });
+          })
+          .then(function (data) {
+            var reply = data && data.reply;
+            if (!reply) throw new Error("empty reply");
+            renderTermaximusReply(reply);
+            if (askTermaximusBtn) {
+              askTermaximusBtn.disabled = false;
+              askTermaximusBtn.textContent = "Ask Termaximus to read this again";
+            }
+          })
+          .catch(function () {
+            setTermaximusStatus("The Oracle is silent for a moment — try again.");
+            if (askTermaximusBtn) {
+              askTermaximusBtn.disabled = false;
+              askTermaximusBtn.textContent = "Ask Termaximus to read this";
+            }
+          })
+          .then(function () {
+            termaximusInFlight = false;
+          });
+      }
+
+      if (askTermaximusBtn) {
+        askTermaximusBtn.addEventListener("click", askTermaximusReadingHandler);
+      }
+
       /* ═══ Saved Profiles — list, open, delete ═══ */
 
       function formatSavedDate(isoString) {
@@ -1935,7 +2154,7 @@
         if (saveStatusEl) saveStatusEl.textContent = "";
 
         savedViewEl.hidden = true;
-        renderResults(row.cognitive, row.personality, row.taker_name);
+        renderResults(row.cognitive, row.personality, row.taker_name, row.taker_kind);
         resultsViewEl.hidden = false;
       }
 
@@ -2108,7 +2327,7 @@
          either null, from skip, or a scored object, from finishing Part
          2 — never a second save call). */
       function finishAttempt() {
-        renderResults(innerIqResult, personalityResult, takerName);
+        renderResults(innerIqResult, personalityResult, takerName, takerKind);
         resultsViewEl.hidden = false;
         saveResult();
       }
@@ -2254,3 +2473,5 @@
 
 </body>
 </html>
+<!-- -->
+
