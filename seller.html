@@ -252,12 +252,15 @@ function renderListingCard(item) {
     ? '<button type="button" class="sf-buy-btn" onclick="startCheckout(\'' + esc(item.id) + '\')">Buy</button>' +
       '<div class="sf-buy-msg" id="buyMsg-' + esc(item.id) + '"></div>'
     : "";
+  var priceHtml = (item.is_purchasable === false && item.price == null)
+    ? ""
+    : '<div class="sf-card-price">' + formatPrice(item.price, item.currency) + '</div>';
   return '<div class="sf-card">' +
     '<div class="sf-card-img-wrap">' + img + '</div>' +
     '<div class="sf-card-body">' +
       '<div class="sf-card-top-row"><h3 class="sf-card-name">' + esc(item.name) + '</h3>' + categoryTag + '</div>' +
       '<p class="sf-card-desc">' + esc(item.description || "") + '</p>' +
-      '<div class="sf-card-price">' + formatPrice(item.price, item.currency) + '</div>' +
+      priceHtml +
       buyBtn +
     '</div>' +
   '</div>';
