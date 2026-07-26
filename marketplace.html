@@ -89,6 +89,12 @@
     .create-btn svg{width:16px;height:16px}
     .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
     .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    .purchase-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;margin-bottom:20px;border-radius:12px;font-size:.9rem;font-weight:600;line-height:1.5}
+    .purchase-banner-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.35);color:#34d399}
+    .purchase-banner-cancelled{background:rgba(136,146,184,.08);border:1px solid rgba(136,146,184,.2);color:#8892b8}
+    .purchase-banner a{color:inherit;font-weight:800;text-decoration:underline}
+    .purchase-banner-close{background:none;border:none;color:inherit;font-size:1.25rem;line-height:1;font-family:inherit;cursor:pointer;padding:0 4px;opacity:.7;transition:opacity .2s}
+    .purchase-banner-close:hover{opacity:1}
     /* Modal */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
     .modal-overlay.open{opacity:1;pointer-events:all}
@@ -168,6 +174,8 @@
     <button class="tab-btn my-tab" data-cat="mine" onclick="selectTab(this)">My Listings</button>
     <a href="garage-sale.html" class="tab-btn" style="color:#34d399;border-color:#34d399;text-decoration:none">Garage Sale →</a>
   </div>
+
+  <div id="purchaseBanner"></div>
 
   <div class="feed-header">
     <div class="feed-header-left">
@@ -740,9 +748,37 @@ document.getElementById("listingDigitalFile").addEventListener("change", functio
   setDigitalUploadStatus(file.name + " · " + formatDigitalFileSize(file.size), "success");
 });
 
+function dismissPurchaseBanner() {
+  var host = document.getElementById("purchaseBanner");
+  if (host) host.innerHTML = "";
+}
+
+function showPurchaseResultBanner() {
+  var params = new URLSearchParams(window.location.search);
+  var purchase = params.get("purchase");
+  if (purchase !== "success" && purchase !== "cancelled") return;
+  var host = document.getElementById("purchaseBanner");
+  if (!host) return;
+
+  var variant = purchase === "success" ? "purchase-banner-success" : "purchase-banner-cancelled";
+  var message = purchase === "success"
+    ? 'Purchase complete. Your file is available on the <a href="my-purchases.html">My Purchases</a> page.'
+    : 'Checkout was cancelled. Nothing was charged.';
+
+  host.innerHTML = '<div class="purchase-banner ' + variant + '">' +
+      '<span>' + message + '</span>' +
+      '<button type="button" class="purchase-banner-close" onclick="dismissPurchaseBanner()" aria-label="Dismiss">&times;</button>' +
+    '</div>';
+
+  params.delete("purchase");
+  var qs = params.toString();
+  window.history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : "") + window.location.hash);
+}
+
 renderCategoryPills();
 renderCategoryMenu();
 renderCategorySelectOptions();
+showPurchaseResultBanner();
 loadListings();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
