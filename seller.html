@@ -187,6 +187,34 @@ function setAccent(hex) {
   document.documentElement.style.setProperty("--sa-rgb", r+","+g+","+b);
 }
 
+async function startCheckout(id) {
+  var msgEl = document.getElementById("buyMsg-" + id);
+  function showMsg(text) { if (msgEl) msgEl.textContent = text; }
+
+  var token = localStorage.getItem("bf_token");
+  if (!token) {
+    localStorage.setItem("bf_return_to", window.location.href);
+    window.location.href = "app.html";
+    return;
+  }
+
+  showMsg("Starting checkout…");
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + encodeURIComponent(id) + "/checkout-usd", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+    var data = await res.json().catch(function() { return {}; });
+    if (!res.ok || !data.url) {
+      showMsg(data.error || "Checkout unavailable. Please try again.");
+      return;
+    }
+    window.location.href = data.url;
+  } catch (e) {
+    showMsg("Checkout failed. Please try again.");
+  }
+}
+
 function getYouTubeId(url) {
   var m = String(url || "").match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
   return m ? m[1] : null;
@@ -220,8 +248,9 @@ function renderListingCard(item) {
     ? '<img class="sf-card-img" src="' + esc(item.image_url) + '" alt="">'
     : '<div class="sf-card-img-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>No image</span></div>';
   var categoryTag = item.category ? '<span class="sf-card-category">' + esc(item.category) + '</span>' : "";
-  var buyBtn = item.buy_link
-    ? '<a class="sf-buy-btn" href="' + esc(item.buy_link) + '" target="_blank" rel="noopener">View / Buy</a>'
+  var buyBtn = (item.is_purchasable === true && Number(item.price) > 0)
+    ? '<button type="button" class="sf-buy-btn" onclick="startCheckout(\'' + esc(item.id) + '\')">Buy</button>' +
+      '<div class="sf-buy-msg" id="buyMsg-' + esc(item.id) + '"></div>'
     : "";
   return '<div class="sf-card">' +
     '<div class="sf-card-img-wrap">' + img + '</div>' +
