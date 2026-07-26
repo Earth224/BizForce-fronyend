@@ -269,6 +269,7 @@ var CATEGORIES = [
 
 var allListings = [];
 var myListings = [];
+var purchasedListingIds = new Set();
 var activeTab = "all";
 var editingId = null;
 var searchTimer = null;
@@ -343,12 +344,22 @@ var listingMediaUploading = 0;
 
 async function loadListings() {
   try {
-    var [resAll, resMine] = await Promise.all([
+    var [resAll, resMine, resPurchases] = await Promise.all([
       fetch(API_URL + "/api/marketplace/listings", { headers: { "Authorization": "Bearer " + token } }),
-      fetch(API_URL + "/api/marketplace/my-listings", { headers: { "Authorization": "Bearer " + token } })
+      fetch(API_URL + "/api/marketplace/my-listings", { headers: { "Authorization": "Bearer " + token } }),
+      fetch(API_URL + "/api/purchases", { headers: { "Authorization": "Bearer " + token } }).catch(function() { return null; })
     ]);
     if (resAll.ok) { var d = await resAll.json(); allListings = d.listings || []; }
     if (resMine.ok) { var d2 = await resMine.json(); myListings = d2.listings || []; }
+    purchasedListingIds = new Set();
+    if (resPurchases && resPurchases.ok) {
+      try {
+        var d3 = await resPurchases.json();
+        (d3.purchases || []).forEach(function(p) {
+          if (p && p.listing_id) purchasedListingIds.add(p.listing_id);
+        });
+      } catch (e) { purchasedListingIds = new Set(); }
+    }
     renderGrid();
   } catch (e) {
     document.getElementById("listingsGrid").innerHTML = '<div class="empty-msg">Unable to load marketplace. Please try again.</div>';
@@ -409,6 +420,7 @@ function renderCard(l) {
   var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + t + '</span>'; }).join("");
   var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
   var statusHtml = isOwn ? '<span class="status-badge status-' + l.status + '">' + l.status + '</span>' : "";
+  var purchasedHtml = (!isOwn && purchasedListingIds.has(l.id)) ? '<span class="status-badge status-purchased">PURCHASED</span>' : "";
   var catBadge = '<span class="listing-cat-badge">' + escapeHtml(formatCategoryLabel(l.category)) + '</span>';
   var mediaArr = Array.isArray(l.media) ? l.media : [];
   var mediaHtml = "";
@@ -445,6 +457,7 @@ function renderCard(l) {
       (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
       '<div class="listing-footer">' +
         '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
+        purchasedHtml +
         actions +
       '</div>' +
     '</div>' +
