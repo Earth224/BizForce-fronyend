@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Agent Proposals</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 40px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:28px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(34,211,238,.3);background:rgba(34,211,238,.08);color:#22d3ee;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+    .hero-title{margin:0 0 8px;font-size:clamp(1.8rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:.95rem;line-height:1.6}
+    .filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+    .filter-pill{padding:8px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(12,18,38,.6);color:#8892b8;font-size:.78rem;font-weight:700;letter-spacing:.04em;font-family:inherit;cursor:pointer;transition:all .2s}
+    .filter-pill:hover{border-color:rgba(34,211,238,.35);color:#e6edf3}
+    .filter-pill.active{border-color:rgba(34,211,238,.55);background:rgba(34,211,238,.1);color:#22d3ee;box-shadow:0 0 16px rgba(0,229,255,.14)}
+    .proposals-list{display:flex;flex-direction:column;gap:14px}
+    .proposal-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 22px}
+    .proposal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .proposal-title{font-size:1rem;font-weight:800;color:#f4f7ff;line-height:1.4;min-width:0}
+    .proposal-labels{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .proposal-label{padding:4px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#8892b8;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+    .proposal-reasoning{margin:0 0 14px;color:#e6edf3;font-size:.88rem;line-height:1.6;word-break:break-word}
+    .proposal-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+    .proposal-cost{font-size:.82rem;font-weight:700;color:#f4f7ff}
+    .proposal-date{font-size:.72rem;color:#4a5280;margin-left:auto}
+    .status-badge{flex-shrink:0;padding:5px 12px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .badge-pending{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.32);color:#fbbf24}
+    .badge-approved{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.32);color:#22d3ee}
+    .badge-rejected{background:rgba(136,146,184,.1);border:1px solid rgba(136,146,184,.28);color:#8892b8}
+    .badge-executing{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.32);color:#fbbf24}
+    .badge-executed{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.32);color:#34d399}
+    .badge-failed{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.32);color:#f87171}
+    .exec-block{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+    .exec-block.exec-error{border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.08);color:#f87171}
+    .proposal-actions{display:flex;gap:10px;margin-top:14px}
+    .proposal-actions button{padding:10px 22px;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.03em;font-family:inherit;cursor:pointer;transition:all .2s}
+    .proposal-actions button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-approve{border:none;color:#fff;background:linear-gradient(135deg,#00e5ff,#7b2ff7)}
+    .btn-approve:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
+    .btn-reject{border:1px solid rgba(255,255,255,.14);background:transparent;color:#8892b8}
+    .btn-reject:hover:not(:disabled){border-color:rgba(248,113,113,.4);color:#f87171}
+    .card-message{min-height:0;font-size:.78rem;line-height:1.5}
+    .card-message.show{min-height:16px;margin-top:10px;color:#f87171}
+    .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
+    .empty-state.error{color:#f87171}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">APPROVAL GATE</div>
+    <h1 class="hero-title">Agent Proposals</h1>
+    <p class="hero-sub">Your agents propose actions here and nothing executes until you approve it.</p>
+  </div>
+
+  <div class="filter-bar">
+    <button type="button" class="filter-pill active" data-status="">All</button>
+    <button type="button" class="filter-pill" data-status="pending">Pending</button>
+    <button type="button" class="filter-pill" data-status="approved">Approved</button>
+    <button type="button" class="filter-pill" data-status="rejected">Rejected</button>
+    <button type="button" class="filter-pill" data-status="executing">Executing</button>
+    <button type="button" class="filter-pill" data-status="executed">Executed</button>
+    <button type="button" class="filter-pill" data-status="failed">Failed</button>
+  </div>
+
+  <div id="proposalsList" class="proposals-list"></div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var STATUS_BADGES = ["pending","approved","rejected","executing","executed","failed"];
+
+var currentFilter = "";
+var proposals = [];
+var loadError = null;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatTime(iso) {
+  try {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function formatResult(value) {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (e) {
+    return String(value);
+  }
+}
+
+async function loadProposals() {
+  var container = document.getElementById("proposalsList");
+  container.innerHTML = '<div class="empty-state">Loading proposals...</div>';
+
+  loadError = null;
+  try {
+    var url = API_URL + "/api/proposals";
+    if (currentFilter) {
+      url += "?status=" + encodeURIComponent(currentFilter);
+    }
+    var res = await fetch(url, {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Could not load proposals");
+    var d = await res.json();
+    proposals = d.proposals || [];
+  } catch (e) {
+    proposals = [];
+    loadError = e.message || "Could not load proposals";
+  }
+  renderProposals();
+}
+
+function renderProposals() {
+  var container = document.getElementById("proposalsList");
+
+  if (loadError) {
+    container.innerHTML = '<div class="empty-state error">' + escapeHtml(loadError) + '</div>';
+    return;
+  }
+
+  if (!proposals.length) {
+    container.innerHTML = '<div class="empty-state">No proposals matching this filter.</div>';
+    return;
+  }
+
+  container.innerHTML = proposals.map(function (p) {
+    // Only a known status becomes a badge class, so the value from the API can
+    // never inject a class name of its own.
+    var badgeKey = STATUS_BADGES.indexOf(p.status) !== -1 ? p.status : "rejected";
+
+    var reasoning = p.reasoning
+      ? '<p class="proposal-reasoning">' + escapeHtml(p.reasoning) + '</p>'
+      : '';
+
+    var cost = Number(p.cost_amount);
+    var costHtml = (isFinite(cost) && cost > 0)
+      ? '<span class="proposal-cost">' + escapeHtml(cost.toFixed(2)) + ' ' + escapeHtml(p.cost_currency || "USD") + '</span>'
+      : '';
+
+    // An execution_error supersedes the result: a failed run has nothing
+    // meaningful in execution_result, and the error is what needs reading.
+    var execHtml = '';
+    if (p.execution_error) {
+      execHtml = '<pre class="exec-block exec-error">' + escapeHtml(p.execution_error) + '</pre>';
+    } else if (p.execution_result !== null && p.execution_result !== undefined) {
+      execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
+    }
+
+    // Only a pending proposal can be decided; every other status is terminal or
+    // already in flight, so those cards carry no buttons at all.
+    var actions = p.status === "pending"
+      ? '<div class="proposal-actions">' +
+          '<button type="button" class="btn-approve" onclick="decideProposal(this,\'approve\')">Approve</button>' +
+          '<button type="button" class="btn-reject" onclick="decideProposal(this,\'reject\')">Reject</button>' +
+        '</div>'
+      : '';
+
+    return '<div class="proposal-card" data-id="' + escapeHtml(p.id) + '">' +
+      '<div class="proposal-head">' +
+        '<div class="proposal-title">' + escapeHtml(p.title) + '</div>' +
+        '<span class="status-badge badge-' + badgeKey + '">' + escapeHtml(p.status) + '</span>' +
+      '</div>' +
+      execHtml +
+      '<div class="proposal-labels">' +
+        '<span class="proposal-label">' + escapeHtml(p.agent_type) + '</span>' +
+        '<span class="proposal-label">' + escapeHtml(p.action_type) + '</span>' +
+      '</div>' +
+      reasoning +
+      '<div class="proposal-meta">' +
+        costHtml +
+        '<span class="proposal-date">' + escapeHtml(formatTime(p.created_at)) + '</span>' +
+      '</div>' +
+      actions +
+      '<div class="card-message"></div>' +
+    '</div>';
+  }).join("");
+}
+
+async function decideProposal(btn, action) {
+  var card = btn.closest(".proposal-card");
+  if (!card) return;
+
+  var id = card.getAttribute("data-id");
+  var buttons = card.querySelectorAll(".proposal-actions button");
+  var message = card.querySelector(".card-message");
+  var label = btn.textContent;
+
+  // Disable both buttons before the request goes out, so a second click during
+  // the round trip cannot fire the action twice.
+  Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
+  btn.textContent = action === "approve" ? "Approving..." : "Rejecting...";
+  message.textContent = "";
+  message.className = "card-message";
+
+  try {
+    var res = await fetch(API_URL + "/api/proposals/" + encodeURIComponent(id) + "/" + action, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (res.status === 409) {
+      message.textContent = "This proposal is no longer pending.";
+      message.className = "card-message show";
+      await loadProposals();
+      return;
+    }
+
+    if (!res.ok) {
+      var e = await res.json().catch(function () { return {}; });
+      throw new Error(e.error || "Could not " + action + " this proposal");
+    }
+
+    await loadProposals();
+  } catch (e) {
+    message.textContent = e.message || "Could not " + action + " this proposal";
+    message.className = "card-message show";
+    Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
+    btn.textContent = label;
+  }
+}
+
+Array.prototype.forEach.call(document.querySelectorAll(".filter-pill"), function (btn) {
+  btn.addEventListener("click", function () {
+    currentFilter = btn.getAttribute("data-status") || "";
+    Array.prototype.forEach.call(document.querySelectorAll(".filter-pill"), function (other) {
+      other.className = other === btn ? "filter-pill active" : "filter-pill";
+    });
+    loadProposals();
+  });
+});
+
+loadProposals();
+</script>
+</body>
+</html>
