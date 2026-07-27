@@ -95,6 +95,10 @@ var STATUS_BADGES = ["pending","approved","rejected","executing","executed","fai
 var currentFilter = "";
 var proposals = [];
 var loadError = null;
+// Per-card messages, keyed by proposal id. renderProposals() rewrites the whole
+// list, so a message written straight to the DOM would be destroyed by the
+// reload that follows it — it has to be re-applied after each render.
+var cardMessages = {};
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -208,6 +212,14 @@ function renderProposals() {
       '<div class="card-message"></div>' +
     '</div>';
   }).join("");
+
+  Array.prototype.forEach.call(container.querySelectorAll(".proposal-card"), function (card) {
+    var text = cardMessages[card.getAttribute("data-id")];
+    if (!text) return;
+    var el = card.querySelector(".card-message");
+    el.textContent = text;
+    el.className = "card-message show";
+  });
 }
 
 async function decideProposal(btn, action) {
@@ -217,12 +229,12 @@ async function decideProposal(btn, action) {
   var id = card.getAttribute("data-id");
   var buttons = card.querySelectorAll(".proposal-actions button");
   var message = card.querySelector(".card-message");
-  var label = btn.textContent;
 
   // Disable both buttons before the request goes out, so a second click during
   // the round trip cannot fire the action twice.
   Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
   btn.textContent = action === "approve" ? "Approving..." : "Rejecting...";
+  delete cardMessages[id];
   message.textContent = "";
   message.className = "card-message";
 
@@ -233,7 +245,8 @@ async function decideProposal(btn, action) {
     });
 
     if (res.status === 409) {
-      message.textContent = "This proposal is no longer pending.";
+      cardMessages[id] = "This proposal is no longer pending.";
+      message.textContent = cardMessages[id];
       message.className = "card-message show";
       await loadProposals();
       return;
@@ -246,10 +259,13 @@ async function decideProposal(btn, action) {
 
     await loadProposals();
   } catch (e) {
-    message.textContent = e.message || "Could not " + action + " this proposal";
+    // The card is rebuilt from server state, which restores the buttons on its
+    // own — but it also discards this node, so the message is stashed by id and
+    // re-applied by renderProposals() after the reload.
+    cardMessages[id] = e.message || "Could not " + action + " this proposal";
+    message.textContent = cardMessages[id];
     message.className = "card-message show";
-    Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; });
-    btn.textContent = label;
+    await loadProposals();
   }
 }
 
