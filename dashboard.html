@@ -40116,6 +40116,28 @@ window.getExecutiveLaunchLockSummary = getExecutiveLaunchLockSummary;
 window.auditExecutiveLaunchLock = auditExecutiveLaunchLock;
 window.guardExecutiveLaunchBeforeFutureExecution = guardExecutiveLaunchBeforeFutureExecution;
 window.getExecutiveLaunchFinalAuditSummary = getExecutiveLaunchFinalAuditSummary;
+(function() {
+    var legacySendAgentMessage = sendAgentMessage;
+    var legacyBroadcastAgentMessage = broadcastAgentMessage;
+
+    window.sendAgentMessage = function(fromAgent, toAgent, third, fourth, fifth) {
+        if (arguments.length === 4 && typeof third === "string" &&
+            (fourth === null || typeof fourth === "object")) {
+            return sendAgentMessagingBusMessage(fromAgent, toAgent, third, fourth);
+        }
+
+        return legacySendAgentMessage(fromAgent, toAgent, third, fourth, fifth);
+    };
+
+    window.broadcastAgentMessage = function(fromAgent, second, third) {
+        if (arguments.length === 3 && typeof second === "string" &&
+            (third === null || typeof third === "object")) {
+            return broadcastAgentMessagingBusMessage(fromAgent, second, third);
+        }
+
+        return legacyBroadcastAgentMessage(fromAgent, second, third);
+    };
+})();
 
 }
 
@@ -91060,28 +91082,6 @@ window.applyLiveAutomationBusinessProfileToAgentInputs = applyLiveAutomationBusi
 window.refreshLiveAutomationAgentModuleStatus = refreshLiveAutomationAgentModuleStatus;
 window.bindLiveAutomationAgentModuleButtons = bindLiveAutomationAgentModuleButtons;
 window.getLiveAutomationAgentHandlers = getLiveAutomationAgentHandlers;
-(function() {
-    var legacySendAgentMessage = sendAgentMessage;
-    var legacyBroadcastAgentMessage = broadcastAgentMessage;
-
-    window.sendAgentMessage = function(fromAgent, toAgent, third, fourth, fifth) {
-        if (arguments.length === 4 && typeof third === "string" &&
-            (fourth === null || typeof fourth === "object")) {
-            return sendAgentMessagingBusMessage(fromAgent, toAgent, third, fourth);
-        }
-
-        return legacySendAgentMessage(fromAgent, toAgent, third, fourth, fifth);
-    };
-
-    window.broadcastAgentMessage = function(fromAgent, second, third) {
-        if (arguments.length === 3 && typeof second === "string" &&
-            (third === null || typeof third === "object")) {
-            return broadcastAgentMessagingBusMessage(fromAgent, second, third);
-        }
-
-        return legacyBroadcastAgentMessage(fromAgent, second, third);
-    };
-})();
 
 </script>
 <script src="./seo-forecast.js"></script>
