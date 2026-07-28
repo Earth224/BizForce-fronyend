@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content=""/>
+  <link rel="canonical" href=""/>
   <title>BizForce AI</title>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
@@ -51,6 +52,7 @@
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var CANONICAL_ORIGIN = "https://bizforceai.net";
 
 function decodeSegment(value) {
   try {
@@ -90,6 +92,21 @@ function setMetaDescription(text) {
     document.head.appendChild(tag);
   }
   tag.setAttribute("content", String(text == null ? "" : text));
+}
+
+// The backend resolves handles with ilike, so /blog/Earth-Rose and
+// /blog/earth-rose are the same page at two URLs and split their ranking.
+// The canonical always names the API's casing, never the visitor's, so every
+// spelling collapses to one. Left empty unless the API actually answered — an
+// invented canonical is worse than none.
+function setCanonical(path) {
+  var tag = document.querySelector('link[rel="canonical"]');
+  if (!tag) {
+    tag = document.createElement("link");
+    tag.setAttribute("rel", "canonical");
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("href", CANONICAL_ORIGIN + path);
 }
 
 // textContent throughout — nothing from the API is ever parsed as HTML on this
@@ -198,6 +215,12 @@ async function loadPosts() {
     var blogName = String(d.display_name || d.handle || handle);
 
     document.title = blogName + " — Blog";
+
+    // d.handle only, never the parsed `handle` — the whole point is to ignore
+    // how the visitor spelled it.
+    if (d.handle) {
+      setCanonical("/blog/" + encodeURIComponent(d.handle));
+    }
 
     if (!posts.length) {
       setMetaDescription("Posts from " + blogName + " on BizForce AI.");
