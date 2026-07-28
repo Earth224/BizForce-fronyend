@@ -255,10 +255,15 @@ function renderListingCard(item) {
   var priceHtml = (item.is_purchasable === false && item.price == null)
     ? ""
     : '<div class="sf-card-price">' + formatPrice(item.price, item.currency) + '</div>';
+  // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
+  var listingRef = item.slug || item.id;
+  var nameHtml = listingRef
+    ? '<a href="/listing/' + esc(encodeURIComponent(listingRef)) + '" style="color:inherit;text-decoration:none">' + esc(item.name) + '</a>'
+    : esc(item.name);
   return '<div class="sf-card">' +
     '<div class="sf-card-img-wrap">' + img + '</div>' +
     '<div class="sf-card-body">' +
-      '<div class="sf-card-top-row"><h3 class="sf-card-name">' + esc(item.name) + '</h3>' + categoryTag + '</div>' +
+      '<div class="sf-card-top-row"><h3 class="sf-card-name">' + nameHtml + '</h3>' + categoryTag + '</div>' +
       '<p class="sf-card-desc">' + esc(item.description || "") + '</p>' +
       priceHtml +
       buyBtn +

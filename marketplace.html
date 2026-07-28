@@ -457,11 +457,16 @@ function renderCard(l) {
         ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + l.id + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
         '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
       '</div>';
+  // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
+  var listingRef = l.slug || l.id;
+  var titleHtml = listingRef
+    ? '<a href="/listing/' + escapeHtml(encodeURIComponent(listingRef)) + '" style="color:inherit;text-decoration:none">' + escapeHtml(l.title) + '</a>'
+    : escapeHtml(l.title);
   return '<div class="listing-card">' +
     mediaHtml +
     '<div class="listing-content">' +
       '<span class="listing-price">' + price + '</span>' +
-      '<h3 class="listing-title">' + l.title + '</h3>' +
+      '<h3 class="listing-title">' + titleHtml + '</h3>' +
       (desc ? '<p class="listing-desc">' + desc + '</p>' : '') +
       (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
       '<div class="listing-footer">' +
