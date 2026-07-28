@@ -426,9 +426,9 @@ function renderCard(l) {
   var price = formatListingPrice(l);
   var bfcPrice = l.price_bfc > 0 ? l.price_bfc.toLocaleString() + " BFC" : "Free";
   var desc = l.description ? l.description.slice(0, 180) + (l.description.length > 180 ? "…" : "") : "";
-  var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + t + '</span>'; }).join("");
+  var tags = (l.tags || []).slice(0, 4).map(function(t) { return '<span class="listing-tag">' + escapeHtml(t) + '</span>'; }).join("");
   var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
-  var statusHtml = isOwn ? '<span class="status-badge status-' + l.status + '">' + l.status + '</span>' : "";
+  var statusHtml = isOwn ? '<span class="status-badge status-' + escapeHtml(l.status) + '">' + escapeHtml(l.status) + '</span>' : "";
   var purchasedHtml = (!isOwn && purchasedListingIds.has(l.id)) ? '<span class="status-badge status-purchased">PURCHASED</span>' : "";
   var catBadge = '<span class="listing-cat-badge">' + escapeHtml(formatCategoryLabel(l.category)) + '</span>';
   var mediaArr = Array.isArray(l.media) ? l.media : [];
@@ -436,8 +436,8 @@ function renderCard(l) {
   if (mediaArr.length > 0) {
     var m0 = mediaArr[0];
     var inner = (typeof m0.type === "string" && m0.type.indexOf("video") === 0)
-      ? '<video src="' + m0.url + '" muted playsinline></video>'
-      : '<img src="' + m0.url + '" alt="" loading="lazy">';
+      ? '<video src="' + escapeHtml(m0.url) + '" muted playsinline></video>'
+      : '<img src="' + escapeHtml(m0.url) + '" alt="" loading="lazy">';
     var countBadge = mediaArr.length > 1 ? '<span class="listing-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
     mediaHtml = '<div class="listing-media">' + inner + catBadge + countBadge + '</div>';
   } else {
@@ -449,13 +449,13 @@ function renderCard(l) {
   }
   var actions = isOwn
     ? '<div class="listing-actions">' +
-        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
-        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
+        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + escapeHtml(l.id) + '\')">Edit</button>' +
+        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + escapeHtml(l.id) + '\')">Delete</button>' +
       '</div>'
     : '<div class="listing-actions">' +
-        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + price + '</button>' : '') +
-        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + l.id + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
-        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
+        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + escapeHtml(l.id) + '\')">Buy ' + price + '</button>' : '') +
+        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + escapeHtml(l.id) + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
+        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + escapeHtml(l.seller_id) + '\'">Message</button>' +
       '</div>';
   // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
   var listingRef = l.slug || l.id;
@@ -467,7 +467,7 @@ function renderCard(l) {
     '<div class="listing-content">' +
       '<span class="listing-price">' + price + '</span>' +
       '<h3 class="listing-title">' + titleHtml + '</h3>' +
-      (desc ? '<p class="listing-desc">' + desc + '</p>' : '') +
+      (desc ? '<p class="listing-desc">' + escapeHtml(desc) + '</p>' : '') +
       (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
       '<div class="listing-footer">' +
         '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
@@ -546,8 +546,8 @@ function renderMediaPreview() {
   var container = document.getElementById("mediaPreview");
   var html = listingMedia.map(function(item, index) {
     var thumb = item.type.indexOf("image") === 0
-      ? '<img src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px">'
-      : '<video src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
+      ? '<img src="' + escapeHtml(item.url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px">'
+      : '<video src="' + escapeHtml(item.url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
     return '<div style="position:relative">' +
       thumb +
       '<button type="button" onclick="removeMediaItem(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +

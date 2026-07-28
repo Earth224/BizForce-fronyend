@@ -253,13 +253,13 @@ function renderCard(l) {
   }
   var actions = isOwn
     ? '<div class="listing-actions">' +
-        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + l.id + '\')">Edit</button>' +
-        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + l.id + '\')">Delete</button>' +
+        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + escapeHtml(l.id) + '\')">Edit</button>' +
+        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + escapeHtml(l.id) + '\')">Delete</button>' +
       '</div>'
     : '<div class="listing-actions">' +
-        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + l.id + '\')">Buy ' + escapeHtml(price) + '</button>' : '') +
-        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + l.id + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
-        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + l.seller_id + '\'">Message</button>' +
+        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + escapeHtml(l.id) + '\')">Buy ' + escapeHtml(price) + '</button>' : '') +
+        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + escapeHtml(l.id) + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
+        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + escapeHtml(l.seller_id) + '\'">Message</button>' +
       '</div>';
   // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
   var listingRef = l.slug || l.id;
