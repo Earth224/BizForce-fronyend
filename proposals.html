@@ -53,6 +53,19 @@
     .badge-failed{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.32);color:#f87171}
     .exec-block{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
     .exec-block.exec-error{border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.08);color:#f87171}
+    .payload-fields{margin:0 0 12px;font-size:.78rem;line-height:1.8;color:#8892b8}
+    .payload-fields>div{margin-bottom:4px}
+    .pf-label{display:inline-block;min-width:150px;color:#4a5280;text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:700}
+    .pf-value{color:#e6edf3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;word-break:break-word}
+    .pf-count{color:#4a5280;font-size:.72rem}
+    .payload-fields ul{margin:4px 0 0 150px;padding-left:18px}
+    .payload-fields li{color:#e6edf3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;word-break:break-word;margin-bottom:2px}
+    .payload-toggle{margin:0 0 12px}
+    .payload-toggle summary{cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:4px 0;color:#22d3ee;font-size:.78rem;font-weight:700;letter-spacing:.03em;list-style:none;user-select:none}
+    .payload-toggle summary::-webkit-details-marker{display:none}
+    .payload-toggle summary::before{content:"\25B8";display:inline-block;transition:transform .2s}
+    .payload-toggle[open] summary::before{transform:rotate(90deg)}
+    .payload-toggle summary:hover{color:#67e8f9}
     .proposal-actions{display:flex;gap:10px;margin-top:14px}
     .proposal-actions button{padding:10px 22px;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.03em;font-family:inherit;cursor:pointer;transition:all .2s}
     .proposal-actions button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
@@ -199,6 +212,50 @@ function renderProposals() {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
 
+    // Payload rendering — a reviewer has to see what they are approving.
+    // SECURITY: payload.body is model-written HTML. It is ALWAYS escaped and
+    // shown as literal source inside a <pre>, exactly as execution_result is
+    // handled above. It is never assigned via innerHTML anywhere.
+    var payloadHtml = '';
+    if (p.payload && typeof p.payload === "object") {
+      var fieldsHtml = '';
+      var collapsibleText;
+
+      if (p.action_type === "publish_blog_post") {
+        var slug = String(p.payload.slug == null ? "" : p.payload.slug);
+        var meta = String(p.payload.meta_description == null ? "" : p.payload.meta_description);
+        var postBody = String(p.payload.body == null ? "" : p.payload.body);
+        var links = Array.isArray(p.payload.internal_links) ? p.payload.internal_links : [];
+
+        // Literal count of the anchor-open string, so the reviewer can see how
+        // many links the post actually carries.
+        var anchorCount = postBody.split("<a href=").length - 1;
+
+        var linksHtml = links.length
+          ? '<ul>' + links.map(function (l) { return '<li>' + escapeHtml(l) + '</li>'; }).join('') + '</ul>'
+          : '<span class="pf-value">none</span>';
+
+        fieldsHtml =
+          '<div class="payload-fields">' +
+            '<div><span class="pf-label">slug</span><span class="pf-value">' + escapeHtml(slug || "(none)") + '</span></div>' +
+            '<div><span class="pf-label">meta description</span><span class="pf-value">' + escapeHtml(meta || "(none)") + '</span> <span class="pf-count">(' + meta.length + ' chars)</span></div>' +
+            '<div><span class="pf-label">anchor tags in body</span><span class="pf-value">' + anchorCount + '</span></div>' +
+            '<div><span class="pf-label">internal links</span>' + linksHtml + '</div>' +
+          '</div>';
+
+        collapsibleText = postBody;
+      } else {
+        collapsibleText = formatResult(p.payload);
+      }
+
+      payloadHtml =
+        fieldsHtml +
+        '<details class="payload-toggle">' +
+          '<summary>View payload</summary>' +
+          '<pre class="exec-block">' + escapeHtml(collapsibleText) + '</pre>' +
+        '</details>';
+    }
+
     // Only a pending proposal can be decided; every other status is terminal or
     // already in flight, so those cards carry no buttons at all.
     var actions = p.status === "pending"
@@ -219,6 +276,7 @@ function renderProposals() {
         '<span class="proposal-label">' + escapeHtml(p.action_type) + '</span>' +
       '</div>' +
       reasoning +
+      payloadHtml +
       '<div class="proposal-meta">' +
         costHtml +
         '<span class="proposal-date">' + escapeHtml(formatTime(p.created_at)) + '</span>' +
