@@ -34,7 +34,7 @@
 <body>
 <div class="page">
   <nav class="top-nav">
-    <a href="marketplace.html" class="back-link">
+    <a href="/marketplace.html" class="back-link">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back to marketplace
     </a>
@@ -133,9 +133,11 @@ async function loadListing() {
     // Buy goes to the seller's store — checkout does not happen on this page.
     var handle = (d && d.handle) || (d && d.seller_handle) ||
                  listing.seller_handle || listing.handle || "";
+    // Root-relative: this page is served at /listing/<id>, so a bare
+    // "seller.html" would resolve against /listing/ and 404.
     var buyHref = handle
-      ? "seller.html?u=" + encodeURIComponent(handle)
-      : "marketplace.html";
+      ? "/seller.html?u=" + encodeURIComponent(handle)
+      : "/marketplace.html";
 
     var categoryHtml = listing.category
       ? '<div class="listing-category">' + escapeHtml(listing.category) + "</div>"
