@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content=""/>
+  <title>BizForce AI</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:32px 24px 64px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .listing-category{display:inline-block;padding:6px 14px;border-radius:999px;border:1px solid rgba(34,211,238,.3);background:rgba(34,211,238,.08);color:#22d3ee;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+    .listing-title{margin:0 0 18px;font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.03em;line-height:1.2;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .listing-description{margin:0 0 28px;font-size:17px;line-height:1.75;color:#e6edf3;white-space:pre-wrap;word-break:break-word}
+    .listing-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)}
+    .price-usd{font-size:1.7rem;font-weight:800;color:#f4f7ff;letter-spacing:-.02em}
+    .price-sep{color:#4a5280;font-size:1rem}
+    .price-bfc{font-size:1rem;font-weight:700;color:#22d3ee;letter-spacing:.02em}
+    .price-none{font-size:1rem;color:#8892b8}
+    .buy-btn{display:inline-block;padding:14px 32px;border:none;border-radius:12px;font-size:.92rem;font-weight:700;letter-spacing:.03em;font-family:inherit;color:#fff;background:linear-gradient(135deg,#00e5ff,#7b2ff7);cursor:pointer;transition:all .2s;text-decoration:none}
+    .buy-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
+    .state{text-align:center;padding:64px 20px;color:#8892b8;font-size:.95rem;line-height:1.7}
+    .state.error{color:#f87171}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="marketplace.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to marketplace
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div id="listingRoot">
+    <div class="state">Loading listing...</div>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+function decodeSegment(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch (e) {
+    // A malformed % sequence must not take the whole page down.
+    return value;
+  }
+}
+
+// Clean URL first: /listing/<id>. Falls back to ?id= so both link shapes work.
+var listingId = "";
+var pathParts = window.location.pathname.split("/").filter(Boolean);
+
+if (pathParts.length === 2 && pathParts[0].toLowerCase() === "listing") {
+  listingId = decodeSegment(pathParts[1]);
+} else {
+  var params = new URLSearchParams(window.location.search);
+  listingId = params.get("id") || "";
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatUsd(cents) {
+  var n = Number(cents);
+  if (!isFinite(n)) return null;
+  return "$" + (n / 100).toFixed(2) + " USD";
+}
+
+function showState(message, isError) {
+  document.getElementById("listingRoot").innerHTML =
+    '<div class="state' + (isError ? " error" : "") + '">' + escapeHtml(message) + "</div>";
+}
+
+async function loadListing() {
+  if (!listingId) {
+    showState("This listing link is incomplete.", true);
+    return;
+  }
+
+  try {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + encodeURIComponent(listingId));
+
+    if (res.status === 404) {
+      showState("That listing could not be found.", false);
+      return;
+    }
+
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return {}; });
+      throw new Error(err.error || "Could not load this listing");
+    }
+
+    var d = await res.json();
+    var listing = d && d.listing ? d.listing : d;
+
+    if (!listing || !listing.title) {
+      showState("That listing could not be found.", false);
+      return;
+    }
+
+    document.title = String(listing.title || "BizForce AI");
+
+    // Price: USD when present, BFC when positive, both when both.
+    var priceBits = [];
+    if (listing.price_usd !== null && listing.price_usd !== undefined) {
+      var usd = formatUsd(listing.price_usd);
+      if (usd) priceBits.push('<span class="price-usd">' + escapeHtml(usd) + "</span>");
+    }
+    if (Number(listing.price_bfc) > 0) {
+      priceBits.push('<span class="price-bfc">' + escapeHtml(String(Math.round(Number(listing.price_bfc)))) + " BFC</span>");
+    }
+    var priceHtml = priceBits.length
+      ? priceBits.join('<span class="price-sep">or</span>')
+      : '<span class="price-none">Price on request</span>';
+
+    // Buy goes to the seller's store — checkout does not happen on this page.
+    var handle = (d && d.handle) || (d && d.seller_handle) ||
+                 listing.seller_handle || listing.handle || "";
+    var buyHref = handle
+      ? "seller.html?u=" + encodeURIComponent(handle)
+      : "marketplace.html";
+
+    var categoryHtml = listing.category
+      ? '<div class="listing-category">' + escapeHtml(listing.category) + "</div>"
+      : "";
+
+    document.getElementById("listingRoot").innerHTML =
+      categoryHtml +
+      '<h1 class="listing-title">' + escapeHtml(listing.title) + "</h1>" +
+      '<p class="listing-description">' + escapeHtml(listing.description || "") + "</p>" +
+      '<div class="listing-price">' + priceHtml + "</div>" +
+      '<a class="buy-btn" href="' + escapeHtml(buyHref) + '">Buy</a>';
+  } catch (e) {
+    showState(e.message || "Could not load this listing", true);
+  }
+}
+
+loadListing();
+</script>
+</body>
+</html>
