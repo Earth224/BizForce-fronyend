@@ -25,7 +25,9 @@
     .btn-generate{padding:10px 22px;border:none;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.03em;font-family:inherit;color:#fff;background:linear-gradient(135deg,#00e5ff,#7b2ff7);cursor:pointer;transition:all .2s}
     .btn-generate:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
     .btn-generate:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-generate + .btn-generate{margin-left:10px}
     .generate-status{min-height:0;text-align:right;font-size:.78rem;line-height:1.5;color:#8892b8}
+    .generate-status.success{color:#34d399}
     .generate-status.show{min-height:16px;margin-bottom:14px}
     .generate-status.error{color:#f87171}
     .filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
@@ -82,6 +84,7 @@
 
   <div class="generate-bar">
     <button type="button" id="generateBtn" class="btn-generate">Generate</button>
+    <button type="button" id="generatePostBtn" class="btn-generate">Generate Blog Post</button>
   </div>
   <div id="generateStatus" class="generate-status"></div>
 
@@ -328,7 +331,64 @@ async function generateProposals() {
   }
 }
 
+async function generateBlogPost() {
+  var btn = document.getElementById("generatePostBtn");
+  var status = document.getElementById("generateStatus");
+  var label = btn.textContent;
+
+  // The SEO writer runs Sonnet over a long-form article server-side. It
+  // normally takes 30-90s and can take longer, so the button carries the wait
+  // time and the request is given a full 300s before it is abandoned.
+  btn.disabled = true;
+  btn.textContent = "Writing... up to 2 min";
+  status.textContent = "";
+  status.className = "generate-status";
+
+  var controller = new AbortController();
+  var abortTimer = setTimeout(function () { controller.abort(); }, 300000);
+
+  try {
+    var res = await fetch(API_URL + "/api/agents/seo/generate-post", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({}),
+      signal: controller.signal
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    if (!res.ok) {
+      throw new Error(d.error || "Could not generate a blog post");
+    }
+
+    var postTitle = (d.proposal && d.proposal.payload && d.proposal.payload.title) || "";
+
+    // Reload first, then write the message. #generateStatus lives outside
+    // #proposalsList so the re-render cannot destroy it — the same reason
+    // cardMessages exists for messages that sit inside the list.
+    await loadProposals();
+
+    status.textContent = postTitle
+      ? 'Draft ready: "' + postTitle + '" — review it in the queue below.'
+      : "Draft ready — review it in the queue below.";
+    status.className = "generate-status show success";
+  } catch (e) {
+    status.textContent = (e && e.name === "AbortError")
+      ? "The SEO Agent did not respond within 5 minutes. Nothing was created."
+      : (e.message || "Could not generate a blog post");
+    status.className = "generate-status show error";
+  } finally {
+    clearTimeout(abortTimer);
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
 document.getElementById("generateBtn").addEventListener("click", generateProposals);
+document.getElementById("generatePostBtn").addEventListener("click", generateBlogPost);
 
 Array.prototype.forEach.call(document.querySelectorAll(".filter-pill"), function (btn) {
   btn.addEventListener("click", function () {
