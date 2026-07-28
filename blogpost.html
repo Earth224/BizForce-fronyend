@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content=""/>
+  <title>BizForce AI</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 24px 64px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .post-title{margin:0 0 12px;font-size:clamp(1.9rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.2;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .post-meta{margin:0 0 32px;color:#8892b8;font-size:.85rem;letter-spacing:.02em}
+    .post-meta .dot{margin:0 8px;opacity:.6}
+    .post-body{font-size:18px;line-height:1.8;color:#e6edf3;word-break:break-word}
+    .post-body h2{margin:44px 0 14px;font-size:1.45rem;font-weight:800;color:#f4f7ff;line-height:1.3;letter-spacing:-.01em}
+    .post-body h3{margin:32px 0 10px;font-size:1.12rem;font-weight:700;color:#f4f7ff;line-height:1.4}
+    .post-body p{margin:0 0 20px}
+    .post-body ul{margin:0 0 20px;padding-left:24px}
+    .post-body li{margin:0 0 10px}
+    .post-body strong{color:#f4f7ff;font-weight:700}
+    .post-body a{color:#22d3ee;text-decoration:none;border-bottom:1px solid rgba(34,211,238,.35);transition:border-color .2s}
+    .post-body a:hover{border-bottom-color:#22d3ee}
+    .post-body h2:first-child,.post-body h3:first-child{margin-top:0}
+    .state{text-align:center;padding:64px 20px;color:#8892b8;font-size:.95rem;line-height:1.7}
+    .state.error{color:#f87171}
+    @media(max-width:640px){
+      .post-body{font-size:17px}
+      .post-body h2{margin-top:36px}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a id="backLink" href="seller.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to store
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div id="postRoot">
+    <div class="state">Loading post...</div>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+function decodeSegment(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch (e) {
+    // A malformed % sequence must not take the whole page down.
+    return value;
+  }
+}
+
+// Clean URL first: /blog/<handle>/<slug>. Anything else falls back to the
+// ?u=&p= query form, so both link shapes keep working.
+var handle = "";
+var slug = "";
+var pathParts = window.location.pathname.split("/").filter(Boolean);
+
+if (pathParts.length === 3 && pathParts[0].toLowerCase() === "blog") {
+  handle = decodeSegment(pathParts[1]);
+  slug = decodeSegment(pathParts[2]);
+} else {
+  var params = new URLSearchParams(window.location.search);
+  handle = params.get("u") || "";
+  slug = params.get("p") || "";
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function setMetaDescription(text) {
+  var tag = document.querySelector('meta[name="description"]');
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("name", "description");
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", String(text == null ? "" : text));
+}
+
+function showState(message, isError) {
+  document.getElementById("postRoot").innerHTML =
+    '<div class="state' + (isError ? " error" : "") + '">' + escapeHtml(message) + "</div>";
+}
+
+if (handle) {
+  document.getElementById("backLink").setAttribute("href", "seller.html?u=" + encodeURIComponent(handle));
+}
+
+async function loadPost() {
+  if (!handle || !slug) {
+    showState("This post link is incomplete.", true);
+    return;
+  }
+
+  try {
+    var res = await fetch(
+      API_URL + "/api/blog/" + encodeURIComponent(handle) + "/" + encodeURIComponent(slug)
+    );
+
+    if (res.status === 404) {
+      showState("That post could not be found.", false);
+      return;
+    }
+
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return {}; });
+      throw new Error(err.error || "Could not load this post");
+    }
+
+    var d = await res.json();
+    var post = d.post || {};
+
+    document.title = String(post.title || "BizForce AI");
+    setMetaDescription(post.meta_description || "");
+
+    var metaBits = [];
+    var when = formatDate(post.published_at);
+    if (when) metaBits.push(escapeHtml(when));
+    if (d.handle) metaBits.push("@" + escapeHtml(d.handle));
+
+    // The title, date and handle are escaped above. The body is trusted
+    // content — it is authored through the proposal approval gate and stored
+    // in content_library — so it is inserted as HTML on purpose.
+    var article = document.createElement("div");
+    article.innerHTML =
+      '<h1 class="post-title">' + escapeHtml(post.title) + "</h1>" +
+      '<p class="post-meta">' + metaBits.join('<span class="dot">·</span>') + "</p>" +
+      '<div class="post-body"></div>';
+    article.querySelector(".post-body").innerHTML = String(post.body == null ? "" : post.body);
+
+    var root = document.getElementById("postRoot");
+    root.innerHTML = "";
+    root.appendChild(article);
+  } catch (e) {
+    showState(e.message || "Could not load this post", true);
+  }
+}
+
+loadPost();
+</script>
+</body>
+</html>
