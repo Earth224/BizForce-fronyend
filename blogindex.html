@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content=""/>
+  <title>BizForce AI</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 24px 64px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .post-title{margin:0 0 12px;font-size:clamp(1.9rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.2;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .post-meta{margin:0 0 32px;color:#8892b8;font-size:.85rem;letter-spacing:.02em}
+    .post-list{display:flex;flex-direction:column;gap:16px}
+    .post-card{display:block;padding:22px 24px;border-radius:16px;border:1px solid rgba(0,229,255,.18);background:rgba(12,18,38,.6);text-decoration:none;color:inherit;transition:all .25s;backdrop-filter:blur(12px)}
+    .post-card:hover{border-color:rgba(0,229,255,.5);box-shadow:0 0 24px rgba(0,229,255,.14);transform:translateY(-2px)}
+    .card-title{margin:0 0 8px;font-size:1.2rem;font-weight:700;color:#f4f7ff;line-height:1.35;letter-spacing:-.01em}
+    .post-card:hover .card-title{color:#22d3ee}
+    .card-desc{margin:0 0 12px;font-size:.95rem;line-height:1.65;color:#c3ccdf}
+    .card-date{margin:0;font-size:.8rem;color:#8892b8;letter-spacing:.02em}
+    .state{text-align:center;padding:64px 20px;color:#8892b8;font-size:.95rem;line-height:1.7}
+    .state.error{color:#f87171}
+    @media(max-width:640px){
+      .post-card{padding:18px 18px}
+      .card-title{font-size:1.1rem}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a id="backLink" href="/marketplace.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to store
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div id="indexRoot">
+    <div class="state">Loading posts...</div>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+function decodeSegment(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch (e) {
+    // A malformed % sequence must not take the whole page down.
+    return value;
+  }
+}
+
+// Clean URL first: /blog/<handle>. Anything else falls back to the ?u= query
+// form, so both link shapes keep working.
+var handle = "";
+var pathParts = window.location.pathname.split("/").filter(Boolean);
+
+if (pathParts.length === 2 && pathParts[0].toLowerCase() === "blog") {
+  handle = decodeSegment(pathParts[1]);
+} else {
+  var params = new URLSearchParams(window.location.search);
+  handle = params.get("u") || "";
+}
+
+function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  } catch (e) {
+    return "";
+  }
+}
+
+function setMetaDescription(text) {
+  var tag = document.querySelector('meta[name="description"]');
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("name", "description");
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", String(text == null ? "" : text));
+}
+
+// textContent throughout — nothing from the API is ever parsed as HTML on this
+// page, unlike the post body on blogpost.html.
+function showState(message, isError) {
+  var box = document.createElement("div");
+  box.className = "state" + (isError ? " error" : "");
+  box.textContent = String(message == null ? "" : message);
+
+  var root = document.getElementById("indexRoot");
+  root.textContent = "";
+  root.appendChild(box);
+}
+
+// Root-relative: this page is served at /blog/<handle>, so a bare
+// "seller.html" would resolve against /blog/ and 404.
+if (handle) {
+  document.getElementById("backLink").setAttribute("href", "/seller.html?u=" + encodeURIComponent(handle));
+}
+
+function buildCard(post, linkHandle) {
+  var card = document.createElement("a");
+  card.className = "post-card";
+  // Leading slash: the crawlable clean URL, matching the /blog/:handle/:slug
+  // rewrite. A relative href would resolve against /blog/ and break.
+  card.setAttribute(
+    "href",
+    "/blog/" + encodeURIComponent(linkHandle) + "/" + encodeURIComponent(String(post.slug || ""))
+  );
+
+  var title = document.createElement("h2");
+  title.className = "card-title";
+  title.textContent = String(post.title == null ? "" : post.title);
+  card.appendChild(title);
+
+  var desc = String(post.meta_description == null ? "" : post.meta_description);
+  if (desc) {
+    var descEl = document.createElement("p");
+    descEl.className = "card-desc";
+    descEl.textContent = desc;
+    card.appendChild(descEl);
+  }
+
+  var when = formatDate(post.published_at);
+  if (when) {
+    var dateEl = document.createElement("p");
+    dateEl.className = "card-date";
+    dateEl.textContent = when;
+    card.appendChild(dateEl);
+  }
+
+  return card;
+}
+
+function render(blogName, linkHandle, posts) {
+  var head = document.createElement("div");
+
+  var h1 = document.createElement("h1");
+  h1.className = "post-title";
+  h1.textContent = blogName + " — Blog";
+  head.appendChild(h1);
+
+  var sub = document.createElement("p");
+  sub.className = "post-meta";
+  sub.textContent = posts.length === 1 ? "1 post" : posts.length + " posts";
+  head.appendChild(sub);
+
+  var list = document.createElement("div");
+  list.className = "post-list";
+  posts.forEach(function (post) {
+    if (!post || !post.slug) return;
+    list.appendChild(buildCard(post, linkHandle));
+  });
+
+  var root = document.getElementById("indexRoot");
+  root.textContent = "";
+  root.appendChild(head);
+  root.appendChild(list);
+}
+
+async function loadPosts() {
+  // No handle is not an error worth shouting about, and it is never a reason
+  // to redirect — this page is public and crawlable, so it just says so.
+  if (!handle) {
+    showState("There are no posts yet.", false);
+    return;
+  }
+
+  try {
+    // Public route: no Authorization header, no token, no auth gate.
+    var res = await fetch(API_URL + "/api/blog/" + encodeURIComponent(handle));
+
+    if (res.status === 404) {
+      showState("There are no posts yet.", false);
+      return;
+    }
+
+    if (!res.ok) {
+      var err = await res.json().catch(function () { return {}; });
+      throw new Error(err.error || "Could not load these posts");
+    }
+
+    var d = await res.json();
+    var posts = Array.isArray(d.posts) ? d.posts : [];
+    var linkHandle = d.handle || handle;
+    var blogName = String(d.display_name || d.handle || handle);
+
+    document.title = blogName + " — Blog";
+
+    if (!posts.length) {
+      setMetaDescription("Posts from " + blogName + " on BizForce AI.");
+      showState("There are no posts yet.", false);
+      return;
+    }
+
+    setMetaDescription(
+      "Articles and answers from " + blogName + " on BizForce AI — guides to the questions customers ask most."
+    );
+
+    render(blogName, linkHandle, posts);
+  } catch (e) {
+    showState(e.message || "Could not load these posts", true);
+  }
+}
+
+loadPosts();
+</script>
+</body>
+</html>
