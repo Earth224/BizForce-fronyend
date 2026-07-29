@@ -249,7 +249,7 @@ function renderListingCard(item) {
     : '<div class="sf-card-img-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>No image</span></div>';
   var categoryTag = item.category ? '<span class="sf-card-category">' + esc(item.category) + '</span>' : "";
   var buyBtn = (item.is_purchasable === true && Number(item.price) > 0)
-    ? '<button type="button" class="sf-buy-btn" onclick="startCheckout(\'' + esc(item.id) + '\')">Buy</button>' +
+    ? '<button type="button" class="sf-buy-btn" data-listing-id="' + esc(item.id) + '">Buy</button>' +
       '<div class="sf-buy-msg" id="buyMsg-' + esc(item.id) + '"></div>'
     : "";
   var priceHtml = (item.is_purchasable === false && item.price == null)
@@ -392,6 +392,17 @@ function renderStorefront(data) {
   document.getElementById("loadingState").style.display = "none";
   document.getElementById("pageRoot").style.display = "block";
 }
+
+// Delegated listeners, bound once to the two containers renderListingCard
+// feeds. Both exist in the static markup and persist across the innerHTML
+// assignments in renderStorefront, so binding here is safe.
+["servicesGrid", "productsGrid"].forEach(function(containerId) {
+  document.getElementById(containerId).addEventListener("click", function(e) {
+    var btn = e.target.closest("button.sf-buy-btn");
+    if (!btn || !this.contains(btn)) return;
+    startCheckout(btn.getAttribute("data-listing-id"));
+  });
+});
 
 loadSeller();
 </script>

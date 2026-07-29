@@ -255,15 +255,18 @@ function renderCard(l) {
       '<span>No photo</span>' +
     '</div>';
   }
+  // Values ride in data- attributes and are read back in the delegated
+  // listener on #listingsGrid, so no value is ever compiled as JavaScript.
+  var idAttr = ' data-listing-id="' + escapeHtml(l.id) + '"';
   var actions = isOwn
     ? '<div class="listing-actions">' +
-        '<button class="btn-sm btn-edit" onclick="openEditModal(\'' + escapeHtml(l.id) + '\')">Edit</button>' +
-        '<button class="btn-sm btn-delete" onclick="deleteListing(\'' + escapeHtml(l.id) + '\')">Delete</button>' +
+        '<button type="button" class="btn-sm btn-edit"' + idAttr + '>Edit</button>' +
+        '<button type="button" class="btn-sm btn-delete"' + idAttr + '>Delete</button>' +
       '</div>'
     : '<div class="listing-actions">' +
-        (l.price_bfc > 0 ? '<button class="btn-sm btn-buy" onclick="buyListing(\'' + escapeHtml(l.id) + '\')">Buy ' + escapeHtml(price) + '</button>' : '') +
-        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button class="btn-sm btn-buy" onclick="event.stopPropagation();buyWithUsd(\'' + escapeHtml(l.id) + '\')">Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
-        '<button class="btn-sm btn-message" onclick="window.location.href=\'messages.html?to=' + escapeHtml(l.seller_id) + '\'">Message</button>' +
+        (l.price_bfc > 0 ? '<button type="button" class="btn-sm btn-buy"' + idAttr + '>Buy ' + escapeHtml(price) + '</button>' : '') +
+        ((l.price_usd !== null && l.price_usd !== undefined && l.price_usd > 0) ? '<button type="button" class="btn-sm btn-buy btn-buy-usd"' + idAttr + '>Buy with USD ($' + (l.price_usd / 100).toFixed(2) + ')</button>' : '') +
+        '<button type="button" class="btn-sm btn-message" data-seller-id="' + escapeHtml(l.seller_id) + '">Message</button>' +
       '</div>';
   // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
   var listingRef = l.slug || l.id;
@@ -327,7 +330,7 @@ function renderMediaPreview() {
       : '<video src="' + escapeHtml(item.url) + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
     return '<div style="position:relative">' +
       thumb +
-      '<button type="button" onclick="removeMediaItem(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +
+      '<button type="button" class="media-remove-btn" data-media-index="' + index + '" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +
     '</div>';
   }).join("");
   if (listingMediaUploading > 0) {
@@ -492,6 +495,34 @@ document.getElementById("fMedia").addEventListener("change", function() {
   files.forEach(function(file) {
     uploadListingMedia(file);
   });
+});
+
+// Delegated listeners. These are bound once to containers that persist across
+// every re-render (renderGrid replaces only the container's innerHTML), so
+// they survive search input and the reload that follows a buy, delete or submit.
+document.getElementById("listingsGrid").addEventListener("click", function(e) {
+  var btn = e.target.closest("button[data-listing-id], button[data-seller-id]");
+  if (!btn || !this.contains(btn)) return;
+  var id = btn.getAttribute("data-listing-id");
+  if (btn.classList.contains("btn-edit")) { openEditModal(id); return; }
+  if (btn.classList.contains("btn-delete")) { deleteListing(id); return; }
+  if (btn.classList.contains("btn-buy-usd")) {
+    // Mirrors the stopPropagation the old inline handler had. This page has no
+    // document-level click listener, so it is a no-op here; kept for parity.
+    e.stopPropagation();
+    buyWithUsd(id);
+    return;
+  }
+  if (btn.classList.contains("btn-buy")) { buyListing(id); return; }
+  if (btn.classList.contains("btn-message")) {
+    window.location.href = "messages.html?to=" + btn.getAttribute("data-seller-id");
+  }
+});
+
+document.getElementById("mediaPreview").addEventListener("click", function(e) {
+  var btn = e.target.closest("button.media-remove-btn");
+  if (!btn || !this.contains(btn)) return;
+  removeMediaItem(Number(btn.getAttribute("data-media-index")));
 });
 
 loadListings();
