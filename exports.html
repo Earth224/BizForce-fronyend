@@ -30,7 +30,25 @@
     .card-badge{display:inline-block;margin:0 0 10px;padding:4px 10px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid transparent}
     .card-badge.is-published{color:#34d399;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)}
     .card-badge.is-draft{color:#22d3ee;border-color:rgba(0,229,255,.35);background:rgba(0,229,255,.1)}
+    /* The property badge. Purple is the page's third gradient colour, already in
+       the title and the background — a neutral third state, not a warning, which
+       is the same reason draft is cyan. The live variant borrows the published
+       green because it means what green already means here: this is live
+       somewhere. The site value is not uppercased; a hostname is not a label. */
+    .card-badges{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+    .card-badges .card-badge{margin:0}
+    .card-badge.is-external{color:#c084fc;border-color:rgba(168,85,247,.35);background:rgba(168,85,247,.12);text-transform:none;letter-spacing:.04em}
+    .card-badge.is-external-live{color:#34d399;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1);text-transform:none;letter-spacing:.04em}
     .card-note{margin:6px 0 0;font-size:.78rem;color:#8892b8;line-height:1.6}
+    .card-link{display:inline-block;margin:8px 0 0;font-size:.8rem;color:#22d3ee;text-decoration:none;word-break:break-all;line-height:1.5}
+    .card-link:hover{text-decoration:underline}
+    /* [hidden] alone loses to display:flex, so the form would sit open forever.
+       The attribute is still the state — this rule only makes it win. */
+    .mark-form{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .mark-form[hidden]{display:none}
+    .mark-input{flex:1 1 260px;min-width:0;font-family:inherit;font-size:.82rem;padding:9px 12px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:rgba(7,11,24,.7);color:#e6edf3}
+    .mark-input:focus{outline:none;border-color:rgba(0,229,255,.55);box-shadow:0 0 16px rgba(0,229,255,.16)}
+    .mark-input::placeholder{color:#5c6785}
     .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
     .action-btn{font-family:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:rgba(7,11,24,.7);color:#22d3ee;cursor:pointer;transition:all .25s}
     .action-btn:hover:not(:disabled){border-color:rgba(0,229,255,.55);box-shadow:0 0 16px rgba(0,229,255,.16)}
@@ -103,6 +121,44 @@ function statusLabel(status) {
   var s = asText(status).trim();
   if (!s) return "Unknown";
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// The same Authorization header and the same 401 rule loadPosts uses, in one
+// place so the two cannot drift. The 401 case is not exotic here: this page is
+// the kind that gets left open in a tab, so the token can easily be valid at
+// load and expired by the time someone clicks. That has to land on app.html the
+// way the list call does, not report "Unauthorized" into a card status line.
+//
+// The throw after the redirect is deliberate. replace() does not stop
+// execution, and without it the caller would carry on and try to render a card
+// from a response body that was never there.
+async function postJson(path, payload) {
+  var res = await fetch(API_URL + path, {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.status === 401) {
+    window.location.replace("app.html");
+    throw new Error("Your session has expired. Redirecting to sign in...");
+  }
+
+  var data = await res.json().catch(function () { return {}; });
+
+  if (!res.ok) {
+    // Shown exactly as sent. This route's 422s name the field and say what is
+    // wrong with it — that the URL must begin with http:// or https://, or that
+    // a post with no site has no external property to be published on — and
+    // every one of those sentences is worth more than any generic line this
+    // page could put in its place.
+    throw new Error(asText(data.error) || "That did not work (HTTP " + res.status + ").");
+  }
+
+  return data;
 }
 
 /* ---------------------------------------------------------------- transform */
@@ -249,16 +305,49 @@ function downloadMarkdown(text, slug) {
 
 /* ------------------------------------------------------------------ rendering */
 
-function buildRow(post) {
+// initialStatus carries a message into a freshly built card. It exists because
+// marking replaces the card wholesale from the row the server returned, and
+// without it the confirmation of the thing that just happened would be
+// destroyed by the re-render that the thing caused.
+function buildRow(post, initialStatus) {
   var card = document.createElement("div");
   card.className = "post-card";
 
   var isPublished = asText(post.status).trim() === "published";
 
+  // "External" is decided by site alone, which is how the backend decides it:
+  // the route refuses on a missing site and cares about nothing else. Keying
+  // this off status instead would be a second, quietly different definition of
+  // the same idea.
+  var site        = asText(post.site).trim();
+  var isExternal  = Boolean(site);
+  var externalUrl = asText(post.external_url).trim();
+  var isMarked    = isExternal && Boolean(externalUrl);
+
+  var badges = document.createElement("div");
+  badges.className = "card-badges";
+
   var badge = document.createElement("span");
   badge.className = "card-badge " + (isPublished ? "is-published" : "is-draft");
   badge.textContent = statusLabel(post.status);
-  card.appendChild(badge);
+  badges.appendChild(badge);
+
+  // The second badge is the whole distinction between the two kinds of draft.
+  // It carries the stored site value rather than a name this page knows: this
+  // page has no list of properties and should not grow one, and whatever the
+  // executor wrote is the only truth about where a post belongs.
+  //
+  // "Draft" and "Live on example.com" side by side is not a contradiction. It
+  // is the actual state — a draft HERE, by design, because this platform never
+  // serves these, and published THERE.
+  if (isExternal) {
+    var siteBadge = document.createElement("span");
+    siteBadge.className = "card-badge " + (isMarked ? "is-external-live" : "is-external");
+    siteBadge.textContent = (isMarked ? "Live on " : "For ") + site;
+    badges.appendChild(siteBadge);
+  }
+
+  card.appendChild(badges);
 
   var title = document.createElement("h2");
   title.className = "card-title";
@@ -279,11 +368,45 @@ function buildRow(post) {
     card.appendChild(dateEl);
   }
 
-  if (!isPublished) {
+  // The old single sentence was true of both kinds of draft and therefore said
+  // nothing useful about either. Each case now says what is actually true of it,
+  // and the external ones name their property instead of "the site it was
+  // written for" — the page knows which site it is.
+  if (!isPublished || isMarked) {
     var note = document.createElement("p");
     note.className = "card-note";
-    note.textContent = "Not shown on your public blog — export it to the site it was written for.";
+
+    if (isMarked) {
+      var markedOn = formatDate(post.external_published_at);
+      note.textContent =
+        "Published on " + site + (markedOn ? " — recorded " + markedOn : "") +
+        ". It stays a draft here because this platform does not serve it.";
+    } else if (isExternal) {
+      note.textContent =
+        "Written for " + site + ", not for your public blog. Export it there, then record the URL below — " +
+        "your other " + site + " posts can only link to this one once it has one.";
+    } else {
+      note.textContent = "Not shown on your public blog — export it to the site it was written for.";
+    }
+
     card.appendChild(note);
+  }
+
+  // Rendered as a link only when it passes the same http/https test the backend
+  // enforces. That is not the validation rule duplicated — the server is still
+  // the only thing that decides what may be stored. It is a guard on an href
+  // specifically, where the failure mode of a value in some other scheme is
+  // script execution rather than a bad link, and that is worth one condition.
+  if (isMarked && /^https?:\/\//i.test(externalUrl)) {
+    var link = document.createElement("a");
+    link.className = "card-link";
+    link.setAttribute("href", externalUrl);
+    link.setAttribute("target", "_blank");
+    // noopener denies the opened page a handle back on this one through
+    // window.opener, and this href is a string a person typed.
+    link.setAttribute("rel", "noopener noreferrer");
+    link.textContent = externalUrl;
+    card.appendChild(link);
   }
 
   var actions = document.createElement("div");
@@ -347,8 +470,159 @@ function buildRow(post) {
   });
   actions.appendChild(downloadBtn);
 
+  /* ------------------------------------------------ recording the external URL */
+
+  // An inline form rather than window.prompt: prompt cannot be styled, cannot
+  // be pre-filled usefully on every browser, and on a phone it is a modal
+  // interruption over a URL that has to be pasted. This one sits in the card
+  // that it is about.
+  var markForm = document.createElement("form");
+  markForm.className = "mark-form";
+  markForm.hidden = true;
+
+  var markInput = document.createElement("input");
+  markInput.className = "mark-input";
+  // Deliberately not type="url". That would add native validation on submit
+  // with its own idea of a valid URL — it accepts any scheme, so ftp://x passes
+  // the browser and then fails the server — and a second rule that disagrees
+  // with the server's is exactly what this page should not have. inputmode
+  // still gets the URL keyboard on a phone.
+  markInput.setAttribute("type", "text");
+  markInput.setAttribute("inputmode", "url");
+  markInput.setAttribute("autocomplete", "off");
+  markInput.setAttribute("spellcheck", "false");
+  markInput.setAttribute("aria-label", "The URL where this post went live");
+  markInput.setAttribute("placeholder", "https://" + (site || "example.com") + "/your-post");
+  markInput.value = externalUrl;
+  markForm.appendChild(markInput);
+
+  var saveBtn = document.createElement("button");
+  saveBtn.type = "submit";
+  saveBtn.className = "action-btn";
+  saveBtn.textContent = "Save URL";
+  markForm.appendChild(saveBtn);
+
+  var cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.className = "action-btn";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.addEventListener("click", function () {
+    markForm.hidden = true;
+    markInput.value = externalUrl;
+    setStatus("", null);
+  });
+  markForm.appendChild(cancelBtn);
+
+  // The same disable-everything-while-working discipline runAction uses, with
+  // its own wording — "Preparing the mark..." would be describing nothing that
+  // happens. Kept separate rather than folded into runAction so the export path
+  // is left exactly as it was found.
+  //
+  // Only the failure path re-enables. On success this card is replaced by one
+  // built from the row the server returned, so there are no buttons left to
+  // restore.
+  async function runMark(pendingMessage, handler) {
+    var buttons = card.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) buttons[i].disabled = true;
+    setStatus(pendingMessage, null);
+
+    try {
+      await handler();
+    } catch (e) {
+      setStatus(e.message || "Something went wrong.", "err");
+      var again = card.querySelectorAll("button");
+      for (var j = 0; j < again.length; j++) again[j].disabled = false;
+    }
+  }
+
+  // A string marks, an explicit null clears, and the two are the same field on
+  // the same route. null is not an empty string on either side of this: the
+  // backend reads whether the key is present, and JSON.stringify emits
+  // "external_url":null for it, which is what tells the two apart.
+  async function submitMark(value) {
+    var data = await postJson(
+      "/api/content-library/" + encodeURIComponent(asText(post.id)) + "/external-published",
+      { external_url: value }
+    );
+
+    var entry = data && data.entry;
+    if (!entry) throw new Error("The server did not return the updated post.");
+    return entry;
+  }
+
+  // No reload. The response carries the full row — the route selects * — so it
+  // has body, slug and everything the export buttons need, and rebuilding this
+  // one card from it is both cheaper and more honest than re-fetching a list
+  // whose new contents are already in hand.
+  function replaceCard(entry, message) {
+    var fresh = buildRow(entry, { message: message, kind: "ok" });
+    if (card.parentNode) card.parentNode.replaceChild(fresh, card);
+  }
+
+  markForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    var value = markInput.value.trim();
+
+    // Empty is a UI state, not a validation failure — the form was opened and
+    // nothing has been typed yet, and there is nothing to ask the server about.
+    // Every other shape goes over unexamined, on purpose: the route already
+    // decides what a valid URL is, and its 422 names the field and says why.
+    if (!value) {
+      setStatus("Enter the URL where the post went live.", "err");
+      markInput.focus();
+      return;
+    }
+
+    runMark("Recording where this went live...", async function () {
+      var entry = await submitMark(value);
+      var entrySite = asText(entry.site).trim() || site;
+      replaceCard(entry, "Recorded. Your other " + entrySite + " posts can link to this one now.");
+    });
+  });
+
+  // Only external posts get these. A post with no site has no external property
+  // to have been published on, which is the same thing the route says with a
+  // 422 — offering a button whose only outcome is that refusal would be worse
+  // than not offering it.
+  if (isExternal) {
+    var markBtn = document.createElement("button");
+    markBtn.type = "button";
+    markBtn.className = "action-btn";
+    // Re-marking is a first-class case, not an error to be recovered from:
+    // someone who pasted the wrong URL needs this button to say so.
+    markBtn.textContent = isMarked ? "Change URL" : "Mark as published";
+    markBtn.addEventListener("click", function () {
+      markForm.hidden = false;
+      setStatus("", null);
+      markInput.focus();
+      markInput.select();
+    });
+    actions.appendChild(markBtn);
+
+    if (isMarked) {
+      var clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.className = "action-btn";
+      clearBtn.textContent = "Clear";
+      clearBtn.addEventListener("click", function () {
+        runMark("Clearing...", async function () {
+          var entry = await submitMark(null);
+          replaceCard(entry, "Mark cleared. This post is no longer offered as a link target.");
+        });
+      });
+      actions.appendChild(clearBtn);
+    }
+  }
+
   card.appendChild(actions);
+  card.appendChild(markForm);
   card.appendChild(status);
+
+  if (initialStatus && initialStatus.message) {
+    setStatus(initialStatus.message, initialStatus.kind || null);
+  }
+
   return card;
 }
 
@@ -360,19 +634,29 @@ function render(blogName, posts) {
   h1.textContent = blogName + " — Export Posts";
   head.appendChild(h1);
 
-  // Counts both kinds. The old copy said "published posts" about everything it
-  // listed, which was true only while drafts were invisible to this page.
-  var publishedCount = 0;
+  // Three kinds now, not two. An external post stays status 'draft' forever by
+  // design, so counting on status alone filed every post already live on its own
+  // property under "unpublished" — the heading contradicting the card directly
+  // below it. The third clause is emitted only when it is non-zero, so anyone
+  // with no external posts reads the same sentence as before.
+  var publishedCount   = 0;
+  var externalCount    = 0;
+  var unpublishedCount = 0;
+
   posts.forEach(function (p) {
-    if (p && asText(p.status).trim() === "published") publishedCount++;
+    if (!p) return;
+    if (asText(p.status).trim() === "published") publishedCount++;
+    else if (asText(p.site).trim() && asText(p.external_url).trim()) externalCount++;
+    else unpublishedCount++;
   });
-  var unpublishedCount = posts.length - publishedCount;
 
   var sub = document.createElement("p");
   sub.className = "post-meta";
   sub.textContent =
     (posts.length === 1 ? "1 post" : posts.length + " posts") +
-    " — " + publishedCount + " published, " + unpublishedCount + " unpublished" +
+    " — " + publishedCount + " published" +
+    (externalCount ? ", " + externalCount + " live on their own property" : "") +
+    ", " + unpublishedCount + " unpublished" +
     ". Links are rewritten to " + CANONICAL_ORIGIN + " so they still work off-platform.";
   head.appendChild(sub);
 
