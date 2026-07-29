@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content=""/>
   <title>BizForce AI — Export Posts</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -24,6 +25,12 @@
     .post-card:hover{border-color:rgba(0,229,255,.5);box-shadow:0 0 24px rgba(0,229,255,.14)}
     .card-title{margin:0 0 8px;font-size:1.2rem;font-weight:700;color:#f4f7ff;line-height:1.35;letter-spacing:-.01em}
     .card-date{margin:0;font-size:.8rem;color:#8892b8;letter-spacing:.02em}
+    /* A draft is a normal state here, not a problem — it reads in the page's own
+       cyan, never in the amber or red used for warnings and errors. */
+    .card-badge{display:inline-block;margin:0 0 10px;padding:4px 10px;border-radius:999px;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid transparent}
+    .card-badge.is-published{color:#34d399;border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)}
+    .card-badge.is-draft{color:#22d3ee;border-color:rgba(0,229,255,.35);background:rgba(0,229,255,.1)}
+    .card-note{margin:6px 0 0;font-size:.78rem;color:#8892b8;line-height:1.6}
     .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
     .action-btn{font-family:inherit;font-size:.8rem;font-weight:600;padding:8px 14px;border-radius:10px;border:1px solid rgba(0,229,255,.25);background:rgba(7,11,24,.7);color:#22d3ee;cursor:pointer;transition:all .25s}
     .action-btn:hover:not(:disabled){border-color:rgba(0,229,255,.55);box-shadow:0 0 16px rgba(0,229,255,.16)}
@@ -58,10 +65,13 @@
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var CANONICAL_ORIGIN = "https://bizforceai.net";
 
-// This page is served at /exports.html, so there is no clean-URL form to fall
-// back from — the handle only ever arrives as ?u=.
-var params = new URLSearchParams(window.location.search);
-var handle = params.get("u") || "";
+// This page lists unpublished drafts, so it is authenticated and the token is
+// the only thing that decides whose posts load. ?u= is deliberately not read:
+// a handle in the URL would be a second source of truth that could disagree
+// with the token, and would quietly show your own posts under someone else's
+// name. The handle comes from /api/bfp/profile/me instead — same session, same
+// answer.
+var token = localStorage.getItem("bf_token");
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -89,8 +99,10 @@ function showState(message, isError) {
   root.appendChild(box);
 }
 
-if (handle) {
-  document.getElementById("backLink").setAttribute("href", "/seller.html?u=" + encodeURIComponent(handle));
+function statusLabel(status) {
+  var s = asText(status).trim();
+  if (!s) return "Unknown";
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /* ---------------------------------------------------------------- transform */
@@ -212,24 +224,6 @@ function buildMarkdownExport(post) {
   return headerBlock(post) + "\n\n" + bodyToMarkdown(doc);
 }
 
-/* -------------------------------------------------------------------- fetch */
-
-async function fetchPost(slug) {
-  // Same public route blogindex.html uses: no Authorization header, no token.
-  var res = await fetch(
-    API_URL + "/api/blog/" + encodeURIComponent(handle) + "/" + encodeURIComponent(slug)
-  );
-
-  if (res.status === 404) throw new Error("That post could not be found.");
-  if (!res.ok) {
-    var err = await res.json().catch(function () { return {}; });
-    throw new Error(err.error || "Could not load this post");
-  }
-
-  var d = await res.json();
-  return d.post || {};
-}
-
 /* ------------------------------------------------------------------ actions */
 
 async function copyText(text) {
@@ -259,17 +253,37 @@ function buildRow(post) {
   var card = document.createElement("div");
   card.className = "post-card";
 
+  var isPublished = asText(post.status).trim() === "published";
+
+  var badge = document.createElement("span");
+  badge.className = "card-badge " + (isPublished ? "is-published" : "is-draft");
+  badge.textContent = statusLabel(post.status);
+  card.appendChild(badge);
+
   var title = document.createElement("h2");
   title.className = "card-title";
   title.textContent = asText(post.title);
   card.appendChild(title);
 
-  var when = formatDate(post.published_at);
-  if (when) {
+  // A draft has no published_at — it was never published — so the created date
+  // stands in, labelled so the two can never be mistaken for each other.
+  var publishedOn = formatDate(post.published_at);
+  var dateText = publishedOn
+    ? "Published " + publishedOn
+    : (formatDate(post.created_at) ? "Created " + formatDate(post.created_at) : "");
+
+  if (dateText) {
     var dateEl = document.createElement("p");
     dateEl.className = "card-date";
-    dateEl.textContent = when;
+    dateEl.textContent = dateText;
     card.appendChild(dateEl);
+  }
+
+  if (!isPublished) {
+    var note = document.createElement("p");
+    note.className = "card-note";
+    note.textContent = "Not shown on your public blog — export it to the site it was written for.";
+    card.appendChild(note);
   }
 
   var actions = document.createElement("div");
@@ -283,8 +297,9 @@ function buildRow(post) {
     status.textContent = message;
   }
 
-  // Bodies are fetched one at a time, on click — never prefetched for the
-  // whole list.
+  // No fetch on click any more. The list response carries body,
+  // meta_description, slug and keyword for every entry, so the export is built
+  // from the row already in hand. Still async: writing to the clipboard is.
   function runAction(button, label, handler) {
     button.addEventListener("click", async function () {
       var buttons = actions.querySelectorAll("button");
@@ -292,8 +307,7 @@ function buildRow(post) {
       setStatus("Preparing " + label + "...", null);
 
       try {
-        var full = await fetchPost(post.slug);
-        await handler(full);
+        await handler(post);
       } catch (e) {
         setStatus(e.message || "Something went wrong.", "err");
       } finally {
@@ -328,8 +342,8 @@ function buildRow(post) {
   downloadBtn.className = "action-btn";
   downloadBtn.textContent = "Download as Markdown file";
   runAction(downloadBtn, "the download", async function (full) {
-    downloadMarkdown(buildMarkdownExport(full), full.slug || post.slug);
-    setStatus("Downloaded " + (asText(full.slug || post.slug) || "post") + ".md", "ok");
+    downloadMarkdown(buildMarkdownExport(full), full.slug);
+    setStatus("Downloaded " + (asText(full.slug) || "post") + ".md", "ok");
   });
   actions.appendChild(downloadBtn);
 
@@ -346,10 +360,19 @@ function render(blogName, posts) {
   h1.textContent = blogName + " — Export Posts";
   head.appendChild(h1);
 
+  // Counts both kinds. The old copy said "published posts" about everything it
+  // listed, which was true only while drafts were invisible to this page.
+  var publishedCount = 0;
+  posts.forEach(function (p) {
+    if (p && asText(p.status).trim() === "published") publishedCount++;
+  });
+  var unpublishedCount = posts.length - publishedCount;
+
   var sub = document.createElement("p");
   sub.className = "post-meta";
   sub.textContent =
-    (posts.length === 1 ? "1 published post" : posts.length + " published posts") +
+    (posts.length === 1 ? "1 post" : posts.length + " posts") +
+    " — " + publishedCount + " published, " + unpublishedCount + " unpublished" +
     ". Links are rewritten to " + CANONICAL_ORIGIN + " so they still work off-platform.";
   head.appendChild(sub);
 
@@ -366,18 +389,44 @@ function render(blogName, posts) {
   root.appendChild(list);
 }
 
-async function loadPosts() {
-  if (!handle) {
-    showState("Add ?u=your-handle to this address to list your posts for export.", false);
-    return;
+// The authenticated read of this user's own bf_profiles row. Best effort by
+// design: the handle only decorates the heading and the back link, so a missing
+// profile row or a failed call must not cost anyone their export list.
+async function loadIdentity(authHeaders) {
+  try {
+    var res = await fetch(API_URL + "/api/bfp/profile/me", { headers: authHeaders });
+    if (!res.ok) return "Your blog";
+
+    var d = await res.json();
+    var profile = d.profile || {};
+    var username = asText(profile.username).trim();
+
+    if (username) {
+      document.getElementById("backLink").setAttribute("href", "/seller.html?u=" + encodeURIComponent(username));
+    }
+
+    return asText(profile.display_name).trim() || username || "Your blog";
+  } catch (e) {
+    return "Your blog";
   }
+}
+
+async function loadPosts() {
+  var authHeaders = { "Authorization": "Bearer " + token };
 
   try {
-    // Public route: no Authorization header, no token, no auth gate.
-    var res = await fetch(API_URL + "/api/blog/" + encodeURIComponent(handle));
+    // Authenticated and scoped to this user server-side, so it returns every
+    // status — drafts included, which the public blog routes filter out.
+    //
+    // No limit and no paging on purpose: this is a handful of posts and seeing
+    // all of them beats building pagination now. Worth knowing that this route
+    // selects everything, so each entry carries its full body — the response
+    // grows with both the number of posts and their length, and that is the
+    // thing to watch if this ever gets slow.
+    var res = await fetch(API_URL + "/api/content-library?type=blog", { headers: authHeaders });
 
-    if (res.status === 404) {
-      showState("There are no posts yet.", false);
+    if (res.status === 401) {
+      window.location.replace("app.html");
       return;
     }
 
@@ -387,9 +436,11 @@ async function loadPosts() {
     }
 
     var d = await res.json();
-    var posts = Array.isArray(d.posts) ? d.posts : [];
-    var blogName = asText(d.display_name || d.handle || handle);
+    // "entries", not "posts", and ordered created_at descending by the backend
+    // — there is no published_at to order by once drafts are in the list.
+    var posts = Array.isArray(d.entries) ? d.entries : [];
 
+    var blogName = await loadIdentity(authHeaders);
     document.title = blogName + " — Export Posts";
 
     if (!posts.length) {
