@@ -186,12 +186,16 @@ var searchTimer = null;
 var listingMedia = [];
 var listingMediaUploading = 0;
 
+// NOTE: &#39; is decoded by the HTML parser before an inline event handler's
+// JS is compiled, so this does NOT make onclick="fn('...')" safe. Those sites
+// need real listeners, not escaping. See the audit note in git history.
 function escapeHtml(str) {
   return String(str == null ? "" : str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 async function loadListings() {
