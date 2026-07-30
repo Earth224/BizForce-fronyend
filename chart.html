@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — Birth Chart</title>
+  <!-- NO route guard here, deliberately. mychart.html opens with an IIFE that
+       redirects to app.html when bf_token is absent; this page must work logged
+       out, so that block is intentionally omitted rather than forgotten. Nothing
+       below reads localStorage, and /api/places/resolve is a public route that
+       takes no Authorization header. -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    /* ── Corporate Noir ────────────────────────────────────────────────── */
+    :root {
+      --noir-bg:      #070b18;
+      --noir-emerald: #34d399;
+      --noir-cyan:    #22d3ee;
+      --noir-gold:    #fbbf24;
+      --noir-ink:     #e8e8ff;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--noir-ink);
+    }
+
+    /* Fixed backdrop layer, same construction as mychart.html's body::before —
+       the flat field sits behind everything and never scrolls. */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: var(--noir-bg);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .cp-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    .cp-title {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--noir-gold);
+    }
+
+    .cp-sub {
+      margin: 0 0 28px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: rgba(232,232,255,0.55);
+    }
+
+    /* Label styling follows mychart.html's .cel-label companion to the
+       dropdown — small, muted, sitting directly above the control. */
+    .cel-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(232,232,255,0.55);
+    }
+
+    /* ── .cel-dd — the custom dropdown vocabulary lifted from mychart.html
+       (CSS at its lines 368-460). The trigger there is a <button>; here the
+       trigger is a text input, because the person types a place rather than
+       picking from a fixed set. Everything downstream of that — the list, the
+       options, the state classes — is the same component. ── */
+    .cel-dd {
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    /* Same padding, radius, border and focus treatment as .cel-dd-trigger, so
+       the input reads as the same control family. */
+    .cel-dd-input {
+      width: 100%;
+      display: block;
+      padding: 9px 12px;
+      background-color: rgba(10,4,20,0.8);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 9px;
+      color: var(--noir-ink);
+      font-size: 0.82rem;
+      font-family: inherit;
+      text-align: left;
+      outline: none;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .cel-dd-input::placeholder { color: rgba(232,232,255,0.3); }
+    .cel-dd-input:hover,
+    .cel-dd-input:focus {
+      border-color: rgba(34,211,238,0.6);
+      background-color: rgba(10,4,20,0.92);
+    }
+
+    .cel-dd-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      margin: 0;
+      padding: 6px;
+      list-style: none;
+      max-height: 280px;
+      overflow-y: auto;
+      background: rgba(6,3,16,0.96);
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(168,85,247,0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(34,211,238,0.45) rgba(10,4,20,0.35);
+    }
+    .cel-dd-list[hidden] { display: none; }
+
+    /* Modifier, not a second component. The ambiguous case shows the choices
+       inline underneath the field rather than as a floating popover — the list
+       IS the answer to what was typed, so it should push the page down instead
+       of covering it. The Change control on an exact match reuses the same
+       list WITHOUT this modifier, as a popover. */
+    .cel-dd-list.is-static {
+      position: static;
+      margin-top: 6px;
+      box-shadow: none;
+    }
+
+    .cel-dd-option {
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: rgba(232,220,255,0.92);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .cel-dd-option:hover,
+    .cel-dd-option.is-focused {
+      background: linear-gradient(90deg, rgba(34,211,238,0.16), rgba(168,85,247,0.16));
+    }
+    .cel-dd-option.is-selected {
+      color: #f5f3e8;
+      font-weight: 700;
+    }
+    .cel-dd-option.is-selected::after {
+      content: "\2713";
+      color: var(--noir-cyan);
+      font-weight: 700;
+      margin-left: 8px;
+    }
+
+    /* Two-line option body. The label carries the city, the timezone sits
+       under it smaller and dimmer — that second line is the only thing
+       distinguishing two identically-labelled cities in different zones. */
+    .cel-dd-option-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .cel-dd-option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cel-dd-option-zone {
+      font-size: 0.7rem;
+      color: rgba(232,220,255,0.45);
+    }
+
+    /* ── Chosen row ───────────────────────────────────────────────────── */
+    .cp-chosen {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      background-color: rgba(10,4,20,0.8);
+      border: 1px solid rgba(52,211,153,0.35);
+      border-radius: 9px;
+      font-size: 0.82rem;
+    }
+    .cp-chosen[hidden] { display: none; }
+    .cp-chosen-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cp-chosen-tick {
+      flex-shrink: 0;
+      color: var(--noir-emerald);
+      font-weight: 700;
+    }
+    .cp-change {
+      flex-shrink: 0;
+      padding: 4px 10px;
+      background: none;
+      border: 1px solid rgba(34,211,238,0.35);
+      border-radius: 7px;
+      color: var(--noir-cyan);
+      font-family: inherit;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .cp-change:hover,
+    .cp-change:focus {
+      border-color: rgba(34,211,238,0.7);
+      background-color: rgba(34,211,238,0.1);
+      outline: none;
+    }
+
+    /* ── Messages ─────────────────────────────────────────────────────── */
+    .cp-msg {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: rgba(232,232,255,0.6);
+    }
+    .cp-msg:empty { display: none; }
+    .cp-msg.is-error { color: var(--noir-gold); }
+
+    /* ── TEMPORARY debug scaffolding ──────────────────────────────────────
+       Stage-only. This line exists so the frozen values can be eyeballed
+       against the API response while the chooser is being built, and comes
+       out before this page ships. */
+    .cp-debug {
+      margin-top: 14px;
+      padding: 8px 10px;
+      border: 1px dashed rgba(232,232,255,0.18);
+      border-radius: 7px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.68rem;
+      line-height: 1.6;
+      color: rgba(232,232,255,0.5);
+      word-break: break-all;
+    }
+    .cp-debug:empty { display: none; }
+  </style>
+</head>
+<body>
+  <div class="cp-wrap">
+    <h1 class="cp-title">Birth chart</h1>
+    <p class="cp-sub">Start with where you were born. Type a city — add a state or country if the name is a common one.</p>
+
+    <label class="cel-label" for="placeInput">Birth place</label>
+
+    <div class="cel-dd" id="placeDd">
+      <input
+        class="cel-dd-input"
+        id="placeInput"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="e.g. Vallejo, California"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded="false"
+        aria-controls="placeList"
+        aria-labelledby="placeInputLabel" />
+      <ul class="cel-dd-list" id="placeList" role="listbox" aria-label="Matching places" tabindex="-1" hidden></ul>
+    </div>
+
+    <div class="cp-chosen" id="placeChosen" hidden>
+      <span class="cp-chosen-label">
+        <span class="cp-chosen-tick" aria-hidden="true">&#10003;</span>
+        <span id="placeChosenText"></span>
+      </span>
+      <button type="button" class="cp-change" id="placeChange">Change</button>
+    </div>
+
+    <div class="cp-msg" id="placeMsg" role="status" aria-live="polite"></div>
+
+    <div class="cp-debug" id="placeDebug"></div>
+  </div>
+
+  <script>
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+
+    /* The chosen candidate object, whole and unmodified as the API returned it.
+       Later stages send its id back as place_id; nothing here rewrites it. */
+    var selectedPlace = null;
+
+    /* Candidates from the most recent response, held so the Change control can
+       reopen the same list the person was offered. */
+    var currentCandidates = [];
+
+    var elInput      = document.getElementById("placeInput");
+    var elList       = document.getElementById("placeList");
+    var elChosen     = document.getElementById("placeChosen");
+    var elChosenText = document.getElementById("placeChosenText");
+    var elChange     = document.getElementById("placeChange");
+    var elMsg        = document.getElementById("placeMsg");
+    var elDebug      = document.getElementById("placeDebug");
+
+    /* Character-for-character the escapeHtml in mychart.html (line 4027). Used
+       for every innerHTML insertion below. The option list goes further and
+       builds nodes with textContent, which is what initCelDropdown's renderList
+       does — a label like "Paris, Île-de-France, France" is never parsed as
+       markup on either path. */
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    /* ═══ List open/close — same shape as initCelDropdown in mychart.html
+       (its lines 4306-4344): a hidden attribute toggle, aria-expanded on the
+       trigger, and both listeners attached in the CAPTURE phase only while the
+       list is open so nothing is left bound when it closes. ═══ */
+    var focusedIndex = -1;
+    var reopenTrigger = null;
+
+    function listIsOpen() { return !elList.hidden; }
+
+    function onOutsideClick(e) {
+      if (!elInput.contains(e.target) && !elList.contains(e.target) &&
+          !elChange.contains(e.target)) {
+        closeList();
+      }
+    }
+
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        closeList();
+        (reopenTrigger || elInput).focus();
+        return;
+      }
+      /* Arrow/Enter navigation drives .is-focused, a class already defined in
+         the component's CSS but left unwired by initCelDropdown — its list is
+         twelve fixed calendars, whereas this one is a variable list of cities
+         that deserves keyboard reach. No new class vocabulary is introduced. */
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        var items = elList.querySelectorAll(".cel-dd-option");
+        if (!items.length) return;
+        focusedIndex += (e.key === "ArrowDown" ? 1 : -1);
+        if (focusedIndex < 0) focusedIndex = items.length - 1;
+        if (focusedIndex >= items.length) focusedIndex = 0;
+        for (var i = 0; i < items.length; i++) {
+          if (i === focusedIndex) { items[i].classList.add("is-focused"); }
+          else { items[i].classList.remove("is-focused"); }
+        }
+        items[focusedIndex].scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "Enter" && focusedIndex >= 0) {
+        var focused = elList.querySelectorAll(".cel-dd-option")[focusedIndex];
+        if (focused) { e.preventDefault(); focused.click(); }
+      }
+    }
+
+    function openList(asPopover, trigger) {
+      if (asPopover) { elList.classList.remove("is-static"); }
+      else { elList.classList.add("is-static"); }
+      reopenTrigger = trigger || null;
+      focusedIndex = -1;
+      elList.hidden = false;
+      elInput.setAttribute("aria-expanded", "true");
+      document.addEventListener("mousedown", onOutsideClick, true);
+      document.addEventListener("keydown", onKeyDown, true);
+    }
+
+    function closeList() {
+      elList.hidden = true;
+      elInput.setAttribute("aria-expanded", "false");
+      focusedIndex = -1;
+      document.removeEventListener("mousedown", onOutsideClick, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+    }
+
+    /* ═══ Option rendering — follows initCelDropdown's renderList (line 4282):
+       an <li class="cel-dd-option"> per entry, role="option", aria-selected,
+       is-selected on the current value, click handler bound per option. The
+       one addition is the two-line body, because a city and its timezone are
+       both needed to tell two Springfields apart. ═══ */
+    function renderOptions(candidates) {
+      elList.innerHTML = "";
+      candidates.forEach(function (candidate) {
+        var li = document.createElement("li");
+        var classes = "cel-dd-option";
+        var isSelected = !!(selectedPlace && selectedPlace.id === candidate.id);
+        if (isSelected) { classes += " is-selected"; }
+        li.className = classes;
+        li.setAttribute("role", "option");
+        li.setAttribute("data-value", candidate.id);
+        li.setAttribute("aria-selected", isSelected ? "true" : "false");
+
+        var body = document.createElement("span");
+        body.className = "cel-dd-option-body";
+
+        var label = document.createElement("span");
+        label.className = "cel-dd-option-label";
+        label.textContent = candidate.label;
+
+        var zone = document.createElement("span");
+        zone.className = "cel-dd-option-zone";
+        zone.textContent = candidate.timezone;
+
+        body.appendChild(label);
+        body.appendChild(zone);
+        li.appendChild(body);
+
+        li.addEventListener("click", function () {
+          selectCandidate(candidate);
+          closeList();
+          elInput.focus();
+        });
+
+        elList.appendChild(li);
+      });
+    }
+
+    /* ═══ Selection ═══ */
+    function selectCandidate(candidate) {
+      selectedPlace = candidate;
+      elChosenText.innerHTML = escapeHtml(candidate.label);
+      elChosen.hidden = false;
+      elMsg.innerHTML = "";
+      renderDebug();
+    }
+
+    function clearSelection() {
+      selectedPlace = null;
+      elChosen.hidden = true;
+      elChosenText.innerHTML = "";
+      renderDebug();
+    }
+
+    /* TEMPORARY. Removed in a later stage along with .cp-debug. */
+    function renderDebug() {
+      if (!selectedPlace) { elDebug.innerHTML = ""; return; }
+      elDebug.innerHTML =
+        "id: "  + escapeHtml(selectedPlace.id)        + "<br>" +
+        "lat: " + escapeHtml(selectedPlace.latitude)  + "<br>" +
+        "lng: " + escapeHtml(selectedPlace.longitude) + "<br>" +
+        "tz: "  + escapeHtml(selectedPlace.timezone);
+    }
+
+    function clearResults() {
+      closeList();
+      elList.innerHTML = "";
+      elMsg.innerHTML = "";
+      elMsg.classList.remove("is-error");
+      currentCandidates = [];
+      clearSelection();
+    }
+
+    function renderMessage(text, isError) {
+      elMsg.innerHTML = escapeHtml(text);
+      if (isError) { elMsg.classList.add("is-error"); }
+      else { elMsg.classList.remove("is-error"); }
+    }
+
+    /* ═══ Response rendering, branched on confidence ═══ */
+    function renderResult(data) {
+      currentCandidates = data.candidates || [];
+      elMsg.innerHTML = "";
+      elMsg.classList.remove("is-error");
+
+      if (data.confidence === "exact") {
+        /* One survivor and nothing was discarded to reach it — take it, and
+           leave a way back. The list stays built so Change can reopen it. */
+        renderOptions(currentCandidates);
+        closeList();
+        selectCandidate(currentCandidates[0]);
+        return;
+      }
+
+      if (data.confidence === "ambiguous") {
+        /* Several real places match. Nothing is chosen on the person's behalf —
+           that silent pick is exactly the bug the backend refuses to make. */
+        clearSelection();
+        renderOptions(currentCandidates);
+        openList(false, null);
+        return;
+      }
+
+      /* unresolved. Only no_match is worth saying out loud: absent and
+         invalid_input mean the field is empty or was never a string, which the
+         person can already see for themselves — a message there would be noise
+         fired at someone mid-keystroke. */
+      clearResults();
+      if (data.reason === "no_match") {
+        renderMessage("We could not find that place. Try adding a state or country.", false);
+      }
+    }
+
+    /* ═══ Lookup — debounced, sequence-guarded ═══ */
+    var DEBOUNCE_MS = 300;
+    var MIN_QUERY = 2;
+    var debounceTimer = null;
+    var requestSeq = 0;
+
+    function runLookup() {
+      var q = elInput.value.trim();
+
+      /* Below the floor the endpoint is never called at all. A single letter
+         matches a large share of the dataset and the answer would be useless. */
+      if (q.length < MIN_QUERY) {
+        clearResults();
+        return;
+      }
+
+      /* Every request takes a ticket; only the newest is allowed to write to
+         the DOM. Without this a slow "Val" landing after a fast "Vallejo"
+         would replace the right answer with a stale one. */
+      var seq = ++requestSeq;
+
+      fetch(API_URL + "/api/places/resolve?q=" + encodeURIComponent(q))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (seq !== requestSeq) return;
+          if (!data) { clearResults(); renderMessage("Could not reach the place lookup", true); return; }
+          renderResult(data);
+        })
+        .catch(function () {
+          if (seq !== requestSeq) return;
+          clearResults();
+          renderMessage("Could not reach the place lookup", true);
+        });
+    }
+
+    elInput.addEventListener("input", function () {
+      if (debounceTimer) { clearTimeout(debounceTimer); }
+      debounceTimer = setTimeout(runLookup, DEBOUNCE_MS);
+    });
+
+    elChange.addEventListener("click", function () {
+      if (!currentCandidates.length) return;
+      renderOptions(currentCandidates);
+      if (listIsOpen()) { closeList(); }
+      else { openList(true, elChange); }
+    });
+  </script>
+</body>
+</html>
