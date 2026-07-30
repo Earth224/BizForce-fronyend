@@ -462,16 +462,23 @@
     say('Sending...', null);
 
     try {
-      /* Public capture endpoint. `source` falls back to "direct" server-side
-         if this value isn't in the allowed list, so an unrecognised label
-         is harmless rather than a rejection. */
+      /* Public capture endpoint. Both `source` and `brand` are checked against
+         server-side allow-lists, and both fall back silently on a miss — the
+         response is still 200 and nothing is logged. The two failures are not
+         equally harmless: an unmatched source becomes "direct", which loses a
+         label; an unmatched brand becomes "mrearthrose", which files this
+         lead under a different brand entirely. Match the server's lists
+         exactly. */
       var res = await fetch(API + '/api/capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email,
           source: 'landing',
-          brand: 'sword-vitality'
+          brand: 'swordvitality',
+          /* Literal rather than a check on `email`: the guard above returns
+             before this point unless an address was entered. */
+          email_consent: true
         })
       });
 
