@@ -440,6 +440,20 @@
   var btn   = document.getElementById('capture-btn');
   var note  = document.getElementById('capture-note');
 
+  /* Attribution, read once at load so a link can carry its own label:
+     /xxl-xtreme?src=youtube. Hardcoding this meant every lead arrived as
+     "direct" no matter which article or campaign drove the click, which
+     defeats the point of driving articles here at all — the thing worth
+     knowing is which ones convert.
+
+     Deliberately not bounded or stripped, matching vitality.html. The
+     server checks this against CAPTURE_SOURCES and substitutes "direct"
+     on any miss, so a junk param and an absent one already land in the
+     same place, and the raw string is discarded before anything is
+     stored. */
+  var params = new URLSearchParams(window.location.search);
+  var src = (params.get('src') || 'direct').toLowerCase();
+
   function say(msg, kind){
     note.textContent = msg;
     note.className = 'note' + (kind ? ' ' + kind : '');
@@ -474,7 +488,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email,
-          source: 'landing',
+          source: src,
           brand: 'swordvitality',
           /* Literal rather than a check on `email`: the guard above returns
              before this point unless an address was entered. */
