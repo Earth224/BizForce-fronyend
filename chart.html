@@ -902,6 +902,17 @@
     /* The whole 200 response, held so the rest can be drawn without a refetch. */
     var chartData = null;
 
+    /* The inputs the chart on screen was actually cast from, captured at cast
+       time and never read back out of the live fields.
+       The chart on screen and the chart in the email have to be the same chart,
+       and the only way to guarantee that is for both to be built from one
+       captured set of values. The inputs stay editable after a cast — the date,
+       the time and the place chooser are all still live while the email gate is
+       open — so anything read at gate-submit time can silently describe a
+       different chart than the one the person is looking at. Null until the
+       first cast, which is what the send checks. */
+    var chartInputs = null;
+
     function chartTopHtml(data) {
       var planets = data.planets || [];
       var timeKnown = !!data.timeKnown;
@@ -1047,6 +1058,45 @@
       var elGateMsg   = document.getElementById("gateMsg");
       if (!elGateEmail || !elGateBtn) return;
 
+      /* Asks the backend to mail this person their Termaximus reading. Called
+         only once a contact_id is in hand, and never awaited — see the caller. */
+      function emailReading(contactId) {
+        /* No cast, so there is no chart to mail and nothing to describe it
+           with. Reachable only if the gate is somehow submitted before a chart
+           exists, which the render order does not currently allow. */
+        if (!chartInputs) {
+          console.warn("[chart] no captured chart inputs — reading email not requested");
+          return;
+        }
+
+        /* Built from the snapshot, NOT from elDate, elTime, elInput or
+           selectedPlace. Those are still live while the gate is open, so
+           reading them here would mail a reading for whatever the fields say at
+           submit time rather than for the chart on screen — someone who nudges
+           the date while typing their address would get a chart they never saw.
+           contact_id is the only field added; everything else describing the
+           chart comes across verbatim from the cast. */
+        var emailBody = Object.assign({ contact_id: contactId }, chartInputs);
+
+        /* No Authorization header: the route is public and authenticates on the
+           contact_id alone, which is why it is only ever called with one the
+           server just issued. */
+        fetch(API_URL + "/api/charts/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(emailBody)
+        })
+          .then(function (r) {
+            if (!r.ok) {
+              console.warn("[chart] reading email returned " + r.status);
+            }
+          })
+          .catch(function (err) {
+            console.warn("[chart] reading email request failed: " +
+              ((err && err.message) || err));
+          });
+      }
+
       function submitGate() {
         var email = elGateEmail.value.trim();
 
@@ -1081,8 +1131,34 @@
           .then(function (r) {
             if (!r.ok) {
               console.warn("[chart] contact capture returned " + r.status +
-                " — showing the full chart anyway");
+                " — showing the full chart anyway, and not requesting the reading email");
+              return null;
             }
+            /* The body is read now, which it was not before: contact_id lives
+               in it and the email send is addressed by nothing else. A body
+               that will not parse resolves to null rather than throwing. */
+            return r.json().catch(function () { return null; });
+          })
+          .then(function (data) {
+            if (!data) return;
+
+            var contactId = typeof data.contact_id === "string" ? data.contact_id : null;
+
+            /* No contact_id means no consent record for the send to be checked
+               against, so the backend would refuse it — asking anyway would
+               spend a request to be told what is already known here. */
+            if (!contactId) {
+              console.warn("[chart] capture returned no contact_id — reading email not requested");
+              return;
+            }
+
+            /* NOT awaited, and deliberately not part of the chain the unlock
+               below waits on. The person has already given their address; the
+               chart is what they are owed for it and it must appear now. The
+               email is a consequence of the capture, not a condition of it, so
+               a slow or failing send must never hold the chart back or be
+               shown to them. */
+            emailReading(contactId);
           })
           .catch(function (err) {
             console.warn("[chart] contact capture request failed: " +
@@ -1180,6 +1256,15 @@
       if (!elUnknown.checked && elTime.value) {
         body.birth_time = elTime.value;
       }
+
+      /* The snapshot, taken from the body that is about to be sent rather than
+         from the fields it was built out of. Copying the body itself is what
+         makes divergence impossible: there is no second list of fields here to
+         fall out of step with the one above, and birth_time is carried only
+         when the body carries it, so the omit-when-unknown rule is inherited
+         rather than restated. Copied rather than aliased so that casting again
+         cannot mutate the set an in-flight send is already using. */
+      chartInputs = Object.assign({}, body);
 
       /* No Authorization header. This route is public by design so a chart can
          be cast during guest checkout, before any account exists. */
