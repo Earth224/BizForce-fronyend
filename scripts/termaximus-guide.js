@@ -13,7 +13,7 @@
   /* per-page "Page Guidance" text, keyed by the page's filename */
   var PAGE_GUIDANCE = {
     "dashboard.html": [
-      "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Flyer Generator, Profile, and Lead Radar.",
+      "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Profile, and Lead Radar.",
       "Your business name and profile summary shown here come from what you set up on the Content Agent's Edit Profile and the Business Identity page — keep both current so this hub reflects who you actually are.",
       "Use the Active Queue card and Recent Activity feed to see what's actually running before you dig into any single tool.",
       "Treat the AI Agent Directory preview as your starting point for delegating work — jump into Agent Hub for a curated set or Full Directory for everything.",
@@ -99,13 +99,6 @@
       "There's nothing to set up on this page; the card was designed elsewhere (Digital Cards) and this page just renders it for whoever receives the link.",
       "If you're viewing someone else's card, use Save Contact to pull it straight into your contacts as a vCard.",
       "If this page renders one of your own cards and it looks wrong, the fix happens back on Digital Cards, not here."
-    ],
-    "flyer-generator.html": [
-      "Design print-ready marketing flyers — 12 templates, full content and media fields, and one-click PNG export.",
-      "Pick a template first, then fill in Headline (required), Subheadline, Body Text, Call to Action, Date & Time, Location, and Contact Info.",
-      "Use Save and \"My Flyers\" so you're not rebuilding the same flyer from scratch for recurring events.",
-      "Match Color Theme and Font Family to your brand, not just whatever looks good in the moment — consistency across flyers builds recognition.",
-      "Download PNG only once everything's set; try different Flyer Sizes (Square, Portrait, Story, Landscape) for wherever you're actually posting it."
     ],
     "app.html": [
       "The front door — sign in or create an account here; this is the paywall/onboarding gateway to the entire platform.",
