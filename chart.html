@@ -449,6 +449,51 @@
     }
     .cp-house-n { color: rgba(232,232,255,0.5); white-space: nowrap; }
     .cp-house-s { color: var(--noir-cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── The gate ─────────────────────────────────────────────────────────
+       Sits between the big three and the rest of the chart. It is a panel
+       rather than a bare field on purpose: it has to read as the boundary of
+       what has already been given, not as one more form control in the stack
+       above it. */
+    .cp-gate {
+      margin-top: 22px;
+      padding: 16px 14px;
+      background: rgba(10,4,20,0.7);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 11px;
+    }
+    .cp-gate-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--noir-gold);
+    }
+    .cp-gate-line {
+      margin: 6px 0 14px;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: rgba(232,232,255,0.65);
+    }
+    /* The submit inside the gate is the page's button, minus the top margin it
+       carries when it sits alone under the form. */
+    .cp-gate .cp-submit { margin-top: 12px; }
+    .cp-gate-msg {
+      margin: 8px 0 0;
+      font-size: 0.76rem;
+      line-height: 1.5;
+      color: var(--noir-gold);
+    }
+    .cp-gate-msg:empty { display: none; }
+
+    /* What replaces the gate once the address is in. Deliberately quiet — the
+       chart underneath is the reward, and a large success banner would compete
+       with it. */
+    .cp-saved {
+      margin-top: 22px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--noir-emerald);
+    }
   </style>
 </head>
 <body>
@@ -844,10 +889,20 @@
     /* ═══ Chart rendering ═══════════════════════════════════════════════
        Every value from the API goes through escapeHtml before it reaches
        innerHTML — sign names and the place label are server data, and
-       "Île-de-France" must arrive as text rather than as markup. */
-    function renderChart(data) {
-      elErr.innerHTML = "";
+       "Île-de-France" must arrive as text rather than as markup.
 
+       Split into three pieces by the email gate. chartTopHtml is what a visitor
+       gets for nothing; chartRestHtml is what the address buys. Both are built
+       from the SAME stored response — the chart is computed once, and the gate
+       decides how much of it is drawn, never whether it is fetched. Asking the
+       backend a second time would be a second computation of an answer already
+       in hand, and would make the gate a technical barrier rather than an
+       editorial one. */
+
+    /* The whole 200 response, held so the rest can be drawn without a refetch. */
+    var chartData = null;
+
+    function chartTopHtml(data) {
       var planets = data.planets || [];
       var timeKnown = !!data.timeKnown;
 
@@ -872,7 +927,11 @@
       /* ── 2. The big three ──
          Rising is rendered even when it cannot be computed. Dropping the cell
          would leave someone wondering whether the chart forgot it or whether
-         they have no rising sign; the dim placeholder says which. */
+         they have no rising sign; the dim placeholder says which.
+
+         These three are given away unconditionally. They are the placements
+         someone can already name, so gating them would withhold nothing they
+         could not get elsewhere while making the page feel like a toll booth. */
       var risingCell = timeKnown && data.ascendant
         ? '<div class="cp-big3-val">' + escapeHtml(data.ascendant.sign) + '</div>'
         : '<div class="cp-big3-val is-absent">Needs birth time</div>';
@@ -886,6 +945,33 @@
           '<div class="cp-big3-cell"><div class="cp-big3-key">Rising</div>' +
             risingCell + '</div>' +
         '</div>';
+
+      return html;
+    }
+
+    /* The gate. Static markup — it carries no API data, so nothing here needs
+       escaping, and it is rebuilt on every render rather than hidden and shown,
+       which keeps the field empty after a second cast. */
+    function gateHtml() {
+      return '' +
+        '<div class="cp-gate" id="chartGate">' +
+          '<div class="cp-gate-title">See the full chart</div>' +
+          '<p class="cp-gate-line">The full chart includes all ten planets with ' +
+            'their signs and degrees, retrograde markers, the angles, and the ' +
+            'twelve houses.</p>' +
+          '<label class="cel-label" for="gateEmail">Email</label>' +
+          '<input class="cel-dd-input" id="gateEmail" type="email" ' +
+            'autocomplete="email" spellcheck="false" placeholder="you@example.com" />' +
+          '<button type="button" class="cp-submit" id="gateBtn">Show my full chart</button>' +
+          '<p class="cp-gate-msg" id="gateMsg" role="status" aria-live="polite"></p>' +
+          '<p class="cp-hint">No spam. Unsubscribe any time.</p>' +
+        '</div>';
+    }
+
+    function chartRestHtml(data) {
+      var planets = data.planets || [];
+      var timeKnown = !!data.timeKnown;
+      var html = "";
 
       /* ── 3. Planets ── */
       html += '<div class="cp-sect">Planets</div><table class="cp-table"><tbody>';
@@ -947,7 +1033,90 @@
           'are the same whether or not the time is known.</p>';
       }
 
-      elOut.innerHTML = html;
+      return html;
+    }
+
+    /* ═══ The gate ══════════════════════════════════════════════════════ */
+
+    /* Listeners are attached after every render rather than once at load,
+       because the gate markup is rebuilt each time a chart is cast and the old
+       nodes — and the handlers bound to them — are discarded with it. */
+    function wireGate() {
+      var elGateEmail = document.getElementById("gateEmail");
+      var elGateBtn   = document.getElementById("gateBtn");
+      var elGateMsg   = document.getElementById("gateMsg");
+      if (!elGateEmail || !elGateBtn) return;
+
+      function submitGate() {
+        var email = elGateEmail.value.trim();
+
+        /* Character for character the pattern the backend route checks and the
+           contacts_email_shape_check constraint enforces. Three copies of one
+           rule; this one exists so an obvious typo is caught without a round
+           trip, not to be the authority. */
+        if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+          elGateMsg.innerHTML = escapeHtml(
+            "That does not look like an email address. Check it and try again.");
+          return;
+        }
+
+        elGateMsg.innerHTML = "";
+        elGateBtn.disabled = true;
+        elGateBtn.textContent = "Loading…";
+
+        /* No Authorization header — /api/contacts/capture is public so a chart
+           can be cast before any account exists. No name and no consent field
+           are sent: the submission IS the grant, and the server decides that,
+           not the caller. */
+        fetch(API_URL + "/api/contacts/capture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email:    email,
+            source:   "chart",
+            brand:    "bizforce",
+            page_url: window.location.href
+          })
+        })
+          .then(function (r) {
+            if (!r.ok) {
+              console.warn("[chart] contact capture returned " + r.status +
+                " — showing the full chart anyway");
+            }
+          })
+          .catch(function (err) {
+            console.warn("[chart] contact capture request failed: " +
+              ((err && err.message) || err) + " — showing the full chart anyway");
+          })
+          /* Runs on success AND failure. A person who typed their address has
+             held up their end; whether our database accepted it is our problem,
+             not theirs, and withholding the chart over it would punish them for
+             an outage they cannot see. The failure goes to the console, where
+             it is ours to find. */
+          .then(function () { unlockChart(); });
+      }
+
+      elGateBtn.addEventListener("click", submitGate);
+      elGateEmail.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); submitGate(); }
+      });
+    }
+
+    /* Redraws from the stored response with the gate replaced by the rest of the
+       chart. No refetch — chartData is the same object the top was drawn from. */
+    function unlockChart() {
+      if (!chartData) return;
+      elOut.innerHTML =
+        chartTopHtml(chartData) +
+        '<p class="cp-saved">Saved</p>' +
+        chartRestHtml(chartData);
+    }
+
+    function renderChart(data) {
+      elErr.innerHTML = "";
+      chartData = data;
+      elOut.innerHTML = chartTopHtml(data) + gateHtml();
+      wireGate();
     }
 
     function renderPreview(status, data) {
