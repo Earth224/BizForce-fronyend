@@ -247,6 +247,105 @@
     .cp-msg:empty { display: none; }
     .cp-msg.is-error { color: var(--noir-gold); }
 
+    /* ── Fields ───────────────────────────────────────────────────────── */
+    .cp-field { margin-bottom: 18px; }
+
+    /* Date and time reuse .cel-dd-input's box so every control on the page is
+       the same shape. color-scheme: dark is what makes the browser's own
+       calendar and clock popups render dark — without it Chrome draws a white
+       panel over a #070b18 page. */
+    .cel-dd-input[type="date"],
+    .cel-dd-input[type="time"] {
+      color-scheme: dark;
+      min-height: 36px;
+    }
+    .cel-dd-input:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .cp-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 9px;
+      font-size: 0.78rem;
+      color: rgba(232,232,255,0.75);
+      cursor: pointer;
+    }
+    .cp-check input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--noir-cyan);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .cp-hint {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      line-height: 1.5;
+      color: rgba(232,232,255,0.45);
+    }
+
+    /* ── Submit ───────────────────────────────────────────────────────── */
+    .cp-submit {
+      width: 100%;
+      margin-top: 22px;
+      padding: 11px 14px;
+      background: linear-gradient(90deg, rgba(52,211,153,0.18), rgba(34,211,238,0.18));
+      border: 1px solid rgba(52,211,153,0.45);
+      border-radius: 9px;
+      color: var(--noir-emerald);
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+    }
+    .cp-submit:hover:not(:disabled),
+    .cp-submit:focus:not(:disabled) {
+      border-color: rgba(52,211,153,0.8);
+      background: linear-gradient(90deg, rgba(52,211,153,0.28), rgba(34,211,238,0.28));
+      outline: none;
+    }
+    .cp-submit:disabled {
+      background: none;
+      border-color: rgba(232,232,255,0.18);
+      color: rgba(232,232,255,0.4);
+      cursor: not-allowed;
+    }
+
+    /* ── TEMPORARY raw response block ─────────────────────────────────────
+       Stage-two scaffolding, exactly like .cp-debug below. The chart display
+       replaces this; until it exists, the unrendered JSON is the only honest
+       way to see what the API actually returned. */
+    .cp-out {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(6,3,16,0.7);
+      border: 1px solid rgba(34,211,238,0.22);
+      border-radius: 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.68rem;
+      line-height: 1.55;
+      color: rgba(232,232,255,0.75);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+    .cp-out:empty { display: none; }
+    /* Errors are prose, not JSON — drop the monospace and the pre-wrap. */
+    .cp-out.is-error {
+      border-color: rgba(251,191,36,0.4);
+      color: var(--noir-gold);
+      font-family: inherit;
+      font-size: 0.8rem;
+      white-space: normal;
+    }
+
     /* ── TEMPORARY debug scaffolding ──────────────────────────────────────
        Stage-only. This line exists so the frozen values can be eyeballed
        against the API response while the chooser is being built, and comes
@@ -268,7 +367,28 @@
 <body>
   <div class="cp-wrap">
     <h1 class="cp-title">Birth chart</h1>
-    <p class="cp-sub">Start with where you were born. Type a city — add a state or country if the name is a common one.</p>
+    <p class="cp-sub">When and where you were born. For the place, type a city — add a state or country if the name is a common one.</p>
+
+    <div class="cp-field">
+      <label class="cel-label" for="birthDate">Birth date</label>
+      <input class="cel-dd-input" id="birthDate" type="date" min="1700-01-01" />
+    </div>
+
+    <div class="cp-field">
+      <label class="cel-label" for="birthTime">Birth time</label>
+      <input class="cel-dd-input" id="birthTime" type="time" />
+
+      <label class="cp-check" for="birthTimeUnknown">
+        <input type="checkbox" id="birthTimeUnknown" />
+        <span>I don&rsquo;t know my birth time</span>
+      </label>
+
+      <p class="cp-hint">
+        Without a birth time the chart still shows every planet and its sign.
+        The rising sign, midheaven and houses cannot be calculated &mdash; those
+        depend on the exact minute the sky was turning.
+      </p>
+    </div>
 
     <label class="cel-label" for="placeInput">Birth place</label>
 
@@ -299,6 +419,10 @@
     <div class="cp-msg" id="placeMsg" role="status" aria-live="polite"></div>
 
     <div class="cp-debug" id="placeDebug"></div>
+
+    <button type="button" class="cp-submit" id="castBtn" disabled>Cast the chart</button>
+
+    <div class="cp-out" id="chartOut" role="status" aria-live="polite"></div>
   </div>
 
   <script>
@@ -319,6 +443,11 @@
     var elChange     = document.getElementById("placeChange");
     var elMsg        = document.getElementById("placeMsg");
     var elDebug      = document.getElementById("placeDebug");
+    var elDate       = document.getElementById("birthDate");
+    var elTime       = document.getElementById("birthTime");
+    var elUnknown    = document.getElementById("birthTimeUnknown");
+    var elCast       = document.getElementById("castBtn");
+    var elOut        = document.getElementById("chartOut");
 
     /* Character-for-character the escapeHtml in mychart.html (line 4027). Used
        for every innerHTML insertion below. The option list goes further and
@@ -448,6 +577,7 @@
       elChosen.hidden = false;
       elMsg.innerHTML = "";
       renderDebug();
+      syncCastState();
     }
 
     function clearSelection() {
@@ -455,6 +585,7 @@
       elChosen.hidden = true;
       elChosenText.innerHTML = "";
       renderDebug();
+      syncCastState();
     }
 
     /* TEMPORARY. Removed in a later stage along with .cp-debug. */
@@ -562,6 +693,143 @@
       if (listIsOpen()) { closeList(); }
       else { openList(true, elChange); }
     });
+
+    /* ═══ Birth date and time ═══════════════════════════════════════════ */
+
+    /* Today, assembled from LOCAL date parts. Not toISOString().slice(0,10) —
+       that converts to UTC first, so anyone west of Greenwich would be handed
+       tomorrow's date as their maximum for part of the day, and anyone east
+       could be denied today. min is 1700-01-01 to match the backend's
+       ephemeris band, which parseBirthDate enforces with year_out_of_range —
+       the picker should not offer a date the server will refuse. */
+    function todayLocalIso() {
+      var d = new Date();
+      return d.getFullYear() + "-" +
+        String(d.getMonth() + 1).padStart(2, "0") + "-" +
+        String(d.getDate()).padStart(2, "0");
+    }
+    elDate.max = todayLocalIso();
+
+    elUnknown.addEventListener("change", function () {
+      var unknown = elUnknown.checked;
+      elTime.disabled = unknown;
+      /* Cleared, not merely ignored. Leaving a stale value behind a disabled
+         control means the field shows a time that is not being sent. */
+      if (unknown) { elTime.value = ""; }
+      syncCastState();
+    });
+
+    /* ═══ Cast ══════════════════════════════════════════════════════════ */
+    var isCasting = false;
+
+    /* A chart needs a date and a resolved place. The time is genuinely
+       optional — the backend returns a planets-only chart without one — so it
+       is not part of this test. Called from selectCandidate and
+       clearSelection as well as the date input, so the button tracks either
+       half changing. */
+    function syncCastState() {
+      elCast.disabled = isCasting || !elDate.value || !selectedPlace;
+    }
+
+    elDate.addEventListener("input", syncCastState);
+    elDate.addEventListener("change", syncCastState);
+
+    function renderOut(text, isError) {
+      if (isError) { elOut.classList.add("is-error"); }
+      else { elOut.classList.remove("is-error"); }
+      elOut.innerHTML = escapeHtml(text);
+    }
+
+    function renderPreview(status, data) {
+      if (status === 200 && data) {
+        /* STAGE TWO ONLY. The chart display replaces this; pretty-printed JSON
+           is what lets the request path be checked before any rendering work
+           can hide a wrong value behind a nice layout. */
+        renderOut(JSON.stringify(data, null, 2), false);
+        return;
+      }
+
+      if (status === 400 && data) {
+        if (data.error === "date_invalid") {
+          renderOut("That birth date could not be read" +
+            (data.reason ? " (" + data.reason + ")" : "") +
+            ". Check the date and try again.", true);
+          return;
+        }
+        if (data.error === "place_unresolved") {
+          renderOut("That place could not be found" +
+            (data.reason ? " (" + data.reason + ")" : "") +
+            ". Try adding a state or country.", true);
+          return;
+        }
+      }
+
+      if (status === 409 && data && data.error === "place_ambiguous") {
+        /* Straight back through the chooser that already exists. The selection
+           is cleared first, which disables the button — the person cannot cast
+           again until they have actually picked one. */
+        currentCandidates = data.candidates || [];
+        clearSelection();
+        renderOptions(currentCandidates);
+        openList(false, null);
+        renderOut("That place matches more than one location. Choose which one you mean.", true);
+        return;
+      }
+
+      renderOut("Could not reach the chart service", true);
+    }
+
+    function castChart() {
+      if (!elDate.value || !selectedPlace) return;
+
+      isCasting = true;
+      elCast.disabled = true;
+      elCast.textContent = "Casting…";
+      elOut.innerHTML = "";
+      elOut.classList.remove("is-error");
+
+      var body = {
+        birth_date:  elDate.value,
+        /* The RAW text, not selectedPlace.label — place_query is what the
+           person typed, and place_id is what they chose. Sending the label
+           back as the query would erase the distinction the backend keeps. */
+        place_query: elInput.value,
+        place_id:    selectedPlace.id
+      };
+
+      /* birth_time is OMITTED entirely rather than sent as null or "". The
+         backend distinguishes an absent time (timeReason "absent") from one
+         supplied and unreadable ("unparseable"), and a client should not blur
+         that — only the second is a data problem someone can go and fix. */
+      if (!elUnknown.checked && elTime.value) {
+        body.birth_time = elTime.value;
+      }
+
+      /* No Authorization header. This route is public by design so a chart can
+         be cast during guest checkout, before any account exists. */
+      fetch(API_URL + "/api/charts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+        .then(function (r) {
+          /* The status is read before the body, and a body that will not parse
+             resolves to null rather than throwing — a 502 from the platform is
+             HTML, not JSON, and must still reach the error branch. */
+          return r.json()
+            .catch(function () { return null; })
+            .then(function (data) { return { status: r.status, data: data }; });
+        })
+        .then(function (res) { renderPreview(res.status, res.data); })
+        .catch(function () { renderOut("Could not reach the chart service", true); })
+        .then(function () {
+          isCasting = false;
+          elCast.textContent = "Cast the chart";
+          syncCastState();
+        });
+    }
+
+    elCast.addEventListener("click", castChart);
   </script>
 </body>
 </html>
