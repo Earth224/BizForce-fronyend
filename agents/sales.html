@@ -1154,7 +1154,7 @@
                   <h2 class="section-label" style="margin-bottom:0;">Live Leads from Lead Radar</h2>
                   <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
-                    <button type="button" class="action-btn" id="salesConvertAllBtn">Convert All High-Intent</button>
+                    <button type="button" class="action-btn" id="salesConvertAllBtn">Post Public Replies to High-Intent</button>
                   </div>
                 </div>
                 <div class="sales-leads-msg" id="salesLeadsMsg"></div>
@@ -1696,9 +1696,20 @@
         var token = tok();
         if (!token) { setLeadsMsg("Not signed in.", "err"); return; }
 
+        // This does not only draft: the backend posts the reply for real.
+        // Say so before anything is sent, name who receives it, and leave the
+        // button untouched if the answer is no.
+        var who = lead.author_handle ? "@" + lead.author_handle : "this lead";
+        if (!window.confirm(
+          "This posts a PUBLIC reply to " + who + "'s post.\n\n" +
+          "The reply is sent from your own connected Bluesky or Mastodon account and is visible to anyone.\n\n" +
+          "It cannot be unposted from here.\n\n" +
+          "Post this public reply?"
+        )) return;
+
         btn.disabled = true;
         var originalLabel = btn.textContent;
-        btn.innerHTML = '<span class="sales-spinner"></span>Converting…';
+        btn.innerHTML = '<span class="sales-spinner"></span>Posting public reply…';
 
         fetch(API_URL + "/api/agents/sales/convert", {
           method: "POST",
@@ -1722,15 +1733,46 @@
         });
       }
 
+      /* Reports what actually went out. A result count is not a sent count —
+         the server can hold a lead as draft-only (no clean message, daily cap,
+         unsupported source, failed post), so the number of results may be
+         larger than the number of public replies. Posted/skipped are reported
+         separately only when every result carries a send status; without one,
+         the message claims nothing beyond how many leads were run. */
+      function describeSendOutcome(results) {
+        var list = results || [];
+        var flagged = list.filter(function (r) { return r && typeof r.sent === "boolean"; });
+
+        if (list.length && flagged.length === list.length) {
+          var posted = flagged.filter(function (r) { return r.sent; }).length;
+          var skipped = list.length - posted;
+          return posted + " public repl" + (posted === 1 ? "y" : "ies") + " posted" +
+            (skipped ? ", " + skipped + " not sent" : "") + ".";
+        }
+
+        return list.length + " lead" + (list.length === 1 ? "" : "s") +
+          " run — check each lead's status to see which replies actually posted.";
+      }
+
       function convertAllHighIntent() {
         var btn = document.getElementById("salesConvertAllBtn");
         var token = tok();
         if (!token) { setLeadsMsg("Not signed in.", "err"); return; }
 
+        // One click here can put up to 10 public replies under the operator's
+        // own account. Ask before the fetch, and if the answer is no, leave
+        // the button exactly as it was.
+        if (!window.confirm(
+          "This posts PUBLIC replies to up to 10 people's posts.\n\n" +
+          "The replies are sent from your own connected Bluesky or Mastodon account and are visible to anyone.\n\n" +
+          "They cannot be unposted from here.\n\n" +
+          "Post these public replies?"
+        )) return;
+
         btn.disabled = true;
         var originalLabel = btn.textContent;
-        btn.innerHTML = '<span class="sales-spinner"></span>Converting…';
-        setLeadsMsg("Generating outreach for high-intent leads…");
+        btn.innerHTML = '<span class="sales-spinner"></span>Posting public replies…';
+        setLeadsMsg("Posting public replies to high-intent leads…");
 
         fetch(API_URL + "/api/agents/sales/convert", {
           method: "POST",
@@ -1742,8 +1784,7 @@
           btn.disabled = false;
           btn.textContent = originalLabel;
           if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
-          var count = (res.data.results || []).length;
-          setLeadsMsg(count + " conversion" + (count === 1 ? "" : "s") + " generated.", "ok");
+          setLeadsMsg(describeSendOutcome(res.data.results), "ok");
           loadLeads();
           loadPipeline();
         })
