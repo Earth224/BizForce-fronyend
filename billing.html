@@ -289,7 +289,7 @@
         <p style="color:#8892b8;font-size:.9rem;margin:0 0 20px">
           You don't have an active BizForce AI subscription.
         </p>
-        <button class="btn" id="checkoutBtn" type="button">Subscribe — $29/month</button>
+        <button class="btn" id="checkoutBtn" type="button">Subscribe — $199/month</button>
         <div id="checkoutMsg" class="msg"></div>
       </div>
     </div>
@@ -325,13 +325,16 @@
       el.className = "msg" + (cls ? " " + cls : "");
     }
 
+    /* One product: all_access at $199. "starter" is the legacy
+       subscriptions.plan default and still arrives on some rows — it means the
+       same thing. Anything else falls through to the All Access defaults. */
     function planLabel(plan) {
-      var labels = { starter: "All Access — $29/month", pro: "Pro — $99/month", enterprise: "Enterprise — $199/month" };
+      var labels = { all_access: "All Access — $199/month", starter: "All Access — $199/month" };
       return labels[String(plan||"").toLowerCase()] || (plan ? String(plan).charAt(0).toUpperCase() + String(plan).slice(1) + " Plan" : "All Access Plan");
     }
     function planPrice(plan) {
-      var prices = { starter: "$29 / month", pro: "$99 / month", enterprise: "$199 / month" };
-      return prices[String(plan||"").toLowerCase()] || "$29 / month";
+      var prices = { all_access: "$199 / month", starter: "$199 / month" };
+      return prices[String(plan||"").toLowerCase()] || "$199 / month";
     }
 
     function showSkeleton(on) {
@@ -374,8 +377,21 @@
       try {
         var r = await fetch(API_URL + "/api/auth/me", { headers: { "Authorization": "Bearer " + token } });
         var d = await r.json();
-        var sub = d.subscription;
-        if (sub && (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due" || sub.status === "canceled")) {
+
+        /* /api/auth/me returns a flat user object, not { subscription: {...} }.
+           Same unwrap and same field names dashboard.html reads. */
+        var user = d.user || d;
+        var status = user.subscription_status || (user.subscription_active === true ? "active" : "");
+
+        var sub = {
+          plan: user.subscription_plan || user.plan,
+          status: status,
+          current_period_end: user.current_period_end,
+          created_at: user.created_at,
+          cancel_at_period_end: user.cancel_at_period_end
+        };
+
+        if (["active", "trialing", "past_due", "canceled"].indexOf(status) !== -1) {
           showActive(sub);
         } else {
           showNone();
