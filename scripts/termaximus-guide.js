@@ -26,10 +26,10 @@
       "Use this as your map, not your workbench; the real work — task launching, reports, history — happens on each agent's own page."
     ],
     "ai-agents.html": [
-      "The full directory of all 15 AI agents, each with a one-line description of what it actually specializes in.",
+      "The full directory of all 17 AI agents, each with a one-line description of what it actually specializes in.",
       "No setup happens here — it's pure navigation; your Business Profile (set via the Content Agent) is what every agent behind these cards reads from.",
       "Use this page when you're not sure which agent fits a task — the descriptions are specific enough to point you to the right specialist fast.",
-      "Bookmark the agents you use most; with 15 to choose from, a shortlist beats browsing the full list every time."
+      "Bookmark the agents you use most; with 17 to choose from, a shortlist beats browsing the full list every time."
     ],
     "analytics-dashboard.html": [
       "Your real-time business intelligence command center — Tasks Run, Tasks Completed, Content Items, Subscribers, Opted-In, and Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
@@ -38,10 +38,10 @@
       "If the tiles show \"—\", it means data hasn't loaded or hasn't been generated yet — go run some agent tasks first, then come back."
     ],
     "billing.html": [
-      "Manage your subscription and payment details — Starter, Pro, or Enterprise plan, current status, renewal date, and the full \"All Access Plan Includes\" feature list.",
+      "Manage your subscription and payment details — there is one plan, All Access at $199/month, shown here with its current status, renewal date, and the full \"All Access Plan Includes\" feature list.",
       "Nothing to fill in directly here — subscribing or updating payment happens through Stripe's own checkout and billing portal, launched from this page's buttons.",
       "Watch for the cancellation warning banner — if it's showing, your access has an end date, and you'll want to resubscribe before it hits.",
-      "Use \"Manage / Cancel Subscription\" for any plan change; you don't need to contact anyone to upgrade, downgrade, or cancel."
+      "Use \"Manage / Cancel Subscription\" to update your payment method or cancel; you don't need to contact anyone, and there are no tiers to move between."
     ],
     "profile.html": [
       "Your public business profile and portfolio — bio, skills, products, portfolio pieces, videos, music, and a shareable digital card, all in one branded page.",
