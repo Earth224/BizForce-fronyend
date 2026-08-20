@@ -218,6 +218,40 @@
       pointer-events: none;
     }
 
+    /* Everything interactive on this page has to raise itself above the
+       fixed body::before glow, which covers the viewport at z-index 0.
+       Without these three lines the link renders but cannot be tapped. */
+    .forgot {
+      margin-top: 14px;
+      text-align: center;
+      position: relative;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    .forgot-link {
+      border: 0;
+      padding: 6px 8px;
+      background: transparent;
+      color: #8792b0;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .forgot-link:hover,
+    .forgot-link:focus-visible {
+      color: #67e8f9;
+      text-decoration: underline;
+    }
+
+    .forgot-link:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+
     .status {
       color: #67e8f9;
     }
@@ -317,6 +351,7 @@
           <input id="lp" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
         </div>
 <button id="loginBtn" class="btn" type="submit">Login</button>
+        <div class="forgot"><button id="forgotBtn" class="forgot-link" type="button">Forgot password?</button></div>
 </form>
       
 
@@ -362,6 +397,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var loginBtn = document.getElementById("loginBtn");
   var registerBtn = document.getElementById("registerBtn");
   var subscribeBtn = document.getElementById("subscribeBtn");
+  var forgotBtn = document.getElementById("forgotBtn");
 
   var statusBox = document.getElementById("status");
   var errorBox = document.getElementById("err");
@@ -523,6 +559,58 @@ if (loginForm) {
       }
 
       setLoginBusy(false);
+    });
+  }
+
+  /* This page is the only front door — index.html sends both "Get Started"
+     and "Sign In" here, and the _redirects catch-all sends everything else
+     here too. Until now it was the one login form on the platform with no
+     way out of a forgotten password: the old index.html login box had the
+     link, and it went with the box when index became a marketing page. */
+  if (forgotBtn) {
+    forgotBtn.addEventListener("click", async function (event) {
+      event.preventDefault();
+
+      var email = loginEmailInput ? loginEmailInput.value.trim() : "";
+
+      if (!email) {
+        setStatus("");
+        setError("Enter your email above first, then tap Forgot password.");
+        return;
+      }
+
+      forgotBtn.disabled = true;
+      setError("");
+      setStatus("Sending reset link...");
+
+      try {
+        var response = await fetch(API_URL + "/api/auth/password-reset", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: email
+          })
+        });
+
+        var data = await parseJson(response);
+
+        if (!response.ok) {
+          throw new Error(data.error || "Could not send the reset link.");
+        }
+
+        /* The backend deliberately answers identically whether or not that
+           address has an account — it will not leak who is registered. This
+           message must not undo that by claiming the account exists, so it
+           prefers the server's own wording and hedges the same way. */
+        setStatus(data.message || ("If an account exists for " + email + ", a reset link is on its way. Check your inbox."));
+      } catch (error) {
+        setStatus("");
+        setError(error.message || "Could not send the reset link.");
+      }
+
+      forgotBtn.disabled = false;
     });
   }
 
