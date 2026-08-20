@@ -16,6 +16,23 @@ if (!token) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BizForce AI — Executive HQ</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#070b18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BizForce">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<script>
+  /* Registered so Chrome will offer "Add to home screen". The worker
+     itself caches nothing — see sw.js. */
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+  }
+</script>
 <link rel="stylesheet" href="/css/bizforce-ui.css">
 <style>
     *{margin:0;padding:0;box-sizing:border-box}html,body{color:#e8e8ff;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}body{background:#070b18;position:relative;overflow-x:hidden}body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}.topbar,.app-main,body>section,#planStatus,#tierDAgentStatusTracker{position:relative;z-index:1}
