@@ -1,3 +1,476 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>BizForce AI</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#030308;color:#e8e8ff;font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh}.box{background:#080812;border:1px solid rgba(0,229,255,0.2);border-radius:20px;padding:40px;width:90%;max-width:400px}h1{background:linear-gradient(135deg,#00e5ff,#9f6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;font-size:1.8rem;margin-bottom:6px}p{color:#8888aa;text-align:center;font-size:0.85rem;margin-bottom:24px}.tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;margin-bottom:20px}.tab{flex:1;padding:9px;border:none;background:transparent;color:#8888aa;cursor:pointer;border-radius:8px;font-size:0.9rem}.tab.active{background:linear-gradient(135deg,#00e5ff,#9f6bff);color:#000;font-weight:700}label{display:block;color:#8888aa;font-size:0.75rem;text-transform:uppercase;margin-bottom:5px;margin-top:14px}input,select{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:11px 13px;color:#e8e8ff;font-size:0.9rem;outline:none}input:focus,select:focus{border-color:#00e5ff}select option{background:#0d0d1a}button.go{width:100%;margin-top:18px;padding:13px;background:linear-gradient(135deg,#00e5ff,#9f6bff);border:none;border-radius:10px;color:#000;font-weight:800;font-size:1rem;cursor:pointer}.err{color:#ff2d78;font-size:0.82rem;text-align:center;margin-top:10px;min-height:20px}.ok{color:#00e5ff;font-size:0.82rem;text-align:center;margin-top:10px;min-height:20px}.forgot{text-align:center;margin-top:14px}.forgot a{color:#8888aa;font-size:0.8rem;text-decoration:none;cursor:pointer}.forgot a:hover{color:#00e5ff}</style></head><body><div class="box"><h1>BizForce AI</h1><p>Your AI-powered business network</p><div class="tabs"><button class="tab active" onclick="show('login')">Sign In</button><button class="tab" onclick="show('register')">Create Account</button></div><div id="login"><label>Email</label><input id="le" type="email" placeholder="you@business.com"><label>Password</label><input id="lp" type="password" placeholder="••••••••"><button class="go" onclick="login()">Sign In</button><div class="forgot"><a onclick="forgot()">Forgot password?</a></div></div><div id="register" style="display:none"><label>Business Name</label><input id="rb" placeholder="Your Business Name"><label>Industry</label><select id="ri"><option value="">Select Industry</option><option>Technology</option><option>E-Commerce</option><option>Health and Wellness</option><option>Finance</option><option>Real Estate</option><option>Marketing</option><option>Education</option><option>Entertainment</option><option>Other</option></select><label>Email</label><input id="re" type="email" placeholder="you@business.com"><label>Password</label><input id="rp" type="password" placeholder="Min 8 characters"><button class="go" onclick="reg()">Create Account</button></div><div class="err" id="err"></div></div><script>const A='https://dynamic-prosperity-production-5382.up.railway.app';function show(t){document.querySelectorAll('.tab').forEach((x,i)=>x.classList.toggle('active',(i==0&&t=='login')||(i==1&&t=='register')));document.getElementById('login').style.display=t=='login'?'block':'none';document.getElementById('register').style.display=t=='register'?'block':'none';}async function login(){const e=document.getElementById('le').value,p=document.getElementById('lp').value;if(!e||!p)return err('Fill all fields');try{const r=await fetch(A+'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(!r.ok)return err(d.error||'Login failed');save(d);go();}catch(x){err('Connection error: '+x.message);}}async function reg(){const b=document.getElementById('rb').value,i=document.getElementById('ri').value,e=document.getElementById('re').value,p=document.getElementById('rp').value;if(!b||!e||!p)return err('Fill all fields');try{const r=await fetch(A+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p,business_name:b,industry:i})});const d=await r.json();if(!r.ok)return err(d.error||JSON.stringify(d));save(d);go();}catch(x){err('Connection error: '+x.message);}}async function forgot(){const e=document.getElementById('le').value.trim();if(!e)return err('Enter your email above first, then tap Forgot password');ok('Sending...');try{const r=await fetch(A+'/api/auth/password-reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e})});const d=await r.json();if(!r.ok)return err(d.error||'Could not send the reset link');ok('If an account exists for '+e+', a reset link is on its way. Check your inbox.');}catch(x){err('Connection error: '+x.message);}}function ok(m){const b=document.getElementById('err');b.className='ok';b.textContent=m;}function save(d){localStorage.setItem('bf_token',d.token);localStorage.setItem('bf_user',JSON.stringify(d.user));}function go(){window.location.href='/dashboard.html';}function err(m){const b=document.getElementById('err');b.className='err';b.textContent=m;setTimeout(()=>{b.textContent='';},4000);}if(localStorage.getItem('bf_token'))go();</script><script src="/scripts/termaximus-presence.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizForce AI — 17 AI Business Specialists, One Subscription</title>
+<meta name="description" content="BizForce AI gives a solo operator a full business team: 17 AI specialists across SEO, sales, content, analytics, ads, operations and more. All Access, $199/month.">
+
+<script>
+  /* Someone already signed in has no use for the pitch. Checked in the head,
+     before anything paints, so a returning operator never watches the
+     marketing page flash past on the way to their dashboard. */
+  if (localStorage.getItem("bf_token")) {
+    window.location.replace("/dashboard.html");
+  }
+</script>
+
+<link rel="stylesheet" href="/css/bizforce-ui.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    color: #e8e8ff;
+    background: #070b18;
+  }
+
+  body {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+      radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+      #070b18;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Top bar ── */
+  .site-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 0 0;
+  }
+
+  .site-brand {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, #00e5ff, #9f6bff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* ── Shared section furniture ── */
+  .section {
+    padding-top: 88px;
+  }
+
+  .section-label {
+    margin: 0 0 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #22d3ee;
+  }
+
+  .section-title {
+    margin: 0 0 14px;
+    font-size: clamp(1.5rem, 3.4vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: #ffffff;
+  }
+
+  .section-lede {
+    margin: 0 0 32px;
+    max-width: 620px;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #8892b8;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    background: rgba(168, 85, 247, 0.1);
+    color: #c4b5fd;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 76px 0 8px;
+    max-width: 780px;
+  }
+
+  .hero h1 {
+    margin: 18px 0 0;
+    font-size: clamp(2.2rem, 6.4vw, 3.7rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    line-height: 1.08;
+    background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .hero-sub {
+    margin: 22px 0 0;
+    max-width: 640px;
+    font-size: clamp(1rem, 2.1vw, 1.12rem);
+    line-height: 1.75;
+    color: #8892b8;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 34px;
+  }
+
+  .cta-note {
+    margin: 18px 0 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  /* ── Agent grid ── */
+  .agents-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .agents-head .section-title { margin: 0; }
+
+  .agent-grid {
+    display: grid;
+    /* min() so the track can collapse below its ideal width on a narrow
+       phone. A bare minmax(268px, 1fr) never shrinks past 268px and pushes
+       the page into a horizontal scroll instead. */
+    grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr));
+    gap: 18px;
+  }
+
+  .agent-grid .bf-card {
+    padding: 22px;
+  }
+
+  .agent-grid h3 {
+    margin: 0 0 8px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+
+  .agent-grid p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  /* ── Includes ── */
+  .includes-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 14px 28px;
+  }
+
+  .includes-list li {
+    position: relative;
+    padding-left: 30px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e8e8ff;
+  }
+
+  .includes-list li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 0.44em;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00d9ff, #7d5cff);
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.45);
+  }
+
+  /* ── Pricing ── */
+  .price-card {
+    max-width: 560px;
+    text-align: center;
+  }
+
+  .price-amount {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin: 20px 0 6px;
+  }
+
+  .price-figure {
+    font-size: clamp(2.8rem, 8vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .price-period {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #8892b8;
+  }
+
+  .price-line {
+    margin: 0 auto 26px;
+    max-width: 420px;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: #8892b8;
+  }
+
+  .price-card .bf-btn {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  /* ── Footer ── */
+  .site-foot {
+    margin-top: 88px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(0, 229, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  .site-foot a {
+    color: #22d3ee;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .site-foot a:hover { text-decoration: underline; }
+
+  /* ── Phone ── */
+  @media (max-width: 640px) {
+    .page { padding: 0 18px 56px; }
+    .hero { padding-top: 48px; }
+    .section { padding-top: 62px; }
+    .cta-row .bf-btn { width: 100%; }
+    .agent-grid { grid-template-columns: 1fr; }
+    .site-foot { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="site-top">
+    <span class="site-brand">BizForce AI</span>
+    <a class="bf-btn bf-btn-ghost" href="app.html">Sign In</a>
+  </header>
+
+  <!-- ── 1. Hero ────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <span class="pill">All Access — $199/month</span>
+    <h1>17 AI business specialists. One subscription.</h1>
+    <p class="hero-sub">
+      When you run the business alone, you are the marketing department, the
+      sales team, the analyst and the person chasing last week's follow-ups —
+      and what gets dropped is whatever wasn't on fire that day. BizForce AI
+      gives you a team instead: seventeen specialists that read the same
+      business profile, share one executive memory, and keep working the parts
+      of the job you never get to.
+    </p>
+    <div class="cta-row">
+      <a class="bf-btn" href="app.html">Get Started</a>
+      <a class="bf-btn bf-btn-ghost" href="app.html">Sign In</a>
+    </div>
+    <p class="cta-note">One subscription unlocks all 17 AI business agents and all platform tools.</p>
+  </section>
+
+  <!-- ── 2. The agents ──────────────────────────────────────────────────── -->
+  <section class="section" id="agents">
+    <p class="section-label">The Team</p>
+    <div class="agents-head">
+      <h2 class="section-title">Seventeen specialists, one business profile</h2>
+      <span class="pill">17 Agents</span>
+    </div>
+    <p class="section-lede">
+      Every agent works from the business profile you fill in once — your
+      industry, your website, your competitors — so none of them start from a
+      blank page.
+    </p>
+
+    <div class="agent-grid">
+      <div class="bf-card">
+        <h3>SEO Agent</h3>
+        <p>Search intelligence from your business profile and executive memory.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Sales Agent</h3>
+        <p>Pipeline, leads, and revenue intelligence from executive memory.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Content Agent</h3>
+        <p>Articles, campaigns, and creative strategy intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Analytics Agent</h3>
+        <p>KPIs, forecasts, and business metrics intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Social Agent</h3>
+        <p>Social presence, campaigns, and engagement intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Email Agent</h3>
+        <p>Email campaigns, sequences, and deliverability intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Ads Agent</h3>
+        <p>Campaigns, paid traffic, and advertising performance intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Reputation Agent</h3>
+        <p>Reviews, sentiment, and brand reputation intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Community Agent</h3>
+        <p>Community health, engagement, and growth intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Influencer Agent</h3>
+        <p>Creator partnerships, outreach, and campaign intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Operations Agent</h3>
+        <p>Workflows, SOPs, automation, and operational intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Etsy Agent</h3>
+        <p>Shop listings, keywords, pricing, and marketplace intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Store Agent</h3>
+        <p>Multi-store commerce, inventory, and sales intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Broker Agent</h3>
+        <p>Deal flow, partnerships, and brokerage intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Publicist Agent</h3>
+        <p>PR campaigns, media outreach, and brand visibility intelligence.</p>
+      </div>
+      <div class="bf-card">
+        <h3>R&amp;D Agent</h3>
+        <p>Research intelligence powered by your business profile and executive memory.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Executive Agent</h3>
+        <p>Cross-agent coordination, reporting, and executive oversight intelligence.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. What one subscription includes ──────────────────────────────── -->
+  <section class="section" id="included">
+    <p class="section-label">Included</p>
+    <h2 class="section-title">What one subscription includes</h2>
+    <p class="section-lede">There is one plan. Everything below is in it.</p>
+
+    <div class="bf-card">
+      <ul class="includes-list">
+        <li>All 17 AI Business Agents (SEO, Sales, Content, Analytics, Email, and more)</li>
+        <li>Unlimited AI task runs</li>
+        <li>Business profile &amp; digital card builder</li>
+        <li>AI oracle, certifications, and marketplace</li>
+        <li>Agent task history and smart reporting</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── 4. Pricing ─────────────────────────────────────────────────────── -->
+  <section class="section" id="pricing">
+    <p class="section-label">Pricing</p>
+    <h2 class="section-title">One product. One price.</h2>
+    <p class="section-lede">
+      No tiers to compare and no per-agent add-ons — the subscription is the
+      whole platform.
+    </p>
+
+    <div class="bf-card price-card">
+      <span class="pill">All Access</span>
+      <div class="price-amount">
+        <span class="price-figure">$199</span>
+        <span class="price-period">/ month</span>
+      </div>
+      <p class="price-line">
+        One subscription unlocks all 17 AI business agents and all platform tools.
+      </p>
+      <a class="bf-btn" href="app.html">Get Started</a>
+    </div>
+  </section>
+
+  <!-- ── 5. Footer ──────────────────────────────────────────────────────── -->
+  <footer class="site-foot">
+    <span>BizForce AI — business-owner AI network for growth, automation, leads, and revenue.</span>
+    <a href="app.html">Sign in or create an account →</a>
+  </footer>
+
+</div>
+
+<script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
-</body></html>
+</body>
+</html>
