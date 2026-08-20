@@ -14,7 +14,7 @@ if (!token) {
 </script>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BizForce AI — Executive HQ</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#070b18">
@@ -35,6 +35,25 @@ if (!token) {
 </script>
 <link rel="stylesheet" href="/css/bizforce-ui.css">
 <style>
+    /* Safe-area insets, scoped to this page. .topbar, .app-main and
+       .bf-section are defined in css/bizforce-ui.css, which 22 pages
+       outside this change also load — so the override lives here
+       rather than in the shared file.
+
+       black-translucent puts the web view under the iOS status bar (47px
+       on a 13/14, 59px on a 14/15 Pro) and .topbar's 14px of top padding
+       left the brand and every control in it behind the clock. */
+    .topbar {
+      padding-top: calc(14px + env(safe-area-inset-top, 0px));
+      padding-left: max(24px, env(safe-area-inset-left, 0px));
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
+    }
+    .app-main,
+    .bf-section {
+      padding-left: max(24px, env(safe-area-inset-left, 0px));
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
+    }
+
     *{margin:0;padding:0;box-sizing:border-box}html,body{color:#e8e8ff;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:100vh}body{background:#070b18;position:relative;overflow-x:hidden}body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}.topbar,.app-main,body>section,#planStatus,#tierDAgentStatusTracker{position:relative;z-index:1}
     .topbar-agents-pill{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;padding:5px 14px;border-radius:12px;border:1px solid rgba(168,85,247,.35);background:rgba(12,18,38,.75);text-decoration:none;cursor:pointer;transition:border-color .25s,box-shadow .25s;backdrop-filter:blur(10px);line-height:1}
     .topbar-agents-pill:hover{border-color:rgba(168,85,247,.7);box-shadow:0 0 18px rgba(168,85,247,.2)}

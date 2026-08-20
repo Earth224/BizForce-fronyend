@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>BizForce AI — R&amp;D Agent</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#070b18">
@@ -55,6 +55,12 @@
       max-width: 1200px;
       margin: 0 auto;
       padding: 32px 24px 64px;
+      /* viewport-fit=cover is on; black-translucent puts this view under the
+         iOS status bar, so the top gutter has to clear it, and in landscape
+         the notch eats into the sides. */
+      padding-top: calc(32px + env(safe-area-inset-top, 0px));
+      padding-left: max(24px, env(safe-area-inset-left, 0px));
+      padding-right: max(24px, env(safe-area-inset-right, 0px));
     }
 
     .top-nav {
@@ -401,7 +407,7 @@
     }
 
     @media (max-width: 600px) {
-      .page { padding: 24px 16px 48px; }
+      .page { padding: 24px 16px 48px; padding-top: calc(24px + env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
       .agent-header { gap: 16px; }
       .report-items { grid-template-columns: 1fr; }
     }
