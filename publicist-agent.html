@@ -441,7 +441,34 @@
     var AGENT_KEY = "publicistAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Campaigns","collections":["campaigns"]},{"title":"Press Releases","collections":["pressReleases"]},{"title":"Media Outreach","collections":["mediaOutreach"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    /* Collection names are the lookup path into memory.publicistAgent, not
+       labels — a name the store does not have returns nothing and the
+       section renders its empty state, so the page looks idle rather than
+       broken. Three of the five here were doing exactly that: campaigns,
+       mediaOutreach and recommendations are not fields on this store.
+
+       Campaigns: there is no single "campaigns" field. The store keeps eight
+       separate campaign maps, and picking any one of them would have hidden
+       the other seven, so all eight are listed. collectItems unions the
+       names and de-duplicates, which is what that array is for.
+
+       Media Outreach: same absence, different reason. mediaContacts and
+       journalists are who gets pitched; mediaPartnerships, interviews,
+       podcastAppearances and videoAppearances are the placements that came
+       back. mediaMentions is earned coverage rather than outreach — it is
+       included because this is the only section on the page that can carry
+       it, and coverage is the point of the pitch.
+
+       Recommendations: brandRecommendations is the one real counterpart, so
+       this one stays a single field. brandGrowthStrategies, brandGrowthPlans
+       and executiveBrandStrategies are adjacent but are plans and
+       strategies, not recommendations, and each deserves its own section
+       rather than being folded into this one.
+
+       Executive Reports keeps its report bucket and gains the top-level
+       executiveReports map, which is a separate populated field the bucket
+       lookup never saw. */
+    var REPORT_SECTIONS = [{"title":"Campaigns","collections":["pressCampaigns","socialCampaigns","viralCampaigns","eventCampaigns","influencerCampaigns","partnershipCampaigns","crossPlatformCampaigns","autonomousCampaigns"]},{"title":"Press Releases","collections":["pressReleases"]},{"title":"Media Outreach","collections":["mediaContacts","journalists","mediaPartnerships","interviews","podcastAppearances","videoAppearances","mediaMentions"]},{"title":"Recommendations","collections":["brandRecommendations"]},{"title":"Executive Reports","collections":["executiveReports"],"nestedBuckets":["executiveReports"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
     var DASHBOARD_HREF = "dashboard.html";

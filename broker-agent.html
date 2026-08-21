@@ -441,7 +441,19 @@
     var AGENT_KEY = "brokerAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Deals","collections":["deals"]},{"title":"Partnerships","collections":["partnerships"]},{"title":"Pipeline","collections":["pipeline"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    /* partnerships and pipeline were never fields on memory.brokerAgent —
+       the store declares partners and dealPipelines. A name the store does
+       not have returns nothing and the section renders its empty state, so
+       these two read "no partnerships yet" no matter how much the Broker
+       Agent had actually produced. Titles are unchanged; only the lookup
+       keys are corrected.
+
+       strategicPartnerships and partnershipOpportunities are also real
+       fields on this store and are still not surfaced by any section here.
+       They are left alone deliberately — folding them in would change what
+       "Partnerships" means on this page, which is a product call rather
+       than a correction. */
+    var REPORT_SECTIONS = [{"title":"Deals","collections":["deals"]},{"title":"Partnerships","collections":["partners"]},{"title":"Pipeline","collections":["dealPipelines"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
     var DASHBOARD_HREF = "dashboard.html";
