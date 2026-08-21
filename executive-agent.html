@@ -441,7 +441,28 @@
     var AGENT_KEY = "executiveAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Deals","collections":["deals"]},{"title":"Partnerships","collections":["partnerships"]},{"title":"Pipeline","collections":["pipeline"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    /* These were Broker's, copied verbatim along with the rest of this page,
+       and until eee950a it did not matter which names were here: nothing on
+       the platform wrote memory.executiveAgent at all, so every section was
+       empty whatever it asked for. That store now exists, and these are its
+       real fields.
+
+       assignments and sprints are projections the store rebuilds from
+       bizforce_agent_assignments and bf_executive_sprints on every write, so
+       a status that changed upstream is corrected rather than frozen at
+       whatever it was when the run happened.
+
+       Priorities and Next Actions share a section because they are two halves
+       of the same answer — what to do first, and what to do next — and
+       collectItems unions the two collections and sorts them together.
+
+       orchestrationReports is a top-level collection, deliberately NOT a
+       nestedBucket: the store keeps it as a plain array, and a string-keyed
+       lookup into store.reports would find nothing. The name avoids
+       executiveReports on purpose — seven other stores use that identifier to
+       mean reports filed UP to the executive, which is the opposite of what
+       it would mean here. */
+    var REPORT_SECTIONS = [{"title":"Agent Assignments","collections":["assignments"]},{"title":"Sprints","collections":["sprints"]},{"title":"Priorities & Next Actions","collections":["priorities","nextActions"]},{"title":"KPIs","collections":["kpis"]},{"title":"Orchestration Reports","collections":["orchestrationReports"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
     var DASHBOARD_HREF = "dashboard.html";
