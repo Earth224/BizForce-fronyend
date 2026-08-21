@@ -38507,6 +38507,444 @@ function extractAssignmentRecordsFromReportItem(item) {
     return extracted;
 }
 
+/* ── Executive Agent memory store ─────────────────────────────────────────
+   The sixteen other agents each own a store on the shared executive memory
+   object; executiveAgent was the only key nothing ever wrote, which is why
+   its page can never render anything. This follows ensureOperationsAgentStore
+   and persistOperationsAgentResult exactly — same five functions, same
+   in-place repair pass, same caps.
+
+   Four things here are deliberately NOT what the other stores do:
+
+   1. assignments and sprints are PROJECTIONS, not copies. The records live in
+      bizforce_agent_assignments and bf_executive_sprints, and they keep
+      changing after the run that created them — an assignment moves Pending
+      to Completed, a sprint's progress climbs. Copying them once would show a
+      status that was true an hour ago. Both projections are rebuilt from the
+      owning stores on every write, so what this store holds is a rendering
+      shortcut and never a second source of truth.
+
+   2. A run that produced no assignments is still written. The parser can
+      return zero records and log EXECUTIVE QUEUE PARSE FAILED; writing
+      nothing there would leave the page looking idle when it should be
+      showing a report that failed to parse. parseFailed marks it.
+
+   3. The bucket is orchestrationReports, not executiveReports. Seven other
+      stores already use executiveReports to mean "reports this agent filed UP
+      to the executive". Here it would mean the opposite, and the same word
+      pointing in two directions is a trap for whoever greps next.
+
+   4. Everything is capped. bf_executive_sprints has no cap today and grows
+      forever; all sixteen stores share one localStorage key, so one of them
+      filling the quota takes down every other agent's memory at once. ── */
+
+var EXECUTIVE_AGENT_CAPS = {
+    actions: 100,
+    assignments: 100,
+    sprints: 50,
+    priorities: 50,
+    nextActions: 50,
+    kpis: 50,
+    orchestrationReports: 50
+};
+
+/* The report text itself belongs to the mailbox (bizforce_ai_mailbox), which
+   already stores it in full. Keeping a preview plus the id to re-resolve is
+   the same projection argument as assignments and sprints, and it keeps a
+   long report from eating the shared quota. */
+var EXECUTIVE_AGENT_REPORT_PREVIEW_CHARS = 4000;
+
+function readExecutiveOwnedStore(key, fallbackKey) {
+    /* Read the owning stores straight from localStorage rather than through
+       the in-scope accessors. The projection has to be correct regardless of
+       which script scope calls this, and the owning key is the only thing
+       that is actually authoritative. */
+    var storageKey = typeof key === "string" && key ? key : fallbackKey;
+    var parsed;
+
+    try {
+        parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    } catch (err) {
+        return [];
+    }
+
+    return Array.isArray(parsed) ? parsed : [];
+}
+
+function projectExecutiveAssignments() {
+    var records = readExecutiveOwnedStore(
+        typeof AGENT_ASSIGNMENTS_STORAGE_KEY === "string" ? AGENT_ASSIGNMENTS_STORAGE_KEY : null,
+        "bizforce_agent_assignments"
+    );
+
+    return records.map(function(record) {
+        return {
+            id: record.id || null,
+            sprintId: record.sprint_id || null,
+            parentReportId: record.parent_report_id || null,
+            assignedAgent: String(record.assigned_agent || "").toUpperCase(),
+            title: String(record.task_title || "Executive assignment"),
+            priority: record.priority || null,
+            status: record.status || "Pending",
+            archived: record.archived === true,
+            createdAt: record.created_at || null,
+            completedAt: record.completed_at || null,
+            updatedAt: record.completed_at || record.created_at || null
+        };
+    }).slice(0, EXECUTIVE_AGENT_CAPS.assignments);
+}
+
+function projectExecutiveSprints() {
+    var sprints = readExecutiveOwnedStore(
+        typeof BF_EXECUTIVE_SPRINTS_STORAGE_KEY === "string" ? BF_EXECUTIVE_SPRINTS_STORAGE_KEY : null,
+        "bf_executive_sprints"
+    );
+
+    return sprints.map(function(sprint) {
+        var agents = Array.isArray(sprint.agents) ? sprint.agents : [];
+        var completed = 0;
+        var blocked = 0;
+
+        agents.forEach(function(agent) {
+            if (agent && agent.status === "completed") {
+                completed++;
+            } else if (agent && agent.status === "blocked") {
+                blocked++;
+            }
+        });
+
+        return {
+            id: sprint.sprintId || null,
+            sprintId: sprint.sprintId || null,
+            title: String(sprint.sprintName || "Executive Sprint"),
+            status: sprint.status || "unknown",
+            overallProgress: typeof sprint.overallProgress === "number" ? sprint.overallProgress : 0,
+            totalAgents: agents.length,
+            completedAgents: completed,
+            blockedAgents: blocked,
+            summary: String(sprint.executiveSummary || ""),
+            createdAt: sprint.createdAt || null,
+            updatedAt: sprint.createdAt || null
+        };
+    }).slice(0, EXECUTIVE_AGENT_CAPS.sprints);
+}
+
+function projectExecutiveKpis() {
+    var sprints = readExecutiveOwnedStore(
+        typeof BF_EXECUTIVE_SPRINTS_STORAGE_KEY === "string" ? BF_EXECUTIVE_SPRINTS_STORAGE_KEY : null,
+        "bf_executive_sprints"
+    );
+
+    return sprints.filter(function(sprint) {
+        return sprint && sprint.kpis && typeof sprint.kpis === "object";
+    }).map(function(sprint) {
+        var k = sprint.kpis;
+
+        return {
+            id: (sprint.sprintId || "sprint") + ":kpis",
+            sprintId: sprint.sprintId || null,
+            title: String(sprint.sprintName || "Executive Sprint") + " KPIs",
+            completedAgents: k.completedAgents || 0,
+            blockedAgents: k.blockedAgents || 0,
+            runningAgents: k.runningAgents || 0,
+            waitingAgents: k.waitingAgents || 0,
+            completionPercent: k.completionPercent || 0,
+            blockedPercent: k.blockedPercent || 0,
+            efficiencyScore: k.efficiencyScore || 0,
+            durationMinutes: k.durationMinutes || 0,
+            createdAt: sprint.createdAt || null,
+            updatedAt: sprint.createdAt || null
+        };
+    }).slice(0, EXECUTIVE_AGENT_CAPS.kpis);
+}
+
+function ensureExecutiveAgentStore(memory) {
+    if (!memory || typeof memory !== "object") {
+        return null;
+    }
+
+    if (!memory.executiveAgent || typeof memory.executiveAgent !== "object") {
+        memory.executiveAgent = {
+            status: "idle",
+            lastAction: null,
+            lastUpdated: null,
+            stats: {
+                runs: 0,
+                sprintsRun: 0,
+                assignmentsCreated: 0,
+                agentsCoordinated: 0,
+                completionPercent: 0,
+                blockedPercent: 0,
+                efficiencyScore: 0,
+                parseFailures: 0,
+                confidence: "LOW",
+                lastRun: null,
+                updatedAt: null
+            },
+            businessContext: {
+                businessName: "",
+                industry: "",
+                goals: "",
+                location: "",
+                competitors: "",
+                updatedAt: null
+            },
+            actions: [],
+            assignments: [],
+            sprints: [],
+            priorities: [],
+            nextActions: [],
+            kpis: [],
+            orchestrationReports: [],
+            reports: {},
+            lastRun: null,
+            updatedAt: null,
+            safeMode: true,
+            externalExecution: false
+        };
+    }
+
+    if (!memory.executiveAgent.stats || typeof memory.executiveAgent.stats !== "object") {
+        memory.executiveAgent.stats = {
+            runs: 0,
+            sprintsRun: 0,
+            assignmentsCreated: 0,
+            agentsCoordinated: 0,
+            completionPercent: 0,
+            blockedPercent: 0,
+            efficiencyScore: 0,
+            parseFailures: 0,
+            confidence: "LOW",
+            lastRun: null,
+            updatedAt: null
+        };
+    }
+
+    if (!memory.executiveAgent.businessContext || typeof memory.executiveAgent.businessContext !== "object") {
+        memory.executiveAgent.businessContext = {
+            businessName: "",
+            industry: "",
+            goals: "",
+            location: "",
+            competitors: "",
+            updatedAt: null
+        };
+    }
+
+    if (!memory.executiveAgent.reports || typeof memory.executiveAgent.reports !== "object") {
+        memory.executiveAgent.reports = {};
+    }
+
+    ["actions", "assignments", "sprints", "priorities", "nextActions", "kpis", "orchestrationReports"].forEach(function(field) {
+        if (!Array.isArray(memory.executiveAgent[field])) {
+            memory.executiveAgent[field] = [];
+        }
+
+        var cap = EXECUTIVE_AGENT_CAPS[field];
+
+        if (cap && memory.executiveAgent[field].length > cap) {
+            memory.executiveAgent[field] = memory.executiveAgent[field].slice(0, cap);
+        }
+    });
+
+    return memory.executiveAgent;
+}
+
+function getExecutiveAgentMemory() {
+    var memory = typeof window.loadExecutiveMemory === "function" ? window.loadExecutiveMemory() : null;
+
+    if (memory) {
+        ensureExecutiveAgentStore(memory);
+    }
+
+    return memory;
+}
+
+function saveExecutiveAgentMemory(memory) {
+    if (!memory) {
+        return null;
+    }
+
+    ensureExecutiveAgentStore(memory);
+    memory.executiveAgent.lastUpdated = new Date().toISOString();
+
+    if (typeof window.saveExecutiveMemory === "function") {
+        window.saveExecutiveMemory(memory);
+    }
+
+    return memory.executiveAgent;
+}
+
+function updateExecutiveAgentStats(store, result) {
+    var metrics = result && result.metrics ? result.metrics : {};
+    var stats = store.stats;
+    var agents = {};
+    var latestKpis = Array.isArray(store.kpis) && store.kpis.length ? store.kpis[0] : null;
+
+    stats.runs = (stats.runs || 0) + 1;
+
+    if (result && result.parseFailed) {
+        stats.parseFailures = (stats.parseFailures || 0) + 1;
+    }
+
+    /* Counted off the projections rather than off this run, so the numbers
+       describe what the store actually holds after the re-projection above. */
+    stats.assignmentsCreated = Array.isArray(store.assignments) ? store.assignments.length : 0;
+    stats.sprintsRun = Array.isArray(store.sprints) ? store.sprints.length : 0;
+
+    if (Array.isArray(store.assignments)) {
+        store.assignments.forEach(function(assignment) {
+            if (assignment && assignment.assignedAgent) {
+                agents[assignment.assignedAgent] = true;
+            }
+        });
+    }
+
+    stats.agentsCoordinated = Object.keys(agents).length;
+
+    if (latestKpis) {
+        stats.completionPercent = latestKpis.completionPercent || 0;
+        stats.blockedPercent = latestKpis.blockedPercent || 0;
+        stats.efficiencyScore = latestKpis.efficiencyScore || 0;
+    }
+
+    /* Same override channel every other agent's stats updater exposes. */
+    Object.keys(metrics).forEach(function(key) {
+        if (metrics[key] !== undefined) {
+            stats[key] = metrics[key];
+        }
+    });
+
+    if (stats.parseFailures && stats.runs && stats.parseFailures >= stats.runs) {
+        stats.confidence = "LOW";
+    } else if (stats.assignmentsCreated >= 6 && !stats.blockedPercent) {
+        stats.confidence = "HIGH";
+    } else if (stats.assignmentsCreated > 0) {
+        stats.confidence = "MEDIUM";
+    } else {
+        stats.confidence = "LOW";
+    }
+
+    stats.lastRun = (result && result.createdAt) || new Date().toISOString();
+    stats.updatedAt = new Date().toISOString();
+}
+
+function persistExecutiveAgentResult(result, extras) {
+    var memory = getExecutiveAgentMemory();
+    var store;
+    var reportText;
+
+    if (!memory || !result) {
+        return result;
+    }
+
+    store = ensureExecutiveAgentStore(memory);
+    store.actions.unshift(result);
+    store.actions = store.actions.slice(0, EXECUTIVE_AGENT_CAPS.actions);
+    store.lastAction = result.action;
+
+    /* Rebuilt wholesale from the owning stores every time. An assignment that
+       moved to Completed since the last run is corrected here rather than
+       lingering as whatever it was when it was first seen. */
+    store.assignments = projectExecutiveAssignments();
+    store.sprints = projectExecutiveSprints();
+    store.kpis = projectExecutiveKpis();
+
+    if (extras && extras.priority) {
+        store.priorities.unshift(extras.priority);
+        store.priorities = store.priorities.slice(0, EXECUTIVE_AGENT_CAPS.priorities);
+    }
+
+    if (extras && extras.nextAction) {
+        store.nextActions.unshift(extras.nextAction);
+        store.nextActions = store.nextActions.slice(0, EXECUTIVE_AGENT_CAPS.nextActions);
+    }
+
+    if (extras && extras.report) {
+        reportText = String(extras.report.text || "");
+        store.orchestrationReports.unshift({
+            id: extras.report.id || null,
+            title: String(extras.report.title || "Executive report"),
+            sprintId: extras.report.sprintId || null,
+            assignmentCount: extras.report.assignmentCount || 0,
+            parseFailed: extras.report.parseFailed === true,
+            preview: reportText.slice(0, EXECUTIVE_AGENT_REPORT_PREVIEW_CHARS),
+            truncated: reportText.length > EXECUTIVE_AGENT_REPORT_PREVIEW_CHARS,
+            createdAt: extras.report.createdAt || new Date().toISOString(),
+            updatedAt: extras.report.createdAt || new Date().toISOString()
+        });
+        store.orchestrationReports = store.orchestrationReports.slice(0, EXECUTIVE_AGENT_CAPS.orchestrationReports);
+    }
+
+    store.status = result.parseFailed ? "needs_attention" : "idle";
+    store.lastRun = result.createdAt || new Date().toISOString();
+    store.updatedAt = new Date().toISOString();
+
+    updateExecutiveAgentStats(store, result);
+    saveExecutiveAgentMemory(memory);
+
+    return result;
+}
+
+function getExecutiveAgentSummary() {
+    var memory = getExecutiveAgentMemory();
+    var store = memory ? ensureExecutiveAgentStore(memory) : null;
+    var stats = store && store.stats ? store.stats : {};
+
+    return {
+        status: store ? store.status : "idle",
+        runs: stats.runs || 0,
+        sprintsRun: stats.sprintsRun || 0,
+        assignmentsCreated: stats.assignmentsCreated || 0,
+        agentsCoordinated: stats.agentsCoordinated || 0,
+        parseFailures: stats.parseFailures || 0,
+        efficiencyScore: stats.efficiencyScore || 0,
+        confidence: stats.confidence || "LOW"
+    };
+}
+
+/* Called from every exit of processExecutiveAssignmentsFromReport that
+   represents a real executive run — the one that parsed assignments, and the
+   one that parsed none. Both are runs; only one of them produced work. */
+function recordExecutiveRunToStore(item, sprintId, created) {
+    var records = Array.isArray(created) ? created : [];
+
+    if (typeof persistExecutiveAgentResult !== "function") {
+        return;
+    }
+
+    try {
+        persistExecutiveAgentResult({
+            action: records.length ? "executive_report_parsed" : "executive_report_parse_failed",
+            runId: sprintId || null,
+            reportId: item && item.id ? String(item.id) : null,
+            summary: (item && item.summary) || "",
+            assignmentCount: records.length,
+            parseFailed: !records.length,
+            createdAt: new Date().toISOString()
+        }, {
+            report: {
+                id: item && item.id ? String(item.id) : null,
+                title: (item && item.summary) || "Executive report",
+                sprintId: sprintId || null,
+                assignmentCount: records.length,
+                parseFailed: !records.length,
+                text: item && item.result ? String(item.result) : "",
+                createdAt: (item && item.created_at) || new Date().toISOString()
+            }
+        });
+    } catch (execStoreErr) {
+        console.error("EXECUTIVE STORE WRITE ERROR:", execStoreErr);
+    }
+}
+
+window.recordExecutiveRunToStore = recordExecutiveRunToStore;
+window.ensureExecutiveAgentStore = ensureExecutiveAgentStore;
+window.getExecutiveAgentMemory = getExecutiveAgentMemory;
+window.saveExecutiveAgentMemory = saveExecutiveAgentMemory;
+window.persistExecutiveAgentResult = persistExecutiveAgentResult;
+window.getExecutiveAgentSummary = getExecutiveAgentSummary;
+
 function processExecutiveAssignmentsFromReport(item) {
     console.log("EXECUTIVE REPORT RECEIVED FOR QUEUE PARSING:", item && item.id ? item.id : "(no id)");
 
@@ -38531,6 +38969,11 @@ function processExecutiveAssignmentsFromReport(item) {
 
     if (!extracted.length) {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, [], validExtractedCount));
+        /* An executive report that yielded no assignments is still an
+           executive run, and the page has to be able to show it. The gate
+           above this one is different: it rejects reports that are not
+           executive reports at all, and those are none of this store business. */
+        recordExecutiveRunToStore(item, sprintId, []);
         renderAssignmentDashboard();
         return [];
     }
@@ -38590,6 +39033,8 @@ function processExecutiveAssignmentsFromReport(item) {
     } else {
         console.log("EXECUTIVE QUEUE PARSE FAILED:", getExecutiveQueueParseFailureReason(item, extracted, created, validExtractedCount));
     }
+
+    recordExecutiveRunToStore(item, sprintId, created);
 
     renderAssignmentDashboard();
 
