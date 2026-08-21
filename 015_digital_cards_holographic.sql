@@ -1,1 +1,0 @@
-ALTER TABLE digital_cards ADD COLUMN IF NOT EXISTS holographic_style BOOLEAN DEFAULT FALSE;
