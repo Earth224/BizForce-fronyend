@@ -441,7 +441,24 @@
     var AGENT_KEY = "adsAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Deals","collections":["deals"]},{"title":"Partnerships","collections":["partnerships"]},{"title":"Pipeline","collections":["pipeline"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    /* These names are not labels — they are the literal field names on
+       memory.adsAgent, which is what collectItems() indexes into. They come
+       from persistAdsAgentResult() in dashboard.html, the only thing that
+       ever writes this store: actions, campaigns, platformAds,
+       audienceSegments and reports.
+
+       The previous set was Broker's, copied verbatim along with the rest of
+       this page, so every section pointed at a field the Ads Agent has never
+       written. A missing key does not error — collectItems returns nothing
+       and the section renders its empty state — so all five boxes read "No
+       deals yet. Run the Ads Agent from the dashboard" no matter how many
+       times the agent had actually been run.
+
+       reports is a plain array here (ensureAdsAgentStore forces it with
+       Array.isArray), so it belongs under collections. As a nestedBucket it
+       was indexed by string key against an array and could only ever come
+       back empty. */
+    var REPORT_SECTIONS = [{"title":"Campaigns","collections":["campaigns"]},{"title":"Platform Ads","collections":["platformAds"]},{"title":"Audience Segments","collections":["audienceSegments"]},{"title":"Reports","collections":["reports"]},{"title":"Recent Actions","collections":["actions"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
     var DASHBOARD_HREF = "dashboard.html";
