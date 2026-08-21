@@ -300,6 +300,7 @@ if (!token) {
   </div>
 </div>
 </div>
+<script src="/scripts/bf-identity.js"></script>
 <script>
 /* bf_user holds a profiles row, which carries several names. business_name is
    the one this page wants, but a profile can be missing it, so the others are
@@ -309,20 +310,16 @@ if (!token) {
    name and initials, shown to every account that had not yet stored a profile,
    which until now was every account that had only ever registered. They are now
    a neutral placeholder matching what the agent pages already show when they
-   have no business name to render. */
+   have no business name to render.
+
+   bfDisplayName and bfUserInitials moved to /scripts/bf-identity.js so
+   settings.html resolves the same chain instead of its own narrower one. The
+   call below sits inside the try, so if that file ever fails to load this page
+   falls back to the placeholder rather than breaking — the same thing it shows
+   for an account with no profile. The token redirect is outside the try and is
+   unaffected either way. */
 token = localStorage.getItem('bf_token');
 const user = localStorage.getItem('bf_user');
-
-function bfDisplayName(u) {
-  if (!u || typeof u !== 'object') { return ''; }
-  var emailLocal = typeof u.email === 'string' ? u.email.split('@')[0] : '';
-  return String(u.business_name || u.full_name || u.username || emailLocal || '').trim();
-}
-
-function bfUserInitials(name) {
-  if (!name) { return 'BF'; }
-  return name.split(/\s+/).filter(Boolean).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
-}
 
 if (!token) {
   window.location.href = '/app.html';

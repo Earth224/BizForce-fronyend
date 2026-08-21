@@ -580,6 +580,7 @@
     </div>
   </div>
 
+  <script src="/scripts/bf-identity.js"></script>
   <script>
     (function () {
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -1119,14 +1120,27 @@
       if (rawUser) {
         try {
           var u = JSON.parse(rawUser);
-          var name = u.business_name || u.name || u.full_name || "";
+          /* Was business_name || name || full_name. `name` is a column on
+             neither the profile nor the user object, so that middle term could
+             never match, and username and the email local part were never
+             consulted at all — this page identified fewer people than the
+             dashboard did from the very same stored object. Both now resolve
+             through /scripts/bf-identity.js. */
+          var name = window.bfDisplayName ? window.bfDisplayName(u) : "";
           var email = u.email || "";
-          if (name && email) {
+          /* When the row carried no real name, bfDisplayName returns the email
+             local part. Pairing that with the address it came from reads as
+             "owner — owner@example.com", so the address alone is shown. */
+          var nameIsEmail = window.bfNameIsEmailFallback
+            ? window.bfNameIsEmailFallback(u)
+            : false;
+
+          if (name && email && !nameIsEmail) {
             identityText = name + " — " + email;
-          } else if (name) {
-            identityText = name;
           } else if (email) {
             identityText = email;
+          } else if (name) {
+            identityText = name;
           }
         } catch (e) {}
       }
