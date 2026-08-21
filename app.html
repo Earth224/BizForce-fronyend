@@ -654,6 +654,15 @@ if (loginForm) {
 
         if (data.token) {
           localStorage.setItem("bf_token", data.token);
+          /* Registration returns a profile just as login does, and until this
+             line it was thrown away — so a brand-new account arrived at the
+             dashboard with no bf_user at all and every surface that reads it
+             fell through to a placeholder. The || {} guard matches the login
+             path above for the same reason: getProfileByUserId uses
+             .maybeSingle() and answers null when there is no row, and a stored
+             "null" would make JSON.parse succeed and every read after it
+             throw. */
+          localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
         }
 
         setStatus("Account created!");

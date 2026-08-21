@@ -117,9 +117,9 @@ if (!token) {
       </span>
     </label>
     <div class="topbar-user">
-      <div class="topbar-avatar" id="userAvatar">ER</div>
+      <div class="topbar-avatar" id="userAvatar">BF</div>
       <div class="topbar-user-meta">
-        <span class="topbar-user-name" id="bizName">Earth Rose</span>
+        <span class="topbar-user-name" id="bizName">Your Business</span>
         <span class="topbar-role">Executive</span>
       </div>
     </div>
@@ -143,7 +143,7 @@ if (!token) {
   <span class="hq-eyebrow hero-pill">BIZFORCE AI</span>
   <h1 class="hq-hero-title hero-title">EXECUTIVE HQ</h1>
   <p class="hq-hero-sub">Control your AI business empire.</p>
-  <p class="hq-hero-welcome" id="welcomeMsg">Welcome back, Earth Rose</p>
+  <p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p>
 </header>
 <div class="bf-feature-grid cards">
 <div class="bf-feature-card card bf-card" onclick="window.location.href='/analytics-dashboard.html'" style="cursor:pointer">
@@ -300,7 +300,45 @@ if (!token) {
   </div>
 </div>
 </div>
-<script>token=localStorage.getItem('bf_token');const user=localStorage.getItem('bf_user');function bfUserInitials(name){if(!name)return'ER';return name.split(/\s+/).filter(Boolean).map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();}if(!token){window.location.href='/app.html';}else{try{const u=JSON.parse(user);if(u&&u.business_name){document.getElementById('bizName').textContent=u.business_name;document.getElementById('welcomeMsg').textContent='Welcome back, '+u.business_name;var av=document.getElementById('userAvatar');if(av){av.textContent=bfUserInitials(u.business_name);}}}catch(e){}}</script>
+<script>
+/* bf_user holds a profiles row, which carries several names. business_name is
+   the one this page wants, but a profile can be missing it, so the others are
+   tried before giving up rather than falling straight through to a default.
+
+   The defaults used to be the literal "Earth Rose" and "ER" — the owner's own
+   name and initials, shown to every account that had not yet stored a profile,
+   which until now was every account that had only ever registered. They are now
+   a neutral placeholder matching what the agent pages already show when they
+   have no business name to render. */
+token = localStorage.getItem('bf_token');
+const user = localStorage.getItem('bf_user');
+
+function bfDisplayName(u) {
+  if (!u || typeof u !== 'object') { return ''; }
+  var emailLocal = typeof u.email === 'string' ? u.email.split('@')[0] : '';
+  return String(u.business_name || u.full_name || u.username || emailLocal || '').trim();
+}
+
+function bfUserInitials(name) {
+  if (!name) { return 'BF'; }
+  return name.split(/\s+/).filter(Boolean).map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
+}
+
+if (!token) {
+  window.location.href = '/app.html';
+} else {
+  try {
+    var u = JSON.parse(user);
+    var name = bfDisplayName(u);
+    if (name) {
+      document.getElementById('bizName').textContent = name;
+      document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + name;
+      var av = document.getElementById('userAvatar');
+      if (av) { av.textContent = bfUserInitials(name); }
+    }
+  } catch (e) {}
+}
+</script>
 
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
