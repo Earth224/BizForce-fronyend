@@ -977,6 +977,10 @@ var activeTheme     = "dark";
 var activeShareToken = null;
 var qrTimer = null;
 var videoUrl = null;
+// Object URLs for the local previews, tracked so they can still be revoked after the
+// state vars above have moved on to the uploaded public URL.
+var _videoBlobUrl = null;
+var _stillBlobUrl = null;
 var videoMode = false;
 var cardState = 'still'; // still | entering | playing | paused | exiting
 var holoStyle = false;
@@ -1871,7 +1875,26 @@ function onFitBtnClick(btn, fit) {
   applyBgImageStyles();
 }
 
-async function uploadStillImage(file) {
+/* ── Upload guards ─────────────────────────────────────────────────────────── */
+var MIN_UPLOAD_BYTES = 1024;                // under this the file is an empty container
+var MAX_UPLOAD_BYTES = 10 * 1024 * 1024;    // the bf-public bucket ceiling
+
+// True when the file is worth uploading. Toasts and returns false otherwise, so callers
+// can bail before touching preview state or the network.
+function validateUploadFile(file) {
+  if (!file) return false;
+  if (file.size < MIN_UPLOAD_BYTES) {
+    showToast("That file appears to be empty or corrupted — try re-exporting it.", true);
+    return false;
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    showToast("That file is " + (file.size / 1048576).toFixed(1) + " MB — the limit is 10 MB.", true);
+    return false;
+  }
+  return true;
+}
+
+async function uploadStillImage(file, prevStillImageUrl) {
   console.log("[BF] uploadStillImage: start", file.name);
   var nameEl = document.getElementById("stillImgName");
   var saveBtn = document.getElementById("saveBtn");
@@ -1901,6 +1924,8 @@ async function uploadStillImage(file) {
     nameEl.textContent = file.name;
     showToast("Still image uploaded!");
   } catch(e) {
+    // Never leave the blob: preview URL behind as the saved value.
+    stillImageUrl = prevStillImageUrl || null;
     console.error("[BF] uploadStillImage: failed", e);
     nameEl.textContent = file.name;
     showToast(e.message || "Upload failed", true);
@@ -2032,7 +2057,7 @@ async function uploadAudio(file) {
   }
 }
 
-async function uploadPitchVideo(file) {
+async function uploadPitchVideo(file, prevVideoUrl) {
   var status   = document.getElementById("pitchVidStatus");
   var prog     = document.getElementById("pitchVidProg");
   var progWrap = document.getElementById("pitchVidProgWrap");
@@ -2062,6 +2087,9 @@ async function uploadPitchVideo(file) {
     setTimeout(function() { progWrap.style.display = "none"; prog.style.width = "0%"; status.textContent = ""; status.className = "vid-upload-st"; }, 1200);
     showToast("Video uploaded!");
   } catch(e) {
+    // Never leave the blob: preview URL behind as the saved value — video_url has no
+    // blob: guard at save time the way still_image_url does.
+    videoUrl = prevVideoUrl || null;
     status.textContent = e.message || "Upload failed";
     status.className = "vid-upload-st fail";
     progWrap.style.display = "none";
@@ -2102,6 +2130,7 @@ document.getElementById("fi-bg-img").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
   this.value = "";
+  if (!validateUploadFile(file)) return;
   uploadBgImage(file);
 });
 
@@ -2109,6 +2138,7 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
   this.value = "";
+  if (!validateUploadFile(file)) return;
 
   var nameEl = document.getElementById("pitchVidName");
   var status = document.getElementById("pitchVidStatus");
@@ -2116,9 +2146,14 @@ document.getElementById("fi-pitch-vid").addEventListener("change", function() {
   status.textContent = "";
   status.className = "vid-upload-st";
 
+  // The <video> preview keeps using this blob long after the upload finishes, so the
+  // previous one is revoked here — when it is finally replaced — not on completion.
+  if (_videoBlobUrl) URL.revokeObjectURL(_videoBlobUrl);
+  var prevVideoUrl = videoUrl;
   var blobUrl = URL.createObjectURL(file);
+  _videoBlobUrl = blobUrl;
   videoUrl = blobUrl;
-  uploadPitchVideo(file);
+  uploadPitchVideo(file, prevVideoUrl);
   var vid = document.getElementById("cardVideoPitch");
   vid.controls = false;
   vid.loop = false;
@@ -2172,8 +2207,13 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
   if (!file) return;
   this.value = "";
   console.log("[BF] still-img file picked:", file.name, file.type, file.size, "bytes");
-  if (stillImageUrl && stillImageUrl.startsWith("blob:")) { URL.revokeObjectURL(stillImageUrl); }
-  stillImageUrl = URL.createObjectURL(file);
+  if (!validateUploadFile(file)) return;
+  // Revoke via the tracker, not via stillImageUrl — after a successful upload that var
+  // holds the public URL and the blob would otherwise be unreachable.
+  if (_stillBlobUrl) URL.revokeObjectURL(_stillBlobUrl);
+  var prevStillImageUrl = stillImageUrl;
+  _stillBlobUrl = URL.createObjectURL(file);
+  stillImageUrl = _stillBlobUrl;
   stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
   document.getElementById("stillImgName").textContent = file.name;
   document.getElementById("stillImgRemoveBtn").style.display = "inline-block";
@@ -2185,13 +2225,14 @@ document.getElementById("fi-still-img").addEventListener("change", function() {
     pImg.style.display = 'block';
     _syncOverlay(true);
   }
-  uploadStillImage(file);
+  uploadStillImage(file, prevStillImageUrl);
 });
 
 document.getElementById("fi-audio").addEventListener("change", function() {
   var file = this.files[0];
   if (!file) return;
   this.value = "";
+  if (!validateUploadFile(file)) return;
   uploadAudio(file);
 });
 
@@ -2583,7 +2624,7 @@ function applyStillImgZoom(val) {
 }
 
 function clearStillImage() {
-  if (stillImageUrl) { URL.revokeObjectURL(stillImageUrl); }
+  if (_stillBlobUrl) { URL.revokeObjectURL(_stillBlobUrl); _stillBlobUrl = null; }
   stillImageUrl = null;
   stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
   document.getElementById('stillImgName').textContent = 'No file chosen';
