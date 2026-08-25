@@ -629,6 +629,36 @@
         <div class="seo-opt-report-body" id="seoOptReportBody"></div>
       </div>
     </section>
+    <section class="seo-opt-card" aria-label="Write A Blog Post">
+      <div class="seo-opt-header">
+        <h2 class="section-label" style="margin-bottom:0;">Write A Blog Post</h2>
+      </div>
+
+      <label class="seo-opt-label" for="seoPostMoneyUrl">Money URL — the page this article should send readers to</label>
+      <input type="url" class="seo-opt-input" id="seoPostMoneyUrl" placeholder="https://swordvitality.com/products/tongkat-ali" />
+
+      <label class="seo-opt-label" for="seoPostAnchor">Link Anchor Text</label>
+      <input type="text" class="seo-opt-input" id="seoPostAnchor" placeholder="Clickable text for the link (optional — falls back to a sensible default)" />
+
+      <label class="seo-opt-label" for="seoPostSiteName">Site Name</label>
+      <input type="text" class="seo-opt-input" id="seoPostSiteName" placeholder="What to call the site in the article (optional — falls back to the domain)" />
+
+      <label class="seo-opt-label" for="seoPostTopic">Topic</label>
+      <input type="text" class="seo-opt-input" id="seoPostTopic" placeholder="What the article should be about (optional — leave blank and the agent picks a topic from the money page)" />
+
+      <label class="seo-opt-label" for="seoPostContext">Site Context</label>
+      <textarea class="seo-opt-textarea" id="seoPostContext" placeholder="Notes about the site, who it is written for, and which topics are already covered (optional)"></textarea>
+
+      <div class="seo-opt-btn-row">
+        <button type="button" class="action-btn" id="seoPostBtn">Generate Post</button>
+        <div class="seo-opt-msg" id="seoPostMsg"></div>
+      </div>
+
+      <div class="seo-opt-report" id="seoPostResult" style="display:none;">
+        <h3 class="seo-opt-report-title">Generated Post</h3>
+        <div class="seo-opt-report-body" id="seoPostResultBody"></div>
+      </div>
+    </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -1040,10 +1070,116 @@
         });
       }
 
+      /* ── blog post generation ── */
+
+      /* setOptMsg writes to #seoOptMsg, which belongs to the optimize card, so
+         this section needs its own. Same shape, same wholesale className
+         reassignment, pointed at a different element. */
+      function setPostMsg(text, cls) {
+        var el = document.getElementById("seoPostMsg");
+        if (!el) return;
+        el.textContent = text;
+        el.className = "seo-opt-msg" + (cls ? " " + cls : "");
+      }
+
+      /* The article body is deliberately NOT rendered. It is model-authored
+         HTML that has not been through the publish-time sanitizer yet, and this
+         panel exists to confirm what was filed rather than to preview it. Every
+         value below is written with textContent for the same reason. */
+      function renderGeneratedPost(data) {
+        var wrap = document.getElementById("seoPostResult");
+        var body = document.getElementById("seoPostResultBody");
+        if (!wrap || !body) return;
+
+        var proposal = (data && data.proposal) || {};
+        var payload = proposal.payload || {};
+
+        body.textContent = "";
+
+        function addLine(label, value) {
+          if (value === null || value === undefined || String(value) === "") return;
+          var line = document.createElement("div");
+          line.className = "seo-opt-p";
+          line.textContent = label + ": " + String(value);
+          body.appendChild(line);
+        }
+
+        addLine("Title", payload.title);
+        addLine("Slug", payload.slug);
+        addLine("Meta description", payload.meta_description);
+        addLine("Keyword", payload.keyword);
+
+        var note = document.createElement("div");
+        note.className = "seo-opt-p";
+        note.textContent = "This post is now a pending proposal. It must be approved in Agent Proposals before it becomes a draft.";
+        body.appendChild(note);
+
+        wrap.style.display = "block";
+      }
+
+      function runGeneratePost() {
+        var urlEl     = document.getElementById("seoPostMoneyUrl");
+        var anchorEl  = document.getElementById("seoPostAnchor");
+        var siteEl    = document.getElementById("seoPostSiteName");
+        var topicEl   = document.getElementById("seoPostTopic");
+        var contextEl = document.getElementById("seoPostContext");
+        var btn       = document.getElementById("seoPostBtn");
+        var token     = tok();
+
+        if (!token) { setPostMsg("Not signed in.", "err"); return; }
+        var moneyUrl = urlEl ? urlEl.value.trim() : "";
+        if (!moneyUrl) { setPostMsg("Enter the product page URL first.", "err"); return; }
+
+        var anchor  = anchorEl ? anchorEl.value.trim() : "";
+        var site    = siteEl ? siteEl.value.trim() : "";
+        var topic   = topicEl ? topicEl.value.trim() : "";
+        var context = contextEl ? contextEl.value.trim() : "";
+
+        /* Optional keys are omitted, never sent empty. The backend runs each
+           through safeText, which reads "" as absent anyway — but an absent key
+           and an empty one are different requests to read back in a log. */
+        var body = { money_url: moneyUrl };
+        if (anchor)  body.money_anchor = anchor;
+        if (site)    body.site_name = site;
+        if (topic)   body.topic = topic;
+        if (context) body.site_context = context;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="seo-opt-spinner"></span>Generating…';
+        setPostMsg("Writing the article — this can take up to a minute…");
+
+        fetch(API_URL + "/api/agents/seo/generate-post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify(body)
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          btn.textContent = "Generate Post";
+          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
+          setPostMsg("Post created and awaiting approval.", "ok");
+          renderGeneratedPost(res.data);
+        })
+        .catch(function (e) {
+          btn.disabled = false;
+          btn.textContent = "Generate Post";
+          setPostMsg(e.message || "Post generation failed.", "err");
+        });
+      }
+
       document.addEventListener("DOMContentLoaded", function () {
         var btn = document.getElementById("seoOptBtn");
         if (btn) btn.addEventListener("click", runOptimize);
         loadOptimizeCount();
+      });
+
+      /* Its own listener rather than a line added to the one above: both fire on
+         DOMContentLoaded, and leaving that block untouched keeps this section
+         purely additive. */
+      document.addEventListener("DOMContentLoaded", function () {
+        var btn = document.getElementById("seoPostBtn");
+        if (btn) btn.addEventListener("click", runGeneratePost);
       });
     })();
   </script>
