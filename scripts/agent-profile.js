@@ -783,6 +783,15 @@
           if (!t.prompt) t.prompt = promptText;
           prependResultCard(t);
           loadHistory();
+        } else if (t.status === "requires_approval") {
+          /* Terminal, not in-progress. The agent finished and filed a proposal;
+             nothing further will arrive on this task. Without this branch it fell
+             to the else below, kept polling, and reported a six-minute timeout for
+             work that had already succeeded. */
+          clearInterval(pollTimer);
+          setBtnLoading(false);
+          setMsg("Task complete — proposal awaiting your approval.", "ok");
+          setLive("ok", "Awaiting approval", "Finished: " + fmt(t.updated_at || t.created_at));
         } else if (t.status === "failed") {
           clearInterval(pollTimer);
           setBtnLoading(false);
