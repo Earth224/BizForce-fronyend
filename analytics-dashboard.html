@@ -277,12 +277,41 @@
         </div>
       </div>
 
+      <span class="chart-title">Activity Over Time — Windowed, Not All-Time</span>
+
+      <div class="stat-strip">
+        <div class="stat-card">
+          <span class="stat-number" id="statActivityTotal">—</span>
+          <span class="stat-label">Total Tasks · Last 90 Days</span>
+        </div>
+      </div>
+
+      <div class="empty-state" id="activityStatus" style="margin-bottom:24px">Loading activity...</div>
+
+      <div class="charts-row" id="activityChartsRow" style="display:none">
+        <div class="chart-panel">
+          <span class="chart-title">Last 24 Hours by Hour</span>
+          <canvas id="chartActivityHours"></canvas>
+        </div>
+        <div class="chart-panel">
+          <span class="chart-title">Last 30 Days by Day</span>
+          <canvas id="chartActivityDays"></canvas>
+        </div>
+        <div class="chart-panel">
+          <span class="chart-title">Last 12 Weeks by Week</span>
+          <canvas id="chartActivityWeeks"></canvas>
+        </div>
+      </div>
+
     </div>
 
   <script>
     var API = "https://dynamic-prosperity-production-5382.up.railway.app";
     var _chartContent = null;
     var _chartAgents  = null;
+    var _chartActivityHours = null;
+    var _chartActivityDays  = null;
+    var _chartActivityWeeks = null;
 
     function renderCharts(s) {
       try {
@@ -382,7 +411,201 @@
       }
     }
 
+    // ── Activity over time ───────────────────────────────────────────────────
+    //
+    // GET /api/activity/overview. Everything below is WINDOWED — 24 hours, 30
+    // days, 12 weeks — while every stat tile above it is an all-time count. The
+    // two are not comparable, which is why this section carries its own heading
+    // and why the 90-day total is labelled with its window rather than left to
+    // look like a running total.
+    //
+    // The server zero-fills every bucket, so a series arrives complete and is
+    // plotted exactly as it comes. Nothing here fills a gap or synthesises a
+    // bucket: a missing one would be a server bug, and covering for it on the
+    // client would hide the bug while drawing a chart that looks fine.
+
+    // "2026-09-01T14:00" -> "14:00"
+    function activityHourLabel(bucket) {
+      return String(bucket || "").slice(11);
+    }
+
+    // "2026-09-01" -> "09-01", the same MM-DD the captures-over-time chart in
+    // agents/lead-radar.html uses.
+    function activityDayLabel(bucket) {
+      return String(bucket || "").slice(5);
+    }
+
+    function activityLabels(series, labelFn) {
+      return (series || []).map(function(b) { return labelFn(b.bucket); });
+    }
+
+    function activityCounts(series) {
+      return (series || []).map(function(b) { return b.count; });
+    }
+
+    // Line styling follows the timeline chart in agents/lead-radar.html: the
+    // same cyan, tension 0.35, filled. pointRadius is the one departure — that
+    // chart plots 14 points across a full-width panel and can afford 4, while
+    // these plot 24 and 30 in a third of the width and would run together.
+    function activityLineDataset(counts, pointRadius) {
+      return {
+        data:                 counts,
+        borderColor:          "rgba(0,229,255,0.85)",
+        backgroundColor:      "rgba(0,229,255,0.08)",
+        pointBackgroundColor: "rgba(0,229,255,0.9)",
+        pointRadius:          pointRadius,
+        tension:              0.35,
+        fill:                 true
+      };
+    }
+
+    function activityScales() {
+      return {
+        x: { ticks: { color: "#8892b8", maxRotation: 45 }, grid: { color: "rgba(255,255,255,0.05)" } },
+        y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
+      };
+    }
+
+    // Loading, empty and error all speak through the one element, so they can
+    // never be on screen at once and the charts are only ever shown when there
+    // is something in them to look at.
+    function showActivityStatus(message) {
+      document.getElementById("activityStatus").textContent = message;
+      document.getElementById("activityStatus").style.display = "";
+      document.getElementById("activityChartsRow").style.display = "none";
+    }
+
+    function showActivityCharts() {
+      document.getElementById("activityStatus").style.display = "none";
+      document.getElementById("activityChartsRow").style.display = "";
+    }
+
+    function renderActivityCharts(overview) {
+      try {
+        var hours = overview.by_hour;
+        if (_chartActivityHours) { _chartActivityHours.destroy(); _chartActivityHours = null; }
+        _chartActivityHours = new Chart(document.getElementById("chartActivityHours"), {
+          type: "line",
+          data: {
+            labels:   activityLabels(hours, activityHourLabel),
+            datasets: [activityLineDataset(activityCounts(hours), 3)]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales:  activityScales()
+          }
+        });
+      } catch (e) {
+        console.error("[Analytics] chartActivityHours error:", e);
+      }
+
+      try {
+        var days = overview.by_day;
+        if (_chartActivityDays) { _chartActivityDays.destroy(); _chartActivityDays = null; }
+        _chartActivityDays = new Chart(document.getElementById("chartActivityDays"), {
+          type: "line",
+          data: {
+            labels:   activityLabels(days, activityDayLabel),
+            datasets: [activityLineDataset(activityCounts(days), 2)]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales:  activityScales()
+          }
+        });
+      } catch (e) {
+        console.error("[Analytics] chartActivityDays error:", e);
+      }
+
+      try {
+        var weeks = overview.by_week;
+        if (_chartActivityWeeks) { _chartActivityWeeks.destroy(); _chartActivityWeeks = null; }
+        _chartActivityWeeks = new Chart(document.getElementById("chartActivityWeeks"), {
+          type: "bar",
+          data: {
+            labels: activityLabels(weeks, activityDayLabel),
+            datasets: [{
+              data:            activityCounts(weeks),
+              backgroundColor: "rgba(0,229,255,0.75)",
+              borderRadius:    6,
+              borderSkipped:   false
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales:  activityScales()
+          }
+        });
+      } catch (e) {
+        console.error("[Analytics] chartActivityWeeks error:", e);
+      }
+    }
+
+    function loadActivity() {
+      try {
+        fetch(API + "/api/activity/overview", {
+          headers: { "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") }
+        })
+        // The summary call above rejects with r.status and throws the body
+        // away. This one reads it first: /api/activity/overview answers a
+        // failed read and a window too large to aggregate with two different
+        // messages and the same 500, so discarding the body would collapse two
+        // unrelated problems into one banner that explains neither.
+        .then(function(r) {
+          if (r.ok) { return r.json(); }
+          return r.json().then(
+            function(body) { return Promise.reject((body && body.error) || null); },
+            function()     { return Promise.reject(null); }
+          );
+        })
+        .then(function(data) {
+          var overview = data.overview;
+
+          // A 200 carrying no overview is a broken response, not an empty one.
+          if (!overview) {
+            showActivityStatus("Could not load activity data. Please try refreshing.");
+            return;
+          }
+
+          document.getElementById("statActivityTotal").textContent =
+            overview.total_tasks_90d != null ? overview.total_tasks_90d : "—";
+
+          var buckets = (overview.by_hour || [])
+            .concat(overview.by_day || [])
+            .concat(overview.by_week || []);
+
+          var plotted = buckets.reduce(function(sum, b) { return sum + (b.count || 0); }, 0);
+
+          // Nothing to plot is not a failure. A new account has a complete,
+          // correct, entirely zero set of buckets, and saying so plainly beats
+          // three flat lines the reader has to interpret — and must never be
+          // confused with the error wording below.
+          if (plotted === 0) {
+            showActivityStatus("No task activity in the last 12 weeks yet. Runs will appear here as they happen.");
+            return;
+          }
+
+          // Shown before the charts are built so each canvas is measured at its
+          // laid-out size rather than inside a hidden row.
+          showActivityCharts();
+          renderActivityCharts(overview);
+        })
+        .catch(function(err) {
+          console.error("[Analytics] activity fetch failed:", err);
+          // The server's own words whenever it sent any. The generic line is
+          // the fallback for the cases where there are none to quote: a network
+          // failure, or a body with no error field.
+          showActivityStatus(
+            (typeof err === "string" && err) ? err : "Could not load activity data. Please try refreshing."
+          );
+        });
+      } catch (e) {
+        console.error("[Analytics] loadActivity error:", e);
+      }
+    }
+
     loadAnalytics();
+    loadActivity();
   </script>
 
   </div>
