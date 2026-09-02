@@ -38580,6 +38580,23 @@ var EXECUTIVE_AGENT_CAPS = {
     priorities: 50,
     nextActions: 50,
     kpis: 50,
+
+    /* The rolling health window confidence reads. Five entries, one per run,
+       newest first, each a boolean: true parsed, false did not.
+
+       Safe to add here because this object is never iterated — every use is an
+       explicit key lookup (projectExecutiveAssignments, projectExecutiveSprints,
+       projectExecutiveKpis, the normalise loop, and the four slices in
+       persistExecutiveAgentResult). Adding a key changes nothing for the
+       existing seven, and the normalise loop walks its own hardcoded field
+       list rather than these keys, so it picks this up only because the name
+       was added there too.
+
+       Five is deliberately short. This is a "is it working right now" signal,
+       not a history — parseFailures and runs remain the lifetime counters and
+       are unchanged. */
+    recentRuns: 5,
+
     orchestrationReports: 50
 };
 
@@ -38730,6 +38747,7 @@ function ensureExecutiveAgentStore(memory) {
             priorities: [],
             nextActions: [],
             kpis: [],
+            recentRuns: [],
             orchestrationReports: [],
             reports: {},
             lastRun: null,
@@ -38770,7 +38788,7 @@ function ensureExecutiveAgentStore(memory) {
         memory.executiveAgent.reports = {};
     }
 
-    ["actions", "assignments", "sprints", "priorities", "nextActions", "kpis", "orchestrationReports"].forEach(function(field) {
+    ["actions", "assignments", "sprints", "priorities", "nextActions", "kpis", "recentRuns", "orchestrationReports"].forEach(function(field) {
         if (!Array.isArray(memory.executiveAgent[field])) {
             memory.executiveAgent[field] = [];
         }
@@ -38822,6 +38840,22 @@ function updateExecutiveAgentStats(store, result) {
         stats.parseFailures = (stats.parseFailures || 0) + 1;
     }
 
+    /* The rolling window, written here because this is already the one place
+       that knows a run happened — runs is incremented three lines up and
+       parseFailures immediately above, and a second place deciding what counts
+       as a run is how the three drift apart.
+
+       Newest first, matching every other collection in this store, so slice(0,
+       cap) drops the oldest. Booleans rather than objects or timestamps: five
+       of these live in a localStorage key shared by sixteen stores, and the
+       only question being asked of them is "did it parse". */
+    if (!Array.isArray(store.recentRuns)) {
+        store.recentRuns = [];
+    }
+
+    store.recentRuns.unshift(!(result && result.parseFailed));
+    store.recentRuns = store.recentRuns.slice(0, EXECUTIVE_AGENT_CAPS.recentRuns);
+
     /* Counted off the projections rather than off this run, so the numbers
        describe what the store actually holds after the re-projection above. */
     stats.assignmentsCreated = Array.isArray(store.assignments) ? store.assignments.length : 0;
@@ -38850,7 +38884,43 @@ function updateExecutiveAgentStats(store, result) {
         }
     });
 
-    if (stats.parseFailures && stats.runs && stats.parseFailures >= stats.runs) {
+    /* ── Confidence ──────────────────────────────────────────────────────────
+       Read off the recent window, not off lifetime totals.
+
+       The old first branch was `parseFailures >= runs`, which could only ever
+       be true if EVERY run since the store was created had failed. One success
+       made it permanently unreachable: after that, runs outgrows parseFailures
+       forever, and 99 failures in 100 runs took the same branch as none. So the
+       thing that was supposed to catch a broken agent could not, and control
+       fell to assignmentsCreated — which line 38828 sets to
+       store.assignments.length, the whole persisted store rather than this run.
+       An agent whose last ten reports all failed to parse still reported HIGH
+       on six assignments banked weeks earlier. Confidence tracked accumulated
+       inventory, not whether the thing still works.
+
+       A strict majority of the window, so 3 of 5. Not >= half: two failures in
+       four runs is a coin flip, and calling that LOW would flip the badge on an
+       agent that is half working, which is what MEDIUM is for.
+
+       Only booleans count as evidence. Anything else in the array — a value
+       from a future shape, something a hand-edited localStorage put there — is
+       ignored rather than guessed at, so a corrupt entry cannot manufacture a
+       failure it did not observe.
+
+       AN ABSENT OR EMPTY WINDOW IS NOT FAILURE. Every store that existed before
+       this change has no recentRuns, and a store that has never run has an
+       empty one; both mean no evidence, not bad evidence. windowFailed stays
+       false and control falls through to the assignmentsCreated thresholds
+       below, exactly as it did before — so nothing regresses on first load, and
+       the window fills in from the next run onward. */
+    var runWindow = Array.isArray(store.recentRuns)
+        ? store.recentRuns.filter(function(entry) { return typeof entry === "boolean"; })
+        : [];
+
+    var windowFailures = runWindow.filter(function(parsed) { return parsed === false; }).length;
+    var windowFailed = runWindow.length > 0 && (windowFailures * 2) > runWindow.length;
+
+    if (windowFailed) {
         stats.confidence = "LOW";
     } else if (stats.assignmentsCreated >= 6 && !stats.blockedPercent) {
         stats.confidence = "HIGH";
@@ -38862,6 +38932,59 @@ function updateExecutiveAgentStats(store, result) {
 
     stats.lastRun = (result && result.createdAt) || new Date().toISOString();
     stats.updatedAt = new Date().toISOString();
+}
+
+/* Writes one or many items onto a capped executive collection, newest first.
+
+   extras.priority and extras.nextAction used to be single items, unshifted one
+   at a time. A run produces one per assignment, so both now accept an array as
+   well — a bare item is still wrapped and behaves exactly as before, which is
+   what keeps any other caller working.
+
+   Unshifted in REVERSE so the caller's order survives: incoming[0] ends up at
+   store[0]. Pushing forwards would reverse a run's assignments every time.
+
+   Empty, null and undefined entries are dropped here as well as at the caller.
+   A run that produced no priorities must add nothing rather than a blank item,
+   and this is the last place that can still tell the difference. */
+function unshiftExecutiveExtraItems(store, field, value) {
+    var incoming;
+    var accepted;
+    var i;
+
+    if (!value) {
+        return;
+    }
+
+    if (!Array.isArray(store[field])) {
+        store[field] = [];
+    }
+
+    incoming = Array.isArray(value) ? value : [value];
+
+    accepted = incoming.filter(function(entry) {
+        if (entry === null || entry === undefined) {
+            return false;
+        }
+
+        // A string entry is only worth keeping if it has content; an object is
+        // the shape the page renders and is kept as-is.
+        if (typeof entry === "string") {
+            return entry.trim() !== "";
+        }
+
+        return true;
+    });
+
+    if (!accepted.length) {
+        return;
+    }
+
+    for (i = accepted.length - 1; i >= 0; i--) {
+        store[field].unshift(accepted[i]);
+    }
+
+    store[field] = store[field].slice(0, EXECUTIVE_AGENT_CAPS[field]);
 }
 
 function persistExecutiveAgentResult(result, extras) {
@@ -38885,15 +39008,8 @@ function persistExecutiveAgentResult(result, extras) {
     store.sprints = projectExecutiveSprints();
     store.kpis = projectExecutiveKpis();
 
-    if (extras && extras.priority) {
-        store.priorities.unshift(extras.priority);
-        store.priorities = store.priorities.slice(0, EXECUTIVE_AGENT_CAPS.priorities);
-    }
-
-    if (extras && extras.nextAction) {
-        store.nextActions.unshift(extras.nextAction);
-        store.nextActions = store.nextActions.slice(0, EXECUTIVE_AGENT_CAPS.nextActions);
-    }
+    unshiftExecutiveExtraItems(store, "priorities", extras && extras.priority);
+    unshiftExecutiveExtraItems(store, "nextActions", extras && extras.nextAction);
 
     if (extras && extras.report) {
         reportText = String(extras.report.text || "");
@@ -38941,12 +39057,113 @@ function getExecutiveAgentSummary() {
 /* Called from every exit of processExecutiveAssignmentsFromReport that
    represents a real executive run — the one that parsed assignments, and the
    one that parsed none. Both are runs; only one of them produced work. */
+/* Turns the assignment records a run produced into items the executive page can
+   render, one per record that actually carries the field.
+
+   Nothing new is parsed here. parseExecutivePlainTextQueue already reads
+   `Priority:` and `Next Action:` off every assignment block — the prompt asks
+   for both on every block (buildExecutiveAgentAssignmentBlocks) — and
+   buildAssignmentRecord already carries them onto the record. They reached
+   recordExecutiveRunToStore inside `created` and were thrown away, because that
+   function read only created.length. This lifts them out.
+
+   TITLE IS record.task_title. buildAssignmentRecord guarantees it: it is set
+   from the parsed block and falls back to "Executive assignment", trimmed and
+   capped at 255 chars, so it is always a non-empty string naming the assignment
+   this came from. owner_assignment and assigned_agent are the fallbacks behind
+   it — the first is optional and only present when the block carried an Owner
+   line, the second is a bare agent key like "seo" and reads poorly as a title,
+   so both are second and third rather than first.
+
+   The shape is exactly what renderGenericItem in executive-agent.html already
+   reads, so the page needs no change: title, summary, priority (rendered into
+   the meta line) and updatedAt (rendered as the tag, and used by collectItems
+   to sort). reportType is the one addition — the renderer turns it into a
+   "Type:" meta entry, which is what separates a priority item from a next
+   action item when both came from the same assignment and therefore carry the
+   same title. */
+function buildExecutiveExtraItems(records, field, label, runAt) {
+    var items = [];
+
+    (records || []).forEach(function(record) {
+        var text;
+        var body;
+        var title;
+
+        if (!record || typeof record !== "object") {
+            return;
+        }
+
+        text = String(record[field] === null || record[field] === undefined ? "" : record[field]).trim();
+
+        /* Missing, empty and whitespace-only are one case and all of them are
+           skipped. An assignment with no Next Action contributes nothing rather
+           than an item with an empty body — buildAssignmentRecord only sets
+           next_action when it has content, so this is the common path, not the
+           exception. */
+        if (!text) {
+            return;
+        }
+
+        /* THE BODY IS NOT ALWAYS THE FIELD THAT GATED THE ITEM.
+
+           For next_action it is: the field holds real prose, written by the
+           model as the thing to do next, and it is the whole point of the item.
+
+           For priority it must not be. record.priority is one word — Critical,
+           High, Medium or Low — and it already renders in the meta line as
+           "Priority: Critical", so using it as the body prints the same word
+           twice and tells a reader nothing the assignment did not already say.
+           The assignment's own descriptive text goes in the body instead, and
+           the priority word keeps doing its one job in the meta line below.
+
+           mission first, then task_description. Both are what the parser pulls
+           off the block — mission from the `Mission:` line, task_description
+           from `Description:` — and mission is the more considered of the two,
+           a statement of intent rather than a restatement of the task. Only
+           these two and task_title are consulted; next_action is deliberately
+           NOT a fallback here, because it already has an item of its own and
+           borrowing it would render the same sentence twice in one section. */
+        if (field === "priority") {
+            body = String(record.mission || record.task_description || record.task_title || "").trim();
+
+            /* Nothing descriptive to show. An item whose body would repeat its
+               own meta line is worth less than no item: it costs a slot in a
+               capped collection that next actions also draw from, and it says
+               "Critical" under a heading that already said "Critical". */
+            if (!body) {
+                return;
+            }
+        } else {
+            body = text;
+        }
+
+        title = String(record.task_title || record.owner_assignment || record.assigned_agent || "").trim();
+
+        items.push({
+            title: title || "Executive assignment",
+            summary: body,
+            priority: String(record.priority || "").trim() || null,
+            reportType: label,
+            updatedAt: runAt
+        });
+    });
+
+    return items;
+}
+
 function recordExecutiveRunToStore(item, sprintId, created) {
     var records = Array.isArray(created) ? created : [];
 
     if (typeof persistExecutiveAgentResult !== "function") {
         return;
     }
+
+    /* One clock read for the whole run, so the result, both extras collections
+       and the report entry all carry the same instant. Separate new Date()
+       calls drift by milliseconds, and collectItems sorts on updatedAt — items
+       from one run should tie, not interleave. */
+    var runAt = new Date().toISOString();
 
     try {
         persistExecutiveAgentResult({
@@ -38956,8 +39173,10 @@ function recordExecutiveRunToStore(item, sprintId, created) {
             summary: (item && item.summary) || "",
             assignmentCount: records.length,
             parseFailed: !records.length,
-            createdAt: new Date().toISOString()
+            createdAt: runAt
         }, {
+            priority: buildExecutiveExtraItems(records, "priority", "Priority", runAt),
+            nextAction: buildExecutiveExtraItems(records, "next_action", "Next Action", runAt),
             report: {
                 id: item && item.id ? String(item.id) : null,
                 title: (item && item.summary) || "Executive report",
@@ -38965,7 +39184,7 @@ function recordExecutiveRunToStore(item, sprintId, created) {
                 assignmentCount: records.length,
                 parseFailed: !records.length,
                 text: item && item.result ? String(item.result) : "",
-                createdAt: (item && item.created_at) || new Date().toISOString()
+                createdAt: (item && item.created_at) || runAt
             }
         });
     } catch (execStoreErr) {
