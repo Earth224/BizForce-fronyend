@@ -39117,20 +39117,28 @@ function buildExecutiveExtraItems(records, field, label, runAt) {
            The assignment's own descriptive text goes in the body instead, and
            the priority word keeps doing its one job in the meta line below.
 
-           mission first, then task_description. Both are what the parser pulls
-           off the block — mission from the `Mission:` line, task_description
-           from `Description:` — and mission is the more considered of the two,
-           a statement of intent rather than a restatement of the task. Only
-           these two and task_title are consulted; next_action is deliberately
-           NOT a fallback here, because it already has an item of its own and
-           borrowing it would render the same sentence twice in one section. */
-        if (field === "priority") {
-            body = String(record.mission || record.task_description || record.task_title || "").trim();
+           mission first, then task_description, and NOTHING ELSE. Both are what
+           the parser pulls off the block — mission from the `Mission:` line,
+           task_description from `Description:` — and mission is the more
+           considered of the two, a statement of intent rather than a
+           restatement of the task.
 
-            /* Nothing descriptive to show. An item whose body would repeat its
-               own meta line is worth less than no item: it costs a slot in a
-               capped collection that next actions also draw from, and it says
-               "Critical" under a heading that already said "Critical". */
+           task_title is deliberately not in this chain, though it is still what
+           names the item below. buildAssignmentRecord defaults it to the literal
+           "Executive assignment", so including it here guaranteed a body and
+           made the skip below unreachable: a record with nothing to say produced
+           an item reading "Executive assignment" under a heading already reading
+           "Executive assignment". next_action is excluded for a different
+           reason — it already has an item of its own, and borrowing it would
+           render the same sentence twice in one section. */
+        if (field === "priority") {
+            body = String(record.mission || record.task_description || "").trim();
+
+            /* Nothing descriptive to show, and now genuinely reachable. An item
+               whose body would repeat its own title or meta line is worth less
+               than no item: it costs a slot in a capped collection that next
+               actions also draw from, and it tells a reader nothing the
+               assignment did not already say. */
             if (!body) {
                 return;
             }
