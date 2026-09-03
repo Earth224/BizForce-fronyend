@@ -351,25 +351,11 @@
 <script>
 (function renderLiveAgents() {
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
-  var LINK_MAP = {
-    seo: "agents/seo.html",
-    sales: "agents/sales.html",
-    content: "agents/content.html",
-    analytics: "agents/analytics.html",
-    social: "agents/social.html",
-    email: "email-agent.html",
-    reputation: "reputation-agent.html",
-    community: "community-agent.html",
-    influencer: "influencer-agent.html",
-    operations: "operations-agent.html",
-    etsy: "etsy-agent.html",
-    store: "store-agent.html",
-    broker: "broker-agent.html",
-    publicist: "publicist-agent.html",
-    rd: "rd-agent.html",
-    executive: "executive-agent.html",
-    ads: "ads-agent.html"
-  };
+  /* LINK_MAP used to live here — seventeen agent-type-to-page paths, a second
+     copy of the same list agents-hub.html carries in its Open Profile hrefs.
+     GET /api/agents now returns page_url on every row, derived server-side at
+     read time from AGENT_PAGE_URLS, so the paths are maintained in one place
+     and a correction there reaches this page without a deploy of this file. */
   var GENERIC_AVATAR_SVG =
     '<svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
     '<circle cx="12" cy="12" r="9"/>' +
@@ -391,7 +377,14 @@
     grid.textContent = "";
     agents.forEach(function (agent) {
       var type = String(agent.agent_type || agent.type || "").toLowerCase();
-      var href = LINK_MAP[type] || "agents-hub.html";
+      /* The same `|| "agents-hub.html"` fallback the LINK_MAP lookup had, kept
+         because it now covers one more case than it used to. It caught an
+         unknown type before; it also catches a response with no page_url at
+         all — a cached one served from before the backend shipped the field, or
+         a row whose type the server could not map and correctly sent as null.
+         Without it those become the string "undefined" in an href, which is a
+         link to a page that has never existed. */
+      var href = agent.page_url || "agents-hub.html";
 
       var article = document.createElement("article");
       article.className = "agent-card agent-card--" + (type || "unknown");
