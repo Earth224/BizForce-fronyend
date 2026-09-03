@@ -2783,6 +2783,38 @@ window.renderAgentMemories = renderAgentMemories;
 window.bindAgentMemoryControls = bindAgentMemoryControls;
 
 var BF_EXECUTIVE_SPRINTS_STORAGE_KEY = "bf_executive_sprints";
+
+/* How many sprints the OWNING key keeps. Newest first; the tail is dropped.
+
+   NOT THE SAME THING AS EXECUTIVE_AGENT_CAPS.sprints, and the two must not be
+   conflated. That one bounds a PROJECTION — projectExecutiveSprints() maps each
+   sprint down to about ten flat fields and slices the derived copy at 50 before
+   it goes into bf_executive_memory. It has never bounded anything on this key,
+   and it should keep doing exactly what it does. This constant bounds the real
+   records: the full nested objects that live here.
+
+   TEN, which is the most aggressive cap in this file, and deliberately so:
+
+   - A sprint is the heaviest object the app stores. It carries four top-level
+     arrays (agents, autonomyEvents, messages, recoveryEvents) and every agent
+     inside it carries its own memory object with six more — history,
+     completedTasks, failedTasks, recoveries, communications, dependencies. A
+     six-agent sprint is thirty-six unbounded arrays, none of them individually
+     capped, plus a deep JSON clone of the entire executive project config.
+     Set against orchestratorMissions: 25, where a mission carries ONE nested
+     array of flat task objects, ten sprints is already the larger budget.
+
+   - Cost is not only storage. The whole array is re-serialized by
+     saveExecutiveSprint on every agent status change, so an old completed
+     sprint is paid for again on every tick of every later sprint. Missions are
+     written far less often; sprints make the tail expensive as well as large.
+
+   - Ten is a real working history rather than a bare minimum. A project plans
+     `plannedSprints || 2`, and getActiveExecutiveSprint only ever needs the
+     current one, so ten holds roughly five completed projects behind whatever
+     is running now. */
+var BF_EXECUTIVE_SPRINTS_CAP = 10;
+
 var BF_EXECUTIVE_AGENT_MEMORY_STORAGE_KEY = "bf_executive_agent_memory";
 var EXECUTIVE_MEMORY_AUTO_PERSIST_EVENTS = {
     agent_started: true,
@@ -2918,6 +2950,38 @@ function getExecutiveSprints() {
     }
 }
 
+/* The one place bf_executive_sprints is written, cap included.
+
+   A shared helper rather than a slice at each writer, because there are two
+   writers and they are not related: saveExecutiveSprint is the normal path, and
+   queueNextExecutiveSprint unshifts straight onto the array and never calls it.
+   Two independent slices would have to be kept in step by whoever edits either,
+   and the second writer is exactly the kind of path that gets missed — it was
+   already bypassing the upsert logic before this cap existed. One funnel means
+   a third writer added later inherits the bound instead of quietly reopening
+   the hole.
+
+   Newest first is a property of both callers, verified rather than assumed:
+   saveExecutiveSprint unshifts a new sprint and REPLACES an existing one at its
+   current index, and queueNextExecutiveSprint unshifts. Nothing anywhere sorts
+   or reverses this array. So order is creation order, newest at index 0, and
+   slice(0, cap) drops the oldest.
+
+   One consequence of replace-in-place worth knowing: order is by CREATION, not
+   by last update, so a long-lived sprint does not move to the front when it is
+   touched. In practice the running sprint is the newest — it was unshifted last
+   — and getActiveExecutiveSprint scans from index 0, so the sprints at risk of
+   falling off the tail are old completed ones.
+
+   clearTestSprints writes [] directly and is deliberately left alone: an empty
+   array is within any cap, and routing it through here would change nothing. */
+function persistExecutiveSprints(sprints) {
+    var capped = Array.isArray(sprints) ? sprints.slice(0, BF_EXECUTIVE_SPRINTS_CAP) : [];
+
+    localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify(capped));
+    return capped;
+}
+
 function saveExecutiveSprint(sprint) {
     if (!sprint || !sprint.sprintId) {
         return null;
@@ -2938,7 +3002,7 @@ function saveExecutiveSprint(sprint) {
         sprints.unshift(sprint);
     }
 
-    localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify(sprints));
+    persistExecutiveSprints(sprints);
     return sprint;
 }
 
@@ -3938,7 +4002,11 @@ const sprints =
 
 sprints.unshift(nextSprint);
 
-localStorage.setItem(BF_EXECUTIVE_SPRINTS_STORAGE_KEY, JSON.stringify(sprints));
+/* Through the shared writer, not a direct setItem. This path never calls
+   saveExecutiveSprint, so before the helper existed it was the one writer with
+   no cap on it — and it is the self-perpetuating one, since it runs on sprint
+   completion and queues another. unshift above means newest first here too. */
+persistExecutiveSprints(sprints);
 
 renderExecutiveRuntimeDashboard(getSprintById(completedSprint.sprintId) || completedSprint);
 
