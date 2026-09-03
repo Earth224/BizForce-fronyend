@@ -153,6 +153,35 @@ function formatResult(value) {
   }
 }
 
+// One local date part out of a proposal payload, or null when it is not a
+// whole number. Used to decide whether a create_calendar_event payload can be
+// rendered as a date at all.
+//
+// Deliberately NOT Number(): Number(null), Number(undefined's absence via a
+// missing key, ""), Number([]) and Number(false) are 0 and Number(true) is 1,
+// so a bare coercion would turn a missing part into a real-looking 0 and print
+// a date nobody proposed. Returning null keeps "absent" distinguishable from a
+// value, which is what lets the caller fall back to the raw JSON instead of
+// rendering a partial or wrong date.
+function datePartOrNull(value) {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && /^-?\d+$/.test(value.trim())) {
+    return parseInt(value.trim(), 10);
+  }
+
+  return null;
+}
+
+// Two digits, for building a date string out of integers without a Date. This
+// page does no calendar arithmetic of any kind — see the create_calendar_event
+// arm below for why.
+function pad2(n) {
+  return (n < 10 && n >= 0 ? "0" : "") + n;
+}
+
 async function loadProposals() {
   var container = document.getElementById("proposalsList");
   container.innerHTML = '<div class="empty-state">Loading proposals...</div>';
@@ -244,6 +273,73 @@ function renderProposals() {
           '</div>';
 
         collapsibleText = postBody;
+      } else if (p.action_type === "create_calendar_event") {
+        // The reviewer is approving a DAY, so the card has to show one. The
+        // date is built from the payload's local_year/local_month/local_day —
+        // the caller's own local date parts, recorded by the backend for
+        // exactly this purpose — and NOT by converting the jdn. No
+        // JDN-to-Gregorian function is added to this page on purpose: a second
+        // implementation of that conversion is a second thing that can
+        // disagree with calendar.html, and the parts are already here.
+        var calYear  = datePartOrNull(p.payload.local_year);
+        var calMonth = datePartOrNull(p.payload.local_month);
+        var calDay   = datePartOrNull(p.payload.local_day);
+
+        collapsibleText = formatResult(p.payload);
+
+        // All three or none. A payload missing any one of them cannot produce
+        // a date that means anything, and half a date on an approval card is
+        // worse than no field table at all — the approver would read whatever
+        // survived as the day they are agreeing to. Leaving fieldsHtml empty
+        // falls this card back to the plain collapsed JSON that every
+        // unrecognised action_type already gets.
+        if (calYear !== null && calMonth !== null && calDay !== null) {
+          var evTitle = String(p.payload.title == null ? "" : p.payload.title);
+          var evType  = String(p.payload.event_type == null ? "" : p.payload.event_type);
+          var evNote  = String(p.payload.notes == null ? "" : p.payload.notes);
+          var evJdn   = String(p.payload.jdn == null ? "" : p.payload.jdn);
+
+          var localDateText = calYear + "-" + pad2(calMonth) + "-" + pad2(calDay);
+
+          var noteHtml = evNote
+            ? '<div><span class="pf-label">note</span><span class="pf-value">' + escapeHtml(evNote) + '</span></div>'
+            : '';
+
+          // Offset shown only when it actually moves the day. Its absence and
+          // a zero both mean the event lands on the local date above, and a
+          // row reading "0 days" invites the reader to wonder what it moved.
+          var offset = datePartOrNull(p.payload.days_from_now);
+          var offsetHtml = '';
+
+          if (offset !== null && offset !== 0) {
+            var offsetText = (offset > 0 ? "+" : "") + offset +
+              (offset === 1 || offset === -1 ? " day" : " days");
+
+            offsetHtml =
+              '<div><span class="pf-label">days from now</span><span class="pf-value">' + escapeHtml(offsetText) + '</span> ' +
+              '<span class="pf-count">(the event is this far from the local date above, not on it)</span></div>';
+          }
+
+          // The local date is labelled as the date the request came FROM, never
+          // as the event day, because those are only the same thing when the
+          // offset above is absent. This page cannot compute the shifted day —
+          // that would need month-length and leap-year arithmetic it
+          // deliberately does not carry — so it names what it actually knows
+          // and shows the offset beside it.
+          var anchorNoteHtml = offsetHtml
+            ? ''
+            : ' <span class="pf-count">(the event day)</span>';
+
+          fieldsHtml =
+            '<div class="payload-fields">' +
+              '<div><span class="pf-label">event title</span><span class="pf-value">' + escapeHtml(evTitle || "(none)") + '</span></div>' +
+              '<div><span class="pf-label">event type</span><span class="pf-value">' + escapeHtml(evType || "(none)") + '</span></div>' +
+              noteHtml +
+              '<div><span class="pf-label">caller\'s local date</span><span class="pf-value">' + escapeHtml(localDateText) + '</span>' + anchorNoteHtml + '</div>' +
+              offsetHtml +
+              '<div><span class="pf-label">jdn</span><span class="pf-value">' + escapeHtml(evJdn || "(none)") + '</span> <span class="pf-count">(reference — the day number that gets written)</span></div>' +
+            '</div>';
+        }
       } else {
         collapsibleText = formatResult(p.payload);
       }
