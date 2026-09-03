@@ -9505,7 +9505,47 @@ function saveExecutiveMemory(memory) {
 
     memory.updatedAt = new Date().toISOString();
     executiveMemoryState.active = memory;
-    localStorage.setItem(BF_EXECUTIVE_MEMORY_KEY, JSON.stringify(memory));
+
+    /* Serialized outside the try on purpose. A JSON.stringify failure — a
+       circular reference, say — is a different fault from a full disk, and it
+       propagated before this change. Catching it here would hide a bug behind
+       a quota message. */
+    var serialized = JSON.stringify(memory);
+
+    try {
+        localStorage.setItem(BF_EXECUTIVE_MEMORY_KEY, serialized);
+    } catch (storageErr) {
+        /* Nothing is cleared and NO OTHER STORE IS DROPPED TO MAKE ROOM.
+           Evicting another agent's memory to save this one would be silent data
+           loss chosen by code rather than by a person, and the agent that lost
+           its history would never know why. Failing loudly and keeping
+           everything that is already on disk is the better half of that trade.
+
+           Not re-thrown either: ~190 call sites invoke this, none of them in a
+           try, so a throw would take out whatever action was in progress on top
+           of losing the write. */
+        var quotaLike = storageErr && (
+            storageErr.name === "QuotaExceededError" ||
+            storageErr.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+            storageErr.code === 22 ||
+            storageErr.code === 1014
+        );
+
+        console.error("[executive-memory] " + (quotaLike ? "QUOTA EXCEEDED" : "WRITE FAILED") +
+            " — localStorage.setItem(\"" + BF_EXECUTIVE_MEMORY_KEY + "\") threw " +
+            ((storageErr && storageErr.name) || "an error") + ": " +
+            ((storageErr && storageErr.message) || String(storageErr)) +
+            ". The payload was about " + Math.round(serialized.length / 1024) + " KB. " +
+            "AGENT MEMORY IS NO LONGER BEING SAVED: this one key backs all sixteen agent stores, " +
+            "so every one of them has stopped persisting at the same moment, and anything written " +
+            "from here on is lost on reload. The in-memory copy is still live for this session, so " +
+            "the page will look like it is working until it is reloaded. Nothing was cleared and no " +
+            "other store was dropped to make room. The fix is to store less — see " +
+            "EXECUTIVE_AGENT_CAPS, and note that bf_executive_sprints is still uncapped.");
+
+        return null;
+    }
+
     return memory;
 }
 
@@ -21457,6 +21497,33 @@ function persistExecutiveOrchestratorStore(memory, store) {
     }
 
     enforceExecutiveOrchestratorSafety(store);
+
+    /* The cap, applied here because this is the only function that writes the
+       store. Every mutator — createMission, createMissionTask,
+       assignMissionTask, completeMissionTask, failMissionTask, completeMission,
+       failMission and recalculateMissionProgress — ends here, so a cap on this
+       line cannot be routed around by adding another one.
+
+       missions is unshifted, so slice(0, cap) keeps the newest and drops the
+       oldest. That is the right end to lose: an old completed mission is
+       history, and nothing reads it — getMission and getAllMissions are the
+       only readers and neither depends on the tail.
+
+       EXECUTIVE_AGENT_CAPS is declared with var about seventeen thousand lines
+       BELOW this function, so the typeof guard is not decoration: `var` hoists
+       the binding but not the assignment, and this file is one script. Nothing
+       calls this at load time today, but a load-time caller added later would
+       otherwise read undefined and throw here rather than anywhere near the
+       cause. An unreadable cap means no slice, never a crash and never a
+       silently truncated store. */
+    var missionCap = (typeof EXECUTIVE_AGENT_CAPS === "object" && EXECUTIVE_AGENT_CAPS)
+        ? EXECUTIVE_AGENT_CAPS.orchestratorMissions
+        : null;
+
+    if (Array.isArray(store.missions) && typeof missionCap === "number" && missionCap > 0) {
+        store.missions = store.missions.slice(0, missionCap);
+    }
+
     store.lastUpdated = new Date().toISOString();
     memory.executiveOrchestrator = store;
 
@@ -38597,7 +38664,25 @@ var EXECUTIVE_AGENT_CAPS = {
        are unchanged. */
     recentRuns: 5,
 
-    orchestrationReports: 50
+    orchestrationReports: 50,
+
+    /* Missions in memory.executiveOrchestrator.missions, newest first.
+
+       This array was the second uncapped grower alongside bf_executive_sprints,
+       and the one the note above warns about: it is only ever unshifted, a
+       completed mission changes its status but is never removed, and it lives
+       in bf_executive_memory with the other fifteen stores. Left alone it fills
+       the shared key and takes every agent's memory down with it.
+
+       25 rather than the 50 or 100 the flat records get, because a mission is
+       by far the heaviest entry here. Every other capped bucket is a shallow
+       record; a mission carries a nested tasks array plus assignedAgents,
+       observations and recommendations, so one mission costs what a dozen
+       actions do. A smaller count holds a comparable number of bytes.
+
+       Applied in persistExecutiveOrchestratorStore, the single write funnel,
+       so no mutator can route around it. */
+    orchestratorMissions: 25
 };
 
 /* The report text itself belongs to the mailbox (bizforce_ai_mailbox), which
