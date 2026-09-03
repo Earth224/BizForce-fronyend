@@ -754,6 +754,15 @@
       color: #ff9d9d;
       margin-bottom: 10px;
     }
+    /* The propose path's counterpart to the error line above. Green rather
+       than red because "created, now waiting on a human" is a success, and it
+       has to be visually distinct from the error it can appear beneath. */
+    .cal-day-panel-notice {
+      font-size: 0.76rem;
+      color: #6ee7b7;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
 
     @media (max-width: 720px) {
       .cal-day-cell { min-height: 76px; padding: 7px 8px; }
@@ -895,8 +904,12 @@
         </div>
 
         <div class="cal-day-panel-error" id="calDayPanelError" hidden></div>
+        <div class="cal-day-panel-notice" id="calDayPanelNotice" hidden></div>
 
         <button type="submit" class="cal-today-btn" id="calEventSaveBtn">Save Event</button>
+        <!-- type="button", not submit: the form's submit handler is wired to
+             saveCalendarEvent, and this button must not trigger it. -->
+        <button type="button" class="cal-today-btn" id="calEventProposeBtn">Propose for Approval</button>
       </form>
     </div>
   </div>
@@ -3435,7 +3448,10 @@
     var calEventNotesInput = document.getElementById("calEventNotes");
     var calEventRecurringInput = document.getElementById("calEventRecurring");
     var calDayPanelError   = document.getElementById("calDayPanelError");
+    var calDayPanelNotice  = document.getElementById("calDayPanelNotice");
     var calEventSaveBtn    = document.getElementById("calEventSaveBtn");
+    var calEventProposeBtn = document.getElementById("calEventProposeBtn");
+    var PROPOSE_BTN_LABEL  = "Propose for Approval";
 
     var calEventTypeTrigger      = document.getElementById("calEventTypeTrigger");
     var calEventTypeTriggerLabel = document.getElementById("calEventTypeTriggerLabel");
@@ -3634,6 +3650,18 @@
       calDayPanelError.textContent = "";
     }
 
+    function showDayPanelNotice(msg) {
+      if (!calDayPanelNotice) return;
+      calDayPanelNotice.textContent = msg;
+      calDayPanelNotice.hidden = false;
+    }
+
+    function clearDayPanelNotice() {
+      if (!calDayPanelNotice) return;
+      calDayPanelNotice.hidden = true;
+      calDayPanelNotice.textContent = "";
+    }
+
     function renderDayPanelHeader(jdn) {
       var g = jdnToGregorian(jdn);
       var gregDate = new Date(g.year, g.month - 1, g.day);
@@ -3728,6 +3756,10 @@
       if (!calDayPanel) return;
       dayPanelJdn = jdn;
       clearDayPanelError();
+      // A "proposal created" notice belongs to the day it was raised for.
+      // Left standing, it would greet whoever opens the next day as though
+      // something had been proposed for that one.
+      clearDayPanelNotice();
       if (calEventTitleInput) calEventTitleInput.value = "";
       if (calEventNotesInput) calEventNotesInput.value = "";
       if (calEventRecurringInput) calEventRecurringInput.checked = false;
@@ -3853,6 +3885,143 @@
         });
     }
 
+    /* The approval-gate twin of saveCalendarEvent above. Same three fields off
+       the same form, but it POSTs a PROPOSAL: nothing reaches calendar_events
+       until a human approves it on proposals.html. saveCalendarEvent is
+       untouched and still writes immediately — this is a second door, not a
+       replacement for the first.
+
+       Recurrence and reminder settings are deliberately not sent. The proposal
+       route accepts a title, a note, a type and a date, and a proposal
+       carrying settings its executor would silently drop would not describe
+       what approving it actually does. */
+    function proposeCalendarEvent() {
+      clearDayPanelError();
+      clearDayPanelNotice();
+      if (dayPanelJdn === null) return;
+
+      var title = calEventTitleInput ? calEventTitleInput.value.trim() : "";
+      if (!title) {
+        showDayPanelError("Title is required.");
+        return;
+      }
+      if (!token) {
+        showDayPanelError("Not signed in — please refresh and try again.");
+        return;
+      }
+
+      /* ONE CLOCK READ, USED FOR BOTH HALVES. The date parts and the offset
+         below have to describe the same moment, because THE BACKEND ADDS ONE
+         TO THE OTHER: it converts the local parts to a JDN and then applies
+         days_from_now to that. Deriving them from two separate clock reads is
+         the only way they can ever disagree — a call landing across local
+         midnight would pair today's parts with tomorrow's JDN and propose an
+         event one day off, with nothing in the request to show why and no way
+         to reproduce it afterwards.
+
+         Taking `now` once makes that disagreement impossible by construction
+         rather than merely unlikely, which is the only kind of fix worth
+         having for a bug that reappears once a night at random.
+
+         This is also why todayJdn() is deliberately NOT called here: it reads
+         its own new Date(), and that second read is precisely what this has to
+         avoid. It is left unchanged and stays correct for its other callers,
+         none of which pair its result with a separately-read set of parts. */
+      var now = new Date();
+
+      /* THE CALLER'S CURRENT LOCAL DATE — TODAY — NOT THE DAY THIS PANEL IS
+         OPEN ON. This is the one thing on this path that is easy to get
+         backwards, so it is worth being explicit about why.
+
+         The backend converts these three integers to a JDN itself and THEN
+         adds days_from_now. So the pair it needs is (where the caller is in
+         time right now) plus (how far the chosen day is from that). Sending
+         the panel's day here instead would double-count: the offset would be
+         added on top of a date that had already been moved, and the event
+         would land days away from the one that was clicked.
+
+         gregorianPartsOf reads getFullYear/getMonth/getDate — local accessors,
+         never getUTC* — which is exactly what makes these the caller's own
+         calendar date rather than UTC's. A user at 23:30 on the 3rd in UTC-5
+         is on the 3rd here, where UTC already says the 4th. */
+      var todayParts = gregorianPartsOf(now);
+
+      /* Two JDNs subtracted is a whole number of days by definition. No Date
+         arithmetic, no hours, no timezone, nothing that can come out as 6.958
+         days and round the wrong way.
+
+         Today's JDN is computed from todayParts rather than read off the clock
+         a second time. That is the identical arithmetic todayJdn() performs —
+         gregorianToJDN of getFullYear / getMonth + 1 / getDate — but on an
+         instant guaranteed to be the one the parts above came from. */
+      var todayJdnFromParts = gregorianToJDN(todayParts.year, todayParts.month, todayParts.day);
+      var daysFromNow = dayPanelJdn - todayJdnFromParts;
+
+      /* No jdn is sent. The backend computes it from the parts and the offset,
+         and a jdn in this body would be a number it ignores — which is worse
+         than useless, because the next person to read this would reasonably
+         assume it mattered. */
+      function two(n) { return (n < 10 ? "0" : "") + n; }
+      var pickedG = jdnToGregorian(dayPanelJdn);
+
+      var payload = {
+        title: title,
+        note: calEventNotesInput ? calEventNotesInput.value.trim() : "",
+        event_type: selectedEventType,
+        reasoning: "Proposed from the calendar day panel for " +
+          pickedG.year + "-" + two(pickedG.month) + "-" + two(pickedG.day) +
+          ", which is " + daysFromNow + " day(s) from the proposer's local date.",
+        local_year: todayParts.year,
+        local_month: todayParts.month,
+        local_day: todayParts.day,
+        days_from_now: daysFromNow
+      };
+
+      if (calEventProposeBtn) { calEventProposeBtn.disabled = true; calEventProposeBtn.textContent = "Proposing…"; }
+
+      fetch(API_URL + "/api/proposals/calendar-event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        })
+        .then(function (result) {
+          if (calEventProposeBtn) { calEventProposeBtn.disabled = false; calEventProposeBtn.textContent = PROPOSE_BTN_LABEL; }
+
+          if (!result.ok) {
+            // The route's 400s name the field and say what is wrong with it in
+            // a sentence meant for a person, so it is shown as written rather
+            // than replaced with something vaguer.
+            showDayPanelError((result.body && result.body.error) || "Couldn't create that proposal — try again.");
+            return;
+          }
+
+          /* No eventsCache write, no renderDayPanelEvents, no
+             refreshEventsForCurrentView. NOTHING HAS BEEN CREATED YET. Putting
+             a marker on the grid for a pending proposal would show the user an
+             event that does not exist and that an approver may still reject —
+             and the next view refresh would silently take it away again. */
+          showDayPanelNotice("Proposal created — it is waiting for approval on the Proposals page. Nothing has been added to your calendar yet.");
+
+          // Cleared for the same reason the save path clears them: the form is
+          // now describing something already submitted, and leaving it filled
+          // invites a second identical proposal.
+          if (calEventTitleInput) calEventTitleInput.value = "";
+          if (calEventNotesInput) calEventNotesInput.value = "";
+        })
+        .catch(function () {
+          if (calEventProposeBtn) { calEventProposeBtn.disabled = false; calEventProposeBtn.textContent = PROPOSE_BTN_LABEL; }
+          showDayPanelError("Couldn't create that proposal — check your connection and try again.");
+        });
+    }
+
     function deleteCalendarEvent(eventId) {
       if (!token) return;
 
@@ -3924,6 +4093,11 @@
       calDayPanelForm.addEventListener("submit", function (e) {
         e.preventDefault();
         saveCalendarEvent();
+      });
+    }
+    if (calEventProposeBtn) {
+      calEventProposeBtn.addEventListener("click", function () {
+        proposeCalendarEvent();
       });
     }
     if (calDayPanelClose) calDayPanelClose.addEventListener("click", closeDayPanel);
