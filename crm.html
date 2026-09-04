@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — CRM</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* The records-page convention: the shared sheet above for bf-* components,
+       then everything this page needs locally. The pf-* modal and form classes
+       are carried here rather than imported because they live in profile.html's
+       own style block, not in bizforce-ui.css — a shared name, not a shared
+       rule. Copied so the modal reads identically to the product modal a user
+       has already met. */
+    :root {
+      --pa: #22d3ee;
+      --pa-rgb: 34,211,238;
+      --pa2: #a855f7;
+      --pf: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+      --bg: #070b18;
+      --border: rgba(255,255,255,.07);
+      --text: #f0f4ff;
+      --sub: #8892b8;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:var(--pf);color:#e8e8ff;background:var(--bg)}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+
+    /* Executive HQ nav, matching marketplace.html and receipts.html */
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+    .hero{text-align:center;margin-bottom:32px}
+    .hero-eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .hero-title{font-size:2rem;font-weight:900;margin:0 0 8px;background:linear-gradient(90deg,#fff,#c9d4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{font-size:.9rem;color:var(--sub);margin:0}
+
+    .crm-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+    .crm-filter-group{display:flex;align-items:center;gap:10px}
+    .crm-filter-label{font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+    .crm-count{font-size:.78rem;color:var(--sub)}
+
+    .crm-list{display:flex;flex-direction:column;gap:12px}
+    .crm-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) auto minmax(0,1.6fr) auto;gap:14px;align-items:center;padding:16px 18px;border-radius:14px;border:1px solid var(--border);background:rgba(12,16,38,.72);backdrop-filter:blur(12px)}
+    .crm-cell{min-width:0}
+    .crm-name{font-size:.94rem;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .crm-sub{font-size:.76rem;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .crm-contact{font-size:.78rem;color:var(--sub);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .crm-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .crm-act{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--sub);font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .crm-act:hover{border-color:rgba(var(--pa-rgb),.45);color:var(--pa)}
+    .crm-act.danger:hover{border-color:rgba(248,113,113,.45);color:#f87171}
+
+    .crm-status{display:inline-block;padding:4px 11px;border-radius:999px;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .crm-status.lead{background:rgba(96,165,250,.14);color:#93c5fd;border:1px solid rgba(96,165,250,.3)}
+    .crm-status.prospect{background:rgba(168,85,247,.14);color:#d8b4fe;border:1px solid rgba(168,85,247,.3)}
+    .crm-status.active{background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)}
+    .crm-status.dormant{background:rgba(148,163,184,.14);color:#cbd5e1;border:1px solid rgba(148,163,184,.3)}
+    .crm-status.churned{background:rgba(248,113,113,.14);color:#fca5a5;border:1px solid rgba(248,113,113,.3)}
+
+    /* Three page states, and they must not look alike — see loadCustomers. */
+    .crm-state{padding:48px 24px;text-align:center;border-radius:16px;border:1px solid var(--border);background:rgba(12,16,38,.5)}
+    .crm-state-title{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:8px}
+    .crm-state-sub{font-size:.84rem;color:var(--sub);line-height:1.6;max-width:420px;margin:0 auto 18px}
+    .crm-state.error{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.05)}
+    .crm-state.error .crm-state-title{color:#f87171}
+    .crm-state-detail{font-size:.74rem;color:var(--sub);margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+    /* Activity log inside its own modal */
+    .crm-act-list{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;max-height:280px;overflow-y:auto}
+    .crm-act-item{padding:11px 13px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .crm-act-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+    .crm-act-type{font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pa)}
+    .crm-act-when{font-size:.7rem;color:var(--sub)}
+    .crm-act-note{font-size:.82rem;color:var(--text);line-height:1.55;white-space:pre-wrap;word-break:break-word}
+    .crm-act-empty{font-size:.82rem;color:var(--sub);text-align:center;padding:20px 0}
+    .crm-act-divider{border-top:1px solid var(--border);margin:4px 0 16px}
+
+    /* ── pf-* modal and form classes, copied from profile.html ─────────── */
+    .pf-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .22s}
+    .pf-overlay.open{opacity:1;pointer-events:all}
+    .pf-modal{background:rgba(10,14,36,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(var(--pa-rgb),.22);border-radius:20px;padding:26px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(var(--pa-rgb),.08)}
+    .pf-modal::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--pa),var(--pa2),transparent);border-radius:20px 20px 0 0}
+    .pf-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .pf-modal-title{font-size:.98rem;font-weight:900;color:var(--text)}
+    .pf-modal-x{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--sub);cursor:pointer;font-family:var(--pf);font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .pf-modal-x:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .pf-form-group{margin-bottom:14px}
+    .pf-form-label{display:block;font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+    .pf-form-label em{color:#f43f5e;font-style:normal;margin-left:2px}
+    .pf-form-input,.pf-form-textarea,.pf-form-select{width:100%;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:var(--text);font-size:.86rem;font-family:var(--pf);outline:none;transition:border-color .2s}
+    .pf-form-input::placeholder,.pf-form-textarea::placeholder{color:#3a4268}
+    .pf-form-input:focus,.pf-form-textarea:focus,.pf-form-select:focus{border-color:rgba(var(--pa-rgb),.45)}
+    .pf-form-textarea{resize:vertical;min-height:78px;line-height:1.55}
+    .pf-form-select option{background:#0a0f28;color:var(--text)}
+    .pf-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pf-modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+    .pf-modal-status{font-size:.78rem;color:var(--sub);flex:1;min-height:16px}
+    .pf-modal-status.ok{color:#34d399}
+    .pf-modal-status.err{color:#f87171}
+    .pf-btn-cancel{padding:9px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--sub);font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .pf-btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+    .pf-btn-primary{padding:9px 22px;border-radius:10px;background:linear-gradient(90deg,var(--pa),var(--pa2));border:none;color:#050c1a;font-size:.82rem;font-weight:900;cursor:pointer;font-family:var(--pf);transition:filter .2s}
+    .pf-btn-primary:hover{filter:brightness(1.1)}
+    .pf-btn-primary:disabled{opacity:.45;cursor:not-allowed}
+    .pf-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(10,14,36,.97);border:1px solid rgba(var(--pa-rgb),.35);border-radius:12px;padding:10px 22px;font-size:.85rem;font-weight:700;color:var(--pa);z-index:200;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap}
+    .pf-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .pf-toast.err{color:#f87171;border-color:rgba(248,113,113,.35)}
+    .pf-spinner{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid rgba(5,12,26,.25);border-top-color:#050c1a;animation:pfSpin .55s linear infinite;vertical-align:middle}
+    @keyframes pfSpin{to{transform:rotate(360deg)}}
+
+    /* Field-level error state. Nothing else in this repo does this — the CRM
+       routes return { error, field } on a 400 and this is what reads it. */
+    .pf-form-input.is-invalid,.pf-form-textarea.is-invalid,.pf-form-select.is-invalid{border-color:rgba(248,113,113,.65);background:rgba(248,113,113,.06)}
+    .pf-field-err{font-size:.72rem;color:#f87171;margin-top:5px;min-height:0;display:none}
+    .pf-field-err.show{display:block}
+
+    @media (max-width:820px){
+      .crm-row{grid-template-columns:1fr;gap:10px}
+      .crm-actions{justify-content:flex-start}
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-eyebrow">CRM System</div>
+    <h1 class="hero-title">Customers</h1>
+    <p class="hero-sub">Your book of business — records you own, edit and delete.</p>
+  </header>
+
+  <div class="crm-toolbar">
+    <div class="crm-filter-group">
+      <span class="crm-filter-label" id="statusFilterLabel">Status</span>
+      <select class="pf-form-select" id="statusFilter" aria-labelledby="statusFilterLabel" style="width:auto;min-width:150px">
+        <option value="">All statuses</option>
+        <option value="lead">Lead</option>
+        <option value="prospect">Prospect</option>
+        <option value="active">Active</option>
+        <option value="dormant">Dormant</option>
+        <option value="churned">Churned</option>
+      </select>
+      <span class="crm-count" id="crmCount"></span>
+    </div>
+    <button class="pf-btn-primary" id="addCustomerBtn">+ Add Customer</button>
+  </div>
+
+  <div class="crm-list" id="crmList"></div>
+
+</div>
+
+<!-- ══ CUSTOMER MODAL ══ -->
+<div class="pf-overlay" id="modalCustomer">
+  <div class="pf-modal">
+    <div class="pf-modal-head">
+      <span class="pf-modal-title" id="customerModalTitle">Add Customer</span>
+      <button class="pf-modal-x" onclick="closeModal('modalCustomer')">&#10005;</button>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="cm-name">Name<em>*</em></label>
+      <input class="pf-form-input" id="cm-name" placeholder="Who is this customer?">
+      <div class="pf-field-err" id="cm-err-name"></div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="cm-company">Company</label>
+      <input class="pf-form-input" id="cm-company" placeholder="Their business">
+      <div class="pf-field-err" id="cm-err-company"></div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="cm-email">Email</label>
+        <input class="pf-form-input" id="cm-email" placeholder="However they write it">
+        <div class="pf-field-err" id="cm-err-email"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="cm-phone">Phone</label>
+        <input class="pf-form-input" id="cm-phone" placeholder="Any format, incl. international">
+        <div class="pf-field-err" id="cm-err-phone"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="cm-status">Status</label>
+        <select class="pf-form-select" id="cm-status">
+          <option value="lead">Lead</option>
+          <option value="prospect">Prospect</option>
+          <option value="active">Active</option>
+          <option value="dormant">Dormant</option>
+          <option value="churned">Churned</option>
+        </select>
+        <div class="pf-field-err" id="cm-err-status"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="cm-source">Source</label>
+        <input class="pf-form-input" id="cm-source" placeholder="Referral, expo, inbound…">
+        <div class="pf-field-err" id="cm-err-source"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="cm-last_contacted_at">Last Contacted</label>
+      <input class="pf-form-input" id="cm-last_contacted_at" type="datetime-local">
+      <div class="pf-field-err" id="cm-err-last_contacted_at"></div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="cm-notes">Notes</label>
+      <textarea class="pf-form-textarea" id="cm-notes" placeholder="What matters about this relationship…"></textarea>
+      <div class="pf-field-err" id="cm-err-notes"></div>
+    </div>
+
+    <div class="pf-modal-foot">
+      <span class="pf-modal-status" id="customerModalStatus"></span>
+      <button class="pf-btn-cancel" onclick="closeModal('modalCustomer')">Cancel</button>
+      <button class="pf-btn-primary" id="customerSaveBtn" onclick="saveCustomer()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ACTIVITY MODAL ══ -->
+<div class="pf-overlay" id="modalActivity">
+  <div class="pf-modal">
+    <div class="pf-modal-head">
+      <span class="pf-modal-title" id="activityModalTitle">Activity</span>
+      <button class="pf-modal-x" onclick="closeModal('modalActivity')">&#10005;</button>
+    </div>
+
+    <div class="crm-act-list" id="activityList"></div>
+    <div class="crm-act-divider"></div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="am-activity_type">Type</label>
+        <select class="pf-form-select" id="am-activity_type">
+          <option value="call">Call</option>
+          <option value="email">Email</option>
+          <option value="meeting">Meeting</option>
+          <option value="note">Note</option>
+          <option value="task">Task</option>
+        </select>
+        <div class="pf-field-err" id="am-err-activity_type"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="am-occurred_at">When</label>
+        <input class="pf-form-input" id="am-occurred_at" type="datetime-local">
+        <div class="pf-field-err" id="am-err-occurred_at"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="am-note">Note</label>
+      <textarea class="pf-form-textarea" id="am-note" placeholder="What happened…"></textarea>
+      <div class="pf-field-err" id="am-err-note"></div>
+    </div>
+
+    <div class="pf-modal-foot">
+      <span class="pf-modal-status" id="activityModalStatus"></span>
+      <button class="pf-btn-cancel" onclick="closeModal('modalActivity')">Close</button>
+      <button class="pf-btn-primary" id="activitySaveBtn" onclick="saveActivity()">Log Activity</button>
+    </div>
+  </div>
+</div>
+
+<div class="pf-toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var CRM_STATUSES = ["lead", "prospect", "active", "dormant", "churned"];
+
+var customers = [];
+var editingCustomerId = null;
+var activityCustomerId = null;
+
+/* Three states, held apart on purpose. profile.html falls back to empty
+   collections when its initial load fails, so a network error renders as an
+   empty page and looks exactly like a profile with nothing in it. Here "error"
+   is its own state with its own card and a retry, and "empty" only ever means
+   the server answered and had nothing. */
+var loadState = "loading";
+var loadError = null;
+
+/* ── fetch plumbing ─────────────────────────────────────────────────────── */
+
+async function apiFetch(path, method, body) {
+  var opts = { method: method || "GET", headers: { "Authorization": "Bearer " + token } };
+  if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  return fetch(API_URL + path, opts);
+}
+
+/* Reads an error body without trusting it to be JSON.
+
+   profile.html does `throw new Error((await res.json()).error || "Save failed")`,
+   so a 502 that returns an HTML error page throws a SyntaxError whose message —
+   "Unexpected token '<'" — is shown to the user as the reason their save failed.
+   This parses inside a try, falls back to the status code, and always returns
+   the same shape so callers never branch on whether parsing worked. */
+async function readError(res) {
+  var body = null;
+
+  try {
+    body = await res.json();
+  } catch (parseErr) {
+    body = null;
+  }
+
+  if (body && typeof body === "object" && body.error) {
+    return {
+      status: res.status,
+      message: String(body.error),
+      field: body.field ? String(body.field) : null
+    };
+  }
+
+  return {
+    status: res.status,
+    message: "Request failed (HTTP " + res.status + ")",
+    field: null
+  };
+}
+
+/* ── field-level errors ─────────────────────────────────────────────────── */
+
+/* The CRM routes answer a 400 with { error, field }. Nothing in this repo reads
+   `field` today — profile.html takes `error` and discards the rest — so this is
+   the pattern rather than a copy of one.
+
+   The message goes in three places at once because they answer different
+   questions: the input border says WHICH field, the line beneath it says WHAT
+   is wrong while the eye is already there, and the footer status keeps the
+   message visible if the field has scrolled out of the modal. Focus moves to
+   the offending input so a keyboard user is put where the fix is. */
+function clearFieldErrors(prefix) {
+  var scope = document.getElementById(prefix === "cm-" ? "modalCustomer" : "modalActivity");
+  if (!scope) { return; }
+
+  scope.querySelectorAll(".is-invalid").forEach(function (el) { el.classList.remove("is-invalid"); });
+  scope.querySelectorAll(".pf-field-err").forEach(function (el) {
+    el.textContent = "";
+    el.classList.remove("show");
+  });
+}
+
+function showFieldError(prefix, field, message) {
+  if (!field) { return false; }
+
+  var input = document.getElementById(prefix + field);
+  var slot = document.getElementById(prefix + "err-" + field);
+
+  if (!input && !slot) { return false; }
+
+  if (input) {
+    input.classList.add("is-invalid");
+    try { input.focus(); } catch (focusErr) { /* a hidden input cannot take focus */ }
+  }
+  if (slot) {
+    slot.textContent = message;
+    slot.classList.add("show");
+  }
+
+  return true;
+}
+
+/* ── small helpers ──────────────────────────────────────────────────────── */
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function formatWhen(iso) {
+  if (!iso) { return "—"; }
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return "—"; }
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/* An ISO instant into the value a datetime-local input wants, in LOCAL time.
+   Slicing the ISO string would show UTC wall-clock in a local-time field, which
+   is wrong by the user's offset. */
+function toLocalInput(iso) {
+  if (!iso) { return ""; }
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return ""; }
+  var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+    "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+/* And back. Sent as a full ISO instant WITH an offset, not as the bare
+   "2026-09-03T10:00" the input produces: the server parses a bare datetime as
+   its own local time, which is UTC, so a user's 10am would be stored as 10am
+   UTC. An unparseable value is passed through untouched so the server's
+   validator refuses it with a 400 naming the field, rather than this quietly
+   dropping it. */
+function fromLocalInput(value) {
+  var text = String(value || "").trim();
+  if (!text) { return null; }
+  var d = new Date(text);
+  if (isNaN(d.getTime())) { return text; }
+  return d.toISOString();
+}
+
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+document.querySelectorAll(".pf-overlay").forEach(function (el) {
+  el.addEventListener("click", function (e) { if (e.target === el) { el.classList.remove("open"); } });
+});
+
+function setModalStatus(el, msg, cls) {
+  el.textContent = msg;
+  el.className = "pf-modal-status" + (cls ? " " + cls : "");
+}
+
+var toastTimer = null;
+function showToast(msg, isErr) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "pf-toast show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove("show"); }, 3200);
+}
+
+/* ── list ───────────────────────────────────────────────────────────────── */
+
+async function loadCustomers() {
+  loadState = "loading";
+  loadError = null;
+  renderCustomers();
+
+  try {
+    var res = await apiFetch("/api/crm/customers");
+
+    if (!res.ok) {
+      var err = await readError(res);
+      loadState = "error";
+      loadError = err.message;
+      customers = [];
+      renderCustomers();
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      loadState = "error";
+      loadError = "The server sent a response this page could not read.";
+      customers = [];
+      renderCustomers();
+      return;
+    }
+
+    customers = (data && Array.isArray(data.customers)) ? data.customers : [];
+    loadState = "ready";
+  } catch (networkErr) {
+    /* A thrown fetch is the network being unreachable, which is NOT an empty
+       CRM and must not render as one. */
+    loadState = "error";
+    loadError = "Could not reach the server. Check your connection and try again.";
+    customers = [];
+  }
+
+  renderCustomers();
+}
+
+function visibleCustomers() {
+  var filter = document.getElementById("statusFilter").value;
+  if (!filter) { return customers; }
+  return customers.filter(function (c) { return String(c.status || "") === filter; });
+}
+
+function renderCustomers() {
+  var list = document.getElementById("crmList");
+  var count = document.getElementById("crmCount");
+
+  if (loadState === "loading") {
+    count.textContent = "";
+    list.innerHTML = '<div class="crm-state"><div class="crm-state-title">Loading customers…</div></div>';
+    return;
+  }
+
+  if (loadState === "error") {
+    count.textContent = "";
+    list.innerHTML =
+      '<div class="crm-state error">' +
+        '<div class="crm-state-title">Could not load your customers</div>' +
+        '<div class="crm-state-sub">This is a problem reaching the server, not an empty CRM. ' +
+          'Nothing has been changed or lost.</div>' +
+        '<button class="pf-btn-primary" onclick="loadCustomers()">Try again</button>' +
+        '<div class="crm-state-detail">' + escapeHtml(loadError || "") + '</div>' +
+      '</div>';
+    return;
+  }
+
+  var rows = visibleCustomers();
+  count.textContent = rows.length + " of " + customers.length + (customers.length === 1 ? " customer" : " customers");
+
+  if (!customers.length) {
+    list.innerHTML =
+      '<div class="crm-state">' +
+        '<div class="crm-state-title">No customers yet</div>' +
+        '<div class="crm-state-sub">Add the first person or business you are working with. ' +
+          'Everything here is yours to edit and delete.</div>' +
+        '<button class="pf-btn-primary" onclick="openCustomerModal(null)">+ Add Customer</button>' +
+      '</div>';
+    return;
+  }
+
+  if (!rows.length) {
+    list.innerHTML =
+      '<div class="crm-state">' +
+        '<div class="crm-state-title">No customers with that status</div>' +
+        '<div class="crm-state-sub">You have ' + customers.length + ' customer' + (customers.length === 1 ? "" : "s") +
+          ', none of them in this stage. Choose “All statuses” to see everyone.</div>' +
+      '</div>';
+    return;
+  }
+
+  list.innerHTML = rows.map(function (c) {
+    var status = String(c.status || "lead").toLowerCase();
+    var statusClass = CRM_STATUSES.indexOf(status) !== -1 ? status : "lead";
+    var id = escapeHtml(c.id);
+
+    return '<div class="crm-row">' +
+      '<div class="crm-cell">' +
+        '<div class="crm-name">' + escapeHtml(c.name || "Unnamed") + '</div>' +
+        '<div class="crm-sub">' + escapeHtml(c.company || "—") + '</div>' +
+      '</div>' +
+      '<div class="crm-cell">' +
+        '<div class="crm-contact">' + escapeHtml(c.email || "—") + '</div>' +
+        '<div class="crm-contact">' + escapeHtml(c.phone || "—") + '</div>' +
+      '</div>' +
+      '<div class="crm-cell">' +
+        '<span class="crm-status ' + statusClass + '">' + escapeHtml(status) + '</span>' +
+      '</div>' +
+      '<div class="crm-cell">' +
+        '<div class="crm-sub">Last contacted</div>' +
+        '<div class="crm-contact">' + escapeHtml(formatWhen(c.last_contacted_at)) + '</div>' +
+      '</div>' +
+      '<div class="crm-actions">' +
+        '<button class="crm-act" onclick="openCustomerModal(\'' + id + '\')">Edit</button>' +
+        '<button class="crm-act" onclick="openActivityModal(\'' + id + '\')">Activity</button>' +
+        '<button class="crm-act danger" onclick="deleteCustomer(\'' + id + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+}
+
+/* ── create and edit ────────────────────────────────────────────────────── */
+
+function openCustomerModal(id) {
+  editingCustomerId = id;
+  document.getElementById("customerModalTitle").textContent = id ? "Edit Customer" : "Add Customer";
+  document.getElementById("customerSaveBtn").textContent = "Save";
+  setModalStatus(document.getElementById("customerModalStatus"), "", "");
+  clearFieldErrors("cm-");
+
+  if (id) {
+    var c = customers.find(function (x) { return x.id === id; });
+    if (c) {
+      document.getElementById("cm-name").value = c.name || "";
+      document.getElementById("cm-company").value = c.company || "";
+      document.getElementById("cm-email").value = c.email || "";
+      document.getElementById("cm-phone").value = c.phone || "";
+      document.getElementById("cm-status").value = CRM_STATUSES.indexOf(String(c.status || "")) !== -1 ? c.status : "lead";
+      document.getElementById("cm-source").value = c.source || "";
+      document.getElementById("cm-notes").value = c.notes || "";
+      document.getElementById("cm-last_contacted_at").value = toLocalInput(c.last_contacted_at);
+    }
+  } else {
+    ["cm-name", "cm-company", "cm-email", "cm-phone", "cm-source", "cm-notes", "cm-last_contacted_at"]
+      .forEach(function (i) { document.getElementById(i).value = ""; });
+    document.getElementById("cm-status").value = "lead";
+  }
+
+  openModal("modalCustomer");
+}
+
+async function saveCustomer() {
+  var btn = document.getElementById("customerSaveBtn");
+  var status = document.getElementById("customerModalStatus");
+
+  clearFieldErrors("cm-");
+  setModalStatus(status, "", "");
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+
+  try {
+    var body = {
+      name: document.getElementById("cm-name").value.trim(),
+      company: document.getElementById("cm-company").value.trim(),
+      email: document.getElementById("cm-email").value.trim(),
+      phone: document.getElementById("cm-phone").value.trim(),
+      status: document.getElementById("cm-status").value,
+      source: document.getElementById("cm-source").value.trim(),
+      notes: document.getElementById("cm-notes").value.trim(),
+      last_contacted_at: fromLocalInput(document.getElementById("cm-last_contacted_at").value)
+    };
+
+    var path = editingCustomerId ? "/api/crm/customers/" + encodeURIComponent(editingCustomerId) : "/api/crm/customers";
+    var method = editingCustomerId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+
+    if (!res.ok) {
+      var err = await readError(res);
+
+      /* A 404 on an edit means the row is gone — deleted in another tab, or
+         never the caller's. The route answers 404 for both and cannot tell
+         them apart, so neither claims here. */
+      if (res.status === 404) {
+        setModalStatus(status, "That customer no longer exists. The list has been refreshed.", "err");
+        await loadCustomers();
+        return;
+      }
+
+      showFieldError("cm-", err.field, err.message);
+      setModalStatus(status, err.message, "err");
+      return;
+    }
+
+    /* Re-fetched rather than patched into the local array. The server
+       normalises — status is lowercased, so a value chosen here comes back
+       canonical — and a local patch would hold whatever was sent. One extra
+       request buys a list that matches the database. */
+    closeModal("modalCustomer");
+    await loadCustomers();
+    showToast(editingCustomerId ? "Customer updated." : "Customer added.");
+  } catch (e) {
+    setModalStatus(status, "Could not reach the server. Nothing was saved.", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Save";
+  }
+}
+
+/* ── delete ─────────────────────────────────────────────────────────────── */
+
+async function deleteCustomer(id) {
+  var c = customers.find(function (x) { return x.id === id; });
+  var label = c && c.name ? '"' + c.name + '"' : "this customer";
+
+  if (!confirm("Delete " + label + "? Their activity log goes with them.")) { return; }
+
+  try {
+    var res = await apiFetch("/api/crm/customers/" + encodeURIComponent(id), "DELETE");
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        /* Not a generic failure. The row is already gone, which is the outcome
+           the user wanted, so the list is refreshed and they are told plainly
+           rather than shown "Delete failed" for something that succeeded
+           earlier. */
+        showToast("That customer no longer exists.", true);
+        await loadCustomers();
+        return;
+      }
+
+      var err = await readError(res);
+      showToast(err.message, true);
+      return;
+    }
+
+    await loadCustomers();
+    showToast("Customer deleted.");
+  } catch (e) {
+    showToast("Could not reach the server. Nothing was deleted.", true);
+  }
+}
+
+/* ── activity log ───────────────────────────────────────────────────────── */
+
+/* A second modal rather than a detail pane. Nothing in this repo renders a
+   master-detail layout, and calendar.html's day panel — a centred modal holding
+   a list of that day's events plus a form to add one — is the closest existing
+   shape to "open a record, see its children, add one". This follows it. */
+function openActivityModal(customerId) {
+  activityCustomerId = customerId;
+
+  var c = customers.find(function (x) { return x.id === customerId; });
+  document.getElementById("activityModalTitle").textContent =
+    c && c.name ? "Activity — " + c.name : "Activity";
+
+  setModalStatus(document.getElementById("activityModalStatus"), "", "");
+  clearFieldErrors("am-");
+  document.getElementById("am-activity_type").value = "note";
+  document.getElementById("am-note").value = "";
+  document.getElementById("am-occurred_at").value = "";
+  document.getElementById("activityList").innerHTML =
+    '<div class="crm-act-empty">Loading activity…</div>';
+
+  openModal("modalActivity");
+  loadActivities(customerId);
+}
+
+async function loadActivities(customerId) {
+  var listEl = document.getElementById("activityList");
+
+  try {
+    var res = await apiFetch("/api/crm/customers/" + encodeURIComponent(customerId) + "/activities");
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        listEl.innerHTML = '<div class="crm-act-empty">That customer no longer exists.</div>';
+        return;
+      }
+      var err = await readError(res);
+      listEl.innerHTML = '<div class="crm-act-empty">Could not load activity — ' + escapeHtml(err.message) + '</div>';
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      listEl.innerHTML = '<div class="crm-act-empty">The server sent a response this page could not read.</div>';
+      return;
+    }
+
+    renderActivities((data && Array.isArray(data.activities)) ? data.activities : []);
+  } catch (e) {
+    listEl.innerHTML = '<div class="crm-act-empty">Could not reach the server.</div>';
+  }
+}
+
+function renderActivities(activities) {
+  var listEl = document.getElementById("activityList");
+
+  if (!activities.length) {
+    listEl.innerHTML = '<div class="crm-act-empty">Nothing logged yet. Add the first note below.</div>';
+    return;
+  }
+
+  listEl.innerHTML = activities.map(function (a) {
+    return '<div class="crm-act-item">' +
+      '<div class="crm-act-head">' +
+        '<span class="crm-act-type">' + escapeHtml(a.activity_type || "note") + '</span>' +
+        '<span class="crm-act-when">' + escapeHtml(formatWhen(a.occurred_at)) + '</span>' +
+      '</div>' +
+      (a.note ? '<div class="crm-act-note">' + escapeHtml(a.note) + '</div>' : '') +
+    '</div>';
+  }).join("");
+}
+
+async function saveActivity() {
+  if (!activityCustomerId) { return; }
+
+  var btn = document.getElementById("activitySaveBtn");
+  var status = document.getElementById("activityModalStatus");
+
+  clearFieldErrors("am-");
+  setModalStatus(status, "", "");
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+
+  try {
+    /* customer_id is never sent. It comes from the URL, and the route takes it
+       from the parent it has already verified belongs to this caller. */
+    var body = {
+      activity_type: document.getElementById("am-activity_type").value,
+      note: document.getElementById("am-note").value.trim(),
+      occurred_at: fromLocalInput(document.getElementById("am-occurred_at").value)
+    };
+
+    var res = await apiFetch(
+      "/api/crm/customers/" + encodeURIComponent(activityCustomerId) + "/activities", "POST", body);
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        setModalStatus(status, "That customer no longer exists.", "err");
+        return;
+      }
+
+      var err = await readError(res);
+      showFieldError("am-", err.field, err.message);
+      setModalStatus(status, err.message, "err");
+      return;
+    }
+
+    document.getElementById("am-note").value = "";
+    document.getElementById("am-occurred_at").value = "";
+    setModalStatus(status, "Activity logged.", "ok");
+
+    /* Re-fetched for the same reason the customer list is: occurred_at defaults
+       server-side when it was left blank, so the row that comes back is not the
+       row that was sent. */
+    await loadActivities(activityCustomerId);
+  } catch (e) {
+    setModalStatus(status, "Could not reach the server. Nothing was logged.", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Log Activity";
+  }
+}
+
+/* ── wiring ─────────────────────────────────────────────────────────────── */
+
+document.getElementById("addCustomerBtn").addEventListener("click", function () { openCustomerModal(null); });
+document.getElementById("statusFilter").addEventListener("change", renderCustomers);
+
+loadCustomers();
+</script>
+</body>
+</html>
