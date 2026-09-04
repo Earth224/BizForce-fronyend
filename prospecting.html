@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Prospecting</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* Same records-page convention as crm.html: the shared sheet above for
+       bf-* components, then everything this page needs locally, with the pf-*
+       modal and form classes carried in rather than imported because they live
+       in profile.html's own style block. Copied so both record pages read
+       identically to the product modal a user has already met. */
+    :root {
+      --pa: #22d3ee;
+      --pa-rgb: 34,211,238;
+      --pa2: #a855f7;
+      --pf: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+      --bg: #070b18;
+      --border: rgba(255,255,255,.07);
+      --text: #f0f4ff;
+      --sub: #8892b8;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:var(--pf);color:#e8e8ff;background:var(--bg)}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+
+    /* Executive HQ nav, matching crm.html, marketplace.html and receipts.html */
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+    .hero{text-align:center;margin-bottom:32px}
+    .hero-eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .hero-title{font-size:2rem;font-weight:900;margin:0 0 8px;background:linear-gradient(90deg,#fff,#c9d4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{font-size:.9rem;color:var(--sub);margin:0}
+
+    /* Two paginated lists, one visible at a time. Deliberately NOT the status
+       filter crm.html has: that route returns every row, so a client-side
+       filter over it is the whole truth. This route pages server-side and takes
+       no status parameter, so the same select would call 25 rows "all of them"
+       and report "none disqualified" while page 2 held four. A tab switches
+       which COLLECTION is being paged, which is a claim the server can back. */
+    .ps-tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+    .ps-tab{padding:9px 18px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--sub);font-size:.8rem;font-weight:800;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .ps-tab:hover{border-color:rgba(var(--pa-rgb),.35);color:var(--text)}
+    .ps-tab.active{border-color:rgba(var(--pa-rgb),.5);background:rgba(var(--pa-rgb),.1);color:var(--pa)}
+
+    .ps-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+    .ps-count{font-size:.78rem;color:var(--sub)}
+
+    .ps-list{display:flex;flex-direction:column;gap:12px}
+    .ps-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:16px 18px;border-radius:14px;border:1px solid var(--border);background:rgba(12,16,38,.72);backdrop-filter:blur(12px)}
+    .ps-cell{min-width:0}
+    .ps-name{font-size:.94rem;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ps-sub{font-size:.76rem;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ps-contact{font-size:.78rem;color:var(--sub);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ps-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .ps-act{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--sub);font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .ps-act:hover{border-color:rgba(var(--pa-rgb),.45);color:var(--pa)}
+    .ps-act.convert:hover{border-color:rgba(52,211,153,.5);color:#34d399}
+    .ps-act.danger:hover{border-color:rgba(248,113,113,.45);color:#f87171}
+    .ps-act:disabled{opacity:.4;cursor:default}
+    .ps-act:disabled:hover{border-color:rgba(255,255,255,.1);color:var(--sub)}
+    .ps-score{font-size:.78rem;font-weight:800;color:var(--text)}
+
+    .ps-status{display:inline-block;padding:4px 11px;border-radius:999px;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .ps-status.new{background:rgba(96,165,250,.14);color:#93c5fd;border:1px solid rgba(96,165,250,.3)}
+    .ps-status.researching{background:rgba(251,191,36,.14);color:#fcd34d;border:1px solid rgba(251,191,36,.3)}
+    .ps-status.qualified{background:rgba(168,85,247,.14);color:#d8b4fe;border:1px solid rgba(168,85,247,.3)}
+    .ps-status.contacted{background:rgba(56,189,248,.14);color:#7dd3fc;border:1px solid rgba(56,189,248,.3)}
+    .ps-status.converted{background:rgba(52,211,153,.14);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)}
+    .ps-status.disqualified{background:rgba(248,113,113,.14);color:#fca5a5;border:1px solid rgba(248,113,113,.3)}
+
+    /* Paging. There is no total — the route answers has_more instead of a count,
+       deliberately, so it never has to walk the table to describe one page — so
+       this shows a RANGE and a next step, never "page 3 of 9". */
+    .ps-pager{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+    .ps-pager-info{font-size:.76rem;color:var(--sub)}
+    .ps-pager-btns{display:flex;gap:8px;align-items:center}
+    .ps-page-btn{padding:8px 16px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--text);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .ps-page-btn:hover:not(:disabled){border-color:rgba(var(--pa-rgb),.45);color:var(--pa)}
+    .ps-page-btn:disabled{opacity:.35;cursor:not-allowed}
+    .ps-page-size{width:auto;min-width:92px;padding:8px 10px}
+
+    /* Three page states, held apart the way crm.html holds them apart. */
+    .ps-state{padding:48px 24px;text-align:center;border-radius:16px;border:1px solid var(--border);background:rgba(12,16,38,.5)}
+    .ps-state-title{font-size:1rem;font-weight:800;color:var(--text);margin-bottom:8px}
+    .ps-state-sub{font-size:.84rem;color:var(--sub);line-height:1.6;max-width:440px;margin:0 auto 18px}
+    .ps-state.error{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.05)}
+    .ps-state.error .ps-state-title{color:#f87171}
+    .ps-state-detail{font-size:.74rem;color:var(--sub);margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+    /* Conversion result. A toast is gone in three seconds and the thing it
+       announces — a new row in another table, on another page — is not
+       something the user can see from here, so it also lands somewhere that
+       stays put and carries a link to where the new record actually is. */
+    .ps-notice{display:none;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 16px;border-radius:12px;border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.08);margin-bottom:18px;font-size:.83rem;color:#6ee7b7}
+    .ps-notice.show{display:flex}
+    .ps-notice a{color:#6ee7b7;font-weight:800}
+    .ps-notice-x{margin-left:auto;border:none;background:transparent;color:#6ee7b7;cursor:pointer;font-family:var(--pf);font-size:.9rem}
+
+    /* ── pf-* modal and form classes, copied from profile.html ─────────── */
+    .pf-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .22s}
+    .pf-overlay.open{opacity:1;pointer-events:all}
+    .pf-modal{background:rgba(10,14,36,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(var(--pa-rgb),.22);border-radius:20px;padding:26px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 0 1px rgba(var(--pa-rgb),.08)}
+    .pf-modal.wide{max-width:680px}
+    .pf-modal::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--pa),var(--pa2),transparent);border-radius:20px 20px 0 0}
+    .pf-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .pf-modal-title{font-size:.98rem;font-weight:900;color:var(--text)}
+    .pf-modal-x{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--sub);cursor:pointer;font-family:var(--pf);font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .pf-modal-x:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .pf-form-group{margin-bottom:14px}
+    .pf-form-label{display:block;font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+    .pf-form-label em{color:#f43f5e;font-style:normal;margin-left:2px}
+    .pf-form-input,.pf-form-textarea,.pf-form-select{width:100%;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:9px;color:var(--text);font-size:.86rem;font-family:var(--pf);outline:none;transition:border-color .2s}
+    .pf-form-input::placeholder,.pf-form-textarea::placeholder{color:#3a4268}
+    .pf-form-input:focus,.pf-form-textarea:focus,.pf-form-select:focus{border-color:rgba(var(--pa-rgb),.45)}
+    .pf-form-textarea{resize:vertical;min-height:78px;line-height:1.55}
+    .pf-form-select option{background:#0a0f28;color:var(--text)}
+    .pf-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pf-form-hint{font-size:.72rem;color:var(--sub);margin-top:6px;line-height:1.5}
+    .pf-modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}
+    .pf-modal-status{font-size:.78rem;color:var(--sub);flex:1;min-height:16px}
+    .pf-modal-status.ok{color:#34d399}
+    .pf-modal-status.err{color:#f87171}
+    .pf-btn-cancel{padding:9px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--sub);font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .pf-btn-cancel:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+    .pf-btn-primary{padding:9px 22px;border-radius:10px;background:linear-gradient(90deg,var(--pa),var(--pa2));border:none;color:#050c1a;font-size:.82rem;font-weight:900;cursor:pointer;font-family:var(--pf);transition:filter .2s}
+    .pf-btn-primary:hover{filter:brightness(1.1)}
+    .pf-btn-primary:disabled{opacity:.45;cursor:not-allowed}
+    .pf-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(10,14,36,.97);border:1px solid rgba(var(--pa-rgb),.35);border-radius:12px;padding:10px 22px;font-size:.85rem;font-weight:700;color:var(--pa);z-index:200;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap}
+    .pf-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .pf-toast.err{color:#f87171;border-color:rgba(248,113,113,.35)}
+    .pf-spinner{width:14px;height:14px;border-radius:50%;display:inline-block;border:2px solid rgba(5,12,26,.25);border-top-color:#050c1a;animation:pfSpin .55s linear infinite;vertical-align:middle}
+    @keyframes pfSpin{to{transform:rotate(360deg)}}
+
+    /* Field-level error state, same as crm.html. */
+    .pf-form-input.is-invalid,.pf-form-textarea.is-invalid,.pf-form-select.is-invalid{border-color:rgba(248,113,113,.65);background:rgba(248,113,113,.06)}
+    .pf-field-err{font-size:.72rem;color:#f87171;margin-top:5px;min-height:0;display:none}
+    .pf-field-err.show{display:block}
+
+    /* The disqualified_reason group is revealed by the status select, not by a
+       400. Hidden means "not part of this record", which is exactly what the
+       server means when the status is anything but disqualified. */
+    .ps-conditional{display:none}
+    .ps-conditional.show{display:block}
+
+    /* ── criteria editor ────────────────────────────────────────────────── */
+    .ps-crit-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+    .ps-crit-list{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+    .ps-crit{padding:11px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .ps-crit.row-invalid{border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.05)}
+    .ps-crit-grid{display:grid;grid-template-columns:minmax(0,1.6fr) 84px minmax(0,1.1fr) minmax(0,1.3fr) 32px;gap:8px;align-items:center}
+    .ps-crit-grid .pf-form-input,.ps-crit-grid .pf-form-select{padding:8px 9px;font-size:.8rem}
+    .ps-crit-idx{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sub);margin-bottom:6px}
+    .ps-crit-x{width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--sub);cursor:pointer;font-family:var(--pf);font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+    .ps-crit-x:hover{border-color:rgba(248,113,113,.4);color:#f87171}
+    .ps-crit-err{font-size:.72rem;color:#f87171;margin-top:7px;display:none}
+    .ps-crit-err.show{display:block}
+    .ps-crit-empty{font-size:.8rem;color:var(--sub);padding:16px 0;text-align:center}
+    .ps-crit-add{padding:8px 14px;border-radius:9px;border:1px dashed rgba(var(--pa-rgb),.4);background:transparent;color:var(--pa);font-size:.76rem;font-weight:800;cursor:pointer;font-family:var(--pf);transition:all .2s}
+    .ps-crit-add:hover{background:rgba(var(--pa-rgb),.08)}
+    .ps-crit-add:disabled{opacity:.4;cursor:not-allowed}
+    .ps-crit-section.is-invalid{outline:1px solid rgba(248,113,113,.5);outline-offset:6px;border-radius:10px}
+
+    @media (max-width:820px){
+      .ps-row{grid-template-columns:1fr;gap:10px}
+      .ps-actions{justify-content:flex-start}
+      .ps-crit-grid{grid-template-columns:1fr 1fr;gap:8px}
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-eyebrow">Prospecting</div>
+    <h1 class="hero-title">Prospects</h1>
+    <p class="hero-sub">Who you are working to win, and the profile you score them against.</p>
+  </header>
+
+  <div class="ps-notice" id="convertNotice">
+    <span id="convertNoticeText"></span>
+    <a href="crm.html">Open CRM</a>
+    <button class="ps-notice-x" onclick="hideConvertNotice()" aria-label="Dismiss">&#10005;</button>
+  </div>
+
+  <div class="ps-tabs">
+    <button class="ps-tab active" id="tabProspects" onclick="switchTab('prospects')">Prospects</button>
+    <button class="ps-tab" id="tabIcps" onclick="switchTab('icps')">ICP Profiles</button>
+  </div>
+
+  <!-- ══ PROSPECTS ══ -->
+  <section id="viewProspects">
+    <div class="ps-toolbar">
+      <span class="ps-count" id="prospectCount"></span>
+      <button class="pf-btn-primary" id="addProspectBtn">+ Add Prospect</button>
+    </div>
+    <div class="ps-list" id="prospectList"></div>
+    <div class="ps-pager" id="prospectPager" style="display:none">
+      <span class="ps-pager-info" id="prospectPagerInfo"></span>
+      <div class="ps-pager-btns">
+        <label class="ps-pager-info" for="prospectPageSize">Per page</label>
+        <select class="pf-form-select ps-page-size" id="prospectPageSize">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <button class="ps-page-btn" id="prospectPrev" onclick="pageProspects(-1)">Previous</button>
+        <button class="ps-page-btn" id="prospectNext" onclick="pageProspects(1)">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ICP PROFILES ══ -->
+  <section id="viewIcps" style="display:none">
+    <div class="ps-toolbar">
+      <span class="ps-count" id="icpCount"></span>
+      <button class="pf-btn-primary" id="addIcpBtn">+ Add ICP Profile</button>
+    </div>
+    <div class="ps-list" id="icpList"></div>
+    <div class="ps-pager" id="icpPager" style="display:none">
+      <span class="ps-pager-info" id="icpPagerInfo"></span>
+      <div class="ps-pager-btns">
+        <label class="ps-pager-info" for="icpPageSize">Per page</label>
+        <select class="pf-form-select ps-page-size" id="icpPageSize">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <button class="ps-page-btn" id="icpPrev" onclick="pageIcps(-1)">Previous</button>
+        <button class="ps-page-btn" id="icpNext" onclick="pageIcps(1)">Next</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══ PROSPECT MODAL ══ -->
+<div class="pf-overlay" id="modalProspect">
+  <div class="pf-modal">
+    <div class="pf-modal-head">
+      <span class="pf-modal-title" id="prospectModalTitle">Add Prospect</span>
+      <button class="pf-modal-x" onclick="closeModal('modalProspect')">&#10005;</button>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="pm-name">Name<em>*</em></label>
+      <input class="pf-form-input" id="pm-name" placeholder="Who are you prospecting?">
+      <div class="pf-field-err" id="pm-err-name"></div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-company">Company</label>
+        <input class="pf-form-input" id="pm-company" placeholder="Their business">
+        <div class="pf-field-err" id="pm-err-company"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-title">Title</label>
+        <input class="pf-form-input" id="pm-title" placeholder="Their role">
+        <div class="pf-field-err" id="pm-err-title"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-email">Email</label>
+        <input class="pf-form-input" id="pm-email" placeholder="However they write it">
+        <div class="pf-field-err" id="pm-err-email"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-phone">Phone</label>
+        <input class="pf-form-input" id="pm-phone" placeholder="Any format, incl. international">
+        <div class="pf-field-err" id="pm-err-phone"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-website">Website</label>
+        <input class="pf-form-input" id="pm-website" placeholder="Where you found them">
+        <div class="pf-field-err" id="pm-err-website"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-social_handle">Social Handle</label>
+        <input class="pf-form-input" id="pm-social_handle" placeholder="@them">
+        <div class="pf-field-err" id="pm-err-social_handle"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-status">Status</label>
+        <select class="pf-form-select" id="pm-status">
+          <option value="new">New</option>
+          <option value="researching">Researching</option>
+          <option value="qualified">Qualified</option>
+          <option value="contacted">Contacted</option>
+          <option value="converted">Converted</option>
+          <option value="disqualified">Disqualified</option>
+        </select>
+        <div class="pf-field-err" id="pm-err-status"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-source">Source</label>
+        <input class="pf-form-input" id="pm-source" placeholder="Referral, expo, inbound…">
+        <div class="pf-field-err" id="pm-err-source"></div>
+      </div>
+    </div>
+
+    <!-- Revealed by the status select. See syncDisqualifiedVisibility. -->
+    <div class="pf-form-group ps-conditional" id="pm-group-disqualified_reason">
+      <label class="pf-form-label" for="pm-disqualified_reason">Disqualified Reason<em>*</em></label>
+      <textarea class="pf-form-textarea" id="pm-disqualified_reason" placeholder="Why are they out? Budget, timing, wrong fit…"></textarea>
+      <div class="pf-form-hint">Required while the status is Disqualified, and cleared automatically if you move them back into the funnel.</div>
+      <div class="pf-field-err" id="pm-err-disqualified_reason"></div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-icp_profile_id">ICP Profile</label>
+        <select class="pf-form-select" id="pm-icp_profile_id">
+          <option value="">None</option>
+        </select>
+        <div class="pf-field-err" id="pm-err-icp_profile_id"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-fit_score">Fit Score</label>
+        <input class="pf-form-input" id="pm-fit_score" type="number" step="1" placeholder="Leave blank if unscored">
+        <div class="pf-field-err" id="pm-err-fit_score"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-last_contacted_at">Last Contacted</label>
+        <input class="pf-form-input" id="pm-last_contacted_at" type="datetime-local">
+        <div class="pf-field-err" id="pm-err-last_contacted_at"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="pm-last_researched_at">Last Researched</label>
+        <input class="pf-form-input" id="pm-last_researched_at" type="datetime-local">
+        <div class="pf-field-err" id="pm-err-last_researched_at"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="pm-qualification_notes">Qualification Notes</label>
+      <textarea class="pf-form-textarea" id="pm-qualification_notes" placeholder="What makes them a fit, or not…"></textarea>
+      <div class="pf-field-err" id="pm-err-qualification_notes"></div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="pm-notes">Notes</label>
+      <textarea class="pf-form-textarea" id="pm-notes" placeholder="Anything else worth remembering…"></textarea>
+      <div class="pf-field-err" id="pm-err-notes"></div>
+    </div>
+
+    <div class="pf-modal-foot">
+      <span class="pf-modal-status" id="prospectModalStatus"></span>
+      <button class="pf-btn-cancel" onclick="closeModal('modalProspect')">Cancel</button>
+      <button class="pf-btn-primary" id="prospectSaveBtn" onclick="saveProspect()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ICP PROFILE MODAL ══ -->
+<div class="pf-overlay" id="modalIcp">
+  <div class="pf-modal wide">
+    <div class="pf-modal-head">
+      <span class="pf-modal-title" id="icpModalTitle">Add ICP Profile</span>
+      <button class="pf-modal-x" onclick="closeModal('modalIcp')">&#10005;</button>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="im-name">Name<em>*</em></label>
+      <input class="pf-form-input" id="im-name" placeholder="Who is the ideal customer?">
+      <div class="pf-field-err" id="im-err-name"></div>
+    </div>
+
+    <div class="pf-form-group">
+      <label class="pf-form-label" for="im-description">Description</label>
+      <textarea class="pf-form-textarea" id="im-description" placeholder="What this profile is for…"></textarea>
+      <div class="pf-field-err" id="im-err-description"></div>
+    </div>
+
+    <div class="pf-form-row">
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="im-pass_threshold">Pass Threshold</label>
+        <input class="pf-form-input" id="im-pass_threshold" type="number" step="1" placeholder="Score needed to qualify">
+        <div class="pf-field-err" id="im-err-pass_threshold"></div>
+      </div>
+      <div class="pf-form-group">
+        <label class="pf-form-label" for="im-is_active">Active</label>
+        <select class="pf-form-select" id="im-is_active">
+          <option value="true">Yes — score against this profile</option>
+          <option value="false">No — retired</option>
+        </select>
+        <div class="pf-field-err" id="im-err-is_active"></div>
+      </div>
+    </div>
+
+    <div class="pf-form-group ps-crit-section" id="im-group-criteria">
+      <div class="ps-crit-head">
+        <label class="pf-form-label" style="margin:0">Criteria</label>
+        <span class="ps-pager-info" id="icpCriteriaCount"></span>
+      </div>
+      <div class="ps-crit-list" id="icpCriteriaList"></div>
+      <button class="ps-crit-add" id="icpCriteriaAdd" onclick="addCriterion()">+ Add criterion</button>
+      <div class="pf-form-hint">Label and weight are required on every row. Operator and value are optional, but a value needs an operator to mean anything.</div>
+      <div class="pf-field-err" id="im-err-criteria"></div>
+    </div>
+
+    <div class="pf-modal-foot">
+      <span class="pf-modal-status" id="icpModalStatus"></span>
+      <button class="pf-btn-cancel" onclick="closeModal('modalIcp')">Cancel</button>
+      <button class="pf-btn-primary" id="icpSaveBtn" onclick="saveIcp()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="pf-toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var PROSPECT_STATUSES = ["new", "researching", "qualified", "contacted", "converted", "disqualified"];
+var CRITERION_OPERATORS = ["equals", "not_equals", "contains", "not_contains", "gt", "gte", "lt", "lte", "in", "exists"];
+
+var ICP_CRITERIA_MAX = 50;
+
+/* The server caps a page at 200. The dropdown asks for that cap; the lists
+   offer smaller sizes, all inside it. */
+var ICP_OPTION_LIMIT = 200;
+
+/* One paging cursor per collection. limit and offset are what the request
+   carries; hasMore is what the response answers, and it is the ONLY thing that
+   says whether a next page exists — there is no total to compare against. */
+var prospects = [];
+var prospectPage = { limit: 25, offset: 0, hasMore: false };
+var prospectState = "loading";
+var prospectError = null;
+var editingProspectId = null;
+
+var icps = [];
+var icpPage = { limit: 25, offset: 0, hasMore: false };
+var icpState = "loading";
+var icpError = null;
+var editingIcpId = null;
+
+/* The criteria editor's model. Held here rather than read straight off the DOM
+   at save time so add and remove can re-render without losing what was typed. */
+var criteriaRows = [];
+
+/* Profiles for the prospect modal's dropdown, fetched separately from the ICP
+   tab's page: the tab shows 25 at a time and the dropdown must offer every
+   profile a prospect could be assigned to. */
+var icpOptions = [];
+var icpOptionsTruncated = false;
+
+/* ── fetch plumbing ─────────────────────────────────────────────────────── */
+
+async function apiFetch(path, method, body) {
+  var opts = { method: method || "GET", headers: { "Authorization": "Bearer " + token } };
+  if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  return fetch(API_URL + path, opts);
+}
+
+/* Reads an error body without trusting it to be JSON — the same guard crm.html
+   uses, for the same reason: a 502 returning an HTML error page must not
+   surface to the user as "Unexpected token '<'". `field` may now be a PATH
+   ("criteria[2].weight") rather than a column name, so it is carried through as
+   an opaque string and left for the resolvers below to interpret. */
+async function readError(res) {
+  var body = null;
+
+  try {
+    body = await res.json();
+  } catch (parseErr) {
+    body = null;
+  }
+
+  if (body && typeof body === "object" && body.error) {
+    return {
+      status: res.status,
+      message: String(body.error),
+      field: body.field ? String(body.field) : null
+    };
+  }
+
+  return {
+    status: res.status,
+    message: "Request failed (HTTP " + res.status + ")",
+    field: null
+  };
+}
+
+/* ── field-level errors ─────────────────────────────────────────────────── */
+
+function clearFieldErrors(scopeId) {
+  var scope = document.getElementById(scopeId);
+  if (!scope) { return; }
+
+  scope.querySelectorAll(".is-invalid").forEach(function (el) { el.classList.remove("is-invalid"); });
+  scope.querySelectorAll(".row-invalid").forEach(function (el) { el.classList.remove("row-invalid"); });
+  scope.querySelectorAll(".pf-field-err, .ps-crit-err").forEach(function (el) {
+    el.textContent = "";
+    el.classList.remove("show");
+  });
+}
+
+/* The flat case, unchanged from crm.html: `field` is a column name and the
+   input carrying it is id'd with the modal's prefix. The message goes in three
+   places at once because they answer different questions — the border says
+   WHICH field, the line beneath says WHAT is wrong while the eye is already
+   there, and the footer keeps it visible if the field has scrolled away. */
+function showFlatFieldError(prefix, field, message) {
+  var input = document.getElementById(prefix + field);
+  var slot = document.getElementById(prefix + "err-" + field);
+
+  if (!input && !slot) { return false; }
+
+  if (input) {
+    input.classList.add("is-invalid");
+    try { input.focus(); } catch (focusErr) { /* a hidden input cannot take focus */ }
+  }
+  if (slot) {
+    slot.textContent = message;
+    slot.classList.add("show");
+  }
+
+  return true;
+}
+
+function showProspectFieldError(field, message) {
+  if (!field) { return false; }
+  return showFlatFieldError("pm-", field, message);
+}
+
+/* criterionError sends a PATH — "criteria[2].weight", or a bare "criteria[2]"
+   when the element itself is not an object — because an error inside an array
+   has to name the element as well as the key.
+
+   An id cannot carry that. Rows are added and removed, so an id of
+   "im-criteria[2].weight" would have to be rewritten on every mutation and
+   would collide the moment a row above it was deleted. So the row is addressed
+   POSITIONALLY instead: each rendered row carries data-crit-index — its
+   position in criteriaRows, rewritten on every render, so it always agrees with
+   the array the request was built from — and each input inside it carries
+   data-crit-key naming its column. The path is split into those two halves with
+   one regex and resolved with one scoped query.
+
+   What this depends on is that the array POSTed and the array rendered are the
+   same array, which is why buildCriteriaPayload sends every row including blank
+   ones rather than filtering them out. */
+var CRITERION_PATH = /^criteria\[(\d+)\](?:\.([a-z_]+))?$/;
+
+function showIcpFieldError(field, message) {
+  if (!field) { return false; }
+
+  var match = CRITERION_PATH.exec(field);
+
+  if (match) {
+    var row = document.querySelector('#icpCriteriaList [data-crit-index="' + match[1] + '"]');
+
+    /* The path named a row that is not on screen. Rather than highlight
+       nothing at all, fall back to the section so the user is at least pointed
+       at the right block. */
+    if (!row) { return showCriteriaSectionError(message); }
+
+    row.classList.add("row-invalid");
+
+    /* match[2] is absent for a bare "criteria[2]" — the whole element is
+       wrong, not one of its keys — and the row highlight alone is the answer. */
+    var input = match[2] ? row.querySelector('[data-crit-key="' + match[2] + '"]') : null;
+
+    if (input) {
+      input.classList.add("is-invalid");
+      try { input.focus(); } catch (focusErr) { /* not focusable */ }
+    }
+
+    var slot = row.querySelector("[data-crit-err]");
+    if (slot) {
+      slot.textContent = message;
+      slot.classList.add("show");
+    }
+
+    try { row.scrollIntoView({ block: "nearest" }); } catch (scrollErr) { /* older browsers */ }
+    return true;
+  }
+
+  /* "criteria" with no index — not an array at all, or over the fifty-row cap.
+     That is a statement about the collection, not about any one row. */
+  if (field === "criteria") { return showCriteriaSectionError(message); }
+
+  return showFlatFieldError("im-", field, message);
+}
+
+function showCriteriaSectionError(message) {
+  var section = document.getElementById("im-group-criteria");
+  var slot = document.getElementById("im-err-criteria");
+
+  section.classList.add("is-invalid");
+  slot.textContent = message;
+  slot.classList.add("show");
+
+  try { section.scrollIntoView({ block: "nearest" }); } catch (scrollErr) { /* older browsers */ }
+  return true;
+}
+
+/* ── small helpers ──────────────────────────────────────────────────────── */
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function formatWhen(iso) {
+  if (!iso) { return "—"; }
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return "—"; }
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/* An ISO instant into the value a datetime-local input wants, in LOCAL time.
+   Slicing the ISO string would show UTC wall-clock in a local-time field. */
+function toLocalInput(iso) {
+  if (!iso) { return ""; }
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return ""; }
+  var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+    "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+
+/* And back. Sent as a full ISO instant WITH an offset, not the bare
+   "2026-09-03T10:00" the input produces: the server parses a bare datetime as
+   its own local time, which is UTC. An unparseable value is passed through
+   untouched so the server's validator refuses it with a 400 naming the field,
+   rather than this quietly dropping it. */
+function fromLocalInput(value) {
+  var text = String(value || "").trim();
+  if (!text) { return null; }
+  var d = new Date(text);
+  if (isNaN(d.getTime())) { return text; }
+  return d.toISOString();
+}
+
+/* parseBoundedInteger refuses anything that is not typeof "number", so a
+   numeric field has to travel as a number or not at all. An unparseable entry
+   is sent as the raw string rather than dropped, so the server answers with a
+   400 naming the field instead of this silently discarding what was typed. */
+function numberOrRaw(value) {
+  var text = String(value == null ? "" : value).trim();
+  if (!text) { return null; }
+  var n = Number(text);
+  return Number.isFinite(n) ? n : text;
+}
+
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+document.querySelectorAll(".pf-overlay").forEach(function (el) {
+  el.addEventListener("click", function (e) { if (e.target === el) { el.classList.remove("open"); } });
+});
+
+function setModalStatus(el, msg, cls) {
+  el.textContent = msg;
+  el.className = "pf-modal-status" + (cls ? " " + cls : "");
+}
+
+var toastTimer = null;
+function showToast(msg, isErr) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "pf-toast show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove("show"); }, 3200);
+}
+
+function statusClassFor(value) {
+  var status = String(value || "new").toLowerCase();
+  return PROSPECT_STATUSES.indexOf(status) !== -1 ? status : "new";
+}
+
+/* ── tabs ───────────────────────────────────────────────────────────────── */
+
+function switchTab(which) {
+  document.getElementById("tabProspects").classList.toggle("active", which === "prospects");
+  document.getElementById("tabIcps").classList.toggle("active", which === "icps");
+  document.getElementById("viewProspects").style.display = which === "prospects" ? "" : "none";
+  document.getElementById("viewIcps").style.display = which === "icps" ? "" : "none";
+
+  /* Loaded on first look rather than at startup: the prospect list is what the
+     page is for, and a second list request on load would slow it down for a tab
+     most visits never open. */
+  if (which === "icps" && icpState === "loading" && !icps.length) { loadIcps(); }
+}
+
+/* ── prospects: list and paging ─────────────────────────────────────────── */
+
+/* limit and offset go on the query string; has_more comes back on the body.
+   Nothing here counts rows to decide whether there is another page — the route
+   answers that directly, by fetching one row past the limit and discarding it,
+   so this never needs a total and never asks for one. */
+async function loadProspects() {
+  prospectState = "loading";
+  prospectError = null;
+  renderProspects();
+
+  try {
+    var query = "?limit=" + prospectPage.limit + "&offset=" + prospectPage.offset;
+    var res = await apiFetch("/api/prospects" + query);
+
+    if (!res.ok) {
+      var err = await readError(res);
+      prospectState = "error";
+      prospectError = err.message;
+      prospects = [];
+      renderProspects();
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      prospectState = "error";
+      prospectError = "The server sent a response this page could not read.";
+      prospects = [];
+      renderProspects();
+      return;
+    }
+
+    prospects = (data && Array.isArray(data.prospects)) ? data.prospects : [];
+    prospectPage.hasMore = !!(data && data.has_more);
+
+    /* The response echoes the limit and offset it actually applied, and the
+       limit may be lower than the one asked for because the route caps it.
+       Trusting the echo is what keeps the range label honest. */
+    if (data && typeof data.limit === "number") { prospectPage.limit = data.limit; }
+    if (data && typeof data.offset === "number") { prospectPage.offset = data.offset; }
+
+    /* Deleting the last row of the last page leaves the cursor past the end,
+       and an empty page at a non-zero offset would render as "no prospects
+       yet" over a list that has plenty. Step back one page and reload. */
+    if (!prospects.length && prospectPage.offset > 0) {
+      prospectPage.offset = Math.max(0, prospectPage.offset - prospectPage.limit);
+      return loadProspects();
+    }
+
+    prospectState = "ready";
+  } catch (networkErr) {
+    /* A thrown fetch is the network being unreachable, which is NOT an empty
+       pipeline and must not render as one. */
+    prospectState = "error";
+    prospectError = "Could not reach the server. Check your connection and try again.";
+    prospects = [];
+  }
+
+  renderProspects();
+}
+
+function pageProspects(direction) {
+  var next = prospectPage.offset + direction * prospectPage.limit;
+  if (next < 0) { return; }
+
+  /* Forward is gated on has_more, not on a guess about the row count: a full
+     page is not evidence of a next one. */
+  if (direction > 0 && !prospectPage.hasMore) { return; }
+
+  prospectPage.offset = next;
+  loadProspects();
+}
+
+/* has_more surfaces in three places, because it answers three questions:
+   whether Next is clickable, where the range ends ("1–25, and there are more"
+   against "all 12"), and whether the foot of this list is the foot of the
+   collection. */
+function renderPager(prefix, page, rowCount, ready) {
+  var pager = document.getElementById(prefix + "Pager");
+  var info = document.getElementById(prefix + "PagerInfo");
+  var prev = document.getElementById(prefix + "Prev");
+  var next = document.getElementById(prefix + "Next");
+
+  /* Hidden while loading or erroring, and hidden for a genuinely empty
+     collection — the empty state already says everything a pager could. */
+  if (!ready || (!rowCount && page.offset === 0 && !page.hasMore)) {
+    pager.style.display = "none";
+    return;
+  }
+
+  pager.style.display = "";
+
+  var first = page.offset + 1;
+  var last = page.offset + rowCount;
+
+  if (page.hasMore) {
+    info.textContent = "Showing " + first + "–" + last + ", and there are more.";
+  } else if (page.offset === 0) {
+    info.textContent = "Showing all " + rowCount + ".";
+  } else {
+    info.textContent = "Showing " + first + "–" + last + ". End of the list.";
+  }
+
+  prev.disabled = page.offset === 0;
+  next.disabled = !page.hasMore;
+}
+
+function renderProspects() {
+  var list = document.getElementById("prospectList");
+  var count = document.getElementById("prospectCount");
+
+  if (prospectState === "loading") {
+    count.textContent = "";
+    list.innerHTML = '<div class="ps-state"><div class="ps-state-title">Loading prospects…</div></div>';
+    renderPager("prospect", prospectPage, 0, false);
+    return;
+  }
+
+  if (prospectState === "error") {
+    count.textContent = "";
+    list.innerHTML =
+      '<div class="ps-state error">' +
+        '<div class="ps-state-title">Could not load your prospects</div>' +
+        '<div class="ps-state-sub">This is a problem reaching the server, not an empty pipeline. ' +
+          'Nothing has been changed or lost.</div>' +
+        '<button class="pf-btn-primary" onclick="loadProspects()">Try again</button>' +
+        '<div class="ps-state-detail">' + escapeHtml(prospectError || "") + '</div>' +
+      '</div>';
+    renderPager("prospect", prospectPage, 0, false);
+    return;
+  }
+
+  if (!prospects.length) {
+    count.textContent = "";
+    list.innerHTML =
+      '<div class="ps-state">' +
+        '<div class="ps-state-title">No prospects yet</div>' +
+        '<div class="ps-state-sub">Add the first person or business you are working to win. ' +
+          'Score them against an ICP profile, then convert the ones that land.</div>' +
+        '<button class="pf-btn-primary" onclick="openProspectModal(null)">+ Add Prospect</button>' +
+      '</div>';
+    renderPager("prospect", prospectPage, 0, true);
+    return;
+  }
+
+  /* "on this page", never a bare total: this count describes what was fetched,
+     and has_more says there is more behind it. */
+  count.textContent = prospects.length + (prospects.length === 1 ? " prospect" : " prospects") +
+    " on this page" + (prospectPage.hasMore ? ", more to come" : "");
+
+  list.innerHTML = prospects.map(function (p) {
+    var status = statusClassFor(p.status);
+    var id = escapeHtml(p.id);
+    var converted = status === "converted";
+
+    return '<div class="ps-row">' +
+      '<div class="ps-cell">' +
+        '<div class="ps-name">' + escapeHtml(p.name || "Unnamed") + '</div>' +
+        '<div class="ps-sub">' + escapeHtml(p.company || "—") +
+          (p.title ? " · " + escapeHtml(p.title) : "") + '</div>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<div class="ps-contact">' + escapeHtml(p.email || "—") + '</div>' +
+        '<div class="ps-contact">' + escapeHtml(p.phone || p.social_handle || "—") + '</div>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<span class="ps-status ' + status + '">' + escapeHtml(status) + '</span>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<div class="ps-score">' + (p.fit_score === null || p.fit_score === undefined ? "—" : escapeHtml(p.fit_score)) + '</div>' +
+        '<div class="ps-sub">Scored · last touched ' + escapeHtml(formatWhen(p.last_contacted_at)) + '</div>' +
+      '</div>' +
+      '<div class="ps-actions">' +
+        '<button class="ps-act" onclick="openProspectModal(\'' + id + '\')">Edit</button>' +
+        (converted
+          ? '<button class="ps-act" disabled title="Already converted">Converted</button>'
+          : '<button class="ps-act convert" onclick="convertProspect(\'' + id + '\')">Convert</button>') +
+        '<button class="ps-act danger" onclick="deleteProspect(\'' + id + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  renderPager("prospect", prospectPage, prospects.length, true);
+}
+
+/* ── prospects: create and edit ─────────────────────────────────────────── */
+
+/* The reason field is revealed by the status select rather than discovered
+   through a 400. The rule it mirrors is enforced server-side in both
+   directions: a reason arriving without the disqualified status is refused
+   outright, and moving off disqualified nulls the stored reason in the same
+   write. Hiding the field when the status is anything else says exactly that —
+   the reason is not part of this record right now. */
+function syncDisqualifiedVisibility() {
+  var isDisqualified = document.getElementById("pm-status").value === "disqualified";
+  document.getElementById("pm-group-disqualified_reason").classList.toggle("show", isDisqualified);
+}
+
+function openProspectModal(id) {
+  editingProspectId = id;
+  document.getElementById("prospectModalTitle").textContent = id ? "Edit Prospect" : "Add Prospect";
+  document.getElementById("prospectSaveBtn").textContent = "Save";
+  setModalStatus(document.getElementById("prospectModalStatus"), "", "");
+  clearFieldErrors("modalProspect");
+
+  var textFields = ["pm-name", "pm-company", "pm-title", "pm-email", "pm-phone", "pm-website",
+    "pm-social_handle", "pm-source", "pm-fit_score", "pm-qualification_notes",
+    "pm-disqualified_reason", "pm-notes", "pm-last_contacted_at", "pm-last_researched_at"];
+
+  if (id) {
+    var p = prospects.find(function (x) { return x.id === id; });
+    if (p) {
+      document.getElementById("pm-name").value = p.name || "";
+      document.getElementById("pm-company").value = p.company || "";
+      document.getElementById("pm-title").value = p.title || "";
+      document.getElementById("pm-email").value = p.email || "";
+      document.getElementById("pm-phone").value = p.phone || "";
+      document.getElementById("pm-website").value = p.website || "";
+      document.getElementById("pm-social_handle").value = p.social_handle || "";
+      document.getElementById("pm-source").value = p.source || "";
+      document.getElementById("pm-status").value = statusClassFor(p.status);
+      document.getElementById("pm-fit_score").value = (p.fit_score === null || p.fit_score === undefined) ? "" : p.fit_score;
+      document.getElementById("pm-qualification_notes").value = p.qualification_notes || "";
+      document.getElementById("pm-disqualified_reason").value = p.disqualified_reason || "";
+      document.getElementById("pm-notes").value = p.notes || "";
+      document.getElementById("pm-last_contacted_at").value = toLocalInput(p.last_contacted_at);
+      document.getElementById("pm-last_researched_at").value = toLocalInput(p.last_researched_at);
+      setIcpSelection(p.icp_profile_id);
+    }
+  } else {
+    textFields.forEach(function (f) { document.getElementById(f).value = ""; });
+    document.getElementById("pm-status").value = "new";
+    setIcpSelection(null);
+  }
+
+  syncDisqualifiedVisibility();
+  openModal("modalProspect");
+}
+
+async function saveProspect() {
+  var btn = document.getElementById("prospectSaveBtn");
+  var status = document.getElementById("prospectModalStatus");
+
+  clearFieldErrors("modalProspect");
+  setModalStatus(status, "", "");
+
+  var chosenStatus = document.getElementById("pm-status").value;
+  var reason = document.getElementById("pm-disqualified_reason").value.trim();
+
+  /* The other half of the same rule, checked here first so the common mistake
+     costs no round trip. The server still enforces it — this is a courtesy,
+     not the guard. */
+  if (chosenStatus === "disqualified" && !reason) {
+    showProspectFieldError("disqualified_reason", "A reason is required to disqualify a prospect.");
+    setModalStatus(status, "A reason is required to disqualify a prospect.", "err");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+
+  try {
+    var body = {
+      name: document.getElementById("pm-name").value.trim(),
+      company: document.getElementById("pm-company").value.trim(),
+      title: document.getElementById("pm-title").value.trim(),
+      email: document.getElementById("pm-email").value.trim(),
+      phone: document.getElementById("pm-phone").value.trim(),
+      website: document.getElementById("pm-website").value.trim(),
+      social_handle: document.getElementById("pm-social_handle").value.trim(),
+      source: document.getElementById("pm-source").value.trim(),
+      qualification_notes: document.getElementById("pm-qualification_notes").value.trim(),
+      notes: document.getElementById("pm-notes").value.trim(),
+      icp_profile_id: document.getElementById("pm-icp_profile_id").value || null,
+      fit_score: numberOrRaw(document.getElementById("pm-fit_score").value),
+      last_contacted_at: fromLocalInput(document.getElementById("pm-last_contacted_at").value),
+      last_researched_at: fromLocalInput(document.getElementById("pm-last_researched_at").value),
+
+      /* status ALWAYS travels, on a create and on an edit alike.
+
+         The reason and the status are one decision, and the server validates
+         them as one: a request carrying disqualified_reason with no status is
+         refused, because the validator has no database access and cannot check
+         the reason against a status it cannot see. So editing the wording of a
+         reason on an already-disqualified prospect means resending
+         "disqualified" alongside it — which sending status unconditionally
+         does, without the caller having to know why. */
+      status: chosenStatus
+    };
+
+    /* Carried only while the status is disqualified. Any other status makes the
+       server null the column in the same write, so there is nothing to send. */
+    if (chosenStatus === "disqualified") {
+      body.disqualified_reason = reason;
+    }
+
+    var path = editingProspectId ? "/api/prospects/" + encodeURIComponent(editingProspectId) : "/api/prospects";
+    var method = editingProspectId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+
+    if (!res.ok) {
+      var err = await readError(res);
+
+      /* A 404 on an edit means the row is gone — deleted in another tab, or
+         never the caller's. The route answers 404 for both and cannot tell them
+         apart, so neither claims here. */
+      if (res.status === 404) {
+        setModalStatus(status, "That prospect no longer exists. The list has been refreshed.", "err");
+        await loadProspects();
+        return;
+      }
+
+      showProspectFieldError(err.field, err.message);
+      setModalStatus(status, err.message, "err");
+      return;
+    }
+
+    /* Re-fetched rather than patched into the local array. The server
+       normalises — status is lowercased, disqualified_reason is nulled when the
+       status moves out of disqualified — so the stored row is not the row that
+       was sent. One extra request buys a list that matches the database. */
+    closeModal("modalProspect");
+    await loadProspects();
+    showToast(editingProspectId ? "Prospect updated." : "Prospect added.");
+  } catch (e) {
+    setModalStatus(status, "Could not reach the server. Nothing was saved.", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Save";
+  }
+}
+
+/* ── delete ─────────────────────────────────────────────────────────────── */
+
+async function deleteProspect(id) {
+  var p = prospects.find(function (x) { return x.id === id; });
+  var label = p && p.name ? '"' + p.name + '"' : "this prospect";
+
+  if (!confirm("Delete " + label + "? Their research and scoring go with them.")) { return; }
+
+  try {
+    var res = await apiFetch("/api/prospects/" + encodeURIComponent(id), "DELETE");
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        /* Already gone, which is the outcome the user wanted. Refresh and say
+           so plainly rather than reporting a failure for something that
+           succeeded earlier. */
+        showToast("That prospect no longer exists.", true);
+        await loadProspects();
+        return;
+      }
+
+      var err = await readError(res);
+      showToast(err.message, true);
+      return;
+    }
+
+    await loadProspects();
+    showToast("Prospect deleted.");
+  } catch (e) {
+    showToast("Could not reach the server. Nothing was deleted.", true);
+  }
+}
+
+/* ── conversion ─────────────────────────────────────────────────────────── */
+
+/* Its own route and its own button, not a status the form can pick.
+
+   Choosing "converted" in the status select moves a label and nothing else —
+   no customer is created by it. The convert route runs
+   convert_prospect_to_customer, which writes the crm_customers row, sets
+   converted_customer_id and moves the status in ONE transaction. The two are
+   not interchangeable, so they do not share a control. */
+async function convertProspect(id) {
+  var p = prospects.find(function (x) { return x.id === id; });
+  var label = p && p.name ? '"' + p.name + '"' : "this prospect";
+
+  if (!confirm("Convert " + label + " into a CRM customer? This creates a customer record and marks the prospect converted. It cannot be undone from here.")) { return; }
+
+  try {
+    var res = await apiFetch("/api/prospects/" + encodeURIComponent(id) + "/convert", "POST");
+
+    if (!res.ok) {
+      /* Both of these are raised by the database function itself and mapped by
+         the route. They mean different things and deserve different sentences:
+         409 is a conversion that already happened, 404 is a row that is not
+         there at all. Everything else falls through to the server's message. */
+      if (res.status === 409) {
+        showToast("That prospect has already been converted.", true);
+        await loadProspects();
+        return;
+      }
+
+      if (res.status === 404) {
+        showToast("That prospect no longer exists.", true);
+        await loadProspects();
+        return;
+      }
+
+      var err = await readError(res);
+      showToast(err.message, true);
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      data = null;
+    }
+
+    /* Re-fetched, not patched: the status, converted_at and
+       converted_customer_id are all written inside the function, and none of
+       them is in the response body — which carries only the new customer id. */
+    await loadProspects();
+
+    var name = p && p.name ? p.name : "The prospect";
+    showConvertNotice(name + " is now a CRM customer." +
+      (data && data.customer_id ? " Customer ID " + data.customer_id + "." : ""));
+    showToast("Converted — a CRM customer was created.");
+  } catch (e) {
+    showToast("Could not reach the server. Nothing was converted.", true);
+  }
+}
+
+function showConvertNotice(text) {
+  document.getElementById("convertNoticeText").textContent = text;
+  document.getElementById("convertNotice").classList.add("show");
+}
+
+function hideConvertNotice() {
+  document.getElementById("convertNotice").classList.remove("show");
+}
+
+/* ── ICP profiles: list and paging ──────────────────────────────────────── */
+
+async function loadIcps() {
+  icpState = "loading";
+  icpError = null;
+  renderIcps();
+
+  try {
+    var query = "?limit=" + icpPage.limit + "&offset=" + icpPage.offset;
+    var res = await apiFetch("/api/icp-profiles" + query);
+
+    if (!res.ok) {
+      var err = await readError(res);
+      icpState = "error";
+      icpError = err.message;
+      icps = [];
+      renderIcps();
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      icpState = "error";
+      icpError = "The server sent a response this page could not read.";
+      icps = [];
+      renderIcps();
+      return;
+    }
+
+    icps = (data && Array.isArray(data.icp_profiles)) ? data.icp_profiles : [];
+    icpPage.hasMore = !!(data && data.has_more);
+
+    if (data && typeof data.limit === "number") { icpPage.limit = data.limit; }
+    if (data && typeof data.offset === "number") { icpPage.offset = data.offset; }
+
+    if (!icps.length && icpPage.offset > 0) {
+      icpPage.offset = Math.max(0, icpPage.offset - icpPage.limit);
+      return loadIcps();
+    }
+
+    icpState = "ready";
+  } catch (networkErr) {
+    icpState = "error";
+    icpError = "Could not reach the server. Check your connection and try again.";
+    icps = [];
+  }
+
+  renderIcps();
+}
+
+function pageIcps(direction) {
+  var next = icpPage.offset + direction * icpPage.limit;
+  if (next < 0) { return; }
+  if (direction > 0 && !icpPage.hasMore) { return; }
+  icpPage.offset = next;
+  loadIcps();
+}
+
+function renderIcps() {
+  var list = document.getElementById("icpList");
+  var count = document.getElementById("icpCount");
+
+  if (icpState === "loading") {
+    count.textContent = "";
+    list.innerHTML = '<div class="ps-state"><div class="ps-state-title">Loading ICP profiles…</div></div>';
+    renderPager("icp", icpPage, 0, false);
+    return;
+  }
+
+  if (icpState === "error") {
+    count.textContent = "";
+    list.innerHTML =
+      '<div class="ps-state error">' +
+        '<div class="ps-state-title">Could not load your ICP profiles</div>' +
+        '<div class="ps-state-sub">This is a problem reaching the server, not an empty set of profiles. ' +
+          'Nothing has been changed or lost.</div>' +
+        '<button class="pf-btn-primary" onclick="loadIcps()">Try again</button>' +
+        '<div class="ps-state-detail">' + escapeHtml(icpError || "") + '</div>' +
+      '</div>';
+    renderPager("icp", icpPage, 0, false);
+    return;
+  }
+
+  if (!icps.length) {
+    count.textContent = "";
+    list.innerHTML =
+      '<div class="ps-state">' +
+        '<div class="ps-state-title">No ICP profiles yet</div>' +
+        '<div class="ps-state-sub">A profile is the rubric you score prospects against — a set of ' +
+          'weighted criteria and the score that counts as a pass.</div>' +
+        '<button class="pf-btn-primary" onclick="openIcpModal(null)">+ Add ICP Profile</button>' +
+      '</div>';
+    renderPager("icp", icpPage, 0, true);
+    return;
+  }
+
+  count.textContent = icps.length + (icps.length === 1 ? " profile" : " profiles") +
+    " on this page" + (icpPage.hasMore ? ", more to come" : "");
+
+  list.innerHTML = icps.map(function (profile) {
+    var id = escapeHtml(profile.id);
+    var criteria = Array.isArray(profile.criteria) ? profile.criteria : [];
+
+    return '<div class="ps-row">' +
+      '<div class="ps-cell">' +
+        '<div class="ps-name">' + escapeHtml(profile.name || "Unnamed") + '</div>' +
+        '<div class="ps-sub">' + escapeHtml(profile.description || "—") + '</div>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<div class="ps-sub">Criteria</div>' +
+        '<div class="ps-contact">' + criteria.length + (criteria.length === 1 ? " rule" : " rules") + '</div>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<span class="ps-status ' + (profile.is_active === false ? "disqualified" : "converted") + '">' +
+          (profile.is_active === false ? "retired" : "active") + '</span>' +
+      '</div>' +
+      '<div class="ps-cell">' +
+        '<div class="ps-sub">Pass at</div>' +
+        '<div class="ps-score">' +
+          escapeHtml(profile.pass_threshold === null || profile.pass_threshold === undefined ? "—" : profile.pass_threshold) +
+        '</div>' +
+      '</div>' +
+      '<div class="ps-actions">' +
+        '<button class="ps-act" onclick="openIcpModal(\'' + id + '\')">Edit</button>' +
+        '<button class="ps-act danger" onclick="deleteIcp(\'' + id + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+
+  renderPager("icp", icpPage, icps.length, true);
+}
+
+/* ── ICP profiles: the criteria editor ──────────────────────────────────── */
+
+/* Read what is on screen back into the model before any mutation, so adding or
+   removing a row never discards an edit that has not been saved yet. */
+function syncCriteriaFromDom() {
+  var rows = document.querySelectorAll("#icpCriteriaList [data-crit-index]");
+
+  rows.forEach(function (row) {
+    var index = Number(row.getAttribute("data-crit-index"));
+    if (!criteriaRows[index]) { return; }
+
+    criteriaRows[index] = {
+      label: row.querySelector('[data-crit-key="label"]').value,
+      weight: row.querySelector('[data-crit-key="weight"]').value,
+      operator: row.querySelector('[data-crit-key="operator"]').value,
+      value: row.querySelector('[data-crit-key="value"]').value
+    };
+  });
+}
+
+function renderCriteria() {
+  var list = document.getElementById("icpCriteriaList");
+  var countEl = document.getElementById("icpCriteriaCount");
+  var addBtn = document.getElementById("icpCriteriaAdd");
+
+  countEl.textContent = criteriaRows.length + " of " + ICP_CRITERIA_MAX;
+  addBtn.disabled = criteriaRows.length >= ICP_CRITERIA_MAX;
+
+  if (!criteriaRows.length) {
+    list.innerHTML = '<div class="ps-crit-empty">No criteria yet. A profile with none scores every prospect the same.</div>';
+    return;
+  }
+
+  /* data-crit-index is the row's position in criteriaRows and is rewritten on
+     every render, so it always matches the index the server will report back. */
+  list.innerHTML = criteriaRows.map(function (row, index) {
+    var operatorOptions = ['<option value="">— none —</option>'].concat(
+      CRITERION_OPERATORS.map(function (op) {
+        return '<option value="' + op + '"' + (row.operator === op ? " selected" : "") + '>' + op + '</option>';
+      })
+    ).join("");
+
+    return '<div class="ps-crit" data-crit-index="' + index + '">' +
+      '<div class="ps-crit-idx">Criterion ' + (index + 1) + '</div>' +
+      '<div class="ps-crit-grid">' +
+        '<input class="pf-form-input" data-crit-key="label" placeholder="Label" aria-label="Criterion ' + (index + 1) + ' label" value="' + escapeHtml(row.label) + '">' +
+        '<input class="pf-form-input" data-crit-key="weight" type="number" step="1" placeholder="Weight" aria-label="Criterion ' + (index + 1) + ' weight" value="' + escapeHtml(row.weight) + '">' +
+        '<select class="pf-form-select" data-crit-key="operator" aria-label="Criterion ' + (index + 1) + ' operator">' + operatorOptions + '</select>' +
+        '<input class="pf-form-input" data-crit-key="value" placeholder="Value" aria-label="Criterion ' + (index + 1) + ' value" value="' + escapeHtml(row.value) + '">' +
+        '<button class="ps-crit-x" onclick="removeCriterion(' + index + ')" title="Remove criterion" aria-label="Remove criterion ' + (index + 1) + '">&#10005;</button>' +
+      '</div>' +
+      '<div class="ps-crit-err" data-crit-err></div>' +
+    '</div>';
+  }).join("");
+}
+
+function addCriterion() {
+  syncCriteriaFromDom();
+  if (criteriaRows.length >= ICP_CRITERIA_MAX) { return; }
+
+  criteriaRows.push({ label: "", weight: "", operator: "", value: "" });
+  renderCriteria();
+
+  var added = document.querySelector('#icpCriteriaList [data-crit-index="' + (criteriaRows.length - 1) + '"] [data-crit-key="label"]');
+  if (added) { added.focus(); }
+}
+
+function removeCriterion(index) {
+  syncCriteriaFromDom();
+  criteriaRows.splice(index, 1);
+  renderCriteria();
+}
+
+/* EVERY row is sent, blank ones included.
+
+   Filtering the empties out would look tidier and would break the error paths.
+   The server reports "criteria[2].weight" against the array it RECEIVED, so if
+   a blank row above index 2 had been dropped on the way out, that path would
+   land on the wrong row on screen. Sending the array exactly as rendered keeps
+   the two indexes identical, and a blank row comes back as
+   "criteria[n].label is required" — which is true, and which highlights the row
+   the user actually left blank.
+
+   Types are chosen to match the validator: weight goes as a number because
+   parseBoundedInteger refuses anything that is not typeof "number", and value
+   goes as a boolean or a number when it reads as one, since a criterion
+   comparing "gte" against the string "1000" is not the rule that was meant. */
+function buildCriteriaPayload() {
+  syncCriteriaFromDom();
+
+  return criteriaRows.map(function (row) {
+    var criterion = {
+      label: String(row.label || "").trim(),
+      weight: numberOrRaw(row.weight)
+    };
+
+    var operator = String(row.operator || "").trim();
+    var value = String(row.value || "").trim();
+
+    if (operator) { criterion.operator = operator; }
+
+    if (value) {
+      if (value === "true") {
+        criterion.value = true;
+      } else if (value === "false") {
+        criterion.value = false;
+      } else {
+        var asNumber = Number(value);
+        criterion.value = Number.isFinite(asNumber) ? asNumber : value;
+      }
+    }
+
+    return criterion;
+  });
+}
+
+function openIcpModal(id) {
+  editingIcpId = id;
+  document.getElementById("icpModalTitle").textContent = id ? "Edit ICP Profile" : "Add ICP Profile";
+  document.getElementById("icpSaveBtn").textContent = "Save";
+  setModalStatus(document.getElementById("icpModalStatus"), "", "");
+  clearFieldErrors("modalIcp");
+  document.getElementById("im-group-criteria").classList.remove("is-invalid");
+
+  if (id) {
+    var profile = icps.find(function (x) { return x.id === id; });
+    if (profile) {
+      document.getElementById("im-name").value = profile.name || "";
+      document.getElementById("im-description").value = profile.description || "";
+      document.getElementById("im-pass_threshold").value =
+        (profile.pass_threshold === null || profile.pass_threshold === undefined) ? "" : profile.pass_threshold;
+      document.getElementById("im-is_active").value = profile.is_active === false ? "false" : "true";
+
+      /* Every cell held as a STRING, because that is what an input holds. The
+         stored weight is a number and the stored value may be a number or a
+         boolean; converting once on the way in and once on the way out keeps
+         the editor from having to care which. */
+      criteriaRows = (Array.isArray(profile.criteria) ? profile.criteria : []).map(function (c) {
+        return {
+          label: c && c.label != null ? String(c.label) : "",
+          weight: c && c.weight != null ? String(c.weight) : "",
+          operator: c && c.operator != null ? String(c.operator) : "",
+          value: c && c.value != null ? String(c.value) : ""
+        };
+      });
+    }
+  } else {
+    document.getElementById("im-name").value = "";
+    document.getElementById("im-description").value = "";
+    document.getElementById("im-pass_threshold").value = "";
+    document.getElementById("im-is_active").value = "true";
+    criteriaRows = [];
+  }
+
+  renderCriteria();
+  openModal("modalIcp");
+}
+
+async function saveIcp() {
+  var btn = document.getElementById("icpSaveBtn");
+  var status = document.getElementById("icpModalStatus");
+
+  clearFieldErrors("modalIcp");
+  document.getElementById("im-group-criteria").classList.remove("is-invalid");
+  setModalStatus(status, "", "");
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="pf-spinner"></span>';
+
+  try {
+    var body = {
+      name: document.getElementById("im-name").value.trim(),
+      description: document.getElementById("im-description").value.trim(),
+      is_active: document.getElementById("im-is_active").value === "true",
+      criteria: buildCriteriaPayload()
+    };
+
+    /* pass_threshold is read with present(), so an empty string would reach
+       parseBoundedInteger and come back as "must be a whole number". Left out
+       of the body entirely, a create takes the column default and an edit
+       leaves the stored value alone — which is what a blank box should mean. */
+    var threshold = document.getElementById("im-pass_threshold").value.trim();
+    if (threshold !== "") { body.pass_threshold = numberOrRaw(threshold); }
+
+    var path = editingIcpId ? "/api/icp-profiles/" + encodeURIComponent(editingIcpId) : "/api/icp-profiles";
+    var method = editingIcpId ? "PUT" : "POST";
+    var res = await apiFetch(path, method, body);
+
+    if (!res.ok) {
+      var err = await readError(res);
+
+      if (res.status === 404) {
+        setModalStatus(status, "That ICP profile no longer exists. The list has been refreshed.", "err");
+        await loadIcps();
+        return;
+      }
+
+      showIcpFieldError(err.field, err.message);
+      setModalStatus(status, err.message, "err");
+      return;
+    }
+
+    /* Re-fetched for the same reason the prospect list is: the criteria come
+       back NORMALISED — labels trimmed, weights coerced to integers, an
+       operator lowercased — so the stored rubric is not the rubric that was
+       sent. The dropdown is refreshed too, since a rename or a retirement
+       changes how this profile reads in the prospect form. */
+    closeModal("modalIcp");
+    await loadIcps();
+    await loadIcpOptions();
+    showToast(editingIcpId ? "ICP profile updated." : "ICP profile added.");
+  } catch (e) {
+    setModalStatus(status, "Could not reach the server. Nothing was saved.", "err");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "Save";
+  }
+}
+
+async function deleteIcp(id) {
+  var profile = icps.find(function (x) { return x.id === id; });
+  var label = profile && profile.name ? '"' + profile.name + '"' : "this ICP profile";
+
+  /* Spelled out because the consequence is not visible from the button:
+     prospects.icp_profile_id is ON DELETE SET NULL, so prospects scored against
+     this profile survive and keep their scores — they simply lose the link to
+     the rubric that produced them. */
+  if (!confirm("Delete " + label + "? Prospects scored against it keep their scores but lose the link to it.")) { return; }
+
+  try {
+    var res = await apiFetch("/api/icp-profiles/" + encodeURIComponent(id), "DELETE");
+
+    if (!res.ok) {
+      if (res.status === 404) {
+        showToast("That ICP profile no longer exists.", true);
+        await loadIcps();
+        return;
+      }
+
+      var err = await readError(res);
+      showToast(err.message, true);
+      return;
+    }
+
+    await loadIcps();
+    await loadIcpOptions();
+
+    /* The database has just nulled icp_profile_id on every prospect that
+       pointed here, so the prospect rows already on screen are stale. */
+    if (prospectState === "ready") { await loadProspects(); }
+
+    showToast("ICP profile deleted.");
+  } catch (e) {
+    showToast("Could not reach the server. Nothing was deleted.", true);
+  }
+}
+
+/* ── the ICP dropdown in the prospect modal ─────────────────────────────── */
+
+/* Loaded at the server's page cap rather than off the ICP tab's current page:
+   that tab shows 25 at a time, and the dropdown has to offer every profile a
+   prospect could be assigned to. If someone really has more than the cap, the
+   select says so rather than silently omitting the rest. */
+async function loadIcpOptions() {
+  try {
+    var res = await apiFetch("/api/icp-profiles?limit=" + ICP_OPTION_LIMIT + "&offset=0");
+    if (!res.ok) { return; }
+
+    var data = await res.json();
+    icpOptions = (data && Array.isArray(data.icp_profiles)) ? data.icp_profiles : [];
+    icpOptionsTruncated = !!(data && data.has_more);
+  } catch (e) {
+    /* A dropdown that failed to load is not a reason to block the modal. The
+       field stays at "None" and every other field still works. */
+    icpOptions = [];
+    icpOptionsTruncated = false;
+  }
+
+  renderIcpOptions();
+}
+
+function renderIcpOptions() {
+  var select = document.getElementById("pm-icp_profile_id");
+  var current = select.value;
+
+  var html = '<option value="">None</option>' + icpOptions.map(function (profile) {
+    return '<option value="' + escapeHtml(profile.id) + '">' + escapeHtml(profile.name || "Unnamed") +
+      (profile.is_active === false ? " (retired)" : "") + '</option>';
+  }).join("");
+
+  if (icpOptionsTruncated) {
+    html += '<option value="" disabled>… more profiles than this list can show</option>';
+  }
+
+  select.innerHTML = html;
+  select.value = current;
+}
+
+/* A prospect can point at a profile that is not in the loaded set — retired and
+   past the cap, or created in another tab. Leaving the select on "None" would
+   silently REASSIGN it on the next save, since the whole form is sent, so the
+   missing id is added as its own option and round-trips untouched. */
+function setIcpSelection(icpProfileId) {
+  var select = document.getElementById("pm-icp_profile_id");
+
+  if (!icpProfileId) {
+    select.value = "";
+    return;
+  }
+
+  var known = icpOptions.some(function (profile) { return profile.id === icpProfileId; });
+
+  if (!known) {
+    var option = document.createElement("option");
+    option.value = icpProfileId;
+    option.textContent = "Profile not in this list (kept as-is)";
+    select.appendChild(option);
+  }
+
+  select.value = icpProfileId;
+}
+
+/* ── wiring ─────────────────────────────────────────────────────────────── */
+
+document.getElementById("addProspectBtn").addEventListener("click", function () { openProspectModal(null); });
+document.getElementById("addIcpBtn").addEventListener("click", function () { openIcpModal(null); });
+document.getElementById("pm-status").addEventListener("change", syncDisqualifiedVisibility);
+
+/* Changing the page size restarts from the first page. Keeping the offset would
+   drop the user into the middle of a differently-sized list at a position that
+   means nothing. */
+document.getElementById("prospectPageSize").addEventListener("change", function () {
+  prospectPage.limit = Number(this.value);
+  prospectPage.offset = 0;
+  loadProspects();
+});
+
+document.getElementById("icpPageSize").addEventListener("change", function () {
+  icpPage.limit = Number(this.value);
+  icpPage.offset = 0;
+  loadIcps();
+});
+
+loadProspects();
+loadIcpOptions();
+</script>
+</body>
+</html>
