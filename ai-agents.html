@@ -339,7 +339,11 @@
       </p>
       <div class="agent-count">
         <span class="agent-count-label">Total Agents</span>
-        <span class="agent-count-value">17</span>
+        <!-- Filled by renderCards from the rendered array, never hardcoded.
+             Ships as an em dash so a fetch still in flight, a failed fetch
+             and a missing token all read as "not known yet" rather than as a
+             number that happens to be stale. -->
+        <span class="agent-count-value" id="agentCountValue">—</span>
       </div>
     </header>
 
@@ -373,8 +377,20 @@
     grid.appendChild(msg);
   }
 
+  /* THIS PAGE COUNTS THE CALLER'S OWN AGENT ROWS — the active ones in the
+     GET /api/agents response, which is per-user and can differ between two
+     accounts on different plans, or between a user seeded before a type was
+     deregistered and one seeded after. It is NOT the size of the registered
+     roster (available_agent_types) and NOT the number of cards agents-hub.html
+     draws. Those three agree today at 18; nothing makes them agree. */
+  function setCount(value) {
+    var el = document.getElementById("agentCountValue");
+    if (el) { el.textContent = String(value); }
+  }
+
   function renderCards(agents) {
     grid.textContent = "";
+    setCount(agents.length);
     agents.forEach(function (agent) {
       var type = String(agent.agent_type || agent.type || "").toLowerCase();
       /* The same `|| "agents-hub.html"` fallback the LINK_MAP lookup had, kept

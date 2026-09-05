@@ -299,6 +299,7 @@
     .agent-card--publicist .agent-avatar { border-color: rgba(252, 211, 77, 0.55); background: linear-gradient(135deg, rgba(252, 211, 77, 0.18), rgba(168, 85, 247, 0.15)); }
     .agent-card--rd .agent-avatar { border-color: rgba(0, 229, 255, 0.5); background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22)); box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12); }
     .agent-card--executive .agent-avatar { border-color: rgba(226, 232, 240, 0.55); background: linear-gradient(135deg, rgba(226, 232, 240, 0.18), rgba(168, 85, 247, 0.15)); }
+    .agent-card--vertical_marketing .agent-avatar { border-color: rgba(163, 230, 53, 0.55); background: linear-gradient(135deg, rgba(163, 230, 53, 0.18), rgba(168, 85, 247, 0.15)); }
     .hub-footer {
       text-align: center;
       margin-top: 8px;
@@ -344,7 +345,9 @@
       <p class="hero-subtitle">Your AI Business Team</p>
       <button class="hub-toggle" id="hubToggle" aria-expanded="false" aria-controls="agentsGrid">
         <span class="agent-count-label">Agents</span>
-        <span class="agent-count-value">17</span>
+        <!-- Counted from the cards below at load, never hardcoded. Ships
+             empty so a number can never be read before it is computed. -->
+        <span class="agent-count-value" id="hubAgentCount"></span>
         <svg class="hub-chevron" viewBox="0 0 24 24" fill="none" stroke="#8888aa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
           <polyline points="18 15 12 9 6 15"/>
         </svg>
@@ -618,12 +621,31 @@
         <a class="open-agent-btn" href="executive-agent.html">Open Profile</a>
       </article>
 
+      <article class="agent-card agent-card--vertical_marketing">
+        <div class="avatar-wrap">
+          <div class="agent-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a3e635" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </div>
+          <div class="status-dot" data-agent="vertical_marketing" title="Idle"></div>
+        </div>
+        <h2 class="agent-name">Vertical Marketing Agent</h2>
+        <p class="agent-role">One Industry, Not All</p>
+        <a class="open-agent-btn" href="vertical-marketing-agent.html">Open Profile</a>
+      </article>
+
       <!-- SMS Drip is a channel, not a specialist: it manages subscribers,
            consent and sequences rather than reading the business profile and
-           producing work. It lives on the dashboard alongside Lead Radar now,
-           which is why this grid holds exactly the seventeen canonical agents
-           and the count above it is finally true. agents/sms.html is
-           unchanged and still reachable from there. -->
+           producing work, so it is not a card here. It lives on the dashboard
+           alongside Lead Radar; agents/sms.html is unchanged and still
+           reachable from there.
+
+           The count above is computed from these cards rather than asserted,
+           so adding or removing one here needs no edit there, and the two can
+           no longer disagree the way they did while it read seventeen. -->
 
     </section>
 
@@ -637,6 +659,22 @@
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     var toggle = document.getElementById("hubToggle");
     var grid   = document.getElementById("agentsGrid");
+
+    /* THIS PAGE COUNTS ITS OWN CARDS — how many agents this hardcoded grid
+       draws, which is a fact about this file and nothing else. It is NOT the
+       registered roster, and NOT the caller's own agent rows, which is what
+       ai-agents.html counts. All three read 18 today; that is agreement, not
+       a guarantee, and this page can see neither of the other two to check.
+
+       Counted off the status dots rather than .agent-card, because every card
+       carries a data-agent dot and that same attribute is what the task fetch
+       below keys on — so a card added without one is already broken for
+       status, and this count makes that visible rather than papering over
+       it. */
+    var countEl = document.getElementById("hubAgentCount");
+    if (countEl) {
+      countEl.textContent = String(grid.querySelectorAll(".status-dot[data-agent]").length);
+    }
 
     toggle.addEventListener("click", function () {
       var isOpen = toggle.getAttribute("aria-expanded") === "true";
