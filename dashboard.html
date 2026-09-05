@@ -73,6 +73,30 @@ if (!token) {
     .topbar-oracle-gate::before{content:"";position:absolute;inset:-5px;border-radius:50%;background:conic-gradient(from 0deg,rgba(0,229,255,.35),rgba(168,85,247,.35),rgba(255,94,194,.3),rgba(0,229,255,.35));filter:blur(7px);opacity:.55;z-index:0;animation:oracleGatePulse 4.5s ease-in-out infinite}
     @keyframes oracleGatePulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:.8;transform:scale(1.08)}}
     .topbar-oracle-gate:hover{transform:translateY(-1px) scale(1.06);border-color:rgba(255,255,255,.7);box-shadow:0 0 14px rgba(0,229,255,.5),0 0 26px rgba(168,85,247,.5),0 0 38px rgba(255,94,194,.4)}
+
+    /* Simulated-output labelling. Built from .bf-glass-panel and .bf-card in
+       the shared sheet so it reads as part of the product rather than as a
+       warning bolted on: same radius, same blur, same muted body colour. The
+       amber edge is the one departure, and it is the point — nothing else on
+       this page uses amber, so it cannot be mistaken for an ordinary panel.
+
+       DELIBERATELY NOT DISMISSIBLE. There is no close control and no stored
+       flag, because this is a statement about what the numbers below ARE, not
+       a tip about how to use them. A banner a user can turn off is a banner
+       they turn off once and then read fabricated figures under for a year. */
+    .bf-sim-banner{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:16px;border:1px solid rgba(251,191,36,.32);background:rgba(251,191,36,.06);backdrop-filter:blur(12px);margin-bottom:24px}
+    .bf-sim-banner-icon{flex-shrink:0;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.08);color:#fcd34d}
+    .bf-sim-banner-icon svg{width:19px;height:19px}
+    .bf-sim-banner-body{min-width:0}
+    .bf-sim-banner-title{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fcd34d;margin-bottom:7px}
+    .bf-sim-banner-text{font-size:.85rem;color:#c9d4ff;line-height:1.62}
+    .bf-sim-banner-text strong{color:#fde68a;font-weight:700}
+    .bf-sim-banner-text em{color:#8892b8;font-style:normal;display:block;margin-top:8px;font-size:.8rem}
+
+    /* The per-panel form. Injected into panels that render generated figures,
+       so it sits inside a card and has to be quieter than the banner. */
+    .bf-sim-note{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:9px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.055);margin-bottom:10px;font-size:.72rem;line-height:1.5;color:#fcd34d}
+    .bf-sim-note strong{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.66rem;color:#fde68a;flex-shrink:0}
 </style>
 </head>
 <body class="app-shell">
@@ -145,6 +169,33 @@ if (!token) {
   <p class="hq-hero-sub">Control your AI business empire.</p>
   <p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p>
 </header>
+<!-- SIMULATED-OUTPUT BANNER.
+
+     Placed above the feature grid so it is read before any figure on the page
+     is. It is scoped carefully: it says the AGENT PANELS are simulated, not
+     that the dashboard is. The Active Queue tile, the Agent Work Queue, the AI
+     Agent Tasks list, Agent Memory and the Business Profile form are fed by
+     /api/assignments, /api/ai/tasks, /api/memory and /api/business-profile
+     respectively, and the closing line names them so this cannot be read as
+     calling real data fake. Over-claiming here would be its own lie. -->
+<div class="bf-sim-banner" role="note" aria-label="About the figures on this page">
+  <div class="bf-sim-banner-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>
+  </div>
+  <div class="bf-sim-banner-body">
+    <div class="bf-sim-banner-title">Agent panels show sample output</div>
+    <div class="bf-sim-banner-text">
+      The figures the agent panels produce are <strong>generated locally to demonstrate the
+      interface</strong>. Scores, traffic numbers, keyword volumes, deal values, domain authority
+      and Core Web Vitals are all computed from what you type — <strong>nothing is fetched from a
+      website, a marketplace, a search engine or a review site</strong>, and no figure in those
+      panels is a measurement of anything.
+      <em>Real agent output comes from running an agent, which is a different thing: open an agent
+      and submit a task. Your Active Queue, Agent Work Queue, AI Agent Tasks, Agent Memory and
+      Business Profile are live records from your account and are not affected by this.</em>
+    </div>
+  </div>
+</div>
 <div class="bf-feature-grid cards">
 <div class="bf-feature-card card bf-card" onclick="window.location.href='/analytics-dashboard.html'" style="cursor:pointer">
   <div class="bf-neon-icon bf-hq-icon bf-card-icon analytics" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -30037,6 +30088,14 @@ function renderAgentMessagingCard() {
 
     return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(0,229,255,.22);background:rgba(8,8,18,.72);">' +
         '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Executive Messaging</div>' +
+        /* MIXED FEED, which is why this carries a note despite generating
+           nothing itself. notifyExecutiveSeoReport writes "Competitor
+           Analysis: 4 competitors tracked" into the same message store a
+           person writes into, and the two render identically — the count in
+           that sentence is fabricated and already formatted into prose, so
+           there is no field on it to mark. Until the two stores are separated,
+           the honest thing is to say the feed can contain both. */
+        '<div class="bf-sim-note"><strong>Mixed</strong><span>This feed carries both messages you send and automatic notices from the agent panels above. Any figure inside an automatic notice is sample output, not a measurement.</span></div>' +
         '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Compose Message</div>' +
         '<select id="agentMessagingFromSelect" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(0,229,255,.3);background:#080812;color:#ffffff;font-size:13px;margin-bottom:8px;">' +
             buildAgentMessagingSelectOptions("EXECUTIVE") +
@@ -34759,6 +34818,12 @@ function renderSeoAgentCard() {
 
     return '<div style="padding:10px 12px;border-radius:12px;border:1px solid rgba(76,175,80,.28);background:rgba(8,8,18,.72);">' +
         '<div style="color:#8888aa;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">SEO Agent</div>' +
+        /* THE ONLY AGENT PANEL IN THIS FILE THAT RENDERS GENERATED FIGURES.
+           Twenty-five functions behind these buttons derive every number they
+           show from seoHashSeed() — a hash of the text typed into the inputs
+           below. Nothing is fetched. The note is inside the card rather than
+           above it so it cannot be scrolled away from what it describes. */
+        '<div class="bf-sim-note"><strong>Sample</strong><span>Every score, volume and metric this panel produces is generated from your input to demonstrate the interface. No site is crawled and nothing is measured.</span></div>' +
         '<input type="text" id="seoAgentUrlInput" placeholder="Website URL..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(76,175,80,.3);background:#080812;color:#ffffff;font-size:13px;margin-bottom:8px;">' +
         '<input type="text" id="seoAgentTopicInput" placeholder="Topic / keyword theme..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(76,175,80,.3);background:#080812;color:#ffffff;font-size:13px;margin-bottom:8px;">' +
         '<input type="text" id="seoAgentDomainInput" placeholder="Competitor domain..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(76,175,80,.3);background:#080812;color:#ffffff;font-size:13px;margin-bottom:8px;">' +
