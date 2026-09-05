@@ -1572,7 +1572,11 @@
       { label: "Website",   value: profile.website },
       { label: "Location",  value: profile.location },
       { label: "Brand Voice", value: profile.brand_voice },
-      { label: "Competitors", value: profile.competitors },
+      /* top_competitors is the live column. This read `competitors`, which is
+         the name 014 declares and the table does not have, so the Competitors
+         row never rendered — rows with a falsy value are skipped, so it looked
+         like an unfilled field rather than a missing one. */
+      { label: "Competitors", value: profile.top_competitors || profile.competitors },
       { label: "Posting", value: profile.posting_frequency },
       { label: "Target Audience", value: profile.target_audience }
     ];
@@ -1593,11 +1597,25 @@
     document.getElementById("bpLocation").value         = p.location          || "";
     document.getElementById("bpTargetAudience").value   = p.target_audience   || "";
     document.getElementById("bpBrandVoice").value       = p.brand_voice       || "";
+    /* EVERY NAME BELOW IS A LIVE COLUMN. Five of them were not.
+
+       business_goals and competitors were the names 014 declares for columns
+       the table has under other names. They read primary_goal (with goals as
+       its duplicate) and top_competitors now, in the same precedence both
+       write routes apply, so a value typed here comes back into the box it was
+       typed into. The old spellings stay as a trailing fallback: harmless
+       against a row that cannot carry them, and correct against any response
+       shape that ever does.
+
+       brand_values, banned_topics and posting_frequency were not misnamed —
+       they did not exist. 095 created them, after 014 had declared them and
+       nothing ever made them, so these three reads went from always-empty to
+       correct without changing a character. */
     document.getElementById("bpBrandValues").value      = p.brand_values      || "";
-    document.getElementById("bpBusinessGoals").value    = p.business_goals    || "";
+    document.getElementById("bpBusinessGoals").value    = p.primary_goal      || p.goals || p.business_goals || "";
     document.getElementById("bpBannedTopics").value     = p.banned_topics     || "";
-    document.getElementById("bpCompetitors").value      = p.competitors       || "";
-    document.getElementById("bpDescription").value      = p.description       || "";
+    document.getElementById("bpCompetitors").value      = p.top_competitors   || p.competitors || "";
+    document.getElementById("bpDescription").value      = p.description       || p.business_description || "";
     document.getElementById("bpPostingFrequency").value = p.posting_frequency || "";
   }
 
@@ -1650,9 +1668,15 @@
       target_audience:   document.getElementById("bpTargetAudience").value.trim(),
       brand_voice:       document.getElementById("bpBrandVoice").value.trim(),
       brand_values:      document.getElementById("bpBrandValues").value.trim(),
-      business_goals:    document.getElementById("bpBusinessGoals").value.trim(),
+      /* primary_goal and top_competitors are the live column names. These two
+         were sent as business_goals and competitors — the names 014 declares
+         and the table does not have — and reached the right columns only
+         because the write routes alias those spellings. That alias stays as a
+         compatibility path for other clients, but a page should name the
+         column it writes rather than work by accident of one existing. */
+      primary_goal:      document.getElementById("bpBusinessGoals").value.trim(),
       banned_topics:     document.getElementById("bpBannedTopics").value.trim(),
-      competitors:       document.getElementById("bpCompetitors").value.trim(),
+      top_competitors:   document.getElementById("bpCompetitors").value.trim(),
       description:       document.getElementById("bpDescription").value.trim(),
       posting_frequency: document.getElementById("bpPostingFrequency").value
     };
