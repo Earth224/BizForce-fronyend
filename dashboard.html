@@ -111,6 +111,16 @@ if (!token) {
     .bf-paid-text strong{color:#a7f3d0;font-weight:700}
     .bf-paid-text em{color:#8892b8;font-style:normal;display:block;margin-top:8px;font-size:.8rem}
     .bf-paid-text a{color:#6ee7b7;font-weight:700}
+
+    /* Neutral variant, for a cancelled checkout. A cancellation is not a
+       success and not a failure, so it takes neither the emerald above nor the
+       #f87171 this page uses for errors — slate, the same rgba(148,163,184)
+       family the archived status pill uses elsewhere in the product. Overrides
+       only the three colours; every dimension, radius and type scale is
+       inherited, so the two states are the same object in two moods. */
+    .bf-paid-banner.neutral{border-color:rgba(148,163,184,.32);background:rgba(148,163,184,.06)}
+    .bf-paid-banner.neutral .bf-paid-icon{border-color:rgba(148,163,184,.4);background:rgba(148,163,184,.08);color:#cbd5e1}
+    .bf-paid-banner.neutral .bf-paid-title{color:#cbd5e1}
 </style>
 </head>
 <body class="app-shell">
@@ -183,10 +193,14 @@ if (!token) {
   <p class="hq-hero-sub">Control your AI business empire.</p>
   <p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p>
 </header>
-<!-- PAYMENT CONFIRMATION, shown only when Stripe redirects here with
-     ?subscribed=1. Until now nothing read that parameter: a user who paid
-     landed on an unchanged dashboard, indistinguishable from an ordinary
-     visit, with no acknowledgement that money had moved.
+<!-- CHECKOUT OUTCOME NOTICE, shown when Stripe redirects here with
+     ?subscribed=1 (success_url) or ?checkout=cancel (cancel_url). One element,
+     two moods: the markup below is the paid state, and the handler under the
+     grid rewrites it and adds .neutral for a cancellation.
+
+     Neither parameter was read until recently: a user who paid landed on an
+     unchanged dashboard, indistinguishable from an ordinary visit, and a user
+     who cancelled was returned to the sign-in page entirely.
 
      THE WORDING IS DELIBERATELY SHORT OF CLAIMING ACCESS. This redirect proves
      Stripe took the payment and nothing else — the entitlement is the
@@ -238,24 +252,60 @@ if (!token) {
   </div>
 </div>
 <script>
-/* Reads ?subscribed=1, shows the banner above, then strips the parameter with
-   replaceState so a refresh does not re-announce a payment that already
-   happened, and so a URL copied out of the bar does not carry it. replaceState
-   rather than pushState: this is not a navigation and must not add a
-   back-button step.
+/* Renders the outcome of a Stripe checkout, from the parameter the redirect
+   carries: ?subscribed=1 from success_url, ?checkout=cancel from cancel_url.
+   One element in two moods, not two banners.
+
+   PRECEDENCE IS A RULE, NOT AN ACCIDENT OF STATEMENT ORDER. Both parameters
+   are read before either is acted on, and paid wins outright. A URL carrying
+   both describes someone who demonstrably paid, and the payment is the fact
+   that matters — telling them their checkout was cancelled would be false
+   about the thing they care most about. Reordering the branches below cannot
+   change the outcome, because the decision is made in the two lines that read
+   the parameters rather than by whichever `if` happens to come first.
+
+   BOTH PARAMETERS ARE ALWAYS STRIPPED, including the one that did not win, so
+   a refresh cannot re-announce either and a losing parameter cannot surface on
+   the next navigation. replaceState rather than pushState: this is not a
+   navigation and must not add a back-button step.
 
    Wrapped in try/catch because replaceState throws on a file:// URL, and a
    banner that renders is worth more than one that takes the page down. */
 (function () {
   var params;
   try { params = new URLSearchParams(window.location.search); } catch (e) { return; }
-  if (params.get("subscribed") !== "1") { return; }
+
+  var paid = params.get("subscribed") === "1";
+  var cancelled = params.get("checkout") === "cancel";
+  if (!paid && !cancelled) { return; }
 
   var banner = document.getElementById("paidBanner");
-  if (banner) { banner.classList.add("show"); }
+
+  if (banner) {
+    /* paid is the markup default, so only the cancelled case rewrites. */
+    if (!paid && cancelled) {
+      banner.classList.add("neutral");
+
+      var icon = banner.querySelector(".bf-paid-icon");
+      if (icon) {
+        /* An arrow back, not a cross. A cross reads as an error and this is
+           not one — the user changed their mind and returned. */
+        icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>';
+      }
+
+      var title = banner.querySelector(".bf-paid-title");
+      if (title) { title.textContent = "Checkout cancelled"; }
+
+      var text = banner.querySelector(".bf-paid-text");
+      if (text) { text.textContent = "The checkout was cancelled and nothing was charged. Your plan is unchanged."; }
+    }
+
+    banner.classList.add("show");
+  }
 
   try {
     params.delete("subscribed");
+    params.delete("checkout");
     var q = params.toString();
     window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
   } catch (e) { /* file://, or a browser refusing the rewrite; the banner still shows */ }
