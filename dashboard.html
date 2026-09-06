@@ -97,6 +97,20 @@ if (!token) {
        so it sits inside a card and has to be quieter than the banner. */
     .bf-sim-note{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:9px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.055);margin-bottom:10px;font-size:.72rem;line-height:1.5;color:#fcd34d}
     .bf-sim-note strong{font-weight:800;letter-spacing:.04em;text-transform:uppercase;font-size:.66rem;color:#fde68a;flex-shrink:0}
+
+    /* Payment confirmation. Same shape as .bf-sim-banner so the two read as one
+       family, in the emerald this page already uses for success rather than the
+       amber it uses for "look at this". Hidden until the query parameter says
+       otherwise; see the handler above the feature grid. */
+    .bf-paid-banner{display:none;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:16px;border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.07);backdrop-filter:blur(12px);margin-bottom:24px}
+    .bf-paid-banner.show{display:flex}
+    .bf-paid-icon{flex-shrink:0;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(52,211,153,.45);background:rgba(52,211,153,.1);color:#6ee7b7}
+    .bf-paid-icon svg{width:19px;height:19px}
+    .bf-paid-title{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;margin-bottom:7px}
+    .bf-paid-text{font-size:.85rem;color:#c9d4ff;line-height:1.62}
+    .bf-paid-text strong{color:#a7f3d0;font-weight:700}
+    .bf-paid-text em{color:#8892b8;font-style:normal;display:block;margin-top:8px;font-size:.8rem}
+    .bf-paid-text a{color:#6ee7b7;font-weight:700}
 </style>
 </head>
 <body class="app-shell">
@@ -169,6 +183,33 @@ if (!token) {
   <p class="hq-hero-sub">Control your AI business empire.</p>
   <p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p>
 </header>
+<!-- PAYMENT CONFIRMATION, shown only when Stripe redirects here with
+     ?subscribed=1. Until now nothing read that parameter: a user who paid
+     landed on an unchanged dashboard, indistinguishable from an ordinary
+     visit, with no acknowledgement that money had moved.
+
+     THE WORDING IS DELIBERATELY SHORT OF CLAIMING ACCESS. This redirect proves
+     Stripe took the payment and nothing else — the entitlement is the
+     subscriptions row, written by the checkout.session.completed webhook, which
+     arrives on its own schedule and can be retried. Saying "you now have
+     access" here would be a claim this page cannot check, and would read as a
+     lie in the seconds before the webhook lands. It says the payment went
+     through, that access follows, and what to do if it does not. -->
+<div class="bf-paid-banner" id="paidBanner" role="status" aria-live="polite">
+  <div class="bf-paid-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  </div>
+  <div>
+    <div class="bf-paid-title">Payment received</div>
+    <div class="bf-paid-text">
+      <strong>Your payment went through.</strong> Access is being activated now — that happens
+      when Stripe confirms the charge to us, which is usually a few seconds behind this page.
+      <em>If your plan still shows as inactive in a minute, reload. If it is still inactive after
+      that, open <a href="billing.html">Billing</a> — your subscription status is shown there, and
+      nothing needs paying twice.</em>
+    </div>
+  </div>
+</div>
 <!-- SIMULATED-OUTPUT BANNER.
 
      Placed above the feature grid so it is read before any figure on the page
@@ -196,6 +237,30 @@ if (!token) {
     </div>
   </div>
 </div>
+<script>
+/* Reads ?subscribed=1, shows the banner above, then strips the parameter with
+   replaceState so a refresh does not re-announce a payment that already
+   happened, and so a URL copied out of the bar does not carry it. replaceState
+   rather than pushState: this is not a navigation and must not add a
+   back-button step.
+
+   Wrapped in try/catch because replaceState throws on a file:// URL, and a
+   banner that renders is worth more than one that takes the page down. */
+(function () {
+  var params;
+  try { params = new URLSearchParams(window.location.search); } catch (e) { return; }
+  if (params.get("subscribed") !== "1") { return; }
+
+  var banner = document.getElementById("paidBanner");
+  if (banner) { banner.classList.add("show"); }
+
+  try {
+    params.delete("subscribed");
+    var q = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
+  } catch (e) { /* file://, or a browser refusing the rewrite; the banner still shows */ }
+}());
+</script>
 <div class="bf-feature-grid cards">
 <div class="bf-feature-card card bf-card" onclick="window.location.href='/analytics-dashboard.html'" style="cursor:pointer">
   <div class="bf-neon-icon bf-hq-icon bf-card-icon analytics" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -238,6 +303,16 @@ if (!token) {
   <h3>BFC Wallet</h3>
   <p>Track your BizForce Credits earned through certifications and platform activity.</p>
   <a href="wallet.html" class="bf-btn" onclick="event.stopPropagation()">Open Wallet</a>
+</div>
+<!-- Placed beside BFC Wallet because both are money, and because nothing among
+     the other tiles linked here at all: a signed-in user's only route to
+     checkout was the subscribe button on app.html, the page they left at
+     signup. billing.html already calls POST /api/stripe/checkout itself. -->
+<div class="bf-feature-card card bf-card" onclick="window.location.href='billing.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon billing" style="--bf-icon-stroke:#a3e635;border-color:rgba(163,230,53,.45);box-shadow:0 0 24px rgba(163,230,53,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+  <h3>Billing</h3>
+  <p>Your subscription, plan status, payment method and invoices — and where to start one.</p>
+  <a href="billing.html" class="bf-btn" onclick="event.stopPropagation()">Open Billing</a>
 </div>
 <div class="bf-feature-card card bf-card" onclick="window.location.href='marketplace.html'" style="cursor:pointer">
   <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="--bf-icon-stroke:#a855f7;border-color:rgba(168,85,247,.45);box-shadow:0 0 24px rgba(168,85,247,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
