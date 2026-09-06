@@ -955,6 +955,39 @@
             typeof window.renderBusinessContext === "function") {
           var context = window.buildBusinessContext(d.profile, store);
           window.renderBusinessContext(context);
+          /* TWO INDEPENDENT SURFACES THAT LOOK ALIKE ON THE SAME PAGE.
+
+             This call renders the agent_memory STORE — bf_executive_memory
+             keyed by the page's AGENT_KEY — into #reportsGrid, through each
+             page's own REPORT_SECTIONS.
+
+             A COMPLETED ai_task NEVER WRITES INTO THAT STORE. This file has no
+             saveExecutiveMemory call and no localStorage write; task results
+             arrive from POST /api/ai/tasks, are polled back, and are rendered
+             straight into #apHistory by prependResultCard. The store is read
+             here and written by nothing in this file.
+
+             So the two are unrelated content in adjacent boxes: the task panel
+             is injected beforebegin of #reportsGrid a few lines above, which
+             puts real model output directly on top of stored sample output
+             with the same card styling. Anyone adding a marker must scope it to
+             one or the other, never to the pair.
+
+             WHO WRITES THE STORE: only dashboard.html, from hash-seeded
+             generators. Eighteen pages load this script; sixteen read a slot a
+             dashboard generator writes. Of those sixteen, ONLY SEO's generators
+             are reachable from a button — the other fifteen are callable from
+             the console alone, so their sections are empty for every real user
+             and show an empty state telling them to "Run the agent from the
+             dashboard", where no such control exists. rd-agent.html declares no
+             AGENT_KEY at all and vertical-marketing-agent.html uses a key
+             nothing writes.
+
+             THIS IS THE MAP FOR THE PERSISTENCE PATH. Whoever wires a real task
+             result into the store closes that gap — and the moment they do, the
+             store stops being uniformly fabricated and the "absent provenance
+             means simulated" assumption behind the current labelling stops
+             holding. Mark the real records at that point, not after. */
           if (typeof window.renderReports === "function") {
             try { window.renderReports(store, AGENT_LABEL); } catch (e) {}
           }

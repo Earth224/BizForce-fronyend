@@ -384,6 +384,34 @@
       color: #22d3ee;
     }
 
+    /* Simulated-output note, the same amber the dashboard card uses so the two
+       read as one convention. It goes INSIDE #reportsGrid, which matters: the
+       RUN AGENT TASK panel is injected beforebegin of that element by
+       scripts/agent-profile.js:281, and its results are real ai_tasks output.
+       A note above the grid would have covered both. */
+    .sim-note {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      padding: 11px 13px;
+      border-radius: 11px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      background: rgba(251, 191, 36, 0.06);
+      margin-bottom: 18px;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: #fcd34d;
+    }
+
+    .sim-note strong {
+      flex-shrink: 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #fde68a;
+    }
+
     .empty-state {
       padding: 24px;
       border-radius: 14px;
@@ -809,6 +837,17 @@
     }
     function renderReports(store, agentLabel) {
       var grid = document.getElementById("reportsGrid"), total = 0, html = "", si, section, items, ii;
+
+      /* SCOPED TO THE REPORT SECTIONS AND NOTHING ELSE. Everything below comes
+         from bf_executive_memory.seoAgent, which only dashboard.html writes and
+         only from hash-seeded generators — the same store its SEO card renders,
+         labelled there in 1a7fc49. This is the other half of that label.
+
+         It is emitted into `html`, so it lands inside #reportsGrid. The RUN
+         AGENT TASK panel sits immediately before that element and shows real
+         /api/ai/tasks output; the last sentence says so, because the two are
+         adjacent and look alike. */
+      html += '<div class="sim-note"><strong>Sample</strong><span>These reports are generated from your input on the dashboard to demonstrate the interface. Every score, volume and metric in them is sample output — no site is crawled and nothing is measured. Task results above come from a real agent run and are not affected.</span></div>';
       for (si = 0; si < REPORT_SECTIONS.length; si++) {
         section = REPORT_SECTIONS[si];
         items = collectItems(store, section);
