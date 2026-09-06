@@ -55,6 +55,13 @@
     .earn-text strong{color:#f4f7ff;display:block;margin-bottom:3px;font-size:.88rem}
     .empty-msg{text-align:center;padding:52px 24px;color:#8892b8;font-size:.9rem;line-height:1.6}
     .loading{text-align:center;padding:52px 24px;color:#8892b8;font-size:.9rem}
+    /* Deliberately not .empty-msg with a colour override: a failed load is not
+       an empty wallet and must not reuse the empty wallet's box. */
+    .load-error{text-align:center;padding:44px 24px;border-radius:16px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.05)}
+    .load-error-title{font-size:1rem;font-weight:800;color:#f87171;margin-bottom:8px}
+    .load-error-sub{font-size:.84rem;color:#8892b8;line-height:1.6;max-width:420px;margin:0 auto 18px}
+    .load-error-retry{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);color:#22d3ee;border-radius:10px;padding:9px 18px;font-size:.84rem;font-weight:700;cursor:pointer}
+    .load-error-detail{font-size:.74rem;color:#8892b8;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .send-card{background:rgba(10,15,35,.88);border:1px solid rgba(34,211,238,.22);border-radius:24px;padding:32px 28px;margin-bottom:40px}
     .send-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:0 0 16px;display:flex;align-items:center;gap:10px}
     .send-title svg{width:20px;height:20px;flex-shrink:0}
@@ -157,24 +164,82 @@
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
 
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/* Reads an error body without trusting it to be JSON: a 502 from the proxy
+   answers with an HTML error page, and parsing that would throw a SyntaxError
+   whose message ends up shown to the user as the reason their wallet failed. */
+async function readError(res) {
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (body && typeof body === "object" && body.error) { return String(body.error); }
+  return "Request failed (HTTP " + res.status + ")";
+}
+
+var walletState = "loading";
+var walletError = null;
+
 async function loadWallet() {
+  walletState = "loading";
+  walletError = null;
+
   try {
     var res = await fetch(API_URL + "/api/wallet", {
       headers: { "Authorization": "Bearer " + token }
     });
-    if (!res.ok) throw new Error("fetch failed");
-    var data = await res.json();
+
+    if (!res.ok) {
+      walletState = "error";
+      walletError = await readError(res);
+      renderWallet(null);
+      return;
+    }
+
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      walletState = "error";
+      walletError = "The server sent a response this page could not read.";
+      renderWallet(null);
+      return;
+    }
+
+    walletState = "ready";
     renderWallet(data);
-  } catch (e) {
-    document.getElementById("txnList").innerHTML = '<div class="empty-msg">Unable to load wallet. Please try again.</div>';
-    document.getElementById("balanceAmount").textContent = "0";
-    document.getElementById("statEarned").textContent = "0";
-    document.getElementById("statSpent").textContent = "0";
-    document.getElementById("statTxns").textContent = "0";
+  } catch (networkErr) {
+    /* A thrown fetch is the network being unreachable. That is not a balance of
+       zero, and writing "0" into the balance tile — which is what this used to
+       do — tells the user their BFC is gone. */
+    walletState = "error";
+    walletError = "Could not reach the server. Check your connection and try again.";
+    renderWallet(null);
   }
 }
 
 function renderWallet(data) {
+  if (walletState === "error") {
+    /* Back to the em dash the page ships with, not "0": the balance is unknown,
+       and unknown is not zero. */
+    document.getElementById("balanceAmount").textContent = "—";
+    document.getElementById("statEarned").textContent = "—";
+    document.getElementById("statSpent").textContent = "—";
+    document.getElementById("statTxns").textContent = "—";
+    document.getElementById("txnList").innerHTML =
+      '<div class="load-error">' +
+        '<div class="load-error-title">Could not load your wallet</div>' +
+        '<div class="load-error-sub">This is a problem reaching the server, not an empty wallet. ' +
+          'Your balance and transactions are unchanged.</div>' +
+        '<button class="load-error-retry" onclick="loadWallet()">Try again</button>' +
+        '<div class="load-error-detail">' + escapeHtml(walletError || "") + '</div>' +
+      '</div>';
+    return;
+  }
+
   var balance = data.balance || 0;
   var txns = data.transactions || [];
   document.getElementById("balanceAmount").textContent = balance.toLocaleString();

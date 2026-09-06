@@ -101,6 +101,7 @@
     .empty-state-icon.warn{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25);color:#fbbf24}
     .empty-state-title{font-size:1.1rem;font-weight:700;color:#f4f7ff;margin:0}
     .empty-state-sub{font-size:.88rem;color:#8892b8;line-height:1.6;max-width:360px;margin:0}
+    .empty-state-detail{display:block;font-size:.74rem;color:#8892b8;margin-top:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .empty-state-actions{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;justify-content:center}
     .empty-link{background:none;border:none;color:#22d3ee;font-size:.875rem;font-weight:600;font-family:inherit;cursor:pointer;padding:0}
     .empty-link:hover{text-decoration:underline}
@@ -1870,23 +1871,80 @@ function buildEmptyState(opts) {
   '</div>';
 }
 
+var WARN_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
+/* Reads an error body without trusting it to be JSON, so an HTML error page from
+   the proxy does not surface as "Unexpected token '<'". */
+async function readError(res) {
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (body && typeof body === "object" && body.error) { return String(body.error); }
+  return "Request failed (HTTP " + res.status + ")";
+}
+
+/* Three independent collections on three independent tabs. Each keeps its own
+   state because each is a separate route that can fail on its own. */
+var documentsState = "loading", documentsError = null;
+var booksState = "loading", booksError = null;
+var wrapsState = "loading", wrapsError = null;
+
+function buildLoadError(opts) {
+  return buildEmptyState({
+    warn: true,
+    iconSvg: WARN_ICON_SVG,
+    title: opts.title,
+    sub: escapeHtml(opts.sub) +
+      '<span class="empty-state-detail">' + escapeHtml(opts.detail || "") + '</span>',
+    actionsHtml: '<button class="create-btn" onclick="' + opts.retry + '">Try again</button>'
+  });
+}
+
+async function readCollection(res, key) {
+  if (!res.ok) { return { rows: null, error: await readError(res) }; }
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (!body || typeof body !== "object") {
+    return { rows: null, error: "The server sent a response this page could not read." };
+  }
+  return { rows: Array.isArray(body[key]) ? body[key] : [], error: null };
+}
+
 async function loadDocuments() {
+  documentsState = "loading";
+  documentsError = null;
   try {
     var res = await fetch(API_URL + "/api/bizdoc/documents", { headers: { "Authorization": "Bearer " + token } });
-    if (res.ok) { var d = await res.json(); allDocuments = d.documents || []; }
+    var src = await readCollection(res, "documents");
+    if (src.rows === null) {
+      documentsState = "error";
+      documentsError = src.error;
+      allDocuments = [];
+    } else {
+      documentsState = "ready";
+      allDocuments = src.rows;
+    }
     renderGrid();
   } catch (e) {
-    document.getElementById("documentsGrid").innerHTML = buildEmptyState({
-      warn: true,
-      iconSvg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-      title: "Couldn't load documents",
-      sub: "Something went wrong. Check your connection and try again.",
-      actionsHtml: '<button class="create-btn" onclick="loadDocuments()">Try again</button>'
-    });
+    documentsState = "error";
+    documentsError = "Could not reach the server. Check your connection and try again.";
+    allDocuments = [];
+    renderGrid();
   }
 }
 
 function renderGrid() {
+  var grid = document.getElementById("documentsGrid");
+
+  if (documentsState === "error") {
+    grid.innerHTML = buildLoadError({
+      title: "Could not load your documents",
+      sub: "This is a problem reaching the server, not an empty library. Nothing has been changed or lost.",
+      detail: documentsError,
+      retry: "loadDocuments()"
+    });
+    return;
+  }
+
   var q = document.getElementById("searchInput").value.toLowerCase().trim();
   var items = allDocuments;
   if (q) {
@@ -1894,7 +1952,6 @@ function renderGrid() {
       return (d.title || "").toLowerCase().includes(q) || (d.party_name || "").toLowerCase().includes(q);
     });
   }
-  var grid = document.getElementById("documentsGrid");
   if (!items.length) {
     if (q) {
       var rawQuery = document.getElementById("searchInput").value;
@@ -2455,18 +2512,44 @@ async function docMenuDelete(event, id) {
 }
 
 async function loadMyBooks() {
+  booksState = "loading";
+  booksError = null;
   try {
     var res = await fetch(API_URL + "/api/bizbook/books", { headers: { "Authorization": "Bearer " + token } });
-    if (res.ok) { var d = await res.json(); allBooks = d.books || []; }
+    var src = await readCollection(res, "books");
+    if (src.rows === null) {
+      booksState = "error";
+      booksError = src.error;
+      allBooks = [];
+    } else {
+      booksState = "ready";
+      allBooks = src.rows;
+    }
     renderMyBooks();
   } catch (e) {
-    document.getElementById("myBooksList").innerHTML = '<div class="empty-msg">Unable to load books. Please try again.</div>';
-    showToast("Unable to load your books", "error");
+    booksState = "error";
+    booksError = "Could not reach the server. Check your connection and try again.";
+    allBooks = [];
+    renderMyBooks();
   }
 }
 
 function renderMyBooks() {
   var list = document.getElementById("myBooksList");
+
+  if (booksState === "error") {
+    /* No toast any more. The toast fired only on a thrown fetch, so an HTTP
+       failure was silent, and where it did fire it duplicated a message the
+       panel is now stating in place with a retry attached. */
+    list.innerHTML = buildLoadError({
+      title: "Could not load your books",
+      sub: "This is a problem reaching the server, not an empty shelf. Nothing has been changed or lost.",
+      detail: booksError,
+      retry: "loadMyBooks()"
+    });
+    return;
+  }
+
   if (!allBooks.length) {
     list.innerHTML = '<div class="empty-msg">No books yet. Create your first one above.</div>';
     return;
@@ -2493,19 +2576,42 @@ async function loadCoverImages() {
 }
 
 async function loadCoverWraps() {
+  wrapsState = "loading";
+  wrapsError = null;
   try {
     var res = await fetch(API_URL + "/api/cover-wraps", { headers: { "Authorization": "Bearer " + token } });
-    if (res.ok) { var d = await res.json(); allWraps = d.wraps || []; }
+    var src = await readCollection(res, "wraps");
+    if (src.rows === null) {
+      wrapsState = "error";
+      wrapsError = src.error;
+      allWraps = [];
+    } else {
+      wrapsState = "ready";
+      allWraps = src.rows;
+    }
     renderCoverWraps();
   } catch (e) {
-    document.getElementById("coverlibGrid").innerHTML = '<div class="empty-msg">Unable to load covers. Please try again.</div>';
-    showToast("Unable to load your covers", "error");
+    wrapsState = "error";
+    wrapsError = "Could not reach the server. Check your connection and try again.";
+    allWraps = [];
+    renderCoverWraps();
   }
 }
 
 function renderCoverWraps() {
   var grid = document.getElementById("coverlibGrid");
   if (!grid) return;
+
+  if (wrapsState === "error") {
+    grid.innerHTML = buildLoadError({
+      title: "Could not load your covers",
+      sub: "This is a problem reaching the server, not an empty library. Nothing has been changed or lost.",
+      detail: wrapsError,
+      retry: "loadCoverWraps()"
+    });
+    return;
+  }
+
   if (!allWraps.length) {
     grid.innerHTML = '<div class="empty-msg">No covers yet — create your first one.</div>';
     return;

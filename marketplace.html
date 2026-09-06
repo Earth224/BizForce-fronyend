@@ -89,6 +89,13 @@
     .create-btn svg{width:16px;height:16px}
     .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
     .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Deliberately not .empty-msg with a colour override: a failed load is not
+       an empty marketplace and must not reuse the empty marketplace's box. */
+    .load-error{text-align:center;padding:52px 24px;border-radius:16px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.05)}
+    .load-error-title{font-size:1rem;font-weight:800;color:#f87171;margin-bottom:8px}
+    .load-error-sub{font-size:.84rem;color:#8892b8;line-height:1.6;max-width:440px;margin:0 auto 18px}
+    .load-error-retry{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.4);color:#a855f7;border-radius:12px;padding:10px 20px;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer}
+    .load-error-detail{font-size:.74rem;color:#8892b8;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .purchase-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;margin-bottom:20px;border-radius:12px;font-size:.9rem;font-weight:600;line-height:1.5}
     .purchase-banner-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.35);color:#34d399}
     .purchase-banner-cancelled{background:rgba(136,146,184,.08);border:1px solid rgba(136,146,184,.2);color:#8892b8}
@@ -355,15 +362,70 @@ document.addEventListener("click", function(e) {
 var listingMedia = [];
 var listingMediaUploading = 0;
 
+/* Reads an error body without trusting it to be JSON, so an HTML error page from
+   the proxy does not surface as "Unexpected token '<'". */
+async function readError(res) {
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (body && typeof body === "object" && body.error) { return String(body.error); }
+  return "Request failed (HTTP " + res.status + ")";
+}
+
+/* Two collections, tracked separately because they fail separately: the browse
+   feed is a public read and "my listings" is scoped to the account, so one can
+   answer while the other 500s. renderGrid reads whichever state belongs to the
+   tab that is actually on screen. */
+var listingsState = "loading";
+var listingsError = null;
+var myListingsState = "loading";
+var myListingsError = null;
+
+async function readCollection(res) {
+  if (!res.ok) { return { rows: null, error: await readError(res) }; }
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (!body || typeof body !== "object") {
+    return { rows: null, error: "The server sent a response this page could not read." };
+  }
+  return { rows: Array.isArray(body.listings) ? body.listings : [], error: null };
+}
+
 async function loadListings() {
+  listingsState = "loading";
+  listingsError = null;
+  myListingsState = "loading";
+  myListingsError = null;
+
   try {
     var [resAll, resMine, resPurchases] = await Promise.all([
       fetch(API_URL + "/api/marketplace/listings", { headers: { "Authorization": "Bearer " + token } }),
       fetch(API_URL + "/api/marketplace/my-listings", { headers: { "Authorization": "Bearer " + token } }),
       fetch(API_URL + "/api/purchases", { headers: { "Authorization": "Bearer " + token } }).catch(function() { return null; })
     ]);
-    if (resAll.ok) { var d = await resAll.json(); allListings = d.listings || []; }
-    if (resMine.ok) { var d2 = await resMine.json(); myListings = d2.listings || []; }
+
+    var srcAll = await readCollection(resAll);
+    if (srcAll.rows === null) {
+      listingsState = "error";
+      listingsError = srcAll.error;
+      allListings = [];
+    } else {
+      listingsState = "ready";
+      allListings = srcAll.rows;
+    }
+
+    var srcMine = await readCollection(resMine);
+    if (srcMine.rows === null) {
+      myListingsState = "error";
+      myListingsError = srcMine.error;
+      myListings = [];
+    } else {
+      myListingsState = "ready";
+      myListings = srcMine.rows;
+    }
+
+    /* Purchases stays soft on purpose. It decorates cards with an "owned" badge
+       and does not decide whether the grid has anything in it, so a failure here
+       costs a badge, not a false claim about the listings themselves. */
     purchasedListingIds = new Set();
     if (resPurchases && resPurchases.ok) {
       try {
@@ -373,9 +435,17 @@ async function loadListings() {
         });
       } catch (e) { purchasedListingIds = new Set(); }
     }
+
     renderGrid();
   } catch (e) {
-    document.getElementById("listingsGrid").innerHTML = '<div class="empty-msg">Unable to load marketplace. Please try again.</div>';
+    /* A thrown fetch took out both reads at once, so both tabs are unknown. */
+    listingsState = "error";
+    listingsError = "Could not reach the server. Check your connection and try again.";
+    myListingsState = "error";
+    myListingsError = listingsError;
+    allListings = [];
+    myListings = [];
+    renderGrid();
   }
 }
 
@@ -388,7 +458,32 @@ function selectTab(el) {
 
 function renderGrid() {
   var q = document.getElementById("searchInput").value.toLowerCase().trim();
-  var items = activeTab === "mine" ? myListings : allListings;
+  var onMine = activeTab === "mine";
+
+  /* The error belongs to the collection behind the current tab. Failing "my
+     listings" while the browse feed answered should not blank out a feed that
+     loaded perfectly well, and vice versa. */
+  if (onMine ? myListingsState === "error" : listingsState === "error") {
+    document.getElementById("feedTitle").textContent = onMine ? "My Listings" : "Marketplace";
+    document.getElementById("feedCount").textContent = "";
+    document.getElementById("listingsGrid").innerHTML =
+      '<div class="load-error">' +
+        '<div class="load-error-title">' +
+          (onMine ? "Could not load your listings" : "Could not load the marketplace") +
+        '</div>' +
+        '<div class="load-error-sub">This is a problem reaching the server, not an empty ' +
+          (onMine ? "shop. Your listings are still there and are still visible to buyers." :
+                    "marketplace. Nothing has been changed or removed.") +
+        '</div>' +
+        '<button class="load-error-retry" onclick="loadListings()">Try again</button>' +
+        '<div class="load-error-detail">' +
+          escapeHtml((onMine ? myListingsError : listingsError) || "") +
+        '</div>' +
+      '</div>';
+    return;
+  }
+
+  var items = onMine ? myListings : allListings;
   if (activeTab !== "mine" && activeTab !== "all") {
     items = items.filter(function(l) { return l.category === activeTab; });
   }

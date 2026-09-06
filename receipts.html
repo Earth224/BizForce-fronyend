@@ -39,6 +39,13 @@
     .btn-receipt:hover{background:rgba(168,85,247,.2)}
     .empty-msg{text-align:center;padding:64px 24px;color:#8892b8;font-size:.9rem;line-height:1.7}
     .loading{text-align:center;padding:64px 24px;color:#8892b8}
+    /* Deliberately not .empty-msg with a colour override: a failed load is not
+       an empty ledger and must not reuse the empty ledger's box. */
+    .load-error{text-align:center;padding:52px 24px;border-radius:16px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.05)}
+    .load-error-title{font-size:1rem;font-weight:800;color:#f87171;margin-bottom:8px}
+    .load-error-sub{font-size:.84rem;color:#8892b8;line-height:1.6;max-width:440px;margin:0 auto 18px}
+    .load-error-retry{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.35);color:#a855f7;border-radius:10px;padding:9px 18px;font-size:.84rem;font-weight:700;font-family:inherit;cursor:pointer}
+    .load-error-detail{font-size:.74rem;color:#8892b8;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
     .toast{position:fixed;bottom:28px;right:28px;z-index:300;padding:14px 22px;border-radius:12px;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
     .toast.show{transform:translateY(0);opacity:1}
     .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
@@ -130,7 +137,37 @@ function normalizeDonations(donations) {
   });
 }
 
+/* Reads an error body without trusting it to be JSON, so an HTML error page from
+   the proxy does not surface as "Unexpected token '<'". */
+async function readError(res) {
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (body && typeof body === "object" && body.error) { return String(body.error); }
+  return "Request failed (HTTP " + res.status + ")";
+}
+
+var txnState = "loading";
+var txnError = null;
+
+/* Reads one of the three sources. Returns null — not [] — when the source
+   failed, because this list is money: three sources are merged into one ledger,
+   and a source that silently contributes zero rows produces a total that is
+   wrong in the direction of "you were paid less than you were". A partial
+   ledger is worse than no ledger, so any failure fails the whole load. */
+async function readSource(res, key) {
+  if (!res.ok) { return { rows: null, error: await readError(res) }; }
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (!body || typeof body !== "object") {
+    return { rows: null, error: "The server sent a response this page could not read." };
+  }
+  return { rows: Array.isArray(body[key]) ? body[key] : [], error: null };
+}
+
 async function loadTransactions() {
+  txnState = "loading";
+  txnError = null;
+
   try {
     var [resOrders, resWallet, resDonations] = await Promise.all([
       fetch(API_URL + "/api/marketplace/orders", { headers: { "Authorization": "Bearer " + token } }),
@@ -138,26 +175,52 @@ async function loadTransactions() {
       fetch(API_URL + "/api/crowdfunding/donations", { headers: { "Authorization": "Bearer " + token } })
     ]);
 
-    var orders = resOrders.ok ? (await resOrders.json()).orders : [];
-    var wallet = resWallet.ok ? (await resWallet.json()).transactions : [];
-    var donations = resDonations.ok ? (await resDonations.json()).donations : [];
+    var srcOrders    = await readSource(resOrders, "orders");
+    var srcWallet    = await readSource(resWallet, "transactions");
+    var srcDonations = await readSource(resDonations, "donations");
 
-    allTransactions = normalizeOrders(orders)
-      .concat(normalizeWallet(wallet))
-      .concat(normalizeDonations(donations));
+    var failed = [srcOrders, srcWallet, srcDonations].filter(function(s) { return s.rows === null; });
+    if (failed.length) {
+      txnState = "error";
+      txnError = failed[0].error;
+      allTransactions = [];
+      renderGrid();
+      return;
+    }
+
+    allTransactions = normalizeOrders(srcOrders.rows)
+      .concat(normalizeWallet(srcWallet.rows))
+      .concat(normalizeDonations(srcDonations.rows));
 
     allTransactions.sort(function(a, b) {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
+    txnState = "ready";
     renderGrid();
   } catch (e) {
-    document.getElementById("txnGrid").innerHTML = '<div class="empty-msg">Unable to load transactions. Please try again.</div>';
+    txnState = "error";
+    txnError = "Could not reach the server. Check your connection and try again.";
+    allTransactions = [];
+    renderGrid();
   }
 }
 
 function renderGrid() {
   var grid = document.getElementById("txnGrid");
+
+  if (txnState === "error") {
+    grid.innerHTML =
+      '<div class="load-error">' +
+        '<div class="load-error-title">Could not load your transactions</div>' +
+        '<div class="load-error-sub">This is a problem reaching the server, not an empty ledger. ' +
+          'Nothing has been changed, and no order, payment or donation has been lost.</div>' +
+        '<button class="load-error-retry" onclick="loadTransactions()">Try again</button>' +
+        '<div class="load-error-detail">' + escapeHtml(txnError || "") + '</div>' +
+      '</div>';
+    return;
+  }
+
   if (!allTransactions.length) {
     grid.innerHTML = '<div class="empty-msg">No transactions yet.</div>';
     return;

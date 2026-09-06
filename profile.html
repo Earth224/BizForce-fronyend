@@ -958,6 +958,13 @@
       cursor: pointer; font-family: var(--pf); transition: filter .2s;
     }
     .pf-empty-btn:hover { filter: brightness(1.12); }
+    /* Deliberately a separate box from .pf-empty: a failed load is not an empty
+       section and must not reuse the empty section's card. */
+    .pf-error { border-color: rgba(248,113,113,.3); background: rgba(248,113,113,.05); }
+    .pf-error .pf-empty-icon { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.25); }
+    .pf-error .pf-empty-icon svg { color: #f87171; }
+    .pf-error .pf-empty-title { color: #f87171; }
+    .pf-error-detail { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 
     /* ── Portfolio lightbox ─────────────────────────────────────────────── */
     .pf-lightbox {
@@ -1456,10 +1463,72 @@ var sectionVis   = { products:true, portfolio:true, videos:true, music:true, car
 var editingProductId = null;
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/* Reads an error body without trusting it to be JSON, so an HTML error page from
+   the proxy does not surface as "Unexpected token '<'". */
+async function readError(res) {
+  var body = null;
+  try { body = await res.json(); } catch (parseErr) { body = null; }
+  if (body && typeof body === "object" && body.error) { return String(body.error); }
+  return "Request failed (HTTP " + res.status + ")";
+}
+
+/* Four collections, four states. They are four separate routes fetched in
+   parallel, so products can 500 while music answers, and collapsing them into
+   one page-level flag would blank three sections that loaded correctly.
+
+   This page is also read by strangers, not just the owner: on a public profile
+   these sections are the evidence that someone has work worth hiring. Rendering
+   "No products yet" at a visitor because a route failed is a claim about
+   another person's business that this page is in no position to make. */
+var sectionState = { products: "loading", portfolio: "loading", videos: "loading", tracks: "loading" };
+var sectionError = { products: null, portfolio: null, videos: null, tracks: null };
+
+function errorState(svgPath, title, sub, detail, retryCall) {
+  return '<div class="pf-empty pf-error">'
+    + '<div class="pf-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+svgPath+'</svg></div>'
+    + '<div class="pf-empty-title">'+title+'</div>'
+    + '<div class="pf-empty-sub">'+sub+'</div>'
+    + '<button class="pf-empty-btn" onclick="'+retryCall+'">Try again</button>'
+    + '<div class="pf-error-detail">'+escapeHtml(detail || "")+'</div>'
+    + '</div>';
+}
+
+var WARN_SVG = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
+
+/* Resolves one parallel response into rows or an error, without letting a
+   failure on one section reach any other. */
+async function readSection(res, key, name) {
+  if (!res.ok) {
+    sectionState[name] = "error";
+    sectionError[name] = await readError(res);
+    return [];
+  }
+  var body = null;
+  try {
+    body = await res.json();
+  } catch (parseErr) {
+    console.error('[BF] ' + name + ' parse:', parseErr);
+    sectionState[name] = "error";
+    sectionError[name] = "The server sent a response this page could not read.";
+    return [];
+  }
+  sectionState[name] = "ready";
+  return (body && Array.isArray(body[key])) ? body[key] : [];
+}
+
 async function loadAll() {
   var hdr = token ? { "Authorization": "Bearer " + token } : {};
   var own = isOwner;
   var uid = viewUserId;
+  var names = ["products", "portfolio", "videos", "tracks"];
+  names.forEach(function(n) { sectionState[n] = "loading"; sectionError[n] = null; });
+
   try {
     var [pRes, prodRes, portRes, vidRes, musRes] = await Promise.all([
       fetch(API_URL + (own ? "/api/bfp/profile/me" : "/api/bfp/profile/" + uid), { headers: hdr }),
@@ -1469,13 +1538,18 @@ async function loadAll() {
       fetch(API_URL + (own ? "/api/bfp/music"      : "/api/bfp/music/public/"      + uid), { headers: hdr })
     ]);
     try { profileData = (await pRes.json()).profile || {}; }    catch(e){ console.error('[BF] profile parse:', e); profileData = {}; }
-    try { products    = (await prodRes.json()).products  || []; } catch(e){ console.error('[BF] products parse:', e); products = []; }
-    try { portfolio   = (await portRes.json()).items     || []; } catch(e){ console.error('[BF] portfolio parse:', e); portfolio = []; }
-    try { videos      = (await vidRes.json()).videos     || []; } catch(e){ console.error('[BF] videos parse:', e); videos = []; }
-    try { tracks      = (await musRes.json()).tracks     || []; } catch(e){ console.error('[BF] music parse:', e); tracks = []; }
+    products  = await readSection(prodRes, "products", "products");
+    portfolio = await readSection(portRes, "items",    "portfolio");
+    videos    = await readSection(vidRes,  "videos",   "videos");
+    tracks    = await readSection(musRes,  "tracks",   "tracks");
   } catch(e) {
+    /* A thrown fetch took out all four at once. */
     console.error('[BF] loadAll fetch failed:', e);
     profileData = {}; products = []; portfolio = []; videos = []; tracks = [];
+    names.forEach(function(n) {
+      sectionState[n] = "error";
+      sectionError[n] = "Could not reach the server. Check your connection and try again.";
+    });
   }
   applyProfile(profileData);
   renderProducts();
@@ -1709,6 +1783,12 @@ function emptyState(svgPath, title, sub, btnLabel, btnCall) {
 // ── PRODUCTS ──────────────────────────────────────────────────────────────────
 function renderProducts() {
   var grid = document.getElementById("productsGrid");
+  if (sectionState.products === "error") {
+    grid.innerHTML = errorState(WARN_SVG, 'Could not load products',
+      'This is a problem reaching the server, not an empty shop. Nothing has been changed or removed.',
+      sectionError.products, 'loadAll()');
+    return;
+  }
   if (!products.length) {
     grid.innerHTML = emptyState(
       '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>',
@@ -2085,6 +2165,12 @@ var editingPortfolioId = null;
 
 function renderPortfolio() {
   var grid = document.getElementById("portfolioGrid");
+  if (sectionState.portfolio === "error") {
+    grid.innerHTML = errorState(WARN_SVG, 'Could not load portfolio',
+      'This is a problem reaching the server, not an empty portfolio. Nothing has been changed or removed.',
+      sectionError.portfolio, 'loadAll()');
+    return;
+  }
   if (!portfolio.length) {
     grid.innerHTML = emptyState(
       '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
@@ -2250,6 +2336,12 @@ function setVidTab(tab) {
 
 function renderVideos() {
   var grid = document.getElementById("videosGrid");
+  if (sectionState.videos === "error") {
+    grid.innerHTML = errorState(WARN_SVG, 'Could not load videos',
+      'This is a problem reaching the server, not an empty channel. Nothing has been changed or removed.',
+      sectionError.videos, 'loadAll()');
+    return;
+  }
   if (!videos.length) {
     grid.innerHTML = emptyState(
       '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
@@ -2439,6 +2531,12 @@ var rafId          = null;
 
 function renderMusic() {
   var list=document.getElementById("musicList");
+  if (sectionState.tracks === "error") {
+    list.innerHTML = errorState(WARN_SVG, 'Could not load tracks',
+      'This is a problem reaching the server, not an empty catalogue. Nothing has been changed or removed.',
+      sectionError.tracks, 'loadAll()');
+    return;
+  }
   if (!tracks.length) {
     list.innerHTML = emptyState(
       '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
