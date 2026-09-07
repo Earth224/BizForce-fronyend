@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizForce AI — Self-Reviews</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 40px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:28px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(34,211,238,.3);background:rgba(34,211,238,.08);color:#22d3ee;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+    .hero-title{margin:0 0 8px;font-size:clamp(1.8rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:.95rem;line-height:1.6}
+    .generate-bar{display:flex;justify-content:flex-end;margin-bottom:10px}
+    .btn-generate{padding:10px 22px;border:none;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.03em;font-family:inherit;color:#fff;background:linear-gradient(135deg,#00e5ff,#7b2ff7);cursor:pointer;transition:all .2s}
+    .btn-generate:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
+    .btn-generate:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-generate + .btn-generate{margin-left:10px}
+    .generate-status{min-height:0;text-align:right;font-size:.78rem;line-height:1.5;color:#8892b8}
+    .generate-status.success{color:#34d399}
+    .generate-status.show{min-height:16px;margin-bottom:14px}
+    .generate-status.error{color:#f87171}
+    .reviews-list{display:flex;flex-direction:column;gap:14px}
+    .review-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 22px}
+    .review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .review-title{font-size:1rem;font-weight:800;color:#f4f7ff;line-height:1.4;min-width:0}
+    .status-badge{flex-shrink:0;padding:5px 12px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .badge-weekly{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.32);color:#22d3ee}
+    .badge-monthly{background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.32);color:#a855f7}
+    .review-period{margin:0 0 14px;font-size:.78rem;line-height:1.6;color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-word}
+    .utc-note{color:#4a5280}
+    .review-narrative{margin:0 0 14px;color:#e6edf3;font-size:.88rem;line-height:1.7;word-break:break-word;white-space:pre-wrap}
+    .narrative-pending{margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.82rem;line-height:1.6}
+    .metrics-grid{display:flex;flex-wrap:wrap;gap:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+    .metric-cell{flex:1;min-width:130px;padding:12px 14px;border-radius:14px;background:rgba(12,18,38,.72);border:1px solid rgba(255,255,255,.08);text-align:center}
+    .metric-value{display:block;font-size:1.3rem;font-weight:800;letter-spacing:.02em;background:linear-gradient(135deg,#00e5ff 0%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.2;margin-bottom:5px;word-break:break-word}
+    /* Unavailable is styled as a distinct state, not as a dim number. It must
+       not be mistakable at a glance for a measured value. */
+    .metric-cell.unavailable{border-color:rgba(136,146,184,.26);background:rgba(136,146,184,.06)}
+    .metric-cell.unavailable .metric-value{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#8892b8;font-size:1rem;font-weight:700}
+    .metric-unavailable-note{display:block;font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8;margin-bottom:5px}
+    .metric-label{display:block;font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#4a5280;word-break:break-word}
+    .review-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+    .review-model{font-size:.72rem;color:#4a5280;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-word}
+    .review-date{font-size:.72rem;color:#4a5280;margin-left:auto}
+    .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
+    .empty-state.error{color:#f87171}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <header class="hero">
+    <span class="hero-eyebrow">Self-Reviews</span>
+    <h1 class="hero-title">Period Reviews</h1>
+    <p class="hero-sub">What your business actually did, week by week and month by month. All periods are closed and measured in UTC.</p>
+  </header>
+
+  <div class="generate-bar">
+    <button class="btn-generate" id="runWeeklyBtn" onclick="runReview('weekly')">Run Weekly</button>
+    <button class="btn-generate" id="runMonthlyBtn" onclick="runReview('monthly')">Run Monthly</button>
+  </div>
+  <div class="generate-status" id="runStatus"></div>
+
+  <div class="reviews-list" id="reviewsList"></div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var reviews = [];
+
+/* THE DISTINCTION THIS PAGE EXISTS TO PRESERVE.
+
+   `loadError` is not the same state as an empty list, and the two must never
+   collapse into each other. An empty list means "we asked, and this account
+   genuinely has no reviews". A load error means "we could not ask". Rendering
+   a failed fetch as "You have no reviews yet" tells the person something false
+   about their own data on the authority of a request that never arrived — and
+   it is indistinguishable, on screen, from the true empty state. So the error
+   is held separately and rendered as an error, never as emptiness. */
+var loadError = null;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* Period bounds are UTC instants and are shown as UTC, never converted to the
+   viewer's local zone. The backend computes them from Date.UTC because the
+   platform stores no verified user timezone, so a local rendering here would
+   silently disagree with the boundary the numbers were actually measured
+   against — a Sunday-evening viewer in Los Angeles would see a period that
+   looks like it ends on a different day than it does. */
+function formatUtc(iso) {
+  try {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "(unknown)";
+    return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  } catch (e) {
+    return "(unknown)";
+  }
+}
+
+function formatTime(iso) {
+  try {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch (e) {
+    return "";
+  }
+}
+
+/* One metric cell.
+
+   AN UNREADABLE METRIC IS NOT A ZERO AND IS NOT OMITTED. A key listed in the
+   row's `unreadable` array could not be measured for that period; its value is
+   unknown. Those are different facts about the business and the page has to
+   keep them apart:
+
+     0            — we looked, and there were none.
+     unavailable  — we could not look, and we do not know.
+
+   Rendering the second as "0" invents a measurement nobody took, and dropping
+   the row entirely hides that a figure is missing, which is worse: the reader
+   totals up what is on screen and believes it is the whole picture. So an
+   unreadable metric is always shown, always labelled, and never numeric.
+
+   A null or undefined value is treated the same way even when the key is
+   absent from `unreadable`. The backend guarantees the two travel together,
+   but this page does not have to depend on that guarantee holding to avoid
+   printing a bare "null" where a number belongs. */
+function metricCell(key, value, unreadableKeys) {
+  var isUnavailable = unreadableKeys.indexOf(key) !== -1 || value === null || value === undefined;
+
+  if (isUnavailable) {
+    return '<div class="metric-cell unavailable">' +
+             '<span class="metric-unavailable-note">Unavailable</span>' +
+             '<span class="metric-value">&mdash;</span>' +
+             '<span class="metric-label">' + escapeHtml(key) + '</span>' +
+           '</div>';
+  }
+
+  return '<div class="metric-cell">' +
+           '<span class="metric-value">' + escapeHtml(value) + '</span>' +
+           '<span class="metric-label">' + escapeHtml(key) + '</span>' +
+         '</div>';
+}
+
+async function loadReviews() {
+  var container = document.getElementById("reviewsList");
+  container.innerHTML = '<div class="empty-state">Loading reviews...</div>';
+
+  loadError = null;
+  try {
+    var res = await fetch(API_URL + "/api/self-reviews", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Your reviews could not be loaded. This is a problem reaching the server, not a statement about your data.");
+    var d = await res.json();
+    reviews = d.reviews || [];
+  } catch (e) {
+    // reviews is deliberately NOT cleared to [] and then rendered as empty —
+    // renderReviews checks loadError first, so nothing here can be mistaken
+    // for "this account has none".
+    reviews = [];
+    loadError = e.message || "Your reviews could not be loaded.";
+  }
+  renderReviews();
+}
+
+function renderReviews() {
+  var container = document.getElementById("reviewsList");
+
+  // Error first, and it returns. An error never falls through to the empty
+  // state below it.
+  if (loadError) {
+    container.innerHTML = '<div class="empty-state error">' + escapeHtml(loadError) + '</div>';
+    return;
+  }
+
+  if (!reviews.length) {
+    container.innerHTML = '<div class="empty-state">No reviews yet. Run a weekly or monthly review to generate your first one.</div>';
+    return;
+  }
+
+  container.innerHTML = reviews.map(function (r) {
+    var periodType = r.period_type === "monthly" ? "monthly" : "weekly";
+    var badgeClass = periodType === "monthly" ? "badge-monthly" : "badge-weekly";
+    var title = periodType === "monthly" ? "Monthly review" : "Weekly review";
+
+    var unreadableKeys = Array.isArray(r.unreadable) ? r.unreadable : [];
+    var metrics = (r.metrics && typeof r.metrics === "object") ? r.metrics : {};
+
+    /* THE UNION OF BOTH KEY SETS, not just the keys present in `metrics`.
+
+       The backend writes an unreadable metric as a null under its own key, so
+       the two sets agree today and this loop draws the same cells either way.
+       It is written this way because of how the disagreement would fail if it
+       ever happened: silently. A key appearing only in `unreadable` would
+       simply not be drawn — no gap, no marker, nothing to notice — and the
+       reader would add up the cells on screen and believe they had seen every
+       metric the period has.
+
+       A missing cell is worse than an unavailable one for exactly that reason.
+       An unavailable cell announces itself: it says a figure exists and could
+       not be read. A cell that was never drawn says nothing at all, and the
+       absence is invisible to the only person who would care. */
+    var metricKeys = Object.keys(metrics);
+    unreadableKeys.forEach(function (key) {
+      if (metricKeys.indexOf(key) === -1) metricKeys.push(key);
+    });
+
+    var metricsHtml = metricKeys.map(function (key) {
+      return metricCell(key, metrics[key], unreadableKeys);
+    }).join("");
+
+    /* A row with no narrative is SHOWN, not hidden. It is the shape a failed
+       model call leaves behind, and its metrics are real measurements of a
+       closed period — they are worth exactly as much without the prose as
+       with it. Hiding the row would lose measured data because the optional
+       half of it is missing. */
+    var narrativeHtml = r.narrative
+      ? '<p class="review-narrative">' + escapeHtml(r.narrative) + '</p>'
+      : '<div class="narrative-pending">The written summary has not been generated yet for this period. The numbers below are still valid measurements &mdash; only the prose is missing. Running this period again will attempt the summary without re-measuring anything already recorded.</div>';
+
+    var modelHtml = r.model
+      ? '<span class="review-model">' + escapeHtml(r.model) + '</span>'
+      : '<span class="review-model">no model recorded</span>';
+
+    return '<div class="review-card">' +
+             '<div class="review-head">' +
+               '<div class="review-title">' + escapeHtml(title) + '</div>' +
+               '<span class="status-badge ' + badgeClass + '">' + escapeHtml(periodType) + '</span>' +
+             '</div>' +
+             '<p class="review-period">' +
+               escapeHtml(formatUtc(r.period_start)) + ' &rarr; ' + escapeHtml(formatUtc(r.period_end)) +
+               '<br><span class="utc-note">Boundaries are UTC, not your local calendar.</span>' +
+             '</p>' +
+             narrativeHtml +
+             '<div class="metrics-grid">' + metricsHtml + '</div>' +
+             '<div class="review-meta">' +
+               modelHtml +
+               '<span class="review-date">' + escapeHtml(formatTime(r.created_at)) + '</span>' +
+             '</div>' +
+           '</div>';
+  }).join("");
+}
+
+async function runReview(periodType) {
+  var weeklyBtn = document.getElementById("runWeeklyBtn");
+  var monthlyBtn = document.getElementById("runMonthlyBtn");
+  var status = document.getElementById("runStatus");
+  var pressed = periodType === "monthly" ? monthlyBtn : weeklyBtn;
+  var pressedLabel = pressed.textContent;
+
+  // BOTH buttons go down, not just the one pressed. They hit the same endpoint
+  // and the same rate limiter, and this call runs a model server-side, so the
+  // page has to read as busy for the whole round trip rather than inviting a
+  // second request while the first is still out.
+  weeklyBtn.disabled = true;
+  monthlyBtn.disabled = true;
+  pressed.textContent = "Working...";
+  status.textContent = "Generating the " + periodType + " review. This runs a model and can take a moment.";
+  status.className = "generate-status show";
+
+  try {
+    var res = await fetch(API_URL + "/api/self-reviews/run", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ period_type: periodType })
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    /* The server's own message, not a generic one. It knows things this page
+       cannot: which period type was rejected and why, that the review could
+       not be generated and nothing was written, or that the rate limit was
+       hit. Replacing that with "Something went wrong" throws away the only
+       part of the response that could tell the person what to do next. */
+    if (!res.ok) {
+      throw new Error(d.error || ("The review could not be generated (HTTP " + res.status + ")."));
+    }
+
+    status.textContent = "Review ready.";
+    status.className = "generate-status show success";
+    await loadReviews();
+  } catch (e) {
+    status.textContent = e.message || "The review could not be generated.";
+    status.className = "generate-status show error";
+  } finally {
+    weeklyBtn.disabled = false;
+    monthlyBtn.disabled = false;
+    pressed.textContent = pressedLabel;
+  }
+}
+
+loadReviews();
+</script>
+</body>
+</html>
