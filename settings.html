@@ -547,6 +547,23 @@
               <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
             </div>
 
+            <!-- Deliberately NOT labelled "Language". This does not translate the
+                 interface — the app is in English and stays in English. It sets
+                 what Termaximus and the agents WRITE, which is a different thing,
+                 and a user who reads the label as a UI switch will be confused by
+                 a page that does not change. The options below the first are
+                 injected from the GET response's available_languages; the markup
+                 carries only the null case, so there is no second copy of the
+                 roster to drift. -->
+            <div class="form-group" style="margin-top:18px;">
+              <label for="langSelect">Oracle &amp; agent language</label>
+              <select id="langSelect">
+                <option value="">Match the language I write in</option>
+              </select>
+              <span class="pref-saved" id="langSaved"></span>
+              <p class="pref-note">Sets the language Termaximus and your agents write in. The interface itself stays in English. Left on the default, Termaximus answers in whatever language you write to him in — but the daily invocation and the page insights never see anything you wrote, so choosing a language here is what makes those two speak it as well.</p>
+            </div>
+
             <div class="toggle-row">
               <div class="toggle-copy">
                 <div class="toggle-title">Notifications</div>
@@ -833,8 +850,10 @@
       var tmxToggle = document.getElementById("tmxToggle");
       var tmxPositionSelect = document.getElementById("tmxPositionSelect");
       var notifToggle = document.getElementById("notifToggle");
+      var langSelect = document.getElementById("langSelect");
       var tmxSaved = document.getElementById("tmxSaved");
       var mistSaved = document.getElementById("mistSaved");
+      var langSaved = document.getElementById("langSaved");
       var notifStatus = document.getElementById("notifStatus");
       var notifTestRow = document.getElementById("notifTestRow");
       var notifTestBtn = document.getElementById("notifTestBtn");
@@ -868,9 +887,45 @@
           });
       }
 
+      /* Options come from the server's available_languages, never from a list
+         kept here. Rebuilt from index 1 so the null case in the markup always
+         survives and a second call cannot duplicate the roster. Sorted by the
+         English name rather than by tag, because the name is what is read. */
+      function populateLanguageOptions(map) {
+        while (langSelect.options.length > 1) {
+          langSelect.remove(1);
+        }
+        var tags = Object.keys(map || {});
+        tags.sort(function (a, b) {
+          return String(map[a]).localeCompare(String(map[b]));
+        });
+        tags.forEach(function (tag) {
+          var opt = document.createElement("option");
+          opt.value = tag;
+          opt.textContent = map[tag];
+          langSelect.appendChild(opt);
+        });
+      }
+
       function applyPreferencesFromLocalStorage() {
         tmxToggle.checked = localStorage.getItem("tmx_presence_active") !== "0";
         tmxPositionSelect.value = localStorage.getItem("tmx_mist_corner") || "top-right";
+
+        /* THE LANGUAGE IS DELIBERATELY NOT RESTORED FROM localStorage HERE, and
+           this is the one place it departs from the two controls above.
+
+           localStorage is per-browser, not per-account. The other two are
+           cosmetic and local either way, but this one claims something about the
+           signed-in account, and a stale mirror from a previous session — or a
+           different person on a shared machine — would show a language this user
+           never chose. Showing the wrong stored setting is worse than showing
+           the default, because the default is honest about not knowing.
+
+           The reset is belt-and-braces: on a failed GET there is no
+           available_languages, so no options were ever injected and the select
+           can only hold the null case anyway. Stating it explicitly means that
+           stays true if the population order ever changes. */
+        langSelect.value = "";
       }
 
       fetch(API_URL + "/api/user/preferences", {
@@ -895,6 +950,23 @@
 
           tmxPositionSelect.value = prefs.mist_position || "top-right";
           localStorage.setItem("tmx_mist_corner", tmxPositionSelect.value);
+
+          /* Options first, then the value — assigning before the option exists
+             would silently fall back to "". `|| ""` maps the null case onto the
+             empty-string option, the same shape as the mist line above.
+
+             A stored tag no longer in the roster also lands on "": the select
+             drops an unmatched value. That is the safe direction — the default
+             is a truthful "not chosen" rather than a language the server would
+             no longer honour. */
+          populateLanguageOptions(prefs.available_languages);
+          langSelect.value = prefs.preferred_language || "";
+
+          if (prefs.preferred_language) {
+            localStorage.setItem("tmx_agent_language", prefs.preferred_language);
+          } else {
+            localStorage.removeItem("tmx_agent_language");
+          }
         })
         .catch(function () {
           applyPreferencesFromLocalStorage();
@@ -913,6 +985,27 @@
         localStorage.setItem("tmx_mist_corner", tmxPositionSelect.value);
         localStorage.removeItem("tmx_presence_pos");
         putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
+      });
+
+      langSelect.addEventListener("change", function () {
+        /* "" -> null, and the conversion is required, not tidiness. A select has
+           no null value, so the default option carries "" — but the route accepts
+           null to unset and rejects "" with a 400 naming the valid tags. Sending
+           the raw value through would make the default the one option that cannot
+           be chosen, and it would fail as a red "Couldn't save" with no clue why.
+
+           JSON.stringify keeps an explicit null (it only drops undefined), so the
+           key arrives present-and-null — which is the case the route reads as
+           "mirror the seeker's language" rather than as "field not sent". */
+        var chosen = langSelect.value === "" ? null : langSelect.value;
+
+        if (chosen === null) {
+          localStorage.removeItem("tmx_agent_language");
+        } else {
+          localStorage.setItem("tmx_agent_language", chosen);
+        }
+
+        putPreferences({ preferred_language: chosen }, langSaved);
       });
 
       /* ── Notifications (real push subscription, not a stored preference) ── */
