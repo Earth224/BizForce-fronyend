@@ -1,5 +1,77 @@
 /* BizForce AI — Global UI Standard (Agent Directory master language) */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE PALETTE — its first definition anywhere.
+
+   Until now these seven colours had no definition. They existed as 3,638 hex
+   literals across 65 of the repo's 74 html/css/js files, retyped from memory
+   each time a page was written. Nothing declared them, so nothing could be
+   said to be wrong about them, and nothing could change them.
+
+   NOTHING ON SCREEN CHANGES TODAY, and that is deliberate. Not one existing
+   rule in this file has been rewritten to use these tokens. Doing that is a
+   repo-wide sweep, and every intermediate state of such a sweep — half the
+   rules tokenised, half literal — looks broken in a way that is hard to tell
+   apart from a real regression. Declaring the vocabulary and adopting it are
+   separate jobs, and this is only the first.
+
+   THE INTENT is that every page written or rewritten from here uses these
+   instead of retyping hex, so the migration happens page by page as pages are
+   touched for other reasons, and no sweep is ever needed.
+
+   THIS IS NOT A THEME SWITCHER AND WOULD NOT WORK AS ONE TODAY. Only 27 of the
+   64 pages link this stylesheet, and all 64 carry their own <style> block, so
+   re-pointing these tokens would change a minority of what is on screen — the
+   result would read as a broken page rather than a new theme. A switcher
+   becomes possible when adoption is broad enough, which is a consequence of
+   the page-by-page migration above rather than something to schedule.
+
+   digital_cards.theme IS A SEPARATE CONCEPT AND STAYS SEPARATE. Its four
+   values style a card the user shares with other people — an object with its
+   own appearance, which stays what they chose regardless of what the app
+   around it looks like. These tokens style the app the user is looking at.
+   Collapsing the two would mean a person's business card changed colour
+   because they changed their own interface, which is not a preference anyone
+   expressed.
+
+   Named --bf-<role> to match --bf-icon-stroke, the one custom property this
+   file already had. Roles rather than colour names wherever the role is clear,
+   so a page reads var(--bf-warning) rather than var(--bf-gold) and the meaning
+   survives if the value is ever tuned.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* The void the whole app sits on. 62 files. */
+  --bf-bg: #070b18;
+
+  /* Secondary text — labels, captions, anything supporting. 59 files. */
+  --bf-text-muted: #8892b8;
+
+  /* The primary accent: links, focus rings, active borders, icon strokes.
+     The most repeated colour in the repo at 65 files, and already this file's
+     own --bf-icon-stroke default. */
+  --bf-accent: #22d3ee;
+
+  /* The brighter cyan the accent is paired with in gradients and glows. 51
+     files. Kept distinct from --bf-accent rather than merged: the two appear
+     together in the same gradient often enough that one token could not
+     express it. */
+  --bf-accent-bright: #00e5ff;
+
+  /* The second stop in nearly every brand gradient, opposite the cyan. 60
+     files. */
+  --bf-accent-alt: #a855f7;
+
+  /* Success and confirmation — a resolved place, a known birth time, a saved
+     record. 30 files. */
+  --bf-success: #34d399;
+
+  /* Attention without failure: retrograde markers, an unresolved place, an
+     uncertain aspect. Distinct from an error, which is a different colour and
+     is deliberately not tokenised here — this set is the seven the recon found
+     genuinely repeated, not every colour in use. 27 files. */
+  --bf-warning: #fbbf24;
+}
+
 /* ── App shell & topbar (Dashboard V2) ── */
 .app-shell {
   min-height: 100vh;
