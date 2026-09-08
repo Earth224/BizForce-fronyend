@@ -486,7 +486,66 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 70vh;
+      /* ── A FLOOR IN PIXELS, NOT A FRACTION OF THE VIEWPORT, AND NOT
+         LEFTOVER COLUMN SPACE. ───────────────────────────────────────────
+
+         `flex: 1` is flex-grow:1 with flex-basis:0%, so this element has no
+         intrinsic height of its own — it takes whatever the .page column has
+         left after its in-flow siblings. That made its height a function of
+         what sits below it: adding the sigil panel (a static sibling roughly
+         500px tall with its margins) subtracted every one of those pixels
+         from here, and the old 70vh floor was low enough to absorb the loss
+         silently instead of resisting it.
+
+         That was not a cosmetic loss. renderNatalOrbit reads
+         stage.getBoundingClientRect().height and derives maxRadius from it,
+         and maxRadius in turn drives the rule that shrinks the Divine
+         Triangle via an inline max-width. One stolen number shrank both
+         figures, which is why raising the sizing constants would have been
+         treating a symptom.
+
+         THE NUMBER IS DERIVED, NOT CHOSEN. Three constraints, with the
+         orbit's own constants (CARD_WIDTH 140, CARD_HEIGHT 44, CARD_GAP 16,
+         MIN_GAP 60) and twelve nodes:
+
+           cardHalfDiag = sqrt(70^2 + 22^2)               = 73.38
+           minRadiusForSpacing = 156 / (2*sin(15deg))     = 301.37
+
+           A. Place twelve cards without collision:
+              maxRadius >= 301.37  ->  height >= 749.49
+           B. Leave the triangle at its declared min(680px, 62vw), i.e. keep
+              the shrink rule from firing at all: 2*(maxRadius-60) >= 680,
+              so maxRadius >= 400  ->  height >= 946.75
+           C. Fit the ring ABOVE the centre. padding-bottom:24px shrinks the
+              content box, and align-items:center centres in the CONTENT box,
+              so the ring centre sits 12px above the box centre while
+              maxRadius is computed from the full border box. Clearance above
+              is the binding direction: (height-24)/2 >= 400+73.38, so
+              height >= 970.75
+
+         C binds. 1000px clears it with room: maxRadius 426.62, the shrink
+         rule does not fire, the triangle stays at 680px, and the ring clears
+         the stage by 14.6px above and 38.6px below on the conservative
+         half-diagonal bound (far more in practice, since the cards are not
+         rotated and the top card only reaches its half-HEIGHT of 22px).
+
+         THE PAGE WILL NOW SCROLL ON MOST VIEWPORTS, AND THAT IS INTENDED.
+         1000px exceeds the usable height of a typical laptop viewport, so
+         the stage no longer fits in one screen. The alternative is a ring
+         permanently clamped below the radius its own no-overlap rule asks
+         for and a triangle permanently shrunk below its declared size — a
+         cramped chart on every screen, to avoid a scroll on some. The page
+         already scrolls to reach the sigil panel, so this costs a gesture
+         the reader was making anyway.
+
+         PIXELS RATHER THAN vh BECAUSE THE CONTENT IS MEASURED IN PIXELS.
+         Every input above is a pixel quantity — a 140px card, a 680px
+         triangle, a 60px gap. What this box has to hold does not get smaller
+         on a short screen, so expressing its floor as a fraction of the
+         viewport only decided how badly it would be clamped there. flex:1 is
+         kept: on a viewport tall enough to have slack left over, the stage
+         still absorbs it. ── */
+      min-height: 1000px;
       padding-bottom: 24px;
     }
     /* ── Natal orbit — Stage D1, visual placement only. pointer-events:
@@ -495,6 +554,19 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
+      /* Hard containment, so a card cannot leave the stage even if some
+         future combination of viewport and node count pushes the ring past
+         maxRadius again (renderNatalOrbit deliberately lets
+         minRadiusForSpacing override that ceiling, preferring a clipped card
+         to two overlapping ones). With the height floor above, the ring now
+         fits with room to spare and this clips nothing — it exists so the
+         overlap with the heading above and the sigil panel below is
+         IMPOSSIBLE rather than merely unlikely. Without it, escaping cards
+         are painted over by the sigil panel, whose backdrop-filter creates a
+         stacking context that paints later in DOM order: they do not simply
+         overlap, they are dimmed and blurred, which reads as the stage
+         clipping them and sends you looking at the wrong element. */
+      overflow: hidden;
     }
     /* Fixed, uniform, compact footprint for EVERY card — no per-card
        sizing to content anymore (that's what let long angle-card text
@@ -869,7 +941,14 @@
        that finally covers the triangle on a mid-width screen. ── */
     .mychart-sigil-panel {
       max-width: min(420px, 78vw);
-      margin: 8px auto 48px;
+      /* 40px of clear air below the stage rather than the original 8px. The
+         stage now ends where its content ends, so this gap is the visible
+         separation between the chart and the panel — and it is the margin
+         the orbit would have to cross before reaching this element at all,
+         on top of the containment on .natal-orbit above. Belt and braces,
+         deliberately: this panel is the element that silently shrank the
+         chart once already. */
+      margin: 40px auto 48px;
       padding: 18px 20px 20px;
       background: rgba(10,4,20,0.55);
       border: 1px solid rgba(52,211,153,0.18);
@@ -2588,8 +2667,33 @@
       }
       if (!nodes.length) return;
 
-      var stageRect  = stage.getBoundingClientRect();
       var triangleEl = stage.querySelector(".dtb-visual-large");
+
+      /* RESET BEFORE MEASURING — this is a bug fix, not a tidy-up.
+
+         The shrink rule below writes triangleEl.style.maxWidth, an inline
+         style. Nothing ever cleared it, and the very next line to read the
+         triangle's width reads it back through getBoundingClientRect. So one
+         render's OUTPUT became the next render's INPUT: an inline style
+         written by one pass and consumed as a measurement by the pass after
+         it. Since the rule can only ever narrow the element, the triangle
+         ratcheted monotonically smaller on every resize — the window
+         handler re-enters this function on a 150ms debounce — with no path
+         back up. Drag a window narrow and wide again and the triangle stayed
+         at its narrowest until a full reload.
+
+         Clearing it here restores the declared width from the stylesheet and
+         the wrapper's own style attribute (min(680px, 62vw)), so every pass
+         measures the size the page asked for and re-derives the shrink from
+         current conditions instead of inheriting an old verdict. Placed
+         above every read of triangleEl, which is what makes it work: the
+         getBoundingClientRect calls below force the reflow that applies it. */
+      if (triangleEl) triangleEl.style.maxWidth = "";
+
+      /* Measured after the reset above, so every dimension this function
+         reads - the stage as well as the triangle - reflects the declared
+         sizes rather than a previous pass's output. */
+      var stageRect  = stage.getBoundingClientRect();
 
       /* A CIRCLE, not an ellipse — deliberate change from the previous
          version. An ellipse has tighter curvature (and therefore tighter
