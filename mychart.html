@@ -512,25 +512,28 @@
            minRadiusForSpacing = 156 / (2*sin(15deg))     = 301.37
 
            A. Place twelve cards without collision:
-              maxRadius >= 301.37  ->  height >= 749.49
-           B. Leave the triangle at its declared min(680px, 62vw), i.e. keep
-              the shrink rule from firing at all: 2*(maxRadius-60) >= 680,
-              so maxRadius >= 400  ->  height >= 946.75
+              R >= 301.37  ->  satisfied by B many times over
+           B. maxRadius must reach the radius desiredRadius asks for, now that
+              MIN_GAP measures to the card's inner edge:
+                R = triangleSize/2 + MIN_GAP + cardHalfDiag
+                  = 731/2 + 8 + 73.38 = 446.88
+              maxRadius >= 446.88  ->  height >= 1040.50
            C. Fit the ring ABOVE the centre. padding-bottom:24px shrinks the
               content box, and align-items:center centres in the CONTENT box,
               so the ring centre sits 12px above the box centre while
               maxRadius is computed from the full border box. Clearance above
-              is the binding direction: (height-24)/2 >= 400+73.38, so
-              height >= 970.75
+              is the binding direction: (height-24)/2 >= 446.88+73.38, so
+              height >= 1064.50
 
-         C binds. 1000px clears it with room: maxRadius 426.62, the shrink
-         rule does not fire, the triangle stays at 680px, and the ring clears
-         the stage by 14.6px above and 38.6px below on the conservative
+         C binds again. 1100px clears it with room: maxRadius 452.62, the
+         ring is placed at the full 446.88 rather than being clamped, the
+         triangle stays at its declared 731px box, and the ring clears the
+         stage by 17.8px above and 41.8px below on the conservative
          half-diagonal bound (far more in practice, since the cards are not
          rotated and the top card only reaches its half-HEIGHT of 22px).
 
          THE PAGE WILL NOW SCROLL ON MOST VIEWPORTS, AND THAT IS INTENDED.
-         1000px exceeds the usable height of a typical laptop viewport, so
+         1100px exceeds the usable height of a typical laptop viewport, so
          the stage no longer fits in one screen. The alternative is a ring
          permanently clamped below the radius its own no-overlap rule asks
          for and a triangle permanently shrunk below its declared size — a
@@ -539,13 +542,13 @@
          the reader was making anyway.
 
          PIXELS RATHER THAN vh BECAUSE THE CONTENT IS MEASURED IN PIXELS.
-         Every input above is a pixel quantity — a 140px card, a 680px
-         triangle, a 60px gap. What this box has to hold does not get smaller
+         Every input above is a pixel quantity — a 140px card, a 731px
+         triangle, an 8px gap. What this box has to hold does not get smaller
          on a short screen, so expressing its floor as a fraction of the
          viewport only decided how badly it would be clamped there. flex:1 is
          kept: on a viewport tall enough to have slack left over, the stage
          still absorbs it. ── */
-      min-height: 1000px;
+      min-height: 1100px;
       padding-bottom: 24px;
     }
     /* ── Natal orbit — Stage D1, visual placement only. pointer-events:
@@ -585,12 +588,34 @@
       justify-content: center;
       gap: 2px;
       padding: 6px 8px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, rgba(34,211,238,0.10), rgba(168,85,247,0.10)), rgba(10,4,20,0.8);
-      border: 1px solid rgba(168,85,247,0.5);
-      box-shadow: 0 0 10px rgba(168,85,247,0.2);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      /* ── THE SAME GLASS AS EVERY OTHER PANEL ON THIS PAGE. ──────────────
+         .mychart-calendar-panel, .mychart-tzolkin-card and
+         .mychart-sigil-panel all share one recipe: rgba(10,4,20,0.55) over a
+         blur(10px), a 1px border at 0.18-0.25 alpha, and a 16px radius. They
+         differ only in border HUE — cyan, gold, emerald. These cards were the
+         one element not speaking that language: 0.8 alpha instead of 0.55, a
+         gradient wash on top of it, a border at 0.5 (roughly three times the
+         panels'), half the blur at 6px, an 8px radius, and a glow none of the
+         panels have. Together those read as an opaque plate laid ON the
+         chart rather than a pane of the same glass floating above it.
+
+         Violet is kept as this family's hue, so a planet card is still
+         distinguishable at a glance from the three panels; only the weight
+         changes.
+
+         THIS IS THE SAFETY NET AND NOT THE FIX. The geometry above is what
+         guarantees nothing sits behind a card: the padded viewBox stops the
+         labels being clipped, and MIN_GAP now leaves 20px between the
+         labels' outer extent and the nearest card edge. This only decides
+         what it looks like if that guarantee is ever broken — at 0.55 over a
+         10px blur an overlapped label reads as something behind glass, which
+         is legible as depth; at 0.8 with a gradient over it, it read as the
+         label having been deleted. ── */
+      border-radius: 16px;
+      background: rgba(10,4,20,0.55);
+      border: 1px solid rgba(168,85,247,0.22);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
     /* Individual cards opt back into pointer events even though the
@@ -599,20 +624,24 @@
     .natal-node {
       pointer-events: auto;
     }
+    /* Hover is the one place a glow is still right: it is a transient
+       affordance rather than resting appearance, and the panels have no
+       hover state to be consistent with. Softened in step with the rest. */
     .natal-node:hover {
-      border-color: rgba(52,211,153,0.55);
-      box-shadow: 0 0 12px rgba(52,211,153,0.25);
+      border-color: rgba(52,211,153,0.45);
+      box-shadow: 0 0 12px rgba(52,211,153,0.18);
     }
     /* Luminaries (Sun/Moon) and angles (ASC/MC) — the key placements,
        given a stronger accent than the other eight nodes, but the SAME
        fixed size as every other card. */
+    /* Accents now separate themselves by HUE and a step of border alpha
+       inside the panels' own 0.18-0.25 band, rather than by a heavier border
+       and a glow. The gold matches .mychart-tzolkin-card's 0.25 exactly. */
     .natal-node-luminary {
-      border-color: rgba(244,228,184,0.75);
-      box-shadow: 0 0 14px rgba(244,228,184,0.3);
+      border-color: rgba(244,228,184,0.25);
     }
     .natal-node-angle {
-      border-color: rgba(34,211,238,0.65);
-      box-shadow: 0 0 14px rgba(34,211,238,0.28);
+      border-color: rgba(34,211,238,0.25);
     }
     .natal-node-line1,
     .natal-node-line2 {
@@ -2364,7 +2393,40 @@
         return squareKey === lifeMarkerActiveSquare ? " mc-square-active" : " mc-square-dim";
       }
 
-      var svg = '<svg viewBox="0 0 320 320" width="100%" xmlns="http://www.w3.org/2000/svg">';
+      /* PADDED VIEWBOX — the drawing is still laid out in the original
+         0..320 space (every corner, centre and label coordinate above is
+         unchanged); the BOX around it is widened by 12 units on all four
+         sides so the edge labels are no longer cut off by the SVG's own
+         viewport.
+
+         svg:root has overflow:hidden in the UA stylesheet, so anything
+         outside the viewBox is clipped rather than merely overflowing. Two
+         labels were: BC ("R 18/9", anchored at x=7) ran about 6.3 units past
+         the left edge and lost its leading character, and EF ("22/4",
+         anchored at y=318) ran 2.5 units past the bottom. Both are placed by
+         labelPosAway(..., 13), which pushes the edge midpoint outward from
+         its SQUARE's centre — and the youth and power squares sit far enough
+         off-centre that their outward direction runs straight out of the box.
+         The push distance is not the problem and is left alone; the box was
+         simply drawn to fit the triangle rather than the triangle plus its
+         annotations.
+
+         12 UNITS, SYMMETRICALLY, so the centre stays at (160,160) and every
+         distance the orbit code measures from it is unchanged. That leaves
+         5.7 units (12.1px) of spare beyond the worst label on the left and
+         9.5 units (20.2px) at the bottom — room for a slightly wider font
+         than the metrics this was sized against, since the labels are text
+         and their exact advance widths depend on what the browser picks.
+
+         THE RENDERED SIZE IS HELD CONSTANT BY THE CALLER. Widening the box
+         at a fixed CSS width would shrink everything inside it by 320/344,
+         so the two call sites scale their max-width by exactly 344/320 in
+         step with this: min(680px, 62vw) becomes min(731px, 66.65vw), which
+         holds the scale at 2.125px per unit and leaves the drawn triangle at
+         573.75px across, the size it is today. The two numbers are a pair —
+         changing this viewBox without changing those max-widths silently
+         resizes the chart. */
+      var svg = '<svg viewBox="-12 -12 344 344" width="100%" xmlns="http://www.w3.org/2000/svg">';
 
       svg += '<defs>' +
         '<linearGradient id="dtbYouthFill" x1="0%" y1="0%" x2="100%" y2="100%">' +
@@ -2713,12 +2775,40 @@
       var CARD_WIDTH  = 140;
       var CARD_HEIGHT = 44;
       var CARD_GAP    = 16;
-      var MIN_GAP     = 60; /* clearance between the triangle's edge and the ring */
+
+      /* MIN_GAP IS A CLEARANCE TO THE CARD'S NEAREST EDGE, NOT TO ITS CENTRE.
+
+         It was documented as "clearance between the triangle's edge and the
+         ring" and did not deliver one. desiredRadius placed the card's CENTRE
+         at triangleSize/2 + MIN_GAP, and the card then extended up to 71.62px
+         back inward from that centre — so the nominal 60px gap was really
+         60 - 71.62 = -11.62px, and the cards sat inside the triangle's own
+         box, on top of its edge labels. The constant now means what it says,
+         which is also why its value drops: 8 real pixels of clearance are
+         more than 60 nominal ones ever were.
+
+         8 RATHER THAN MORE, because the page caps the ring from the other
+         side. .page is max-width:1100px with 24px of padding, so the stage is
+         1052px wide and maxRadius can never exceed 1052/2 - 73.38 = 452.62.
+         MIN_GAP 8 asks for 446.88 and is honoured; 16 would ask for 454.88,
+         be clamped straight back to 452.62, and leave the constant lying
+         again in the other direction. Widening the ring past this needs
+         .page's max-width raised first. */
+      var MIN_GAP     = 8;
 
       var count        = nodes.length;
       var stepAngleRad = (Math.PI * 2) / count;
       var minRadiusForSpacing = (CARD_WIDTH + CARD_GAP) / (2 * Math.sin(stepAngleRad / 2));
 
+      /* The furthest any part of a card reaches back toward the centre from
+         its own anchor point. For a card at bearing t that distance is
+         (CARD_WIDTH/2)*|cos t| + (CARD_HEIGHT/2)*|sin t|, whose supremum over
+         all bearings is the half-diagonal. Derived from the card constants
+         rather than written as the 71.62 that the current twelve node angles
+         happen to produce, so it stays correct if the cards are resized OR if
+         the node count changes and moves those angles. Used for two different
+         jobs below — the on-screen ceiling, and the real clearance in
+         desiredRadius — because it is the same quantity in both. */
       var cardHalfDiag = Math.sqrt(Math.pow(CARD_WIDTH / 2, 2) + Math.pow(CARD_HEIGHT / 2, 2));
       var maxRadius    = Math.max(40, Math.min(stageRect.width, stageRect.height) / 2 - cardHalfDiag);
       var triangleSize = triangleEl ? triangleEl.getBoundingClientRect().width : 320;
@@ -2728,14 +2818,19 @@
          itself (floor 200px) — this only affects the triangle-clearance
          term below, not the no-overlap floor, which is independent of
          triangle size entirely. */
-      var neededTriangleHalf = maxRadius - MIN_GAP;
+      var neededTriangleHalf = maxRadius - MIN_GAP - cardHalfDiag;
       if (triangleEl && neededTriangleHalf * 2 < triangleSize) {
         var shrunkWidth = Math.max(200, neededTriangleHalf * 2);
         triangleEl.style.maxWidth = shrunkWidth + "px";
         triangleSize = shrunkWidth;
       }
 
-      var desiredRadius = Math.max(triangleSize / 2 + MIN_GAP, minRadiusForSpacing);
+      /* + cardHalfDiag so MIN_GAP separates the triangle's box from the card's
+         INNER EDGE. Without it the gap landed on the card's centre and the
+         card ate it. The shrink rule above subtracts the same term for the
+         same reason: the two must agree on where a card starts, or the
+         triangle is shrunk to make room the ring then does not leave. */
+      var desiredRadius = Math.max(triangleSize / 2 + MIN_GAP + cardHalfDiag, minRadiusForSpacing);
       /* minRadiusForSpacing wins even over maxRadius (the on-screen
          ceiling) — on a screen too small for both constraints, cards may
          clip slightly at the edge, but they will never overlap each
@@ -2838,7 +2933,7 @@
 
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
       if (blueprint) {
-        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(680px, 62vw)", interactive: true });
+        stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(731px, 66.65vw)", interactive: true });
         loadAndRenderOrbit();
         renderTzolkinCard();
         return;
@@ -2852,7 +2947,7 @@
 
         var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
         if (loadedBlueprint) {
-          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(680px, 62vw)", interactive: true });
+          freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(731px, 66.65vw)", interactive: true });
           loadAndRenderOrbit();
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
