@@ -90,7 +90,18 @@
   <header class="hero">
     <span class="hero-eyebrow">Self-Reviews</span>
     <h1 class="hero-title">Period Reviews</h1>
-    <p class="hero-sub">What your business actually did, week by week and month by month. All periods are closed and measured in UTC.</p>
+    <!-- "What your business actually did" is a claim this page cannot support.
+         Every figure below counts activity recorded HERE — agent tasks,
+         proposals, outreach, content, wallet movements, revenue events written
+         to this platform — and nothing that happened anywhere else. A user who
+         spent the week selling in person, or on another channel, would read a
+         quiet review as a verdict on their business rather than on their use of
+         this product.
+
+         The numbers are true. A label that claims more than the numbers measure
+         is what makes a true number misleading, and the fix belongs in the
+         label rather than in the figures. -->
+    <p class="hero-sub">Activity recorded on this platform, week by week and month by month, over closed periods measured in UTC.</p>
   </header>
 
   <!-- Autonomous control sits above manual control, in one place, so the answer
@@ -195,6 +206,31 @@ function formatTime(iso) {
   }
 }
 
+/* Readable names for the metric keys lib/selfReview.js emits.
+
+   FALLBACK TO THE RAW KEY, never to blank and never to skipping the cell. A
+   metric added on the backend and not added here should render as its own key
+   — ugly, and obviously unfinished — rather than vanish or appear as an empty
+   label. This map is display polish; it must not become a filter that decides
+   which measurements the reader is allowed to see. That is the same rule the
+   unavailable cell follows: a figure that exists is always shown. */
+var METRIC_LABELS = {
+  aiTasks:                   "AI Tasks",
+  agentProposals:            "Agent Proposals",
+  outreachSends:             "Outreach Sends",
+  contentLibrary:            "Content Items",
+  walletTransactions:        "Wallet Transactions",
+  marketplaceOrdersAsSeller: "Marketplace Orders (as seller)",
+  revenueEvents:             "Revenue Events",
+  revenueTotal:              "Revenue (USD)"
+};
+
+function metricLabel(key) {
+  // hasOwnProperty rather than a plain lookup: "constructor" and "toString"
+  // resolve on any object literal and would render as a function body.
+  return Object.prototype.hasOwnProperty.call(METRIC_LABELS, key) ? METRIC_LABELS[key] : key;
+}
+
 /* One metric cell.
 
    AN UNREADABLE METRIC IS NOT A ZERO AND IS NOT OMITTED. A key listed in the
@@ -221,13 +257,13 @@ function metricCell(key, value, unreadableKeys) {
     return '<div class="metric-cell unavailable">' +
              '<span class="metric-unavailable-note">Unavailable</span>' +
              '<span class="metric-value">&mdash;</span>' +
-             '<span class="metric-label">' + escapeHtml(key) + '</span>' +
+             '<span class="metric-label">' + escapeHtml(metricLabel(key)) + '</span>' +
            '</div>';
   }
 
   return '<div class="metric-cell">' +
            '<span class="metric-value">' + escapeHtml(value) + '</span>' +
-           '<span class="metric-label">' + escapeHtml(key) + '</span>' +
+           '<span class="metric-label">' + escapeHtml(metricLabel(key)) + '</span>' +
          '</div>';
 }
 
