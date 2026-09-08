@@ -695,6 +695,32 @@
     .mc-tappable:hover .mc-square-wisdom {
       stroke: rgba(244,228,184,0.95);
     }
+    /* ── Sigil marks — the SAME tap/hover contract as the blueprint above,
+       not a second one. .mc-tappable already supplies the cursor; these rules
+       only add the emerald hover, and like the triangle they preview NOTHING:
+       hover says "this can be tapped", the tap says what it means.
+
+       THE VISIBLE MARK DOES NOT COMPETE FOR THE POINTER, exactly as
+       .mc-line-glow does not. A 2.6-unit dot and a 1-unit axis are not
+       tappable targets at any rendered size, so each has a transparent twin
+       beside it that takes the hit; letting the visible mark take it as well
+       is what produced the hover flicker fixed in 85a7017 on the triangle.
+       The glyph is deliberately NOT excluded — it is hit-testable and part of
+       the same group, the way the triangle's edge labels are. ── */
+    .sigil-dot, .sigil-axis {
+      pointer-events: none;
+      transition: fill 0.25s ease, stroke 0.25s ease;
+    }
+    .sigil-glyph {
+      fill: rgba(232,220,255,0.72);
+      transition: fill 0.2s ease;
+    }
+    .mc-tappable:hover .sigil-dot   { fill: #34d399; }
+    .mc-tappable:hover .sigil-glyph { fill: #34d399; }
+    .mc-tappable:hover .sigil-axis  {
+      stroke: rgba(52,211,153,0.75);
+      stroke-opacity: 1;
+    }
     .mc-square-dim {
       opacity: 0.45;
       transition: opacity 0.4s ease;
@@ -2051,16 +2077,76 @@
          three the trace will not visit. */
       var planets = Array.isArray(natal.planets) ? natal.planets : [];
 
+      /* WHERE THE GLYPH SITS. Outward from the dot, in the clear band between
+         the planet radius (120) and the zodiac ring (140), rather than inward.
+         Inward is where the trace runs: its six chords cut across the interior
+         at radii that depend entirely on where this chart's planets actually
+         fall, so an inward glyph would land on a bright emerald line on some
+         charts and not others. Outward, the only thing to cross is a tick, and
+         there are just twelve of those at 1-unit width and 0.22 opacity.
+
+         133 SPECIFICALLY, and it holds at every angle, which is the thing the
+         edge labels on the blueprint got wrong. A single glyph at font-size 9
+         is about 9 units square, so its furthest corner is sqrt(4.5^2+4.5^2) =
+         6.36 units from its anchor: 133 + 6.36 = 139.36, inside the ring at
+         140 and 20.6 units clear of the viewBox edge at 160. It also clears
+         the dot: the largest dot (retrograde, r=3.4) reaches 123.4, the glyph
+         box starts at 128.5. Every planet glyph in NATAL_GLYPHS is a single
+         character, so none of them is wider than this allows — ASC and MC are
+         multi-character, and they are not drawn here. */
+      var SIGIL_GLYPH_RADIUS = 133;
+
       planets.forEach(function (p) {
         if (p == null || p.longitude == null) return;
         var pt  = sigilPoint(p.longitude, 120);
         var ret = p.retrograde === true;
-        svg += '<circle cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="' + (ret ? 3.4 : 2.6) + '" ' +
+        var gpt = sigilPoint(p.longitude, SIGIL_GLYPH_RADIUS);
+
+        /* The SAME attributes the natal card sets on its chip (see the chip
+           built in renderNatalOrbit), computed the same way — degree rounded
+           to one decimal, house resolved through houseForLongitude because the
+           natal response carries no per-planet house field. Identical
+           attributes in means the identical panel out: tapping Mars here and
+           tapping the Mars card in the orbit open the same reading, which is
+           the whole point of reusing the machinery rather than writing a
+           second one. */
+        var deg   = (p.degree != null) ? (Math.round(p.degree * 10) / 10) : null;
+        var house = houseForLongitude(natal.houses, p.longitude);
+
+        svg += '<g class="mc-tappable" data-mc-type="natal"' +
+               ' data-mc-name="'   + escapeXml(p.name) + '"' +
+               ' data-mc-sign="'   + escapeXml(p.sign || "") + '"' +
+               ' data-mc-degree="' + (deg != null ? deg : "") + '"' +
+               ' data-mc-kind="planet"' +
+               ' data-mc-house="'  + (house != null ? house : "") + '">';
+
+        /* Visible mark, then transparent hit, then glyph — the blueprint's own
+           order (glow, hit, text). The <title> that used to hang off this
+           circle is gone: it was the only way to identify a mark, and it was
+           hover-only, so it did not exist on touch or in a screenshot. The
+           glyph replaces it in the figure and the panel replaces it on tap;
+           keeping the tooltip as well would be two content paths for one
+           mark, each able to drift from the other. */
+        svg += '<circle class="sigil-dot" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="' + (ret ? 3.4 : 2.6) + '" ' +
                'fill="' + (ret ? "#fbbf24" : "#22d3ee") + '" ' +
                'fill-opacity="' + (ret ? "0.95" : "0.75") + '"' +
-               (ret ? ' stroke="#fbbf24" stroke-opacity="0.35" stroke-width="2.4"' : '') + '>' +
-               '<title>' + escapeXml(p.name + (p.sign ? " in " + p.sign : "") + (ret ? " (retrograde)" : "")) + '</title>' +
-               '</circle>';
+               (ret ? ' stroke="#fbbf24" stroke-opacity="0.35" stroke-width="2.4"' : '') + '/>';
+
+        /* r=10 against a visible 2.6 — about 24px across at the panel's
+           rendered width, which is a real touch target where the dot is not.
+           fill="transparent" rather than fill="none": none is not painted and
+           would not hit-test under the default visiblePainted, which is the
+           same reason .mc-line-hit strokes transparent rather than none. Two
+           planets in close conjunction will overlap here and the later one
+           takes the tap — inherent to marking positions this small, and the
+           orbit cards remain the way to reach either. */
+        svg += '<circle class="sigil-hit" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="10" fill="transparent"/>';
+
+        svg += '<text class="sigil-glyph" x="' + sigilN(gpt.x) + '" y="' + sigilN(gpt.y) + '" ' +
+               'text-anchor="middle" dominant-baseline="middle" font-size="9">' +
+               escapeXml(NATAL_GLYPHS[p.name] || p.name) + '</text>';
+
+        svg += '</g>';
       });
 
       /* ── 3. The sigil trace, in Chaldean order ─────────────────────────── */
@@ -2109,19 +2195,42 @@
          faked"), and this will not fake them either: null draws nothing and
          no default is substituted. An axis line implies a measured angle, and
          drawing a placeholder one would be a claim about someone's birth. */
-      function axisLine(angleObj, dash, label) {
+      /* `key` is "ASC"/"MC" rather than the display name it used to be,
+         because it is now doing two jobs: it is the NATAL_MEANINGS.bodies key
+         (both exist — ASC "The Ascendant · Rising" and MC "The Midheaven" are
+         already authored, so this pass needed no new prose) and it is the
+         data-mc-name buildMcNatalHtml switches on to write its own heading.
+         The old label strings are not lost, they are what that function
+         produces from the key. */
+      function axisLine(angleObj, dash, key) {
         if (!angleObj || angleObj.longitude == null) return "";
         var a = sigilPoint(angleObj.longitude, 140);
         var b = sigilPoint(Number(angleObj.longitude) + 180, 140);
-        return '<line x1="' + sigilN(a.x) + '" y1="' + sigilN(a.y) +
-               '" x2="' + sigilN(b.x) + '" y2="' + sigilN(b.y) +
-               '" stroke="#22d3ee" stroke-opacity="0.32" stroke-width="1"' +
-               (dash ? ' stroke-dasharray="4 4"' : '') + '>' +
-               '<title>' + escapeXml(label + (angleObj.sign ? " in " + angleObj.sign : "")) + '</title></line>';
+        var deg = (angleObj.degree != null) ? (Math.round(angleObj.degree * 10) / 10) : null;
+        var coords = 'x1="' + sigilN(a.x) + '" y1="' + sigilN(a.y) +
+                     '" x2="' + sigilN(b.x) + '" y2="' + sigilN(b.y) + '"';
+
+        /* No data-mc-house, matching the natal chip, which sets it only when
+           kind !== "angle": ASC is the 1st-house cusp and MC the 10th, so a
+           house number on either would be a restatement, and
+           buildMcNatalHtml skips that block for angles anyway. */
+        return '<g class="mc-tappable" data-mc-type="natal"' +
+               ' data-mc-name="' + key + '"' +
+               ' data-mc-sign="' + escapeXml(angleObj.sign || "") + '"' +
+               ' data-mc-degree="' + (deg != null ? deg : "") + '"' +
+               ' data-mc-kind="angle">' +
+               '<line class="sigil-axis" ' + coords +
+               ' stroke="#22d3ee" stroke-opacity="0.32" stroke-width="1"' +
+               (dash ? ' stroke-dasharray="4 4"' : '') + '/>' +
+               /* 18 units, the same width .mc-line-hit uses on the blueprint's
+                  perimeter, and transparent for the same reason. */
+               '<line class="sigil-hit-line" ' + coords +
+               ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>' +
+               '</g>';
       }
 
-      svg += axisLine(natal.ascendant, false, "Ascendant");
-      svg += axisLine(natal.midheaven, true,  "Midheaven");
+      svg += axisLine(natal.ascendant, false, "ASC");
+      svg += axisLine(natal.midheaven, true,  "MC");
 
       /* ── 5. The inner figure, from the life path ────────────────────────── */
       var lifePath = (lifePathRaw == null) ? null : Number(lifePathRaw);
@@ -3729,6 +3838,45 @@
       mcTzolkinCardEl.addEventListener("click", function () {
         if (!mcTzolkinData) return;
         openMcInfo(mcTzolkinCardEl, "tzolkin", mcTzolkinData);
+      });
+    }
+
+    /* The sigil figure has the same problem the Tzolk'in card has, for the
+       same reason: it lives OUTSIDE #myChartStage — a panel below the stage,
+       not part of the blueprint — so the delegated listener above never sees
+       it. Same remedy as that card, deliberately rather than inventing a
+       second interaction: its own listener, the same openMcInfo call shape,
+       into the same #mcInfoPanel. No second panel, no second content path.
+
+       DELEGATED ON THE CONTAINER, not bound per mark. renderSigilPanel()
+       replaces #mychartSigilFigure's innerHTML every time natal or numerology
+       data lands — and it is called more than once by design, so a late
+       numerology response can correct the figure and its caption. Listeners
+       bound to the marks themselves would die with the nodes they were
+       attached to on the first of those redraws; the container outlives all
+       of them. That is also why this reads the attributes off `closest`
+       rather than off e.target: the tap may land on the transparent hit
+       shape, the visible mark or the glyph, and only the group carries them.
+
+       Only the five keys the natal builder reads are harvested. The stage
+       listener passes eleven because it serves five types; every mark here is
+       type "natal", and passing line/square/center/interior keys that are
+       always null would suggest this surface can raise those panels. */
+    var mcSigilFigureEl = document.getElementById("mychartSigilFigure");
+    if (mcSigilFigureEl) {
+      mcSigilFigureEl.addEventListener("click", function (e) {
+        var target = e.target.closest ? e.target.closest(".mc-tappable") : null;
+        if (!target) return;
+        var type = target.getAttribute("data-mc-type");
+        if (!type) return;
+
+        openMcInfo(target, type, {
+          name:   target.getAttribute("data-mc-name"),
+          kind:   target.getAttribute("data-mc-kind"),
+          sign:   target.getAttribute("data-mc-sign"),
+          degree: target.getAttribute("data-mc-degree"),
+          house:  target.getAttribute("data-mc-house")
+        });
       });
     }
 
