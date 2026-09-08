@@ -222,7 +222,17 @@ var METRIC_LABELS = {
   walletTransactions:        "Wallet Transactions",
   marketplaceOrdersAsSeller: "Marketplace Orders (as seller)",
   revenueEvents:             "Revenue Events",
-  revenueTotal:              "Revenue (USD)"
+  /* "Revenue", not "Revenue (USD)". The backend does not enforce a currency on
+     this sum, and revenue_events carries a nullable currency column, so naming
+     one here asserts something the number does not guarantee.
+
+     It now refuses to sum across mixed currencies — a period spanning more than
+     one comes back unavailable rather than as a figure in no single unit — so
+     any number that does appear is in exactly one currency. But the page is not
+     told which one, and it can be null. A label naming the wrong currency is
+     worse than one naming none: an unlabelled figure invites the reader to
+     check, while a mislabelled one answers a question they then stop asking. */
+  revenueTotal:              "Revenue"
 };
 
 function metricLabel(key) {
