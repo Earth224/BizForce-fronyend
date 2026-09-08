@@ -862,6 +862,42 @@
 
     /* ── Divine Triangle blueprint sizing wrapper (from renderDivineTriangleBlueprintVisual's opts.large/maxWidth path) ── */
     .dtb-visual-large svg { display: block; width: 100%; height: auto; }
+
+    /* ── Sigil panel — normal document flow beneath the stage, not a fixed
+       card. Both fixed positions are already taken (the calendar upper-left,
+       the gold panel upper-right), and a third floating card would be the one
+       that finally covers the triangle on a mid-width screen. ── */
+    .mychart-sigil-panel {
+      max-width: min(420px, 78vw);
+      margin: 8px auto 48px;
+      padding: 18px 20px 20px;
+      background: rgba(10,4,20,0.55);
+      border: 1px solid rgba(52,211,153,0.18);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      text-align: center;
+    }
+    .mychart-sigil-title {
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #34d399, #22d3ee);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin: 0 0 12px;
+    }
+    .mychart-sigil-figure svg { display: block; width: 100%; height: auto; }
+    .mychart-sigil-caption {
+      margin-top: 12px;
+      font-size: 0.72rem;
+      line-height: 1.65;
+      color: rgba(232,232,255,0.55);
+    }
+    .mychart-sigil-caption .sigil-unavailable { color: rgba(232,232,255,0.45); font-style: italic; }
   </style>
 </head>
 <body>
@@ -914,6 +950,12 @@
 
     <div class="my-chart-stage" id="myChartStage">
       <div class="my-chart-placeholder">Chart loading&hellip;</div>
+    </div>
+
+    <div class="mychart-sigil-panel" id="mychartSigilPanel">
+      <div class="mychart-sigil-title">Sigil</div>
+      <div class="mychart-sigil-figure" id="mychartSigilFigure"></div>
+      <div class="mychart-sigil-caption" id="mychartSigilCaption"></div>
     </div>
   </div>
 
@@ -1761,6 +1803,338 @@
       return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    /* ══════════════════════════════════════════════════════════════════════
+       SIGIL — a figure DERIVED from this chart, never decorated onto it.
+
+       Everything drawn below is computed from values the page already has:
+       /api/oracle/natal for positions and angles, /api/oracle/numerology for
+       the life path. No model call, no new endpoint, no new dependency, and
+       nothing invented to fill a gap. Every element is independent — a missing
+       piece removes its own mark and leaves the rest standing.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    var SIGIL_SIZE = 320;
+    var SIGIL_CX   = 160;
+    var SIGIL_CY   = 160;
+
+    /* Zodiac longitude to a point on the wheel.
+
+       angle = 180 + longitude, then x = cx + r·cos, y = cy − r·sin. The y is
+       SUBTRACTED, which flips the screen's downward y back into the standard
+       mathematical orientation — so 0° Aries lands at the left edge and
+       longitude increases counterclockwise, which is how a chart wheel is
+       drawn. Getting that sign wrong mirrors the whole figure and every
+       position in it would be quietly, plausibly wrong. */
+    function sigilPoint(longitudeDeg, radius) {
+      var angle = (180 + Number(longitudeDeg)) * Math.PI / 180;
+      return {
+        x: SIGIL_CX + radius * Math.cos(angle),
+        y: SIGIL_CY - radius * Math.sin(angle)
+      };
+    }
+
+    // Two decimals is well past the resolution of a 320-unit viewBox and keeps
+    // the emitted markup readable.
+    function sigilN(n) { return Math.round(Number(n) * 100) / 100; }
+
+    /* THE CHALDEAN ORDER — the traced sequence, and the reason this is a
+       derived figure rather than an arbitrary shape.
+
+       Saturn, Jupiter, Mars, Sun, Venus, Mercury, Moon is the traditional
+       descending order of the seven classical planets by apparent orbital
+       speed as seen from Earth: slowest first, fastest last. It is the same
+       sequence that generates the order of the planetary hours and the days of
+       the week, and it is fixed — it is not a choice this code makes, which is
+       precisely what stops the trace being decorative.
+
+       The three modern planets are deliberately absent. Uranus, Neptune and
+       Pluto were unknown to the tradition and have no position in the
+       sequence, so they are PLOTTED as points but never traced. Inserting them
+       somewhere plausible would be inventing an order that does not exist. */
+    var SIGIL_CHALDEAN_ORDER = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
+
+    /* Star polygon vertices, first vertex pointing straight up.
+       90° in the math orientation above is up, so vertex k sits at
+       90 + k·(360/n). */
+    function sigilStarVertices(n, radius) {
+      var pts = [];
+      for (var k = 0; k < n; k++) {
+        var angle = (90 + k * (360 / n)) * Math.PI / 180;
+        pts.push({
+          x: SIGIL_CX + radius * Math.cos(angle),
+          y: SIGIL_CY - radius * Math.sin(angle)
+        });
+      }
+      return pts;
+    }
+
+    /* Every cycle produced by connecting each vertex to the one two places on.
+
+       For odd n this is a single unbroken path — the familiar pentagram at 5,
+       a {7/2} heptagram at 7. For even n, step 2 never reaches the odd
+       vertices, so it produces TWO separate closed figures: at 6 that is two
+       overlaid triangles, the hexagram, which is the correct classical result
+       rather than a bug to route around. Returning a list of cycles handles
+       both without special-casing either. */
+    function sigilStarCycles(n) {
+      var cycles = [];
+      var seen   = {};
+      for (var start = 0; start < n; start++) {
+        if (seen[start]) continue;
+        var cycle = [];
+        var i = start;
+        do {
+          seen[i] = true;
+          cycle.push(i);
+          i = (i + 2) % n;
+        } while (i !== start);
+        cycles.push(cycle);
+      }
+      return cycles;
+    }
+
+    // Master numbers keep their identity but not their point count: 33 points
+    // on a 70-unit circle is a blurred disc, not a figure. The reduced value
+    // gives the shape and the gold stroke plus the caption carry the fact that
+    // it was a master number.
+    var SIGIL_MASTER_REDUCTION = { 11: 2, 22: 4, 33: 6 };
+
+    /* Plain words for every reason the natal endpoint can refuse. An empty
+       frame with no explanation is the one outcome worth avoiding: it reads as
+       a broken page rather than as missing data the user can go and supply. */
+    var SIGIL_NATAL_REASONS = {
+      no_birth_data:    "No birth data has been synced yet, so there is no chart to derive a sigil from.",
+      date_invalid:     "The stored birth date could not be read, so no positions could be computed.",
+      place_unresolved: "The stored birth place could not be resolved to a location on Earth.",
+      place_ambiguous:  "The stored birth place matches more than one location, so no single chart could be computed."
+    };
+
+    function sigilReasonText(natalRaw) {
+      if (!natalRaw) return "Your chart could not be loaded.";
+      var reason = natalRaw.reason;
+      if (reason && SIGIL_NATAL_REASONS[reason]) return SIGIL_NATAL_REASONS[reason];
+      return "Your chart is unavailable" + (reason ? " (" + reason + ")" : "") + ".";
+    }
+
+    /* Builds the sigil SVG. Returns null when there is nothing truthful to
+       draw, so the caller can show the reason instead of an empty ring. */
+    function buildSigilSvg(natal, lifePathRaw) {
+      if (!natal || !natal.available) return null;
+
+      var svg = '<svg viewBox="0 0 ' + SIGIL_SIZE + ' ' + SIGIL_SIZE + '" width="100%" xmlns="http://www.w3.org/2000/svg">';
+
+      /* ── 1. The zodiac ring — the frame, not the subject ───────────────── */
+      svg += '<circle cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="140" fill="none" ' +
+             'stroke="rgba(34,211,238,0.16)" stroke-width="1"/>';
+
+      for (var t = 0; t < 12; t++) {
+        var tickLon = t * 30;
+        var inner   = sigilPoint(tickLon, 132);
+        var outer   = sigilPoint(tickLon, 140);
+        svg += '<line x1="' + sigilN(inner.x) + '" y1="' + sigilN(inner.y) +
+               '" x2="' + sigilN(outer.x) + '" y2="' + sigilN(outer.y) +
+               '" stroke="rgba(34,211,238,0.22)" stroke-width="1"/>';
+      }
+
+      /* ── 2. Every planet as a point, retrograde marked in gold ─────────────
+         Gold is already what a retrograde marker means in this product (the
+         chart email draws its R in #fbbf24), so the meaning carries over
+         rather than being invented here. All ten are plotted, including the
+         three the trace will not visit. */
+      var planets = Array.isArray(natal.planets) ? natal.planets : [];
+
+      planets.forEach(function (p) {
+        if (p == null || p.longitude == null) return;
+        var pt  = sigilPoint(p.longitude, 120);
+        var ret = p.retrograde === true;
+        svg += '<circle cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="' + (ret ? 3.4 : 2.6) + '" ' +
+               'fill="' + (ret ? "#fbbf24" : "#22d3ee") + '" ' +
+               'fill-opacity="' + (ret ? "0.95" : "0.75") + '"' +
+               (ret ? ' stroke="#fbbf24" stroke-opacity="0.35" stroke-width="2.4"' : '') + '>' +
+               '<title>' + escapeXml(p.name + (p.sign ? " in " + p.sign : "") + (ret ? " (retrograde)" : "")) + '</title>' +
+               '</circle>';
+      });
+
+      /* ── 3. The sigil trace, in Chaldean order ─────────────────────────── */
+      var byName = {};
+      planets.forEach(function (p) { if (p && p.name) byName[p.name] = p; });
+
+      var tracePts = [];
+      SIGIL_CHALDEAN_ORDER.forEach(function (name) {
+        var p = byName[name];
+        // Absent is skipped, not substituted. A chart missing Saturn simply
+        // starts the trace at Jupiter.
+        if (p && p.longitude != null) tracePts.push({ name: name, pt: sigilPoint(p.longitude, 120) });
+      });
+
+      if (tracePts.length >= 2) {
+        // A polyline, never a polygon: a sigil is a traced line with a
+        // beginning and an end, and closing it would erase the direction the
+        // order exists to express.
+        svg += '<polyline points="' +
+               tracePts.map(function (t) { return sigilN(t.pt.x) + "," + sigilN(t.pt.y); }).join(" ") +
+               '" fill="none" stroke="#34d399" stroke-opacity="0.85" stroke-width="1.6" ' +
+               'stroke-linejoin="round" stroke-linecap="round"/>';
+      }
+
+      if (tracePts.length >= 1) {
+        // First: filled. Last: hollow. The trace reads slowest-to-fastest and
+        // the two ends say which way round without needing a legend.
+        var first = tracePts[0];
+        var last  = tracePts[tracePts.length - 1];
+
+        svg += '<circle cx="' + sigilN(first.pt.x) + '" cy="' + sigilN(first.pt.y) + '" r="5" ' +
+               'fill="#34d399" fill-opacity="0.9"><title>' +
+               escapeXml("Trace begins at " + first.name) + '</title></circle>';
+
+        if (tracePts.length >= 2) {
+          svg += '<circle cx="' + sigilN(last.pt.x) + '" cy="' + sigilN(last.pt.y) + '" r="5" ' +
+                 'fill="none" stroke="#34d399" stroke-opacity="0.9" stroke-width="1.8"><title>' +
+                 escapeXml("Trace ends at " + last.name) + '</title></circle>';
+        }
+      }
+
+      /* ── 4. Angle axes — drawn only when real ───────────────────────────
+         ascendant and midheaven are null unless an exact birth time was
+         given. The backend refuses to fake them (computeNatalFromResolved:
+         "Midheaven/Ascendant/houses REQUIRE an exact birth time — never
+         faked"), and this will not fake them either: null draws nothing and
+         no default is substituted. An axis line implies a measured angle, and
+         drawing a placeholder one would be a claim about someone's birth. */
+      function axisLine(angleObj, dash, label) {
+        if (!angleObj || angleObj.longitude == null) return "";
+        var a = sigilPoint(angleObj.longitude, 140);
+        var b = sigilPoint(Number(angleObj.longitude) + 180, 140);
+        return '<line x1="' + sigilN(a.x) + '" y1="' + sigilN(a.y) +
+               '" x2="' + sigilN(b.x) + '" y2="' + sigilN(b.y) +
+               '" stroke="#22d3ee" stroke-opacity="0.32" stroke-width="1"' +
+               (dash ? ' stroke-dasharray="4 4"' : '') + '>' +
+               '<title>' + escapeXml(label + (angleObj.sign ? " in " + angleObj.sign : "")) + '</title></line>';
+      }
+
+      svg += axisLine(natal.ascendant, false, "Ascendant");
+      svg += axisLine(natal.midheaven, true,  "Midheaven");
+
+      /* ── 5. The inner figure, from the life path ────────────────────────── */
+      var lifePath = (lifePathRaw == null) ? null : Number(lifePathRaw);
+      if (lifePath != null && isFinite(lifePath) && lifePath > 0) {
+        var isMaster = SIGIL_MASTER_REDUCTION.hasOwnProperty(lifePath);
+        var points   = isMaster ? SIGIL_MASTER_REDUCTION[lifePath] : lifePath;
+        var stroke   = isMaster ? "#fbbf24" : "#34d399";
+        var verts    = sigilStarVertices(points, 70);
+
+        if (points === 1) {
+          // One point is not a figure. A single mark at the top vertex is the
+          // honest rendering — drawing a circle instead would invent an
+          // enclosure the number does not describe.
+          svg += '<circle cx="' + sigilN(verts[0].x) + '" cy="' + sigilN(verts[0].y) + '" r="4" ' +
+                 'fill="' + stroke + '" fill-opacity="0.85"/>';
+        } else if (points === 2) {
+          // Two points is a line, not a polygon: drawn as the single segment
+          // between them rather than a degenerate two-sided shape.
+          svg += '<line x1="' + sigilN(verts[0].x) + '" y1="' + sigilN(verts[0].y) +
+                 '" x2="' + sigilN(verts[1].x) + '" y2="' + sigilN(verts[1].y) +
+                 '" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linecap="round"/>';
+        } else if (points < 5) {
+          // 3 and 4: a plain polygon. A star needs at least five points before
+          // skipping a vertex produces anything but the polygon itself.
+          svg += '<polygon points="' +
+                 verts.map(function (v) { return sigilN(v.x) + "," + sigilN(v.y); }).join(" ") +
+                 '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
+        } else {
+          sigilStarCycles(points).forEach(function (cycle) {
+            svg += '<polygon points="' +
+                   cycle.map(function (i) { return sigilN(verts[i].x) + "," + sigilN(verts[i].y); }).join(" ") +
+                   '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
+          });
+        }
+
+        // A master number is marked, not spelled out in vertices.
+        if (isMaster) {
+          svg += '<circle cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="78" fill="none" ' +
+                 'stroke="#fbbf24" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="2 5"/>';
+        }
+      }
+
+      svg += '</svg>';
+      return svg;
+    }
+
+    /* Renders the panel from whatever is available, and says what produced the
+       figure. The caption is not decoration: it is what stops the drawing being
+       mistaken for a richer reading than the data supports. */
+    function renderSigilPanel() {
+      var figureEl  = document.getElementById("mychartSigilFigure");
+      var captionEl = document.getElementById("mychartSigilCaption");
+      if (!figureEl || !captionEl) return;
+
+      var natal = lastNatalData;
+
+      // Still in flight is not the same as refused, and only this branch keeps
+      // them apart. Without it a render triggered by an early numerology
+      // response would report the chart as unavailable while it was loading.
+      if (!natalReceived) {
+        figureEl.innerHTML = "";
+        captionEl.innerHTML = '<span class="sigil-unavailable">Your chart is still loading&hellip;</span>';
+        return;
+      }
+
+      if (!natal || !natal.available) {
+        figureEl.innerHTML = "";
+        captionEl.innerHTML = '<span class="sigil-unavailable">' + escapeXml(sigilReasonText(lastNatalRaw)) + '</span>';
+        return;
+      }
+
+      var lifePath = numerologyData && numerologyData.life_path != null ? numerologyData.life_path : null;
+
+      var svg = buildSigilSvg(natal, lifePath);
+      if (!svg) {
+        figureEl.innerHTML = "";
+        captionEl.innerHTML = '<span class="sigil-unavailable">' + escapeXml(sigilReasonText(lastNatalRaw)) + '</span>';
+        return;
+      }
+
+      figureEl.innerHTML = svg;
+
+      var traced = 0;
+      var byName = {};
+      (natal.planets || []).forEach(function (p) { if (p && p.name) byName[p.name] = p; });
+      SIGIL_CHALDEAN_ORDER.forEach(function (n) { if (byName[n] && byName[n].longitude != null) traced++; });
+
+      var parts = [];
+      parts.push(traced === SIGIL_CHALDEAN_ORDER.length
+        ? "Traced through all seven classical planets in Chaldean order"
+        : "Traced through " + traced + " of the seven classical planets in Chaldean order");
+
+      if (lifePath != null) {
+        var isMaster = SIGIL_MASTER_REDUCTION.hasOwnProperty(Number(lifePath));
+        parts.push("inner figure from life path " + lifePath +
+          (isMaster ? " (master number, drawn at " + SIGIL_MASTER_REDUCTION[Number(lifePath)] + " points)" : ""));
+      } else if (!numerologyReceived) {
+        /* NOT the same sentence as the branch below. "You have no life path"
+           is a statement about the user's data; "it has not arrived" is a
+           statement about this page. A race condition has no standing to make
+           the first, and the caption is the only thing telling the reader
+           which of the two they are looking at. */
+        parts.push("inner figure still loading");
+      } else {
+        parts.push("no life path in your numerology, so no inner figure");
+      }
+
+      var haveAsc = !!(natal.ascendant && natal.ascendant.longitude != null);
+      var haveMc  = !!(natal.midheaven && natal.midheaven.longitude != null);
+
+      if (haveAsc && haveMc) {
+        parts.push("Ascendant and Midheaven axes drawn");
+      } else if (haveAsc || haveMc) {
+        parts.push((haveAsc ? "Ascendant" : "Midheaven") + " axis drawn");
+      } else {
+        parts.push("no angles, because no exact birth time was given");
+      }
+
+      captionEl.textContent = parts.join(" · ") + ".";
+    }
+
     /* ═══ Divine Triangle blueprint — copied verbatim from oracle.html,
        including the interactive:true / mc-tappable hook path. ═══ */
     function renderDivineTriangleBlueprintVisual(opts) {
@@ -2025,6 +2399,19 @@
        promise guard, the actual fetch, and the numerologyData assignment
        are otherwise identical. ═══ */
     var numerologyData = null;
+    /* AN UNARRIVED VALUE AND AN ABSENT ONE LOOK IDENTICAL IN A VARIABLE and
+       mean opposite things to whoever reads the caption. numerologyData is
+       null both before the request returns and when the request fails, and it
+       is {} when the endpoint answered for a user with no birth data — three
+       situations, one value. This flag records the only distinction the
+       caption actually needs: has a response been seen at all.
+
+       Deliberately set only on a successful body. A request that failed leaves
+       this false and the caption reads as still loading, which is imprecise
+       but never asserts an absence nobody observed — the failure mode worth
+       avoiding is telling someone they have no life path because a fetch
+       timed out. */
+    var numerologyReceived = false;
     var numerologyFetchPromise = null;
 
     function fetchNumerology() {
@@ -2039,11 +2426,19 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           numerologyData = data || null;
+          numerologyReceived = true;
           return numerologyData;
         })
         .catch(function () { return null; })
         .then(function (result) {
           numerologyFetchPromise = null;
+          /* The sigil panel may already have rendered from natal data alone,
+             with no inner figure and a caption saying so. Redraw now that the
+             numerology is in, so a late response corrects both the figure and
+             the sentence describing it rather than leaving a stale claim on
+             screen. Safe to call at any point: it returns early if its
+             elements are not in the DOM yet. */
+          renderSigilPanel();
           return result;
         });
 
@@ -2071,6 +2466,14 @@
       })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
+          /* Kept before the availability check, and this is the only reason
+             it exists: the line below collapses every refusal to null, which
+             is right for the orbit (nothing to draw) but throws away the
+             `reason` the endpoint sent. The sigil panel needs that reason to
+             say WHY it is empty instead of showing a blank frame. The return
+             contract is unchanged — callers still get null when unavailable. */
+          lastNatalRaw = data || null;
+          natalReceived = true;
           if (!data || !data.available) return null;
           return data;
         })
@@ -2090,6 +2493,14 @@
        CSS value), so it clears the triangle and stays inside the stage
        on any window size; recomputed on resize. ═══ */
     var lastNatalData = null;
+    // The raw /api/oracle/natal body, refusal shape included. See fetchNatal.
+    var lastNatalRaw  = null;
+    /* The same distinction on the natal side, and now load-bearing: calling
+       renderSigilPanel when numerology arrives means it can run BEFORE the
+       natal request has returned, and without this it would read a null
+       lastNatalRaw as a refusal and announce that the chart could not be
+       loaded — while it was still in flight. */
+    var natalReceived = false;
 
     var NATAL_GLYPHS = {
       Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
@@ -2307,6 +2718,10 @@
     function loadAndRenderOrbit() {
       fetchNatal().then(function (natalData) {
         if (natalData) renderNatalOrbit(natalData);
+        // Always, including when natalData is null: in that case the sigil
+        // panel's whole job is to say which reason the endpoint gave, and it
+        // cannot do that if it is never called.
+        renderSigilPanel();
       });
     }
 
