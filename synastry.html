@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Birth Records</title>
+  <script>(function(){var t=localStorage.getItem("bf_token");if(!t)window.location.replace("app.html");})();</script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 40px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s;backdrop-filter:blur(12px)}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:28px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(34,211,238,.3);background:rgba(34,211,238,.08);color:#22d3ee;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
+    .hero-title{margin:0 0 8px;font-size:clamp(1.8rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0;color:#8892b8;font-size:.95rem;line-height:1.6}
+
+    .panel{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 22px;margin-bottom:22px}
+    .panel-title{font-size:.74rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin:0 0 16px}
+
+    .form-grid{display:flex;flex-wrap:wrap;gap:14px}
+    .form-group{margin-bottom:0;flex:1;min-width:200px}
+    .form-group.full{flex-basis:100%}
+    .form-label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8;margin-bottom:7px}
+    .form-label .optional{color:#4a5280;font-weight:700}
+    .form-input{width:100%;padding:11px 13px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s}
+    .form-input::placeholder{color:#4a5280}
+    .form-input:focus{border-color:rgba(34,211,238,.45)}
+    .field-hint{margin-top:6px;font-size:.72rem;line-height:1.6;color:#8892b8}
+    .field-hint strong{color:#fbbf24;font-weight:700}
+
+    .btn-generate{padding:10px 22px;border:none;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.03em;font-family:inherit;color:#fff;background:linear-gradient(135deg,#00e5ff,#7b2ff7);cursor:pointer;transition:all .2s}
+    .btn-generate:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
+    .btn-generate:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    .form-actions{display:flex;justify-content:flex-end;margin-top:16px}
+    .generate-status{min-height:0;text-align:right;font-size:.78rem;line-height:1.5;color:#8892b8}
+    .generate-status.success{color:#34d399}
+    .generate-status.show{min-height:16px;margin-top:10px}
+    .generate-status.error{color:#f87171}
+
+    /* Candidate chooser — shown only when the server refuses to guess. */
+    .candidates{margin-top:16px;padding-top:16px;border-top:1px solid rgba(251,191,36,.28)}
+    .candidates-title{font-size:.78rem;font-weight:700;line-height:1.6;color:#fbbf24;margin:0 0 4px}
+    .candidates-sub{font-size:.74rem;line-height:1.6;color:#8892b8;margin:0 0 12px}
+    .candidate-list{display:flex;flex-direction:column;gap:8px}
+    .candidate-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e6edf3;font-size:.82rem;font-family:inherit;cursor:pointer;transition:all .2s}
+    .candidate-btn:hover:not(:disabled){border-color:rgba(34,211,238,.45);background:rgba(34,211,238,.08)}
+    .candidate-btn:disabled{opacity:.5;cursor:not-allowed}
+    .candidate-tz{font-size:.7rem;color:#4a5280;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;flex-shrink:0}
+
+    .records-list{display:flex;flex-direction:column;gap:14px}
+    .record-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px 20px}
+    .record-card.needs-place{border-color:rgba(251,191,36,.32)}
+    .record-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+    .record-title{font-size:1rem;font-weight:800;color:#f4f7ff;line-height:1.4;min-width:0}
+    .record-name{font-size:.8rem;color:#8892b8;font-weight:600;margin-top:2px}
+    .status-badge{flex-shrink:0;padding:5px 12px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .badge-exact{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.32);color:#34d399}
+    .badge-chosen{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.32);color:#22d3ee}
+    .badge-unresolved{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.32);color:#fbbf24}
+    .record-rows{font-size:.78rem;line-height:1.9;color:#8892b8}
+    .record-rows .rk{display:inline-block;min-width:96px;color:#4a5280;text-transform:uppercase;letter-spacing:.07em;font-size:.68rem;font-weight:700}
+    .record-rows .rv{color:#e6edf3}
+    .record-warning{margin:12px 0 0;padding:10px 12px;border-radius:10px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.76rem;line-height:1.6}
+    .record-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)}
+    .record-date{font-size:.72rem;color:#4a5280}
+    .btn-delete{padding:8px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:transparent;color:#8892b8;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s}
+    .btn-delete:hover:not(:disabled){border-color:rgba(248,113,113,.4);color:#f87171}
+    .btn-delete:disabled{opacity:.5;cursor:not-allowed}
+    .card-message{min-height:0;font-size:.76rem;line-height:1.5}
+    .card-message.show{min-height:16px;margin-top:10px;color:#f87171}
+
+    .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
+    .empty-state.error{color:#f87171}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="mychart.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      My Chart
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <header class="hero">
+    <span class="hero-eyebrow">Birth Records</span>
+    <h1 class="hero-title">People to Compare</h1>
+    <p class="hero-sub">Saved birth details for the people you want to read alongside your own chart. Each place is resolved once, when you save it, and kept exactly as resolved.</p>
+  </header>
+
+  <div class="panel">
+    <p class="panel-title">Add a record</p>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="fLabel">Label</label>
+        <input class="form-input" id="fLabel" type="text" placeholder="Partner, Sam, business partner…" maxlength="80"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fName">Birth name</label>
+        <input class="form-input" id="fName" type="text" placeholder="Their full name at birth" maxlength="120"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fDate">Birth date</label>
+        <input class="form-input" id="fDate" type="date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fTime">Birth time <span class="optional">— optional</span></label>
+        <input class="form-input" id="fTime" type="time"/>
+        <!-- Said here rather than buried, because it changes what the
+             comparison is able to tell them rather than merely how it looks. -->
+        <div class="field-hint">Leave blank if you do not know it. Without an exact time there is <strong>no Ascendant, no Midheaven and no houses</strong>, and the Moon's position becomes approximate &mdash; the Moon moves about 13&deg; a day, which is further than the tolerances used to judge an aspect.</div>
+      </div>
+      <div class="form-group full">
+        <label class="form-label" for="fPlace">Birth place</label>
+        <input class="form-input" id="fPlace" type="text" placeholder="City, state or province, country" maxlength="200"/>
+        <div class="field-hint">Be as specific as you can. Many city names exist in several countries, and you will be asked to choose rather than guessed at.</div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-generate" id="addBtn" onclick="submitRecord(null)">Save Record</button>
+    </div>
+    <div class="generate-status" id="addStatus"></div>
+
+    <div id="candidateBlock"></div>
+  </div>
+
+  <div class="records-list" id="recordsList"></div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var records = [];
+
+/* Held apart from `records` for the reason every list in this product holds it
+   apart: an empty list is the claim "you have saved nobody", and a fetch that
+   never arrived has no standing to make it. It is worse here than elsewhere —
+   a user told they have no records will re-enter one they already have, and the
+   unique index on (user_id, label) will reject that with a duplicate-label
+   message that makes no sense to someone looking at an empty page. */
+var loadError = null;
+
+/* The candidates the server sent back with a 409, and the form values that
+   produced them. Kept together so the second POST re-sends exactly what the
+   first one did plus the chosen place_id — re-reading the inputs would let a
+   field edited in the meantime silently change what is being saved. */
+var pendingCandidates = null;
+var pendingValues     = null;
+
+var submitting = false;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  // Rendered from the stored string rather than through a Date, which would
+  // shift a date-only value by the viewer's timezone offset.
+  return String(value).slice(0, 10);
+}
+
+function formatTime(value) {
+  if (!value) return null;
+  return String(value).slice(0, 5);
+}
+
+function setAddStatus(msg, kind) {
+  var el = document.getElementById("addStatus");
+  el.textContent = msg || "";
+  el.className = "generate-status" + (msg ? " show" : "") + (kind ? " " + kind : "");
+}
+
+function setSubmitting(on) {
+  submitting = on;
+  var btn = document.getElementById("addBtn");
+  btn.disabled = on;
+  btn.textContent = on ? "Saving…" : "Save Record";
+  // Candidate buttons are part of the same submission, so they go down with it.
+  Array.prototype.forEach.call(document.querySelectorAll(".candidate-btn"), function (b) {
+    b.disabled = on;
+  });
+}
+
+function readForm() {
+  return {
+    label:       document.getElementById("fLabel").value.trim(),
+    birth_name:  document.getElementById("fName").value.trim(),
+    birth_date:  document.getElementById("fDate").value.trim(),
+    birth_time:  document.getElementById("fTime").value.trim(),
+    place_query: document.getElementById("fPlace").value.trim()
+  };
+}
+
+function clearForm() {
+  ["fLabel", "fName", "fDate", "fTime", "fPlace"].forEach(function (id) {
+    document.getElementById(id).value = "";
+  });
+}
+
+function clearCandidates() {
+  pendingCandidates = null;
+  pendingValues     = null;
+  document.getElementById("candidateBlock").innerHTML = "";
+}
+
+/* Dropped the moment the form is edited, and this is what keeps the freeze
+   honest rather than merely safe.
+
+   pendingValues exists so a chosen candidate always matches the query that
+   produced it. But it is invisible: with candidates on screen, someone can
+   change a field, click a candidate, and save the frozen values while the
+   fields in front of them say something else. Nothing is corrupted — the saved
+   record is internally consistent — and that is precisely the problem, because
+   there is no way for them to notice that what they typed was ignored.
+
+   A candidate list that no longer describes the form is stale. The honest move
+   is to drop it and start again from what is actually in the fields, rather
+   than to keep it and quietly prefer a copy nobody can see. The next submit is
+   then an ordinary first attempt, and if the new place is ambiguous too, a new
+   list comes back for the query that actually asked for it. */
+function clearCandidatesOnEdit() {
+  if (!pendingCandidates) return;
+  clearCandidates();
+  setAddStatus("The form changed, so those place options no longer apply. Save again to look the place up afresh.", null);
+}
+
+/* NOTHING IS AUTO-SELECTED HERE, not even when exactly one candidate comes
+   back. The server answers 409 precisely because it will not choose between
+   them, and quietly choosing on its behalf in the UI would defeat the refusal
+   entirely — the person would never learn that their input was ambiguous.
+
+   What guessing costs is on the record: taking the first match once turned
+   "London" into London, Ontario and produced a chart that was confidently and
+   unrecoverably wrong. Wrong in the worst available way, because every number
+   rendered normally and nothing anywhere said it described the wrong city.
+   One candidate returned with a 409 still means "this needed narrowing"; it
+   does not mean "this is the answer". */
+function renderCandidates() {
+  var block = document.getElementById("candidateBlock");
+
+  if (!pendingCandidates || !pendingCandidates.length) {
+    block.innerHTML = "";
+    return;
+  }
+
+  block.innerHTML =
+    '<div class="candidates">' +
+      '<p class="candidates-title">That birth place matches ' +
+        (pendingCandidates.length === 1 ? 'a location that needed narrowing.' : pendingCandidates.length + ' locations.') +
+      '</p>' +
+      '<p class="candidates-sub">Choose the right one. Nothing is saved until you do, and nothing is picked for you &mdash; the wrong city produces a chart that looks entirely normal and is entirely wrong.</p>' +
+      '<div class="candidate-list">' +
+        pendingCandidates.map(function (c) {
+          return '<button type="button" class="candidate-btn" data-place-id="' + escapeHtml(c.id) + '">' +
+                   '<span>' + escapeHtml(c.label) + '</span>' +
+                   '<span class="candidate-tz">' + escapeHtml(c.timezone) + '</span>' +
+                 '</button>';
+        }).join("") +
+      '</div>' +
+    '</div>';
+
+  Array.prototype.forEach.call(block.querySelectorAll(".candidate-btn"), function (btn) {
+    btn.onclick = function () { submitRecord(btn.getAttribute("data-place-id")); };
+  });
+}
+
+/* One submit path for both the first attempt and the choice that follows it.
+
+   placeId is null on the first POST and a candidate's id on the second. The
+   values come from `pendingValues` when there is a choice in flight, so the
+   record saved is the one the candidates were computed for. */
+async function submitRecord(placeId) {
+  if (submitting) return;
+
+  var values = placeId && pendingValues ? pendingValues : readForm();
+
+  // Checked here as well as on the server so the common mistake does not cost
+  // a round trip. The server's own 400s still win for anything else.
+  if (!values.birth_date) { setAddStatus("A birth date is required.", "error"); return; }
+  if (!values.place_query) { setAddStatus("A birth place is required.", "error"); return; }
+
+  setSubmitting(true);
+  setAddStatus(placeId ? "Saving with the place you chose…" : "Resolving the birth place…", null);
+
+  try {
+    var body = {
+      label:       values.label,
+      birth_name:  values.birth_name,
+      birth_date:  values.birth_date,
+      birth_time:  values.birth_time || null,
+      place_query: values.place_query
+    };
+    if (placeId) body.place_id = placeId;
+
+    var res = await fetch(API_URL + "/api/birth-records", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    // 409 place_ambiguous — the server declined to choose. Show the options.
+    if (res.status === 409 && d.code === "place_ambiguous") {
+      pendingCandidates = Array.isArray(d.candidates) ? d.candidates : [];
+      pendingValues     = values;
+      renderCandidates();
+      setAddStatus(d.error || "That birth place matches more than one location. Choose one below.", "error");
+      return;
+    }
+
+    /* Any other failure shows the SERVER'S message. Its 400s name the field
+       that was wrong and its duplicate-label message names the label — a
+       generic "could not save" would throw away the only part of the response
+       that tells the person what to change. */
+    if (!res.ok) {
+      throw new Error(d.error || ("The record could not be saved (HTTP " + res.status + ")."));
+    }
+
+    clearCandidates();
+    clearForm();
+
+    if (d.record) records.unshift(d.record);
+    renderRecords();
+
+    /* The server's own message on success too, because 201 has two meanings
+       here: saved with a resolved place, or saved with an unresolved one that
+       cannot produce a chart yet. Only the server knows which, and it says so. */
+    setAddStatus(d.message || "Saved.", d.place_unresolved ? "error" : "success");
+  } catch (e) {
+    setAddStatus(e.message || "The record could not be saved.", "error");
+  } finally {
+    setSubmitting(false);
+  }
+}
+
+async function loadRecords() {
+  var container = document.getElementById("recordsList");
+  container.innerHTML = '<div class="empty-state">Loading records…</div>';
+
+  loadError = null;
+  try {
+    var res = await fetch(API_URL + "/api/birth-records", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Your birth records could not be loaded. This is a problem reaching the server, not a statement about what you have saved.");
+    var d = await res.json();
+    records = Array.isArray(d.records) ? d.records : [];
+  } catch (e) {
+    records = [];
+    loadError = e.message || "Your birth records could not be loaded.";
+  }
+  renderRecords();
+}
+
+function renderRecords() {
+  var container = document.getElementById("recordsList");
+
+  // Error first, and it returns. A failed load never falls through to the
+  // empty state below it.
+  if (loadError) {
+    container.innerHTML = '<div class="empty-state error">' + escapeHtml(loadError) + '</div>';
+    return;
+  }
+
+  if (!records.length) {
+    container.innerHTML = '<div class="empty-state">No birth records saved yet. Add someone above to compare their chart with yours.</div>';
+    return;
+  }
+
+  container.innerHTML = records.map(function (r) {
+    var confidence = r.place_confidence || "unresolved";
+    var unresolved = confidence === "unresolved";
+    var badgeClass = unresolved ? "badge-unresolved" : (confidence === "chosen" ? "badge-chosen" : "badge-exact");
+    var badgeText  = unresolved ? "Place unresolved" : (confidence === "chosen" ? "Place chosen" : "Place resolved");
+
+    var time = formatTime(r.birth_time);
+
+    var placeValue = unresolved
+      ? escapeHtml(r.place_query || "—") + ' <span style="color:#fbbf24">(not resolved)</span>'
+      : escapeHtml(r.place_label || r.place_query || "—");
+
+    /* An unresolved record is SHOWN, marked, and told plainly that it cannot
+       produce a chart. Hiding it would lose the birth date and name — the parts
+       the person cannot look up again — and showing it as though it were fine
+       would promise a comparison that will not come. */
+    var warning = unresolved
+      ? '<p class="record-warning">The birth place could not be resolved, so no coordinates are stored and <strong>no chart can be computed for this record yet</strong>. Delete it and add it again with a more specific place &mdash; a city with its country, for example.</p>'
+      : "";
+
+    return '<div class="record-card' + (unresolved ? " needs-place" : "") + '" data-id="' + escapeHtml(r.id) + '">' +
+             '<div class="record-head">' +
+               '<div>' +
+                 '<div class="record-title">' + escapeHtml(r.label || "Untitled") + '</div>' +
+                 (r.birth_name ? '<div class="record-name">' + escapeHtml(r.birth_name) + '</div>' : '') +
+               '</div>' +
+               '<span class="status-badge ' + badgeClass + '">' + escapeHtml(badgeText) + '</span>' +
+             '</div>' +
+             '<div class="record-rows">' +
+               '<div><span class="rk">Born</span><span class="rv">' + escapeHtml(formatDate(r.birth_date)) + '</span></div>' +
+               '<div><span class="rk">Time</span><span class="rv">' +
+                 (time ? escapeHtml(time) : '<span style="color:#4a5280">not given — no Ascendant, Midheaven or houses</span>') +
+               '</span></div>' +
+               '<div><span class="rk">Place</span><span class="rv">' + placeValue + '</span></div>' +
+             '</div>' +
+             warning +
+             '<div class="card-message" id="msg-' + escapeHtml(r.id) + '"></div>' +
+             '<div class="record-foot">' +
+               '<span class="record-date">Saved ' + escapeHtml(formatDate(r.created_at)) + '</span>' +
+               '<button type="button" class="btn-delete" data-id="' + escapeHtml(r.id) + '">Delete</button>' +
+             '</div>' +
+           '</div>';
+  }).join("");
+
+  Array.prototype.forEach.call(container.querySelectorAll(".btn-delete"), function (btn) {
+    btn.onclick = function () { deleteRecord(btn.getAttribute("data-id"), btn); };
+  });
+}
+
+async function deleteRecord(id, btn) {
+  btn.disabled = true;
+  var msg = document.getElementById("msg-" + id);
+
+  try {
+    var res = await fetch(API_URL + "/api/birth-records/" + encodeURIComponent(id), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    if (!res.ok) {
+      throw new Error(d.error || ("The record could not be deleted (HTTP " + res.status + ")."));
+    }
+
+    // Removed from the list only after the server confirms it. Removing it
+    // first would show a deletion that may not have happened.
+    records = records.filter(function (r) { return r.id !== id; });
+    renderRecords();
+  } catch (e) {
+    btn.disabled = false;
+    if (msg) {
+      msg.textContent = e.message || "The record could not be deleted.";
+      msg.className = "card-message show";
+    }
+  }
+}
+
+/* Every field, not just the place. A candidate list is scoped to one whole
+   submission, so a changed label or birth date makes it as stale as a changed
+   place would — the choice would still be saved against values the person had
+   moved on from. `input` rather than `change` so it fires while typing, before
+   a click on a candidate can get there first. Programmatic clearing by
+   clearForm() fires neither event, so a successful save does not trip this. */
+["fLabel", "fName", "fDate", "fTime", "fPlace"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", clearCandidatesOnEdit);
+});
+
+loadRecords();
+</script>
+</body>
+</html>
