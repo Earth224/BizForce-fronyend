@@ -121,6 +121,9 @@
     .btn-print{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:#fbbf24}
     .btn-print:hover{background:rgba(251,191,36,.18)}
     .btn-print:disabled{opacity:.5;cursor:not-allowed}
+    .btn-social{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.35);color:#34d399}
+    .btn-social:hover{background:rgba(52,211,153,.18)}
+    .btn-social:disabled{opacity:.5;cursor:not-allowed}
     .action-btn svg{width:15px;height:15px}
     .print-opts-row{display:flex;align-items:center;gap:8px;padding:6px 0 2px}
     .bleed-check-label{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:rgba(255,255,255,.5);cursor:pointer;user-select:none}
@@ -947,6 +950,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Export Print File
         </button>
+        <button class="action-btn btn-social" id="shareImageBtn" onclick="shareCardImage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Share as Image
+        </button>
         <button class="action-btn btn-vcf" onclick="copyVCard()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           Copy vCard
@@ -1459,6 +1466,115 @@ async function exportPrintFile() {
     showToast("Export failed. Try again.", true);
     console.error(e);
   } finally {
+    btn.disabled = false;
+  }
+}
+
+/* Share as Image — a 1200x630 snapshot of the live card, for places a link
+   cannot go.
+
+   NOTHING IS STORED AND NOTHING IS UPLOADED. The image is rendered fresh in
+   this browser, from the card as it stands on screen right now, and it goes to
+   the clipboard or to the user's disk. It never touches the database, never
+   reaches a storage bucket, and no row records that it existed.
+
+   That is the design, not an omission. The shareable artefact OF RECORD is the
+   card-view link that shareCard() copies: it resolves against the database, so
+   it always shows what the card currently says. This image is a snapshot of
+   that same card for a context a link cannot serve — a post body, a slide, a
+   message thread that will not unfurl a URL.
+
+   Because it is never stored, the two can never disagree. A saved image would
+   be a second copy of the card's contents with its own lifetime, going stale
+   the moment a phone number changed, and there would then be a question with
+   no good answer: which one is the card? Generating on demand and keeping
+   nothing means the link stays the single source of truth and this is only
+   ever a picture of it, taken at a known moment by the person sharing it.
+
+   1200x630 is the ratio social platforms crop link previews and inline images
+   to. The card is drawn to fit inside that frame rather than filling it, so
+   nothing is cropped off — the letterbox is deliberate. No bleed marks: those
+   belong to exportPrintFile, which is for a printer, and are meaningless here.
+
+   Rendering matches the existing exports exactly — same html2canvas build from
+   the same CDN tag, the same { scale: 3, useCORS: true, allowTaint: false },
+   and the same #cardPreview element — so this cannot drift into being a second
+   way of rendering the same card. */
+async function shareCardImage() {
+  var btn = document.getElementById("shareImageBtn");
+  btn.disabled = true;
+  setStatus("Generating share image...", "info");
+
+  try {
+    var el = document.getElementById("cardPreview");
+    var canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false });
+
+    /* Compose onto the social frame. Contain rather than cover: scaled to fit
+       the smaller axis so the whole card survives, centred, on the page's own
+       background so the margin reads as part of the design. */
+    var out = document.createElement("canvas");
+    out.width  = 1200;
+    out.height = 630;
+
+    var ctx = out.getContext("2d");
+    ctx.fillStyle = "#070b18";
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    var pad   = 48;
+    var scale = Math.min((out.width - pad * 2) / canvas.width, (out.height - pad * 2) / canvas.height);
+    var w     = Math.round(canvas.width  * scale);
+    var h     = Math.round(canvas.height * scale);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, Math.round((out.width - w) / 2), Math.round((out.height - h) / 2), w, h);
+
+    /* Clipboard first, because pasting is the whole point — a download that
+       then has to be found and attached is the slower path, not the intended
+       one. Feature-detected rather than assumed: image/png on the clipboard
+       needs the async Clipboard API, ClipboardItem, and a secure context, and
+       a browser missing any of them throws rather than failing quietly. */
+    var copied = false;
+
+    if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
+      try {
+        var blob = await new Promise(function (resolve, reject) {
+          out.toBlob(function (b) {
+            if (b) resolve(b); else reject(new Error("The image could not be encoded."));
+          }, "image/png");
+        });
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        copied = true;
+      } catch (clipErr) {
+        // Not fatal and not silent: the download below still gets the image
+        // there, and the toast says which route it took.
+        console.warn("[digital-cards] Clipboard image write refused, falling back to download:", clipErr);
+        copied = false;
+      }
+    }
+
+    if (copied) {
+      showToast("Share image copied — paste it straight into a post.");
+    } else {
+      /* Same download mechanism as downloadCard and exportPrintFile: an anchor
+         with a data URL, clicked. */
+      var link = document.createElement("a");
+      link.download = "bizforce-card-share.png";
+      link.href = out.toDataURL("image/png");
+      link.click();
+      // Said plainly, because a file appearing when a copy was expected is
+      // otherwise indistinguishable from the copy having silently failed.
+      showToast("Your browser would not accept an image on the clipboard, so it downloaded instead.");
+    }
+
+    setStatus("", "info");
+  } catch (e) {
+    setStatus("", "info");
+    showToast(e.message || "Share image failed. Try again.", true);
+    console.error(e);
+  } finally {
+    // Always, including on the error path — a button left disabled after a
+    // failure looks like the page has broken rather than the action having.
     btn.disabled = false;
   }
 }
