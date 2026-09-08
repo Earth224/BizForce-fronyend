@@ -79,6 +79,31 @@
 
     .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
     .empty-state.error{color:#f87171}
+
+    /* ── Comparison view ── */
+    .btn-compare{padding:8px 16px;border-radius:10px;border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.1);color:#22d3ee;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s}
+    .btn-compare:hover:not(:disabled){background:rgba(34,211,238,.18)}
+    .btn-compare:disabled{opacity:.5;cursor:not-allowed}
+    .record-actions{display:flex;gap:8px}
+    .syn-panel{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+    /* The note sits ABOVE the list it qualifies. */
+    .syn-note{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.08);color:#fbbf24;font-size:.74rem;line-height:1.6}
+    .syn-info{margin:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(34,211,238,.22);background:rgba(34,211,238,.06);color:#8892b8;font-size:.78rem;line-height:1.6}
+    .syn-subjects{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .syn-subject{padding:5px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#8892b8;font-size:.7rem;font-weight:700;letter-spacing:.04em}
+    .syn-subject .st-known{color:#34d399}
+    .syn-subject .st-assumed{color:#fbbf24}
+    .syn-count{font-size:.72rem;color:#4a5280;margin:0 0 10px;letter-spacing:.04em;text-transform:uppercase;font-weight:700}
+    .syn-list{display:flex;flex-direction:column;gap:6px}
+    .syn-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:8px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);font-size:.78rem;line-height:1.55}
+    .syn-row.uncertain{border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.06)}
+    .syn-who{color:#e6edf3;font-weight:700}
+    .syn-planet{color:#22d3ee;font-weight:700}
+    .syn-aspect{color:#a855f7;font-weight:700;letter-spacing:.03em}
+    .syn-orb{margin-left:auto;color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;flex-shrink:0}
+    .syn-uncertain-tag{color:#fbbf24;font-weight:800;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase}
+    .syn-reason{flex-basis:100%;margin:4px 0 0;color:#fbbf24;font-size:.72rem;line-height:1.6}
+    .syn-none{padding:14px 12px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);color:#8892b8;font-size:.78rem;line-height:1.6}
   </style>
 </head>
 <body>
@@ -424,14 +449,192 @@ function renderRecords() {
              '<div class="card-message" id="msg-' + escapeHtml(r.id) + '"></div>' +
              '<div class="record-foot">' +
                '<span class="record-date">Saved ' + escapeHtml(formatDate(r.created_at)) + '</span>' +
-               '<button type="button" class="btn-delete" data-id="' + escapeHtml(r.id) + '">Delete</button>' +
+               '<div class="record-actions">' +
+                 /* No Compare control on an unresolved record. The card directly
+                    above already says no chart can be computed for it; offering
+                    a button that cannot work would contradict that in the same
+                    breath, and the person would press it to find out which of
+                    the two statements was true. */
+                 (unresolved ? "" :
+                   '<button type="button" class="btn-compare" data-id="' + escapeHtml(r.id) + '">Compare</button>') +
+                 '<button type="button" class="btn-delete" data-id="' + escapeHtml(r.id) + '">Delete</button>' +
+               '</div>' +
              '</div>' +
+             '<div class="syn-panel-slot" id="syn-' + escapeHtml(r.id) + '"></div>' +
            '</div>';
   }).join("");
 
   Array.prototype.forEach.call(container.querySelectorAll(".btn-delete"), function (btn) {
     btn.onclick = function () { deleteRecord(btn.getAttribute("data-id"), btn); };
   });
+
+  Array.prototype.forEach.call(container.querySelectorAll(".btn-compare"), function (btn) {
+    btn.onclick = function () { compareRecord(btn.getAttribute("data-id"), btn); };
+  });
+}
+
+/* ── ORB PRECISION FOLLOWS THE INPUT, NOT THE ARITHMETIC ────────────────────
+   The engine computes orbs to full float precision, but precision of
+   calculation is not precision of measurement. When either chart was computed
+   at an assumed birth time, the result carries a note saying the orbs are
+   approximate and should not be read to the decimal place — and printing
+   "3.21°" directly underneath that sentence contradicts it. The number is what
+   people believe; the caveat is what they skim.
+
+   So a note present means whole degrees, and no note — both birth times known
+   — means one decimal.
+
+   WHY THE NOTE ALONE DECIDES IT, with no per-row test: every aspect pairs one
+   planet from each chart, so an assumed time on either side touches every row
+   there is. "Aspects involving the assumed-time chart" and "all aspects" are
+   the same set whenever a note exists, and a per-row check would be a more
+   elaborate way of reaching the same answer.
+
+   One decimal rather than two even at best: an orb derived from a birth time
+   recorded to the nearest minute does not carry a hundredth of a degree
+   either. */
+function formatOrb(orb, hasNote) {
+  var n = Number(orb);
+  if (!isFinite(n)) return "—";
+  return hasNote ? (Math.round(n) + "°") : (n.toFixed(1) + "°");
+}
+
+/* Possessive form of a subject name, for the aspect rows.
+
+   The route returns "You" as the self label, which reads as "You's Saturn"
+   under naive concatenation — wrong English on the most-read text on the page,
+   repeated once per row.
+
+   "You" becomes "Your", the one pronoun this can receive. Everything else is a
+   name and takes an apostrophe-s.
+
+   NAMES ALREADY ENDING IN S TAKE 's TOO — "James's Moon", not "James' Moon".
+   Chicago's rule, and chosen because it matches how the phrase is actually
+   said aloud: nobody pronounces the possessive of James as "James". The
+   alternative looks tidier in print and reads wrong in the head, and these
+   rows are read as sentences rather than scanned as labels. */
+function possessive(name) {
+  var n = String(name == null ? "" : name).trim();
+  if (!n) return "Their";
+  if (n.toLowerCase() === "you") return "Your";
+  return n + "'s";
+}
+
+function subjectChip(name, timeKnown) {
+  return '<span class="syn-subject">' + escapeHtml(name) + ' — ' +
+    (timeKnown
+      ? '<span class="st-known">birth time known</span>'
+      : '<span class="st-assumed">birth time assumed</span>') +
+    '</span>';
+}
+
+function renderSynastry(slot, data) {
+  /* THE THREE DESIGNED STATES. The route answers 200 with available false for
+     an unresolved place, a caller with no birth data of their own, and a record
+     whose stored date cannot be read. None of them is a fault, so each is shown
+     as information in the server's own words rather than styled as an error. */
+  if (!data || data.available !== true) {
+    slot.innerHTML = '<div class="syn-panel"><p class="syn-info">' +
+      escapeHtml((data && data.message) || "This comparison is not available.") +
+      '</p></div>';
+    return;
+  }
+
+  var syn      = data.synastry || {};
+  var subjects = data.subjects || {};
+  var selfName = (subjects.self && subjects.self.label) || "You";
+  var recName  = (subjects.record && (subjects.record.label || subjects.record.birth_name)) || "Them";
+  var hasNote  = !!(syn.note);
+
+  var header =
+    '<div class="syn-subjects">' +
+      subjectChip(selfName, !!(subjects.self && subjects.self.time_known)) +
+      subjectChip(recName,  !!(subjects.record && subjects.record.time_known)) +
+    '</div>' +
+    /* ABOVE the list, never below. It changes how every row under it should be
+       read, and a caveat placed after the thing it qualifies has already been
+       skipped by the time it is reached. */
+    (hasNote ? '<p class="syn-note">' + escapeHtml(syn.note) + '</p>' : "");
+
+  var aspects = Array.isArray(syn.aspects) ? syn.aspects : [];
+
+  if (!aspects.length) {
+    // A real result, not an empty state. The comparison ran and found nothing
+    // inside these tolerances, which is a finding about the two charts.
+    slot.innerHTML = '<div class="syn-panel">' + header +
+      '<div class="syn-none">No aspects between these two charts fall within the orbs used here. ' +
+      'That is a result rather than a gap: the comparison ran and found no contacts close enough to count.</div></div>';
+    return;
+  }
+
+  // Tightest first. The engine already sorts by orb ascending; sorted again
+  // here so the display order is this view's own guarantee rather than an
+  // assumption about the caller.
+  var sorted = aspects.slice().sort(function (a, b) { return Number(a.orb) - Number(b.orb); });
+
+  // Built once rather than per row: the same two strings appear on every line.
+  var selfPoss = possessive(selfName);
+  var recPoss  = possessive(recName);
+
+  var rows = sorted.map(function (a) {
+    var fromPlanet = (a.from && a.from.planet) || "?";
+    var toPlanet   = (a.to && a.to.planet) || "?";
+
+    /* An uncertain aspect is visibly different and carries its reason on the
+       row. Not hidden, not dropped, and never allowed to look identical to a
+       measured one — the whole point of the engine marking it is that it would
+       otherwise be indistinguishable. */
+    return '<div class="syn-row' + (a.uncertain ? " uncertain" : "") + '">' +
+             '<span class="syn-who">' + escapeHtml(selfPoss) + '</span> ' +
+             '<span class="syn-planet">' + escapeHtml(fromPlanet) + '</span> ' +
+             '<span class="syn-aspect">' + escapeHtml(a.aspect) + '</span> ' +
+             '<span class="syn-who">' + escapeHtml(recPoss) + '</span> ' +
+             '<span class="syn-planet">' + escapeHtml(toPlanet) + '</span>' +
+             (a.uncertain ? ' <span class="syn-uncertain-tag">uncertain</span>' : '') +
+             '<span class="syn-orb">' + escapeHtml(formatOrb(a.orb, hasNote)) + ' from exact</span>' +
+             (a.uncertain && a.uncertainReason
+               ? '<p class="syn-reason">' + escapeHtml(a.uncertainReason) + '</p>'
+               : '') +
+           '</div>';
+  }).join("");
+
+  slot.innerHTML = '<div class="syn-panel">' + header +
+    '<p class="syn-count">' + sorted.length + ' aspect' + (sorted.length === 1 ? "" : "s") +
+    (syn.uncertainCount ? ' · ' + syn.uncertainCount + ' uncertain' : '') +
+    ' · tightest first</p>' +
+    '<div class="syn-list">' + rows + '</div></div>';
+}
+
+async function compareRecord(id, btn) {
+  var slot = document.getElementById("syn-" + id);
+  if (!slot) return;
+
+  var label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Comparing…";
+  slot.innerHTML = '<div class="syn-panel"><p class="syn-info">Computing both charts and comparing them…</p></div>';
+
+  try {
+    var res = await fetch(API_URL + "/api/synastry/" + encodeURIComponent(id), {
+      headers: { "Authorization": "Bearer " + token }
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    // The server's own message, not a generic one — it distinguishes a missing
+    // record from a chart that could not be computed.
+    if (!res.ok) {
+      throw new Error(d.error || ("The comparison could not be run (HTTP " + res.status + ")."));
+    }
+
+    renderSynastry(slot, d);
+  } catch (e) {
+    slot.innerHTML = '<div class="syn-panel"><p class="syn-note">' +
+      escapeHtml(e.message || "The comparison could not be run.") + '</p></div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 }
 
 async function deleteRecord(id, btn) {
