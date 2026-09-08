@@ -721,6 +721,31 @@
       stroke: rgba(52,211,153,0.75);
       stroke-opacity: 1;
     }
+    /* Phase two's marks, on the same contract: the visible mark declines the
+       pointer, its transparent twin takes it, and hover only says "tappable".
+       The ring and ticks light together because they are one group and one
+       idea. */
+    .sigil-trace, .sigil-trace-end, .sigil-figure-mark, .sigil-ring, .sigil-tick {
+      pointer-events: none;
+      transition: stroke 0.25s ease, stroke-opacity 0.25s ease, fill 0.25s ease;
+    }
+    .mc-tappable:hover .sigil-trace,
+    .mc-tappable:hover .sigil-figure-mark,
+    .mc-tappable:hover .sigil-ring,
+    .mc-tappable:hover .sigil-tick {
+      stroke: rgba(52,211,153,0.9);
+      stroke-opacity: 1;
+    }
+    /* The two trace markers and the single-point figure are filled, not
+       stroked, so they need the fill rule as well as the stroke one above. */
+    .mc-tappable:hover circle.sigil-trace-end[fill]:not([fill="none"]),
+    .mc-tappable:hover circle.sigil-figure-mark[fill]:not([fill="none"]) {
+      fill: #34d399;
+    }
+    .mc-tappable:hover .sigil-trace-end {
+      stroke: rgba(52,211,153,0.9);
+      stroke-opacity: 1;
+    }
     .mc-square-dim {
       opacity: 0.45;
       transition: opacity 0.4s ease;
@@ -995,7 +1020,17 @@
        the gold panel upper-right), and a third floating card would be the one
        that finally covers the triangle on a mid-width screen. ── */
     .mychart-sigil-panel {
-      max-width: min(420px, 78vw);
+      /* WIDENED FROM min(420px, 78vw) FOR THE LEGEND. Nine entries at 420px
+         forced either one cramped column or wrapped labels in two; 520 gives a
+         comfortable two-column grid and drops to one column under 460px. It
+         also enlarges the figure, which is square and sized to the panel's
+         content width: 478px instead of 378px, which makes the r=10 hit
+         circles about 30px across instead of 24 — a better touch target for
+         marks this small, and the reason not to keep the panel narrow. The
+         page grows taller by roughly the difference plus the legend; it
+         already scrolls, and the stage's own floor is fixed in pixels and
+         independent of what sits below it. */
+      max-width: min(520px, 88vw);
       /* 40px of clear air below the stage rather than the original 8px. The
          stage now ends where its content ends, so this gap is the visible
          separation between the chart and the panel — and it is the margin
@@ -1025,6 +1060,39 @@
       margin: 0 0 12px;
     }
     .mychart-sigil-figure svg { display: block; width: 100%; height: auto; }
+    /* The standing explanation. Always shown when a figure is drawn — it is
+       what stops the drawing being read as decoration, and it is the only
+       place that says the figure is tappable at all. */
+    .mychart-sigil-intro {
+      margin-top: 14px;
+      font-size: 0.74rem;
+      line-height: 1.6;
+      color: rgba(232,232,255,0.68);
+      text-align: left;
+    }
+    /* Two columns where there is room, one below 460px. text-align:left
+       against the panel's centred default, because a legend is a list. */
+    .mychart-sigil-legend {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(52,211,153,0.14);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px 14px;
+      text-align: left;
+    }
+    @media (max-width: 460px) {
+      .mychart-sigil-legend { grid-template-columns: 1fr; }
+    }
+    .sigil-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.69rem;
+      color: rgba(232,232,255,0.6);
+      line-height: 1.3;
+    }
+    .sigil-legend-row svg { flex: 0 0 auto; display: block; }
     .mychart-sigil-caption {
       margin-top: 12px;
       font-size: 0.72rem;
@@ -1089,6 +1157,8 @@
     <div class="mychart-sigil-panel" id="mychartSigilPanel">
       <div class="mychart-sigil-title">Sigil</div>
       <div class="mychart-sigil-figure" id="mychartSigilFigure"></div>
+      <div class="mychart-sigil-intro" id="mychartSigilIntro"></div>
+      <div class="mychart-sigil-legend" id="mychartSigilLegend"></div>
       <div class="mychart-sigil-caption" id="mychartSigilCaption"></div>
     </div>
   </div>
@@ -1947,6 +2017,23 @@
        piece removes its own mark and leaves the rest standing.
        ══════════════════════════════════════════════════════════════════════ */
 
+    /* EVERY COLOUR THE FIGURE USES, IN ONE PLACE, because the legend below the
+       figure now names these marks and the two must not be able to drift. Both
+       the SVG and the legend swatches read from here, so a colour cannot be
+       changed in one and left stale in the other — which is exactly what would
+       have happened had the legend retyped the hex values it describes. The
+       values themselves are unchanged from what the figure already drew. */
+    var SIGIL_COLORS = {
+      planet:     "#22d3ee",
+      retrograde: "#fbbf24",
+      trace:      "#34d399",
+      axis:       "#22d3ee",
+      figure:     "#34d399",
+      master:     "#fbbf24",
+      ring:       "rgba(34,211,238,0.16)",
+      tick:       "rgba(34,211,238,0.22)"
+    };
+
     var SIGIL_SIZE = 320;
     var SIGIL_CX   = 160;
     var SIGIL_CY   = 160;
@@ -2057,18 +2144,33 @@
 
       var svg = '<svg viewBox="0 0 ' + SIGIL_SIZE + ' ' + SIGIL_SIZE + '" width="100%" xmlns="http://www.w3.org/2000/svg">';
 
-      /* ── 1. The zodiac ring — the frame, not the subject ───────────────── */
-      svg += '<circle cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="140" fill="none" ' +
-             'stroke="rgba(34,211,238,0.16)" stroke-width="1"/>';
+      /* ── 1. The zodiac ring — the frame, not the subject ─────────────────
+         Ring and ticks are ONE tappable unit, not thirteen. They are a single
+         idea — the ecliptic and its twelve divisions — and a panel per tick
+         would say the same sentence twelve times.
+
+         Drawn FIRST, so everything else paints over it and wins the hit where
+         they overlap. That matters: the ring's transparent twin spans radius
+         133-147 and the planet glyphs sit at 133, so a glyph tap must reach
+         the planet rather than the ring. Paint order is what guarantees it. */
+      svg += '<g class="mc-tappable" data-mc-type="sigilring">';
+      svg += '<circle class="sigil-ring" cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="140" fill="none" ' +
+             'stroke="' + SIGIL_COLORS.ring + '" stroke-width="1"/>';
 
       for (var t = 0; t < 12; t++) {
         var tickLon = t * 30;
         var inner   = sigilPoint(tickLon, 132);
         var outer   = sigilPoint(tickLon, 140);
-        svg += '<line x1="' + sigilN(inner.x) + '" y1="' + sigilN(inner.y) +
+        svg += '<line class="sigil-tick" x1="' + sigilN(inner.x) + '" y1="' + sigilN(inner.y) +
                '" x2="' + sigilN(outer.x) + '" y2="' + sigilN(outer.y) +
-               '" stroke="rgba(34,211,238,0.22)" stroke-width="1"/>';
+               '" stroke="' + SIGIL_COLORS.tick + '" stroke-width="1"/>';
       }
+
+      /* A 14-wide transparent band over the 1-wide ring, covering the ticks
+         too since they run 132-140. Same device as .mc-line-hit. */
+      svg += '<circle class="sigil-hit-line" cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="140" ' +
+             'fill="none" stroke="transparent" stroke-width="14"/>';
+      svg += '</g>';
 
       /* ── 2. Every planet as a point, retrograde marked in gold ─────────────
          Gold is already what a retrograde marker means in this product (the
@@ -2128,9 +2230,9 @@
            keeping the tooltip as well would be two content paths for one
            mark, each able to drift from the other. */
         svg += '<circle class="sigil-dot" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="' + (ret ? 3.4 : 2.6) + '" ' +
-               'fill="' + (ret ? "#fbbf24" : "#22d3ee") + '" ' +
+               'fill="' + (ret ? SIGIL_COLORS.retrograde : SIGIL_COLORS.planet) + '" ' +
                'fill-opacity="' + (ret ? "0.95" : "0.75") + '"' +
-               (ret ? ' stroke="#fbbf24" stroke-opacity="0.35" stroke-width="2.4"' : '') + '/>';
+               (ret ? ' stroke="' + SIGIL_COLORS.retrograde + '" stroke-opacity="0.35" stroke-width="2.4"' : '') + '/>';
 
         /* r=10 against a visible 2.6 — about 24px across at the panel's
            rendered width, which is a real touch target where the dot is not.
@@ -2161,31 +2263,68 @@
         if (p && p.longitude != null) tracePts.push({ name: name, pt: sigilPoint(p.longitude, 120) });
       });
 
-      if (tracePts.length >= 2) {
-        // A polyline, never a polygon: a sigil is a traced line with a
-        // beginning and an end, and closing it would erase the direction the
-        // order exists to express.
-        svg += '<polyline points="' +
-               tracePts.map(function (t) { return sigilN(t.pt.x) + "," + sigilN(t.pt.y); }).join(" ") +
-               '" fill="none" stroke="#34d399" stroke-opacity="0.85" stroke-width="1.6" ' +
-               'stroke-linejoin="round" stroke-linecap="round"/>';
+      /* First: filled. Last: hollow. The trace reads slowest-to-fastest and
+         the two ends say which way round. Both used to carry a <title>; those
+         are gone with the rest of the tooltips, and the markers now sit INSIDE
+         the first and last segment groups rather than standing as their own
+         tappable type — tapping the dot Saturn starts from and tapping the
+         line leaving Saturn are the same question, and the legend below the
+         figure is what names the convention now. */
+      function traceStartMarker(pt) {
+        return '<circle class="sigil-trace-end" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="5" ' +
+               'fill="' + SIGIL_COLORS.trace + '" fill-opacity="0.9"/>';
+      }
+      function traceEndMarker(pt) {
+        return '<circle class="sigil-trace-end" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="5" ' +
+               'fill="none" stroke="' + SIGIL_COLORS.trace + '" stroke-opacity="0.9" stroke-width="1.8"/>';
       }
 
-      if (tracePts.length >= 1) {
-        // First: filled. Last: hollow. The trace reads slowest-to-fastest and
-        // the two ends say which way round without needing a legend.
-        var first = tracePts[0];
-        var last  = tracePts[tracePts.length - 1];
+      if (tracePts.length >= 2) {
+        /* SIX SEGMENTS RATHER THAN ONE POLYLINE, so each step of the Chaldean
+           order can be tapped for what that particular step means. Still never
+           closed into a polygon: a sigil is a traced line with a beginning and
+           an end, and closing it would erase the direction the order exists to
+           express. Separate <line>s with round caps give the same joins the
+           polyline's stroke-linejoin did.
 
-        svg += '<circle cx="' + sigilN(first.pt.x) + '" cy="' + sigilN(first.pt.y) + '" r="5" ' +
-               'fill="#34d399" fill-opacity="0.9"><title>' +
-               escapeXml("Trace begins at " + first.name) + '</title></circle>';
+           data-mc-step IS THE CANONICAL STEP, NOT THE LOOP INDEX. tracePts
+           skips absent bodies (a chart with no Saturn simply starts at
+           Jupiter), so the nth drawn segment is not necessarily the nth step
+           of the sequence — and if a middle body is missing, the segment drawn
+           is not a canonical step at all but a jump across one. The step is
+           therefore derived from the FROM body's position in
+           SIGIL_CHALDEAN_ORDER and only kept when the two bodies are actually
+           adjacent in it; otherwise it is left empty and the panel says what
+           it can honestly say — which two bodies the line joins and what the
+           Chaldean order is — without claiming the passage for a step this
+           line does not represent. */
+        for (var si = 0; si < tracePts.length - 1; si++) {
+          var segA = tracePts[si];
+          var segB = tracePts[si + 1];
+          var fromIdx = SIGIL_CHALDEAN_ORDER.indexOf(segA.name);
+          var toIdx   = SIGIL_CHALDEAN_ORDER.indexOf(segB.name);
+          var stepKey = (fromIdx >= 0 && toIdx === fromIdx + 1) ? fromIdx : "";
+          var segCoords = 'x1="' + sigilN(segA.pt.x) + '" y1="' + sigilN(segA.pt.y) +
+                          '" x2="' + sigilN(segB.pt.x) + '" y2="' + sigilN(segB.pt.y) + '"';
 
-        if (tracePts.length >= 2) {
-          svg += '<circle cx="' + sigilN(last.pt.x) + '" cy="' + sigilN(last.pt.y) + '" r="5" ' +
-                 'fill="none" stroke="#34d399" stroke-opacity="0.9" stroke-width="1.8"><title>' +
-                 escapeXml("Trace ends at " + last.name) + '</title></circle>';
+          svg += '<g class="mc-tappable" data-mc-type="sigiltrace"' +
+                 ' data-mc-step="' + stepKey + '"' +
+                 ' data-mc-from="' + escapeXml(segA.name) + '"' +
+                 ' data-mc-to="'   + escapeXml(segB.name) + '">';
+          svg += '<line class="sigil-trace" ' + segCoords +
+                 ' stroke="' + SIGIL_COLORS.trace + '" stroke-opacity="0.85" stroke-width="1.6" ' +
+                 'stroke-linecap="round"/>';
+          svg += '<line class="sigil-hit-line" ' + segCoords +
+                 ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>';
+          if (si === 0) svg += traceStartMarker(segA.pt);
+          if (si === tracePts.length - 2) svg += traceEndMarker(segB.pt);
+          svg += '</g>';
         }
+      } else if (tracePts.length === 1) {
+        /* One body and no segment to attach it to. The marker is still drawn,
+           because it is true, but there is no step for it to explain and so
+           nothing to tap. */
+        svg += traceStartMarker(tracePts[0].pt);
       }
 
       /* ── 4. Angle axes — drawn only when real ───────────────────────────
@@ -2220,7 +2359,7 @@
                ' data-mc-degree="' + (deg != null ? deg : "") + '"' +
                ' data-mc-kind="angle">' +
                '<line class="sigil-axis" ' + coords +
-               ' stroke="#22d3ee" stroke-opacity="0.32" stroke-width="1"' +
+               ' stroke="' + SIGIL_COLORS.axis + '" stroke-opacity="0.32" stroke-width="1"' +
                (dash ? ' stroke-dasharray="4 4"' : '') + '/>' +
                /* 18 units, the same width .mc-line-hit uses on the blueprint's
                   perimeter, and transparent for the same reason. */
@@ -2237,44 +2376,109 @@
       if (lifePath != null && isFinite(lifePath) && lifePath > 0) {
         var isMaster = SIGIL_MASTER_REDUCTION.hasOwnProperty(lifePath);
         var points   = isMaster ? SIGIL_MASTER_REDUCTION[lifePath] : lifePath;
-        var stroke   = isMaster ? "#fbbf24" : "#34d399";
+        var stroke   = isMaster ? SIGIL_COLORS.master : SIGIL_COLORS.figure;
         var verts    = sigilStarVertices(points, 70);
+
+        /* ONE GROUP FOR ALL FOUR BRANCHES AND THE MASTER RING. Whichever shape
+           the number produces, it is one figure and it means one thing, so it
+           opens one panel.
+
+           The hit shapes TRACE THE FIGURE rather than filling a disc over it.
+           A filled r=70 circle would have been simpler and would have stolen
+           every tap in the middle of the sigil — the trace's own chords cut
+           through there whenever two bodies sit near opposite longitudes, and
+           this group is drawn last, so it would win those. Stroking the same
+           geometry keeps the target on the figure itself. */
+        svg += '<g class="mc-tappable" data-mc-type="sigilfigure">';
 
         if (points === 1) {
           // One point is not a figure. A single mark at the top vertex is the
           // honest rendering — drawing a circle instead would invent an
           // enclosure the number does not describe.
-          svg += '<circle cx="' + sigilN(verts[0].x) + '" cy="' + sigilN(verts[0].y) + '" r="4" ' +
+          svg += '<circle class="sigil-figure-mark" cx="' + sigilN(verts[0].x) + '" cy="' + sigilN(verts[0].y) + '" r="4" ' +
                  'fill="' + stroke + '" fill-opacity="0.85"/>';
+          svg += '<circle class="sigil-hit" cx="' + sigilN(verts[0].x) + '" cy="' + sigilN(verts[0].y) + '" r="12" fill="transparent"/>';
         } else if (points === 2) {
           // Two points is a line, not a polygon: drawn as the single segment
           // between them rather than a degenerate two-sided shape.
-          svg += '<line x1="' + sigilN(verts[0].x) + '" y1="' + sigilN(verts[0].y) +
-                 '" x2="' + sigilN(verts[1].x) + '" y2="' + sigilN(verts[1].y) +
-                 '" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linecap="round"/>';
+          var figCoords = 'x1="' + sigilN(verts[0].x) + '" y1="' + sigilN(verts[0].y) +
+                          '" x2="' + sigilN(verts[1].x) + '" y2="' + sigilN(verts[1].y) + '"';
+          svg += '<line class="sigil-figure-mark" ' + figCoords +
+                 ' stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linecap="round"/>';
+          svg += '<line class="sigil-hit-line" ' + figCoords +
+                 ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>';
         } else if (points < 5) {
           // 3 and 4: a plain polygon. A star needs at least five points before
           // skipping a vertex produces anything but the polygon itself.
-          svg += '<polygon points="' +
-                 verts.map(function (v) { return sigilN(v.x) + "," + sigilN(v.y); }).join(" ") +
+          var polyPts = verts.map(function (v) { return sigilN(v.x) + "," + sigilN(v.y); }).join(" ");
+          svg += '<polygon class="sigil-figure-mark" points="' + polyPts +
                  '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
+          svg += '<polygon class="sigil-hit-line" points="' + polyPts +
+                 '" fill="none" stroke="transparent" stroke-width="14" stroke-linejoin="round"/>';
         } else {
           sigilStarCycles(points).forEach(function (cycle) {
-            svg += '<polygon points="' +
-                   cycle.map(function (i) { return sigilN(verts[i].x) + "," + sigilN(verts[i].y); }).join(" ") +
+            var cyclePts = cycle.map(function (i) { return sigilN(verts[i].x) + "," + sigilN(verts[i].y); }).join(" ");
+            svg += '<polygon class="sigil-figure-mark" points="' + cyclePts +
                    '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
+            svg += '<polygon class="sigil-hit-line" points="' + cyclePts +
+                   '" fill="none" stroke="transparent" stroke-width="14" stroke-linejoin="round"/>';
           });
         }
 
-        // A master number is marked, not spelled out in vertices.
+        // A master number is marked, not spelled out in vertices. Inside the
+        // same group: it is part of what the life path drew, not its own idea.
         if (isMaster) {
-          svg += '<circle cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="78" fill="none" ' +
-                 'stroke="#fbbf24" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="2 5"/>';
+          svg += '<circle class="sigil-figure-mark" cx="' + SIGIL_CX + '" cy="' + SIGIL_CY + '" r="78" fill="none" ' +
+                 'stroke="' + SIGIL_COLORS.master + '" stroke-opacity="0.3" stroke-width="1" stroke-dasharray="2 5"/>';
         }
+
+        svg += '</g>';
       }
 
       svg += '</svg>';
       return svg;
+    }
+
+    /* EVERY SWATCH IS DRAWN FROM SIGIL_COLORS, the same object buildSigilSvg
+       paints from, and with the same opacities and widths. That is the whole
+       point of the shared palette: a legend that retyped its own hex values
+       would look right on the day it was written and quietly lie the first
+       time a colour changed. If the figure's cyan moves, these move with it. */
+    function sigilSwatch(inner) {
+      return '<svg width="22" height="12" viewBox="0 0 22 12" aria-hidden="true">' + inner + '</svg>';
+    }
+
+    function buildSigilLegendHtml() {
+      var C = SIGIL_COLORS;
+      var rows = [
+        [sigilSwatch('<circle cx="11" cy="6" r="2.6" fill="' + C.planet + '" fill-opacity="0.75"/>'),
+         "A planet"],
+        [sigilSwatch('<circle cx="11" cy="6" r="3.4" fill="' + C.retrograde + '" fill-opacity="0.95" ' +
+                     'stroke="' + C.retrograde + '" stroke-opacity="0.35" stroke-width="2.4"/>'),
+         "Retrograde"],
+        [sigilSwatch('<line x1="1" y1="9" x2="21" y2="3" stroke="' + C.trace + '" stroke-opacity="0.85" ' +
+                     'stroke-width="1.6" stroke-linecap="round"/>'),
+         "The Chaldean trace"],
+        [sigilSwatch('<circle cx="11" cy="6" r="4" fill="' + C.trace + '" fill-opacity="0.9"/>'),
+         "Trace begins"],
+        [sigilSwatch('<circle cx="11" cy="6" r="4" fill="none" stroke="' + C.trace + '" ' +
+                     'stroke-opacity="0.9" stroke-width="1.8"/>'),
+         "Trace ends"],
+        [sigilSwatch('<line x1="1" y1="6" x2="21" y2="6" stroke="' + C.axis + '" stroke-opacity="0.32" stroke-width="1"/>'),
+         "Ascendant axis"],
+        [sigilSwatch('<line x1="1" y1="6" x2="21" y2="6" stroke="' + C.axis + '" stroke-opacity="0.32" ' +
+                     'stroke-width="1" stroke-dasharray="4 4"/>'),
+         "Midheaven axis"],
+        [sigilSwatch('<polygon points="11,1 20,11 2,11" fill="none" stroke="' + C.figure + '" ' +
+                     'stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>'),
+         "Inner figure &mdash; life path"],
+        [sigilSwatch('<circle cx="11" cy="6" r="5" fill="none" stroke="' + C.ring + '" stroke-width="1"/>'),
+         "Outer ring &mdash; the ecliptic"]
+      ];
+
+      return rows.map(function (r) {
+        return '<div class="sigil-legend-row">' + r[0] + '<span>' + r[1] + '</span></div>';
+      }).join("");
     }
 
     /* Renders the panel from whatever is available, and says what produced the
@@ -2283,7 +2487,18 @@
     function renderSigilPanel() {
       var figureEl  = document.getElementById("mychartSigilFigure");
       var captionEl = document.getElementById("mychartSigilCaption");
+      var introEl   = document.getElementById("mychartSigilIntro");
+      var legendEl  = document.getElementById("mychartSigilLegend");
       if (!figureEl || !captionEl) return;
+
+      /* The intro and the legend describe marks. On every branch below that
+         draws no figure there are no marks, so they are cleared rather than
+         left standing over an empty frame explaining things that are not
+         there. Cleared first, then filled once the SVG is in. */
+      function clearSigilExplain() {
+        if (introEl)  introEl.innerHTML  = "";
+        if (legendEl) legendEl.innerHTML = "";
+      }
 
       var natal = lastNatalData;
 
@@ -2292,12 +2507,14 @@
       // response would report the chart as unavailable while it was loading.
       if (!natalReceived) {
         figureEl.innerHTML = "";
+        clearSigilExplain();
         captionEl.innerHTML = '<span class="sigil-unavailable">Your chart is still loading&hellip;</span>';
         return;
       }
 
       if (!natal || !natal.available) {
         figureEl.innerHTML = "";
+        clearSigilExplain();
         captionEl.innerHTML = '<span class="sigil-unavailable">' + escapeXml(sigilReasonText(lastNatalRaw)) + '</span>';
         return;
       }
@@ -2307,11 +2524,20 @@
       var svg = buildSigilSvg(natal, lifePath);
       if (!svg) {
         figureEl.innerHTML = "";
+        clearSigilExplain();
         captionEl.innerHTML = '<span class="sigil-unavailable">' + escapeXml(sigilReasonText(lastNatalRaw)) + '</span>';
         return;
       }
 
       figureEl.innerHTML = svg;
+
+      /* Three parts under the figure, in this order: what a sigil IS (fixed),
+         what each mark MEANS (fixed, but drawn from the figure's own palette),
+         and what is true of THIS chart (the caption below, unchanged). The
+         first two are the same for everyone; only the third is a claim about
+         the reader, which is why it stays last and stays separate. */
+      if (introEl)  introEl.innerHTML  = SIGIL_MEANINGS.intro;
+      if (legendEl) legendEl.innerHTML = buildSigilLegendHtml();
 
       var traced = 0;
       var byName = {};
@@ -3120,6 +3346,39 @@
     /* Natal placement authored content -- same voice/purpose as DT_LIFEMAP,
        but for the ten planets plus ASC/MC on the natal orbit. Keys match
        the body names exactly as they appear in data-mc-name. */
+    /* The sigil's authored content, in the same place and the same shape as
+       DT_LIFEMAP and NATAL_MEANINGS: a page-level lookup keyed by identifier,
+       with the data attributes on the marks carrying only those identifiers.
+       Nothing here is generated and nothing is interpolated into it except the
+       body names and the live life path, both read at build time. */
+    var SIGIL_MEANINGS = {
+      /* Printed on EVERY trace segment, above that segment's own passage,
+         because it is what makes the line a derived figure rather than a
+         decorative one and it is true of all six equally. */
+      traceShared: "The trace runs in Chaldean order &mdash; the seven classical planets ranked by apparent speed across the sky, slowest first. The same sequence generates the planetary hours and the order of the days of the week. It is not a path you walked; it is the order the tradition puts them in, drawn across where they stood at your birth.",
+
+      /* Indexed by the FROM body's position in SIGIL_CHALDEAN_ORDER, which is
+         what data-mc-step carries. A segment that jumps a missing body has no
+         entry here and is given the shared paragraph alone. */
+      trace: [
+        "From the boundary to what expands past it. Saturn is time, limit, and the weight of consequence; Jupiter is increase, permission, and the door that opens. This is the first loosening &mdash; the step out of what was fixed for you and into what might yet be given.",
+        "From abundance to the blade that shapes it. Jupiter grants without asking what it is for; Mars cuts, chooses, and spends. Expansion with no edge becomes waste, and this is where the tradition puts the edge.",
+        "From force to purpose. Mars is the act; the Sun is the centre the act is meant to serve. Effort that never arrives here stays effort &mdash; motion without a place to land.",
+        "From the centre to what draws toward it. The Sun is the vital principle; Venus is attraction, harmony, and worth. This is the step where what you are becomes something others move toward.",
+        "From attraction to speech. Venus is desire and value; Mercury is mind, exchange, and the word that carries them. Wanting becomes sayable here, and what cannot be said cannot be traded.",
+        "From thought to the body that feels it. Mercury is the quick mind; the Moon is tide, memory, and flesh. The fastest of the seven closes the sequence &mdash; what began as Saturn's slow weight arrives as feeling."
+      ],
+
+      figure: "This figure is your life path drawn as a shape. The number is reduced, then given that many points &mdash; a triangle for 3, a pentagram for 5, two overlaid triangles for 6. Turning a number into a figure is among the oldest operations in the tradition: what can be counted can be drawn, and what can be drawn can be held in the eye at once. A master number keeps its identity in the caption and its reduced value in the geometry, because thirty-three points on a circle this size is a blur, not a figure.",
+
+      ring: "The outer circle is the ecliptic &mdash; three hundred and sixty degrees of sky, divided into twelve signs of thirty degrees each by the ticks. Zero degrees of Aries sits at the left, and the degrees increase counterclockwise, which is how a chart wheel has been drawn for a very long time. Every dot on this figure is a real longitude: where that body stood, from here, at the moment you were born.",
+
+      /* The standing explanation above the legend. Always shown whenever a
+         figure is drawn, because it is the sentence that stops the drawing
+         being read as ornament. */
+      intro: "A sigil is derived, not drawn. Every mark here is computed from your own chart &mdash; nothing is decorative and nothing was chosen for how it looks. Tap any part of it."
+    };
+
     var NATAL_MEANINGS = {
       bodies: {
         Sun: {
@@ -3518,12 +3777,61 @@
       return html;
     }
 
+    /* Heads with the two bodies the line actually joins, then the shared
+       Chaldean paragraph, then that step's own passage. The passage is omitted
+       — rather than guessed at — when data-mc-step is empty, which happens
+       when a missing body has made this segment a jump across the sequence
+       instead of a step along it. */
+    function buildMcSigilTraceHtml(data) {
+      var from = data.from || "";
+      var to   = data.to   || "";
+      var html = '<div class="mc-info-heading">' + escapeXml(from) + ' &rarr; ' + escapeXml(to) + '</div>';
+      html += '<div class="mc-info-body-text">' + SIGIL_MEANINGS.traceShared + '</div>';
+
+      var step = (data.step === "" || data.step == null) ? null : parseInt(data.step, 10);
+      if (step != null && !isNaN(step) && SIGIL_MEANINGS.trace[step]) {
+        html += '<div class="mc-info-body-text">' + SIGIL_MEANINGS.trace[step] + '</div>';
+      }
+      return html;
+    }
+
+    /* The live life path, read here rather than carried on the tap — the same
+       rule buildMcLineHtml follows for the letter. The figure and this heading
+       are then guaranteed to describe the same number even if numerology
+       arrives after the mark was drawn. */
+    function buildMcSigilFigureHtml() {
+      var lifePath = (numerologyData && numerologyData.life_path != null) ? numerologyData.life_path : null;
+      var heading = "The Inner Figure";
+
+      if (lifePath != null) {
+        var lpNum    = Number(lifePath);
+        var isMaster = SIGIL_MASTER_REDUCTION.hasOwnProperty(lpNum);
+        heading += " &middot; Life Path " + escapeXml(lifePath);
+        if (isMaster) heading += " (drawn at " + SIGIL_MASTER_REDUCTION[lpNum] + " points)";
+      }
+
+      var html = '<div class="mc-info-heading">' + heading + '</div>';
+      html += '<div class="mc-info-body-text">' + SIGIL_MEANINGS.figure + '</div>';
+      if (lifePath == null) {
+        html += '<div class="mc-info-body-text mc-info-wisdom">Your life path has not arrived yet, so the figure above is not drawn from a number.</div>';
+      }
+      return html;
+    }
+
+    function buildMcSigilRingHtml() {
+      return '<div class="mc-info-heading">The Zodiac Ring</div>' +
+        '<div class="mc-info-body-text">' + SIGIL_MEANINGS.ring + '</div>';
+    }
+
     function buildMcInfoHtml(type, data) {
       if (type === "line")     return buildMcLineHtml(data.line, data.square, data.ageRange);
       if (type === "center")   return buildMcCenterHtml(data.center, data.value);
       if (type === "interior") return buildMcInteriorHtml(data.interior, data.value);
       if (type === "tzolkin")  return buildMcTzolkinHtml(data);
       if (type === "natal")    return buildMcNatalHtml(data);
+      if (type === "sigiltrace")  return buildMcSigilTraceHtml(data);
+      if (type === "sigilfigure") return buildMcSigilFigureHtml();
+      if (type === "sigilring")   return buildMcSigilRingHtml();
       return "";
     }
 
@@ -3669,6 +3977,24 @@
           " — what does this placement mean for me?";
       }
 
+      /* Without these three the fallback below would offer to speak about
+         "this element of my Divine Triangle blueprint", which is the wrong
+         chart entirely — the sigil is not the blueprint. */
+      if (type === "sigiltrace") {
+        return "In my sigil, the Chaldean trace runs from " + (data.from || "one body") +
+          " to " + (data.to || "the next") + ". Speak personally about what that step means for me.";
+      }
+
+      if (type === "sigilfigure") {
+        var lp = (numerologyData && numerologyData.life_path != null) ? numerologyData.life_path : null;
+        return "My sigil's inner figure is drawn from my life path" + (lp != null ? " " + lp : "") +
+          ". Speak personally about what that number, drawn as a shape, says about me.";
+      }
+
+      if (type === "sigilring") {
+        return "Speak personally about the zodiac ring of my sigil — the ecliptic my planets are placed on, and what it means that they are read against it.";
+      }
+
       return "Speak personally about this element of my Divine Triangle blueprint.";
     }
 
@@ -3686,6 +4012,9 @@
         var names = { AD: "your Birth Month", DG: "your Birth Day", AG: "your Birth Year" };
         return names[data.interior] || "this interior line";
       }
+      if (type === "sigiltrace")  return "the " + (data.from || "") + " to " + (data.to || "") + " step";
+      if (type === "sigilfigure") return "my sigil's inner figure";
+      if (type === "sigilring")   return "the zodiac ring";
       if (type === "tzolkin") return "your Tzolk'in Birth Signature";
       if (type === "natal") {
         var body = (data.kind === "angle")
@@ -3875,7 +4204,13 @@
           kind:   target.getAttribute("data-mc-kind"),
           sign:   target.getAttribute("data-mc-sign"),
           degree: target.getAttribute("data-mc-degree"),
-          house:  target.getAttribute("data-mc-house")
+          house:  target.getAttribute("data-mc-house"),
+          /* sigiltrace only. sigilfigure and sigilring carry no identifier at
+             all — there is one of each, and their builders read the live life
+             path rather than anything the mark could have carried. */
+          step:   target.getAttribute("data-mc-step"),
+          from:   target.getAttribute("data-mc-from"),
+          to:     target.getAttribute("data-mc-to")
         });
       });
     }
