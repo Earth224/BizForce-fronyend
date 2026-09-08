@@ -30,6 +30,26 @@
     .generate-status.success{color:#34d399}
     .generate-status.show{min-height:16px;margin-bottom:14px}
     .generate-status.error{color:#f87171}
+    .autonomy-panel{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:6px 22px;margin-bottom:18px}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0}
+    .toggle-copy{flex:1;min-width:0}
+    .toggle-title{font-size:.92rem;font-weight:700;color:#e6edf3}
+    .toggle-desc{margin-top:2px;font-size:.8rem;color:#8892b8;line-height:1.5}
+    .toggle-switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0}
+    .toggle-switch input{position:absolute;opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);transition:background .25s ease,border-color .25s ease;cursor:pointer}
+    .toggle-slider::before{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#cfd3ea;transition:transform .25s ease,background .25s ease,box-shadow .25s ease}
+    .toggle-switch input:checked + .toggle-slider{background:linear-gradient(90deg,#00e5ff,#a855f7);border-color:rgba(168,85,247,.5)}
+    .toggle-switch input:checked + .toggle-slider::before{transform:translateX(18px);background:#fff;box-shadow:0 0 8px rgba(168,85,247,.6)}
+    .toggle-switch input:disabled + .toggle-slider{opacity:.5;cursor:not-allowed}
+    /* The unknown state. Deliberately NOT a switch: a switch has only two
+       positions and both of them are a claim about the user's setting. */
+    .toggle-unknown{flex-shrink:0;width:42px;text-align:center;font-size:1rem;font-weight:800;color:#8892b8}
+    .autonomy-note{margin:0 0 14px;font-size:.8rem;line-height:1.6}
+    .autonomy-note.ok{color:#34d399}
+    .autonomy-note.warn{color:#fbbf24}
+    .autonomy-note.error{color:#f87171}
+    .autonomy-note.muted{color:#8892b8}
     .reviews-list{display:flex;flex-direction:column;gap:14px}
     .review-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 22px}
     .review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
@@ -73,6 +93,22 @@
     <p class="hero-sub">What your business actually did, week by week and month by month. All periods are closed and measured in UTC.</p>
   </header>
 
+  <!-- Autonomous control sits above manual control, in one place, so the answer
+       to "will this happen on its own?" is next to the button you press when it
+       will not. Only the analytics agent is shown: the API accepts all
+       registered agent types, but only two are read by any job, and a toggle no
+       job acts on would promise something the backend does not do. -->
+  <div class="autonomy-panel">
+    <div class="toggle-row">
+      <div class="toggle-copy">
+        <div class="toggle-title">Automatic reviews</div>
+        <div class="toggle-desc">Let the analytics agent generate each weekly and monthly review on its own, as soon as the period closes.</div>
+      </div>
+      <span id="autonomyControl"></span>
+    </div>
+  </div>
+  <p class="autonomy-note muted" id="autonomyNote">Checking your automatic review setting...</p>
+
   <div class="generate-bar">
     <button class="btn-generate" id="runWeeklyBtn" onclick="runReview('weekly')">Run Weekly</button>
     <button class="btn-generate" id="runMonthlyBtn" onclick="runReview('monthly')">Run Monthly</button>
@@ -98,6 +134,34 @@ var reviews = [];
    it is indistinguishable, on screen, from the true empty state. So the error
    is held separately and rendered as an error, never as emptiness. */
 var loadError = null;
+
+/* ── AUTONOMY STATE: THREE VALUES, NEVER COLLAPSED INTO ONE ────────────────
+   Whether a review will be generated on its own depends on TWO independent
+   switches, and this page reads both because neither alone answers the
+   question:
+
+     autonomyEnabled  — has this user opted in?  (GET /api/agent-autonomy)
+     schedulerEnabled — is the daily pass running on the server?
+                        (scheduler_enabled on GET /api/self-reviews)
+
+   Both must be true. A page that showed only the first would display a
+   confident "On" while nothing was scheduled to act on it — a setting that
+   saves, reads back correctly, and does nothing, with no error anywhere to
+   explain why no reviews ever appear. So "opted in" and "will actually run"
+   are rendered as different sentences, and the second is never inferred from
+   the first.
+
+   Each is THREE-VALUED: true, false, or null for "we could not find out".
+   null is not false. An unread setting rendered as off would tell the user
+   something false about their own configuration — and worse, it is something
+   they might act on, toggling a switch that was already in the position they
+   wanted and writing a change they never intended. */
+var autonomyEnabled  = null;   // true | false | null (unknown)
+var autonomyError    = null;   // string when the read failed
+var schedulerEnabled = null;   // true | false | null (unknown)
+var autonomySaving   = false;
+
+var AUTONOMY_AGENT_TYPE = "analytics";
 
 function escapeHtml(str) {
   return String(str == null ? "" : str)
@@ -167,6 +231,147 @@ function metricCell(key, value, unreadableKeys) {
          '</div>';
 }
 
+async function loadAutonomy() {
+  autonomyError = null;
+  try {
+    var res = await fetch(API_URL + "/api/agent-autonomy", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("Your automatic review setting could not be read.");
+    var d = await res.json();
+
+    var rows = Array.isArray(d.autonomy) ? d.autonomy : [];
+    var row = null;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] && rows[i].agent_type === AUTONOMY_AGENT_TYPE) { row = rows[i]; break; }
+    }
+
+    /* No row means not opted in — that is the backend's own rule (migration
+       064: the absence of a row means disabled), so this is a real false and
+       not an unknown. It is the one case where "nothing found" is an answer
+       rather than a failure to get one. */
+    autonomyEnabled = row ? row.enabled === true : false;
+  } catch (e) {
+    // Unknown, NOT off. autonomyEnabled is left null so the renderer shows a
+    // dash rather than a switch in either position.
+    autonomyEnabled = null;
+    autonomyError = e.message || "Your automatic review setting could not be read.";
+  }
+  renderAutonomy();
+}
+
+function renderAutonomy() {
+  var control = document.getElementById("autonomyControl");
+  var note    = document.getElementById("autonomyNote");
+
+  // ── The control ──────────────────────────────────────────────────────────
+  if (autonomyEnabled === null) {
+    // No switch at all. Rendering one would put it in a position, and both
+    // positions are a claim we cannot support.
+    control.innerHTML = '<span class="toggle-unknown" title="Setting could not be read">&mdash;</span>';
+  } else {
+    control.innerHTML =
+      '<label class="toggle-switch">' +
+        '<input type="checkbox" id="autonomyToggle"' +
+          (autonomyEnabled ? ' checked' : '') +
+          (autonomySaving ? ' disabled' : '') + ' />' +
+        '<span class="toggle-slider"></span>' +
+      '</label>';
+
+    var input = document.getElementById("autonomyToggle");
+    if (input) {
+      input.onchange = function () { setAutonomy(input.checked); };
+    }
+  }
+
+  // ── The sentence ─────────────────────────────────────────────────────────
+  if (autonomyError) {
+    note.className = "autonomy-note error";
+    note.textContent = autonomyError + " This is a problem reaching the server — it does not mean the setting is off. Reload to try again.";
+    return;
+  }
+
+  if (autonomySaving) {
+    note.className = "autonomy-note muted";
+    note.textContent = "Saving...";
+    return;
+  }
+
+  if (autonomyEnabled === false) {
+    note.className = "autonomy-note muted";
+    note.textContent = "Off. Reviews are only created when you run them yourself with the buttons below.";
+    return;
+  }
+
+  // Opted in. What happens next depends entirely on the second switch, so the
+  // three cases below are three different sentences and never one "On".
+  if (schedulerEnabled === true) {
+    note.className = "autonomy-note ok";
+    note.textContent = "On. Each weekly and monthly review is generated automatically once its period closes.";
+    return;
+  }
+
+  if (schedulerEnabled === false) {
+    note.className = "autonomy-note warn";
+    note.textContent = "Enabled for this account, but the scheduled pass is not running on the server — so nothing will be generated automatically until it is. Use the buttons below to run a review yourself in the meantime.";
+    return;
+  }
+
+  // schedulerEnabled === null: the reviews request did not come back, so the
+  // server half is unknown. Not asserted either way.
+  note.className = "autonomy-note muted";
+  note.textContent = "Enabled for this account. Whether the scheduled pass is running on the server could not be determined, so it is not certain that reviews will be generated automatically.";
+}
+
+async function setAutonomy(next) {
+  /* The value to go back to if the write fails — what the setting WAS, not
+     what was attempted. The browser has already moved the checkbox by the time
+     this runs, so a failed write that left it there would show a state the
+     server never accepted. */
+  var previous = autonomyEnabled;
+
+  autonomySaving = true;
+  autonomyError = null;
+  autonomyEnabled = next;
+  renderAutonomy();
+
+  try {
+    var res = await fetch(API_URL + "/api/agent-autonomy", {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      // A real boolean, never a string. The backend rejects "true" with a 400
+      // precisely because a string would be truthy, and it is right to.
+      body: JSON.stringify({ agent_type: AUTONOMY_AGENT_TYPE, enabled: next === true })
+    });
+
+    var d = await res.json().catch(function () { return {}; });
+
+    if (!res.ok) {
+      throw new Error(d.error || ("The setting could not be saved (HTTP " + res.status + ")."));
+    }
+
+    // Trust the row the server echoed back over what was sent, so the page
+    // shows what was stored rather than what was requested.
+    autonomyEnabled = (d.autonomy && typeof d.autonomy.enabled === "boolean")
+      ? d.autonomy.enabled
+      : next === true;
+    autonomySaving = false;
+    renderAutonomy();
+  } catch (e) {
+    // Back to `previous`, not to `next`.
+    autonomyEnabled = previous;
+    autonomySaving = false;
+    renderAutonomy();
+
+    var note = document.getElementById("autonomyNote");
+    note.className = "autonomy-note error";
+    note.textContent = e.message || "The setting could not be saved.";
+  }
+}
+
 async function loadReviews() {
   var container = document.getElementById("reviewsList");
   container.innerHTML = '<div class="empty-state">Loading reviews...</div>';
@@ -179,12 +384,25 @@ async function loadReviews() {
     if (!res.ok) throw new Error("Your reviews could not be loaded. This is a problem reaching the server, not a statement about your data.");
     var d = await res.json();
     reviews = d.reviews || [];
+
+    // The server half of the autonomy answer rides along with this response.
+    // Only a real boolean is accepted; an older server that does not send the
+    // field leaves it null, which renders as "could not be determined" rather
+    // than as "not running".
+    schedulerEnabled = typeof d.scheduler_enabled === "boolean" ? d.scheduler_enabled : null;
+    renderAutonomy();
   } catch (e) {
     // reviews is deliberately NOT cleared to [] and then rendered as empty —
     // renderReviews checks loadError first, so nothing here can be mistaken
     // for "this account has none".
     reviews = [];
     loadError = e.message || "Your reviews could not be loaded.";
+
+    // The scheduler flag came from the request that just failed, so it is
+    // unknown rather than false. Re-rendered so the autonomy sentence stops
+    // asserting a server state it no longer has evidence for.
+    schedulerEnabled = null;
+    renderAutonomy();
   }
   renderReviews();
 }
@@ -318,6 +536,10 @@ async function runReview(periodType) {
   }
 }
 
+// Both, independently. Neither blocks the other: a failed autonomy read still
+// leaves the reviews list working, and vice versa, and each renders its own
+// unknown state rather than the page showing nothing.
+loadAutonomy();
 loadReviews();
 </script>
 </body>
