@@ -420,6 +420,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  /* WHY THE USER IS LOOKING AT THIS PAGE. scripts/bf-session.js redirects here
+     with ?session=expired when an API call comes back 401, because the token is
+     a 7-day JWT with no refresh and the page guard only ever tested that a
+     token string existed. Without this block the redirect would land them on a
+     bare sign-in form having been thrown out of a page they were using, which
+     reads as the app logging them out at random — the reason has to arrive with
+     them or the redirect is only half the fix.
+
+     Shown through setError rather than setStatus: #err is aria-live="assertive"
+     and this is an interruption the reader needs to notice, not a progress
+     note. The parameter is then stripped from the URL so a refresh or a
+     bookmark does not keep re-announcing an expiry that has already been
+     dealt with. */
+  (function () {
+    var reason = null;
+    try {
+      reason = new URLSearchParams(window.location.search).get("session");
+    } catch (e) { return; }
+
+    if (reason !== "expired") return;
+
+    setError("Your session expired. Please sign in again.");
+
+    try {
+      window.history.replaceState({}, "", window.location.pathname);
+    } catch (e) { /* leaving the parameter is harmless */ }
+  }());
+
   function setLoginBusy(isBusy) {
     if (loginBtn) {
       loginBtn.disabled = isBusy;
