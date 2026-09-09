@@ -586,6 +586,36 @@
 
             <div class="identity-line" id="acctIdentity">Signed in</div>
 
+            <!-- Passkeys. The header row and the credential rows share one
+                 container so that `.toggle-row + .toggle-row` draws the
+                 separators between them; injecting the list into a sibling
+                 element would lose the rule and need CSS to put it back. -->
+            <div id="pkRows">
+              <div class="toggle-row">
+                <div class="toggle-copy">
+                  <div class="toggle-title">Passkeys</div>
+                  <div class="toggle-desc">Sign in with your fingerprint, face, or a security key instead of a password.</div>
+                  <div class="msg" id="pkStatus"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" id="pkNameGroup" style="display:none;">
+              <label for="pkNickname">Name this device</label>
+              <input type="text" id="pkNickname" maxlength="60" autocomplete="off" placeholder="This device" />
+            </div>
+
+            <div class="btn-row" id="pkAddRow" style="display:none;">
+              <button class="btn" id="pkAddBtn" type="button">Add a Passkey</button>
+            </div>
+
+            <p class="pref-note" id="pkListNote" style="display:none;">
+              This list shows only the passkeys added in this session. The page cannot
+              yet read back everything on your account — that needs a route the server
+              does not have — so a passkey added on another device, or before this page
+              was reloaded, will not appear here even though it still works.
+            </p>
+
             <div class="btn-row">
               <button class="btn btn-danger" id="signOutBtn" type="button">Sign Out</button>
             </div>
@@ -1238,6 +1268,301 @@
         } catch (e) {}
       }
       acctIdentity.textContent = identityText;
+
+      /* ── Passkeys (WebAuthn registration) ──────────────────────────────
+         Enrolment only. There is no login ceremony on the server yet, so a
+         passkey added here cannot be used to sign in until that ships. */
+      var pkRows      = document.getElementById("pkRows");
+      var pkStatus    = document.getElementById("pkStatus");
+      var pkAddRow    = document.getElementById("pkAddRow");
+      var pkAddBtn    = document.getElementById("pkAddBtn");
+      var pkNameGroup = document.getElementById("pkNameGroup");
+      var pkNickname  = document.getElementById("pkNickname");
+      var pkListNote  = document.getElementById("pkListNote");
+
+      function setPkStatus(text, cls) {
+        pkStatus.textContent = text;
+        pkStatus.className = "msg" + (cls ? " " + cls : "");
+      }
+
+      /* ── base64url ⇄ bytes ───────────────────────────────────────────────
+         WebAuthn speaks ArrayBuffers; JSON does not. Everything crossing that
+         boundary is base64URL — NOT base64. The two differ in three ways: `+`
+         becomes `-`, `/` becomes `_`, and the `=` padding is dropped.
+
+         Getting this wrong is worth being careful about because of HOW it
+         fails. A `+`/`-` mix-up corrupts a handful of bytes somewhere in the
+         middle of a challenge or a public key, and everything downstream still
+         looks structurally valid — so the server does not say "that is not
+         valid base64", it says the signature did not verify. The error points
+         at the cryptography, which is correct and working, instead of at the
+         encoding, which is not. Hours disappear into that gap.
+
+         atob/btoa handle standard base64 only, so the swap happens on both
+         sides of them, every time. */
+      function b64urlToBytes(value) {
+        var b64 = String(value).replace(/-/g, "+").replace(/_/g, "/");
+
+        // atob requires the padding base64url omits. A remainder of 1 is not a
+        // length base64 can produce, so it is corrupt rather than unpadded.
+        var remainder = b64.length % 4;
+        if (remainder === 2) { b64 += "=="; }
+        else if (remainder === 3) { b64 += "="; }
+        else if (remainder === 1) { throw new Error("Malformed base64url from the server."); }
+
+        var raw = window.atob(b64);
+        var bytes = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) {
+          bytes[i] = raw.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      function bytesToB64url(buffer) {
+        var bytes = new Uint8Array(buffer);
+        var binary = "";
+
+        /* A loop, not String.fromCharCode.apply(null, bytes). apply spreads
+           the array into arguments, and an attestationObject is large enough
+           to blow the argument limit on some browsers — which fails as a
+           RangeError from deep inside a conversion, another error that names
+           the wrong thing. */
+        for (var i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+
+        return window.btoa(binary)
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      }
+
+      /* WHY THE HOSTNAME DECIDES WHETHER THIS WORKS AT ALL.
+         The relying-party ID is bizforceai.net, and a browser only accepts an
+         RP ID that is the page's own domain or a registrable parent of it. On
+         a Netlify preview the page is served from something.netlify.app, and
+         netlify.app is on the Public Suffix List — which makes bizforceai.net
+         not a parent of it but an unrelated domain entirely. The browser
+         refuses with a SecurityError before the authenticator is ever asked.
+
+         Nothing can be done about that from here; it is the same rule that
+         stops one site registering credentials for another, working correctly.
+         So the button is disabled and says so, because the alternative is
+         someone clicking it on a preview deploy and spending an afternoon
+         debugging a signature error that was never about signatures. */
+      function rpIdCanBeValidHere() {
+        var host = window.location.hostname;
+        return host === "bizforceai.net" ||
+               host === "www.bizforceai.net" ||
+               host === "localhost" ||
+               host === "127.0.0.1";
+      }
+
+      function renderPasskeyRow(credential) {
+        var row = document.createElement("div");
+        row.className = "toggle-row";
+
+        var copy = document.createElement("div");
+        copy.className = "toggle-copy";
+
+        var title = document.createElement("div");
+        title.className = "toggle-title";
+        // textContent, not innerHTML: the nickname is user-entered text.
+        title.textContent = credential.nickname || "Passkey";
+
+        var desc = document.createElement("div");
+        desc.className = "toggle-desc";
+        var added = credential.created_at ? new Date(credential.created_at) : null;
+        desc.textContent = added && !isNaN(added.getTime())
+          ? "Added " + added.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+          : "Added just now";
+
+        copy.appendChild(title);
+        copy.appendChild(desc);
+
+        /* DISABLED, AND THIS IS NOT AN OVERSIGHT. There is no delete route on
+           the server yet, so nothing this button could call would actually
+           remove the credential. A working-looking Remove that silently fails
+           to remove a way of signing in is worse than no Remove at all — the
+           user would believe a device had been revoked when it had not. The
+           control is present and explains itself; it gets wired up in the same
+           pass that adds the route. */
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "btn btn-danger";
+        remove.textContent = "Remove";
+        remove.disabled = true;
+        remove.title = "Removing a passkey needs a server route that does not exist yet.";
+
+        row.appendChild(copy);
+        row.appendChild(remove);
+        pkRows.appendChild(row);
+
+        pkListNote.style.display = "block";
+      }
+
+      function defaultNickname() {
+        var ua = navigator.userAgent || "";
+        if (/iPhone|iPad|iPod/i.test(ua)) { return "iPhone or iPad"; }
+        if (/Android/i.test(ua))          { return "Android device"; }
+        if (/Macintosh|Mac OS X/i.test(ua)) { return "Mac"; }
+        if (/Windows/i.test(ua))          { return "Windows PC"; }
+        return "This device";
+      }
+
+      function initPasskeys() {
+        if (!window.PublicKeyCredential) {
+          setPkStatus("This browser does not support passkeys.", "err");
+          return;
+        }
+
+        if (!rpIdCanBeValidHere()) {
+          pkAddRow.style.display = "flex";
+          pkAddBtn.disabled = true;
+          setPkStatus(
+            "Passkeys only work on bizforceai.net. This page is on " +
+            window.location.hostname + ", where the browser will not accept " +
+            "this site's passkey settings — open the live site to add one.",
+            "err"
+          );
+          return;
+        }
+
+        pkNameGroup.style.display = "block";
+        pkAddRow.style.display = "flex";
+        pkNickname.value = defaultNickname();
+        setPkStatus("");
+      }
+
+      function addPasskey() {
+        pkAddBtn.disabled = true;
+        setPkStatus("Starting…", "");
+
+        var nickname = (pkNickname.value || "").trim() || defaultNickname();
+
+        fetch(API_URL + "/api/webauthn/register/start", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({})
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error((res.data && res.data.error) || "Could not start passkey setup.");
+            }
+
+            var options = (res.data && res.data.options) || {};
+
+            /* JSON in, ArrayBuffers out. These three are the only fields the
+               browser insists on as binary; everything else it takes as-is. */
+            options.challenge = b64urlToBytes(options.challenge);
+            options.user.id = b64urlToBytes(options.user.id);
+
+            if (Array.isArray(options.excludeCredentials)) {
+              options.excludeCredentials = options.excludeCredentials.map(function (c) {
+                return {
+                  id: b64urlToBytes(c.id),
+                  type: c.type || "public-key",
+                  transports: c.transports
+                };
+              });
+            }
+
+            setPkStatus("Follow your device's prompt…", "");
+            return navigator.credentials.create({ publicKey: options });
+          })
+          .then(function (credential) {
+            if (!credential) {
+              throw new Error("No passkey was created.");
+            }
+
+            // And back the other way, into the shape the server verifies.
+            var payload = {
+              // credential.id is ALREADY a base64url string per the spec.
+              // rawId is the same value as bytes and does need converting.
+              id: credential.id,
+              rawId: bytesToB64url(credential.rawId),
+              type: credential.type,
+              response: {
+                clientDataJSON: bytesToB64url(credential.response.clientDataJSON),
+                attestationObject: bytesToB64url(credential.response.attestationObject),
+                transports: credential.response.getTransports
+                  ? credential.response.getTransports()
+                  : []
+              },
+              clientExtensionResults: credential.getClientExtensionResults
+                ? credential.getClientExtensionResults()
+                : {},
+              authenticatorAttachment: credential.authenticatorAttachment || undefined
+            };
+
+            setPkStatus("Saving…", "");
+
+            return fetch(API_URL + "/api/webauthn/register/finish", {
+              method: "POST",
+              headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ response: payload, nickname: nickname })
+            }).then(function (r) {
+              return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            });
+          })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error((res.data && res.data.error) || "That passkey could not be saved.");
+            }
+
+            renderPasskeyRow((res.data && res.data.credential) || { nickname: nickname });
+
+            pkAddBtn.disabled = false;
+            pkNickname.value = defaultNickname();
+            setPkStatus("Passkey added. Signing in with it needs the login ceremony, which is not live yet.", "ok");
+          })
+          .catch(function (error) {
+            pkAddBtn.disabled = false;
+
+            /* NOT AN ERROR. NotAllowedError is what the browser reports when
+               the person dismissed the prompt or simply let it time out —
+               both of which are someone deciding not to do this right now.
+               Answering a deliberate "no" with red text reads as though
+               something broke, and invites them to retry something they
+               chose to stop. */
+            if (error && error.name === "NotAllowedError") {
+              setPkStatus("");
+              return;
+            }
+
+            /* The authenticator recognised itself in excludeCredentials and
+               declined — this device already has a passkey here. Worth saying
+               precisely, because "already registered" is a success state
+               wearing an error's clothes. */
+            if (error && error.name === "InvalidStateError") {
+              setPkStatus("This device already has a passkey for this account.", "");
+              return;
+            }
+
+            if (error && error.name === "SecurityError") {
+              setPkStatus(
+                "The browser refused this site's passkey settings on " +
+                window.location.hostname + ". Passkeys only work on bizforceai.net.",
+                "err"
+              );
+              return;
+            }
+
+            setPkStatus((error && error.message) || "That passkey could not be added.", "err");
+          });
+      }
+
+      pkAddBtn.addEventListener("click", addPasskey);
+      initPasskeys();
 
       document.getElementById("signOutBtn").addEventListener("click", function () {
         localStorage.removeItem("bf_token");
