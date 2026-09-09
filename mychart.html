@@ -192,12 +192,45 @@
        centered triangle/orbit. Sized to its own content (no forced
        height), NOT part of the page's flex flow, so #myChartStage goes
        back to full page width exactly as before the panel existed. ── */
-    .mychart-calendar-panel {
+    /* ── ONE FIXED COLUMN FOR BOTH LEFT-HAND PANELS. ────────────────────────
+       The calendar and the Tzolk'in card used to be two independently fixed
+       elements, one pinned left and one pinned right at the same top:96px.
+       The Tzolk'in card now sits under the calendar, and it does so by being
+       its SIBLING IN A FLEX COLUMN rather than by carrying a top offset of its
+       own.
+
+       That distinction is the whole point. The calendar's height is not a
+       constant — it grows and shrinks with the active calendar system, the
+       length of the formatted date, and how many events today has — so any
+       hardcoded `top` for the card below would be wrong the moment that
+       content changed, leaving either a gap or an overlap, and would be wrong
+       silently. Normal flow between two siblings costs nothing and cannot
+       drift: the gap is 16px from whatever the panel above actually measures.
+
+       The column keeps the calendar's own former offsets exactly (top 96px,
+       left 24px, z-index 2, width 240px), so the calendar has not moved by a
+       pixel; only the card has.
+
+       THE HEIGHT CAP IS A SAFEGUARD, NOT A DESIGN CHOICE. A fixed element has
+       no way to scroll with the page, so a column taller than the viewport
+       would put its lower half permanently out of reach. That was already
+       possible with the calendar alone on a short screen and adding a second
+       panel makes it likelier, so the column scrolls internally rather than
+       running off the bottom. On any normal viewport it never engages. ── */
+    .mychart-left-rail {
       position: fixed;
       top: 96px;
       left: 24px;
       z-index: 2;
       width: 240px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scrollbar-width: thin;
+    }
+    .mychart-calendar-panel {
       background: rgba(10,4,20,0.55);
       border: 1px solid rgba(34,211,238,0.18);
       border-radius: 16px;
@@ -236,12 +269,12 @@
        another calendar-tradition control. Starts hidden inline (display:
        none in the markup) — renderTzolkinCard() only reveals it once a
        birth date actually resolves to a signature; see PART F. ── */
+    /* Positioned by .mychart-left-rail above, not by itself. It keeps
+       display:none as its inline default and JS clears that to reveal it —
+       which is why it is a flex ITEM rather than absolutely placed: while
+       hidden it takes no space and the column's 16px gap collapses with it,
+       so a chart with no Tzolk'in data leaves no hole under the calendar. */
     .mychart-tzolkin-card {
-      position: fixed;
-      top: 96px;
-      right: 24px;
-      z-index: 2;
-      width: 240px;
       background: rgba(10,4,20,0.55);
       border: 1px solid rgba(232,200,116,0.25);
       border-radius: 16px;
@@ -249,10 +282,25 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       cursor: pointer;
-      transition: border-color 0.2s, background-color 0.2s;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.2s;
     }
+    /* ── THE SAME HOVER THE NATAL CARDS USE, to the value. ──────────────────
+       This card was already tappable and already carried cursor:pointer and a
+       hover — so the problem was never that it had NO affordance, it was that
+       its affordance did not speak the page's language. Everything else that
+       opens the info panel answers hover in EMERALD: the triangle's edges
+       (rgba(52,211,153,0.55) on .mc-line-glow), the natal cards
+       (rgba(52,211,153,0.45) plus a 0.18 glow), and every sigil mark. This
+       card answered in its own gold, which reads as the card brightening
+       rather than as the page's one signal for "this opens something".
+
+       So the border and glow are now the natal card's exact values. The gold
+       stays at REST, where it is the card's identity; emerald appears only on
+       hover, where it is the shared vocabulary. The existing background
+       darkening is kept — it was already there, and more cue is the point. ── */
     .mychart-tzolkin-card:hover {
-      border-color: rgba(232,200,116,0.5);
+      border-color: rgba(52,211,153,0.45);
+      box-shadow: 0 0 12px rgba(52,211,153,0.18);
       background: rgba(10,4,20,0.7);
     }
     .mychart-tzolkin-title {
@@ -1119,6 +1167,9 @@
       <span class="brand-badge">BizForce AI</span>
     </nav>
 
+    <!-- Both left-hand panels share one fixed column so the Tzolk'in card
+         follows the calendar's real height. See .mychart-left-rail. -->
+    <div class="mychart-left-rail" id="mychartLeftRail">
     <div class="mychart-calendar-panel" id="calendarPanel">
       <div class="mychart-calendar-title">Calendar</div>
 
@@ -1138,11 +1189,19 @@
       <a class="cel-now-btn" id="mcOpenFullCalendar" href="calendar.html">&#x26F6; Open Full Calendar</a>
     </div>
 
-    <div class="mychart-tzolkin-card" id="mcTzolkinCard" style="display:none;">
+    <!-- mc-tappable is the page's marker for "this opens the info panel", worn
+         by the natal cards (class="natal-node mc-tappable") and by every
+         tappable group in the blueprint and the sigil. This card has always
+         had its own listener and always opened the panel; it simply never
+         carried the class, so it was the one interactive element on the page
+         not declaring itself as one. It needs no data-mc-type: its listener is
+         direct and passes "tzolkin" explicitly. -->
+    <div class="mychart-tzolkin-card mc-tappable" id="mcTzolkinCard" style="display:none;">
       <div class="mychart-tzolkin-title">Tzolk&rsquo;in</div>
       <div class="mychart-tzolkin-line1" id="mcTzolkinLine1">&mdash;</div>
       <div class="mychart-tzolkin-line2" id="mcTzolkinLine2">&mdash;</div>
     </div>
+    </div><!-- /.mychart-left-rail -->
 
     <div class="mychart-title-row">
       <h1 class="mychart-title">My Chart</h1>
