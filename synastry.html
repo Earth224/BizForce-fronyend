@@ -347,7 +347,19 @@ async function submitRecord(placeId) {
       pendingCandidates = Array.isArray(d.candidates) ? d.candidates : [];
       pendingValues     = values;
       renderCandidates();
-      setAddStatus(d.error || "That birth place matches more than one location. Choose one below.", "error");
+      /* No red line above the list. The server's 409 text is written for the
+         caller of the API — it ends by asking for another POST with place_id,
+         which is not an action a person can take — and the candidate block
+         directly below already says what happened and what to choose. Two
+         messages for one condition, one of them addressed to the wrong reader.
+
+         Suppressed only for the case the block actually handles. A 409 with no
+         candidates renders nothing, so there the status stays and carries the
+         page's own wording. Every other failure still shows the server's
+         message, which names what to change. */
+      setAddStatus(pendingCandidates.length
+        ? ""
+        : "That birth place matches more than one location, but no options came back. Try a more specific place.", "error");
       return;
     }
 
