@@ -565,6 +565,16 @@ if (loginForm) {
         }
 
         localStorage.setItem("bf_token", data.token);
+        /* The refresh token, stored beside the access token because it is
+           what scripts/bf-session.js exchanges when the access token expires.
+           Without it a 401 has nothing to renew from and the only option is a
+           redirect back here. Guarded rather than assumed: a deployment where
+           the API predates refresh tokens returns no such field, and writing
+           the string "undefined" into storage would look like a credential to
+           every later reader and be sent to the server as one. */
+        if (data.refresh_token) {
+          localStorage.setItem("bf_refresh", data.refresh_token);
+        }
         localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
 
         var sub = data.subscription;
@@ -682,6 +692,12 @@ if (loginForm) {
 
         if (data.token) {
           localStorage.setItem("bf_token", data.token);
+          /* Same as the login path above: registration returns a refresh
+             token too, and an account created but never given one would hit
+             the seven-day cliff the refresh route exists to remove. */
+          if (data.refresh_token) {
+            localStorage.setItem("bf_refresh", data.refresh_token);
+          }
           /* Registration returns a profile just as login does, and until this
              line it was thrown away — so a brand-new account arrived at the
              dashboard with no bf_user at all and every surface that reads it

@@ -5,6 +5,10 @@
 <script>
     function logout() {
     localStorage.removeItem("bf_token");
+    /* The refresh token is a live credential - it mints access tokens with no
+       password - so a sign-out that left it behind would leave the account
+       reachable from this browser by anything that reads storage. */
+    localStorage.removeItem("bf_refresh");
     localStorage.removeItem("bf_user");
     window.location.replace("/app.html");
 }

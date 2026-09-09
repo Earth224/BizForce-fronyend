@@ -1241,6 +1241,10 @@
 
       document.getElementById("signOutBtn").addEventListener("click", function () {
         localStorage.removeItem("bf_token");
+        /* Cleared for the same reason dashboard.html clears it: a refresh
+           token outlives the access token by design and would still open the
+           account after the user believed they had signed out. */
+        localStorage.removeItem("bf_refresh");
         localStorage.removeItem("bf_user");
         window.location.replace("app.html");
       });
