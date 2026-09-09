@@ -351,6 +351,10 @@
           <input id="lp" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
         </div>
 <button id="loginBtn" class="btn" type="submit">Login</button>
+        <!-- type="button", like #forgotBtn below it. A bare <button> inside a
+             form defaults to type="submit", so without this the passkey button
+             would submit the password form instead of running its own flow. -->
+        <div class="forgot"><button id="passkeyBtn" class="forgot-link" type="button" style="display:none;">Sign in with a passkey</button></div>
         <div class="forgot"><button id="forgotBtn" class="forgot-link" type="button">Forgot password?</button></div>
 </form>
       
@@ -398,6 +402,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var registerBtn = document.getElementById("registerBtn");
   var subscribeBtn = document.getElementById("subscribeBtn");
   var forgotBtn = document.getElementById("forgotBtn");
+  var passkeyBtn = document.getElementById("passkeyBtn");
 
   var statusBox = document.getElementById("status");
   var errorBox = document.getElementById("err");
@@ -447,6 +452,46 @@ document.addEventListener("DOMContentLoaded", function () {
       window.history.replaceState({}, "", window.location.pathname);
     } catch (e) { /* leaving the parameter is harmless */ }
   }());
+
+  /* ── WHAT IT MEANS TO BE SIGNED IN ─────────────────────────────────────
+     ONE definition, called by every path that authenticates. There are two of
+     those now — a password and a passkey — and the backend deliberately
+     returns the identical response shape for both so that they can be treated
+     identically here.
+
+     This exists as a function rather than as two copies because two copies of
+     this particular thing drift in a way that stays invisible for weeks. One
+     path gains a key the other does not; both still "work"; and the symptom
+     surfaces much later as a session that behaves differently depending on how
+     it began — a dashboard that knows your business name when you signed in
+     with a password and not when you used a passkey. That is a miserable thing
+     to track down, and the cause is a copy nobody remembered to update. */
+  function completeSignIn(data) {
+    localStorage.setItem("bf_token", data.token);
+
+    /* The refresh token, stored beside the access token because it is what
+       scripts/bf-session.js exchanges when the access token expires. Without
+       it a 401 has nothing to renew from and the only option is a redirect
+       back here. Guarded rather than assumed: a deployment where the API
+       predates refresh tokens returns no such field, and writing the string
+       "undefined" into storage would look like a credential to every later
+       reader and be sent to the server as one. */
+    if (data.refresh_token) {
+      localStorage.setItem("bf_refresh", data.refresh_token);
+    }
+
+    /* || {} because getProfileByUserId answers null when there is no row, and
+       a stored "null" would make JSON.parse succeed and every read after it
+       throw. */
+    localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
+
+    /* A paywall at the door is not a paywall, it is a bouncer. Someone signing
+       in has an account and should reach their dashboard; individual features
+       gate themselves rather than demanding the $199 All Access subscription
+       before any route into the app. The subscription field is read there, not
+       here. */
+    window.location.href = "/dashboard.html";
+  }
 
   function setLoginBusy(isBusy) {
     if (loginBtn) {
@@ -564,32 +609,7 @@ if (loginForm) {
           throw new Error(data.error || "Login failed.");
         }
 
-        localStorage.setItem("bf_token", data.token);
-        /* The refresh token, stored beside the access token because it is
-           what scripts/bf-session.js exchanges when the access token expires.
-           Without it a 401 has nothing to renew from and the only option is a
-           redirect back here. Guarded rather than assumed: a deployment where
-           the API predates refresh tokens returns no such field, and writing
-           the string "undefined" into storage would look like a credential to
-           every later reader and be sent to the server as one. */
-        if (data.refresh_token) {
-          localStorage.setItem("bf_refresh", data.refresh_token);
-        }
-        localStorage.setItem("bf_user", JSON.stringify(data.profile || {}));
-
-        var sub = data.subscription;
-        var isActive = sub && (sub.status === "active" || sub.status === "trialing");
-
-        if (isActive) {
-          window.location.href = "/dashboard.html";
-          return;
-        }
-
-        /* A paywall at the door is not a paywall, it is a bouncer. Someone
-           logging in has an account and should reach their dashboard;
-           individual features gate themselves rather than demanding the
-           $199 All Access subscription before any route into the app. */
-        window.location.href = "/dashboard.html";
+        completeSignIn(data);
         return;
       } catch (error) {
         setStatus("");
@@ -650,6 +670,243 @@ if (loginForm) {
 
       forgotBtn.disabled = false;
     });
+  }
+
+  /* ══ PASSKEY SIGN-IN ═══════════════════════════════════════════════════
+     No email, no password. The credential is discoverable, so the
+     authenticator finds the right one from the site alone and names the
+     account itself — which is why this button asks for nothing before it
+     runs. */
+
+  /* ── base64url ⇄ bytes ───────────────────────────────────────────────────
+     THESE TWO FUNCTIONS ALSO EXIST IN settings.html, which is where passkeys
+     are enrolled. Two copies is the point at which duplication is worth
+     naming and not yet worth fixing; IF A THIRD APPEARS, factor all of them
+     into a shared script under /scripts and delete these. The registration
+     and login ceremonies are the only two that exist, so a third copy would
+     mean something new is using WebAuthn and the shared file is overdue.
+
+     WebAuthn speaks ArrayBuffers; JSON does not. Everything crossing that
+     boundary is base64URL — NOT base64. The two differ in three ways: `+`
+     becomes `-`, `/` becomes `_`, and the `=` padding is dropped.
+
+     Worth being careful about because of HOW it fails. A `+`/`-` mix-up
+     corrupts a handful of bytes somewhere in the middle of a challenge, and
+     everything downstream still looks structurally valid — so the server does
+     not say "that is not valid base64", it says the signature did not verify.
+     The error points at the cryptography, which is correct and working,
+     instead of at the encoding, which is not. Hours disappear into that gap.
+
+     atob/btoa handle standard base64 only, so the swap happens on both sides
+     of them, every time. */
+  function b64urlToBytes(value) {
+    var b64 = String(value).replace(/-/g, "+").replace(/_/g, "/");
+
+    // atob requires the padding base64url omits. A remainder of 1 is not a
+    // length base64 can produce, so it is corrupt rather than unpadded.
+    var remainder = b64.length % 4;
+    if (remainder === 2) { b64 += "=="; }
+    else if (remainder === 3) { b64 += "="; }
+    else if (remainder === 1) { throw new Error("Malformed base64url from the server."); }
+
+    var raw = window.atob(b64);
+    var bytes = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) {
+      bytes[i] = raw.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  function bytesToB64url(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var binary = "";
+
+    /* A loop, not String.fromCharCode.apply(null, bytes). apply spreads the
+       array into arguments, and an authenticatorData buffer is large enough to
+       blow the argument limit on some browsers — which fails as a RangeError
+       from deep inside a conversion, another error that names the wrong
+       thing. */
+    for (var i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+
+    return window.btoa(binary)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  }
+
+  /* The relying-party ID is bizforceai.net, and a browser only accepts an RP
+     ID that is the page's own domain or a registrable parent of it. On a
+     Netlify preview the page is served from something.netlify.app, and
+     netlify.app is on the Public Suffix List — which makes bizforceai.net not
+     a parent of it but an unrelated domain entirely. The browser refuses with
+     a SecurityError before the authenticator is ever asked.
+
+     Nothing can be done about that from here; it is the same rule that stops
+     one site using another's credentials, working correctly. So the button
+     says so instead of failing on click. */
+  function passkeyHostIsValid() {
+    var host = window.location.hostname;
+    return host === "bizforceai.net" ||
+           host === "www.bizforceai.net" ||
+           host === "localhost" ||
+           host === "127.0.0.1";
+  }
+
+  function setPasskeyBusy(isBusy) {
+    if (passkeyBtn) {
+      passkeyBtn.disabled = isBusy;
+      passkeyBtn.textContent = isBusy ? "Waiting for your device..." : "Sign in with a passkey";
+    }
+  }
+
+  async function signInWithPasskey() {
+    setPasskeyBusy(true);
+    setError("");
+    setStatus("Looking for a passkey...");
+
+    try {
+      var startResponse = await fetch(API_URL + "/api/webauthn/login/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+
+      var startData = await parseJson(startResponse);
+
+      if (!startResponse.ok) {
+        throw new Error(startData.error || "Could not start passkey sign-in.");
+      }
+
+      var options = startData.options || {};
+
+      // JSON in, ArrayBuffers out.
+      options.challenge = b64urlToBytes(options.challenge);
+
+      /* The server sends no allowCredentials today — the credential is
+         discoverable, so there is nothing to list and listing anything would
+         require knowing whose credentials to name, which would mean asking for
+         an email first. Handled anyway so that if it ever does send one, this
+         does not silently pass a base64url string where bytes are required. */
+      if (Array.isArray(options.allowCredentials)) {
+        options.allowCredentials = options.allowCredentials.map(function (c) {
+          return {
+            id: b64urlToBytes(c.id),
+            type: c.type || "public-key",
+            transports: c.transports
+          };
+        });
+      }
+
+      setStatus("Follow your device's prompt...");
+
+      var assertion = await navigator.credentials.get({ publicKey: options });
+
+      if (!assertion) {
+        throw new Error("No passkey was returned.");
+      }
+
+      // And back the other way, into the shape the server verifies.
+      var payload = {
+        // assertion.id is ALREADY a base64url string per the spec. rawId is
+        // the same value as bytes and does need converting.
+        id: assertion.id,
+        rawId: bytesToB64url(assertion.rawId),
+        type: assertion.type,
+        response: {
+          clientDataJSON: bytesToB64url(assertion.response.clientDataJSON),
+          authenticatorData: bytesToB64url(assertion.response.authenticatorData),
+          signature: bytesToB64url(assertion.response.signature),
+          /* The user handle the authenticator stored at enrolment — the
+             account uuid. Null for a non-discoverable credential, and null is
+             sent as null rather than as an empty string, because the server
+             distinguishes them. */
+          userHandle: assertion.response.userHandle
+            ? bytesToB64url(assertion.response.userHandle)
+            : null
+        },
+        clientExtensionResults: assertion.getClientExtensionResults
+          ? assertion.getClientExtensionResults()
+          : {},
+        authenticatorAttachment: assertion.authenticatorAttachment || undefined
+      };
+
+      setStatus("Signing in...");
+
+      var finishResponse = await fetch(API_URL + "/api/webauthn/login/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ceremony_id: startData.ceremony_id,
+          response: payload
+        })
+      });
+
+      var finishData = await parseJson(finishResponse);
+
+      if (!finishResponse.ok || !finishData.token) {
+        /* THE SERVER ANSWERS ONE IDENTICAL SENTENCE FOR EVERY FAILURE — a
+           spent ceremony, an expired one, an unrecognised credential, a
+           signature that did not verify. That is deliberate on its part:
+           distinguishing them would tell someone holding a stolen key whether
+           this service knows it. So there is nothing more specific available
+           to show here, and nothing to be gained by inventing a guess about
+           which one it was. */
+        throw new Error(finishData.error || "That passkey could not be used.");
+      }
+
+      /* The same function the password path calls, on a response the backend
+         shapes identically. Being signed in must not mean two different
+         things. */
+      completeSignIn(finishData);
+      return;
+    } catch (error) {
+      /* NOT AN ERROR. NotAllowedError is what the browser reports when the
+         person dismissed the prompt or let it time out — both of which are
+         someone deciding not to do this right now. Answering a deliberate "no"
+         with red text reads as though something broke, and invites them to
+         retry something they chose to stop. */
+      if (error && error.name === "NotAllowedError") {
+        setStatus("");
+        setError("");
+        setPasskeyBusy(false);
+        return;
+      }
+
+      if (error && error.name === "SecurityError") {
+        setStatus("");
+        setError("This browser refused this site's passkey settings on " +
+          window.location.hostname + ". Passkeys only work on bizforceai.net.");
+        setPasskeyBusy(false);
+        return;
+      }
+
+      setStatus("");
+      setError(error.message || "That passkey could not be used.");
+      setPasskeyBusy(false);
+    }
+  }
+
+  if (passkeyBtn) {
+    /* HIDDEN, NOT DISABLED, WHEN THE BROWSER CANNOT DO THIS AT ALL. A disabled
+       control invites the question "why is that greyed out"; a browser with no
+       WebAuthn support has no answer worth giving and no action the person can
+       take. The host gate below is the opposite case — there the button stays
+       visible precisely BECAUSE there is something to explain. */
+    if (window.PublicKeyCredential && navigator.credentials && navigator.credentials.get) {
+      passkeyBtn.style.display = "";
+
+      if (!passkeyHostIsValid()) {
+        passkeyBtn.disabled = true;
+        passkeyBtn.textContent = "Passkey sign-in needs bizforceai.net";
+        passkeyBtn.title = "This page is on " + window.location.hostname +
+          ", where the browser will not accept this site's passkey settings. " +
+          "Open the live site to sign in with a passkey.";
+      } else {
+        passkeyBtn.addEventListener("click", signInWithPasskey);
+      }
+    }
   }
 
   if (registerForm) {
