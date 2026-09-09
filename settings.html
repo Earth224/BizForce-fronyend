@@ -600,6 +600,12 @@
               </div>
             </div>
 
+            <!-- The state of the LIST, kept separate from #pkStatus, which is
+                 the state of the enrolment flow. "Could not load your passkeys"
+                 and "that passkey could not be added" are different facts and
+                 one must not overwrite the other. -->
+            <div class="msg" id="pkListMsg"></div>
+
             <div class="form-group" id="pkNameGroup" style="display:none;">
               <label for="pkNickname">Name this device</label>
               <input type="text" id="pkNickname" maxlength="60" autocomplete="off" placeholder="This device" />
@@ -608,13 +614,6 @@
             <div class="btn-row" id="pkAddRow" style="display:none;">
               <button class="btn" id="pkAddBtn" type="button">Add a Passkey</button>
             </div>
-
-            <p class="pref-note" id="pkListNote" style="display:none;">
-              This list shows only the passkeys added in this session. The page cannot
-              yet read back everything on your account — that needs a route the server
-              does not have — so a passkey added on another device, or before this page
-              was reloaded, will not appear here even though it still works.
-            </p>
 
             <div class="btn-row">
               <button class="btn btn-danger" id="signOutBtn" type="button">Sign Out</button>
@@ -1278,7 +1277,7 @@
       var pkAddBtn    = document.getElementById("pkAddBtn");
       var pkNameGroup = document.getElementById("pkNameGroup");
       var pkNickname  = document.getElementById("pkNickname");
-      var pkListNote  = document.getElementById("pkListNote");
+      var pkListMsg   = document.getElementById("pkListMsg");
 
       function setPkStatus(text, cls) {
         pkStatus.textContent = text;
@@ -1358,9 +1357,24 @@
                host === "127.0.0.1";
       }
 
+      function setPkListMsg(text, cls) {
+        pkListMsg.textContent = text || "";
+        pkListMsg.className = "msg" + (cls ? " " + cls : "");
+      }
+
+      function formatDay(value) {
+        if (!value) { return null; }
+        var d = new Date(value);
+        if (isNaN(d.getTime())) { return null; }
+        return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+      }
+
       function renderPasskeyRow(credential) {
         var row = document.createElement("div");
         row.className = "toggle-row";
+        // Marks the rows this function owns, so redrawing the list can clear
+        // them without touching the header row they share a container with.
+        row.setAttribute("data-pk-row", "1");
 
         var copy = document.createElement("div");
         copy.className = "toggle-copy";
@@ -1372,33 +1386,141 @@
 
         var desc = document.createElement("div");
         desc.className = "toggle-desc";
-        var added = credential.created_at ? new Date(credential.created_at) : null;
-        desc.textContent = added && !isNaN(added.getTime())
-          ? "Added " + added.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
-          : "Added just now";
+
+        var added = formatDay(credential.created_at);
+        var used = formatDay(credential.last_used_at);
+        var parts = [added ? "Added " + added : "Added recently"];
+
+        /* Only when it HAS been used. "Last used: never" invites the reader to
+           wonder whether something is wrong with the passkey, when the answer
+           is only that they have not signed in with it yet. */
+        if (used) {
+          parts.push("last used " + used);
+        }
+
+        desc.textContent = parts.join(" · ");
 
         copy.appendChild(title);
         copy.appendChild(desc);
 
-        /* DISABLED, AND THIS IS NOT AN OVERSIGHT. There is no delete route on
-           the server yet, so nothing this button could call would actually
-           remove the credential. A working-looking Remove that silently fails
-           to remove a way of signing in is worse than no Remove at all — the
-           user would believe a device had been revoked when it had not. The
-           control is present and explains itself; it gets wired up in the same
-           pass that adds the route. */
         var remove = document.createElement("button");
         remove.type = "button";
         remove.className = "btn btn-danger";
         remove.textContent = "Remove";
-        remove.disabled = true;
-        remove.title = "Removing a passkey needs a server route that does not exist yet.";
+        remove.addEventListener("click", function () {
+          removePasskey(credential, row, remove);
+        });
 
         row.appendChild(copy);
         row.appendChild(remove);
         pkRows.appendChild(row);
+      }
 
-        pkListNote.style.display = "block";
+      function clearPasskeyRows() {
+        var existing = pkRows.querySelectorAll("[data-pk-row]");
+        for (var i = 0; i < existing.length; i++) {
+          existing[i].parentNode.removeChild(existing[i]);
+        }
+      }
+
+      /* THE LIST COMES FROM THE SERVER, NOT FROM WHAT THIS PAGE JUST DID. It is
+         redrawn wholesale from the response every time, including after an
+         enrolment, so what is on screen is what the account actually holds
+         rather than an accumulated guess. */
+      function loadPasskeys() {
+        setPkListMsg("Loading your passkeys…", "");
+
+        return fetch(API_URL + "/api/webauthn/credentials", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error((res.data && res.data.error) || "Your passkeys could not be loaded.");
+            }
+
+            clearPasskeyRows();
+
+            var list = (res.data && res.data.credentials) || [];
+
+            for (var i = 0; i < list.length; i++) {
+              renderPasskeyRow(list[i]);
+            }
+
+            if (!list.length) {
+              /* AN INVITATION, NOT A PROBLEM. Having no passkeys is the normal
+                 starting state for every account, and phrasing it as an absence
+                 to be corrected ("none found") reads like something went
+                 missing. */
+              setPkListMsg("No passkeys yet — add one to sign in without your password.", "");
+            } else {
+              setPkListMsg("");
+            }
+          })
+          .catch(function (error) {
+            /* THE LIST IS NOT EMPTIED ON FAILURE, and nothing is drawn in its
+               place. The server deliberately errors instead of answering with
+               an empty array for this exact reason: someone with three
+               registered devices, shown "no passkeys yet", would reasonably
+               conclude the account had lost them and go and enrol everything
+               again. A load that failed must say it failed. Whatever rows were
+               already on screen stay there, because they were true when
+               drawn. */
+            setPkListMsg((error && error.message) || "Your passkeys could not be loaded.", "err");
+          });
+      }
+
+      function removePasskey(credential, row, button) {
+        var name = credential.nickname || "this passkey";
+
+        /* CONFIRMED FIRST, and the wording says what is actually at stake.
+           Removing a passkey removes a way of signing in and cannot be undone —
+           the credential on the device becomes useless and a new one has to be
+           enrolled. "Are you sure?" would not tell anyone that. */
+        var confirmed = window.confirm(
+          "Remove “" + name + "”?\n\n" +
+          "This removes a way of signing in to your account, and it cannot be undone. " +
+          "The passkey stored on that device will stop working and you would have to add it again.\n\n" +
+          "You can still sign in with your password."
+        );
+
+        if (!confirmed) {
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Removing…";
+        setPkListMsg("");
+
+        fetch(API_URL + "/api/webauthn/credentials/" + encodeURIComponent(credential.id), {
+          method: "DELETE",
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error((res.data && res.data.error) || "That passkey could not be removed.");
+            }
+
+            row.parentNode.removeChild(row);
+
+            // Asking the server again rather than counting what is left on
+            // screen: the empty-state message should reflect the account.
+            if (!pkRows.querySelectorAll("[data-pk-row]").length) {
+              setPkListMsg("No passkeys yet — add one to sign in without your password.", "");
+            } else {
+              setPkListMsg("Passkey removed.", "ok");
+            }
+          })
+          .catch(function (error) {
+            button.disabled = false;
+            button.textContent = "Remove";
+            setPkListMsg((error && error.message) || "That passkey could not be removed.", "err");
+          });
       }
 
       function defaultNickname() {
@@ -1519,7 +1641,12 @@
               throw new Error((res.data && res.data.error) || "That passkey could not be saved.");
             }
 
-            renderPasskeyRow((res.data && res.data.credential) || { nickname: nickname });
+            /* Reloaded from the server rather than appending the row this
+               response describes. The two would almost always agree, and the
+               one case where they do not — a passkey enrolled on another device
+               since this page opened — is exactly the case worth getting
+               right. */
+            loadPasskeys();
 
             pkAddBtn.disabled = false;
             pkNickname.value = defaultNickname();
@@ -1563,6 +1690,37 @@
 
       pkAddBtn.addEventListener("click", addPasskey);
       initPasskeys();
+
+      /* LOADED WHEN THE PANEL IS OPENED, not on page load. The list is one
+         request that most visits to this page never need — someone here to
+         change their API key or check billing does not, and every one of those
+         visits would pay for it.
+
+         An extra click listener on the nav button rather than a change to
+         activateSection: the switching logic is shared by five panels and has
+         nothing to do with passkeys. Loaded once, then kept current by the add
+         and remove flows, so reopening the panel does not refetch. */
+      var passkeysLoaded = false;
+
+      function loadPasskeysOnce() {
+        if (passkeysLoaded) { return; }
+        passkeysLoaded = true;
+        loadPasskeys();
+      }
+
+      var accountNavItem = document.querySelector('.sidebar-item[data-target="account"]');
+
+      if (accountNavItem) {
+        accountNavItem.addEventListener("click", loadPasskeysOnce);
+      }
+
+      // Covers a deep link or a future change of default panel, where Account
+      // is already the open one and its nav button is never clicked.
+      var accountPanel = document.querySelector('.settings-panel[data-panel="account"]');
+
+      if (accountPanel && accountPanel.classList.contains("active")) {
+        loadPasskeysOnce();
+      }
 
       document.getElementById("signOutBtn").addEventListener("click", function () {
         localStorage.removeItem("bf_token");
