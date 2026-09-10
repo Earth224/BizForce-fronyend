@@ -86,6 +86,51 @@
     ".ap-auto-switch.unknown .ap-auto-slider::before{transform:translateX(10px);background:#f87171}",
     ".ap-auto-msg{margin-top:10px;font-size:.78rem;min-height:18px;color:#8892b8}",
     ".ap-auto-msg.ok{color:#4ade80}.ap-auto-msg.err{color:#f87171}",
+    /* scheduler — same card, below the autonomy toggle */
+    ".ap-sched{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}",
+    ".ap-sched-title{font-size:.9rem;font-weight:700;color:#e8e8ff;margin-bottom:4px}",
+    ".ap-sched-desc{font-size:.78rem;color:#8892b8;line-height:1.55;margin-bottom:14px}",
+    /* SET. What the agent is actually going to do, in words. */
+    ".ap-sched-summary{padding:14px 16px;border-radius:14px;",
+      "background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.28)}",
+    ".ap-sched-when{font-size:.85rem;font-weight:700;color:#e8e8ff;line-height:1.5}",
+    ".ap-sched-instr{margin-top:8px;font-size:.8rem;color:#c3c9e6;line-height:1.55;",
+      "white-space:pre-wrap;word-break:break-word}",
+    ".ap-sched-instr-label{display:block;font-size:.7rem;letter-spacing:.08em;",
+      "text-transform:uppercase;color:#8892b8;margin-bottom:3px}",
+    ".ap-sched-last{margin-top:8px;font-size:.75rem;color:#8892b8}",
+    /* NONE. A real answer, and it says what the absence means. */
+    ".ap-sched-empty{padding:12px 14px;border-radius:12px;font-size:.8rem;color:#8892b8;",
+      "background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.14);line-height:1.55}",
+    /* UNKNOWN is a THIRD look, and deliberately not a dimmed version of either
+       of the other two. A failed read must not be able to pass for "no schedule
+       set": the hatching and the warning border say "no answer", where the
+       dashed empty state says "answered, and the answer is none". */
+    ".ap-sched-unknown{padding:12px 14px;border-radius:12px;font-size:.8rem;color:#f5b5b5;",
+      "line-height:1.55;border:1px solid rgba(248,113,113,.4);",
+      "background:repeating-linear-gradient(45deg,rgba(248,113,113,.14) 0 5px,rgba(255,255,255,.03) 5px 10px)}",
+    ".ap-sched-form{margin-top:14px}",
+    ".ap-sched-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}",
+    ".ap-sched-field{display:flex;flex-direction:column;gap:5px}",
+    ".ap-sched-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#8892b8}",
+    ".ap-sched-hint{font-size:.72rem;color:#7b83a6;margin-top:5px;line-height:1.5}",
+    ".ap-sched-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}",
+    ".ap-sched-btn{padding:9px 16px;border-radius:10px;border:none;cursor:pointer;",
+      "font-size:.8rem;font-weight:700;color:#05070f;",
+      "background:linear-gradient(90deg,#06b6d4,#8b5cf6)}",
+    ".ap-sched-btn:disabled{opacity:.5;cursor:not-allowed}",
+    ".ap-sched-btn.ghost{background:transparent;color:#c3c9e6;",
+      "border:1px solid rgba(255,255,255,.18)}",
+    ".ap-sched-btn.danger{background:transparent;color:#f87171;",
+      "border:1px solid rgba(248,113,113,.45)}",
+    /* The delete confirmation. Inline rather than a window.confirm: a native
+       dialog cannot carry the sentence about the instruction not being kept, and
+       that sentence is the reason this step exists at all. */
+    ".ap-sched-confirm{margin-top:12px;padding:12px 14px;border-radius:12px;",
+      "border:1px solid rgba(248,113,113,.45);background:rgba(248,113,113,.08);",
+      "font-size:.8rem;color:#f5d0d0;line-height:1.6}",
+    ".ap-sched-msg{margin-top:10px;font-size:.78rem;min-height:18px;color:#8892b8}",
+    ".ap-sched-msg.ok{color:#4ade80}.ap-sched-msg.err{color:#f87171}",
     /* live status */
     ".ap-live-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}",
     ".ap-dot{width:10px;height:10px;border-radius:50%;background:#666;flex-shrink:0}",
@@ -223,6 +268,99 @@
     }).join("");
   }
 
+  /* ── schedule option lists and wording ── */
+
+  // 0 = Sunday through 6 = Saturday, which is the encoding agent_schedules
+  // .day_of_week uses. Stated here because the other obvious convention starts
+  // the week on Monday and the two are off by one all the way along.
+  var SCHED_DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  var SCHED_MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"];
+
+  function dayOfWeekOptions() {
+    return SCHED_DAY_NAMES.map(function (name, i) {
+      return '<option value="' + i + '">' + esc(name) + '</option>';
+    }).join("");
+  }
+
+  function ordinal(n) {
+    var rem100 = n % 100;
+    if (rem100 >= 11 && rem100 <= 13) return n + "th";
+    if (n % 10 === 1) return n + "st";
+    if (n % 10 === 2) return n + "nd";
+    if (n % 10 === 3) return n + "rd";
+    return n + "th";
+  }
+
+  function dayOfMonthOptions() {
+    var out = "", d;
+    for (d = 1; d <= 31; d++) {
+      /* 29, 30 and 31 are labelled with what actually happens in a short month,
+         because the alternative is someone picking the 31st and quietly getting
+         eight runs a year. The runner clamps to the month's last day — migration
+         102's header is explicit about it — so the label states the clamp rather
+         than leaving the picker to imply a month that does not exist. */
+      var suffix = d >= 29 ? " (or the last day, in shorter months)" : "";
+      out += '<option value="' + d + '">' + ordinal(d) + suffix + '</option>';
+    }
+    return out;
+  }
+
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+  function hourOptions() {
+    var out = "", h;
+    for (h = 0; h <= 23; h++) {
+      out += '<option value="' + h + '">' + pad2(h) + ':00 UTC</option>';
+    }
+    return out;
+  }
+
+  /* A date-only column formatted from its own parts, NOT through `new Date`.
+     last_run_on is a DATE ("2026-09-09") and new Date() reads a bare date string
+     as UTC midnight, so toLocaleDateString renders it as the previous day for
+     every viewer west of Greenwich. That is the timezone trap this project has
+     already been bitten by, and it is worth avoiding in the one place whose
+     whole job is to report which day something happened. */
+  function fmtDateOnly(value) {
+    var parts = String(value || "").split("-");
+    if (parts.length !== 3) return String(value || "");
+    var y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+    if (!y || !m || !d || m < 1 || m > 12) return String(value);
+    return ordinal(d) + " " + SCHED_MONTH_NAMES[m - 1] + " " + y;
+  }
+
+  /* The label this page gives a task value, falling back to the raw value.
+     The fallback is reachable: the stored schedule is whatever the server holds,
+     and this page's taskTypes can change underneath it, so a schedule may name a
+     task this list no longer offers. Showing the raw value is honest; showing
+     nothing would make the summary read as though no task were set. */
+  function taskLabel(value) {
+    var i;
+    for (i = 0; i < TASK_TYPES.length; i++) {
+      if (TASK_TYPES[i].value === value) return TASK_TYPES[i].label;
+    }
+    return String(value || "—");
+  }
+
+  /* What the schedule says, as a sentence. The point of this control is that
+     someone coming back to the page can read what their agent is set to do
+     without reading it off a row of dropdowns. */
+  function scheduleSentence(row) {
+    var when;
+    if (row.cadence === "weekly") {
+      when = "every " + (SCHED_DAY_NAMES[row.day_of_week] || "week");
+    } else if (row.cadence === "monthly") {
+      when = "on the " + ordinal(row.day_of_month) + " of each month";
+      if (row.day_of_month >= 29) when += " (or its last day, in shorter months)";
+    } else {
+      when = "every day";
+    }
+    return "Runs the " + taskLabel(row.task_type) + " task " + when +
+      " at " + pad2(Number(row.hour_utc)) + ":00 UTC.";
+  }
+
   /* ── inject all new sections ── */
   function inject() {
     var page = document.querySelector(".page");
@@ -268,6 +406,109 @@
               '</label>',
             '</div>',
             '<div class="ap-auto-msg" id="apAutoMsg">Checking…</div>',
+          '</div>',
+
+          /* STILL THE SAME CARD. Launch is "run it now", the toggle is "it may
+             run itself", and this is "and here is when" — three parts of one
+             decision about how this agent does work, so they share one surface.
+             A schedule in a panel of its own could be read while the toggle
+             above it said something that contradicted it. */
+          '<div class="ap-sched">',
+            '<div class="ap-sched-title">Scheduled runs</div>',
+            '<div class="ap-sched-desc">',
+              'A standing instruction the ' + esc(AGENT_LABEL) + ' carries out on a repeating ',
+              'schedule. It runs only while Autonomous mode above is on — the schedule is when, ',
+              'the switch is whether.',
+            '</div>',
+
+            /* Ships in the UNKNOWN state, like the toggle does, so nothing is
+               claimed about whether a schedule exists before the server has
+               answered. The loader replaces this with the summary or the empty
+               state; a failed read leaves it showing. */
+            '<div class="ap-sched-unknown" id="apSchedUnknown">Checking for a schedule…</div>',
+
+            '<div class="ap-sched-summary" id="apSchedSummary" hidden>',
+              '<div class="ap-sched-when" id="apSchedWhen"></div>',
+              '<div class="ap-sched-instr">',
+                '<span class="ap-sched-instr-label">Standing instruction</span>',
+                '<span id="apSchedInstr"></span>',
+              '</div>',
+              '<div class="ap-sched-last" id="apSchedLast" hidden></div>',
+            '</div>',
+
+            '<div class="ap-sched-empty" id="apSchedEmpty" hidden>',
+              'No schedule set. This ' + esc(AGENT_LABEL) + ' runs only when you launch it above.',
+            '</div>',
+
+            '<div class="ap-sched-actions" id="apSchedViewActions" hidden>',
+              '<button type="button" class="ap-sched-btn ghost" id="apSchedEditBtn">Edit schedule</button>',
+              '<button type="button" class="ap-sched-btn danger" id="apSchedDeleteBtn">Remove</button>',
+            '</div>',
+
+            /* The confirmation says what removal costs BEFORE it happens. There
+               is no route to pause a schedule, so the only way to stop one is to
+               delete it, and deleting it takes the instruction with it. Someone
+               should not find that out by losing a prompt they wrote. */
+            '<div class="ap-sched-confirm" id="apSchedConfirm" hidden>',
+              'Remove this schedule? The standing instruction is not kept. There is no way to ',
+              'pause a schedule, so removing it is the only way to stop it — and the text above ',
+              'is deleted with it, so you would have to write it again.',
+              '<div class="ap-sched-actions">',
+                '<button type="button" class="ap-sched-btn danger" id="apSchedConfirmBtn">Remove schedule and instruction</button>',
+                '<button type="button" class="ap-sched-btn ghost" id="apSchedCancelDeleteBtn">Keep it</button>',
+              '</div>',
+            '</div>',
+
+            '<div class="ap-sched-form" id="apSchedForm" hidden>',
+              '<div class="ap-sched-grid">',
+                '<div class="ap-sched-field">',
+                  '<label class="ap-sched-label" for="apSchedTask">Task to run</label>',
+                  /* This page's own task list, from AGENT_PROFILE_CONFIG. It is
+                     what makes a Sales schedule different from an SEO one
+                     without this control being written eighteen times. */
+                  '<select class="ap-select" id="apSchedTask">' + taskTypeOptions() + '</select>',
+                '</div>',
+                '<div class="ap-sched-field">',
+                  '<label class="ap-sched-label" for="apSchedCadence">How often</label>',
+                  '<select class="ap-select" id="apSchedCadence">',
+                    '<option value="daily">Every day</option>',
+                    '<option value="weekly">Every week</option>',
+                    '<option value="monthly">Every month</option>',
+                  '</select>',
+                '</div>',
+                '<div class="ap-sched-field" id="apSchedDowField" hidden>',
+                  '<label class="ap-sched-label" for="apSchedDow">Day of week</label>',
+                  '<select class="ap-select" id="apSchedDow">' + dayOfWeekOptions() + '</select>',
+                '</div>',
+                '<div class="ap-sched-field" id="apSchedDomField" hidden>',
+                  '<label class="ap-sched-label" for="apSchedDom">Day of month</label>',
+                  '<select class="ap-select" id="apSchedDom">' + dayOfMonthOptions() + '</select>',
+                '</div>',
+                '<div class="ap-sched-field">',
+                  /* UTC IS SAID ON THE CONTROL, not left to be assumed. The
+                     column is hour_utc and the server does no conversion, so a
+                     label reading only "Hour" would be read as local time by
+                     everyone not in UTC and the run would land hours off. */
+                  '<label class="ap-sched-label" for="apSchedHour">Hour (UTC)</label>',
+                  '<select class="ap-select" id="apSchedHour">' + hourOptions() + '</select>',
+                '</div>',
+              '</div>',
+              '<div class="ap-sched-field" style="margin-top:10px">',
+                '<label class="ap-sched-label" for="apSchedPrompt">Standing instruction</label>',
+                '<textarea class="ap-textarea" id="apSchedPrompt"',
+                  ' placeholder="What should the ' + esc(AGENT_LABEL) + ' do each time this runs?"></textarea>',
+                '<div class="ap-sched-hint">',
+                  'Required. This exact text is what the ' + esc(AGENT_LABEL) + ' is asked to do on ',
+                  'every run, so write it as a standing instruction rather than a one-off note.',
+                '</div>',
+              '</div>',
+              '<div class="ap-sched-actions">',
+                '<button type="button" class="ap-sched-btn" id="apSchedSaveBtn">Save schedule</button>',
+                '<button type="button" class="ap-sched-btn ghost" id="apSchedCancelBtn" hidden>Cancel</button>',
+              '</div>',
+            '</div>',
+
+            '<div class="ap-sched-msg" id="apSchedMsg"></div>',
           '</div>',
         '</div>',
       '</div>',
@@ -367,8 +608,12 @@
       });
     }
 
+    bindSchedule();
+
     renderAutonomy();
     loadAutonomy();
+    renderSchedule();
+    loadSchedule();
     loadHistory();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
     loadBusinessContext();
@@ -390,35 +635,45 @@
      a `.catch` that collapses a parse failure into `{}` loses both: the status
      is then missing from the failure message, and — far worse — an unparseable
      body becomes indistinguishable from a successful read that returned nothing.
-     See the `parsed` check in loadAutonomy for why that distinction is the whole
-     point on this particular control. */
-  function readAutoJson(r) {
+     See the `parsed` checks in loadAutonomy and loadSchedule for why that
+     distinction is the whole point on both of these controls.
+
+     Shared by both rather than copied into each: they make the same request
+     shape for the same reason, and a second copy is a second place for the
+     parse-failure handling to drift. */
+  function readJsonResult(r) {
     return r.json().then(
       function (d) { return { ok: r.ok, status: r.status, data: d,  parsed: true  }; },
       function ()  { return { ok: r.ok, status: r.status, data: {}, parsed: false }; }
     );
   }
 
-  /* ALWAYS says the setting could not be loaded, with the server's reason added
-     rather than substituted. The reason on its own ("unauthorized", "boom", a
-     bare status) does not tell anyone WHICH setting failed or that the switch
-     below it is therefore not reporting anything — and on a control that says
-     whether an agent runs unattended, "unauthorized" next to a switch is not an
-     adequate account of why the switch cannot be trusted. */
-  function autoLoadFailMsg(detail) {
-    var base = "Autonomous mode could not be loaded — this switch is not showing "
-             + "whether it is on. Reload to try again.";
+  /* ALWAYS says what could not be loaded, with the server's reason added rather
+     than substituted. The reason on its own ("unauthorized", "boom", a bare
+     status) does not tell anyone WHICH thing failed, or that the control beside
+     it is therefore not reporting anything — and on controls that say whether an
+     agent acts unattended, "unauthorized" next to a switch is not an adequate
+     account of why the switch cannot be trusted.
+
+     `claim` is the sentence that names what is NOT being asserted, which differs
+     per control: the toggle is not showing whether it is on, the schedule is not
+     showing whether one exists. */
+  function loadFailMsg(subject, claim, detail) {
+    var base = subject + " could not be loaded — " + claim + ". Reload to try again.";
     return detail ? base + " (" + detail + ")" : base;
   }
 
-  /* Flagged rather than recognised by its text downstream: the catch below has
+  /* Flagged rather than recognised by its text downstream: the catches below have
      to tell an already-framed failure from a raw transport rejection, and doing
      that by matching on the message would break the moment the wording changed. */
-  function autoLoadFail(detail) {
-    var e = new Error(autoLoadFailMsg(detail));
-    e.autoFramed = true;
+  function loadFail(subject, claim, detail) {
+    var e = new Error(loadFailMsg(subject, claim, detail));
+    e.framed = true;
     return e;
   }
+
+  var AUTO_SUBJECT = "Autonomous mode";
+  var AUTO_CLAIM   = "this switch is not showing whether it is on";
 
   function setAutoMsg(text, cls) {
     var el = document.getElementById("apAutoMsg");
@@ -460,10 +715,10 @@
     fetch(API_URL + "/api/agent-autonomy", {
       headers: { "Authorization": "Bearer " + token }
     })
-      .then(readAutoJson)
+      .then(readJsonResult)
       .then(function (res) {
         if (!res.ok) {
-          throw autoLoadFail((res.data && res.data.error) || ("HTTP " + res.status));
+          throw loadFail(AUTO_SUBJECT, AUTO_CLAIM, (res.data && res.data.error) || ("HTTP " + res.status));
         }
 
         /* AN UNREADABLE BODY IS NOT AN EMPTY LIST. This used to fall back to
@@ -480,7 +735,7 @@
            `autonomy`, or a body that never parsed, is no answer at all and has
            to stay unknown. */
         if (!res.parsed || !res.data || !Array.isArray(res.data.autonomy)) {
-          throw autoLoadFail("unexpected response");
+          throw loadFail(AUTO_SUBJECT, AUTO_CLAIM, "unexpected response");
         }
 
         var rows = res.data.autonomy;
@@ -507,13 +762,13 @@
            wrong in the direction that matters. */
         autonomyState = null;
         renderAutonomy();
-        /* The thrown messages above are already framed by autoLoadFailMsg; a
+        /* The thrown messages above are already framed by loadFailMsg; a
            transport rejection (no response at all) arrives here unframed, so it
            gets the same framing rather than surfacing a bare "Failed to fetch". */
         setAutoMsg(
-          error && error.autoFramed
+          error && error.framed
             ? error.message
-            : autoLoadFailMsg(error && error.message),
+            : loadFailMsg(AUTO_SUBJECT, AUTO_CLAIM, error && error.message),
           "err"
         );
       });
@@ -540,10 +795,10 @@
       // precisely because a string would be truthy, and it is right to.
       body: JSON.stringify({ agent_type: AGENT_TYPE, enabled: next === true })
     })
-      .then(readAutoJson)
+      .then(readJsonResult)
       .then(function (res) {
         if (!res.ok) {
-          /* res.status is real here because readAutoJson carries it through. It
+          /* res.status is real here because readJsonResult carries it through. It
              did not when this object was built inline as { ok, data }, so an
              error body without an `error` field produced the message "could not
              be saved (HTTP undefined)". */
@@ -566,6 +821,415 @@
         renderAutonomy();
         setAutoMsg((error && error.message) || "That change could not be saved.", "err");
       });
+  }
+
+  /* ══ SCHEDULE ═══════════════════════════════════════════════════════════
+     GET, PUT and DELETE /api/agent-schedules, scoped to this page's AGENT_TYPE.
+
+     THE SAME THREE STATES AS THE TOGGLE, for the same reason. scheduleState is
+     null, SCHED_NONE, or a row object:
+
+       null        the read failed. NOT a synonym for "no schedule".
+       SCHED_NONE  the read succeeded and this agent has no schedule.
+       object      the read succeeded and this is the schedule.
+
+     Collapsing the first two is the failure that matters here, and it is worse
+     than it looks: someone with a schedule who is told they have none will write
+     another, the PUT upserts on (user_id, agent_type), and the row they could not
+     read is overwritten by the one they just created. What they believe and what
+     exists diverge with no error anywhere — and the instruction they had written
+     is gone. So a failed read leaves the controls disabled and visibly unknown,
+     and says so. */
+  var SCHED_NONE = "none";
+
+  var SCHED_SUBJECT = "The schedule";
+  var SCHED_CLAIM   = "this is not showing whether one exists";
+
+  var scheduleState    = null;
+  var scheduleEditing  = false;
+  var scheduleSaving   = false;
+  var scheduleDeleting = false;
+  var scheduleConfirmingDelete = false;
+
+  function setSchedMsg(text, cls) {
+    var el = document.getElementById("apSchedMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "ap-sched-msg" + (cls ? " " + cls : "");
+  }
+
+  function schedEl(id) { return document.getElementById(id); }
+
+  function show(el, visible) { if (el) el.hidden = !visible; }
+
+  /* Only the cadence's own day field is shown. Both are in the markup so the
+     values survive a cadence change while the form is open, but only one is ever
+     visible and — see scheduleFormPayload — only one is ever sent. */
+  function syncSchedDayFields() {
+    var cadenceEl = schedEl("apSchedCadence");
+    var cadence = cadenceEl ? cadenceEl.value : "daily";
+    show(schedEl("apSchedDowField"), cadence === "weekly");
+    show(schedEl("apSchedDomField"), cadence === "monthly");
+  }
+
+  function setSchedFormDisabled(disabled) {
+    ["apSchedTask", "apSchedCadence", "apSchedDow", "apSchedDom", "apSchedHour",
+     "apSchedPrompt", "apSchedSaveBtn"].forEach(function (id) {
+      var el = schedEl(id);
+      if (el) el.disabled = disabled;
+    });
+  }
+
+  /* Writes the form from a row, or from defaults when there is no row. Called
+     only when the form is OPENED — never from renderSchedule — so that a failed
+     save cannot wipe what the person had just typed while telling them it did
+     not save. */
+  function fillScheduleForm(row) {
+    var taskEl    = schedEl("apSchedTask");
+    var cadenceEl = schedEl("apSchedCadence");
+    var dowEl     = schedEl("apSchedDow");
+    var domEl     = schedEl("apSchedDom");
+    var hourEl    = schedEl("apSchedHour");
+    var promptEl  = schedEl("apSchedPrompt");
+    if (!taskEl || !cadenceEl || !hourEl || !promptEl) return;
+
+    if (row) {
+      /* A stored task this page no longer offers would otherwise leave the
+         select on its first option — showing a different task from the one that
+         is actually scheduled. Added as an option so the form states the truth. */
+      if (row.task_type && !Array.prototype.some.call(taskEl.options, function (o) {
+        return o.value === row.task_type;
+      })) {
+        var opt = document.createElement("option");
+        opt.value = row.task_type;
+        opt.textContent = row.task_type + " (not offered on this page)";
+        taskEl.appendChild(opt);
+      }
+      taskEl.value    = row.task_type || (TASK_TYPES[0] && TASK_TYPES[0].value) || "general";
+      cadenceEl.value = row.cadence || "daily";
+      hourEl.value    = String(row.hour_utc == null ? 7 : row.hour_utc);
+      promptEl.value  = row.prompt || "";
+      if (dowEl) dowEl.value = String(row.day_of_week == null ? 1 : row.day_of_week);
+      if (domEl) domEl.value = String(row.day_of_month == null ? 1 : row.day_of_month);
+    } else {
+      taskEl.value    = (TASK_TYPES[0] && TASK_TYPES[0].value) || "general";
+      cadenceEl.value = "daily";
+      /* 7 matches the column default, so the form agrees with what the server
+         would have chosen rather than quietly proposing a different hour. */
+      hourEl.value    = "7";
+      promptEl.value  = "";
+      if (dowEl) dowEl.value = "1";
+      if (domEl) domEl.value = "1";
+    }
+    syncSchedDayFields();
+  }
+
+  function renderSchedule() {
+    var unknownEl = schedEl("apSchedUnknown");
+    var summaryEl = schedEl("apSchedSummary");
+    var emptyEl   = schedEl("apSchedEmpty");
+    var formEl    = schedEl("apSchedForm");
+    var viewEl    = schedEl("apSchedViewActions");
+    var confirmEl = schedEl("apSchedConfirm");
+    var cancelEl  = schedEl("apSchedCancelBtn");
+    if (!unknownEl || !summaryEl || !emptyEl || !formEl) return;
+
+    /* UNKNOWN. Nothing is asserted and nothing is editable: a disabled form
+       beside a blank summary would read as "no schedule yet", which is exactly
+       the claim a failed read cannot make. */
+    if (scheduleState === null) {
+      show(unknownEl, true);
+      show(summaryEl, false);
+      show(emptyEl, false);
+      show(formEl, false);
+      show(viewEl, false);
+      show(confirmEl, false);
+      setSchedFormDisabled(true);
+      return;
+    }
+
+    show(unknownEl, false);
+    setSchedFormDisabled(scheduleSaving || scheduleDeleting);
+
+    var hasSchedule = scheduleState !== SCHED_NONE;
+
+    if (hasSchedule) {
+      schedEl("apSchedWhen").textContent  = scheduleSentence(scheduleState);
+      schedEl("apSchedInstr").textContent = scheduleState.prompt || "";
+      var lastEl = schedEl("apSchedLast");
+      if (lastEl) {
+        if (scheduleState.last_run_on) {
+          /* A fact about what happened, not a status. "Last ran on 9th September
+             2026" is a record; "Active" or "Healthy" would be a claim about the
+             present that this row cannot support. */
+          lastEl.textContent = "Last ran on " + fmtDateOnly(scheduleState.last_run_on) + ".";
+          show(lastEl, true);
+        } else {
+          lastEl.textContent = "";
+          show(lastEl, false);
+        }
+      }
+    }
+
+    show(summaryEl, hasSchedule && !scheduleEditing);
+    /* Shown whenever there is no schedule, INCLUDING while the create form is
+       open — the form is open in that state by default, and gating this line on
+       the form being closed hid the only thing distinguishing "none" from
+       "unknown". A create form on its own does not say whether a schedule
+       already exists; this line does. */
+    show(emptyEl,   !hasSchedule);
+    show(viewEl,    hasSchedule && !scheduleEditing && !scheduleConfirmingDelete);
+    show(confirmEl, hasSchedule && scheduleConfirmingDelete && !scheduleEditing);
+    show(formEl,    scheduleEditing);
+    // Cancel only means something when there is a saved schedule to go back to.
+    show(cancelEl,  scheduleEditing && hasSchedule);
+
+    var confirmBtn = schedEl("apSchedConfirmBtn");
+    if (confirmBtn) confirmBtn.disabled = scheduleDeleting;
+  }
+
+  function loadSchedule() {
+    var token = tok();
+
+    if (!token) {
+      scheduleState = null;
+      renderSchedule();
+      setSchedMsg("Sign in to set a schedule.", "");
+      return;
+    }
+
+    setSchedMsg("Checking…", "");
+
+    fetch(API_URL + "/api/agent-schedules", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok) {
+          throw loadFail(SCHED_SUBJECT, SCHED_CLAIM,
+            (res.data && res.data.error) || ("HTTP " + res.status));
+        }
+
+        /* An unreadable body is not an empty list, exactly as on the autonomy
+           read. `schedules` being a real array is the test: [] is the server
+           saying this account has none, while a missing or non-array `schedules`,
+           or a body that never parsed, is no answer at all and stays unknown. */
+        if (!res.parsed || !res.data || !Array.isArray(res.data.schedules)) {
+          throw loadFail(SCHED_SUBJECT, SCHED_CLAIM, "unexpected response");
+        }
+
+        var rows = res.data.schedules;
+        var row = null;
+        var i;
+        for (i = 0; i < rows.length; i++) {
+          if (rows[i] && rows[i].agent_type === AGENT_TYPE) { row = rows[i]; break; }
+        }
+
+        scheduleState   = row || SCHED_NONE;
+        scheduleEditing = !row;   // nothing saved yet: the form IS the view
+        scheduleConfirmingDelete = false;
+        fillScheduleForm(row);
+        renderSchedule();
+        setSchedMsg(row ? "" : "", "");
+      })
+      .catch(function (error) {
+        /* LEFT UNKNOWN AND DISABLED. Never "no schedule set": that sentence,
+           shown to someone who has one, is what causes them to write a second
+           instruction over the first. */
+        scheduleState   = null;
+        scheduleEditing = false;
+        scheduleConfirmingDelete = false;
+        renderSchedule();
+        setSchedMsg(
+          error && error.framed
+            ? error.message
+            : loadFailMsg(SCHED_SUBJECT, SCHED_CLAIM, error && error.message),
+          "err"
+        );
+      });
+  }
+
+  /* The body of a PUT. Two things about it are load bearing.
+
+     hour_utc IS ALWAYS PRESENT. The API replaces a schedule rather than patching
+     one, so an absent hour_utc is not "leave the hour alone" — it is the column
+     default, 07:00 UTC. A payload that omitted it would silently move somebody's
+     03:00 run to the morning, and the control would then display the hour it had
+     moved them to as though they had chosen it.
+
+     ONLY THE CADENCE'S OWN DAY IS SENT. The other is left out entirely rather
+     than sent as null: the server writes null into the unused column itself, and
+     sending a day the cadence does not use would be stating a fact about a
+     schedule that has no such day. */
+  function scheduleFormPayload() {
+    var cadence = schedEl("apSchedCadence").value;
+    var payload = {
+      agent_type: AGENT_TYPE,
+      task_type:  schedEl("apSchedTask").value,
+      prompt:     String(schedEl("apSchedPrompt").value || "").trim(),
+      cadence:    cadence,
+      hour_utc:   parseInt(schedEl("apSchedHour").value, 10)
+    };
+    if (cadence === "weekly")  payload.day_of_week  = parseInt(schedEl("apSchedDow").value, 10);
+    if (cadence === "monthly") payload.day_of_month = parseInt(schedEl("apSchedDom").value, 10);
+    return payload;
+  }
+
+  function saveSchedule() {
+    var token = tok();
+    if (!token) return;
+    // Unknown means we do not know what we would be overwriting. Not editable.
+    if (scheduleState === null) return;
+
+    var payload = scheduleFormPayload();
+
+    /* Checked here as well as on the server, because the server's 400 is correct
+       but arrives after a round trip and reads as a failure; this reads as the
+       field being required, which is what it is. */
+    if (!payload.prompt) {
+      setSchedMsg("Write the standing instruction first — it is what the agent will be asked to do on every run.", "err");
+      return;
+    }
+    if (!(payload.hour_utc >= 0 && payload.hour_utc <= 23)) {
+      setSchedMsg("Pick the hour this should run.", "err");
+      return;
+    }
+
+    var previousState   = scheduleState;
+    var previousEditing = scheduleEditing;
+
+    scheduleSaving = true;
+    renderSchedule();
+    setSchedMsg("Saving…", "");
+
+    fetch(API_URL + "/api/agent-schedules", {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.error) ||
+            ("The schedule could not be saved (HTTP " + res.status + ")."));
+        }
+
+        scheduleSaving = false;
+        /* The server's row, not the payload, so what is displayed is what was
+           stored — including the columns this form never sends. Falling back to
+           the payload only if the response carried no row. */
+        scheduleState   = (res.data && res.data.schedule) ? res.data.schedule : payload;
+        scheduleEditing = false;
+        scheduleConfirmingDelete = false;
+        renderSchedule();
+        setSchedMsg("Schedule saved.", "ok");
+      })
+      .catch(function (error) {
+        /* THE PREVIOUS STATE STANDS. What is on screen must keep describing what
+           the server actually holds, so a failed save leaves the old schedule —
+           or the old absence of one — in place rather than adopting the edit.
+
+           The form stays open with the typed values untouched, which is why
+           fillScheduleForm is not called from here or from renderSchedule: the
+           work is not lost, it is simply not claimed to have been saved. */
+        scheduleSaving  = false;
+        scheduleState   = previousState;
+        scheduleEditing = previousEditing;
+        renderSchedule();
+        setSchedMsg((error && error.message) || "The schedule could not be saved.", "err");
+      });
+  }
+
+  function deleteSchedule() {
+    var token = tok();
+    if (!token) return;
+    if (scheduleState === null || scheduleState === SCHED_NONE) return;
+
+    var previousState = scheduleState;
+
+    scheduleDeleting = true;
+    renderSchedule();
+    setSchedMsg("Removing…", "");
+
+    fetch(API_URL + "/api/agent-schedules/" + encodeURIComponent(AGENT_TYPE), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.error) ||
+            ("The schedule could not be removed (HTTP " + res.status + ")."));
+        }
+
+        scheduleDeleting = false;
+        scheduleConfirmingDelete = false;
+        scheduleState   = SCHED_NONE;
+        scheduleEditing = true;       // back to the blank form, which is the view
+        fillScheduleForm(null);
+        renderSchedule();
+        setSchedMsg("Schedule removed. The instruction was deleted with it.", "ok");
+      })
+      .catch(function (error) {
+        /* The schedule is still there. Reverting rather than showing it gone
+           matters more on a delete than anywhere else: a control that claims a
+           removal that did not happen leaves an agent running on a schedule its
+           owner believes they have cancelled. */
+        scheduleDeleting = false;
+        scheduleState    = previousState;
+        scheduleConfirmingDelete = false;
+        renderSchedule();
+        setSchedMsg((error && error.message) || "The schedule could not be removed.", "err");
+      });
+  }
+
+  function bindSchedule() {
+    var cadenceEl = schedEl("apSchedCadence");
+    if (cadenceEl) cadenceEl.addEventListener("change", syncSchedDayFields);
+
+    var saveBtn = schedEl("apSchedSaveBtn");
+    if (saveBtn) saveBtn.addEventListener("click", saveSchedule);
+
+    var editBtn = schedEl("apSchedEditBtn");
+    if (editBtn) editBtn.addEventListener("click", function () {
+      if (scheduleState === null || scheduleState === SCHED_NONE) return;
+      scheduleEditing = true;
+      scheduleConfirmingDelete = false;
+      fillScheduleForm(scheduleState);
+      renderSchedule();
+      setSchedMsg("", "");
+    });
+
+    var cancelBtn = schedEl("apSchedCancelBtn");
+    if (cancelBtn) cancelBtn.addEventListener("click", function () {
+      if (scheduleState === null || scheduleState === SCHED_NONE) return;
+      scheduleEditing = false;
+      fillScheduleForm(scheduleState);   // discard the edit, show what is stored
+      renderSchedule();
+      setSchedMsg("", "");
+    });
+
+    /* Asks first, and the asking is where the cost is stated. */
+    var deleteBtn = schedEl("apSchedDeleteBtn");
+    if (deleteBtn) deleteBtn.addEventListener("click", function () {
+      if (scheduleState === null || scheduleState === SCHED_NONE) return;
+      scheduleConfirmingDelete = true;
+      renderSchedule();
+      setSchedMsg("", "");
+    });
+
+    var confirmBtn = schedEl("apSchedConfirmBtn");
+    if (confirmBtn) confirmBtn.addEventListener("click", deleteSchedule);
+
+    var keepBtn = schedEl("apSchedCancelDeleteBtn");
+    if (keepBtn) keepBtn.addEventListener("click", function () {
+      scheduleConfirmingDelete = false;
+      renderSchedule();
+      setSchedMsg("", "");
+    });
   }
 
   /* ── button loading state ── */
