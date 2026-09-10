@@ -59,6 +59,33 @@
     ".ap-spinner{width:14px;height:14px;border-radius:50%;",
       "border:2px solid rgba(255,255,255,.3);border-top-color:#fff;",
       "animation:ap-spin .7s linear infinite;display:inline-block;flex-shrink:0}",
+    /* autonomy toggle — lives inside the Run Task card, below the divider */
+    ".ap-auto{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}",
+    ".ap-auto-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}",
+    ".ap-auto-copy{flex:1;min-width:200px}",
+    ".ap-auto-title{font-size:.9rem;font-weight:700;color:#e8e8ff;margin-bottom:4px}",
+    ".ap-auto-desc{font-size:.78rem;color:#8892b8;line-height:1.55}",
+    ".ap-auto-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}",
+    ".ap-auto-switch input{position:absolute;opacity:0;width:0;height:0}",
+    ".ap-auto-slider{position:absolute;inset:0;border-radius:999px;cursor:pointer;",
+      "background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);",
+      "transition:background .25s,border-color .25s}",
+    ".ap-auto-slider::before{content:\"\";position:absolute;top:3px;left:3px;width:18px;height:18px;",
+      "border-radius:50%;background:#cfd3ea;transition:transform .25s,background .25s}",
+    ".ap-auto-switch input:checked + .ap-auto-slider{background:linear-gradient(90deg,#06b6d4,#8b5cf6);",
+      "border-color:rgba(139,92,246,.55)}",
+    ".ap-auto-switch input:checked + .ap-auto-slider::before{transform:translateX(20px);background:#fff}",
+    ".ap-auto-switch input:disabled + .ap-auto-slider{cursor:not-allowed;opacity:.5}",
+    /* UNKNOWN is a THIRD look, not a dimmed "off". A failed read must not be
+       able to pass for a switch that is merely disabled in the off position:
+       the knob sits mid-track and the fill is hatched, so it reads as "no
+       answer" rather than as "not enabled". */
+    ".ap-auto-switch.unknown .ap-auto-slider{opacity:1;",
+      "background:repeating-linear-gradient(45deg,rgba(248,113,113,.18) 0 4px,rgba(255,255,255,.05) 4px 8px);",
+      "border-color:rgba(248,113,113,.4)}",
+    ".ap-auto-switch.unknown .ap-auto-slider::before{transform:translateX(10px);background:#f87171}",
+    ".ap-auto-msg{margin-top:10px;font-size:.78rem;min-height:18px;color:#8892b8}",
+    ".ap-auto-msg.ok{color:#4ade80}.ap-auto-msg.err{color:#f87171}",
     /* live status */
     ".ap-live-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}",
     ".ap-dot{width:10px;height:10px;border-radius:50%;background:#666;flex-shrink:0}",
@@ -215,6 +242,33 @@
             ' placeholder="Describe what you want the ' + esc(AGENT_LABEL) + ' to do..."></textarea>',
           '<button type="button" class="ap-btn" id="apLaunchBtn">Launch Task</button>',
           '<div class="ap-msg" id="apMsg"></div>',
+
+          /* IN THIS CARD, NOT A PANEL OF ITS OWN. Running the agent by hand
+             and letting it run by itself are the two ways this agent does
+             work, and the agent model requires them in one surface. Split
+             across two cards, someone can read the manual controls, decide the
+             agent is idle unless they press the button, and never scroll to the
+             switch that says otherwise. */
+          '<div class="ap-auto">',
+            '<div class="ap-auto-head">',
+              '<div class="ap-auto-copy">',
+                '<div class="ap-auto-title">Autonomous mode</div>',
+                '<div class="ap-auto-desc">',
+                  'Lets the ' + esc(AGENT_LABEL) + ' start its own tasks in the background ',
+                  'without you launching them, and act on what it finds. Off means it ',
+                  'only ever runs when you press Launch Task above.',
+                '</div>',
+              '</div>',
+              /* Starts DISABLED and marked unknown. It is enabled only by a
+                 GET that succeeded, so at no point before an answer arrives
+                 does it show a position it cannot back up. */
+              '<label class="ap-auto-switch unknown" id="apAutoSwitch">',
+                '<input type="checkbox" id="apAutoToggle" disabled>',
+                '<span class="ap-auto-slider"></span>',
+              '</label>',
+            '</div>',
+            '<div class="ap-auto-msg" id="apAutoMsg">Checking…</div>',
+          '</div>',
         '</div>',
       '</div>',
 
@@ -305,9 +359,158 @@
     }
 
     document.getElementById("apLaunchBtn").addEventListener("click", launchTask);
+
+    var autoToggle = document.getElementById("apAutoToggle");
+    if (autoToggle) {
+      autoToggle.addEventListener("change", function () {
+        saveAutonomy(autoToggle.checked === true);
+      });
+    }
+
+    renderAutonomy();
+    loadAutonomy();
     loadHistory();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
     loadBusinessContext();
+  }
+
+  /* ══ AUTONOMY ═══════════════════════════════════════════════════════════
+     GET and PUT /api/agent-autonomy, scoped to this page's AGENT_TYPE.
+
+     THREE STATES, AND THE THIRD IS THE POINT. autonomyState is true, false, or
+     null — and null is not a synonym for false. This switch decides whether an
+     agent goes and does things on its own, so a read that failed must not be
+     rendered as "off": that is a confident claim about whether something is
+     running unattended, made from no information. The control stays disabled
+     and visibly unknown until the server has actually answered. */
+  var autonomyState  = null;
+  var autonomySaving = false;
+
+  function setAutoMsg(text, cls) {
+    var el = document.getElementById("apAutoMsg");
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "ap-auto-msg" + (cls ? " " + cls : "");
+  }
+
+  function renderAutonomy() {
+    var input = document.getElementById("apAutoToggle");
+    var wrap  = document.getElementById("apAutoSwitch");
+    if (!input || !wrap) return;
+
+    if (autonomyState === null) {
+      // Unknown. Never checked, never merely "off" — see the .unknown style.
+      input.checked  = false;
+      input.disabled = true;
+      wrap.className = "ap-auto-switch unknown";
+      return;
+    }
+
+    input.checked  = autonomyState === true;
+    input.disabled = autonomySaving;
+    wrap.className = "ap-auto-switch";
+  }
+
+  function loadAutonomy() {
+    var token = tok();
+
+    if (!token) {
+      autonomyState = null;
+      renderAutonomy();
+      setAutoMsg("Sign in to change this setting.", "");
+      return;
+    }
+
+    setAutoMsg("Checking…", "");
+
+    fetch(API_URL + "/api/agent-autonomy", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          return { ok: r.ok, data: d };
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.error) || "This setting could not be loaded.");
+        }
+
+        var rows = (res.data && Array.isArray(res.data.autonomy)) ? res.data.autonomy : [];
+        var row = null;
+
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i] && rows[i].agent_type === AGENT_TYPE) { row = rows[i]; break; }
+        }
+
+        /* NO ROW IS A REAL ANSWER, and the only place null is not. Migration
+           064 is explicit that the absence of a row means disabled and that no
+           job may default a missing row to enabled, so "not found" here is the
+           server telling us it is off — unlike a failed request, which tells
+           us nothing. */
+        autonomyState = row ? row.enabled === true : false;
+        renderAutonomy();
+        setAutoMsg(autonomyState ? "On — this agent can start its own tasks." : "Off — this agent only runs when you launch it.", "");
+      })
+      .catch(function (error) {
+        /* LEFT DISABLED AND UNKNOWN. Not defaulted to off, not left looking
+           switchable. Someone who reads a greyed-out switch in the off
+           position concludes the agent is idle; if the read failed because the
+           network blinked and the agent is in fact enabled, that conclusion is
+           wrong in the direction that matters. */
+        autonomyState = null;
+        renderAutonomy();
+        setAutoMsg((error && error.message) || "This setting could not be loaded.", "err");
+      });
+  }
+
+  function saveAutonomy(next) {
+    var token = tok();
+    if (!token) return;
+
+    var previous = autonomyState;
+
+    autonomySaving = true;
+    autonomyState  = next;
+    renderAutonomy();
+    setAutoMsg("Saving…", "");
+
+    fetch(API_URL + "/api/agent-autonomy", {
+      method: "PUT",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      // A real boolean, never a string. The backend rejects "true" with a 400
+      // precisely because a string would be truthy, and it is right to.
+      body: JSON.stringify({ agent_type: AGENT_TYPE, enabled: next === true })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          return { ok: r.ok, data: d };
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.error) || ("The setting could not be saved (HTTP " + res.status + ")."));
+        }
+
+        autonomySaving = false;
+        renderAutonomy();
+        setAutoMsg(next ? "On — this agent can start its own tasks." : "Off — this agent only runs when you launch it.", "ok");
+      })
+      .catch(function (error) {
+        /* PUT BACK WHERE IT WAS. A switch that moves on screen and does not
+           persist is worse than one that refuses to move: the next person to
+           look at it reads the wrong answer off the control itself, and there
+           is nothing on the page to contradict it. Reverting to `previous`
+           rather than to !next keeps the unknown state unknown if that is
+           where it started. */
+        autonomySaving = false;
+        autonomyState  = previous;
+        renderAutonomy();
+        setAutoMsg((error && error.message) || "That change could not be saved.", "err");
+      });
   }
 
   /* ── button loading state ── */
