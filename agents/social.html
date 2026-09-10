@@ -700,6 +700,98 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "platform_playbook",  label: "Platform Playbook" },
     { value: "audience_growth",    label: "Audience Growth Plan" },
     { value: "general",            label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "post",
+      "label": "Platform Post",
+      "runLabel": "Write the post",
+      "description": "Measured against the platform's character limit, its truncation point and its hashtag count.",
+      "fields": [
+        {
+          "name": "idea",
+          "label": "The idea",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "name": "platform",
+          "label": "Platform",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "x",
+              "label": "X — 280 characters"
+            },
+            {
+              "value": "instagram",
+              "label": "Instagram — 2,200, cut at ~125"
+            },
+            {
+              "value": "linkedin",
+              "label": "LinkedIn — 3,000, cut at ~210"
+            },
+            {
+              "value": "tiktok",
+              "label": "TikTok — 2,200, cut at ~100"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "label": "Posting Calendar",
+      "runLabel": "Build the plan",
+      "description": "A plan whose entries carry the day as a number, with the platform, format and hook.",
+      "fields": [
+        {
+          "name": "goal",
+          "label": "Goal",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "name": "cadence",
+          "label": "Cadence",
+          "type": "text",
+          "required": true,
+          "placeholder": "Three times a week"
+        },
+        {
+          "name": "platforms",
+          "label": "Platforms",
+          "type": "multiselect",
+          "options": [
+            {
+              "value": "x",
+              "label": "X"
+            },
+            {
+              "value": "instagram",
+              "label": "Instagram"
+            },
+            {
+              "value": "linkedin",
+              "label": "LinkedIn"
+            },
+            {
+              "value": "tiktok",
+              "label": "TikTok"
+            }
+          ]
+        },
+        {
+          "name": "weeks",
+          "label": "Weeks to plan",
+          "type": "number",
+          "min": 1,
+          "max": 12,
+          "hint": "1 to 12. Defaults to 4."
+        }
+      ]
+    }
   ]
 };
 </script>

@@ -709,6 +709,72 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "ad_campaign",     label: "Ad Campaign" },
     { value: "audience_growth", label: "Audience Growth" },
     { value: "general",         label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "copy",
+      "label": "Ad Copy",
+      "runLabel": "Write the copy",
+      "description": "Assets measured against the platform's real limits, and scanned for policy wording.",
+      "fields": [
+        {
+          "name": "product",
+          "label": "Product",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "name": "angle",
+          "label": "Angle",
+          "type": "textarea",
+          "required": true,
+          "hint": "The argument the ad makes."
+        },
+        {
+          "name": "platform",
+          "label": "Platform",
+          "type": "select",
+          "required": true,
+          "options": [
+            {
+              "value": "google_rsa",
+              "label": "Google Responsive Search Ad (30 / 90, enforced)"
+            },
+            {
+              "value": "meta",
+              "label": "Meta feed ad (125 primary text, truncated)"
+            }
+          ]
+        },
+        {
+          "name": "audience",
+          "label": "Audience",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "policy-check",
+      "label": "Policy Check",
+      "runLabel": "Scan the copy",
+      "description": "Deterministic scan for the wording that gets health and supplement ads rejected. Not an approval.",
+      "fields": [
+        {
+          "name": "copy",
+          "label": "Ad copy to check",
+          "type": "textarea",
+          "required": true
+        },
+        {
+          "name": "suggest_rewrites",
+          "label": "Suggest rewrites",
+          "type": "checkbox",
+          "checkboxLabel": "Suggest a rewrite for each finding",
+          "checkedByDefault": true,
+          "hint": "Unchecked, the scan runs with no model call at all."
+        }
+      ]
+    }
   ]
 };
 </script>

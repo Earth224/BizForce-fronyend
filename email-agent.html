@@ -695,6 +695,72 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "nurture_campaign",label: "Nurture Campaign" },
     { value: "subject_lines",   label: "Subject Line Testing" },
     { value: "general",         label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "sequence",
+      "label": "Email Sequence",
+      "runLabel": "Build the sequence",
+      "description": "A multi-step sequence with each step's send delay as a number of days.",
+      "fields": [
+        {
+          "name": "goal",
+          "label": "Goal",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Win back customers who have not ordered in 90 days"
+        },
+        {
+          "name": "audience",
+          "label": "Audience",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Past buyers, one order, none in the last quarter"
+        },
+        {
+          "name": "sequence_type",
+          "label": "Sequence type",
+          "type": "text",
+          "placeholder": "winback"
+        },
+        {
+          "name": "steps",
+          "label": "Number of steps",
+          "type": "number",
+          "min": 2,
+          "max": 12,
+          "hint": "2 to 12. Defaults to 5."
+        }
+      ]
+    },
+    {
+      "id": "subject-lines",
+      "label": "Subject Lines",
+      "runLabel": "Write variants",
+      "description": "Variants with length, mobile and desktop preview fit, and spam-trigger wording measured.",
+      "fields": [
+        {
+          "name": "purpose",
+          "label": "What the email is for",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Announce a restock to past buyers"
+        },
+        {
+          "name": "audience",
+          "label": "Audience",
+          "type": "text"
+        },
+        {
+          "name": "count",
+          "label": "How many variants",
+          "type": "number",
+          "min": 3,
+          "max": 25,
+          "hint": "3 to 25. Defaults to 12."
+        }
+      ]
+    }
   ]
 };
 </script>

@@ -9,6 +9,10 @@
   var AGENT_LABEL = String(cfg.agentLabel || "Agent");
   var ACCENT      = String(cfg.accentColor || "#22d3ee");
   var TASK_TYPES  = Array.isArray(cfg.taskTypes) ? cfg.taskTypes : [{ value: "general", label: "General Task" }];
+  /* This agent's own tools, the same idea as taskTypes: declared per page, so one
+     mechanism serves eighteen pages without any of them being special-cased here.
+     An agent with none configured gets NO tools section at all — see inject(). */
+  var TOOLS       = Array.isArray(cfg.tools) ? cfg.tools : [];
   var HAS_SOCIAL_DRAFTS = TASK_TYPES.some(function(t) { return t.value === "social_media_drafts"; });
 
   var pollTimer     = null;
@@ -131,6 +135,102 @@
       "font-size:.8rem;color:#f5d0d0;line-height:1.6}",
     ".ap-sched-msg{margin-top:10px;font-size:.78rem;min-height:18px;color:#8892b8}",
     ".ap-sched-msg.ok{color:#4ade80}.ap-sched-msg.err{color:#f87171}",
+    /* agent tools — same card, below the scheduler */
+    ".ap-tools{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)}",
+    ".ap-tools-title{font-size:.9rem;font-weight:700;color:#e8e8ff;margin-bottom:4px}",
+    ".ap-tools-desc{font-size:.78rem;color:#8892b8;line-height:1.55;margin-bottom:14px}",
+    ".ap-tool{margin-top:12px;border-radius:14px;border:1px solid rgba(255,255,255,.1);",
+      "background:rgba(255,255,255,.02);overflow:hidden}",
+    ".ap-tool-head{width:100%;text-align:left;padding:12px 14px;background:transparent;border:none;",
+      "cursor:pointer;display:flex;align-items:center;gap:10px;color:#e8e8ff;font-size:.85rem;font-weight:700}",
+    ".ap-tool-caret{margin-left:auto;color:#8892b8;font-size:.75rem;flex-shrink:0}",
+    ".ap-tool-sub{display:block;font-size:.75rem;font-weight:400;color:#8892b8;margin-top:3px;line-height:1.5}",
+    ".ap-tool-body{padding:0 14px 14px}",
+    ".ap-tool-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}",
+    ".ap-tool-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#8892b8}",
+    ".ap-tool-req{color:#f472b6;margin-left:4px}",
+    ".ap-tool-hint{font-size:.72rem;color:#7b83a6;line-height:1.5}",
+    ".ap-tool-checks{display:flex;flex-wrap:wrap;gap:10px}",
+    ".ap-tool-check{display:flex;align-items:center;gap:6px;font-size:.8rem;color:#c3c9e6}",
+    ".ap-tool-rows{display:flex;flex-direction:column;gap:8px}",
+    ".ap-tool-row{display:grid;gap:8px}",
+    ".ap-tool-addrow{align-self:flex-start;padding:6px 12px;border-radius:9px;font-size:.75rem;",
+      "background:transparent;color:#c3c9e6;border:1px solid rgba(255,255,255,.18);cursor:pointer}",
+    ".ap-tool-run{padding:9px 16px;border-radius:10px;border:none;cursor:pointer;font-size:.8rem;",
+      "font-weight:700;color:#05070f;background:linear-gradient(90deg,#06b6d4,#8b5cf6)}",
+    ".ap-tool-run:disabled{opacity:.5;cursor:not-allowed}",
+    ".ap-tool-msg{margin-top:10px;font-size:.78rem;min-height:18px;color:#8892b8}",
+    ".ap-tool-msg.err{color:#f87171}",
+    ".ap-tool-result{margin-top:14px;display:flex;flex-direction:column;gap:14px}",
+
+    /* THE GATE. ready_to_post / ready_to_send false means the draft would breach a
+       platform's terms or start a public argument. It is the loudest thing in the
+       result and it sits above the draft, because someone who copies the text out
+       without seeing this is the exact harm the backend check exists to prevent. */
+    ".ap-gate{padding:14px 16px;border-radius:12px;border:2px solid #f87171;",
+      "background:rgba(248,113,113,.14);color:#ffd7d7;font-size:.82rem;line-height:1.6}",
+    ".ap-gate-title{display:flex;align-items:center;gap:8px;font-weight:800;color:#fca5a5;",
+      "text-transform:uppercase;letter-spacing:.06em;font-size:.75rem;margin-bottom:6px}",
+    ".ap-gate ul{margin:8px 0 0;padding-left:18px}",
+    ".ap-gate li{margin-bottom:4px}",
+
+    /* THREE VOICES, DELIBERATELY DIFFERENT.
+
+       Generated text is the model writing: normal prose, on the card ground.
+       Measured is arithmetic the server did: monospace figures on a cyan-edged
+       panel, because a character count is a fact of a different kind.
+       Provenance is the page speaking about the other two: muted, bordered,
+       explicitly split into what was counted and what was inferred.
+
+       A page that renders all three in one voice invites the model's claims to be
+       read with the authority of the counts, which is the thing the backend
+       returning them separately exists to prevent. */
+    ".ap-zone-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;",
+      "color:#8892b8;margin-bottom:6px;display:flex;align-items:center;gap:7px}",
+    ".ap-zone-label::after{content:\"\";flex:1;height:1px;background:rgba(255,255,255,.08)}",
+
+    ".ap-generated{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.03);",
+      "border:1px solid rgba(255,255,255,.09);font-size:.84rem;color:#e2e6f5;line-height:1.65}",
+    ".ap-generated pre{white-space:pre-wrap;word-break:break-word;margin:0;font:inherit}",
+    ".ap-gen-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}",
+    ".ap-gen-item:last-child{border-bottom:none}",
+    ".ap-gen-key{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#8892b8;margin-bottom:3px}",
+
+    ".ap-measured{padding:14px 16px;border-radius:12px;background:rgba(6,182,212,.07);",
+      "border:1px solid rgba(6,182,212,.3)}",
+    ".ap-measured .ap-zone-label{color:#67e8f9}",
+    ".ap-measured .ap-zone-label::after{background:rgba(6,182,212,.25)}",
+    ".ap-m-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}",
+    ".ap-m-cell{background:rgba(6,182,212,.06);border-radius:9px;padding:8px 10px}",
+    ".ap-m-key{font-size:.68rem;color:#8892b8;text-transform:uppercase;letter-spacing:.05em}",
+    ".ap-m-val{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.9rem;font-weight:700;color:#a5f3fc;margin-top:2px;word-break:break-word}",
+    ".ap-m-val.bad{color:#fca5a5}.ap-m-val.good{color:#86efac}",
+    ".ap-m-note{margin-top:10px;font-size:.78rem;color:#cffafe;line-height:1.6}",
+    ".ap-m-list{margin:6px 0 0;padding-left:16px;font-size:.76rem;color:#cffafe;line-height:1.6}",
+
+    ".ap-prov{padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.02);",
+      "border:1px dashed rgba(255,255,255,.18)}",
+    ".ap-prov-split{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}",
+    ".ap-prov-col h5{margin:0 0 5px;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}",
+    ".ap-prov-col.counted h5{color:#67e8f9}",
+    ".ap-prov-col.inferred h5{color:#c4b5fd}",
+    ".ap-prov-col ul{margin:0;padding-left:16px;font-size:.76rem;line-height:1.6;color:#a9b0cc}",
+    ".ap-prov-caveat{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);",
+      "font-size:.76rem;color:#8892b8;line-height:1.6}",
+    ".ap-prov-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}",
+    ".ap-prov-flag{font-size:.68rem;padding:3px 8px;border-radius:99px;",
+      "background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.28);color:#fca5a5}",
+
+    ".ap-ref{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);",
+      "border:1px solid rgba(255,255,255,.07);font-size:.76rem;color:#8892b8;line-height:1.6}",
+
+    /* A 502 is a PARSE FAILURE, not an empty result, and the raw text is shown so
+       the failure is diagnosable rather than merely reported. */
+    ".ap-parsefail{padding:14px 16px;border-radius:12px;border:1px solid rgba(251,191,36,.45);",
+      "background:rgba(251,191,36,.08);color:#fde68a;font-size:.82rem;line-height:1.6}",
+    ".ap-parsefail pre{margin:10px 0 0;padding:10px;border-radius:8px;background:rgba(0,0,0,.35);",
+      "color:#e2e6f5;font-size:.74rem;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-word}",
     /* live status */
     ".ap-live-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}",
     ".ap-dot{width:10px;height:10px;border-radius:50%;background:#666;flex-shrink:0}",
@@ -510,6 +610,14 @@
 
             '<div class="ap-sched-msg" id="apSchedMsg"></div>',
           '</div>',
+
+          /* STILL THE SAME CARD, and NOTHING AT ALL when this agent has no tools.
+             Twelve of the eighteen agents have none, and a "coming soon" panel on
+             twelve pages is worse than an absence: it takes up the same room as a
+             working control, invites a click that does nothing, and has to be
+             maintained. An agent with no tools configured renders no markup here,
+             no heading, and no divider. */
+          TOOLS.length ? toolsMarkup() : "",
         '</div>',
       '</div>',
 
@@ -609,6 +717,7 @@
     }
 
     bindSchedule();
+    bindTools();
 
     renderAutonomy();
     loadAutonomy();
@@ -1229,6 +1338,541 @@
       scheduleConfirmingDelete = false;
       renderSchedule();
       setSchedMsg("", "");
+    });
+  }
+
+  /* ══ AGENT TOOLS ════════════════════════════════════════════════════════
+     The agent's own tools — POST /api/agents/<agentType>/<tool id> — rendered
+     from the `tools` array in AGENT_PROFILE_CONFIG.
+
+     ONE MECHANISM, NOT FOURTEEN. Each tool declares its fields and this builds
+     the form, sends the body and renders the response. Nothing here knows what
+     an Etsy tag limit is or what a press release contains; that lives in the
+     config and in the server's answer. A tool added to the backend needs a
+     config entry on one page, not a change in this file.
+
+     THE RESULT IS THE POINT. Every one of these routes returns three kinds of
+     statement and they are rendered in three visibly different voices:
+
+       generated   what the model wrote — a draft, in prose
+       measured    arithmetic the server did — counts, fits, overruns
+       provenance  the split between the two, and what was never read
+
+     A character count and a claim about what buyers want are not the same kind
+     of thing, and a page that renders them identically lends the count's
+     authority to the claim. That is the entire reason the backend returns them
+     as separate objects, and it would be undone here by a single results box. */
+
+  // Keys handled by their own renderer rather than as generated content.
+  var TOOL_GATE_KEYS = ["ready_to_post", "ready_to_send"];
+  var TOOL_SKIP_KEYS = ["success"];
+  /* Reference material: platform limits, policy rules, standing statements. Real
+     and worth showing, but it is neither the draft nor a measurement of it, so it
+     gets its own quiet zone instead of competing with either. */
+  var TOOL_REF_KEYS = ["constraints", "limits", "thresholds", "guides", "platform_limits",
+    "platform_terms", "limitations", "rules", "statement", "clean_scan_is_not_approval",
+    "suggested_tag_set_note", "rules_checked"];
+
+  function toolDomId(toolId, suffix) {
+    return "apTool_" + String(toolId).replace(/[^A-Za-z0-9]/g, "_") + (suffix ? "_" + suffix : "");
+  }
+
+  // snake_case / kebab-case to a readable label.
+  function humanise(key) {
+    return String(key || "")
+      .replace(/[_-]+/g, " ")
+      .replace(/^\s*\w/, function (c) { return c.toUpperCase(); });
+  }
+
+  function toolFieldMarkup(toolId, field) {
+    var id = toolDomId(toolId, "f_" + field.name);
+    /* A multiselect and a rows group have no single control to point at, so they
+       get a plain label rather than one whose `for` names an element that does not
+       exist — which renders as a label that does nothing when clicked. */
+    var isGroup = field.type === "multiselect" || field.type === "rows";
+    var label = '<label class="ap-tool-label"' + (isGroup ? "" : ' for="' + id + '"') + '>' +
+      esc(field.label || humanise(field.name)) +
+      (field.required ? '<span class="ap-tool-req">*</span>' : "") + '</label>';
+    var hint = field.hint ? '<div class="ap-tool-hint">' + esc(field.hint) + '</div>' : "";
+    var control;
+
+    if (field.type === "textarea") {
+      control = '<textarea class="ap-textarea" id="' + id + '"' +
+        (field.placeholder ? ' placeholder="' + esc(field.placeholder) + '"' : "") + '></textarea>';
+    } else if (field.type === "select") {
+      control = '<select class="ap-select" id="' + id + '">' +
+        (field.required ? "" : '<option value="">(not set)</option>') +
+        (field.options || []).map(function (o) {
+          return '<option value="' + esc(o.value) + '">' + esc(o.label || o.value) + '</option>';
+        }).join("") + '</select>';
+    } else if (field.type === "multiselect") {
+      // The wrapper carries the field id so the group is addressable as one thing;
+      // each box carries id_<n>, which is what toolPayload reads back.
+      control = '<div class="ap-tool-checks" id="' + id + '">' + (field.options || []).map(function (o, i) {
+        var oid = id + "_" + i;
+        return '<label class="ap-tool-check"><input type="checkbox" id="' + oid + '" value="' +
+          esc(o.value) + '"> ' + esc(o.label || o.value) + '</label>';
+      }).join("") + '</div>';
+    } else if (field.type === "checkbox") {
+      control = '<label class="ap-tool-check"><input type="checkbox" id="' + id + '"' +
+        (field.checkedByDefault ? " checked" : "") + '> ' + esc(field.checkboxLabel || "Yes") + '</label>';
+    } else if (field.type === "number") {
+      control = '<input class="ap-select" type="number" id="' + id + '"' +
+        (field.min !== undefined ? ' min="' + field.min + '"' : "") +
+        (field.max !== undefined ? ' max="' + field.max + '"' : "") +
+        (field.placeholder ? ' placeholder="' + esc(field.placeholder) + '"' : "") + '>';
+    } else if (field.type === "rows") {
+      /* A repeatable group — the comparables list on the Etsy pricing tool is the
+         only one so far. Rendered as three blank rows with an add button; empty
+         rows are dropped when the body is built, so an unused row costs nothing. */
+      var cols = field.columns || [];
+      var template = function (rowIndex) {
+        return '<div class="ap-tool-row" style="grid-template-columns:repeat(' + cols.length +
+          ',minmax(0,1fr))">' + cols.map(function (c) {
+            return '<input class="ap-select" data-col="' + esc(c.name) + '"' +
+              (c.type === "number" ? ' type="number" step="any"' : ' type="text"') +
+              ' placeholder="' + esc(c.label || c.name) + '">';
+          }).join("") + '</div>';
+      };
+      control = '<div class="ap-tool-rows" id="' + id + '">' +
+        template(0) + template(1) + template(2) + '</div>' +
+        '<button type="button" class="ap-tool-addrow" data-addrow="' + id + '">+ Add row</button>';
+    } else {
+      control = '<input class="ap-select" type="text" id="' + id + '"' +
+        (field.placeholder ? ' placeholder="' + esc(field.placeholder) + '"' : "") + '>';
+    }
+
+    return '<div class="ap-tool-field">' + label + control + hint + '</div>';
+  }
+
+  function toolsMarkup() {
+    return [
+      '<div class="ap-tools">',
+        '<div class="ap-tools-title">' + esc(AGENT_LABEL) + ' tools</div>',
+        '<div class="ap-tools-desc">',
+          'The things only this agent does. Each one returns a draft plus the counts the server ',
+          'measured against the real limits, kept separate so you can see which is which.',
+        '</div>',
+        TOOLS.map(function (tool) {
+          return [
+            '<div class="ap-tool">',
+              '<button type="button" class="ap-tool-head" data-tool-toggle="' + esc(tool.id) + '">',
+                '<span>', esc(tool.label || tool.id),
+                  tool.description ? '<span class="ap-tool-sub">' + esc(tool.description) + '</span>' : "",
+                '</span>',
+                '<span class="ap-tool-caret" id="' + toolDomId(tool.id, "caret") + '">Show</span>',
+              '</button>',
+              '<div class="ap-tool-body" id="' + toolDomId(tool.id, "body") + '" hidden>',
+                (tool.fields || []).map(function (f) { return toolFieldMarkup(tool.id, f); }).join(""),
+                '<button type="button" class="ap-tool-run" data-tool-run="' + esc(tool.id) + '">',
+                  esc(tool.runLabel || "Run"),
+                '</button>',
+                '<div class="ap-tool-msg" id="' + toolDomId(tool.id, "msg") + '"></div>',
+                '<div class="ap-tool-result" id="' + toolDomId(tool.id, "result") + '"></div>',
+              '</div>',
+            '</div>'
+          ].join("");
+        }).join(""),
+      '</div>'
+    ].join("");
+  }
+
+  /* Builds the request body from a tool's declared fields. Empty optional fields
+     are OMITTED rather than sent blank: the routes treat an absent field as "not
+     supplied" and several of them have defaults that a blank string would not
+     trigger. */
+  function toolPayload(tool) {
+    var body = {};
+    var missing = [];
+
+    (tool.fields || []).forEach(function (field) {
+      var id = toolDomId(tool.id, "f_" + field.name);
+      var el = document.getElementById(id);
+
+      if (field.type === "multiselect") {
+        var picked = (field.options || []).map(function (o, i) {
+          return document.getElementById(id + "_" + i);
+        }).filter(function (box) { return box && box.checked; })
+          .map(function (box) { return box.value; });
+        if (picked.length) body[field.name] = picked;
+        else if (field.required) missing.push(field.label || field.name);
+        return;
+      }
+
+      if (field.type === "rows") {
+        var wrap = document.getElementById(id);
+        var rows = [];
+        if (wrap) {
+          Array.prototype.forEach.call(wrap.querySelectorAll(".ap-tool-row"), function (rowEl) {
+            var row = {};
+            var any = false;
+            Array.prototype.forEach.call(rowEl.querySelectorAll("[data-col]"), function (input) {
+              var raw = String(input.value || "").trim();
+              if (raw === "") return;
+              any = true;
+              var col = (field.columns || []).filter(function (c) {
+                return c.name === input.getAttribute("data-col");
+              })[0];
+              row[input.getAttribute("data-col")] = (col && col.type === "number") ? Number(raw) : raw;
+            });
+            if (any) rows.push(row);
+          });
+        }
+        if (rows.length) body[field.name] = rows;
+        else if (field.required) missing.push(field.label || field.name);
+        return;
+      }
+
+      if (!el) return;
+
+      if (field.type === "checkbox") {
+        // Always sent: these map to booleans the server reads explicitly, and an
+        // absent one would take the server default rather than the user's choice.
+        body[field.name] = el.checked === true;
+        return;
+      }
+
+      var value = String(el.value || "").trim();
+      if (value === "") {
+        if (field.required) missing.push(field.label || field.name);
+        return;
+      }
+
+      if (field.type === "number") {
+        var n = Number(value);
+        if (!isFinite(n)) { missing.push(field.label || field.name); return; }
+        body[field.name] = n;
+        return;
+      }
+
+      body[field.name] = value;
+    });
+
+    return { body: body, missing: missing };
+  }
+
+  /* ── result rendering ── */
+
+  function isPlainObject(v) {
+    return v !== null && typeof v === "object" && !Array.isArray(v);
+  }
+
+  // A compact, depth-limited rendering of whatever a value happens to be.
+  function renderScalarish(value) {
+    if (value === null || value === undefined || value === "") return "—";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (Array.isArray(value)) {
+      if (!value.length) return "None";
+      if (value.every(function (v) { return !isPlainObject(v) && !Array.isArray(v); })) {
+        return esc(value.join(", "));
+      }
+      return '<ul class="ap-m-list">' + value.map(function (v) {
+        return "<li>" + (isPlainObject(v) ? renderObjectInline(v) : esc(String(v))) + "</li>";
+      }).join("") + "</ul>";
+    }
+    if (isPlainObject(value)) return renderObjectInline(value);
+    return esc(String(value));
+  }
+
+  function renderObjectInline(obj) {
+    return Object.keys(obj).map(function (k) {
+      var v = obj[k];
+      if (isPlainObject(v) || Array.isArray(v)) {
+        return "<strong>" + esc(humanise(k)) + ":</strong> " + renderScalarish(v);
+      }
+      return "<strong>" + esc(humanise(k)) + ":</strong> " + esc(String(v === "" ? "—" : v));
+    }).join(" &middot; ");
+  }
+
+  /* MEASURED. Figures, in a monospace face on their own panel. Booleans that
+     report a limit being broken are coloured, because "within limit: No" is the
+     line someone needs to catch and it should not read like every other cell. */
+  function renderMeasured(measured) {
+    if (!isPlainObject(measured)) return "";
+
+    var note = measured.note;
+    var cells = [];
+
+    Object.keys(measured).forEach(function (key) {
+      if (key === "note") return;
+      var value = measured[key];
+
+      if (isPlainObject(value) || (Array.isArray(value) && value.length &&
+          value.some(function (v) { return isPlainObject(v); }))) {
+        cells.push('<div class="ap-m-cell" style="grid-column:1/-1">' +
+          '<div class="ap-m-key">' + esc(humanise(key)) + '</div>' +
+          '<div class="ap-m-note">' + renderScalarish(value) + '</div></div>');
+        return;
+      }
+
+      /* A false on a key that asks "does this fit / is it within / is it ready"
+         is a problem; a false on "disputes the reviewer" or "over limit" is the
+         good outcome. Read from the key's own wording rather than from a list of
+         special cases, so a new measured field is coloured sensibly without this
+         function being edited. */
+      var cls = "";
+      if (typeof value === "boolean") {
+        var positiveWhenTrue = /^(within|fits|is_complete|ready|matched_nothing|headline_within)/.test(key);
+        var negativeWhenTrue = /^(disputes|offers|over|exceeds)/.test(key);
+        if (positiveWhenTrue) cls = value ? " good" : " bad";
+        else if (negativeWhenTrue) cls = value ? " bad" : " good";
+      } else if (typeof value === "number" && /(_over|over_|missing|failed|unreadable|triggered)/.test(key)) {
+        cls = value > 0 ? " bad" : "";
+      }
+
+      cells.push('<div class="ap-m-cell">' +
+        '<div class="ap-m-key">' + esc(humanise(key)) + '</div>' +
+        '<div class="ap-m-val' + cls + '">' + renderScalarish(value) + '</div></div>');
+    });
+
+    return '<div class="ap-measured">' +
+      '<div class="ap-zone-label">Measured by the server</div>' +
+      '<div class="ap-m-grid">' + cells.join("") + '</div>' +
+      (note ? '<div class="ap-m-note">' + esc(String(note)) + '</div>' : "") +
+      '</div>';
+  }
+
+  /* PROVENANCE. The two columns are the whole point: what was counted on the
+     left, what the model supplied on the right, so the difference is visible at a
+     glance rather than asserted in a sentence. */
+  function renderProvenance(prov) {
+    if (!isPlainObject(prov)) return "";
+
+    var counted = Array.isArray(prov.measured_from) ? prov.measured_from : [];
+    var inferred = Array.isArray(prov.inferred_by_model) ? prov.inferred_by_model : [];
+
+    // The false flags are the "nothing was read" assertions — shown as chips so
+    // the absences are countable rather than buried in the caveat sentence.
+    var flags = Object.keys(prov).filter(function (k) {
+      return typeof prov[k] === "boolean" && prov[k] === false;
+    });
+
+    return '<div class="ap-prov">' +
+      '<div class="ap-zone-label">Where this came from</div>' +
+      '<div class="ap-prov-split">' +
+        '<div class="ap-prov-col counted"><h5>Counted by the server</h5>' +
+          (counted.length
+            ? '<ul>' + counted.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
+            : '<ul><li>Nothing</li></ul>') +
+        '</div>' +
+        '<div class="ap-prov-col inferred"><h5>Written by the model</h5>' +
+          (inferred.length
+            ? '<ul>' + inferred.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
+            : '<ul><li>Nothing</li></ul>') +
+        '</div>' +
+      '</div>' +
+      (flags.length
+        ? '<div class="ap-prov-flags">' + flags.map(function (f) {
+            return '<span class="ap-prov-flag">' + esc(humanise(f).replace(/^./, function (c) {
+              return c.toUpperCase();
+            })) + ': no</span>';
+          }).join("") + '</div>'
+        : "") +
+      (prov.caveat ? '<div class="ap-prov-caveat">' + esc(String(prov.caveat)) + '</div>' : "") +
+      '</div>';
+  }
+
+  /* THE GATE. Rendered first and loudest when the server says this draft is not
+     ready. The reason is spelled out from the measured block's own findings
+     rather than left as a bare flag, because "not ready" without the phrases is
+     not actionable. */
+  function renderGate(data) {
+    var blocked = null;
+    if (data.ready_to_post === false) blocked = "post";
+    else if (data.ready_to_send === false) blocked = "send";
+    if (!blocked) return "";
+
+    var measured = isPlainObject(data.measured) ? data.measured : {};
+    var reasons = [];
+
+    (measured.disputing_phrases_found || []).forEach(function (p) {
+      reasons.push('"' + p.matched_text + '" — ' + p.problem);
+    });
+    (data.messages || []).forEach(function (m) {
+      (m.incentive_phrases_found || []).forEach(function (p) {
+        reasons.push('"' + p.matched_text + '" — ' + p.problem);
+      });
+    });
+    if (measured.words_over_limit > 0) {
+      reasons.push(measured.words_over_limit + " words over the " + measured.word_limit + "-word limit");
+    }
+
+    return '<div class="ap-gate">' +
+      '<div class="ap-gate-title">⚠ Do not ' + blocked + ' this as written</div>' +
+      esc(String(measured.note || "The server marked this draft not ready.")) +
+      (reasons.length
+        ? '<ul>' + reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul>'
+        : "") +
+      '</div>';
+  }
+
+  // GENERATED. Everything the model wrote, in ordinary prose on the card ground.
+  function renderGenerated(data) {
+    var parts = [];
+
+    Object.keys(data).forEach(function (key) {
+      if (TOOL_SKIP_KEYS.indexOf(key) !== -1) return;
+      if (TOOL_GATE_KEYS.indexOf(key) !== -1) return;
+      if (TOOL_REF_KEYS.indexOf(key) !== -1) return;
+      if (key === "measured" || key === "provenance") return;
+
+      var value = data[key];
+      if (value === null || value === undefined || value === "") return;
+
+      parts.push('<div class="ap-gen-item">' +
+        '<div class="ap-gen-key">' + esc(humanise(key)) + '</div>' +
+        (typeof value === "string"
+          ? "<pre>" + esc(value) + "</pre>"
+          : renderScalarish(value)) +
+        '</div>');
+    });
+
+    if (!parts.length) return "";
+    return '<div class="ap-generated">' +
+      '<div class="ap-zone-label">Written by the model</div>' + parts.join("") + '</div>';
+  }
+
+  function renderReference(data) {
+    var parts = [];
+    TOOL_REF_KEYS.forEach(function (key) {
+      if (!(key in data)) return;
+      var value = data[key];
+      if (value === null || value === undefined || value === "") return;
+      parts.push("<div><strong>" + esc(humanise(key)) + ":</strong> " +
+        (typeof value === "string" ? esc(value) : renderScalarish(value)) + "</div>");
+    });
+    if (!parts.length) return "";
+    return '<div class="ap-ref">' +
+      '<div class="ap-zone-label">Limits, rules and standing statements</div>' + parts.join("") + '</div>';
+  }
+
+  function renderToolResult(tool, data) {
+    return [
+      renderGate(data),
+      renderGenerated(data),
+      renderMeasured(data.measured),
+      renderProvenance(data.provenance),
+      renderReference(data)
+    ].filter(Boolean).join("");
+  }
+
+  /* A 502 FROM THESE ROUTES IS A PARSE FAILURE, and it carries raw_output. Shown
+     as exactly that, with the raw text, rather than as an empty result — "no
+     keywords found" would be a claim about the request when what failed was the
+     model's formatting, and the raw text is the only thing that makes the failure
+     diagnosable. */
+  function renderParseFailure(data) {
+    return '<div class="ap-parsefail">' +
+      '<div class="ap-zone-label" style="color:#fbbf24">Could not read the model\'s answer</div>' +
+      esc(String((data && data.error) || "The model's output could not be parsed.")) +
+      (data && data.raw_output
+        ? "<pre>" + esc(String(data.raw_output)) + "</pre>"
+        : "") +
+      '</div>';
+  }
+
+  function setToolMsg(toolId, text, cls) {
+    var el = document.getElementById(toolDomId(toolId, "msg"));
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "ap-tool-msg" + (cls ? " " + cls : "");
+  }
+
+  function runTool(tool) {
+    var token = tok();
+    var resultEl = document.getElementById(toolDomId(tool.id, "result"));
+    var runBtn = document.querySelector('[data-tool-run="' + tool.id + '"]');
+
+    if (!token) {
+      setToolMsg(tool.id, "Sign in to run this.", "err");
+      return;
+    }
+
+    var built = toolPayload(tool);
+    if (built.missing.length) {
+      setToolMsg(tool.id, "Fill in: " + built.missing.join(", "), "err");
+      return;
+    }
+
+    if (runBtn) runBtn.disabled = true;
+    if (resultEl) resultEl.innerHTML = "";
+    setToolMsg(tool.id, "Running…", "");
+
+    fetch(API_URL + "/api/agents/" + AGENT_TYPE + "/" + tool.id, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(built.body)
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (runBtn) runBtn.disabled = false;
+
+        if (res.status === 502) {
+          // Not an error message and not an empty result — the parse failure and
+          // its raw text, which is what a 502 from these routes actually means.
+          if (resultEl) resultEl.innerHTML = renderParseFailure(res.data);
+          setToolMsg(tool.id, "The model's answer could not be read. Nothing is being reported as a result.", "err");
+          return;
+        }
+
+        if (!res.ok) {
+          var detail = (res.data && res.data.error) || ("HTTP " + res.status);
+          if (res.data && Array.isArray(res.data.valid_platforms)) {
+            detail += " (accepted: " + res.data.valid_platforms.join(", ") + ")";
+          }
+          setToolMsg(tool.id, detail, "err");
+          return;
+        }
+
+        if (!res.parsed || !isPlainObject(res.data)) {
+          setToolMsg(tool.id, "The response could not be read. Nothing is being reported.", "err");
+          return;
+        }
+
+        if (resultEl) resultEl.innerHTML = renderToolResult(tool, res.data);
+        setToolMsg(tool.id, "", "");
+      })
+      .catch(function (error) {
+        if (runBtn) runBtn.disabled = false;
+        setToolMsg(tool.id, (error && error.message) || "That could not be run.", "err");
+      });
+  }
+
+  function bindTools() {
+    if (!TOOLS.length) return;
+
+    TOOLS.forEach(function (tool) {
+      var head = document.querySelector('[data-tool-toggle="' + tool.id + '"]');
+      if (head) {
+        head.addEventListener("click", function () {
+          var body = document.getElementById(toolDomId(tool.id, "body"));
+          var caret = document.getElementById(toolDomId(tool.id, "caret"));
+          if (!body) return;
+          body.hidden = !body.hidden;
+          if (caret) caret.textContent = body.hidden ? "Show" : "Hide";
+        });
+      }
+
+      var runBtn = document.querySelector('[data-tool-run="' + tool.id + '"]');
+      if (runBtn) runBtn.addEventListener("click", function () { runTool(tool); });
+
+      (tool.fields || []).forEach(function (field) {
+        if (field.type !== "rows") return;
+        var id = toolDomId(tool.id, "f_" + field.name);
+        var addBtn = document.querySelector('[data-addrow="' + id + '"]');
+        var wrap = document.getElementById(id);
+        if (!addBtn || !wrap) return;
+        addBtn.addEventListener("click", function () {
+          var first = wrap.querySelector(".ap-tool-row");
+          if (!first) return;
+          var clone = first.cloneNode(true);
+          Array.prototype.forEach.call(clone.querySelectorAll("input"), function (i) { i.value = ""; });
+          wrap.appendChild(clone);
+        });
+      });
     });
   }
 

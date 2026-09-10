@@ -719,6 +719,83 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "pricing_strategy",  label: "Pricing Strategy" },
     { value: "competitor_analysis",label:"Competitor Analysis" },
     { value: "general",           label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "keyword-research",
+      "label": "Keyword Research",
+      "runLabel": "Find keywords",
+      "description": "Etsy-shaped keyword candidates, each measured against the 20-character tag limit.",
+      "fields": [
+        {
+          "name": "seed",
+          "label": "Seed term",
+          "type": "text",
+          "required": true,
+          "placeholder": "soy candle"
+        },
+        {
+          "name": "context",
+          "label": "What you make",
+          "type": "textarea",
+          "hint": "Optional. Helps the suggestions fit your actual products."
+        }
+      ]
+    },
+    {
+      "id": "pricing-strategy",
+      "label": "Pricing Strategy",
+      "runLabel": "Build a pricing rationale",
+      "description": "Arithmetic over comparables you supply, plus a rationale. Comparables are not fetched.",
+      "fields": [
+        {
+          "name": "listing_title",
+          "label": "Your listing",
+          "type": "text",
+          "required": true,
+          "placeholder": "Hand-poured soy candle, 8oz"
+        },
+        {
+          "name": "listing_description",
+          "label": "Listing description",
+          "type": "textarea"
+        },
+        {
+          "name": "current_price",
+          "label": "Your current price",
+          "type": "number"
+        },
+        {
+          "name": "unit_cost",
+          "label": "Your unit cost",
+          "type": "number",
+          "hint": "Optional. Supplying it adds a gross margin figure."
+        },
+        {
+          "name": "comparables",
+          "label": "Comparable listings",
+          "type": "rows",
+          "hint": "Up to 50. Typed in by you — BizForce cannot read Etsy listings. A row with no price is counted but left out of the statistics.",
+          "columns": [
+            {
+              "name": "title",
+              "label": "Title",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "Price",
+              "type": "number"
+            },
+            {
+              "name": "note",
+              "label": "Note",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    }
   ]
 };
 </script>
