@@ -689,22 +689,19 @@
       </div>
     </section>
     <div class="toolbar">
-      <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong> · Reports: <strong id="reportTotalText">0</strong></div>
+      <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
         <a class="action-btn" href="../dashboard.html">Run on Dashboard</a>
       </div>
     </div>
-    <div class="reports-grid" id="reportsGrid"></div>
   </div>
   <script>
     var AGENT_KEY = "seoAgent";
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var REPORT_SECTIONS = [{"title":"Website Audits","collections":["audits"]},{"title":"Keyword Research","collections":["keywords","keywordResearchRecords"]},{"title":"Executive Reports","collections":["executiveReports"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Opportunities","collections":["opportunities"]}];
     var EXTRA_CONTEXT_FIELDS = [];
     var GOALS_FIELD = "";
-    var DASHBOARD_HREF = "../dashboard.html";
     var AGENT_LABEL = "SEO Agent";
 
     function escapeHtml(value) {
@@ -753,69 +750,6 @@
       }
       return base;
     }
-    function collectItems(store, section) {
-      var items = [], seen = {}, bi, ci, bn, cn, bucket, coll, key, arr, ai;
-      if (section.buckets) {
-        for (bi = 0; bi < section.buckets.length; bi++) {
-          bn = section.buckets[bi];
-          bucket = store.reports && store.reports[bn] ? store.reports[bn] : {};
-          if (bucket && typeof bucket === "object" && !Array.isArray(bucket)) {
-            for (key in bucket) if (Object.prototype.hasOwnProperty.call(bucket, key) && !seen[key + ":" + bn]) {
-              seen[key + ":" + bn] = true; items.push(bucket[key]);
-            }
-          }
-        }
-      }
-      if (section.nestedBuckets) {
-        for (bi = 0; bi < section.nestedBuckets.length; bi++) {
-          bn = section.nestedBuckets[bi];
-          bucket = store.reports && store.reports[bn] ? store.reports[bn] : {};
-          if (bucket && typeof bucket === "object") {
-            for (key in bucket) if (Object.prototype.hasOwnProperty.call(bucket, key) && !seen["n:" + key + ":" + bn]) {
-              seen["n:" + key + ":" + bn] = true; items.push(bucket[key]);
-            }
-          }
-        }
-      }
-      if (section.collections) {
-        for (ci = 0; ci < section.collections.length; ci++) {
-          cn = section.collections[ci];
-          coll = store[cn];
-          if (Array.isArray(coll)) {
-            for (ai = 0; ai < coll.length; ai++) if (!seen["a:" + cn + ":" + ai]) {
-              seen["a:" + cn + ":" + ai] = true; items.push(coll[ai]);
-            }
-          } else if (coll && typeof coll === "object") {
-            for (key in coll) if (Object.prototype.hasOwnProperty.call(coll, key) && !seen[key + ":" + cn]) {
-              seen[key + ":" + cn] = true; items.push(coll[key]);
-            }
-          }
-        }
-      }
-      items.sort(function (a, b) {
-        var at = a && (a.updatedAt || a.timestamp || a.runAt) ? new Date(a.updatedAt || a.timestamp || a.runAt).getTime() : 0;
-        var bt = b && (b.updatedAt || b.timestamp || b.runAt) ? new Date(b.updatedAt || b.timestamp || b.runAt).getTime() : 0;
-        return bt - at;
-      });
-      return items;
-    }
-    function renderGenericItem(item) {
-      var title = item.title || item.name || item.reportTitle || item.headline || item.topicName || item.ideaTitle || item.briefTitle || item.campaignName || item.projectName || item.type || item.id || "Report";
-      var meta = [];
-      if (item.confidence) meta.push("Confidence: " + item.confidence);
-      if (item.status) meta.push("Status: " + item.status);
-      if (item.priority) meta.push("Priority: " + item.priority);
-      if (item.reportType) meta.push("Type: " + item.reportType);
-      var body = item.summary || item.executiveSummary || item.goal || "";
-      if (!body && Array.isArray(item.highlights)) body = item.highlights.join(" · ");
-      if (!body && Array.isArray(item.recommendations)) body = item.recommendations.join(" · ");
-      if (!body && item.seoScore != null) body = "SEO score: " + item.seoScore;
-      if (!body) body = "—";
-      return "<article class=\"report-item\"><h3 class=\"report-item-title\">" + escapeHtml(title) + "</h3>" +
-        (meta.length ? "<p class=\"report-item-meta\">" + escapeHtml(meta.join(" · ")) + "</p>" : "") +
-        "<p class=\"report-item-body\">" + escapeHtml(body) + "</p>" +
-        "<span class=\"report-tag\">" + escapeHtml(formatDate(item.updatedAt || item.timestamp || item.runAt)) + "</span></article>";
-    }
     function renderBusinessContext(context) {
       var fields = [
         { label: "Business", value: context.businessName },
@@ -835,35 +769,11 @@
       var goalsEl = document.getElementById("agentGoalsText");
       if (goalsEl && GOALS_FIELD) goalsEl.textContent = context[GOALS_FIELD] || "—";
     }
-    function renderReports(store, agentLabel) {
-      var grid = document.getElementById("reportsGrid"), total = 0, html = "", si, section, items, ii;
-
-      /* SCOPED TO THE REPORT SECTIONS AND NOTHING ELSE. Everything below comes
-         from bf_executive_memory.seoAgent, which only dashboard.html writes and
-         only from hash-seeded generators — the same store its SEO card renders,
-         labelled there in 1a7fc49. This is the other half of that label.
-
-         It is emitted into `html`, so it lands inside #reportsGrid. The RUN
-         AGENT TASK panel sits immediately before that element and shows real
-         /api/ai/tasks output; the last sentence says so, because the two are
-         adjacent and look alike. */
-      html += '<div class="sim-note"><strong>Sample</strong><span>These reports are generated from your input on the dashboard to demonstrate the interface. Every score, volume and metric in them is sample output — no site is crawled and nothing is measured. Task results above come from a real agent run and are not affected.</span></div>';
-      for (si = 0; si < REPORT_SECTIONS.length; si++) {
-        section = REPORT_SECTIONS[si];
-        items = collectItems(store, section);
-        total += items.length;
-        html += "<section class=\"report-section\"><div class=\"report-section-header\"><h2 class=\"report-section-title\">" + escapeHtml(section.title) + "</h2><span class=\"report-count\">" + items.length + " report" + (items.length === 1 ? "" : "s") + "</span></div>";
-        if (!items.length) {
-          html += "<div class=\"empty-state\"><p>No " + escapeHtml(section.title.toLowerCase()) + " yet. Run the " + escapeHtml(agentLabel) + " from the dashboard to generate intelligence.</p><a class=\"action-btn\" href=\"" + DASHBOARD_HREF + "\">Go to Dashboard</a></div>";
-        } else {
-          html += "<div class=\"report-items\">";
-          for (ii = 0; ii < items.length; ii++) html += renderGenericItem(items[ii]);
-          html += "</div>";
-        }
-        html += "</section>";
-      }
-      grid.innerHTML = html;
-      document.getElementById("reportTotalText").textContent = String(total);
+    function renderRunMetaAndStats(store) {
+      /* Renamed from renderReports when the report cards were removed. It never
+         only rendered reports: it also fills the toolbar's "Last run" and the
+         Agent Stats grid, both of which read the live bf_executive_memory store
+         and both of which work. The cards were the dead part. */
       var lr = store.lastRun;
       if (lr && typeof lr === "object") lr = lr.runAt || lr.timestamp;
       document.getElementById("lastRunText").textContent = formatDate(lr || (store.stats && (store.stats.lastRun || store.stats.updatedAt)));
@@ -953,7 +863,7 @@
       var memory = loadExecutiveMemory();
       var store = getAgentStore(memory);
       renderBusinessContext(buildBusinessContext(profile, store));
-      renderReports(store, AGENT_LABEL);
+      renderRunMetaAndStats(store);
       applyLiveAgentData();
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
