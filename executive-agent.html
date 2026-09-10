@@ -715,6 +715,34 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "executive_briefing", label: "Executive Briefing" },
     { value: "kpi_review",         label: "KPI Review" },
     { value: "general",            label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "plan",
+      "label": "Executive Plan",
+      "runLabel": "Build the plan",
+      "description": "Coordinated assignments across the other agents, each naming the actual tool to run. Every assignment is checked against the routes that really exist.",
+      "fields": [
+        {
+          "name": "goal",
+          "label": "The goal",
+          "type": "textarea",
+          "required": true,
+          "hint": "Assignments that name a real tool can be run as written; ones that name something that does not exist are flagged as not runnable rather than passed through."
+        },
+        {
+          "name": "horizon",
+          "label": "Horizon",
+          "type": "text",
+          "placeholder": "next 30 days"
+        },
+        {
+          "name": "constraints",
+          "label": "Constraints",
+          "type": "textarea"
+        }
+      ]
+    }
   ]
 };
 </script>

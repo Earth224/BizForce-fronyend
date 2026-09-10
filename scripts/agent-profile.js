@@ -244,6 +244,66 @@
     ".ap-ref{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);",
       "border:1px solid rgba(255,255,255,.07);font-size:.76rem;color:#8892b8;line-height:1.6}",
 
+    /* executive plan — the only tool with its own renderer. Three looks for three
+       kinds of assignment, because one that can be run, one that is prose, and one
+       that names a route which does not exist must not read the same. */
+    ".ap-plan-now{padding:14px 16px;border-radius:12px;border:1px solid rgba(74,222,128,.38);",
+      "background:rgba(74,222,128,.07)}",
+    ".ap-plan-now .ap-zone-label{color:#86efac}",
+    ".ap-plan-now .ap-zone-label::after{background:rgba(74,222,128,.25)}",
+    ".ap-plan-now-list{display:flex;flex-direction:column;gap:10px}",
+    ".ap-plan-empty{font-size:.8rem;color:#fca5a5;line-height:1.6}",
+
+    ".ap-plan-ratio{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;",
+      "padding:11px 14px;border-radius:11px;background:rgba(6,182,212,.07);",
+      "border:1px solid rgba(6,182,212,.28);font-size:.78rem;color:#cffafe;line-height:1.55}",
+    ".ap-plan-ratio-num{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:1.3rem;font-weight:800;color:#a5f3fc;flex-shrink:0}",
+
+    ".ap-plan-waves{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.02);",
+      "border:1px solid rgba(255,255,255,.08)}",
+    ".ap-plan-wave{display:flex;align-items:center;gap:9px;font-size:.8rem;color:#c3c9e6;",
+      "padding:3px 0}",
+    ".ap-plan-wave-n{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;",
+      "align-items:center;justify-content:center;font-size:.7rem;font-weight:700;",
+      "background:rgba(139,92,246,.25);color:#c4b5fd}",
+
+    ".ap-plan-all{display:flex;flex-direction:column;gap:10px}",
+
+    /* RUNNABLE: a left edge in the accent, because it is the thing you can act on. */
+    ".ap-asg{padding:12px 14px;border-radius:11px;background:rgba(255,255,255,.03);",
+      "border:1px solid rgba(255,255,255,.1);border-left-width:3px}",
+    ".ap-asg.runnable{border-left-color:#06b6d4}",
+    /* PROSE: no route, so a muted edge — real work, but nothing to press. */
+    ".ap-asg.prose{border-left-color:rgba(255,255,255,.2);opacity:.92}",
+    /* BROKEN: names an agent or tool that does not exist. Hatched and red-edged so
+       it cannot be mistaken for either of the other two at a glance. */
+    ".ap-asg.broken{border-color:rgba(248,113,113,.45);border-left-color:#f87171;",
+      "background:repeating-linear-gradient(45deg,rgba(248,113,113,.1) 0 6px,rgba(255,255,255,.02) 6px 12px)}",
+
+    ".ap-asg-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}",
+    ".ap-asg-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.75rem;color:#8892b8}",
+    ".ap-asg-agent{font-size:.85rem;font-weight:700;color:#e8e8ff}",
+    ".ap-asg-pri{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;",
+      "border-radius:99px;background:rgba(255,255,255,.07);color:#8892b8}",
+    ".ap-asg-pri.high{background:rgba(248,113,113,.16);color:#fca5a5}",
+    ".ap-asg-pri.medium{background:rgba(251,191,36,.14);color:#fde68a}",
+    ".ap-asg-now{margin-left:auto;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;",
+      "padding:2px 8px;border-radius:99px;background:rgba(74,222,128,.16);color:#86efac}",
+    ".ap-asg-route{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.74rem;color:#a5f3fc;background:rgba(6,182,212,.1);padding:5px 8px;",
+      "border-radius:7px;margin-bottom:7px;word-break:break-all}",
+    ".ap-asg-noroute{font-size:.72rem;color:#7b83a6;font-style:italic;margin-bottom:7px}",
+    ".ap-asg-task{font-size:.82rem;color:#e2e6f5;line-height:1.55;margin-bottom:6px}",
+    ".ap-asg-field{font-size:.75rem;color:#a9b0cc;line-height:1.5;margin-top:3px}",
+    ".ap-asg-field span{display:inline-block;min-width:72px;color:#7b83a6;",
+      "text-transform:uppercase;font-size:.65rem;letter-spacing:.05em}",
+    ".ap-asg-field.missing{color:#fca5a5}",
+    ".ap-asg-problems{margin-top:8px;padding:8px 10px;border-radius:8px;",
+      "background:rgba(248,113,113,.14);color:#ffd7d7;font-size:.76rem;line-height:1.55}",
+    ".ap-asg-problems strong{color:#fca5a5}",
+
     /* A 502 is a PARSE FAILURE, not an empty result, and the raw text is shown so
        the failure is diagnosable rather than merely reported. */
     ".ap-parsefail{padding:14px 16px;border-radius:12px;border:1px solid rgba(251,191,36,.45);",
@@ -1756,6 +1816,21 @@
     } else if (data.ready_to_send === false) {
       title = "⚠ Do not send this as written";
       lead = measured.note || "The server marked this draft not ready.";
+    } else if (isPlainObject(data.execution_order) &&
+               Array.isArray(data.execution_order.circular_dependencies) &&
+               data.execution_order.circular_dependencies.length > 0) {
+      /* A CIRCULAR DEPENDENCY IS A GATE-LEVEL FACT, not a note. The plan cannot
+         start — not "is inefficient", cannot start — and every individual line in
+         it reads perfectly well, which is exactly why it needs to be said at the
+         top rather than discovered by someone trying to work out what to do first.
+
+         Ranked above the benchmark and figure cases because it invalidates the
+         whole output rather than part of it. */
+      var circ = data.execution_order.circular_dependencies;
+      title = "⚠ This plan cannot start — " + circ.length + " assignment(s) wait on each other";
+      lead = data.execution_order.note ||
+        "Assignments " + circ.join(", ") + " depend on each other in a loop, so there is no order " +
+        "in which they can be run. Break the loop before starting any of this.";
     } else if (measured.interpretation_cites_a_benchmark === true ||
                measured.review_cites_a_benchmark === true) {
       /* The same class of problem as a fabricated competitor figure, arriving in a
@@ -1794,6 +1869,14 @@
         reasons.push('"' + p.matched_text + '" — ' + p.problem);
       });
     });
+    /* Which assignment waits on which, named rather than left as "there is a
+       cycle" — the first is actionable and the second is not. */
+    if (isPlainObject(data.execution_order)) {
+      (data.execution_order.circular_detail || []).forEach(function (c) {
+        reasons.push("#" + c.assignment + " waits on " +
+          ((c.waits_on || []).join(", ") || "itself"));
+      });
+    }
     /* The benchmark claims, named the way the other cases name their phrases. Both
        analytics tools use the same shape under different keys. */
     (measured.benchmark_claims_in_the_interpretation || [])
@@ -1824,13 +1907,28 @@
   }
 
   // GENERATED. Everything the model wrote, in ordinary prose on the card ground.
-  function renderGenerated(data) {
+  function renderGenerated(data, tool) {
     var parts = [];
+
+    /* THE USER'S OWN INPUT IS NOT MODEL WRITING. Most routes echo their inputs
+       back — `keyword`, `seed`, `goal`, `industry` — and rendering those under a
+       heading that says "Written by the model" is simply false. It also matters
+       for one tool specifically: content/audit makes no model call at all, so its
+       only non-measured key is the echoed keyword, and without this exclusion the
+       page would print a "Written by the model" panel over a word the user typed
+       on a response where the model was never called.
+
+       Derived from the tool's own declared field names rather than a list of keys
+       kept here, so it stays correct as tools are added. */
+    var echoed = (tool && Array.isArray(tool.fields))
+      ? tool.fields.map(function (f) { return f.name; })
+      : [];
 
     Object.keys(data).forEach(function (key) {
       if (TOOL_SKIP_KEYS.indexOf(key) !== -1) return;
       if (TOOL_GATE_KEYS.indexOf(key) !== -1) return;
       if (TOOL_REF_KEYS.indexOf(key) !== -1) return;
+      if (echoed.indexOf(key) !== -1) return;
       // Rendered after the measured panel instead; see renderAfterMeasured.
       if (TOOL_AFTER_MEASURED_KEYS.indexOf(key) !== -1) return;
       if (key === "measured" || key === "provenance") return;
@@ -1925,13 +2023,166 @@
       parts.join("") + '</div>';
   }
 
+  /* ── THE EXECUTIVE PLAN GETS ITS OWN RENDERER ────────────────────────────────
+     It is the only tool in the set whose output is a list of things to GO AND DO
+     rather than something to read, and the generic renderer would flatten it into
+     a column of objects — technically complete and useless, because the three
+     things that matter would be invisible.
+
+     What matters, in order:
+
+       1. WHICH ASSIGNMENTS CAN START NOW. execution_order.can_start_now is the
+          single most useful fact in the response and it is the one a column of
+          objects buries. It goes first, before the full list.
+
+       2. AN ASSIGNMENT WITH A ROUTE READS DIFFERENTLY FROM PROSE. One names a
+          thing that can be run; the other is a sentence. Showing the route is the
+          difference between a dispatcher and a document, so it is shown.
+
+       3. AN ASSIGNMENT WITH PROBLEMS IS NOT RUNNABLE and must not look like the
+          others. It names an agent or tool that does not exist, so acting on it
+          means calling a route that 404s — the generic renderer would show it in
+          the same typeface as a valid one, which is the precise failure the
+          backend validation exists to prevent.
+
+     Keyed off the tool id, so nothing else in this file becomes tool-aware. */
+  var TOOL_RENDERERS = { "plan": renderExecutivePlan };
+
+  function assignmentCard(a, isReady) {
+    var broken = Array.isArray(a.problems) && a.problems.length > 0;
+    var cls = "ap-asg" + (broken ? " broken" : (a.is_dispatchable ? " runnable" : " prose"));
+
+    return '<div class="' + cls + '">' +
+      '<div class="ap-asg-head">' +
+        '<span class="ap-asg-id">#' + esc(String(a.id)) + '</span>' +
+        '<span class="ap-asg-agent">' + esc(a.agent || "(no agent)") + '</span>' +
+        (a.priority && a.priority !== "unstated"
+          ? '<span class="ap-asg-pri ' + esc(a.priority) + '">' + esc(a.priority) + '</span>' : "") +
+        (isReady ? '<span class="ap-asg-now">can start now</span>' : "") +
+      '</div>' +
+
+      // The route, where there is one. This is the dispatchable half of the plan.
+      (a.route
+        ? '<div class="ap-asg-route">' + esc(a.route) + '</div>'
+        : (broken ? "" : '<div class="ap-asg-noroute">No tool for this — prose assignment</div>')) +
+
+      (a.task ? '<div class="ap-asg-task">' + esc(a.task) + '</div>' : "") +
+      (a.input ? '<div class="ap-asg-field"><span>Input</span>' + esc(a.input) + '</div>' : "") +
+      (a.success_signal
+        ? '<div class="ap-asg-field"><span>Done when</span>' + esc(a.success_signal) + '</div>'
+        : '<div class="ap-asg-field missing"><span>Done when</span>no success signal given</div>') +
+      (Array.isArray(a.depends_on) && a.depends_on.length
+        ? '<div class="ap-asg-field"><span>After</span>#' + a.depends_on.join(", #") + '</div>'
+        : "") +
+
+      /* The problems, spelled out. An assignment that cannot be run has to say
+         why, or the reader concludes the tool is broken rather than the plan. */
+      (broken
+        ? '<div class="ap-asg-problems">' +
+            '<strong>Not runnable.</strong> ' +
+            a.problems.map(function (p) { return esc(p); }).join(" ") +
+          '</div>'
+        : "") +
+      '</div>';
+  }
+
+  function renderExecutivePlan(tool, data) {
+    var order = isPlainObject(data.execution_order) ? data.execution_order : {};
+    var measured = isPlainObject(data.measured) ? data.measured : {};
+    var assignments = Array.isArray(data.assignments) ? data.assignments : [];
+    if (!assignments.length) return "";
+
+    var byId = {};
+    assignments.forEach(function (a) { byId[a.id] = a; });
+
+    var readyIds = Array.isArray(order.can_start_now) ? order.can_start_now : [];
+    var readyMap = {};
+    readyIds.forEach(function (id) { readyMap[id] = true; });
+
+    var out = "";
+
+    /* 1. START HERE. Rendered first and on its own, because "what do I do now" is
+       the question the plan exists to answer and scrolling a list of twelve
+       objects to work it out is the thing this renderer is replacing. */
+    out += '<div class="ap-plan-now">' +
+      '<div class="ap-zone-label">Start here</div>' +
+      (readyIds.length
+        ? '<div class="ap-plan-now-list">' +
+            readyIds.map(function (id) {
+              var a = byId[id];
+              return a ? assignmentCard(a, true) : "";
+            }).join("") +
+          '</div>'
+        : '<div class="ap-plan-empty">Nothing can start yet — every assignment waits on another. ' +
+          'See the dependency problem above.</div>') +
+      '</div>';
+
+    /* 2. The ratio, as the one figure that says what kind of plan this is. */
+    out += '<div class="ap-plan-ratio">' +
+      '<span class="ap-plan-ratio-num">' + esc(String(measured.real_tool_ratio_percent)) + '%</span>' +
+      '<span>of this plan names a tool that exists and can be run as written — ' +
+        esc(String(measured.naming_a_real_tool)) + ' of ' +
+        esc(String(measured.assignment_count)) + ' assignment(s)' +
+        (measured.prose_only ? ', ' + esc(String(measured.prose_only)) + ' prose only' : "") +
+        (measured.with_problems
+          ? ', ' + esc(String(measured.with_problems)) + ' naming something that does not exist' : "") +
+      '.</span>' +
+      '</div>';
+
+    /* 3. The waves, so the order is visible as an order rather than as a field on
+       each card. */
+    if (Array.isArray(order.waves) && order.waves.length > 1) {
+      out += '<div class="ap-plan-waves">' +
+        '<div class="ap-zone-label">Order</div>' +
+        order.waves.map(function (wave, i) {
+          return '<div class="ap-plan-wave">' +
+            '<span class="ap-plan-wave-n">' + (i + 1) + '</span>' +
+            '<span>#' + wave.join(", #") + '</span></div>';
+        }).join("") +
+        '</div>';
+    }
+
+    // 4. Everything, in id order, so nothing is only visible via a wave.
+    out += '<div class="ap-plan-all">' +
+      '<div class="ap-zone-label">All ' + assignments.length + ' assignment(s)</div>' +
+      assignments.slice().sort(function (a, b) { return a.id - b.id; })
+        .map(function (a) { return assignmentCard(a, !!readyMap[a.id]); }).join("") +
+      '</div>';
+
+    if (Array.isArray(order.unresolved_references) && order.unresolved_references.length) {
+      out += '<div class="ap-ref">' +
+        '<div class="ap-zone-label">Dependencies pointing nowhere</div>' +
+        order.unresolved_references.map(function (u) {
+          return "<div>#" + esc(String(u.assignment)) + " waits on #" + esc(String(u.references)) +
+            ", which is not in this plan.</div>";
+        }).join("") + '</div>';
+    }
+
+    return out;
+  }
+
   function renderToolResult(tool, data) {
+    /* A per-tool renderer replaces the generated zone only. The gate, the measured
+       panel and the provenance block are the same everywhere and stay that way —
+       they are the part that must not vary between tools. */
+    var custom = tool && TOOL_RENDERERS[tool.id];
+    if (custom) {
+      return [
+        renderGate(data),
+        renderNothingRead(data.provenance),
+        custom(tool, data),
+        renderMeasured(data.measured),
+        renderProvenance(data.provenance),
+        renderReference(data)
+      ].filter(Boolean).join("");
+    }
+
     return [
       // The gate first — an unsafe draft outranks everything else on the page.
       renderGate(data),
       // Then "nothing was read", before the content it qualifies rather than after.
       renderNothingRead(data.provenance),
-      renderGenerated(data),
+      renderGenerated(data, tool),
       renderMeasured(data.measured),
       // The interpretation comes AFTER the arithmetic it interprets.
       renderAfterMeasured(data),

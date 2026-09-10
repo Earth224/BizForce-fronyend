@@ -1808,6 +1808,55 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "repurpose_plan",      label: "Repurpose Plan" },
     { value: "video_script",        label: "Video Script" },
     { value: "general",             label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "outline",
+      "label": "Article Outline",
+      "runLabel": "Build the outline",
+      "description": "The shape before anything is written — H1, sections, search intent and the questions to answer. Sections are compared for overlap.",
+      "fields": [
+        {
+          "name": "keyword",
+          "label": "Keyword or topic",
+          "type": "text",
+          "required": true,
+          "placeholder": "solar panel maintenance",
+          "hint": "No SERP is read, so the search intent and section choices are judgement rather than an observation of what ranks."
+        },
+        {
+          "name": "audience",
+          "label": "Audience",
+          "type": "text"
+        },
+        {
+          "name": "angle",
+          "label": "Angle",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "id": "audit",
+      "label": "Article Audit",
+      "runLabel": "Measure the article",
+      "description": "Pure measurement — no model call at all. Word and paragraph counts, heading nesting, and keyword presence per section.",
+      "fields": [
+        {
+          "name": "article",
+          "label": "The article",
+          "type": "textarea",
+          "required": true,
+          "hint": "Paste markdown or HTML; both are read. Nothing is sent to a model — the same article always gives the same numbers."
+        },
+        {
+          "name": "keyword",
+          "label": "Target keyword",
+          "type": "text",
+          "hint": "Optional. Without it, structure and length are still measured and the keyword figures come back as null rather than as failures."
+        }
+      ]
+    }
   ]
 };
 </script>
