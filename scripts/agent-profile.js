@@ -386,6 +386,40 @@
   var autonomyState  = null;
   var autonomySaving = false;
 
+  /* Keeps the HTTP status AND whether the body actually parsed. Both matter, and
+     a `.catch` that collapses a parse failure into `{}` loses both: the status
+     is then missing from the failure message, and — far worse — an unparseable
+     body becomes indistinguishable from a successful read that returned nothing.
+     See the `parsed` check in loadAutonomy for why that distinction is the whole
+     point on this particular control. */
+  function readAutoJson(r) {
+    return r.json().then(
+      function (d) { return { ok: r.ok, status: r.status, data: d,  parsed: true  }; },
+      function ()  { return { ok: r.ok, status: r.status, data: {}, parsed: false }; }
+    );
+  }
+
+  /* ALWAYS says the setting could not be loaded, with the server's reason added
+     rather than substituted. The reason on its own ("unauthorized", "boom", a
+     bare status) does not tell anyone WHICH setting failed or that the switch
+     below it is therefore not reporting anything — and on a control that says
+     whether an agent runs unattended, "unauthorized" next to a switch is not an
+     adequate account of why the switch cannot be trusted. */
+  function autoLoadFailMsg(detail) {
+    var base = "Autonomous mode could not be loaded — this switch is not showing "
+             + "whether it is on. Reload to try again.";
+    return detail ? base + " (" + detail + ")" : base;
+  }
+
+  /* Flagged rather than recognised by its text downstream: the catch below has
+     to tell an already-framed failure from a raw transport rejection, and doing
+     that by matching on the message would break the moment the wording changed. */
+  function autoLoadFail(detail) {
+    var e = new Error(autoLoadFailMsg(detail));
+    e.autoFramed = true;
+    return e;
+  }
+
   function setAutoMsg(text, cls) {
     var el = document.getElementById("apAutoMsg");
     if (!el) return;
@@ -426,17 +460,30 @@
     fetch(API_URL + "/api/agent-autonomy", {
       headers: { "Authorization": "Bearer " + token }
     })
-      .then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (d) {
-          return { ok: r.ok, data: d };
-        });
-      })
+      .then(readAutoJson)
       .then(function (res) {
         if (!res.ok) {
-          throw new Error((res.data && res.data.error) || "This setting could not be loaded.");
+          throw autoLoadFail((res.data && res.data.error) || ("HTTP " + res.status));
         }
 
-        var rows = (res.data && Array.isArray(res.data.autonomy)) ? res.data.autonomy : [];
+        /* AN UNREADABLE BODY IS NOT AN EMPTY LIST. This used to fall back to
+           `[]` whenever the payload was missing or unparseable, which then took
+           the no-row branch below and rendered a confident, interactive "Off" —
+           the one thing this control must never do on a read that did not
+           actually succeed. A 200 can carry something that is not the expected
+           JSON (a proxy or gateway interstitial, a truncated body), and "I could
+           not read the answer" is not the same statement as "the server says
+           there is no row".
+
+           The distinction is exactly `autonomy` being a real array: `[]` IS an
+           answer and means off (see below), whereas an absent or non-array
+           `autonomy`, or a body that never parsed, is no answer at all and has
+           to stay unknown. */
+        if (!res.parsed || !res.data || !Array.isArray(res.data.autonomy)) {
+          throw autoLoadFail("unexpected response");
+        }
+
+        var rows = res.data.autonomy;
         var row = null;
 
         for (var i = 0; i < rows.length; i++) {
@@ -460,7 +507,15 @@
            wrong in the direction that matters. */
         autonomyState = null;
         renderAutonomy();
-        setAutoMsg((error && error.message) || "This setting could not be loaded.", "err");
+        /* The thrown messages above are already framed by autoLoadFailMsg; a
+           transport rejection (no response at all) arrives here unframed, so it
+           gets the same framing rather than surfacing a bare "Failed to fetch". */
+        setAutoMsg(
+          error && error.autoFramed
+            ? error.message
+            : autoLoadFailMsg(error && error.message),
+          "err"
+        );
       });
   }
 
@@ -485,13 +540,13 @@
       // precisely because a string would be truthy, and it is right to.
       body: JSON.stringify({ agent_type: AGENT_TYPE, enabled: next === true })
     })
-      .then(function (r) {
-        return r.json().catch(function () { return {}; }).then(function (d) {
-          return { ok: r.ok, data: d };
-        });
-      })
+      .then(readAutoJson)
       .then(function (res) {
         if (!res.ok) {
+          /* res.status is real here because readAutoJson carries it through. It
+             did not when this object was built inline as { ok, data }, so an
+             error body without an `error` field produced the message "could not
+             be saved (HTTP undefined)". */
           throw new Error((res.data && res.data.error) || ("The setting could not be saved (HTTP " + res.status + ")."));
         }
 
