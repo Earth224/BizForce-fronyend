@@ -924,6 +924,60 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "innovation_brief",   label: "Innovation Brief" },
     { value: "executive_briefing", label: "Executive Briefing" },
     { value: "general",            label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "brief",
+      "label": "Executive Briefing",
+      "runLabel": "Write the briefing",
+      "description": "What is known, what is assumed, and what would change the answer. Reads nothing — the assumptions are counted.",
+      "fields": [
+        {
+          "name": "question",
+          "label": "The question",
+          "type": "textarea",
+          "required": true,
+          "hint": "What the briefing has to answer."
+        },
+        {
+          "name": "decision",
+          "label": "The decision resting on it",
+          "type": "textarea"
+        },
+        {
+          "name": "context",
+          "label": "Context",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "id": "competitor-scan",
+      "label": "Competitor Scan",
+      "runLabel": "Compare them",
+      "description": "A structured comparison from the model's recollection. Nothing is fetched — no site, no pricing page, no review.",
+      "fields": [
+        {
+          "name": "competitors",
+          "label": "Competitors",
+          "type": "text",
+          "required": true,
+          "placeholder": "Alpha Co, Beta Inc, Gamma Ltd",
+          "hint": "Comma-separated, up to 10. No revenue, headcount, funding or market-share figure is produced — those come back as FIGURE NEEDED."
+        },
+        {
+          "name": "your_product",
+          "label": "What you sell",
+          "type": "textarea"
+        },
+        {
+          "name": "dimensions",
+          "label": "Compare on",
+          "type": "text",
+          "placeholder": "pricing model, support, onboarding"
+        }
+      ]
+    }
   ]
 };
 </script>

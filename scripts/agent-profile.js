@@ -218,7 +218,26 @@
     ".ap-prov-col ul{margin:0;padding-left:16px;font-size:.76rem;line-height:1.6;color:#a9b0cc}",
     ".ap-prov-caveat{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08);",
       "font-size:.76rem;color:#8892b8;line-height:1.6}",
-    ".ap-prov-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}",
+    /* "Nothing was read", said EARLY. The provenance panel is the fourth zone of
+       five, so on a tool whose output is long — a ten-competitor comparison — its
+       flags sit far below the fold, and the one thing a reader has to know about
+       that output is exactly the thing they would have to scroll to find. This
+       strip carries the same fact at the top, compactly, and the flags below
+       still carry the detail.
+
+       Amber and quiet rather than red: it must not compete with the gate banner,
+       which means a draft is unsafe to use. This means the output is a
+       recollection rather than research, which is a different kind of warning. */
+    ".ap-nothing-read{padding:10px 13px;border-radius:11px;",
+      "border:1px solid rgba(251,191,36,.38);background:rgba(251,191,36,.07);",
+      "font-size:.78rem;color:#fde68a;line-height:1.6}",
+    ".ap-nothing-read strong{color:#fcd34d}",
+    ".ap-nothing-read-list{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:5px}",
+    ".ap-nothing-read-item{font-size:.68rem;padding:2px 7px;border-radius:99px;",
+      "background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fde68a}",
+    ".ap-prov-flags-label{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;",
+      "color:#8892b8;margin-top:10px}",
+    ".ap-prov-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}",
     ".ap-prov-flag{font-size:.68rem;padding:3px 8px;border-radius:99px;",
       "background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.28);color:#fca5a5}",
 
@@ -1364,7 +1383,7 @@
      as separate objects, and it would be undone here by a single results box. */
 
   // Keys handled by their own renderer rather than as generated content.
-  var TOOL_GATE_KEYS = ["ready_to_post", "ready_to_send"];
+  var TOOL_GATE_KEYS = ["ready_to_post", "ready_to_send", "contains_unverifiable_figures"];
   var TOOL_SKIP_KEYS = ["success"];
   /* Reference material: platform limits, policy rules, standing statements. Real
      and worth showing, but it is neither the draft nor a measurement of it, so it
@@ -1662,7 +1681,9 @@
         '</div>' +
       '</div>' +
       (flags.length
-        ? '<div class="ap-prov-flags">' + flags.map(function (f) {
+        // Labelled, because eight unexplained chips read as decoration.
+        ? '<div class="ap-prov-flags-label">What was not read or done</div>' +
+          '<div class="ap-prov-flags">' + flags.map(function (f) {
             return '<span class="ap-prov-flag">' + esc(humanise(f).replace(/^./, function (c) {
               return c.toUpperCase();
             })) + ': no</span>';
@@ -1677,13 +1698,40 @@
      rather than left as a bare flag, because "not ready" without the phrases is
      not actionable. */
   function renderGate(data) {
-    var blocked = null;
-    if (data.ready_to_post === false) blocked = "post";
-    else if (data.ready_to_send === false) blocked = "send";
-    if (!blocked) return "";
-
     var measured = isPlainObject(data.measured) ? data.measured : {};
+    var title = null;
+    var lead = null;
     var reasons = [];
+
+    /* THREE CASES, ONE BANNER. The first two mean "this draft is not ready to go
+       out". The third means something different and needs its own wording: the
+       numbers in the output were never looked up.
+
+       It earns the banner rather than a line in the measured block for the same
+       reason the other two do — the harm is someone acting on it. A fabricated
+       competitor revenue or headcount is arguably worse than a reply that argues
+       back: it is read, believed because of where it sits in a comparison, and a
+       deal gets priced on it. The measured block reports it accurately and
+       quietly, and quietly is the wrong volume for this one. */
+    if (data.ready_to_post === false) {
+      title = "⚠ Do not post this as written";
+      lead = measured.note || "The server marked this draft not ready.";
+    } else if (data.ready_to_send === false) {
+      title = "⚠ Do not send this as written";
+      lead = measured.note || "The server marked this draft not ready.";
+    } else if (data.contains_unverifiable_figures === true) {
+      title = "⚠ These numbers were not looked up — delete them";
+      /* Deliberately "delete rather than check". Checking implies the figure came
+         from somewhere and needs confirming. It did not come from anywhere: this
+         route reads nothing, so the number was generated, and a generated figure
+         that happens to verify is still not a source. */
+      lead = measured.note ||
+        "Specific figures in this output were not read from any source. This tool reads nothing " +
+        "external, so the numbers below were generated rather than found — delete them rather " +
+        "than trying to confirm them.";
+    }
+
+    if (!title) return "";
 
     (measured.disputing_phrases_found || []).forEach(function (p) {
       reasons.push('"' + p.matched_text + '" — ' + p.problem);
@@ -1693,13 +1741,22 @@
         reasons.push('"' + p.matched_text + '" — ' + p.problem);
       });
     });
+    /* The offending figures, named the way the other two name their phrases.
+       Read off each comparison entry, with the competitor it appeared under so a
+       long comparison can be navigated back to the problem. */
+    (data.comparison || []).forEach(function (entry) {
+      (entry.unverifiable_figures_found || []).forEach(function (f) {
+        reasons.push('"' + f.matched_text + '" — ' + f.problem +
+          (entry.competitor ? " (under " + entry.competitor + ")" : ""));
+      });
+    });
     if (measured.words_over_limit > 0) {
       reasons.push(measured.words_over_limit + " words over the " + measured.word_limit + "-word limit");
     }
 
     return '<div class="ap-gate">' +
-      '<div class="ap-gate-title">⚠ Do not ' + blocked + ' this as written</div>' +
-      esc(String(measured.note || "The server marked this draft not ready.")) +
+      '<div class="ap-gate-title">' + esc(title) + '</div>' +
+      esc(String(lead)) +
       (reasons.length
         ? '<ul>' + reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul>'
         : "") +
@@ -1746,9 +1803,45 @@
       '<div class="ap-zone-label">Limits, rules and standing statements</div>' + parts.join("") + '</div>';
   }
 
+  /* The provenance flags that mean "this was not looked up", as opposed to the
+     ones that mean "this was not sent" or "this was not approved". Only the
+     reading ones belong in the early notice: a tool that did not post to Instagram
+     is unremarkable, while a tool that did research nothing is the headline. */
+  var NOT_READ_FLAG = /(_read|_performed|_contacted|_checked|_reviewed)$/;
+
+  /* Rendered above the content when a response asserts several of those. Three is
+     the threshold: one or two absences is ordinary scope, while several together
+     is the shape of a tool that looked nothing up at all — which is true of both
+     R&D tools, and true of others that say so. Applied from the flags themselves
+     rather than by naming particular tools, so a new route that reads nothing gets
+     the notice without this file being edited. */
+  function renderNothingRead(prov) {
+    if (!isPlainObject(prov)) return "";
+
+    var absent = Object.keys(prov).filter(function (k) {
+      return prov[k] === false && NOT_READ_FLAG.test(k);
+    });
+    if (absent.length < 3) return "";
+
+    return '<div class="ap-nothing-read">' +
+      '<strong>Nothing was looked up.</strong> ' +
+      'This tool read no external source, so everything below is the model\'s recollection rather ' +
+      'than research — and a figure it states is a recollection of a number, which is the thing it ' +
+      'gets wrong most confidently. Verify anything a decision rests on.' +
+      '<div class="ap-nothing-read-list">' +
+        absent.map(function (k) {
+          return '<span class="ap-nothing-read-item">' + esc(humanise(k)) + ': no</span>';
+        }).join("") +
+      '</div>' +
+      '</div>';
+  }
+
   function renderToolResult(tool, data) {
     return [
+      // The gate first — an unsafe draft outranks everything else on the page.
       renderGate(data),
+      // Then "nothing was read", before the content it qualifies rather than after.
+      renderNothingRead(data.provenance),
       renderGenerated(data),
       renderMeasured(data.measured),
       renderProvenance(data.provenance),
