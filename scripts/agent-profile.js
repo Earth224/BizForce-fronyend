@@ -276,6 +276,18 @@
     ".ap-asg.runnable{border-left-color:#06b6d4}",
     /* PROSE: no route, so a muted edge — real work, but nothing to press. */
     ".ap-asg.prose{border-left-color:rgba(255,255,255,.2);opacity:.92}",
+    /* YOURS: founder work. A warm amber edge and a tinted ground, at FULL opacity —
+       the prose style is muted because nothing can be pressed on it, and muting
+       this one would say the same thing about the line nobody else can do. Amber
+       rather than red so it cannot be mistaken for the broken style, and distinctly
+       not the cyan of a runnable route, because there is nothing here to run. */
+    ".ap-asg.founder{border-left-color:#fbbf24;border-color:rgba(251,191,36,.32);",
+      "background:rgba(251,191,36,.06);opacity:1}",
+    ".ap-asg-agent.is-you{color:#fcd34d}",
+    ".ap-asg-yours{font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;",
+      "padding:2px 8px;border-radius:99px;background:rgba(251,191,36,.16);color:#fde68a}",
+    ".ap-asg-yourjob{font-size:.78rem;color:#fde68a;background:rgba(251,191,36,.09);",
+      "padding:5px 8px;border-radius:7px;margin-bottom:7px}",
     /* BROKEN: names an agent or tool that does not exist. Hatched and red-edged so
        it cannot be mistaken for either of the other two at a glance. */
     ".ap-asg.broken{border-color:rgba(248,113,113,.45);border-left-color:#f87171;",
@@ -2050,21 +2062,47 @@
 
   function assignmentCard(a, isReady) {
     var broken = Array.isArray(a.problems) && a.problems.length > 0;
-    var cls = "ap-asg" + (broken ? " broken" : (a.is_dispatchable ? " runnable" : " prose"));
+
+    /* FOUR KINDS, NOT THREE. Founder work used to fall through to the prose style,
+       which is the muted one meaning "a real agent, but no tool fits it" — and that
+       reads as a lesser assignment. It is the opposite: it is the line nobody else
+       can do, and it is often the most important one in the plan.
+
+       So it gets its own style, and it is checked BEFORE dispatchable and prose but
+       AFTER broken — a founder assignment that named a tool is still a
+       contradiction the backend flags, and a flagged card must read as flagged
+       whatever kind it is. */
+    var founder = a.is_founder_task === true;
+    var cls = "ap-asg" + (broken
+      ? " broken"
+      : (founder ? " founder" : (a.is_dispatchable ? " runnable" : " prose")));
+
+    /* "you" is the right value and reads oddly in lowercase beside
+       "vertical_marketing". Rendered as a person rather than as an agent name,
+       because that is what it is. */
+    var who = founder ? "You" : (a.agent || "(no agent)");
 
     return '<div class="' + cls + '">' +
       '<div class="ap-asg-head">' +
         '<span class="ap-asg-id">#' + esc(String(a.id)) + '</span>' +
-        '<span class="ap-asg-agent">' + esc(a.agent || "(no agent)") + '</span>' +
+        '<span class="ap-asg-agent' + (founder ? " is-you" : "") + '">' + esc(who) + '</span>' +
+        (founder ? '<span class="ap-asg-yours">your own work</span>' : "") +
         (a.priority && a.priority !== "unstated"
           ? '<span class="ap-asg-pri ' + esc(a.priority) + '">' + esc(a.priority) + '</span>' : "") +
         (isReady ? '<span class="ap-asg-now">can start now</span>' : "") +
       '</div>' +
 
-      // The route, where there is one. This is the dispatchable half of the plan.
+      /* The route, where there is one — the dispatchable half of the plan. Where
+         there is not, what fills that line depends on WHY there is no route:
+         founder work has no tool because no tool could do it, which is a different
+         statement from an agent whose tools did not fit. */
       (a.route
         ? '<div class="ap-asg-route">' + esc(a.route) + '</div>'
-        : (broken ? "" : '<div class="ap-asg-noroute">No tool for this — prose assignment</div>')) +
+        : (broken
+            ? ""
+            : (founder
+                ? '<div class="ap-asg-yourjob">No tool does this — it is yours to do.</div>'
+                : '<div class="ap-asg-noroute">No tool for this — prose assignment</div>'))) +
 
       (a.task ? '<div class="ap-asg-task">' + esc(a.task) + '</div>' : "") +
       (a.input ? '<div class="ap-asg-field"><span>Input</span>' + esc(a.input) + '</div>' : "") +
@@ -2118,16 +2156,47 @@
       '</div>';
 
     /* 2. The ratio, as the one figure that says what kind of plan this is. */
-    out += '<div class="ap-plan-ratio">' +
-      '<span class="ap-plan-ratio-num">' + esc(String(measured.real_tool_ratio_percent)) + '%</span>' +
-      '<span>of this plan names a tool that exists and can be run as written — ' +
-        esc(String(measured.naming_a_real_tool)) + ' of ' +
-        esc(String(measured.assignment_count)) + ' assignment(s)' +
-        (measured.prose_only ? ', ' + esc(String(measured.prose_only)) + ' prose only' : "") +
-        (measured.with_problems
-          ? ', ' + esc(String(measured.with_problems)) + ' naming something that does not exist' : "") +
-      '.</span>' +
-      '</div>';
+    /* 2. The ratio — now over AGENT WORK, not over the whole plan.
+
+       "of this plan" was accurate when every assignment had an agent. It is not
+       any more: founder assignments are excluded from the backend's denominator,
+       deliberately, because no tool exists for work only a person can do and
+       counting it as a miss would score a well-judged plan below a vague one. So
+       the line has to say "of the agent work" or it misreports its own figure.
+
+       And the percentage is NULL on a plan that is entirely founder work, because
+       there is no agent work to take a ratio of. Printed as a sentence rather than
+       as "null%", which is what String(null) would have produced here. */
+    var founderCount = Number(measured.for_the_founder) || 0;
+    var ratio = measured.real_tool_ratio_percent;
+
+    if (ratio === null || ratio === undefined) {
+      out += '<div class="ap-plan-ratio">' +
+        '<span class="ap-plan-ratio-num">—</span>' +
+        '<span>Every assignment in this plan is yours to do, so there is no agent work to ' +
+          'dispatch and no ratio to report.</span>' +
+        '</div>';
+    } else {
+      out += '<div class="ap-plan-ratio">' +
+        '<span class="ap-plan-ratio-num">' + esc(String(ratio)) + '%</span>' +
+        '<span>of the agent work names a tool that exists and can be run as written — ' +
+          esc(String(measured.naming_a_real_tool)) + ' of ' +
+          esc(String(measured.agent_work_count !== undefined
+            ? measured.agent_work_count : measured.assignment_count)) + ' agent assignment(s)' +
+          (measured.prose_only ? ', ' + esc(String(measured.prose_only)) + ' prose only' : "") +
+          (measured.with_problems
+            ? ', ' + esc(String(measured.with_problems)) + ' naming something that does not exist' : "") +
+          '.' +
+          /* Founder work is reported alongside rather than inside the ratio, so it
+             reads as a separate fact about the plan instead of as a shortfall in
+             the figure it is excluded from. */
+          (founderCount
+            ? ' A further ' + esc(String(founderCount)) + ' assignment(s) are yours rather than ' +
+              'an agent\'s, and are not counted in that figure.'
+            : "") +
+        '</span>' +
+        '</div>';
+    }
 
     /* 3. The waves, so the order is visible as an order rather than as a field on
        each card. */
