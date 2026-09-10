@@ -352,6 +352,7 @@
 
   </div>
 
+<script src="/scripts/bf-agent-order.js"></script>
 <script>
 (function renderLiveAgents() {
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -453,12 +454,37 @@
         return;
       }
       var activeAgents = list.filter(function (a) { return a.active === true; });
-      activeAgents.sort(function (a, b) {
-        var nameA = String(a.display_name || "");
-        var nameB = String(b.display_name || "");
-        return nameA.localeCompare(nameB);
-      });
-      renderCards(activeAgents);
+
+      /* This used to be a hardcoded alphabetical sort by display_name. It is now
+         whichever ordering the user chose in settings, with importance as the
+         default — alphabetical is still one of the three, so nobody who preferred
+         the old behaviour loses it, they just have to say so.
+
+         Ordered through the shared module rather than here, so this page and the
+         markup-driven hub cannot disagree about what "importance" means. */
+      if (window.BFAgentOrder) {
+        var pref = window.BFAgentOrder.readPreference();
+
+        if (pref.read_failed) {
+          console.warn("[agent-order] Could not read the saved card order (localStorage is " +
+            "unavailable). Falling back to importance order — this is NOT a saved preference.");
+        }
+
+        var ordered = window.BFAgentOrder.orderDescriptors(
+          activeAgents.map(function (a) {
+            return {
+              type: String(a.agent_type || a.type || "").toLowerCase(),
+              label: String(a.display_name || ""),
+              agent: a
+            };
+          }),
+          pref.ordering
+        ).map(function (item) { return item.agent; });
+
+        renderCards(ordered);
+      } else {
+        renderCards(activeAgents);
+      }
     })
     .catch(function () {
       renderMessage("Unable to load your agents — please sign in again.");
@@ -467,5 +493,10 @@
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<!-- Etsy API attribution. Required verbatim by Etsy, Inc. as a condition of
+     Commercial Access; do not reword, abbreviate or remove. -->
+<footer class="bf-etsy-trademark" style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 24px 32px;text-align:center;font-size:.74rem;line-height:1.6;color:#6b7392;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+  The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+</footer>
 </body>
 </html>

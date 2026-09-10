@@ -713,7 +713,43 @@
     }
   </script>
 
+<script src="/scripts/bf-agent-order.js"></script>
+<script>
+/* The eighteen cards above are markup, so the saved ordering is applied by moving
+   the DOM nodes rather than by re-rendering. appendChild on an existing child
+   moves it, so nothing is rebuilt and no handler is lost.
+
+   A FAILED READ FALLS BACK TO IMPORTANCE AND SAYS SO. localStorage throws in a
+   private window or with site data blocked, and silently applying a different
+   order than the one somebody chose is the failure worth avoiding here — so the
+   fallback is logged rather than presented as a choice. */
+(function () {
+  if (!window.BFAgentOrder) return;
+
+  var grid = document.getElementById("agentsGrid");
+  if (!grid) return;
+
+  var pref = window.BFAgentOrder.readPreference();
+
+  if (pref.read_failed) {
+    console.warn("[agent-order] Could not read the saved card order (localStorage is " +
+      "unavailable). Falling back to importance order. This is NOT a saved preference — " +
+      "the setting could not be read.");
+  } else if (pref.invalid) {
+    console.warn("[agent-order] Saved card order " + JSON.stringify(pref.invalid) +
+      " is not one of " + window.BFAgentOrder.ORDERINGS.join(", ") +
+      ". Falling back to importance order.");
+  }
+
+  window.BFAgentOrder.applyToContainer(grid, ".agent-card", pref.ordering);
+})();
+</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<!-- Etsy API attribution. Required verbatim by Etsy, Inc. as a condition of
+     Commercial Access; do not reword, abbreviate or remove. -->
+<footer class="bf-etsy-trademark" style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 24px 32px;text-align:center;font-size:.74rem;line-height:1.6;color:#6b7392;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+  The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+</footer>
 </body>
 </html>

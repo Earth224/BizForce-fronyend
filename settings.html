@@ -547,6 +547,24 @@
               <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
             </div>
 
+            <!-- Agent card order. Stored in localStorage only, which is deliberate
+                 and is a limitation worth stating: user_preferences has no column
+                 for this, so there is nothing to PUT it into yet. It therefore
+                 persists per browser rather than per account. Adding
+                 agent_card_order to that table and to the PUT allowlist is what
+                 would make it follow the user between devices. -->
+            <div class="form-group" style="margin-top:18px;">
+              <label for="agentOrderSelect">Agent card order</label>
+              <select id="agentOrderSelect">
+                <option value="importance">By importance — what moves a business first</option>
+                <option value="alphabetical">Alphabetical, by agent name</option>
+                <option value="random">Random, reshuffled every visit</option>
+              </select>
+              <span class="pref-saved" id="agentOrderSaved"></span>
+              <p class="pref-note">Applies to the Agent Hub and the agent directory. Saved in this
+                browser only for now, so it will not follow you to another device.</p>
+            </div>
+
             <!-- Deliberately NOT labelled "Language". This does not translate the
                  interface — the app is in English and stays in English. It sets
                  what Termaximus and the agents WRITE, which is a different thing,
@@ -626,6 +644,7 @@
     </div>
   </div>
 
+<script src="/scripts/bf-agent-order.js"></script>
   <script src="/scripts/bf-identity.js"></script>
   <script>
     (function () {
@@ -882,6 +901,8 @@
       var langSelect = document.getElementById("langSelect");
       var tmxSaved = document.getElementById("tmxSaved");
       var mistSaved = document.getElementById("mistSaved");
+      var agentOrderSelect = document.getElementById("agentOrderSelect");
+      var agentOrderSaved = document.getElementById("agentOrderSaved");
       var langSaved = document.getElementById("langSaved");
       var notifStatus = document.getElementById("notifStatus");
       var notifTestRow = document.getElementById("notifTestRow");
@@ -1015,6 +1036,34 @@
         localStorage.removeItem("tmx_presence_pos");
         putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
       });
+
+      /* Agent card order. Read and written through the shared module, so the
+         storage key and the list of valid orderings live in exactly one place —
+         the pages that consume it and the page that sets it cannot disagree.
+
+         A FAILED READ SHOWS THE DEFAULT WITHOUT CLAIMING IT WAS CHOSEN. The select
+         lands on importance either way, but when the read failed the note says so,
+         because a user looking at this control deserves to know whether it is
+         showing their preference or a fallback. */
+      if (agentOrderSelect && window.BFAgentOrder) {
+        var orderPref = window.BFAgentOrder.readPreference();
+        agentOrderSelect.value = orderPref.ordering;
+
+        if (orderPref.read_failed) {
+          showPrefSaved(agentOrderSaved, false);
+          if (agentOrderSaved) {
+            agentOrderSaved.textContent = "Could not read your saved order — showing the default.";
+          }
+        }
+
+        agentOrderSelect.addEventListener("change", function () {
+          var wrote = window.BFAgentOrder.writePreference(agentOrderSelect.value);
+          showPrefSaved(agentOrderSaved, wrote);
+          if (!wrote && agentOrderSaved) {
+            agentOrderSaved.textContent = "Could not save — this browser is blocking storage.";
+          }
+        });
+      }
 
       langSelect.addEventListener("change", function () {
         /* "" -> null, and the conversion is required, not tidiness. A select has
@@ -1733,5 +1782,10 @@
       });
     })();
   </script>
+<!-- Etsy API attribution. Required verbatim by Etsy, Inc. as a condition of
+     Commercial Access; do not reword, abbreviate or remove. -->
+<footer class="bf-etsy-trademark" style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 24px 32px;text-align:center;font-size:.74rem;line-height:1.6;color:#6b7392;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+  The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+</footer>
 </body>
 </html>
