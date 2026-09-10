@@ -442,6 +442,13 @@
     var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
     var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
     var REPORT_SECTIONS = [{"title":"Listings","collections":["listings","products"]},{"title":"Keywords","collections":["keywords"]},{"title":"Competitors","collections":["competitors"]},{"title":"Recommendations","collections":["recommendations"]},{"title":"Executive Reports","nestedBuckets":["executiveReports"]}];
+    /* shopGoals STAYS HERE even though it is not shown in the context grid.
+       This array does two jobs: buildContext reads it to POPULATE
+       base[f.key] (and to supply f.fallback), and renderBusinessContext reads
+       it to DISPLAY a grid item. Only the second was duplicating; emptying
+       this would take the value and the fallback with it and leave the block
+       below permanently showing a dash. See the guard in
+       renderBusinessContext. */
     var EXTRA_CONTEXT_FIELDS = [{"key":"shopGoals","label":"Shop Goals","fallback":"Grow Etsy shop revenue"}];
     var GOALS_FIELD = "shopGoals";
     var DASHBOARD_HREF = "dashboard.html";
@@ -566,6 +573,23 @@
       ];
       var i, html = "";
       for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
+        /* THE FIELD PROMOTED TO ITS OWN BLOCK IS NOT ALSO LISTED IN THE GRID.
+
+           There are two ways to display an extra field and this page was using
+           both on the same one. EXTRA_CONTEXT_FIELDS appends a grid item;
+           GOALS_FIELD writes into the .research-goals block, which sits
+           directly beneath the grid in the markup. Both read the same key, so
+           the page printed a "Shop Goals" heading and its value and then
+           printed them again immediately underneath.
+
+           GOALS_FIELD reads as the later of the two — a way to promote one
+           field out of the grid into a headed block of its own — but it copied
+           instead of moving, so setting both duplicated rather than relocated.
+           This skip makes it move. Pages that set GOALS_FIELD to a key they
+           never listed here are unaffected, which is every other agent page. */
+        if (GOALS_FIELD && EXTRA_CONTEXT_FIELDS[i].key === GOALS_FIELD) {
+          continue;
+        }
         fields.push({ label: EXTRA_CONTEXT_FIELDS[i].label, value: context[EXTRA_CONTEXT_FIELDS[i].key] || "—" });
       }
       for (i = 0; i < fields.length; i++) {
