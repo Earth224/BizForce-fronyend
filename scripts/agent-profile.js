@@ -1385,6 +1385,24 @@
   // Keys handled by their own renderer rather than as generated content.
   var TOOL_GATE_KEYS = ["ready_to_post", "ready_to_send", "contains_unverifiable_figures"];
   var TOOL_SKIP_KEYS = ["success"];
+
+  /* KEYS THAT COMMENT ON THE MEASURED BLOCK, and therefore render AFTER it.
+
+     The analytics tools return their arithmetic in `measured` and the model's
+     reading of it in a separate key — `interpretation` on the funnel, `review` on
+     the KPI tool. That separation is the entire point of those two tools: the
+     numbers are exact and the reading is opinion about them.
+
+     Rendered as ordinary generated content, they would appear ABOVE the panel
+     they are discussing, so the first thing read would be the opinion and the
+     figures would look like supporting detail underneath. On these two it is the
+     other way round. So they get their own zone after the measured panel, with a
+     label that says what they are, rather than being flattened into the generated
+     voice alongside a draft email.
+
+     A key listed here renders after the numbers on any tool that returns it —
+     nothing here is analytics-specific. */
+  var TOOL_AFTER_MEASURED_KEYS = ["interpretation", "review"];
   /* Reference material: platform limits, policy rules, standing statements. Real
      and worth showing, but it is neither the draft nor a measurement of it, so it
      gets its own quiet zone instead of competing with either. */
@@ -1448,6 +1466,25 @@
       var template = function (rowIndex) {
         return '<div class="ap-tool-row" style="grid-template-columns:repeat(' + cols.length +
           ',minmax(0,1fr))">' + cols.map(function (c) {
+            /* A column may be a SELECT as well as a text or number input — the KPI
+               review needs a per-row direction ("better when up" / "better when
+               down"), and that is a choice rather than something to type.
+
+               Extended here rather than special-cased in that tool: a row group
+               that can only hold free text is a row group the next structured
+               array will have to work around. The payload side needed no change,
+               because it reads every [data-col] in the row and `.value` means the
+               same thing on a select as on an input. */
+            if (c.type === "select") {
+              return '<select class="ap-select" data-col="' + esc(c.name) + '"' +
+                ' title="' + esc(c.label || c.name) + '">' +
+                (c.required ? "" : '<option value="">' + esc(c.label || c.name) + '</option>') +
+                (c.options || []).map(function (o) {
+                  return '<option value="' + esc(o.value) + '"' +
+                    (o.value === c.defaultValue ? " selected" : "") + '>' +
+                    esc(o.label || o.value) + '</option>';
+                }).join("") + '</select>';
+            }
             return '<input class="ap-select" data-col="' + esc(c.name) + '"' +
               (c.type === "number" ? ' type="number" step="any"' : ' type="text"') +
               ' placeholder="' + esc(c.label || c.name) + '">';
@@ -1719,6 +1756,22 @@
     } else if (data.ready_to_send === false) {
       title = "⚠ Do not send this as written";
       lead = measured.note || "The server marked this draft not ready.";
+    } else if (measured.interpretation_cites_a_benchmark === true ||
+               measured.review_cites_a_benchmark === true) {
+      /* The same class of problem as a fabricated competitor figure, arriving in a
+         different shape: the model has smuggled an industry average into its
+         reading of the user's own numbers. BizForce holds no industry data, so the
+         benchmark is invented — and it is more dangerous here than elsewhere
+         because it sits next to arithmetic that IS exact, and borrows its
+         credibility.
+
+         Note these two live inside `measured` rather than at the top level, which
+         is why the gate reads from there. */
+      title = "⚠ This cites a benchmark that does not exist";
+      lead = measured.note ||
+        "The reading below compares your figures to an industry average, typical rate or " +
+        "benchmark. BizForce holds no industry data of any kind, so that comparison was invented " +
+        "rather than looked up. Your own arithmetic above is exact; the comparison is not.";
     } else if (data.contains_unverifiable_figures === true) {
       title = "⚠ These numbers were not looked up — delete them";
       /* Deliberately "delete rather than check". Checking implies the figure came
@@ -1741,6 +1794,13 @@
         reasons.push('"' + p.matched_text + '" — ' + p.problem);
       });
     });
+    /* The benchmark claims, named the way the other cases name their phrases. Both
+       analytics tools use the same shape under different keys. */
+    (measured.benchmark_claims_in_the_interpretation || [])
+      .concat(measured.benchmark_claims_in_the_review || [])
+      .forEach(function (b) {
+        reasons.push('"' + b.matched_text + '" — ' + b.problem);
+      });
     /* The offending figures, named the way the other two name their phrases.
        Read off each comparison entry, with the competitor it appeared under so a
        long comparison can be navigated back to the problem. */
@@ -1771,6 +1831,8 @@
       if (TOOL_SKIP_KEYS.indexOf(key) !== -1) return;
       if (TOOL_GATE_KEYS.indexOf(key) !== -1) return;
       if (TOOL_REF_KEYS.indexOf(key) !== -1) return;
+      // Rendered after the measured panel instead; see renderAfterMeasured.
+      if (TOOL_AFTER_MEASURED_KEYS.indexOf(key) !== -1) return;
       if (key === "measured" || key === "provenance") return;
 
       var value = data[key];
@@ -1836,6 +1898,33 @@
       '</div>';
   }
 
+  /* The reading of the numbers, after the numbers. Visually the generated voice —
+     it is the model writing — but labelled as commentary on the panel above it so
+     the order reads as intended rather than as an accident of key ordering. */
+  function renderAfterMeasured(data) {
+    var parts = [];
+
+    TOOL_AFTER_MEASURED_KEYS.forEach(function (key) {
+      if (!(key in data)) return;
+      var value = data[key];
+      if (value === null || value === undefined || value === "") return;
+      if (isPlainObject(value) && !Object.keys(value).some(function (k) {
+        var v = value[k];
+        return v !== null && v !== undefined && v !== "" &&
+          !(Array.isArray(v) && v.length === 0);
+      })) return;   // an object whose every field is empty says nothing
+
+      parts.push(typeof value === "string"
+        ? "<pre>" + esc(value) + "</pre>"
+        : renderScalarish(value));
+    });
+
+    if (!parts.length) return "";
+    return '<div class="ap-generated">' +
+      '<div class="ap-zone-label">The model\'s reading of those numbers</div>' +
+      parts.join("") + '</div>';
+  }
+
   function renderToolResult(tool, data) {
     return [
       // The gate first — an unsafe draft outranks everything else on the page.
@@ -1844,6 +1933,8 @@
       renderNothingRead(data.provenance),
       renderGenerated(data),
       renderMeasured(data.measured),
+      // The interpretation comes AFTER the arithmetic it interprets.
+      renderAfterMeasured(data),
       renderProvenance(data.provenance),
       renderReference(data)
     ].filter(Boolean).join("");

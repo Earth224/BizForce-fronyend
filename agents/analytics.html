@@ -695,6 +695,109 @@ window.AGENT_PROFILE_CONFIG = {
     { value: "funnel_analysis",  label: "Funnel Analysis" },
     { value: "revenue_forecast", label: "Revenue Forecast" },
     { value: "general",          label: "General Task" }
+  ],
+  tools: [
+    {
+      "id": "funnel",
+      "label": "Funnel Analysis",
+      "runLabel": "Compute the funnel",
+      "description": "Every conversion rate, drop and total computed exactly by the server. The reading of them is kept separate.",
+      "fields": [
+        {
+          "name": "stages",
+          "label": "Stages, in order",
+          "type": "rows",
+          "required": true,
+          "hint": "Two to 20 stages. A stage whose count cannot be read is left out rather than counted as zero — and a stage nobody reached reports no rate rather than 0%.",
+          "columns": [
+            {
+              "name": "name",
+              "label": "Stage name",
+              "type": "text"
+            },
+            {
+              "name": "count",
+              "label": "Count",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "name": "funnel_name",
+          "label": "Funnel name",
+          "type": "text",
+          "placeholder": "Checkout"
+        },
+        {
+          "name": "context",
+          "label": "Context",
+          "type": "textarea"
+        }
+      ]
+    },
+    {
+      "id": "kpi-review",
+      "label": "KPI Review",
+      "runLabel": "Review the metrics",
+      "description": "Changes computed from your values. A rise from zero reports no percentage, because that is a start rather than a percentage.",
+      "fields": [
+        {
+          "name": "metrics",
+          "label": "Metrics",
+          "type": "rows",
+          "required": true,
+          "hint": "Up to 30. \"Better when\" decides whether a rise counts as progress — leave it blank and it is treated as up, which is wrong for churn.",
+          "columns": [
+            {
+              "name": "name",
+              "label": "Metric",
+              "type": "text"
+            },
+            {
+              "name": "current",
+              "label": "Now",
+              "type": "number"
+            },
+            {
+              "name": "previous",
+              "label": "Before",
+              "type": "number"
+            },
+            {
+              "name": "unit",
+              "label": "Unit",
+              "type": "text"
+            },
+            {
+              "name": "better",
+              "label": "Better when",
+              "type": "select",
+              "options": [
+                {
+                  "value": "up",
+                  "label": "up is better"
+                },
+                {
+                  "value": "down",
+                  "label": "down is better"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "period",
+          "label": "Period",
+          "type": "text",
+          "placeholder": "September"
+        },
+        {
+          "name": "context",
+          "label": "Context",
+          "type": "textarea"
+        }
+      ]
+    }
   ]
 };
 </script>
