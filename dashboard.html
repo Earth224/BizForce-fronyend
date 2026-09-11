@@ -866,6 +866,30 @@ window.formatAiOutput = function formatAiOutput(rawText) {
     }
 
 }
+/* The line reads the server's ENTITLEMENT answer, not the subscription row.
+   `access` on /api/auth/me comes from the same check every gated route runs,
+   so it already knows about the admin exemption and about trialing; the old
+   test on user.subscription_status did not, and told the owner's account and
+   every trial "not active yet" while the API let both straight through. It
+   also tested for a plan called "starter", which the backend never returns.
+
+   `access` null (or absent, from an older API) means the server could not say,
+   and that is reported as unknown rather than guessed either way. */
+function planStatusText(access, subscription) {
+  if (!access) {
+    return "Subscription status could not be determined right now.";
+  }
+  if (access.active === true) {
+    return access.exempt === true
+      ? "Admin access — full access, not billed."
+      : "Subscription ACTIVE — Full Access";
+  }
+  if (subscription && subscription.status === "past_due") {
+    return "Your last payment failed — update your card on the Billing page.";
+  }
+  return "Subscription not active yet.";
+}
+
 if (planStatus) {
   if (!dashboardToken) {
     planStatus.innerHTML = "Not signed in. Please log in first.";
@@ -880,22 +904,16 @@ if (planStatus) {
         return response.json();
       })
       .then(function (data) {
-        var user = data.user || data;
+        var access = (data && data.access != null) ? data.access : null;
+        var subscription = (data && data.subscription) || null;
 
-        if (
-          user.subscription_status === "active" ||
-          user.subscription_active === true ||
-          user.plan === "starter" ||
-          user.subscription_plan === "starter"
-        ) {
-         planStatus.innerHTML = "Subscription ACTIVE — Full Access";
+        planStatus.innerHTML = planStatusText(access, subscription);
 
+        if (access && access.active === true) {
 var bizNameEl = document.getElementById("bizName");
 if (bizNameEl && bizNameEl.textContent === "Loading...") {
   bizNameEl.textContent = "Active";
 }
-        } else {
-          planStatus.innerHTML = "Subscription not active yet.";
         }
       })
       .catch(function () {

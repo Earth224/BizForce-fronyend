@@ -249,6 +249,9 @@
     <!-- Subscription status card -->
     <div class="card" id="subCard">
       <p class="card-label">Current Plan</p>
+      <p class="msg" id="adminNotice" style="display:none">
+        Admin account — access does not depend on a subscription, and nothing is billed.
+      </p>
       <div id="subSkeleton">
         <div class="skeleton-line skeleton" style="width:40%"></div>
         <div class="skeleton-line skeleton" style="width:60%"></div>
@@ -261,6 +264,9 @@
         </div>
         <div class="warn-banner" id="cancelWarn">
           Your subscription will not renew — access ends at the period end date.
+        </div>
+        <div class="warn-banner" id="pastDueWarn">
+          Your last payment failed. Update your card with Manage to keep access.
         </div>
         <div class="detail-grid">
           <div class="detail-item">
@@ -286,7 +292,7 @@
         <div id="portalMsg" class="msg"></div>
       </div>
       <div id="noSubContent" style="display:none">
-        <p style="color:#8892b8;font-size:.9rem;margin:0 0 20px">
+        <p id="noSubText" style="color:#8892b8;font-size:.9rem;margin:0 0 20px">
           You don't have an active BizForce AI subscription.
         </p>
         <button class="btn" id="checkoutBtn" type="button">Subscribe — $199/month</button>
@@ -342,6 +348,10 @@
       document.getElementById("subContent").style.display   = on ? "none"  : "none";
       document.getElementById("noSubContent").style.display = on ? "none"  : "none";
     }
+    /* `sub` is the subscriptions row from data.subscription, read as it is.
+       This used to be assembled from data.user, which carries neither
+       current_period_end nor cancel_at_period_end — so the renewal date always
+       rendered as a dash and the cancellation banner could never appear. */
     function showActive(sub) {
       document.getElementById("subSkeleton").style.display  = "none";
       document.getElementById("subContent").style.display   = "block";
@@ -361,14 +371,52 @@
 
       document.getElementById("statusText").textContent = status.replace(/_/g, " ");
 
-      if (sub.cancel_at_period_end) {
-        document.getElementById("cancelWarn").style.display = "block";
-      }
+      document.getElementById("cancelWarn").style.display  = sub.cancel_at_period_end ? "block" : "none";
+      document.getElementById("pastDueWarn").style.display = status === "past_due" ? "block" : "none";
     }
-    function showNone() {
+    /* `unknown` is the server having been unable to say whether this account
+       is entitled. That gets the message and NOT the Subscribe button — offering
+       $199 to someone whose status merely failed to load is the wrong answer. */
+    function showNone(unknown) {
       document.getElementById("subSkeleton").style.display  = "none";
       document.getElementById("subContent").style.display   = "none";
       document.getElementById("noSubContent").style.display = "block";
+      document.getElementById("noSubText").textContent = unknown
+        ? "Subscription status could not be determined right now."
+        : "You don't have an active BizForce AI subscription.";
+      document.getElementById("checkoutBtn").style.display = unknown ? "none" : "";
+    }
+    function showNeither() {
+      document.getElementById("subSkeleton").style.display  = "none";
+      document.getElementById("subContent").style.display   = "none";
+      document.getElementById("noSubContent").style.display = "none";
+    }
+
+    /* The whole decision, from the /api/auth/me body. `access` is the server's
+       entitlement answer — the same check every gated route runs, so it knows
+       about the admin exemption. Null or absent means the server could not say,
+       and that is treated as unknown, never as "not subscribed". */
+    function renderBilling(data) {
+      var d = data || {};
+      var sub = d.subscription || null;
+      var access = (d.access != null) ? d.access : null;
+      var admin = !!(access && access.exempt === true);
+
+      document.getElementById("adminNotice").style.display = admin ? "block" : "none";
+
+      if (sub) {
+        showActive(sub);
+        return;
+      }
+      if (admin) {
+        showNeither();
+        return;
+      }
+      if (access && access.active === false) {
+        showNone(false);
+        return;
+      }
+      showNone(true);
     }
 
     async function loadSubscription() {
@@ -377,27 +425,12 @@
       try {
         var r = await fetch(API_URL + "/api/auth/me", { headers: { "Authorization": "Bearer " + token } });
         var d = await r.json();
-
-        /* /api/auth/me returns a flat user object, not { subscription: {...} }.
-           Same unwrap and same field names dashboard.html reads. */
-        var user = d.user || d;
-        var status = user.subscription_status || (user.subscription_active === true ? "active" : "");
-
-        var sub = {
-          plan: user.subscription_plan || user.plan,
-          status: status,
-          current_period_end: user.current_period_end,
-          created_at: user.created_at,
-          cancel_at_period_end: user.cancel_at_period_end
-        };
-
-        if (["active", "trialing", "past_due", "canceled"].indexOf(status) !== -1) {
-          showActive(sub);
-        } else {
-          showNone();
-        }
+        renderBilling(d);
       } catch (e) {
-        showNone();
+        /* The request itself failed, so nothing is known. Same answer as an
+           access of null: the message, and no Subscribe button. */
+        document.getElementById("adminNotice").style.display = "none";
+        showNone(true);
       }
     }
 
