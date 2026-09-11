@@ -1456,7 +1456,9 @@
 
   // Keys handled by their own renderer rather than as generated content.
   var TOOL_GATE_KEYS = ["ready_to_post", "ready_to_send", "contains_unverifiable_figures"];
-  var TOOL_SKIP_KEYS = ["success"];
+  // task_id and persisted are the server's bookkeeping for the ai_tasks row a
+  // tool run is saved to — not content, and never "written by the model".
+  var TOOL_SKIP_KEYS = ["success", "task_id", "persisted"];
 
   /* KEYS THAT COMMENT ON THE MEASURED BLOCK, and therefore render AFTER it.
 
@@ -2230,6 +2232,17 @@
     return out;
   }
 
+  /* `persisted` is the server saying whether this run reached Task History. It
+     is false ONLY when the run happened and saving it failed — the work is on
+     screen but will not be in the history list, and the person should know that
+     before they close the panel. True, or absent on a tool that does not persist
+     yet, shows nothing. Quiet amber, the same register as "nothing was read":
+     a caveat about the result, not a fault in it. */
+  function renderUnsaved(data) {
+    if (!data || data.persisted !== false) return "";
+    return '<div class="ap-nothing-read">This result was not saved to Task History.</div>';
+  }
+
   function renderToolResult(tool, data) {
     /* A per-tool renderer replaces the generated zone only. The gate, the measured
        panel and the provenance block are the same everywhere and stay that way —
@@ -2242,7 +2255,8 @@
         custom(tool, data),
         renderMeasured(data.measured),
         renderProvenance(data.provenance),
-        renderReference(data)
+        renderReference(data),
+        renderUnsaved(data)
       ].filter(Boolean).join("");
     }
 
@@ -2256,7 +2270,8 @@
       // The interpretation comes AFTER the arithmetic it interprets.
       renderAfterMeasured(data),
       renderProvenance(data.provenance),
-      renderReference(data)
+      renderReference(data),
+      renderUnsaved(data)
     ].filter(Boolean).join("");
   }
 
