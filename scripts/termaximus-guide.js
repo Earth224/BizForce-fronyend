@@ -467,10 +467,107 @@
   root.appendChild(panel);
   document.body.appendChild(root);
 
-  function fetchInsight() {
+  /* ── the insight, fetched on demand and cached for the sitting ──────────────
+
+     This used to run on every authenticated page load, across the 44 pages that
+     load this script, to fill a drawer that starts CLOSED. Nothing cached it, so
+     a reload billed again; nothing stored the result, so it was discarded on
+     navigation; and the static PAGE_INSIGHT fallback above already renders a
+     finished sentence both before a call returns and if one never does. It was
+     paying for text nobody had asked to see, which replaced copy that was
+     already acceptable.
+
+     THREE STATES, NOT TWO, and the distinction is what stops the retry loop
+     below: no record at all (never attempted for this page), a record saying the
+     attempt failed, and a record carrying an insight. Collapsing "failed" into
+     "never attempted" is exactly how a broken drawer becomes a model call per
+     click — the spend this change exists to remove, arriving by another door.
+
+     sessionStorage, not localStorage, because the insight is about THIS page in
+     THIS sitting. One from last week is worse than none: it would describe a
+     page as it was, with confidence, and nothing would reveal it as stale. */
+  var INSIGHT_CACHE_PREFIX = "bf_tmx_insight:";
+
+  /* Mirrors whatever was last written, so the dedupe still holds when
+     sessionStorage is unavailable — a private window, blocked site data, a
+     browser where the accessor itself throws. Storage failing must not turn
+     "one call per page per session" back into one call per open. Its reach is
+     this page load rather than the whole session, which is the most that can be
+     promised with nowhere to persist to. */
+  var insightMemoryRecord = null;
+
+  /* In-flight guard. Without it, open/close/open while the first request is
+     still outstanding starts a second one, because nothing has been written to
+     the cache yet — the three-clicks-one-call case, failing on timing alone. */
+  var insightPending = false;
+
+  function insightCacheKey() {
+    return INSIGHT_CACHE_PREFIX + currentPageKey();
+  }
+
+  function readInsightRecord() {
+    if (insightMemoryRecord) return insightMemoryRecord;
+
+    var raw;
+    try {
+      raw = sessionStorage.getItem(insightCacheKey());
+    } catch (e) {
+      /* Unreadable storage is not the same as an absent entry, but there is
+         nothing else to go on, so this page load may make one call. Bounded by
+         insightMemoryRecord from the second open onward. */
+      return null;
+    }
+
+    if (raw === null || raw === undefined) return null;
+
+    var parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      parsed = null;
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      /* Present but unusable. Read as an attempt that failed rather than as no
+         attempt, because a value that keeps arriving corrupt would otherwise
+         bill on every single open forever. */
+      return { ok: false };
+    }
+
+    if (parsed.ok === true && typeof parsed.insight === "string" && parsed.insight) {
+      return { ok: true, insight: parsed.insight };
+    }
+
+    return { ok: false };
+  }
+
+  function writeInsightRecord(record) {
+    insightMemoryRecord = record;
+    try {
+      sessionStorage.setItem(insightCacheKey(), JSON.stringify(record));
+    } catch (e) {
+      /* Swallowed deliberately. The in-memory mirror above is already set, so
+         the guarantee that matters — no second call for this page — holds for
+         this page load whether or not this write landed. */
+    }
+  }
+
+  function ensureInsight() {
     var insightEl = document.getElementById("tmx-guide-insight-text");
     if (!insightEl) return;
 
+    if (insightPending) return;
+
+    var cached = readInsightRecord();
+    if (cached) {
+      if (cached.ok) insightEl.textContent = cached.insight;
+      /* A RECORDED FAILURE RETURNS HERE AND DOES NOT RETRY. The fallback
+         sentence is already in the element, put there when the panel was built,
+         so leaving it alone is the correct rendering rather than a gap. */
+      return;
+    }
+
+    insightPending = true;
     var token = localStorage.getItem("bf_token") || "";
 
     fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/insights/page", {
@@ -484,17 +581,44 @@
       .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
       .then(function (data) {
         if (data && data.insight) {
+          writeInsightRecord({ ok: true, insight: data.insight });
           insightEl.textContent = data.insight;
         } else {
+          /* A 200 carrying no insight is a completed, BILLED call that produced
+             nothing. Recorded as a failure for that reason: asking again would
+             pay a second time for the same nothing. */
+          writeInsightRecord({ ok: false });
           insightEl.textContent = resolveInsight(currentPageKey(), "Termaximus is gathering his thoughts — try again in a moment.");
         }
       })
       .catch(function () {
+        writeInsightRecord({ ok: false });
         insightEl.textContent = resolveInsight(currentPageKey(), "Termaximus is gathering his thoughts — try again in a moment.");
+      })
+      .then(function () {
+        /* A trailing then rather than finally, matching the ES5 idiom this file
+           is written in. It runs after the catch above resolves, so it clears on
+           both paths. */
+        insightPending = false;
       });
   }
 
-  fetchInsight();
+  /* An insight cached on an earlier visit to this page in this sitting, applied
+     at once so a second visit opens on the real sentence rather than the
+     placeholder — and costs nothing.
+
+     SET WITH textContent, NOT FOLDED INTO THE innerHTML ABOVE. That string is
+     model output arriving over the network, and the panel is assembled with
+     innerHTML; interpolating it there would let a page key that shaped the
+     prompt turn returned text into live markup. The original code set model
+     output with textContent for the same reason, and this keeps it. */
+  (function applyCachedInsight() {
+    var cached = readInsightRecord();
+    if (!cached || !cached.ok) return;
+
+    var el = document.getElementById("tmx-guide-insight-text");
+    if (el) el.textContent = cached.insight;
+  }());
 
   var isOpen = false;
 
@@ -502,6 +626,16 @@
     isOpen = next;
     root.classList.toggle("tmx-guide-open", isOpen);
     tab.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+    /* THE FETCH HANGS OFF setOpen, NOT OFF THE TAB'S CLICK HANDLER, so every way
+       the drawer can open is covered by construction rather than by enumeration.
+       Today that is two paths through one listener — the tab is a <button>, so
+       Enter and Space raise the same click as a pointer does — and anything added
+       later that opens the drawer has to come through here to do it, because the
+       open class and the aria state are both set nowhere else.
+
+       Gated on opening, so closing costs nothing. */
+    if (isOpen) ensureInsight();
   }
 
   tab.addEventListener("click", function (e) {
