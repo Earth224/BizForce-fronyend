@@ -52,7 +52,14 @@
     "influencer", "publicist", "rd", "broker", "vertical_marketing"
   ];
 
-  var ORDERINGS = ["importance", "alphabetical", "random"];
+  /* "random" WAS REMOVED DELIBERATELY. DO NOT ADD IT BACK. Reshuffling the
+     cards on every load was never wanted in the product, and the server agrees:
+     PUT /api/user/preferences refuses it with a 400 naming these two
+     (AGENT_CARD_ORDERS in server.js). A value outside this list — including a
+     "random" saved before the removal, in localStorage or on the account — is
+     read as absent and falls back to the default, so nothing has to be migrated
+     and nothing throws. */
+  var ORDERINGS = ["importance", "alphabetical"];
   var DEFAULT_ORDERING = "importance";
   var STORAGE_KEY = "bf_agent_order";
 
@@ -67,29 +74,12 @@
     return Object.prototype.hasOwnProperty.call(RANK, key) ? RANK[key] : IMPORTANCE.length;
   }
 
-  /* FISHER-YATES, not array.sort(() => Math.random() - 0.5).
-     A random comparator is not a shuffle. sort() assumes a consistent comparator
-     and a random one breaks that assumption, so the result is neither uniform nor
-     even well defined — in V8 it biases heavily toward the original order, which
-     on a dashboard means the same few cards keep landing on top and the feature
-     reads as broken rather than as random. Fisher-Yates visits each position once
-     and swaps with a uniformly chosen earlier-or-equal index, which is uniform by
-     construction. */
-  function shuffle(list) {
-    var out = list.slice();
-    var i, j, tmp;
-    for (i = out.length - 1; i > 0; i--) {
-      j = Math.floor(Math.random() * (i + 1));
-      tmp = out[i];
-      out[i] = out[j];
-      out[j] = tmp;
-    }
-    return out;
-  }
-
-  /* Reads the saved ordering. A value that is not one of the three is treated as
+  /* Reads the saved ordering. A value that is not one of the two is treated as
      absent, so a stale or hand-edited key falls back rather than producing an
-     order nobody chose.
+     order nobody chose. THIS IS WHAT HANDLES A LEGACY "random": it comes back as
+     the default with saved:false and invalid:"random", which is the same answer
+     every caller already had to handle, so no surface needs a special case and
+     the stale key is left alone rather than rewritten behind the user's back.
 
      THE READ CAN FAIL. localStorage throws in a private window, with site data
      blocked, or inside some embedded views — and a failed read must not silently
@@ -132,8 +122,6 @@
   function orderDescriptors(items, ordering) {
     var list = Array.isArray(items) ? items.slice() : [];
 
-    if (ordering === "random") return shuffle(list);
-
     if (ordering === "alphabetical") {
       return list.sort(function (a, b) {
         return String(a.label || "").localeCompare(String(b.label || ""), undefined,
@@ -156,7 +144,6 @@
     DEFAULT_ORDERING: DEFAULT_ORDERING,
     STORAGE_KEY: STORAGE_KEY,
     rankOf: rankOf,
-    shuffle: shuffle,
     readPreference: readPreference,
     writePreference: writePreference,
     orderDescriptors: orderDescriptors,

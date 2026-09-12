@@ -558,7 +558,6 @@
               <select id="agentOrderSelect">
                 <option value="importance">By importance — what moves a business first</option>
                 <option value="alphabetical">Alphabetical, by agent name</option>
-                <option value="random">Random, reshuffled every visit</option>
               </select>
               <span class="pref-saved" id="agentOrderSaved"></span>
               <p class="pref-note">Applies to the Agent Hub and the agent directory. Saved to your
@@ -1057,7 +1056,14 @@
              Checked against ORDERINGS rather than trusted: a value the module
              does not know would be refused by writePreference anyway, and
              assigning it to the select would land on "" — an empty control
-             claiming no order is chosen while the grids sort by the real one. */
+             claiming no order is chosen while the grids sort by the real one.
+
+             A LEGACY "random" ON THE ACCOUNT FALLS THROUGH THIS GUARD, which is
+             the intended outcome. Random was removed from the product; rows
+             stored before that still hold it and the GET still returns it
+             verbatim. It is ignored rather than corrected: writing a
+             replacement here would record a choice the user never made, and the
+             next time they pick an order the PUT overwrites the row anyway. */
           if (agentOrderSelect && window.BFAgentOrder &&
               window.BFAgentOrder.ORDERINGS.indexOf(prefs.agent_card_order) !== -1) {
             agentOrderSelect.value = prefs.agent_card_order;
