@@ -547,12 +547,12 @@
               <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
             </div>
 
-            <!-- Agent card order. Stored in localStorage only, which is deliberate
-                 and is a limitation worth stating: user_preferences has no column
-                 for this, so there is nothing to PUT it into yet. It therefore
-                 persists per browser rather than per account. Adding
-                 agent_card_order to that table and to the PUT allowlist is what
-                 would make it follow the user between devices. -->
+            <!-- Agent card order. Stored on the account now: user_preferences has an
+                 agent_card_order column and the PUT accepts it, so this follows the
+                 user between devices. localStorage is still written, but as the
+                 MIRROR rather than the record — agents-hub.html and ai-agents.html
+                 read it synchronously before paint, and making either of them wait
+                 on a fetch would show the cards in one order and then resort them. -->
             <div class="form-group" style="margin-top:18px;">
               <label for="agentOrderSelect">Agent card order</label>
               <select id="agentOrderSelect">
@@ -561,8 +561,8 @@
                 <option value="random">Random, reshuffled every visit</option>
               </select>
               <span class="pref-saved" id="agentOrderSaved"></span>
-              <p class="pref-note">Applies to the Agent Hub and the agent directory. Saved in this
-                browser only for now, so it will not follow you to another device.</p>
+              <p class="pref-note">Applies to the Agent Hub and the agent directory. Saved to your
+                account, so it follows you to any device you sign in on.</p>
             </div>
 
             <!-- Deliberately NOT labelled "Language". This does not translate the
@@ -976,6 +976,29 @@
            can only hold the null case anyway. Stating it explicitly means that
            stays true if the population order ever changes. */
         langSelect.value = "";
+
+        /* THE AGENT ORDER FOLLOWS THE LANGUAGE, NOT THE TWO LINES AT THE TOP.
+
+           It is per-account now, so a mirror left over in this browser cannot
+           be shown as the account's setting: it may have been written by a
+           different person on a shared machine, or before this browser last
+           signed in. The GET failed, so the honest position is that the choice
+           is not known — and the control says the default rather than dressing
+           a local leftover up as a preference.
+
+           THE MIRROR IS NOT TOUCHED, only the control. agents-hub.html and
+           ai-agents.html sort from it before paint, and clearing it because one
+           request failed would reorder both grids underneath somebody whose
+           preference is perfectly intact on the server. The indicator says the
+           order could not be loaded, so the default on screen is not read as a
+           choice this user made. */
+        if (agentOrderSelect && window.BFAgentOrder) {
+          agentOrderSelect.value = window.BFAgentOrder.DEFAULT_ORDERING;
+          if (agentOrderSaved) {
+            showPrefSaved(agentOrderSaved, false);
+            agentOrderSaved.textContent = "Could not load your saved order — showing the default.";
+          }
+        }
       }
 
       fetch(API_URL + "/api/user/preferences", {
@@ -1017,6 +1040,29 @@
           } else {
             localStorage.removeItem("tmx_agent_language");
           }
+
+          /* The account value wins, and it is mirrored locally the same way
+             mist_position is — because the mirror is what agents-hub.html and
+             ai-agents.html actually sort by, synchronously, before paint. This
+             is the line that makes the setting follow someone to a new device:
+             they open settings once and both grids there are in their order.
+
+             NULL IS NOT A VALUE TO APPLY. It means the account has never
+             recorded a choice, which is the state of everyone who chose an
+             order before the column existed — their preference is sitting in
+             this browser and the grids are already honouring it. Clearing the
+             mirror or resetting the control would throw that away to express
+             "nothing stored", so null leaves both exactly as they are.
+
+             Checked against ORDERINGS rather than trusted: a value the module
+             does not know would be refused by writePreference anyway, and
+             assigning it to the select would land on "" — an empty control
+             claiming no order is chosen while the grids sort by the real one. */
+          if (agentOrderSelect && window.BFAgentOrder &&
+              window.BFAgentOrder.ORDERINGS.indexOf(prefs.agent_card_order) !== -1) {
+            agentOrderSelect.value = prefs.agent_card_order;
+            window.BFAgentOrder.writePreference(prefs.agent_card_order);
+          }
         })
         .catch(function () {
           applyPreferencesFromLocalStorage();
@@ -1056,12 +1102,32 @@
           }
         }
 
+        /* THE MIRROR IS WRITTEN FIRST, AND ON PURPOSE BEFORE THE REQUEST. The
+           two grids read localStorage synchronously before paint, so writing it
+           first means the new order is in effect for this browser the moment it
+           is chosen, whether or not the network is working. The PUT then makes
+           it durable and carries it to the user's other devices. */
         agentOrderSelect.addEventListener("change", function () {
           var wrote = window.BFAgentOrder.writePreference(agentOrderSelect.value);
-          showPrefSaved(agentOrderSaved, wrote);
+
+          /* STORAGE BLOCKED STILL SENDS THE PUT. The account is the durable
+             record and the failure is local to this browser, so refusing to
+             save server-side would leave someone in a private window unable to
+             set the preference at all — on any device. The request goes out,
+             and only the indicator is diverted: the visible message stays the
+             storage one, because in THIS browser the grids read localStorage
+             and the new order will not take effect here no matter what the
+             server says. A "Saved" landing on top of that would be a lie about
+             the thing the user is looking at. The throwaway span is never in
+             the document, so the helper writes its status into nothing. */
+          var indicator = wrote ? agentOrderSaved : document.createElement("span");
+
           if (!wrote && agentOrderSaved) {
+            showPrefSaved(agentOrderSaved, false);
             agentOrderSaved.textContent = "Could not save — this browser is blocking storage.";
           }
+
+          putPreferences({ agent_card_order: agentOrderSelect.value }, indicator);
         });
       }
 
