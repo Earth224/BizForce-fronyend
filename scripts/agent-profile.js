@@ -809,6 +809,8 @@
 
     bindSchedule();
     bindTools();
+    /* Returns null, and adds nothing to the page, on a browser without the API. */
+    bindDictation();
 
     renderAutonomy();
     loadAutonomy();
@@ -2890,6 +2892,280 @@
     });
     html += '</div>';
     el.innerHTML = html;
+  }
+
+  /* ── DICTATION ────────────────────────────────────────────────────────────
+
+     The browser's own speech recognition, and nothing else: no server, no
+     upload, no dependency, and nothing recorded or stored anywhere. The audio
+     never reaches this application — the browser hands back text and that text
+     goes into the task box.
+
+     NOTE ON PRIVACY, SO IT IS NOT OVERSTATED: in Chrome and Edge this API sends
+     audio to a Google speech service to be transcribed. That is the browser's
+     doing, outside this page's reach and covered by the permission prompt the
+     user answers. What is true of THIS code is that it keeps nothing: no
+     recording is made, no audio is read, and the only thing retained is the text
+     the user can see in the box.
+
+     SUPPORT IS DETECTED, NEVER ASSUMED. If the constructor is missing the button
+     is not built at all — a microphone button that cannot listen is worse than no
+     button, because it looks like a broken feature rather than an absent one.
+     Today that detection excludes Firefox, which does not implement the API;
+     Chrome, Edge and Safari (all prefixed as webkitSpeechRecognition) get it. The
+     detection is what decides, so a browser that ships it tomorrow needs no change
+     here. */
+  function speechRecognitionCtor() {
+    if (typeof window === "undefined") return null;
+    return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  }
+
+  /* Every error the Web Speech API can raise, each with something true to say.
+     None of them is silent, and none of them leaves the box unusable — typing is
+     always still there, which is why these read as statements rather than
+     failures.
+
+     "not-allowed" AND "service-not-allowed" ARE NORMAL ANSWERS, NOT FAULTS. The
+     user was asked for the microphone and said no, or their browser said no on
+     their behalf. The reply says what is blocked and where to unblock it, in the
+     neutral message colour rather than the red one, because nothing went wrong. */
+  var DICTATION_MESSAGES = {
+    "not-allowed": {
+      text: "The microphone is blocked for this site. Allow it from the padlock or " +
+        "camera icon in your browser's address bar, then press Dictate again. " +
+        "Typing still works in the meantime.",
+      tone: ""
+    },
+    "service-not-allowed": {
+      text: "Your browser or operating system is not allowing speech recognition for " +
+        "this site. Check its microphone and privacy settings, then press Dictate " +
+        "again. Typing still works in the meantime.",
+      tone: ""
+    },
+    "audio-capture": {
+      text: "No microphone was found. Check that one is connected and enabled, then " +
+        "press Dictate again.",
+      tone: "err"
+    },
+    "no-speech": {
+      text: "Nothing was heard, so nothing was added. Press Dictate and speak again.",
+      tone: ""
+    },
+    "network": {
+      text: "Speech recognition could not reach the service it needs. Nothing was " +
+        "added — check your connection, or type the task instead.",
+      tone: "err"
+    },
+    "aborted": {
+      /* Raised by our own stop() as well as by the browser interrupting, so this
+         is deliberately not an error: in the common case it is the user pressing
+         Stop dictating. */
+      text: "Dictation stopped.",
+      tone: ""
+    },
+    "language-not-supported": {
+      text: "Dictation is not available for this page's language, so nothing was " +
+        "added. You can type the task instead.",
+      tone: "err"
+    },
+    "bad-grammar": {
+      text: "Dictation could not use its grammar settings, so nothing was added. " +
+        "You can type the task instead.",
+      tone: "err"
+    }
+  };
+
+  function dictationMessage(code) {
+    if (Object.prototype.hasOwnProperty.call(DICTATION_MESSAGES, String(code))) {
+      return DICTATION_MESSAGES[String(code)];
+    }
+    /* An error the spec adds later, or a browser invents. Saying the code is more
+       use than "something went wrong", because it is the only thing that makes the
+       report searchable. */
+    return {
+      text: "Dictation stopped: the browser reported \"" + String(code || "unknown") +
+        "\". Nothing was added — you can type the task instead.",
+      tone: "err"
+    };
+  }
+
+  function bindDictation() {
+    var Recognition = speechRecognitionCtor();
+    if (!Recognition) return null;
+
+    var box = document.getElementById("apTaskPrompt");
+    var launch = document.getElementById("apLaunchBtn");
+    if (!box || !launch || !launch.parentNode) return null;
+
+    /* Built here rather than in inject() so that on a browser without the API the
+       markup is exactly what it was before this feature existed. */
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "apDictateBtn";
+    btn.className = "ap-sched-btn ghost";
+    btn.setAttribute("aria-pressed", "false");
+    /* The one piece of styling this needed. .ap-row would give the gap, but the
+       Launch button is not in one, and wrapping it would restructure markup shared
+       by eighteen pages for a margin. Everything else — the button, its listening
+       colour, the pulsing dot, the message line — reuses ap-sched-btn/.ghost,
+       .danger, .ap-dot/.running and .ap-msg as they are. */
+    btn.style.marginLeft = "10px";
+    btn.style.verticalAlign = "middle";
+
+    var dot = document.createElement("span");
+    dot.className = "ap-dot idle";
+    dot.style.display = "inline-block";
+    dot.style.marginRight = "7px";
+    btn.appendChild(dot);
+
+    var label = document.createElement("span");
+    label.textContent = "Dictate";
+    btn.appendChild(label);
+
+    var msgEl = document.createElement("div");
+    msgEl.id = "apDictateMsg";
+    msgEl.className = "ap-msg";
+
+    launch.parentNode.insertBefore(btn, launch.nextSibling);
+    launch.parentNode.insertBefore(msgEl, btn.nextSibling);
+
+    var recognition = null;
+    var listening = false;
+
+    function say(text, tone) {
+      msgEl.className = "ap-msg" + (tone ? " " + tone : "");
+      msgEl.textContent = text || "";
+    }
+
+    /* The listening state, in the page's own vocabulary: the same small button
+       turns from ghost to danger red, the .ap-dot beside it goes from idle grey to
+       the pulsing cyan this page already uses for "running", and the label says
+       what the next press will do — the two-state button pattern used elsewhere in
+       this file. aria-pressed carries the same state to a screen reader. */
+    function setListening(on) {
+      listening = on;
+      btn.className = on ? "ap-sched-btn danger" : "ap-sched-btn ghost";
+      dot.className = on ? "ap-dot running" : "ap-dot idle";
+      label.textContent = on ? "Stop dictating" : "Dictate";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    /* APPEND, NEVER REPLACE. Somebody half way through typing a sentence who
+       reaches for the microphone must find their sentence still there. The
+       transcript is added to the end of whatever is in the box, with one space
+       inserted only when the existing text does not already end in whitespace, and
+       the caret is left at the end so typing continues where the speech stopped. */
+    function append(text) {
+      if (!text) return;
+      var existing = box.value == null ? "" : String(box.value);
+      var joiner = (existing === "" || /\s$/.test(existing)) ? "" : " ";
+      box.value = existing + joiner + text;
+      try {
+        box.selectionStart = box.value.length;
+        box.selectionEnd = box.value.length;
+      } catch (e) { /* a browser that will not take a caret position; the text is in */ }
+      if (typeof box.focus === "function") box.focus();
+    }
+
+    function start() {
+      if (listening) return;
+
+      recognition = new Recognition();
+      recognition.continuous = true;
+      /* FINAL RESULTS ONLY, DELIBERATELY. Interim results would mean writing a
+         guess into the box and replacing it on every event — and "replace what I
+         just put in the box" is exactly the operation that eats the sentence the
+         user typed before pressing the button, the moment an index is off by one
+         or an event arrives out of order. Speech is appended once it is settled;
+         the pulsing dot is what says it is listening in the meantime. */
+      recognition.interimResults = false;
+      recognition.lang = (document.documentElement && document.documentElement.lang) || "en-US";
+
+      recognition.onresult = function (event) {
+        var chunk = "";
+        var results = event && event.results ? event.results : [];
+        var from = event && typeof event.resultIndex === "number" ? event.resultIndex : 0;
+        for (var i = from; i < results.length; i++) {
+          if (results[i] && results[i].isFinal && results[i][0]) {
+            chunk += results[i][0].transcript;
+          }
+        }
+        chunk = chunk.replace(/^\s+|\s+$/g, "");
+        if (!chunk) return;
+        append(chunk);
+        say("Added. Still listening — press Stop dictating when you are done.");
+      };
+
+      recognition.onerror = function (event) {
+        var message = dictationMessage(event && event.error);
+        say(message.text, message.tone);
+        /* onend follows an error in every browser that implements this, but the
+           state is cleared here too: a button stuck on "Stop dictating" over a
+           recogniser that has already given up is the one outcome with no way
+           out. */
+        setListening(false);
+      };
+
+      recognition.onend = function () {
+        recognition = null;
+        setListening(false);
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        /* start() throws if it is called while already running. Nothing is
+           listening in that case either, so the state is cleared and said. */
+        recognition = null;
+        setListening(false);
+        say("Dictation could not start. Press Dictate to try again, or type the task.", "err");
+        return;
+      }
+
+      setListening(true);
+      say("Listening. Speak, then press Stop dictating — your text is added to the box.");
+    }
+
+    /* WHEN LISTENING STOPS, AND WHY THOSE MOMENTS:
+
+         the button is pressed again  — the explicit stop;
+         the recogniser ends itself   — onend, which also fires after an error;
+         the page is being left       — pagehide, which covers navigation, a closed
+                                        tab and the back/forward cache, where
+                                        unload alone does not;
+         the tab is hidden            — visibilitychange, so a microphone is never
+                                        live on a page nobody is looking at.
+
+       BLUR IS DELIBERATELY NOT ONE OF THEM. The textarea loses focus the instant
+       the user reaches for the Stop button — and again when the browser raises its
+       own permission prompt — so stopping on blur would end dictation exactly when
+       somebody is trying to use it. "Loses focus for good" is the page going away,
+       and that is what is listened for. */
+    function stop() {
+      if (!recognition) { setListening(false); return; }
+      try {
+        recognition.stop();
+      } catch (e) {
+        try { recognition.abort(); } catch (e2) { /* already gone */ }
+        recognition = null;
+        setListening(false);
+      }
+    }
+
+    btn.addEventListener("click", function () {
+      if (listening) stop(); else start();
+    });
+
+    if (typeof window.addEventListener === "function") {
+      window.addEventListener("pagehide", function () { if (listening) stop(); });
+    }
+    if (typeof document.addEventListener === "function") {
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden && listening) stop();
+      });
+    }
+
+    return { button: btn, message: msgEl, stop: stop, isListening: function () { return listening; } };
   }
 
   /* ── task submission ── */
