@@ -571,6 +571,14 @@
             ' placeholder="Describe what you want the ' + esc(AGENT_LABEL) + ' to do..."></textarea>',
           '<button type="button" class="ap-btn" id="apLaunchBtn">Launch Task</button>',
           '<div class="ap-msg" id="apMsg"></div>',
+          /* One line, and it reaches all eighteen agent pages because this
+             markup is shared. A task worth typing twice belongs in the library,
+             and the moment somebody is typing it is the moment to say so. */
+          '<p class="ap-sched-note" style="margin:10px 0 0;font-size:.78rem;color:#8892b8">',
+            'Run this often? Keep it in ',
+            '<a href="/saved-prompts.html" style="color:#22d3ee">Saved Prompts</a>',
+            ' and fill in the parts that change.',
+          '</p>',
 
           /* IN THIS CARD, NOT A PANEL OF ITS OWN. Running the agent by hand
              and letting it run by itself are the two ways this agent does

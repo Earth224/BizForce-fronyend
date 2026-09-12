@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Saved Prompts</title>
+  <script src="/scripts/bf-session.js"></script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* The shell, the list states, the modal, the buttons and the toast are the
+       same vocabulary garage-sale.html uses, copied because this repo gives each
+       page its own stylesheet — css/bizforce-ui.css carries only the bf-* classes
+       and defines none of these. The rules specific to this page are marked. */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .hero-title{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.6rem);font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0 auto;max-width:720px;font-size:.95rem;line-height:1.65;color:#8892b8}
+    .toolbar{display:flex;justify-content:flex-end;margin-bottom:22px}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border:none;border-radius:14px;font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#06b6d4,#8b5cf6);cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(0,198,255,.25);font-family:inherit}
+    .create-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35)}
+    .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+    .listing-card{display:flex;flex-direction:column;gap:12px;padding:22px 24px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(12,18,38,.72);transition:border-color .25s,box-shadow .25s}
+    .listing-card:hover{border-color:rgba(0,229,255,.25);box-shadow:0 16px 48px rgba(0,0,0,.35)}
+    .listing-title{margin:0;font-size:1.02rem;font-weight:700;color:#e8e8ff;word-break:break-word}
+    .listing-desc{margin:0;font-size:.85rem;line-height:1.6;color:#8892b8;white-space:pre-wrap;word-break:break-word}
+    .listing-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .listing-tag{padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:600;letter-spacing:.04em;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c4b5fd}
+    .listing-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+    .listing-date{font-size:.72rem;color:#566082}
+    .listing-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit;background:transparent;border:1px solid rgba(148,163,184,.3);color:#c3c9e6;transition:all .2s}
+    .btn-sm:hover{border-color:rgba(0,229,255,.5);color:#22d3ee}
+    .btn-run{border-color:rgba(0,229,255,.45);color:#22d3ee}
+    .btn-delete{border-color:rgba(248,113,113,.35);color:#f87171}
+    .btn-delete:hover{border-color:rgba(248,113,113,.6);color:#f87171}
+    .empty-msg{grid-column:1/-1;text-align:center;padding:60px 20px;color:#8892b8;font-size:.92rem}
+    .loading{grid-column:1/-1;text-align:center;padding:60px 20px;color:#8892b8;font-size:.92rem}
+    .load-error{grid-column:1/-1;padding:28px 24px;border-radius:16px;border:1px solid rgba(248,113,113,.35);background:rgba(30,12,18,.7);text-align:center}
+    .load-error-title{font-size:1rem;font-weight:700;color:#f87171;margin-bottom:8px}
+    .load-error-sub{font-size:.85rem;line-height:1.6;color:#c3c9e6;margin-bottom:14px}
+    .load-error-retry{padding:9px 18px;border-radius:10px;border:1px solid rgba(248,113,113,.4);background:transparent;color:#f87171;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .load-error-detail{margin-top:12px;font-size:.72rem;color:#8892b8;word-break:break-word}
+    .modal-overlay{position:fixed;inset:0;background:rgba(3,6,16,.82);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:50;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{width:100%;max-width:640px;border-radius:20px;border:1px solid rgba(0,229,255,.18);background:#0b1020;padding:26px 28px 22px}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+    .modal-title{margin:0;font-size:1.05rem;font-weight:700;color:#e8e8ff}
+    .modal-close{background:transparent;border:none;color:#8892b8;font-size:1rem;cursor:pointer;font-family:inherit}
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,229,255,.2);background:rgba(8,12,28,.9);color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none}
+    .form-textarea{min-height:150px;line-height:1.6;resize:vertical}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(0,229,255,.55)}
+    .field-hint{margin:8px 0 0;font-size:.75rem;line-height:1.5;color:#8892b8;font-style:italic}
+    .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+    .btn-cancel{padding:11px 20px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:transparent;color:#c3c9e6;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .btn-submit{padding:11px 22px;border-radius:12px;border:none;background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .btn-submit:disabled{opacity:.55;cursor:not-allowed}
+    .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);padding:12px 20px;border-radius:12px;font-size:.85rem;opacity:0;pointer-events:none;transition:all .3s;z-index:80;max-width:90vw;text-align:center}
+    .toast.show{opacity:1;transform:translateX(-50%)}
+    .toast-success{background:rgba(22,54,36,.95);border:1px solid rgba(74,222,128,.45);color:#4ade80}
+    .toast-error{background:rgba(54,18,22,.95);border:1px solid rgba(248,113,113,.45);color:#f87171}
+
+    /* ── New on this page, because the model page has no equivalent ──────────
+       .blank-chip / .blank-none  a prompt's blanks, shown as chips on its card
+       .form-error                the save-time blank problem, named in the form
+       .run-field                 one labelled box per blank in the Run dialog
+       .run-msg                   the Run dialog's own status line, which the
+                                  .toast cannot serve: a 402 and a missing-blank
+                                  refusal must stay on screen while the person
+                                  fixes them, and a toast disappears in 3.2s
+       .result-card / .result-*   the task result, shaped after the agent page's
+                                  .ap-result-card (prompt above, output below) */
+    .blank-chip{padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.3);color:#22d3ee}
+    .blank-none{font-size:.72rem;color:#566082;font-style:italic}
+    .form-error{margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid rgba(248,113,113,.4);background:rgba(30,12,18,.6);color:#f87171;font-size:.78rem;line-height:1.55}
+    .run-field{margin-bottom:14px}
+    .run-msg{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:.82rem;line-height:1.6;color:#c3c9e6;border:1px solid rgba(148,163,184,.25);background:rgba(8,12,28,.7)}
+    .run-msg.ok{border-color:rgba(74,222,128,.4);color:#4ade80}
+    .run-msg.err{border-color:rgba(248,113,113,.4);color:#f87171}
+    .run-msg a{color:#22d3ee}
+    .result-card{margin-top:16px;padding:18px 20px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(8,12,28,.8)}
+    .result-head{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .result-prompt{font-size:.8rem;line-height:1.6;color:#8892b8;white-space:pre-wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}
+    .result-body{font-size:.88rem;line-height:1.7;color:#e8e8ff;white-space:pre-wrap;word-break:break-word}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">&#8592; Dashboard</a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Saved Prompts</div>
+    <h1 class="hero-title">Saved Prompts</h1>
+    <p class="hero-sub">A task you wrote once and run again. Leave blanks with
+      <code>{{name}}</code> and fill them in each time you run it.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="create-btn" id="createBtn">+ New prompt</button>
+  </div>
+
+  <div class="listings-grid" id="promptGrid"><div class="loading">Loading your saved prompts…</div></div>
+</div>
+
+<!-- Create / edit -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="editTitle">New prompt</h2>
+      <button class="modal-close" id="editClose">&#10005;</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fName">Name</label>
+      <input class="form-input" id="fName" type="text" maxlength="100" placeholder="e.g. Weekly SEO report"/>
+      <p class="field-hint">Up to 100 characters. Names are compared ignoring case and spaces, so you cannot have two that differ only by those.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fAgent">Agent</label>
+      <select class="form-select" id="fAgent"></select>
+      <p class="field-hint" id="agentHint">Which agent runs this prompt.</p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fPrompt">Prompt</label>
+      <textarea class="form-textarea" id="fPrompt" maxlength="20000" placeholder="Write the task. Use {{customer}} anywhere you want to fill in a value when you run it."></textarea>
+      <p class="field-hint" id="blankHint">Blanks found: none yet.</p>
+      <p class="form-error" id="blankError" hidden></p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" id="editCancel">Cancel</button>
+      <button class="btn-submit" id="editSubmit">Save prompt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Run -->
+<div class="modal-overlay" id="runModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="runTitle">Run prompt</h2>
+      <button class="modal-close" id="runClose">&#10005;</button>
+    </div>
+
+    <div id="runFields"></div>
+    <div class="run-msg" id="runMsg" hidden></div>
+    <div id="runResult"></div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" id="runCancel">Close</button>
+      <button class="btn-submit" id="runSubmit">Run</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var allPrompts = [];
+var listState = "loading";
+var listError = null;
+var agentTypes = [];
+var agentTypesSource = "server";
+var editingId = null;
+var editingOriginal = null;
+var runningId = null;
+var runPollTimer = null;
+
+/* Same helper the model page carries, for the same reason: an error body is not
+   guaranteed to be JSON, and an HTML error page from a proxy must not surface as
+   "Unexpected token '<'". */
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function readErrorBody(status, body) {
+  if (body && typeof body === "object" && body.error) return String(body.error);
+  return "Request failed (HTTP " + status + ")";
+}
+
+function parseJsonSafely(res) {
+  return res.json().then(function (d) { return d; }, function () { return null; });
+}
+
+/* ── THE BLANK RULE, AND WHERE IT COMES FROM ────────────────────────────────
+   This is the server's rule, restated: server.js declares
+
+     var SAVED_PROMPT_BLANK_PATTERN = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+
+   and refuses a run whose prompt still holds "{{" or "}}" once every real blank
+   is removed. Both halves are reproduced here so the mistake is caught while the
+   person is still looking at the prompt, rather than days later the first time
+   they press Run.
+
+   IT IS A SECOND COPY AND THERE IS NO WAY AROUND THAT TODAY — the pattern is not
+   served by any route, so the client cannot ask for it. The two can drift, and
+   the drift would show as this form accepting something the run then refuses.
+   What would end it: the API returning its pattern (the dashboard-order refusal
+   already returns `slug_pattern` this way), and this file reading it from there
+   with the literal below as the fallback. Until then, this comment is the link
+   between them: change one, change the other. */
+var PROMPT_BLANK_PATTERN = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+
+function promptBlanks(text) {
+  var names = [];
+  var seen = {};
+  var pattern = new RegExp(PROMPT_BLANK_PATTERN.source, "g");
+  var match;
+  while ((match = pattern.exec(String(text || ""))) !== null) {
+    if (!Object.prototype.hasOwnProperty.call(seen, match[1])) {
+      seen[match[1]] = true;
+      names.push(match[1]);
+    }
+  }
+  return names;
+}
+
+/* What is left once every valid blank is removed. Anything brace-shaped still in
+   there is what the run would refuse: a malformed name, an empty pair, an
+   unclosed "{{", or a stray "}}". */
+function promptBraceProblems(text) {
+  var stripped = String(text || "").replace(new RegExp(PROMPT_BLANK_PATTERN.source, "g"), "");
+  var found = stripped.match(/\{\{[^{}]{0,64}\}?\}?|\}\}/g);
+  return found ? found.slice(0, 5) : [];
+}
+
+var BLANK_RULE_TEXT = "A blank looks like {{name}} — letters, digits and underscores only. " +
+  "{{ name }} is the same blank. {{first name}}, {{a-b}}, {{}}, an unclosed {{ and a stray }} are not blanks.";
+
+/* ── list ─────────────────────────────────────────────────────────────────── */
+function loadPrompts() {
+  listState = "loading";
+  listError = null;
+  renderList();
+
+  return fetch(API_URL + "/api/saved-prompts", {
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (body) {
+        if (!res.ok) {
+          listState = "error";
+          listError = readErrorBody(res.status, body);
+          allPrompts = [];
+          renderList();
+          return;
+        }
+        allPrompts = (body && Array.isArray(body.prompts)) ? body.prompts : [];
+        listState = "ready";
+        renderList();
+        /* The fallback picker is built from the agents already in use, which is
+           only knowable once the list has arrived. Without this the picker would
+           sit empty after a failed roster fetch until something else redrew it. */
+        if (agentTypesSource !== "server") renderAgentOptions();
+      });
+    })
+    .catch(function () {
+      listState = "error";
+      listError = "Could not reach the server. Check your connection and try again.";
+      allPrompts = [];
+      renderList();
+    });
+}
+
+function renderList() {
+  var grid = document.getElementById("promptGrid");
+  if (!grid) return;
+
+  if (listState === "loading") {
+    grid.innerHTML = '<div class="loading">Loading your saved prompts…</div>';
+    return;
+  }
+
+  /* A FAILED READ IS NOT AN EMPTY LIBRARY, and must never be drawn as one. The
+     model page makes exactly this distinction and says so on screen: an empty
+     state here would tell somebody their prompts are gone when the only thing
+     that happened is a request that did not arrive. */
+  if (listState === "error") {
+    grid.innerHTML =
+      '<div class="load-error">' +
+        '<div class="load-error-title">Could not load your saved prompts</div>' +
+        '<div class="load-error-sub">This is a problem reaching the server, not an empty library. ' +
+          'Nothing has been changed or removed.</div>' +
+        '<button class="load-error-retry" id="listRetry">Try again</button>' +
+        '<div class="load-error-detail">' + escapeHtml(listError || "") + '</div>' +
+      '</div>';
+    var retry = document.getElementById("listRetry");
+    if (retry) retry.addEventListener("click", loadPrompts);
+    return;
+  }
+
+  if (!allPrompts.length) {
+    grid.innerHTML = '<div class="empty-msg">No saved prompts yet. Write one you run often, and give it blanks for the parts that change.</div>';
+    return;
+  }
+
+  grid.innerHTML = allPrompts.map(renderCard).join("");
+}
+
+function renderCard(p) {
+  var blanks = promptBlanks(p.prompt);
+  var chips = blanks.length
+    ? blanks.map(function (b) { return '<span class="blank-tag blank-chip">' + escapeHtml(b) + '</span>'; }).join("")
+    : '<span class="blank-none">No blanks — runs as written.</span>';
+  var preview = String(p.prompt || "");
+  if (preview.length > 220) preview = preview.slice(0, 220) + "…";
+  var used = p.use_count ? (p.use_count + (p.use_count === 1 ? " run" : " runs")) : "Never run";
+
+  return '<div class="listing-card" data-id="' + escapeHtml(p.id) + '">' +
+    '<h3 class="listing-title">' + escapeHtml(p.name) + '</h3>' +
+    '<div class="listing-tags"><span class="listing-tag">' + escapeHtml(p.agent_type) + '</span></div>' +
+    '<p class="listing-desc">' + escapeHtml(preview) + '</p>' +
+    '<div class="listing-tags">' + chips + '</div>' +
+    '<div class="listing-footer">' +
+      '<span class="listing-date">' + escapeHtml(used) + '</span>' +
+      '<div class="listing-actions">' +
+        '<button class="btn-sm btn-run" data-action="run" data-id="' + escapeHtml(p.id) + '">Run</button>' +
+        '<button class="btn-sm" data-action="edit" data-id="' + escapeHtml(p.id) + '">Edit</button>' +
+        '<button class="btn-sm btn-delete" data-action="delete" data-id="' + escapeHtml(p.id) + '">Delete</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function promptById(id) {
+  for (var i = 0; i < allPrompts.length; i++) {
+    if (allPrompts[i] && allPrompts[i].id === id) return allPrompts[i];
+  }
+  return null;
+}
+
+/* ── the agent picker ─────────────────────────────────────────────────────── */
+/* The roster comes from the server — GET /api/agents returns
+   available_agent_types, which is Object.keys(AGENT_SYSTEM_PROMPTS) — rather
+   than a list typed into this page. A list here would be a third copy of the
+   agent roster, and this codebase has the receipt for what that costs: migration
+   064's comment names seventeen types when there are eighteen. */
+function loadAgentTypes() {
+  return fetch(API_URL + "/api/agents", {
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) { return parseJsonSafely(res); })
+    .then(function (body) {
+      if (body && Array.isArray(body.available_agent_types) && body.available_agent_types.length) {
+        agentTypes = body.available_agent_types.slice();
+        agentTypesSource = "server";
+      } else {
+        agentTypes = [];
+        agentTypesSource = "unavailable";
+      }
+      renderAgentOptions();
+    })
+    .catch(function () {
+      agentTypes = [];
+      agentTypesSource = "unavailable";
+      renderAgentOptions();
+    });
+}
+
+function renderAgentOptions() {
+  var select = document.getElementById("fAgent");
+  var hint = document.getElementById("agentHint");
+  if (!select) return;
+
+  /* Without the roster the only honest options are the ones already in use on
+     this account. It is stated rather than papered over, because a short list
+     that looks complete is worse than a short list that says it is not. */
+  var options = agentTypes.slice();
+  if (!options.length) {
+    allPrompts.forEach(function (p) {
+      if (p && p.agent_type && options.indexOf(p.agent_type) === -1) options.push(p.agent_type);
+    });
+  }
+
+  select.innerHTML = options.map(function (t) {
+    return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
+  }).join("");
+
+  if (hint) {
+    hint.textContent = agentTypesSource === "server"
+      ? "Which agent runs this prompt."
+      : "The full agent list could not be loaded, so this shows only the agents already used by your saved prompts.";
+  }
+}
+
+/* ── create / edit ────────────────────────────────────────────────────────── */
+function openCreate() {
+  editingId = null;
+  editingOriginal = null;
+  document.getElementById("editTitle").textContent = "New prompt";
+  document.getElementById("fName").value = "";
+  document.getElementById("fPrompt").value = "";
+  renderAgentOptions();
+  refreshBlankHint();
+  document.getElementById("editModal").className = "modal-overlay open";
+}
+
+function openEdit(id) {
+  var p = promptById(id);
+  if (!p) return;
+  editingId = id;
+  editingOriginal = { name: p.name, agent_type: p.agent_type, prompt: p.prompt };
+  document.getElementById("editTitle").textContent = "Edit prompt";
+  document.getElementById("fName").value = p.name || "";
+  document.getElementById("fPrompt").value = p.prompt || "";
+  renderAgentOptions();
+  var select = document.getElementById("fAgent");
+  if (select) {
+    if (p.agent_type && !Array.prototype.some.call(select.options || [], function (o) { return o.value === p.agent_type; })) {
+      var opt = document.createElement("option");
+      opt.value = p.agent_type;
+      opt.textContent = p.agent_type;
+      select.appendChild(opt);
+    }
+    select.value = p.agent_type || "";
+  }
+  refreshBlankHint();
+  document.getElementById("editModal").className = "modal-overlay open";
+}
+
+function closeEdit() {
+  document.getElementById("editModal").className = "modal-overlay";
+}
+
+/* THE BLANKS ARE CHECKED AS THE PERSON WRITES, not only when they save, and not
+   only when the server sees it. The backend refuses a malformed blank at RUN
+   time, which is the worst possible moment to find out: the prompt saved fine,
+   it has been sitting in the library, and the refusal arrives when somebody is
+   trying to get work done. */
+function refreshBlankHint() {
+  var text = document.getElementById("fPrompt").value;
+  var blanks = promptBlanks(text);
+  var problems = promptBraceProblems(text);
+  var hint = document.getElementById("blankHint");
+  var errEl = document.getElementById("blankError");
+
+  if (hint) {
+    hint.textContent = blanks.length
+      ? "Blanks found: " + blanks.join(", ") + ". You will fill these in each time you run it."
+      : "Blanks found: none — this prompt runs exactly as written.";
+  }
+
+  if (errEl) {
+    if (problems.length) {
+      errEl.hidden = false;
+      errEl.textContent = "This is not a usable blank: " + problems.join("  ") + ". " + BLANK_RULE_TEXT;
+    } else {
+      errEl.hidden = true;
+      errEl.textContent = "";
+    }
+  }
+
+  return problems;
+}
+
+function submitPrompt() {
+  var name = document.getElementById("fName").value.trim();
+  var agentType = document.getElementById("fAgent").value;
+  var prompt = document.getElementById("fPrompt").value.trim();
+  var btn = document.getElementById("editSubmit");
+
+  if (!name) { showToast("Give the prompt a name.", "error"); return Promise.resolve(); }
+  if (!agentType) { showToast("Choose which agent runs this prompt.", "error"); return Promise.resolve(); }
+  if (!prompt) { showToast("Write the prompt itself.", "error"); return Promise.resolve(); }
+
+  /* The save-time gate. Nothing is sent while a brace problem stands. */
+  var problems = refreshBlankHint();
+  if (problems.length) {
+    showToast("Fix the blank before saving: " + problems[0], "error");
+    return Promise.resolve();
+  }
+
+  var url = editingId ? API_URL + "/api/saved-prompts/" + editingId : API_URL + "/api/saved-prompts";
+  var method = editingId ? "PUT" : "POST";
+  var body;
+
+  if (editingId) {
+    /* ONLY WHAT CHANGED. The route gates each field on !== undefined, so an
+       unchanged field left out is a field the server does not touch — which is
+       also what keeps a rename from resending twenty thousand characters. */
+    body = {};
+    if (name !== editingOriginal.name) body.name = name;
+    if (agentType !== editingOriginal.agent_type) body.agent_type = agentType;
+    if (prompt !== editingOriginal.prompt) body.prompt = prompt;
+
+    if (!Object.keys(body).length) {
+      closeEdit();
+      showToast("Nothing changed.", "success");
+      return Promise.resolve();
+    }
+  } else {
+    body = { name: name, agent_type: agentType, prompt: prompt };
+  }
+
+  if (btn) btn.disabled = true;
+
+  return fetch(url, {
+    method: method,
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (btn) btn.disabled = false;
+
+        if (res.status === 409) {
+          showToast(readErrorBody(res.status, data), "error");
+          return;
+        }
+        if (!res.ok) {
+          showToast(readErrorBody(res.status, data), "error");
+          return;
+        }
+
+        closeEdit();
+        showToast(editingId ? "Prompt updated." : "Prompt saved.", "success");
+        return loadPrompts();
+      });
+    })
+    .catch(function () {
+      if (btn) btn.disabled = false;
+      showToast("Could not reach the server. Nothing was saved.", "error");
+    });
+}
+
+function deletePrompt(id) {
+  var p = promptById(id);
+  if (!p) return Promise.resolve();
+  if (!confirm('Delete "' + p.name + '"? This cannot be undone.')) return Promise.resolve();
+
+  return fetch(API_URL + "/api/saved-prompts/" + id, {
+    method: "DELETE",
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (!res.ok) {
+          showToast(readErrorBody(res.status, data), "error");
+          return;
+        }
+        showToast("Prompt deleted.", "success");
+        return loadPrompts();
+      });
+    })
+    .catch(function () {
+      showToast("Could not reach the server. Nothing was deleted.", "error");
+    });
+}
+
+/* ── run ──────────────────────────────────────────────────────────────────── */
+function openRun(id) {
+  var p = promptById(id);
+  if (!p) return;
+
+  runningId = id;
+  stopRunPoll();
+  document.getElementById("runTitle").textContent = "Run: " + p.name;
+  document.getElementById("runResult").innerHTML = "";
+  setRunMsg("", null);
+
+  var blanks = promptBlanks(p.prompt);
+  var fields = document.getElementById("runFields");
+
+  /* One box per blank, labelled with the blank's own name. A prompt with no
+     blanks gets no boxes at all and runs as written. */
+  fields.innerHTML = blanks.length
+    ? blanks.map(function (name) {
+        return '<div class="run-field">' +
+          '<label class="form-label" for="runval_' + escapeHtml(name) + '">' + escapeHtml(name) + '</label>' +
+          '<input class="form-input" type="text" data-blank="' + escapeHtml(name) + '" id="runval_' + escapeHtml(name) + '"/>' +
+        '</div>';
+      }).join("")
+    : '<p class="field-hint">This prompt has no blanks. Press Run to send it as written.</p>';
+
+  document.getElementById("runModal").className = "modal-overlay open";
+}
+
+function closeRun() {
+  stopRunPoll();
+  runningId = null;
+  document.getElementById("runModal").className = "modal-overlay";
+}
+
+function setRunMsg(text, tone) {
+  var el = document.getElementById("runMsg");
+  if (!el) return;
+  if (!text) {
+    el.hidden = true;
+    el.className = "run-msg";
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  el.className = "run-msg" + (tone ? " " + tone : "");
+  el.innerHTML = text;
+}
+
+function collectRunValues() {
+  var fields = document.getElementById("runFields");
+  var inputs = fields ? fields.querySelectorAll("[data-blank]") : [];
+  var values = {};
+  var missing = [];
+
+  Array.prototype.forEach.call(inputs, function (input) {
+    var name = input.getAttribute("data-blank");
+    var value = String(input.value == null ? "" : input.value);
+    if (!value.trim()) {
+      missing.push(name);
+      return;
+    }
+    values[name] = value;
+  });
+
+  return { values: values, missing: missing };
+}
+
+function submitRun() {
+  if (!runningId) return Promise.resolve();
+  var p = promptById(runningId);
+  if (!p) return Promise.resolve();
+
+  var collected = collectRunValues();
+
+  /* Refused here rather than sent. The server would answer 400 naming the same
+     blanks, and that round trip buys nothing — the page already knows every
+     blank and can see which box is empty. */
+  if (collected.missing.length) {
+    setRunMsg("Every blank needs a value. Still empty: " +
+      escapeHtml(collected.missing.join(", ")) + ".", "err");
+    return Promise.resolve();
+  }
+
+  var btn = document.getElementById("runSubmit");
+  if (btn) btn.disabled = true;
+  setRunMsg("Running…", null);
+  document.getElementById("runResult").innerHTML = "";
+
+  return fetch(API_URL + "/api/saved-prompts/" + runningId + "/run", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    body: JSON.stringify({ values: collected.values })
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (btn) btn.disabled = false;
+
+        /* 402 IS NOT A RESULT AND MUST NEVER BE DRAWN AS ONE. It is the billing
+           system saying this account has no active subscription — the model was
+           never called. The server's own words are shown, with the one thing the
+           page can add: where to fix it. */
+        if (res.status === 402) {
+          setRunMsg(escapeHtml(readErrorBody(res.status, data)) +
+            ' <a href="billing.html">Open Billing</a> to start or restart your plan.', "err");
+          return;
+        }
+
+        if (!res.ok) {
+          setRunMsg(escapeHtml(readErrorBody(res.status, data)), "err");
+          return;
+        }
+
+        renderRunResult(p, data);
+      });
+    })
+    .catch(function () {
+      if (btn) btn.disabled = false;
+      setRunMsg("Could not reach the server. The prompt was not run.", "err");
+    });
+}
+
+/* Shaped after the agent page's result card — the prompt above, the output
+   below — because that is what someone reading a result on this product already
+   recognises. The agent page's own prependResultCard lives inside the
+   agent-profile IIFE and is not reachable from here, so this is the same shape
+   rather than the same code. */
+function renderRunResult(p, data) {
+  var ignored = (data && Array.isArray(data.ignored_values)) ? data.ignored_values : [];
+  var directResult = data && (data.result || (data.task && data.task.result));
+  var taskId = data && data.task && data.task.id;
+
+  /* REPORTED, NOT SWALLOWED. A value that did nothing is exactly the thing
+     somebody would otherwise spend an afternoon looking for in the output. */
+  var ignoredNote = ignored.length
+    ? " Ignored, because the prompt has no such blank: " + escapeHtml(ignored.join(", ")) + "."
+    : "";
+
+  if (directResult) {
+    setRunMsg("Task completed." + ignoredNote, "ok");
+    document.getElementById("runResult").innerHTML =
+      '<div class="result-card">' +
+        '<div class="result-head">' + escapeHtml(p.name) + ' · ' + escapeHtml(p.agent_type) + '</div>' +
+        '<div class="result-prompt">' + escapeHtml(String(directResultPrompt(data, p))) + '</div>' +
+        '<div class="result-body">' + escapeHtml(String(directResult)) + '</div>' +
+      '</div>';
+    loadPrompts();
+    return;
+  }
+
+  if (taskId) {
+    setRunMsg("Task running — waiting for the result…" + ignoredNote, null);
+    startRunPoll(taskId, p);
+    return;
+  }
+
+  setRunMsg("Task accepted." + ignoredNote, "ok");
+  loadPrompts();
+}
+
+function directResultPrompt(data, p) {
+  if (data && data.task && data.task.prompt) return data.task.prompt;
+  return p.prompt;
+}
+
+/* The same polling shape the agent page uses: GET /api/ai/tasks/:id on an
+   interval with a tick cap, so a task that never finishes stops asking instead
+   of polling for ever. */
+function startRunPoll(taskId, p) {
+  stopRunPoll();
+  var ticks = 0;
+  runPollTimer = setInterval(function () {
+    ticks++;
+    if (ticks > 72) {
+      stopRunPoll();
+      setRunMsg("Still running. It will appear in that agent's history when it finishes.", null);
+      return;
+    }
+
+    fetch(API_URL + "/api/ai/tasks/" + taskId, {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function (res) { return res.ok ? parseJsonSafely(res) : null; })
+      .then(function (data) {
+        var task = data && (data.task || data);
+        if (!task || !task.result) return;
+        stopRunPoll();
+        setRunMsg("Task completed.", "ok");
+        document.getElementById("runResult").innerHTML =
+          '<div class="result-card">' +
+            '<div class="result-head">' + escapeHtml(p.name) + ' · ' + escapeHtml(p.agent_type) + '</div>' +
+            '<div class="result-prompt">' + escapeHtml(String(task.prompt || p.prompt)) + '</div>' +
+            '<div class="result-body">' + escapeHtml(String(task.result)) + '</div>' +
+          '</div>';
+        loadPrompts();
+      })
+      .catch(function () { /* a tick that failed; the next one tries again */ });
+  }, 5000);
+}
+
+function stopRunPoll() {
+  if (runPollTimer) {
+    clearInterval(runPollTimer);
+    runPollTimer = null;
+  }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function () { el.className = "toast toast-" + type; }, 3200);
+}
+
+/* Row actions are delegated rather than written as onclick="fn('id')". The model
+   page carries a note about exactly this: &#39; is decoded by the HTML parser
+   before an inline handler is compiled, so escaping does not make an interpolated
+   onclick safe. A listener reading data-id never has that problem. */
+function bindPage() {
+  var grid = document.getElementById("promptGrid");
+  if (grid) {
+    grid.addEventListener("click", function (e) {
+      var el = e.target;
+      while (el && el !== grid) {
+        var action = el.getAttribute && el.getAttribute("data-action");
+        if (action) {
+          var id = el.getAttribute("data-id");
+          if (action === "run") openRun(id);
+          else if (action === "edit") openEdit(id);
+          else if (action === "delete") deletePrompt(id);
+          return;
+        }
+        el = el.parentNode;
+      }
+    });
+  }
+
+  document.getElementById("createBtn").addEventListener("click", openCreate);
+  document.getElementById("editClose").addEventListener("click", closeEdit);
+  document.getElementById("editCancel").addEventListener("click", closeEdit);
+  document.getElementById("editSubmit").addEventListener("click", submitPrompt);
+  document.getElementById("fPrompt").addEventListener("input", refreshBlankHint);
+  document.getElementById("runClose").addEventListener("click", closeRun);
+  document.getElementById("runCancel").addEventListener("click", closeRun);
+  document.getElementById("runSubmit").addEventListener("click", submitRun);
+
+  loadAgentTypes();
+  loadPrompts();
+}
+
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("DOMContentLoaded", bindPage);
+}
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+<!-- Etsy API attribution. Required verbatim by Etsy, Inc. as a condition of
+     Commercial Access; do not reword, abbreviate or remove. -->
+<footer class="bf-etsy-trademark" style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 24px 32px;text-align:center;font-size:.74rem;line-height:1.6;color:#6b7392;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+  The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+</footer>
+</body>
+</html>
