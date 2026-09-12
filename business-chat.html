@@ -191,18 +191,62 @@
         return el;
       }
 
+      /* A notice is NOT a message from the model, and must never be dressed as
+         one. The page has no dedicated notice style and none is being added, so
+         this uses the base .chat-msg rule on its own — without the
+         .chat-msg-assistant or .chat-msg-user modifier that draws a speech
+         bubble. It lands in the transcript as unbubbled, full-width system text
+         and carries data-role="system" for anything that later reads the DOM. */
+      function addNotice(content) {
+        var el = document.createElement("div");
+        el.className = "chat-msg";
+        el.setAttribute("data-role", "system");
+        el.textContent = content;
+        var box = document.getElementById("chatMessages");
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+        return el;
+      }
+
+      /* The body is read as text and parsed by hand rather than through
+         r.json(). A 402, a 429 and a 500 are all answers the server meant to
+         send, and r.json() rejects on the ones that carry no body at all —
+         which would route a real, readable status into the network-failure
+         branch and report "your message did not get through" about a message
+         that arrived and was refused. */
+      function readResponse(r) {
+        return r.text().then(function (body) {
+          var data = null;
+          try { data = body ? JSON.parse(body) : null; } catch (e) { data = null; }
+          return { status: r.status, ok: r.ok, data: data };
+        }, function () {
+          return { status: r.status, ok: r.ok, data: null };
+        });
+      }
+
       function sendMessage() {
         var input = document.getElementById("chatInput");
         var btn   = document.getElementById("chatSendBtn");
         var text  = input.value.trim();
         if (!text) return;
 
-        addMessage("user", text);
+        var userEl = addMessage("user", text);
         input.value = "";
+        input.disabled = true;
         btn.disabled = true;
         btn.textContent = "Sending…";
 
         var thinkingEl = addMessage("assistant", "Thinking…");
+
+        /* Every outcome below goes through this first. The composer was left
+           disabled on any path the old handler did not anticipate, which is the
+           one failure a user cannot work around — they cannot even retype. */
+        function finish() {
+          if (thinkingEl && thinkingEl.parentNode) thinkingEl.parentNode.removeChild(thinkingEl);
+          input.disabled = false;
+          btn.disabled = false;
+          btn.textContent = "Send";
+        }
 
         fetch(API + "/api/business-chat", {
           method: "POST",
@@ -212,18 +256,69 @@
           },
           body: JSON.stringify({ message: text })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (thinkingEl && thinkingEl.parentNode) thinkingEl.parentNode.removeChild(thinkingEl);
-          addMessage("assistant", data.reply || "No response received.");
-          btn.disabled = false;
-          btn.textContent = "Send";
-        })
-        .catch(function() {
-          if (thinkingEl && thinkingEl.parentNode) thinkingEl.parentNode.removeChild(thinkingEl);
-          addMessage("assistant", "Sorry, something went wrong. Try again.");
-          btn.disabled = false;
-          btn.textContent = "Send";
+        .then(readResponse, function () { return { networkError: true }; })
+        .then(function (res) {
+          finish();
+
+          /* Nothing was sent. The user's words are the only copy that exists,
+             so they go back into the composer, and the bubble comes out of the
+             transcript — a bubble sitting in the log is the page saying the
+             message was delivered. */
+          if (res.networkError) {
+            if (userEl && userEl.parentNode) userEl.parentNode.removeChild(userEl);
+            if (!input.value) input.value = text;
+            addNotice("Your message did not get through and was not sent. The text is back in the box — check your connection and try again.");
+            return;
+          }
+
+          var data = res.data || {};
+          /* Every refusal from this API carries its message in `error`. It is
+             shown verbatim: the server wrote it for a person to read, and it
+             names things this page cannot know — which limit was hit, when it
+             resets, why the plan is inactive. */
+          var serverText = (typeof data.error === "string" && data.error) ? data.error : "";
+
+          /* Not entitled. Refused before the model was ever called, so this is
+             the billing system talking, not the assistant. */
+          if (res.status === 402) {
+            addNotice(serverText || "This account does not have an active subscription.");
+            addNotice("You can review or restart your plan on the Billing page: /billing.html");
+            return;
+          }
+
+          /* Session over. scripts/bf-session.js wraps window.fetch, and by the
+             time a 401 reaches here it has already tried the refresh token and
+             already started the redirect to /app.html?session=expired. Clearing
+             the token here too would only race it. */
+          if (res.status === 401) {
+            addNotice("Your session has ended. Taking you to the sign-in page.");
+            return;
+          }
+
+          if (res.status === 429) {
+            addNotice(serverText || "The rate limit for this account has been reached. Try again later.");
+            return;
+          }
+
+          /* Anything else that is not a 2xx. It says what is known — the
+             request failed, with this status — and says nothing at all about
+             the model, because from here there is no way to tell whether it
+             ran. */
+          if (!res.ok) {
+            addNotice("The request failed with HTTP " + res.status + "." + (serverText ? " " + serverText : ""));
+            return;
+          }
+
+          if (typeof data.reply === "string" && data.reply) {
+            addMessage("assistant", data.reply);
+            return;
+          }
+
+          /* A 2xx with no reply in it. The old text said that no response was
+             received, in an assistant bubble, which reads as the model choosing
+             to say nothing. The server responded; the response was missing its
+             reply. */
+          addNotice("The server answered, but its response contained no reply.");
         });
       }
 
