@@ -474,6 +474,58 @@
   <a href="my-purchases.html" class="bf-btn" onclick="event.stopPropagation()">Open My Purchases</a>
 </div>
 </div>
+<script src="/scripts/bf-dashboard-order.js"></script>
+<script>
+/* The twenty-six cards above are markup, so the saved ordering is applied by
+   moving the DOM nodes rather than by re-rendering. appendChild on an existing
+   child moves it, so nothing is rebuilt and no onclick, link or focus is lost.
+
+   PLACED HERE, DIRECTLY AFTER THE GRID, rather than at the end of the body
+   where agents-hub.html puts the same block. That page is 750 lines and its
+   end-of-body script still runs before the cards can paint; this one is 92,000
+   lines, and a script that far down would let the browser paint the cards in
+   page order and then visibly resort them. Everything else about the pattern is
+   agents-hub's: the module tag, then an IIFE that guards on the module and the
+   container, reads the preference, logs any fallback, and applies.
+
+   A FAILED READ FALLS BACK TO THE DEFAULT AND SAYS SO. localStorage throws in a
+   private window or with site data blocked, and silently applying an order
+   other than the one somebody chose is the failure worth avoiding here — so the
+   fallback is logged rather than presented as a choice. */
+(function () {
+  if (!window.BFDashboardOrder) return;
+
+  var grid = document.querySelector(".bf-feature-grid");
+  if (!grid) return;
+
+  var pref = window.BFDashboardOrder.readPreference();
+  var custom = window.BFDashboardOrder.readCustom();
+
+  if (pref.read_failed) {
+    console.warn("[dashboard-order] Could not read the saved card order (localStorage is " +
+      "unavailable). Falling back to the default order. This is NOT a saved preference — " +
+      "the setting could not be read.");
+  } else if (pref.invalid) {
+    console.warn("[dashboard-order] Saved card order " + JSON.stringify(pref.invalid) +
+      " is not one of " + window.BFDashboardOrder.ORDERINGS.join(", ") +
+      ". Falling back to the default order.");
+  }
+
+  /* Only worth saying when the arrangement is the thing being asked for: with
+     any other ordering in force an unreadable arrangement changes nothing. */
+  if (pref.ordering === "custom") {
+    if (custom.read_failed) {
+      console.warn("[dashboard-order] Could not read your saved arrangement (localStorage " +
+        "is unavailable). Showing the cards in page order.");
+    } else if (custom.invalid) {
+      console.warn("[dashboard-order] Saved arrangement is not a list of card slugs " +
+        "and was ignored. Showing the cards in page order.");
+    }
+  }
+
+  window.BFDashboardOrder.applyToContainer(grid, ".bf-feature-card", pref.ordering, custom.slugs);
+})();
+</script>
 <div id="agentDirectoryLanding" class="bf-directory-preview bf-glass-panel bf-card">
   <div class="bf-directory-preview-copy">
     <div class="bf-directory-heading">
