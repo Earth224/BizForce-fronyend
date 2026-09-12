@@ -2062,7 +2062,74 @@
      Keyed off the tool id, so nothing else in this file becomes tool-aware. */
   var TOOL_RENDERERS = { "plan": renderExecutivePlan };
 
-  function assignmentCard(a, isReady) {
+  /* ── The body the plan produced, and the control that runs it ──────────────
+     Newer plans carry three keys per assignment: `inputs` (the request body the
+     server validated against the tool's declared fields, or null), `inputs_missing`
+     (required fields the plan did not supply) and `inputs_dropped` (fields the
+     model supplied that the tool does not accept). A plan without those keys is an
+     older response and renders exactly as it always did — no body lines, no
+     button — because there is no stored body to run.
+
+     Values are shown compactly: strings as they are, arrays joined, anything else
+     as JSON. Never a summary of them — the point is to see what would be sent. */
+  function planInputValueText(v) {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "string") return v;
+    if (Array.isArray(v) && v.every(function (x) { return !isPlainObject(x) && !Array.isArray(x); })) return v.join(", ");
+    try { return JSON.stringify(v); } catch (e) { return String(v); }
+  }
+
+  function planInputsMarkup(a) {
+    var out = "";
+    if (isPlainObject(a.inputs) && Object.keys(a.inputs).length) {
+      out += Object.keys(a.inputs).map(function (k) {
+        return '<div class="ap-asg-field"><span>' + esc(k) + '</span>' + esc(planInputValueText(a.inputs[k])) + '</div>';
+      }).join("");
+    }
+    if (Array.isArray(a.inputs_missing) && a.inputs_missing.length) {
+      out += '<div class="ap-asg-field missing"><span>Not supplied</span>' +
+        esc(a.inputs_missing.join(", ")) + ' — the plan did not supply these required fields</div>';
+    }
+    if (Array.isArray(a.inputs_dropped) && a.inputs_dropped.length) {
+      out += '<div class="ap-asg-field"><span>Not accepted</span>' +
+        esc(a.inputs_dropped.join(", ")) + ' — the tool does not accept these, so they were left out</div>';
+    }
+    return out;
+  }
+
+  /* Why an assignment cannot be run, in the server's words. inputs_missing first,
+     then problems; when neither is present there is nothing truthful to say and
+     nothing is said — the card's own route/founder/prose line already covers it. */
+  function planNotRunnableLine(a) {
+    if (Array.isArray(a.inputs_missing) && a.inputs_missing.length) {
+      return '<div class="ap-asg-field missing"><span>Not runnable</span>the plan did not supply ' +
+        esc(a.inputs_missing.join(", ")) + '</div>';
+    }
+    if (Array.isArray(a.problems) && a.problems.length) {
+      return '<div class="ap-asg-field missing"><span>Not runnable</span>' +
+        esc(a.problems.join(" ")) + '</div>';
+    }
+    return "";
+  }
+
+  function planDispatchMarkup(a, planTaskId) {
+    var hasInputKeys = a.inputs !== undefined || Array.isArray(a.inputs_missing) || Array.isArray(a.inputs_dropped);
+    if (!hasInputKeys) return "";
+    if (a.is_dispatchable !== true) return planNotRunnableLine(a);
+    if (!planTaskId) return "";
+    var inputNames = isPlainObject(a.inputs) ? Object.keys(a.inputs) : [];
+    return '<div class="ap-asg-field">' +
+      '<button type="button" class="ap-tool-run" data-plan-dispatch="1"' +
+        ' data-plan-task="' + esc(String(planTaskId)) + '"' +
+        ' data-assignment-id="' + esc(String(a.id)) + '"' +
+        ' data-plan-tool="' + esc(String(a.tool || "")) + '"' +
+        ' data-plan-inputs="' + esc(JSON.stringify(inputNames)) + '">Run this assignment</button>' +
+      '<div class="ap-tool-msg" data-plan-dispatch-msg></div>' +
+      '<div data-plan-dispatch-result></div>' +
+      '</div>';
+  }
+
+  function assignmentCard(a, isReady, planTaskId) {
     var broken = Array.isArray(a.problems) && a.problems.length > 0;
 
     /* FOUR KINDS, NOT THREE. Founder work used to fall through to the prose style,
@@ -2108,6 +2175,8 @@
 
       (a.task ? '<div class="ap-asg-task">' + esc(a.task) + '</div>' : "") +
       (a.input ? '<div class="ap-asg-field"><span>Input</span>' + esc(a.input) + '</div>' : "") +
+      // The validated body, where the plan produced one (newer plans only).
+      planInputsMarkup(a) +
       (a.success_signal
         ? '<div class="ap-asg-field"><span>Done when</span>' + esc(a.success_signal) + '</div>'
         : '<div class="ap-asg-field missing"><span>Done when</span>no success signal given</div>') +
@@ -2123,7 +2192,115 @@
             a.problems.map(function (p) { return esc(p); }).join(" ") +
           '</div>'
         : "") +
+      // The Run control, or the server's reason there is none (newer plans only).
+      planDispatchMarkup(a, planTaskId) +
       '</div>';
+  }
+
+  /* ── Running one assignment ─────────────────────────────────────────────────
+     POSTs exactly { executive_task_id, assignment_id } to /api/assignments/dispatch
+     — the server runs the stored body; nothing from this page is sent as the
+     tool's input. One delegated listener, bound the first time a plan renders,
+     because the cards are HTML strings inserted after the fact.
+
+     THREE OUTCOMES, KEPT APART. ok true: the tool ran, its body is rendered with
+     the same renderer its own panel would use, the button is replaced by a "ran"
+     line and cannot be clicked again. ok false: the server refused, and the
+     refusal is shown in its own words — never as a success — with the button live
+     again. No answer (network failure or a non-200): the request failed and
+     nothing is claimed about the tool either way, because a request that got no
+     answer is unknown, not failed. */
+  var planDispatchBound = false;
+
+  function bindPlanDispatch() {
+    if (planDispatchBound) return;
+    planDispatchBound = true;
+    document.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest("[data-plan-dispatch]") : null;
+      if (!btn) return;
+      dispatchPlanAssignment(btn);
+    });
+  }
+
+  function dispatchPlanAssignment(btn) {
+    var wrap = btn.parentNode;
+    var msgEl = wrap ? wrap.querySelector("[data-plan-dispatch-msg]") : null;
+    var resultEl = wrap ? wrap.querySelector("[data-plan-dispatch-result]") : null;
+    function msg(text, cls) {
+      if (!msgEl) return;
+      msgEl.textContent = text || "";
+      msgEl.className = "ap-tool-msg" + (cls ? " " + cls : "");
+    }
+
+    if (btn.getAttribute("data-plan-done") === "1") return;
+    var token = tok();
+    if (!token) { msg("Sign in to run this.", "err"); return; }
+
+    var payload = {
+      executive_task_id: btn.getAttribute("data-plan-task"),
+      assignment_id: Number(btn.getAttribute("data-assignment-id"))
+    };
+    var toolId = btn.getAttribute("data-plan-tool") || "";
+    var inputNames = [];
+    try { inputNames = JSON.parse(btn.getAttribute("data-plan-inputs") || "[]"); } catch (err) { inputNames = []; }
+
+    btn.disabled = true;
+    if (resultEl) resultEl.innerHTML = "";
+    msg("Running…", "");
+
+    return fetch(API_URL + "/api/assignments/dispatch", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok || !res.parsed || !isPlainObject(res.data)) {
+          btn.disabled = false;
+          msg("The request failed (HTTP " + res.status + "). Whether the tool ran is unknown.", "err");
+          return;
+        }
+
+        if (res.data.ok === true) {
+          /* The tool's own body, through the renderer its own panel uses. The
+             echoed-input exclusion needs the tool's field names, which are exactly
+             the stored inputs' keys. */
+          if (resultEl) {
+            resultEl.innerHTML = renderToolResult(
+              { id: toolId, fields: inputNames.map(function (n) { return { name: n }; }) },
+              isPlainObject(res.data.result) ? res.data.result : {}
+            );
+          }
+          btn.setAttribute("data-plan-done", "1");
+          var ran = document.createElement("div");
+          ran.className = "ap-asg-field";
+          ran.innerHTML = '<span>Ran</span>' +
+            (res.data.result && res.data.result.task_id
+              ? 'saved to Task History as task ' + esc(String(res.data.result.task_id))
+              : 'the tool ran') +
+            (res.data.chain_id ? ' (chain ' + esc(String(res.data.chain_id)) + ')' : "");
+          btn.parentNode.replaceChild(ran, btn);
+          msg("", "");
+          return;
+        }
+
+        // A refusal, in the server's words. Not a success, and not a failure of the request.
+        if (resultEl) {
+          resultEl.innerHTML = '<div class="ap-nothing-read"><strong>Not run</strong> — ' +
+            esc(String(res.data.refused_reason || "refused")) +
+            (res.data.detail ? ': ' + esc(String(res.data.detail)) : "") + '</div>';
+        }
+        btn.disabled = false;
+        msg("", "");
+      })
+      .catch(function (error) {
+        btn.disabled = false;
+        msg("The request did not get an answer" + ((error && error.message) ? " (" + error.message + ")" : "") +
+          ". Whether the tool ran is unknown.", "err");
+      });
   }
 
   function renderExecutivePlan(tool, data) {
@@ -2131,6 +2308,13 @@
     var measured = isPlainObject(data.measured) ? data.measured : {};
     var assignments = Array.isArray(data.assignments) ? data.assignments : [];
     if (!assignments.length) return "";
+
+    /* The plan's own ai_tasks row id, which is what /api/assignments/dispatch
+       takes as executive_task_id. Passed down to every card, because a card only
+       sees its assignment. Without it there is nothing to dispatch against and
+       no button is drawn. */
+    var planTaskId = data.task_id || null;
+    bindPlanDispatch();
 
     var byId = {};
     assignments.forEach(function (a) { byId[a.id] = a; });
@@ -2150,7 +2334,7 @@
         ? '<div class="ap-plan-now-list">' +
             readyIds.map(function (id) {
               var a = byId[id];
-              return a ? assignmentCard(a, true) : "";
+              return a ? assignmentCard(a, true, planTaskId) : "";
             }).join("") +
           '</div>'
         : '<div class="ap-plan-empty">Nothing can start yet — every assignment waits on another. ' +
@@ -2217,7 +2401,7 @@
     out += '<div class="ap-plan-all">' +
       '<div class="ap-zone-label">All ' + assignments.length + ' assignment(s)</div>' +
       assignments.slice().sort(function (a, b) { return a.id - b.id; })
-        .map(function (a) { return assignmentCard(a, !!readyMap[a.id]); }).join("") +
+        .map(function (a) { return assignmentCard(a, !!readyMap[a.id], planTaskId); }).join("") +
       '</div>';
 
     if (Array.isArray(order.unresolved_references) && order.unresolved_references.length) {
