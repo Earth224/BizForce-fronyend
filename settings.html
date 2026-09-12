@@ -296,6 +296,61 @@
     .pref-saved.ok  { color: #4ade80; }
     .pref-saved.err { color: #f87171; }
 
+    /* THE ONE PLACE THIS PAGE NEEDED NEW CSS, and only because the custom
+       dashboard arrangement is a kind of control the page does not otherwise
+       have: a list of rows you pick up and move. Nothing here serves —  .card is
+       a 26px-padded panel, .btn is an uppercase gradient call-to-action and
+       fifty-two of them would swamp the panel, and no existing rule draws a row,
+       a grab cursor, a dragging state or a focus ring on something focusable.
+       Everything else in this control reuses form-group, pref-note, pref-saved
+       and the page-wide select styling. */
+    .bf-arrange-list {
+      list-style: none;
+      margin: 10px 0 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .bf-arrange-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.22);
+      background: rgba(7,11,24,0.7);
+      color: #e6edf3;
+      font-size: 0.85rem;
+      cursor: grab;
+    }
+    /* Focus has to be visible on the row and on its buttons: the keyboard path
+       is the only path for anyone not using a mouse, and an invisible caret
+       through a 26-row list is no path at all. */
+    .bf-arrange-row:focus,
+    .bf-arrange-row:focus-within {
+      border-color: rgba(34,211,238,0.55);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+      outline: none;
+    }
+    .bf-arrange-row.is-dragging { opacity: 0.5; cursor: grabbing; }
+    .bf-arrange-name { flex: 1; min-width: 0; }
+    .bf-arrange-move {
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(8,12,28,0.85);
+      color: #8892b8;
+      border-radius: 8px;
+      padding: 2px 9px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .bf-arrange-move:hover:not(:disabled) { color: #22d3ee; border-color: rgba(34,211,238,0.5); }
+    .bf-arrange-move:disabled { opacity: 0.35; cursor: not-allowed; }
+
     .identity-line {
       padding: 12px 16px;
       border-radius: 12px;
@@ -547,6 +602,35 @@
               <p class="pref-note">Changing this resets to the default position; reload to see it.</p>
             </div>
 
+            <!-- Dashboard card order. The four orderings and both storage keys come
+                 from scripts/bf-dashboard-order.js; this control only chooses between
+                 them and saves the choice to the account.
+
+                 THE CARD LIST IS NOT WRITTEN HERE. The arranging list below is built
+                 from dashboard.html itself, fetched and parsed at the moment somebody
+                 picks "your own arrangement" — see loadDashboardCards(). A list typed
+                 into this page would be a second copy of the roster and would drift
+                 the first time a card was added, renamed or removed. -->
+            <div class="form-group" style="margin-top:18px;">
+              <label for="dashboardOrderSelect">Dashboard card order</label>
+              <select id="dashboardOrderSelect">
+                <option value="default">The order the dashboard is written in</option>
+                <option value="custom">Your own arrangement</option>
+                <option value="alphabetical">Alphabetical, by card name</option>
+                <option value="importance">By importance — what most businesses reach for first</option>
+              </select>
+              <span class="pref-saved" id="dashboardOrderSaved"></span>
+              <p class="pref-note">Applies to the feature cards on your dashboard. Saved to your
+                account, so it follows you to any device you sign in on.</p>
+
+              <div id="dashboardArrangeWrap" hidden>
+                <p class="pref-note" id="dashboardArrangeNote">Drag a card to move it, or use the
+                  arrow buttons — they work from the keyboard, as does Alt with the up and down
+                  arrow keys on a focused row.</p>
+                <ul class="bf-arrange-list" id="dashboardArrangeList" aria-label="Your dashboard card arrangement"></ul>
+              </div>
+            </div>
+
             <!-- Agent card order. Stored on the account now: user_preferences has an
                  agent_card_order column and the PUT accepts it, so this follows the
                  user between devices. localStorage is still written, but as the
@@ -644,6 +728,7 @@
   </div>
 
 <script src="/scripts/bf-agent-order.js"></script>
+<script src="/scripts/bf-dashboard-order.js"></script>
   <script src="/scripts/bf-identity.js"></script>
   <script>
     (function () {
@@ -902,6 +987,16 @@
       var mistSaved = document.getElementById("mistSaved");
       var agentOrderSelect = document.getElementById("agentOrderSelect");
       var agentOrderSaved = document.getElementById("agentOrderSaved");
+      var dashboardOrderSelect = document.getElementById("dashboardOrderSelect");
+      var dashboardOrderSaved = document.getElementById("dashboardOrderSaved");
+      var dashboardArrangeWrap = document.getElementById("dashboardArrangeWrap");
+      var dashboardArrangeList = document.getElementById("dashboardArrangeList");
+      var dashboardArrangeNote = document.getElementById("dashboardArrangeNote");
+      /* Assigned by the dashboard block further down, and called from the GET and
+         from applyPreferencesFromLocalStorage — both of which run before, or
+         independently of, that block. Declared here so neither has to reach into
+         a function declared inside an if. */
+      var dashboardArrangeSync = null;
       var langSaved = document.getElementById("langSaved");
       var notifStatus = document.getElementById("notifStatus");
       var notifTestRow = document.getElementById("notifTestRow");
@@ -998,6 +1093,24 @@
             agentOrderSaved.textContent = "Could not load your saved order — showing the default.";
           }
         }
+
+        /* The dashboard order follows the same exception, and for the same reason:
+           it is a per-account setting, and a mirror left in this browser — by a
+           previous session, or by somebody else on a shared machine — must not be
+           shown as this account's choice. Neither the ordering nor the arrangement
+           is read back here.
+
+           NEITHER MIRROR IS CLEARED, only the control. dashboard.html sorts from
+           them before paint, and wiping them because one request failed would
+           rearrange somebody's dashboard whose preference is intact on the server. */
+        if (dashboardOrderSelect && window.BFDashboardOrder) {
+          dashboardOrderSelect.value = window.BFDashboardOrder.DEFAULT_ORDERING;
+          if (dashboardArrangeSync) dashboardArrangeSync();
+          if (dashboardOrderSaved) {
+            showPrefSaved(dashboardOrderSaved, false);
+            dashboardOrderSaved.textContent = "Could not load your saved order — showing the default.";
+          }
+        }
       }
 
       fetch(API_URL + "/api/user/preferences", {
@@ -1069,6 +1182,33 @@
             agentOrderSelect.value = prefs.agent_card_order;
             window.BFAgentOrder.writePreference(prefs.agent_card_order);
           }
+
+          /* The dashboard pair. Both are mirrored locally because dashboard.html
+             reads them synchronously before paint and must not wait on this route.
+
+             THE TWO ARE APPLIED INDEPENDENTLY, exactly as the server stores them.
+             "custom" with no arrangement is a real and expected state — the server
+             accepts it, and it is what a user who picks the ordering before
+             arranging anything has. The select then reads "Your own arrangement",
+             the arranging list opens showing every card in page order, and the
+             dashboard shows page order too, because an arrangement of nothing
+             arranges nothing. The first drag turns it into a real one.
+
+             A NULL ARRANGEMENT DOES NOT CLEAR THE MIRROR. Null means never
+             arranged on this account; the local copy may be a genuine arrangement
+             made before this page could save it, and deleting it here would throw
+             that away to express "nothing stored". */
+          if (dashboardOrderSelect && window.BFDashboardOrder &&
+              window.BFDashboardOrder.ORDERINGS.indexOf(prefs.dashboard_card_order) !== -1) {
+            dashboardOrderSelect.value = prefs.dashboard_card_order;
+            window.BFDashboardOrder.writePreference(prefs.dashboard_card_order);
+          }
+
+          if (window.BFDashboardOrder && Array.isArray(prefs.dashboard_card_custom)) {
+            window.BFDashboardOrder.writeCustom(prefs.dashboard_card_custom);
+          }
+
+          if (dashboardArrangeSync) dashboardArrangeSync();
         })
         .catch(function () {
           applyPreferencesFromLocalStorage();
@@ -1088,6 +1228,300 @@
         localStorage.removeItem("tmx_presence_pos");
         putPreferences({ mist_position: tmxPositionSelect.value }, mistSaved);
       });
+
+      /* ── Dashboard card order ──────────────────────────────────────────────
+
+         WHERE THE 26 CARDS COME FROM. dashboard.html is another document; this
+         page cannot see its markup, and there is no API that lists the cards. So
+         when somebody picks "your own arrangement" this fetches /dashboard.html,
+         parses it, and reads every [data-card] inside .bf-feature-grid — slug from
+         the attribute, label from the card's own <h3>. The page IS the roster, so
+         the list here cannot drift from it: a card added, renamed or removed shows
+         up on the next arrange, with no edit to this file.
+
+         The alternative — typing the 26 slugs and titles into this page — would be
+         a second copy of the roster, and this codebase has already been bitten by
+         one going stale. It is not done here.
+
+         The fetch happens once per page load, only when it is needed, and only the
+         ARRANGING LIST depends on it: every other ordering is computed on the
+         dashboard itself and needs nothing from here. */
+      if (dashboardOrderSelect && window.BFDashboardOrder) {
+        var DashOrder = window.BFDashboardOrder;
+        var dashboardCards = null;
+        var dashboardCardsPromise = null;
+
+        function loadDashboardCards() {
+          if (dashboardCardsPromise) return dashboardCardsPromise;
+
+          dashboardCardsPromise = fetch("/dashboard.html", { credentials: "same-origin" })
+            .then(function (r) { return r.ok ? r.text() : null; })
+            .then(function (html) {
+              if (!html) return null;
+              var doc = new DOMParser().parseFromString(html, "text/html");
+              var grid = doc.querySelector(".bf-feature-grid");
+              if (!grid) return null;
+
+              var cards = [];
+              Array.prototype.forEach.call(grid.querySelectorAll("[data-card]"), function (el) {
+                var slug = el.getAttribute("data-card");
+                if (!slug) return;
+                var heading = el.querySelector("h3, h2");
+                cards.push({
+                  slug: slug,
+                  label: heading ? String(heading.textContent || "").trim() : slug
+                });
+              });
+
+              return cards.length ? cards : null;
+            })
+            .catch(function () { return null; });
+
+          return dashboardCardsPromise;
+        }
+
+        function arrangedSlugs() {
+          return Array.prototype.map.call(
+            dashboardArrangeList.querySelectorAll("[data-card]"),
+            function (row) { return row.getAttribute("data-card"); }
+          );
+        }
+
+        /* ONE PUT PER ARRANGEMENT, NOT PER MOVE. The mirror is written immediately,
+           so the dashboard is already correct and nothing depends on the request;
+           the PUT is then deferred briefly and any move landing inside that window
+           replaces it. A drop is a single move and so sends exactly one request;
+           somebody tapping the up arrow eight times sends one, not eight. The
+           deferred call carries the slugs read at schedule time, so the request
+           that does go out is always the latest arrangement. */
+        var ARRANGE_PUT_DELAY = 400;
+        var arrangePutTimer = null;
+
+        function commitArrangement() {
+          var slugs = arrangedSlugs();
+          var wrote = DashOrder.writeCustom(slugs);
+
+          if (!wrote && dashboardOrderSaved) {
+            showPrefSaved(dashboardOrderSaved, false);
+            dashboardOrderSaved.textContent = "Could not save — this browser is blocking storage.";
+          }
+
+          if (arrangePutTimer) clearTimeout(arrangePutTimer);
+          arrangePutTimer = setTimeout(function () {
+            arrangePutTimer = null;
+            /* Storage blocked: the request still goes out, because the account is
+               the durable record — but its status is diverted to a detached span so
+               a "Saved" cannot land on top of the storage message, which is the one
+               that matters in this browser. */
+            putPreferences(
+              { dashboard_card_custom: arrangedSlugs() },
+              wrote ? dashboardOrderSaved : document.createElement("span")
+            );
+          }, ARRANGE_PUT_DELAY);
+        }
+
+        function refreshMoveButtons() {
+          var rows = Array.prototype.slice.call(dashboardArrangeList.children);
+          rows.forEach(function (row, i) {
+            var up = row.querySelector(".bf-arrange-up");
+            var down = row.querySelector(".bf-arrange-down");
+            if (up) up.disabled = i === 0;
+            if (down) down.disabled = i === rows.length - 1;
+          });
+        }
+
+        /* THE KEYBOARD PATH, and it is not an afterthought: dragging is impossible
+           with a keyboard, a switch or a screen reader, so every row carries two
+           real buttons that do the same job, and a focused row also answers Alt +
+           ArrowUp / ArrowDown. Focus is put back on the control that moved so a
+           run of presses keeps working, and the buttons disable at the ends rather
+           than silently doing nothing. */
+        function moveRow(row, delta, focusSelector) {
+          var rows = Array.prototype.slice.call(dashboardArrangeList.children);
+          var from = rows.indexOf(row);
+          var to = from + delta;
+          if (from === -1 || to < 0 || to >= rows.length) return false;
+
+          if (delta < 0) {
+            dashboardArrangeList.insertBefore(row, rows[to]);
+          } else {
+            dashboardArrangeList.insertBefore(row, rows[to].nextSibling);
+          }
+
+          refreshMoveButtons();
+          commitArrangement();
+
+          var target = focusSelector ? row.querySelector(focusSelector) : row;
+          if (target && typeof target.focus === "function") {
+            if (target.disabled) {
+              var other = row.querySelector(delta < 0 ? ".bf-arrange-down" : ".bf-arrange-up");
+              if (other && typeof other.focus === "function") other.focus();
+            } else {
+              target.focus();
+            }
+          }
+          return true;
+        }
+
+        var draggingRow = null;
+
+        function buildRow(card) {
+          var row = document.createElement("li");
+          row.className = "bf-arrange-row";
+          row.setAttribute("data-card", card.slug);
+          row.setAttribute("draggable", "true");
+          row.tabIndex = 0;
+
+          var name = document.createElement("span");
+          name.className = "bf-arrange-name";
+          name.textContent = card.label;
+          row.appendChild(name);
+
+          var up = document.createElement("button");
+          up.type = "button";
+          up.className = "bf-arrange-move bf-arrange-up";
+          up.textContent = "\u25B2";
+          up.setAttribute("aria-label", "Move " + card.label + " up");
+          up.addEventListener("click", function () { moveRow(row, -1, ".bf-arrange-up"); });
+          row.appendChild(up);
+
+          var down = document.createElement("button");
+          down.type = "button";
+          down.className = "bf-arrange-move bf-arrange-down";
+          down.textContent = "\u25BC";
+          down.setAttribute("aria-label", "Move " + card.label + " down");
+          down.addEventListener("click", function () { moveRow(row, 1, ".bf-arrange-down"); });
+          row.appendChild(down);
+
+          row.addEventListener("keydown", function (e) {
+            if (!e.altKey) return;
+            if (e.key === "ArrowUp") { e.preventDefault(); moveRow(row, -1, null); }
+            else if (e.key === "ArrowDown") { e.preventDefault(); moveRow(row, 1, null); }
+          });
+
+          row.addEventListener("dragstart", function (e) {
+            draggingRow = row;
+            row.className = "bf-arrange-row is-dragging";
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = "move";
+              /* Firefox ignores a drag that sets no data. */
+              try { e.dataTransfer.setData("text/plain", card.slug); } catch (err) {}
+            }
+          });
+
+          row.addEventListener("dragend", function () {
+            draggingRow = null;
+            row.className = "bf-arrange-row";
+          });
+
+          row.addEventListener("dragover", function (e) {
+            if (!draggingRow || draggingRow === row) return;
+            /* preventDefault on dragover is what makes an element a drop target;
+               nothing is moved here, so no amount of mouse movement writes
+               anything. The move happens once, on drop. */
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          });
+
+          row.addEventListener("drop", function (e) {
+            e.preventDefault();
+            if (!draggingRow || draggingRow === row) return;
+
+            var rows = Array.prototype.slice.call(dashboardArrangeList.children);
+            var from = rows.indexOf(draggingRow);
+            var to = rows.indexOf(row);
+            if (from === -1 || to === -1) return;
+
+            if (from < to) {
+              dashboardArrangeList.insertBefore(draggingRow, row.nextSibling);
+            } else {
+              dashboardArrangeList.insertBefore(draggingRow, row);
+            }
+
+            draggingRow.className = "bf-arrange-row";
+            draggingRow = null;
+            refreshMoveButtons();
+            commitArrangement();
+          });
+
+          return row;
+        }
+
+        /* The list opens in the arrangement that is actually in force, which is
+           what the module computes: the stored arrangement first, then every card
+           it does not name in page order. With nothing stored that is simply page
+           order — the same thing the dashboard is showing. */
+        function renderArrangeList(cards) {
+          var stored = DashOrder.readCustom();
+          var ordered = DashOrder.orderDescriptors(
+            cards.map(function (c) { return { slug: c.slug, label: c.label }; }),
+            "custom",
+            stored.slugs
+          );
+
+          dashboardArrangeList.textContent = "";
+          ordered.forEach(function (card) {
+            dashboardArrangeList.appendChild(buildRow(card));
+          });
+          refreshMoveButtons();
+        }
+
+        var arrangeRendered = false;
+
+        function ensureArrangeList() {
+          if (arrangeRendered) return;
+          arrangeRendered = true;
+
+          loadDashboardCards().then(function (cards) {
+            if (!cards) {
+              arrangeRendered = false;
+              dashboardArrangeNote.textContent = "Could not load your dashboard cards to arrange " +
+                "them. Your saved arrangement is untouched — try again in a moment.";
+              return;
+            }
+            dashboardCards = cards;
+            renderArrangeList(cards);
+          });
+        }
+
+        function syncArrangeVisibility() {
+          var showing = dashboardOrderSelect.value === "custom";
+          dashboardArrangeWrap.hidden = !showing;
+          if (showing) ensureArrangeList();
+        }
+
+        dashboardArrangeSync = syncArrangeVisibility;
+
+        var dashboardPref = DashOrder.readPreference();
+        dashboardOrderSelect.value = dashboardPref.ordering;
+
+        if (dashboardPref.read_failed && dashboardOrderSaved) {
+          showPrefSaved(dashboardOrderSaved, false);
+          dashboardOrderSaved.textContent = "Could not read your saved order — showing the default.";
+        }
+
+        syncArrangeVisibility();
+
+        dashboardOrderSelect.addEventListener("change", function () {
+          var chosen = dashboardOrderSelect.value;
+          /* Mirror first, then the account — the dashboard reads localStorage
+             synchronously before paint, so writing it first is what makes the
+             choice take effect whether or not the network is working. */
+          var wrote = DashOrder.writePreference(chosen);
+
+          if (!wrote && dashboardOrderSaved) {
+            showPrefSaved(dashboardOrderSaved, false);
+            dashboardOrderSaved.textContent = "Could not save — this browser is blocking storage.";
+          }
+
+          putPreferences(
+            { dashboard_card_order: chosen },
+            wrote ? dashboardOrderSaved : document.createElement("span")
+          );
+
+          syncArrangeVisibility();
+        });
+      }
 
       /* Agent card order. Read and written through the shared module, so the
          storage key and the list of valid orderings live in exactly one place —
