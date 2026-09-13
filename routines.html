@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BizForce AI — Routines</title>
+  <script src="/scripts/bf-session.js"></script>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* The shell, the list states, the modal, the buttons and the toast are the
+       same vocabulary saved-prompts.html uses, which took it from
+       garage-sale.html — this repo gives each page its own stylesheet and
+       css/bizforce-ui.css defines none of these. Rules new to this page are
+       marked below. */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    body::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 15% 10%,rgba(0,229,255,.14),transparent 38%),radial-gradient(circle at 85% 90%,rgba(168,85,247,.18),transparent 40%),#070b18;z-index:0;pointer-events:none}
+    .page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:48px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(0,229,255,.25);background:rgba(12,18,38,.6);color:#22d3ee;text-decoration:none;font-size:.875rem;font-weight:600;transition:all .25s}
+    .back-link:hover{border-color:rgba(0,229,255,.55);box-shadow:0 0 20px rgba(0,229,255,.18)}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,#22d3ee,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:40px}
+    .hero-eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#22d3ee;margin-bottom:10px}
+    .hero-title{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.6rem);font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero-sub{margin:0 auto;max-width:760px;font-size:.95rem;line-height:1.65;color:#8892b8}
+    .toolbar{display:flex;justify-content:flex-end;margin-bottom:22px}
+    .create-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border:none;border-radius:14px;font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#06b6d4,#8b5cf6);cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(0,198,255,.25);font-family:inherit}
+    .create-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35)}
+    .create-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+    .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+    .listing-card{display:flex;flex-direction:column;gap:12px;padding:22px 24px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(12,18,38,.72);transition:border-color .25s,box-shadow .25s}
+    .listing-card:hover{border-color:rgba(0,229,255,.25);box-shadow:0 16px 48px rgba(0,0,0,.35)}
+    .listing-title{margin:0;font-size:1.02rem;font-weight:700;color:#e8e8ff;word-break:break-word}
+    .listing-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .listing-tag{padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:600;letter-spacing:.04em;background:rgba(168,85,247,.14);border:1px solid rgba(168,85,247,.3);color:#c4b5fd}
+    .listing-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:6px}
+    .listing-date{font-size:.72rem;color:#566082}
+    .listing-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-sm{padding:7px 14px;border-radius:10px;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit;background:transparent;border:1px solid rgba(148,163,184,.3);color:#c3c9e6;transition:all .2s}
+    .btn-sm:hover{border-color:rgba(0,229,255,.5);color:#22d3ee}
+    .btn-sm:disabled{opacity:.4;cursor:not-allowed}
+    .btn-run{border-color:rgba(0,229,255,.45);color:#22d3ee}
+    .btn-delete{border-color:rgba(248,113,113,.35);color:#f87171}
+    .empty-msg{grid-column:1/-1;text-align:center;padding:60px 20px;color:#8892b8;font-size:.92rem}
+    .loading{grid-column:1/-1;text-align:center;padding:60px 20px;color:#8892b8;font-size:.92rem}
+    .load-error{grid-column:1/-1;padding:28px 24px;border-radius:16px;border:1px solid rgba(248,113,113,.35);background:rgba(30,12,18,.7);text-align:center}
+    .load-error-title{font-size:1rem;font-weight:700;color:#f87171;margin-bottom:8px}
+    .load-error-sub{font-size:.85rem;line-height:1.6;color:#c3c9e6;margin-bottom:14px}
+    .load-error-retry{padding:9px 18px;border-radius:10px;border:1px solid rgba(248,113,113,.4);background:transparent;color:#f87171;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .load-error-detail{margin-top:12px;font-size:.72rem;color:#8892b8;word-break:break-word}
+    .modal-overlay{position:fixed;inset:0;background:rgba(3,6,16,.82);display:none;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:50;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{width:100%;max-width:760px;border-radius:20px;border:1px solid rgba(0,229,255,.18);background:#0b1020;padding:26px 28px 22px}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+    .modal-title{margin:0;font-size:1.05rem;font-weight:700;color:#e8e8ff}
+    .modal-close{background:transparent;border:none;color:#8892b8;font-size:1rem;cursor:pointer;font-family:inherit}
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8892b8;margin-bottom:8px}
+    .form-input,.form-select,.form-textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,229,255,.2);background:rgba(8,12,28,.9);color:#e8e8ff;font-size:.9rem;font-family:inherit;outline:none}
+    .form-textarea{min-height:74px;line-height:1.6;resize:vertical}
+    .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(0,229,255,.55)}
+    .field-hint{margin:8px 0 0;font-size:.75rem;line-height:1.5;color:#8892b8;font-style:italic}
+    .form-error{margin:8px 0 0;padding:10px 12px;border-radius:10px;border:1px solid rgba(248,113,113,.4);background:rgba(30,12,18,.6);color:#f87171;font-size:.78rem;line-height:1.55}
+    .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+    .btn-cancel{padding:11px 20px;border-radius:12px;border:1px solid rgba(148,163,184,.3);background:transparent;color:#c3c9e6;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .btn-submit{padding:11px 22px;border-radius:12px;border:none;background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff;font-size:.78rem;font-weight:700;text-transform:uppercase;cursor:pointer;font-family:inherit}
+    .btn-submit:disabled{opacity:.55;cursor:not-allowed}
+    .run-msg{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:.82rem;line-height:1.6;color:#c3c9e6;border:1px solid rgba(148,163,184,.25);background:rgba(8,12,28,.7)}
+    .run-msg.ok{border-color:rgba(74,222,128,.45);color:#4ade80}
+    .run-msg.err{border-color:rgba(248,113,113,.45);color:#f87171}
+    .run-msg a{color:#22d3ee}
+    .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);padding:12px 20px;border-radius:12px;font-size:.85rem;opacity:0;pointer-events:none;transition:all .3s;z-index:80;max-width:90vw;text-align:center}
+    .toast.show{opacity:1;transform:translateX(-50%)}
+    .toast-success{background:rgba(22,54,36,.95);border:1px solid rgba(74,222,128,.45);color:#4ade80}
+    .toast-error{background:rgba(54,18,22,.95);border:1px solid rgba(248,113,113,.45);color:#f87171}
+
+    /* ── New on this page ────────────────────────────────────────────────────
+       .step-row / .step-*    a step in the builder and in a routine's card
+       .step-move             the reorder / remove controls on a step
+       .cap-note              the step cap, and why Add step is disabled
+       .outcome / .outcome-*  A RUN'S THREE STATES, AND THEY MUST NOT LOOK ALIKE.
+                              ok is a green left edge and "Ran"; failed is a red
+                              left edge, a red heading and the server's reason;
+                              never-run is a dashed grey edge, muted text and the
+                              words "Never ran". Colour alone would not carry it,
+                              so each state also differs in border style and in
+                              its label — a grey dashed row saying "Never ran"
+                              cannot be mistaken for a green one saying "Ran".
+       .run-banner            the whole run's verdict, above the steps, so a
+                              partial run is legible before any step is read */
+    .step-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.22);background:rgba(8,12,28,.7);margin-bottom:8px}
+    .step-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(0,229,255,.14);border:1px solid rgba(0,229,255,.35);color:#22d3ee;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+    .step-body{flex:1;min-width:0}
+    .step-name{font-size:.85rem;font-weight:700;color:#e8e8ff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word}
+    .step-inputs{margin-top:4px;font-size:.74rem;color:#8892b8;word-break:break-word}
+    .step-move{display:flex;gap:6px;flex-shrink:0}
+    .cap-note{margin:10px 0 0;font-size:.78rem;line-height:1.55;color:#8892b8}
+    .cap-note.at-cap{color:#fbbf24}
+    .outcome{padding:12px 14px;border-radius:12px;margin-bottom:8px;border:1px solid rgba(148,163,184,.22);border-left-width:4px;background:rgba(8,12,28,.7)}
+    .outcome-ok{border-left-color:#4ade80}
+    .outcome-failed{border-left-color:#f87171;border-color:rgba(248,113,113,.4);background:rgba(30,12,18,.6)}
+    .outcome-not-run{border-style:dashed;border-left-color:#566082;opacity:.75}
+    .outcome-head{font-size:.78rem;font-weight:700;letter-spacing:.04em;color:#c3c9e6}
+    .outcome-ok .outcome-head{color:#4ade80}
+    .outcome-failed .outcome-head{color:#f87171}
+    .outcome-not-run .outcome-head{color:#8892b8}
+    .outcome-detail{margin-top:6px;font-size:.78rem;line-height:1.6;color:#8892b8;white-space:pre-wrap;word-break:break-word}
+    .outcome-result{margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(3,6,16,.6);font-size:.78rem;line-height:1.6;color:#c3c9e6;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
+    .run-banner{padding:14px 16px;border-radius:12px;margin-bottom:14px;font-size:.86rem;line-height:1.6;font-weight:700}
+    .run-banner-ok{border:1px solid rgba(74,222,128,.45);background:rgba(22,54,36,.5);color:#4ade80}
+    .run-banner-failed{border:1px solid rgba(248,113,113,.5);background:rgba(54,18,22,.55);color:#f87171}
+    .run-banner-refused{border:1px solid rgba(251,191,36,.5);background:rgba(54,42,12,.55);color:#fbbf24}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">&#8592; Dashboard</a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-eyebrow">Routines</div>
+    <h1 class="hero-title">Routines</h1>
+    <p class="hero-sub">A sequence of agent tools you run with one press. Steps run in order, one at a
+      time. A step does not read the previous step's output — each runs on the inputs you gave it.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="create-btn" id="createBtn">+ New routine</button>
+  </div>
+
+  <div class="listings-grid" id="routineGrid"><div class="loading">Loading your routines…</div></div>
+</div>
+
+<!-- Builder -->
+<div class="modal-overlay" id="builderModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="builderTitle">New routine</h2>
+      <button class="modal-close" id="builderClose">&#10005;</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="fName">Name</label>
+      <input class="form-input" id="fName" type="text" maxlength="100" placeholder="e.g. Monday morning"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Steps</label>
+      <div id="stepList"></div>
+      <p class="cap-note" id="capNote"></p>
+    </div>
+
+    <div class="form-group" id="stepBuilder">
+      <label class="form-label" for="fAgent">Add a step</label>
+      <select class="form-select" id="fAgent"></select>
+      <div style="height:10px"></div>
+      <select class="form-select" id="fTool"></select>
+      <div id="fFields"></div>
+      <p class="form-error" id="stepError" hidden></p>
+      <div style="margin-top:12px">
+        <button class="btn-sm" id="addStepBtn">Add step</button>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" id="builderCancel">Cancel</button>
+      <button class="btn-submit" id="builderSubmit">Save routine</button>
+    </div>
+  </div>
+</div>
+
+<!-- Run -->
+<div class="modal-overlay" id="runModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="runTitle">Run routine</h2>
+      <button class="modal-close" id="runClose">&#10005;</button>
+    </div>
+    <div id="runOutput"></div>
+    <div class="run-msg" id="runMsg" hidden></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="runCancel">Close</button>
+      <button class="btn-submit" id="runSubmit">Run now</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+var allRoutines = [];
+var listState = "loading";
+var listError = null;
+var toolCatalog = null;       // { agent: [{ tool, path, spec }] } — from the server, never typed here
+var catalogState = "loading";
+var maxSteps = null;          // from the server; null means not known yet
+var builderSteps = [];
+var editingId = null;
+var runningId = null;
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function readErrorBody(status, body) {
+  if (body && typeof body === "object" && body.error) return String(body.error);
+  return "Request failed (HTTP " + status + ")";
+}
+
+function parseJsonSafely(res) {
+  return res.json().then(function (d) { return d; }, function () { return null; });
+}
+
+/* ── the tool catalogue ───────────────────────────────────────────────────── */
+/* EVERY AGENT, EVERY TOOL AND EVERY FIELD COMES FROM THE SERVER.
+   GET /api/agents/tool-specs is built from the live router walk plus
+   TOOL_INPUT_SPECS, so a tool added, renamed or respecified on the backend
+   appears here with no edit to this file. Nothing about any specific agent or
+   tool is written into this page — if it were, it would be a fourth copy of the
+   agent roster, and this codebase already has the receipt for what that costs. */
+function loadToolSpecs() {
+  return fetch(API_URL + "/api/agents/tool-specs", {
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (body) {
+        if (!res.ok || !body || !body.agents) {
+          catalogState = "error";
+          toolCatalog = {};
+          renderAgentOptions();
+          return;
+        }
+        toolCatalog = body.agents;
+        catalogState = "ready";
+        renderAgentOptions();
+      });
+    })
+    .catch(function () {
+      catalogState = "error";
+      toolCatalog = {};
+      renderAgentOptions();
+    });
+}
+
+/* A tool with spec === null has no entry in TOOL_INPUT_SPECS. The dispatcher
+   refuses such a tool outright (tool_has_no_spec), so it is not offered as a
+   step — hiding it is kinder than listing something that cannot be saved, and
+   the count of hidden tools is reported rather than swallowed. */
+function usableTools(agent) {
+  var tools = (toolCatalog && toolCatalog[agent]) || [];
+  return tools.filter(function (t) { return Array.isArray(t.spec); });
+}
+
+function agentNames() {
+  return toolCatalog ? Object.keys(toolCatalog).sort() : [];
+}
+
+/* ── rendering a field from its DECLARED TYPE ─────────────────────────────── */
+/* The six types TOOL_INPUT_SPECS actually declares, each rendered as something
+   that produces the shape the route expects:
+
+     string        a textarea. One control rather than two, because the spec says
+                   nothing about length and the descriptions run from "up to 60
+                   characters" to "up to 2000" — a single-line box for the second
+                   is a box people cannot read what they typed in.
+     number        input[type=number]; sent as a Number, omitted when blank.
+     string_array  one line of comma-separated values, split and trimmed into a
+                   real array. The spec gives no option list, so a multi-select
+                   is not available; the hint says how it will be read.
+     boolean       a checkbox, sent as true/false.
+     object_array  a JSON textarea, PARSED AND CHECKED to be an array of plain
+     object        objects (or one object). No generic form can know the shape of
+                   the objects a route wants — the spec describes it only in
+                   prose — so the honest options were JSON or nothing. What is
+                   NOT done is sending the typed text as a string and letting the
+                   route fail: that would look like the user's mistake.
+
+   An unknown type — one added to the backend after this page was written —
+   falls back to a textarea and says so in its hint, rather than being dropped. */
+function fieldControlHtml(field, index) {
+  var id = "sf_" + index;
+  var type = String(field.type || "string");
+  var common = ' id="' + id + '" data-field="' + escapeHtml(field.name) + '" data-type="' + escapeHtml(type) + '"';
+
+  if (type === "number") {
+    return '<input class="form-input" type="number" step="any"' + common + '/>';
+  }
+  if (type === "boolean") {
+    return '<label style="display:inline-flex;align-items:center;gap:8px;color:#c3c9e6;font-size:.85rem">' +
+      '<input type="checkbox"' + common + '/> Yes</label>';
+  }
+  if (type === "string_array") {
+    return '<input class="form-input" type="text"' + common + ' placeholder="one, two, three"/>';
+  }
+  if (type === "object_array" || type === "object") {
+    return '<textarea class="form-textarea"' + common + ' placeholder="' +
+      (type === "object_array" ? '[{ &quot;price&quot;: 12 }]' : '{ &quot;key&quot;: &quot;value&quot; }') +
+      '"></textarea>';
+  }
+  return '<textarea class="form-textarea"' + common + '></textarea>';
+}
+
+function fieldHintText(field) {
+  var type = String(field.type || "string");
+  var extra = "";
+  if (type === "string_array") extra = " Separate values with commas.";
+  else if (type === "object_array") extra = " Written as JSON: an array of objects.";
+  else if (type === "object") extra = " Written as JSON: one object.";
+  else if (type === "number") extra = " A number.";
+  else if (["string", "boolean"].indexOf(type) === -1) {
+    extra = " This field is declared as \"" + type + "\", which this page does not have a special control for — " +
+      "it is sent as the text you type.";
+  }
+  var aliases = (field.aliases && field.aliases.length)
+    ? " Also accepted as: " + field.aliases.join(", ") + "."
+    : "";
+  return String(field.description || "") + extra + aliases;
+}
+
+function renderAgentOptions() {
+  var select = document.getElementById("fAgent");
+  if (!select) return;
+  var names = agentNames();
+
+  if (!names.length) {
+    select.innerHTML = '<option value="">No tools could be loaded</option>';
+    document.getElementById("fTool").innerHTML = "";
+    document.getElementById("fFields").innerHTML =
+      '<p class="field-hint">' + (catalogState === "error"
+        ? "The tool list could not be loaded, so no step can be added. Try reloading the page."
+        : "Loading the tool list…") + '</p>';
+    return;
+  }
+
+  select.innerHTML = names.map(function (a) {
+    return '<option value="' + escapeHtml(a) + '">' + escapeHtml(a) + '</option>';
+  }).join("");
+  renderToolOptions();
+}
+
+function renderToolOptions() {
+  var agent = document.getElementById("fAgent").value;
+  var select = document.getElementById("fTool");
+  var tools = usableTools(agent);
+  var hidden = ((toolCatalog && toolCatalog[agent]) || []).length - tools.length;
+
+  select.innerHTML = tools.map(function (t) {
+    return '<option value="' + escapeHtml(t.tool) + '">' + escapeHtml(t.tool) + '</option>';
+  }).join("");
+
+  if (!tools.length) {
+    document.getElementById("fFields").innerHTML =
+      '<p class="field-hint">This agent has no tool that declares its inputs, so none can be added to a routine.</p>';
+    return;
+  }
+
+  renderFields(hidden);
+}
+
+function renderFields(hiddenCount) {
+  var agent = document.getElementById("fAgent").value;
+  var tool = document.getElementById("fTool").value;
+  var entry = usableTools(agent).filter(function (t) { return t.tool === tool; })[0];
+  var target = document.getElementById("fFields");
+  setStepError("");
+
+  if (!entry) { target.innerHTML = ""; return; }
+
+  var spec = entry.spec || [];
+  var html = spec.map(function (field, i) {
+    return '<div class="form-group">' +
+      '<label class="form-label" for="sf_' + i + '">' + escapeHtml(field.name) +
+        (field.required ? ' <span style="color:#f87171">*&nbsp;required</span>' : ' <span style="color:#566082">optional</span>') +
+      '</label>' +
+      fieldControlHtml(field, i) +
+      '<p class="field-hint">' + escapeHtml(fieldHintText(field)) + '</p>' +
+    '</div>';
+  }).join("");
+
+  if (!spec.length) html = '<p class="field-hint">This tool takes no inputs.</p>';
+  if (hiddenCount > 0) {
+    html += '<p class="field-hint">' + hiddenCount + ' tool(s) on this agent are not shown: they declare no inputs, ' +
+      'so the server could not check a step that used them.</p>';
+  }
+  target.innerHTML = html;
+}
+
+/* Reads the rendered controls back into an inputs object, by declared type.
+   Returns { inputs } or { missing: [names] } — the required-field check happens
+   HERE, where the person is looking at the field they left empty, rather than
+   after a request. */
+function collectStepInputs() {
+  var agent = document.getElementById("fAgent").value;
+  var tool = document.getElementById("fTool").value;
+  var entry = usableTools(agent).filter(function (t) { return t.tool === tool; })[0];
+  if (!entry) return { error: "Choose a tool first." };
+
+  var spec = entry.spec || [];
+  var inputs = {};
+  var missing = [];
+  var badJson = null;
+
+  spec.forEach(function (field, i) {
+    var el = document.getElementById("sf_" + i);
+    if (!el) return;
+    var type = String(field.type || "string");
+    var raw = type === "boolean" ? !!el.checked : String(el.value == null ? "" : el.value);
+
+    if (type === "boolean") {
+      if (raw === true) inputs[field.name] = true;
+      else if (field.required) missing.push(field.name);
+      return;
+    }
+
+    if (!String(raw).trim()) {
+      if (field.required) missing.push(field.name);
+      return;
+    }
+
+    if (type === "number") {
+      var n = Number(raw);
+      if (!isFinite(n)) { badJson = field.name + " must be a number."; return; }
+      inputs[field.name] = n;
+      return;
+    }
+
+    if (type === "string_array") {
+      var items = String(raw).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      if (!items.length) { if (field.required) missing.push(field.name); return; }
+      inputs[field.name] = items;
+      return;
+    }
+
+    if (type === "object_array" || type === "object") {
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch (e) {
+        badJson = field.name + " must be valid JSON (" + (e.message || "could not be parsed") + ").";
+        return;
+      }
+      if (type === "object_array") {
+        if (!Array.isArray(parsed) || !parsed.every(function (o) { return o && typeof o === "object" && !Array.isArray(o); })) {
+          badJson = field.name + " must be a JSON array of objects, like [{ \"price\": 12 }].";
+          return;
+        }
+      } else if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        badJson = field.name + " must be a single JSON object, like { \"key\": \"value\" }.";
+        return;
+      }
+      inputs[field.name] = parsed;
+      return;
+    }
+
+    inputs[field.name] = raw;
+  });
+
+  if (badJson) return { error: badJson };
+  if (missing.length) return { missing: missing };
+  return { agent: agent, tool: tool, inputs: inputs };
+}
+
+function setStepError(text) {
+  var el = document.getElementById("stepError");
+  if (!el) return;
+  if (!text) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.textContent = text;
+}
+
+/* ── the builder ──────────────────────────────────────────────────────────── */
+function atCap() { return maxSteps !== null && builderSteps.length >= maxSteps; }
+
+/* THE CAP IS THE SERVER'S NUMBER, NEVER THIS PAGE'S. GET /api/routines returns
+   max_steps, and a refusal carries it too, so the first thing that answers wins.
+   BEFORE EITHER HAS BEEN SEEN the builder says the cap is not known yet and does
+   NOT disable anything: guessing a number here would either block a routine the
+   server would accept or promise one it would refuse. The server's 400 is the
+   backstop, and it carries max_steps, so the first refusal teaches the page. */
+function renderCapNote() {
+  var note = document.getElementById("capNote");
+  var addBtn = document.getElementById("addStepBtn");
+  if (!note || !addBtn) return;
+
+  if (maxSteps === null) {
+    note.className = "cap-note";
+    note.textContent = builderSteps.length + " step(s). The server's step limit is not known yet — " +
+      "if a routine is too long, saving will say so and name the limit.";
+    addBtn.disabled = false;
+    return;
+  }
+
+  if (atCap()) {
+    note.className = "cap-note at-cap";
+    note.textContent = builderSteps.length + " of " + maxSteps + " steps. This is the limit, so no more can be " +
+      "added: every step of a routine dispatches from one chain, and the server caps how many calls one chain may make.";
+    addBtn.disabled = true;
+    return;
+  }
+
+  note.className = "cap-note";
+  note.textContent = builderSteps.length + " of " + maxSteps + " steps.";
+  addBtn.disabled = false;
+}
+
+function renderBuilderSteps() {
+  var list = document.getElementById("stepList");
+  if (!list) return;
+
+  list.innerHTML = builderSteps.length
+    ? builderSteps.map(function (s, i) {
+        var keys = Object.keys(s.inputs || {});
+        return '<div class="step-row">' +
+          '<div class="step-num">' + (i + 1) + '</div>' +
+          '<div class="step-body">' +
+            '<div class="step-name">' + escapeHtml(s.agent) + " / " + escapeHtml(s.tool) + '</div>' +
+            '<div class="step-inputs">' + (keys.length ? escapeHtml(keys.join(", ")) : "no inputs") + '</div>' +
+          '</div>' +
+          '<div class="step-move">' +
+            '<button class="btn-sm" data-step-action="up" data-index="' + i + '"' + (i === 0 ? " disabled" : "") + '>&#9650;</button>' +
+            '<button class="btn-sm" data-step-action="down" data-index="' + i + '"' + (i === builderSteps.length - 1 ? " disabled" : "") + '>&#9660;</button>' +
+            '<button class="btn-sm btn-delete" data-step-action="remove" data-index="' + i + '">Remove</button>' +
+          '</div>' +
+        '</div>';
+      }).join("")
+    : '<p class="field-hint">No steps yet. Pick an agent and a tool below.</p>';
+
+  renderCapNote();
+}
+
+function addStep() {
+  setStepError("");
+  if (atCap()) {
+    setStepError("This routine is already at the server's limit of " + maxSteps + " steps.");
+    return;
+  }
+
+  var collected = collectStepInputs();
+
+  /* REFUSED HERE, NOT BY THE SERVER. The server checks too — it is the authority
+     — but an error about a field the person is looking at should arrive while
+     they are looking at it, not after a save. */
+  if (collected.missing) {
+    setStepError("This step is missing " + collected.missing.join(", ") +
+      (collected.missing.length === 1 ? ", which this tool requires." : ", which this tool requires."));
+    return;
+  }
+  if (collected.error) {
+    setStepError(collected.error);
+    return;
+  }
+
+  builderSteps.push({ agent: collected.agent, tool: collected.tool, inputs: collected.inputs });
+  renderBuilderSteps();
+  renderFields(0);
+}
+
+function moveStep(index, delta) {
+  var to = index + delta;
+  if (to < 0 || to >= builderSteps.length) return;
+  var moved = builderSteps.splice(index, 1)[0];
+  builderSteps.splice(to, 0, moved);
+  renderBuilderSteps();
+}
+
+function removeStep(index) {
+  builderSteps.splice(index, 1);
+  renderBuilderSteps();
+}
+
+function openBuilder(id) {
+  editingId = id || null;
+  var routine = id ? routineById(id) : null;
+  builderSteps = routine && Array.isArray(routine.steps) ? JSON.parse(JSON.stringify(routine.steps)) : [];
+  document.getElementById("builderTitle").textContent = routine ? "Edit routine" : "New routine";
+  document.getElementById("fName").value = routine ? (routine.name || "") : "";
+  setStepError("");
+  renderAgentOptions();
+  renderBuilderSteps();
+  document.getElementById("builderModal").className = "modal-overlay open";
+}
+
+function closeBuilder() {
+  document.getElementById("builderModal").className = "modal-overlay";
+}
+
+function saveRoutine() {
+  var name = document.getElementById("fName").value.trim();
+  var btn = document.getElementById("builderSubmit");
+
+  if (!name) { showToast("Give the routine a name.", "error"); return Promise.resolve(); }
+  if (!builderSteps.length) { showToast("A routine needs at least one step.", "error"); return Promise.resolve(); }
+
+  var url = editingId ? API_URL + "/api/routines/" + editingId : API_URL + "/api/routines";
+  if (btn) btn.disabled = true;
+
+  return fetch(url, {
+    method: editingId ? "PUT" : "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+    /* Exactly what the route takes, and the steps in builder order — the order
+       is the routine. */
+    body: JSON.stringify({ name: name, steps: builderSteps })
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (btn) btn.disabled = false;
+
+        /* A refusal naming a step is shown against that step's position, in the
+           builder, with the server's own sentence. Its max_steps teaches the page
+           the cap even if the list read never carried one. */
+        if (data && typeof data.max_steps === "number") {
+          maxSteps = data.max_steps;
+          renderCapNote();
+        }
+
+        if (!res.ok) {
+          var message = readErrorBody(res.status, data);
+          setStepError(data && data.step
+            ? "Step " + data.step + " was refused: " + message
+            : message);
+          showToast(message, "error");
+          return;
+        }
+
+        closeBuilder();
+        showToast(editingId ? "Routine updated." : "Routine saved.", "success");
+        return loadRoutines();
+      });
+    })
+    .catch(function () {
+      if (btn) btn.disabled = false;
+      showToast("Could not reach the server. Nothing was saved.", "error");
+    });
+}
+
+/* ── list ─────────────────────────────────────────────────────────────────── */
+function loadRoutines() {
+  listState = "loading";
+  listError = null;
+  renderList();
+
+  return fetch(API_URL + "/api/routines", {
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (body) {
+        if (!res.ok) {
+          listState = "error";
+          listError = readErrorBody(res.status, body);
+          allRoutines = [];
+          renderList();
+          return;
+        }
+        allRoutines = (body && Array.isArray(body.routines)) ? body.routines : [];
+        if (body && typeof body.max_steps === "number") maxSteps = body.max_steps;
+        listState = "ready";
+        renderList();
+      });
+    })
+    .catch(function () {
+      listState = "error";
+      listError = "Could not reach the server. Check your connection and try again.";
+      allRoutines = [];
+      renderList();
+    });
+}
+
+function renderList() {
+  var grid = document.getElementById("routineGrid");
+  if (!grid) return;
+
+  if (listState === "loading") {
+    grid.innerHTML = '<div class="loading">Loading your routines…</div>';
+    return;
+  }
+
+  /* A failed read is not an empty library, and is never drawn as one. */
+  if (listState === "error") {
+    grid.innerHTML =
+      '<div class="load-error">' +
+        '<div class="load-error-title">Could not load your routines</div>' +
+        '<div class="load-error-sub">This is a problem reaching the server, not an empty list. ' +
+          'Nothing has been changed or removed.</div>' +
+        '<button class="load-error-retry" id="listRetry">Try again</button>' +
+        '<div class="load-error-detail">' + escapeHtml(listError || "") + '</div>' +
+      '</div>';
+    var retry = document.getElementById("listRetry");
+    if (retry) retry.addEventListener("click", loadRoutines);
+    return;
+  }
+
+  if (!allRoutines.length) {
+    grid.innerHTML = '<div class="empty-msg">No routines yet. Build one from the tools your agents already have.</div>';
+    return;
+  }
+
+  grid.innerHTML = allRoutines.map(renderRoutineCard).join("");
+}
+
+function renderRoutineCard(r) {
+  var steps = Array.isArray(r.steps) ? r.steps : [];
+  var stepHtml = steps.map(function (s, i) {
+    return '<div class="step-row">' +
+      '<div class="step-num">' + (i + 1) + '</div>' +
+      '<div class="step-body"><div class="step-name">' +
+        escapeHtml(String(s && s.agent)) + " / " + escapeHtml(String(s && s.tool)) +
+      '</div></div>' +
+    '</div>';
+  }).join("");
+
+  var runs = r.run_count ? (r.run_count + (r.run_count === 1 ? " run" : " runs")) : "Never run";
+
+  return '<div class="listing-card" data-id="' + escapeHtml(r.id) + '">' +
+    '<h3 class="listing-title">' + escapeHtml(r.name) + '</h3>' +
+    '<div class="listing-tags"><span class="listing-tag">' + steps.length +
+      (steps.length === 1 ? " step" : " steps") + '</span></div>' +
+    stepHtml +
+    '<div class="listing-footer">' +
+      '<span class="listing-date">' + escapeHtml(runs) + '</span>' +
+      '<div class="listing-actions">' +
+        '<button class="btn-sm btn-run" data-action="run" data-id="' + escapeHtml(r.id) + '">Run</button>' +
+        '<button class="btn-sm" data-action="edit" data-id="' + escapeHtml(r.id) + '">Edit</button>' +
+        '<button class="btn-sm btn-delete" data-action="delete" data-id="' + escapeHtml(r.id) + '">Delete</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function routineById(id) {
+  for (var i = 0; i < allRoutines.length; i++) {
+    if (allRoutines[i] && allRoutines[i].id === id) return allRoutines[i];
+  }
+  return null;
+}
+
+function deleteRoutine(id) {
+  var r = routineById(id);
+  if (!r) return Promise.resolve();
+  if (!confirm('Delete "' + r.name + '"? This cannot be undone.')) return Promise.resolve();
+
+  return fetch(API_URL + "/api/routines/" + id, {
+    method: "DELETE",
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (!res.ok) { showToast(readErrorBody(res.status, data), "error"); return; }
+        showToast("Routine deleted.", "success");
+        return loadRoutines();
+      });
+    })
+    .catch(function () { showToast("Could not reach the server. Nothing was deleted.", "error"); });
+}
+
+/* ── running ──────────────────────────────────────────────────────────────── */
+function openRun(id) {
+  var r = routineById(id);
+  if (!r) return;
+  runningId = id;
+  document.getElementById("runTitle").textContent = "Run: " + r.name;
+  document.getElementById("runOutput").innerHTML = "";
+  setRunMsg("", null);
+  document.getElementById("runSubmit").disabled = false;
+  document.getElementById("runModal").className = "modal-overlay open";
+}
+
+function closeRun() {
+  runningId = null;
+  document.getElementById("runModal").className = "modal-overlay";
+}
+
+function setRunMsg(html, tone) {
+  var el = document.getElementById("runMsg");
+  if (!el) return;
+  if (!html) { el.hidden = true; el.className = "run-msg"; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.className = "run-msg" + (tone ? " " + tone : "");
+  el.innerHTML = html;
+}
+
+function runRoutine() {
+  if (!runningId) return Promise.resolve();
+  var btn = document.getElementById("runSubmit");
+  if (btn) btn.disabled = true;
+  setRunMsg("Running…", null);
+  document.getElementById("runOutput").innerHTML = "";
+
+  return fetch(API_URL + "/api/routines/" + runningId + "/run", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+  })
+    .then(function (res) {
+      return parseJsonSafely(res).then(function (data) {
+        if (btn) btn.disabled = false;
+
+        /* 402 IS NOT A RESULT. It is the billing system saying this account has
+           no active subscription — nothing ran, no step was attempted. */
+        if (res.status === 402) {
+          setRunMsg(escapeHtml(readErrorBody(res.status, data)) +
+            ' <a href="billing.html">Open Billing</a> to start or restart your plan.', "err");
+          return;
+        }
+
+        /* A refusal before any step: the server checked the saved steps against
+           the live router and one no longer stands up. Nothing is claimed about
+           any step, because nothing was attempted. */
+        if (!res.ok) {
+          if (data && typeof data.max_steps === "number") maxSteps = data.max_steps;
+          renderRefusedRun(data, res.status);
+          return;
+        }
+
+        renderRunOutcome(data);
+        return loadRoutines();
+      });
+    })
+    .catch(function () {
+      if (btn) btn.disabled = false;
+      setRunMsg("Could not reach the server. The routine was not run.", "err");
+    });
+}
+
+function renderRefusedRun(data, status) {
+  var message = readErrorBody(status, data);
+  var stepNote = (data && data.step) ? " It names step " + data.step + "." : "";
+  document.getElementById("runOutput").innerHTML =
+    '<div class="run-banner run-banner-refused">Refused before anything ran — no step was attempted.' + escapeHtml(stepNote) + '</div>' +
+    '<div class="outcome outcome-not-run"><div class="outcome-head">Nothing ran</div>' +
+      '<div class="outcome-detail">' + escapeHtml(message) + '</div></div>';
+  setRunMsg("", null);
+}
+
+/* THE THREE STATES ARE UNMISTAKABLE FROM EACH OTHER, and the verdict is above
+   them so a partial run is legible before a single step is read:
+
+     completed       green banner, "All N steps ran"
+     failed_at_step  red banner naming the step it stopped at and how many never
+                     ran — a partial run can never be read as a success
+     refused         amber banner saying nothing was attempted
+
+   Each step then carries its own state in three ways at once: a coloured left
+   edge, a border style (solid for attempted, dashed for never run) and a word —
+   "Ran", "Failed", "Never ran". Colour alone would fail anyone who cannot see
+   it; the word carries the meaning by itself. */
+function renderRunOutcome(data) {
+  var steps = (data && Array.isArray(data.steps)) ? data.steps : [];
+  var total = (data && data.steps_total) || steps.length;
+  var failedStep = data && data.failed_step;
+  var completed = data && data.status === "completed";
+
+  /* The chaining gate being shut is not a step failure — it is the feature
+     being switched off on the server, and nothing the user did or can fix. */
+  var disabled = steps.filter(function (s) { return s && s.refused_reason === "chaining_disabled"; })[0];
+  if (disabled) {
+    document.getElementById("runOutput").innerHTML =
+      '<div class="run-banner run-banner-refused">Routines are switched off on the server right now. ' +
+        'Nothing ran, and this is not a problem with your routine.</div>' +
+      '<div class="outcome outcome-not-run"><div class="outcome-head">Feature disabled</div>' +
+        '<div class="outcome-detail">' + escapeHtml(String(disabled.detail || "")) + '</div></div>';
+    setRunMsg("", null);
+    return;
+  }
+
+  var notRun = steps.filter(function (s) { return s && s.status === "not_run"; }).length;
+
+  var banner = completed
+    ? '<div class="run-banner run-banner-ok">Completed — all ' + total + (total === 1 ? " step" : " steps") + ' ran.</div>'
+    : '<div class="run-banner run-banner-failed">Stopped at step ' + escapeHtml(String(failedStep)) +
+        ' of ' + total + '. ' + (notRun ? notRun + (notRun === 1 ? " step" : " steps") + ' never ran.' : "") +
+        ' This routine did not finish.</div>';
+
+  var body = steps.map(function (s) {
+    var name = escapeHtml(String(s.agent || "")) + " / " + escapeHtml(String(s.tool || ""));
+    if (s.status === "ok") {
+      return '<div class="outcome outcome-ok">' +
+        '<div class="outcome-head">Step ' + s.step + ' &middot; ' + name + ' &middot; Ran</div>' +
+        (s.result ? '<div class="outcome-result">' + escapeHtml(stringify(s.result)) + '</div>' : "") +
+      '</div>';
+    }
+    if (s.status === "failed") {
+      return '<div class="outcome outcome-failed">' +
+        '<div class="outcome-head">Step ' + s.step + ' &middot; ' + name + ' &middot; Failed</div>' +
+        '<div class="outcome-detail">' +
+          escapeHtml(String(s.refused_reason || "The step did not succeed.")) +
+          (s.detail ? " — " + escapeHtml(String(s.detail)) : "") +
+          (s.http_status ? " (HTTP " + escapeHtml(String(s.http_status)) + ")" : "") +
+        '</div>' +
+      '</div>';
+    }
+    return '<div class="outcome outcome-not-run">' +
+      '<div class="outcome-head">Step ' + s.step + ' &middot; ' + name + ' &middot; Never ran</div>' +
+      '<div class="outcome-detail">' + escapeHtml(String(s.detail || "")) + '</div>' +
+    '</div>';
+  }).join("");
+
+  document.getElementById("runOutput").innerHTML = banner + body;
+  setRunMsg("", null);
+}
+
+function stringify(value) {
+  if (typeof value === "string") return value;
+  try { return JSON.stringify(value, null, 2); } catch (e) { return String(value); }
+}
+
+function showToast(msg, type) {
+  var el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "toast toast-" + type + " show";
+  setTimeout(function () { el.className = "toast toast-" + type; }, 3200);
+}
+
+/* Delegated, never onclick with an interpolated id — the note in
+   garage-sale.html explains why escaping does not make that safe. */
+function bindPage() {
+  var grid = document.getElementById("routineGrid");
+  if (grid) {
+    grid.addEventListener("click", function (e) {
+      var el = e.target;
+      while (el && el !== grid) {
+        var action = el.getAttribute && el.getAttribute("data-action");
+        if (action) {
+          var id = el.getAttribute("data-id");
+          if (action === "run") openRun(id);
+          else if (action === "edit") openBuilder(id);
+          else if (action === "delete") deleteRoutine(id);
+          return;
+        }
+        el = el.parentNode;
+      }
+    });
+  }
+
+  var stepList = document.getElementById("stepList");
+  if (stepList) {
+    stepList.addEventListener("click", function (e) {
+      var el = e.target;
+      while (el && el !== stepList) {
+        var action = el.getAttribute && el.getAttribute("data-step-action");
+        if (action) {
+          var index = Number(el.getAttribute("data-index"));
+          if (action === "up") moveStep(index, -1);
+          else if (action === "down") moveStep(index, 1);
+          else if (action === "remove") removeStep(index);
+          return;
+        }
+        el = el.parentNode;
+      }
+    });
+  }
+
+  document.getElementById("createBtn").addEventListener("click", function () { openBuilder(null); });
+  document.getElementById("builderClose").addEventListener("click", closeBuilder);
+  document.getElementById("builderCancel").addEventListener("click", closeBuilder);
+  document.getElementById("builderSubmit").addEventListener("click", saveRoutine);
+  document.getElementById("addStepBtn").addEventListener("click", addStep);
+  document.getElementById("fAgent").addEventListener("change", renderToolOptions);
+  document.getElementById("fTool").addEventListener("change", function () { renderFields(0); });
+  document.getElementById("runClose").addEventListener("click", closeRun);
+  document.getElementById("runCancel").addEventListener("click", closeRun);
+  document.getElementById("runSubmit").addEventListener("click", runRoutine);
+
+  loadToolSpecs();
+  loadRoutines();
+}
+
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("DOMContentLoaded", bindPage);
+}
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/termaximus-guide.js"></script>
+<!-- Etsy API attribution. Required verbatim by Etsy, Inc. as a condition of
+     Commercial Access; do not reword, abbreviate or remove. -->
+<footer class="bf-etsy-trademark" style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:28px 24px 32px;text-align:center;font-size:.74rem;line-height:1.6;color:#6b7392;font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif">
+  The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.
+</footer>
+</body>
+</html>
