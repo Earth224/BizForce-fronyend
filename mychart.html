@@ -4143,9 +4143,18 @@
           askBtn.disabled = false;
           askBtn.textContent = "✦ Ask again about " + label;
         })
-        .catch(function () {
+        /* A REFUSAL IS NOT SILENCE. This used to discard the server's message
+           and say the Oracle had gone quiet for a moment — which describes a
+           hiccup and invites a retry, when a 402 means the account has no
+           active subscription and every retry will be refused too. The reason
+           is now carried through the rejection above and shown as itself. */
+        .catch(function (errMsg) {
           replyEl.className = "mc-oracle-reply mc-oracle-reply-error";
-          replyEl.textContent = "The Oracle is silent for a moment — try again.";
+          if (typeof errMsg === "string" && errMsg) {
+            replyEl.textContent = errMsg + " Open Billing to start or restart your plan.";
+          } else {
+            replyEl.textContent = "The Oracle is silent for a moment — try again.";
+          }
           askBtn.disabled = false;
           askBtn.textContent = "✦ Ask Termaximus about " + label;
         })

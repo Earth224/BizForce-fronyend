@@ -2108,8 +2108,16 @@
               askTermaximusBtn.textContent = "Ask Termaximus to read this again";
             }
           })
-          .catch(function () {
-            setTermaximusStatus("The Oracle is silent for a moment — try again.");
+          /* A REFUSAL IS NOT SILENCE — see the same fix in mychart.html. The
+             rejection above carries the server's own message; a 402 says this
+             account has no active subscription and no amount of retrying will
+             change that, so saying "try again" would be false. */
+          .catch(function (errMsg) {
+            if (typeof errMsg === "string" && errMsg) {
+              setTermaximusStatus(errMsg + " Open Billing to start or restart your plan.");
+            } else {
+              setTermaximusStatus("The Oracle is silent for a moment — try again.");
+            }
             if (askTermaximusBtn) {
               askTermaximusBtn.disabled = false;
               askTermaximusBtn.textContent = "Ask Termaximus to read this";

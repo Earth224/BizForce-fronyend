@@ -840,8 +840,37 @@
         },
         body: JSON.stringify({ post_text: postText, suggested_product: product })
       })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+        /* THE STATUS IS READ BEFORE THE BODY. This used to call r.json() and
+           look only for data.reply, so every refusal — a 402 from billing most
+           of all — fell into the "No reply was generated" branch and told the
+           user the model had run and come back empty. It had not run at all.
+           A billing refusal now says so, and points at the one page that can
+           fix it. */
+        .then(function (r) {
+          return r.json().catch(function () { return {}; })
+            .then(function (data) { return { status: r.status, ok: r.ok, data: data }; });
+        })
+        .then(function (res) {
+          var data = res.data || {};
+          var serverText = (typeof data.error === "string" && data.error) ? data.error : "";
+
+          if (res.status === 402) {
+            box.textContent = (serverText || "This account does not have an active subscription.") +
+              " Open Billing (billing.html) to start or restart your plan. No reply was drafted and nothing was charged.";
+            box.classList.add("draft-error");
+            cpBtn.style.display = "none";
+            area.style.display = "flex";
+            return;
+          }
+
+          if (!res.ok) {
+            box.textContent = serverText || ("The reply could not be drafted (HTTP " + res.status + ").");
+            box.classList.add("draft-error");
+            cpBtn.style.display = "none";
+            area.style.display = "flex";
+            return;
+          }
+
           if (data.reply) {
             box.textContent = data.reply;
             cpBtn.style.display = "inline-flex";
