@@ -468,7 +468,7 @@
       </div>
       <div class="agent-header-text">
         <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Live intelligence on competitors and sellers in your market — captured from Bluesky, Mastodon & YouTube every 5 minutes.</p>
+        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky, Mastodon &amp; YouTube every 5 minutes and scored by intent. One keyword set and one social account — enabled only for the account that owns them.</p>
       </div>
     </header>
 
@@ -719,16 +719,35 @@
       fetch(API + "/api/leads", {
         headers: { "Authorization": "Bearer " + tok() }
       })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          var leads = data.leads || [];
+        .then(function (r) {
+          return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data || {} }; });
+        })
+        .then(function (res) {
+          /* The server says this account is not one Lead Radar runs for. The
+             feed, the stat strip and the charts are all someone else's data
+             when that is the case, so none of them are drawn; the page shows
+             the server's own sentence and nothing that implies a lead is on
+             its way. Every control that acts on a lead lives inside a card,
+             and no card is built, so none of them exist in the document. */
+          if (res.status === 403 && res.data.code === "lead_radar_unavailable") {
+            countEl.textContent = "Not enabled on this account";
+            document.getElementById("noiseBtn").style.display = "none";
+            list.innerHTML = "<div class=\"empty-state\" data-state=\"lead_radar_unavailable\">" +
+              escHtml(res.data.error || "Lead Radar is not enabled for your account.") + "</div>";
+            return;
+          }
+          if (!res.ok) {
+            throw new Error(res.data.error || ("Server error " + res.status));
+          }
+
+          var leads = res.data.leads || [];
           countEl.textContent = leads.length + " lead" + (leads.length !== 1 ? "s" : "") + " tracked";
 
           renderStatStrip(leads);
           renderCharts(leads);
 
           if (!leads.length) {
-            list.innerHTML = "<div class=\"empty-state\">No scored leads yet. The radar runs every 5 minutes.</div>";
+            list.innerHTML = "<div class=\"empty-state\">No scored leads to show. A captured post appears here only after it has been scored.</div>";
             return;
           }
 

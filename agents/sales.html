@@ -1553,11 +1553,36 @@
         el.className = "sales-leads-msg" + (cls ? " " + cls : "");
       }
 
+      /* The server has said this account is not one Lead Radar runs for. Every
+         lead the two lists would show is someone else's when that is true, so
+         both are replaced with the server's own sentence, and the controls
+         that act on a lead are REMOVED from the document rather than
+         disabled — a disabled "Post Public Replies" button is still a claim
+         that the account can post public replies. The per-lead Convert
+         buttons only exist inside lead cards, and no card is rendered. */
+      var leadRadarUnavailable = false;
+      function applyLeadRadarRefusal(message) {
+        leadRadarUnavailable = true;
+        var text = message || "Lead Radar is not enabled for your account.";
+        var html = '<div class="empty-state" data-state="lead_radar_unavailable"><p>' + esc(text) + '</p></div>';
+        var list = document.getElementById("salesLeadsList");
+        if (list) list.innerHTML = html;
+        var board = document.getElementById("salesPipelineBoard");
+        if (board) board.innerHTML = html;
+        var convertAll = document.getElementById("salesConvertAllBtn");
+        if (convertAll && convertAll.parentNode) convertAll.parentNode.removeChild(convertAll);
+        setLeadsMsg("");
+      }
+
+      function isLeadRadarRefusal(status, data) {
+        return status === 403 && !!data && data.code === "lead_radar_unavailable";
+      }
+
       function renderLeads(leads) {
         var list = document.getElementById("salesLeadsList");
         if (!list) return;
         if (!leads.length) {
-          list.innerHTML = '<div class="empty-state"><p>No captured leads yet. Lead Radar scans every 5 minutes.</p></div>';
+          list.innerHTML = '<div class="empty-state"><p>No scored leads to show. A captured post appears here only after Lead Radar has scored it.</p></div>';
           return;
         }
         list.innerHTML = leads.map(function (lead, idx) {
@@ -1617,9 +1642,17 @@
         if (!token) return;
         setLeadsMsg("Loading leads…");
         fetch(API_URL + "/api/agents/sales/leads", { headers: { "Authorization": "Bearer " + token } })
-          .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)); })
-          .then(function (d) {
-            currentLeads = (d && Array.isArray(d.leads)) ? d.leads : [];
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; });
+          })
+          .then(function (res) {
+            if (isLeadRadarRefusal(res.status, res.data)) {
+              currentLeads = [];
+              applyLeadRadarRefusal(res.data.error);
+              return;
+            }
+            if (!res.ok) throw new Error(res.data.error || ("HTTP " + res.status));
+            currentLeads = Array.isArray(res.data.leads) ? res.data.leads : [];
             renderLeads(currentLeads);
             setLeadsMsg(currentLeads.length + " lead" + (currentLeads.length === 1 ? "" : "s") + " tracked", "ok");
           })
@@ -1638,11 +1671,13 @@
 
         // This does not only draft: the backend posts the reply for real.
         // Say so before anything is sent, name who receives it, and leave the
-        // button untouched if the answer is no.
+        // button untouched if the answer is no. The account named is the one
+        // configured on the server — there is no connect flow and nothing the
+        // operator linked, so the dialog must not say "your connected account".
         var who = lead.author_handle ? "@" + lead.author_handle : "this lead";
         if (!window.confirm(
           "This posts a PUBLIC reply to " + who + "'s post.\n\n" +
-          "The reply is sent from your own connected Bluesky or Mastodon account and is visible to anyone.\n\n" +
+          "The reply is posted from the Bluesky or Mastodon account configured on the server for this deployment — not from an account you connected — and is visible to anyone.\n\n" +
           "It cannot be unposted from here.\n\n" +
           "Post this public reply?"
         )) return;
@@ -1699,12 +1734,13 @@
         var token = tok();
         if (!token) { setLeadsMsg("Not signed in.", "err"); return; }
 
-        // One click here can put up to 10 public replies under the operator's
-        // own account. Ask before the fetch, and if the answer is no, leave
-        // the button exactly as it was.
+        // One click here can put up to 10 public replies under the server's
+        // configured account. Ask before the fetch, and if the answer is no,
+        // leave the button exactly as it was. Same wording as the single
+        // confirm above: the server's account, not one the operator connected.
         if (!window.confirm(
           "This posts PUBLIC replies to up to 10 people's posts.\n\n" +
-          "The replies are sent from your own connected Bluesky or Mastodon account and are visible to anyone.\n\n" +
+          "The replies are posted from the Bluesky or Mastodon account configured on the server for this deployment — not from an account you connected — and are visible to anyone.\n\n" +
           "They cannot be unposted from here.\n\n" +
           "Post these public replies?"
         )) return;
@@ -1784,8 +1820,17 @@
         var token = tok();
         if (!token) return;
         fetch(API_URL + "/api/agents/sales/pipeline", { headers: { "Authorization": "Bearer " + token } })
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (d) { renderPipeline(d && d.pipeline); })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; });
+          })
+          .then(function (res) {
+            if (isLeadRadarRefusal(res.status, res.data)) { applyLeadRadarRefusal(res.data.error); return; }
+            /* Never draw an empty board over the refusal: the two requests
+               race, and a failed pipeline read after a refused leads read
+               must not replace the server's sentence with five empty columns. */
+            if (!res.ok || leadRadarUnavailable) return;
+            renderPipeline(res.data.pipeline);
+          })
           .catch(function () {});
       }
 
