@@ -499,8 +499,15 @@ function renderCapNote() {
 
   if (atCap()) {
     note.className = "cap-note at-cap";
+    /* THE REASON, NOT A REASON THAT USED TO BE TRUE. This sentence explained the
+       cap by the chain fan-out limit, which is what the server borrowed before
+       routines were given a ceiling of their own. Fan-out bounds how many tools
+       one step may dispatch when it chose them itself; a routine is a list you
+       typed, and it is capped because a routine has a limit, full stop. The
+       NUMBER is still the server's and still arrives in max_steps — only the
+       explanation changed. */
     note.textContent = builderSteps.length + " of " + maxSteps + " steps. This is the limit, so no more can be " +
-      "added: every step of a routine dispatches from one chain, and the server caps how many calls one chain may make.";
+      "added: a routine has its own ceiling, and the server sets it.";
     addBtn.disabled = true;
     return;
   }
