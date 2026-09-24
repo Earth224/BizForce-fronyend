@@ -10,6 +10,13 @@
 <meta property="og:title" content="War Horse Xtreme / Sword Vitality XXL Xtreme"/>
 <meta property="og:description" content="War Horse Xtreme, also sold as Sword Vitality XXL Xtreme: a 4 oz botanical performance cream for men, made without fillers, binders, additives or preservatives. Every plant in the formula is named on the label."/>
 
+<!-- Product image, pending a photograph. Uncomment the line below once
+     images/xxl-xtreme-4oz.jpg exists in the repo, and not before: a social
+     card pointing at a 404 renders worse than no card tag at all.
+     Exact line to uncomment:
+<meta property="og:image" content="https://bizforceai.net/images/xxl-xtreme-4oz.jpg"/>
+-->
+
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -106,6 +113,32 @@
     font-size:1.1875rem;
     line-height:1.65;
     margin:0 0 2.5rem;
+  }
+
+  /* ── Product photograph ─────────────────────────────────── */
+  /* Slot only; the file is not in the repo yet. The width and height
+     attributes on the img give it a 4:5 intrinsic ratio, so the browser
+     reserves the box before the photograph exists and the buy block below
+     it does not jump when one is dropped in. */
+  .shot{margin:0 0 2.5rem}
+  .shot img{
+    display:block;
+    width:100%;
+    max-width:var(--measure);
+    height:auto;
+    border-radius:2px;
+  }
+  /* Empty state. While the src attribute is absent the browser requests
+     nothing, so there is no failed load and no broken image icon. Borrows
+     the .pending treatment below, so the box reads as deliberately empty
+     and any alt text falls back into the page's own muted utility type. */
+  .shot img:not([src]){
+    aspect-ratio:4/5;
+    border:1px solid var(--rule);
+    background:var(--ink-raised);
+    font-family:var(--util);
+    font-size:.8125rem;
+    color:var(--sage-dim);
   }
 
   /* ── Buy ────────────────────────────────────────────────── */
@@ -329,6 +362,19 @@
     additives or preservatives. Every botanical in it is named on the label &mdash;
     no proprietary blend, nothing hidden behind a trademark.
   </p>
+
+  <!-- Product photograph. Drop the file in at images/xxl-xtreme-4oz.jpg
+       (served as /images/xxl-xtreme-4oz.jpg), shot 4:5 portrait, 1200×1500,
+       then add the src attribute to the img below:
+           src="/images/xxl-xtreme-4oz.jpg"
+       The attribute is left off rather than written as src="", because an
+       empty src resolves to this page's own URL: the browser fetches the
+       HTML document, fails to decode it as an image, and draws the broken
+       image icon. With no src attribute at all it requests nothing. -->
+  <figure class="shot reveal">
+    <img width="1200" height="1500" loading="eager"
+         alt="War Horse Xtreme / Sword Vitality XXL Xtreme 4 oz performance cream tube"/>
+  </figure>
 
   <div class="buy">
     <span class="price">$59.95<span>4 oz tube</span></span>
