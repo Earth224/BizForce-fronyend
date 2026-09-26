@@ -241,6 +241,13 @@
       touch-action: manipulation;
     }
 
+    /* The same quiet treatment on a link, which carries an underline of its
+       own that the button never had. */
+    a.forgot-link {
+      display: inline-block;
+      text-decoration: none;
+    }
+
     .forgot-link:hover,
     .forgot-link:focus-visible {
       color: #67e8f9;
@@ -350,7 +357,7 @@
           <label for="lp">Password</label>
           <input id="lp" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
         </div>
-<button id="loginBtn" class="btn" type="submit">Login</button>
+<button id="loginBtn" class="btn" type="submit">Sign In</button>
         <!-- type="button", like #forgotBtn below it. A bare <button> inside a
              form defaults to type="submit", so without this the passkey button
              would submit the password form instead of running its own flow. -->
@@ -382,12 +389,14 @@
       <div id="err" class="msg error" aria-live="assertive"></div>
 
       <div class="plan">
-        <strong>BizForce AI Full Access — $199/month</strong>
+        <strong>BizForce AI All Access — $199/month</strong>
         <span>One subscription unlocks all 17 AI business agents and all platform tools.</span>
       </div>
 <button id="subscribeBtn" class="btn">Start Subscription</button>
       <div class="fine">Deploy AI agents for SEO, sales, content, ads, analytics, social, storefronts, PR, and R&amp;D — 17 specialists in all, spanning marketing, operations, and executive strategy.</div>
     </section>
+
+    <div class="forgot"><a class="forgot-link" href="/">Back to BizForce AI</a></div>
   </main>
 
   <script>
@@ -986,10 +995,15 @@ if (loginForm) {
 
       var token = localStorage.getItem("bf_token");
 
-if (!token) {
-    window.location.href = "/app.html";
-    return;
-}
+      /* No token means no account to bill. Reloading this page used to be the
+         answer, which looked like the button doing nothing. Say what is
+         needed and put the Create Account form in front of them. showRegister
+         clears the message boxes, so it runs before setError, not after. */
+      if (!token) {
+        showRegister();
+        setError("Create an account or sign in first, then start your subscription.");
+        return;
+      }
 
       subscribeBtn.disabled = true;
       setStatus("Opening checkout...");
