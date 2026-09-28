@@ -616,6 +616,31 @@
       color: #f87171;
       font-size: .88rem;
     }
+
+    /* Sample-output note for the Agent Stats grid. The same rules agents/seo.html
+       already carries for its note, and the same amber as the dashboard. */
+    .sim-note {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      padding: 11px 13px;
+      border-radius: 11px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      background: rgba(251, 191, 36, 0.06);
+      margin-bottom: 18px;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: #fcd34d;
+    }
+
+    .sim-note strong {
+      flex-shrink: 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #fde68a;
+    }
   </style>
 </head>
 <body>
@@ -843,6 +868,22 @@
           sh += "<div class=\"context-item\"><label>" + escapeHtml(sk) + "</label><span>" + escapeHtml(store.stats[sk]) + "</span></div>";
         }
         statsEl.innerHTML = sh || "<p class=\"report-item-body\">No stats recorded yet.</p>";
+
+        /* THE SAMPLE LABEL, SHOWN ONLY WHILE THERE ARE STATS TO LABEL. Every
+           figure in this store is written by hash-seeded generators on the
+           dashboard; no agent run writes here. It goes above the grid, not in
+           it (the grid is a two-column layout), and comes off again when the
+           grid falls back to "No stats recorded yet." */
+        var simNote = document.getElementById("statsSimNote");
+        if (sh && !simNote) {
+          simNote = document.createElement("div");
+          simNote.id = "statsSimNote";
+          simNote.className = "sim-note";
+          simNote.innerHTML = "<strong>Sample</strong><span>— these figures were generated on the dashboard to demonstrate the interface. Nothing here is a measurement. Your task results below come from real agent runs and are not affected.</span>";
+          statsEl.parentNode.insertBefore(simNote, statsEl);
+        } else if (!sh && simNote) {
+          simNote.parentNode.removeChild(simNote);
+        }
       }
     }
     function applyLiveAgentData() {

@@ -593,20 +593,11 @@
     <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-hq-icon bf-agent-icon social" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span>Social Agent</span></div>
   </div>
 </div>
-<div class="activity bf-card bf-activity-compact bf-collapsible" id="recentActivitySection">
-  <div class="bf-activity-header">
-    <div class="bf-activity-heading">
-      <div class="bf-neon-icon bf-hq-icon bf-section-icon activity" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 3"/></svg></div>
-      <h3 class="bf-activity-title">Recent Activity</h3>
-    </div>
-    <button type="button" class="bf-btn bf-btn-ghost bf-activity-toggle" id="toggleRecentActivity">View activity</button>
-  </div>
-  <div class="bf-activity-body" id="recentActivityBody">
-    <div class="activity-item"><div class="activity-dot"></div><div class="activity-text">Account created successfully</div><div class="activity-time">Just now</div></div>
-    <div class="activity-item"><div class="activity-dot"></div><div class="activity-text">BizForce AI dashboard activated</div><div class="activity-time">Just now</div></div>
-    <div class="empty-state">More activity will appear here as you use BizForce AI</div>
-  </div>
-</div>
+<!-- Recent Activity was removed here. It rendered two fixed items, "Account
+     created successfully" and "BizForce AI dashboard activated", both stamped
+     "Just now", on every visit, with nothing feeding it. The real records it
+     could have shown already have their own panels: AI Agent Tasks, the Agent
+     Work Queue and Agent Memory. -->
 </div>
 <script src="/scripts/bf-identity.js"></script>
 <script>
@@ -722,14 +713,6 @@ window.updateActiveQueueSummary = function updateActiveQueueSummary(count) {
 };
 
 window.initDashboardUiChrome = function initDashboardUiChrome() {
-    var activityToggle = document.getElementById("toggleRecentActivity");
-    var activitySection = document.getElementById("recentActivitySection");
-    if (activityToggle && activitySection) {
-        activityToggle.addEventListener("click", function () {
-            var open = activitySection.classList.toggle("is-open");
-            activityToggle.textContent = open ? "Hide activity" : "View activity";
-        });
-    }
     var profileToggle = document.getElementById("toggleBusinessProfile");
     var profileForm = document.getElementById("businessProfileFormWrap");
     if (profileToggle && profileForm) {
@@ -35109,11 +35092,6 @@ function renderSeoAgentCard() {
             '<button type="button" id="seoAgentGeneratePlanBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE SEO PLAN</button>' +
             '<button type="button" id="seoAgentGenerateReportBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">GENERATE REPORT</button>' +
             '<button type="button" id="seoAgentGenerateForecastBtn" style="padding:10px 14px;border:1px solid rgba(124,60,255,.35);border-radius:999px;cursor:pointer;font-weight:800;color:#c5cdd8;background:#080812;font-size:13px;">GENERATE FORECAST</button>' +
-            '<button type="button" id="seoAgentForecastTrafficBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">FORECAST TRAFFIC</button>' +
-            '<button type="button" id="seoAgentForecastLeadsBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">FORECAST LEADS</button>' +
-            '<button type="button" id="seoAgentForecastRevenueBtn" style="padding:10px 14px;border:1px solid rgba(124,60,255,.35);border-radius:999px;cursor:pointer;font-weight:800;color:#c5cdd8;background:#080812;font-size:13px;">FORECAST REVENUE</button>' +
-            '<button type="button" id="seoAgentForecastRankingsBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">FORECAST RANKINGS</button>' +
-            '<button type="button" id="seoAgentGenerateSeoForecastBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE SEO FORECAST</button>' +
             '<button type="button" id="seoAgentGenerateCampaignBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE SEO CAMPAIGN</button>' +
             '<button type="button" id="seoAgentGenerateTopicClusterBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">GENERATE TOPIC CLUSTER</button>' +
             '<button type="button" id="seoAgentGeneratePillarPageBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE PILLAR PAGE</button>' +
@@ -35139,11 +35117,6 @@ function renderSeoAgentCard() {
             '<button type="button" id="seoAgentGenerateLocalFaqBtn" style="padding:10px 14px;border:1px solid rgba(124,60,255,.35);border-radius:999px;cursor:pointer;font-weight:800;color:#c5cdd8;background:#080812;font-size:13px;">GENERATE FAQ</button>' +
             '<button type="button" id="seoAgentAnalyzeReviewsBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">ANALYZE REVIEWS</button>' +
             '<button type="button" id="seoAgentGenerateLocalSeoPlanBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE LOCAL SEO PLAN</button>' +
-            '<button type="button" id="seoAgentTechnicalAuditBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">TECHNICAL SEO AUDIT</button>' +
-            '<button type="button" id="seoAgentPageSpeedBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">PAGE SPEED CHECK</button>' +
-            '<button type="button" id="seoAgentIndexabilityBtn" style="padding:10px 14px;border:1px solid rgba(124,60,255,.35);border-radius:999px;cursor:pointer;font-weight:800;color:#c5cdd8;background:#080812;font-size:13px;">INDEXABILITY CHECK</button>' +
-            '<button type="button" id="seoAgentSchemaReadinessBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">SCHEMA READINESS</button>' +
-            '<button type="button" id="seoAgentGenerateTechnicalPlanBtn" style="padding:10px 14px;border:1px solid rgba(76,175,80,.45);border-radius:999px;cursor:pointer;font-weight:800;color:#4caf50;background:#080812;font-size:13px;">GENERATE TECHNICAL SEO PLAN</button>' +
             '<button type="button" id="seoAgentSaveInsightBtn" style="padding:10px 14px;border:1px solid rgba(0,229,255,.3);border-radius:999px;cursor:pointer;font-weight:800;color:#00e5ff;background:#080812;font-size:13px;">SAVE SEO INSIGHT</button>' +
         '</div>' +
     '</div>';
@@ -35454,13 +35427,11 @@ function computeExecutiveRuntimeStatistics(sprint) {
         retries: 0,
         failures: 0,
         recoveryEvents: 0,
-        averageAgentRuntimeMinutes: 0,
-        estimatedRevenueImpact: 0
+        averageAgentRuntimeMinutes: 0
     };
     var timeline = sprint && Array.isArray(sprint.timeline) ? sprint.timeline : [];
     var runtimeMsTotal = 0;
     var runtimeCount = 0;
-    var kpis;
 
     timeline.forEach(function(eventItem) {
         var type = String(eventItem.type || "");
@@ -35520,12 +35491,15 @@ function computeExecutiveRuntimeStatistics(sprint) {
         stats.averageAgentRuntimeMinutes = Math.round((runtimeMsTotal / runtimeCount) / 60000);
     }
 
-    kpis = sprint && sprint.kpis ? sprint.kpis : (sprint ? calculateExecutiveKPIs(sprint) : null);
-    stats.estimatedRevenueImpact = Math.round(
-        ((kpis && kpis.completedAgents) || 0) * 1250 +
-        stats.agentsAutoStarted * 320 +
-        stats.dependenciesCompleted * 180
-    );
+    /* No revenue figure. One used to be computed here as fixed multipliers
+       per completed agent, auto-start and dependency, and shown as dollars.
+       Nothing measured it, so it is not replaced with a smaller number.
+
+       The KPI call it used stays: calculateExecutiveKPIs caches sprint.kpis,
+       and projectExecutiveKpis only counts sprints that have it. */
+    if (sprint && !sprint.kpis) {
+        calculateExecutiveKPIs(sprint);
+    }
 
     return stats;
 }
@@ -35765,8 +35739,7 @@ function renderExecutiveAgentCommandCenter(sprint) {
         'Retries: ' + stats.retries + '\n' +
         'Failures: ' + stats.failures + '\n' +
         'Recovery Events: ' + stats.recoveryEvents + '\n' +
-        'Average Agent Runtime: ' + stats.averageAgentRuntimeMinutes + ' min\n' +
-        'Estimated Revenue Impact: $' + stats.estimatedRevenueImpact.toLocaleString();
+        'Average Agent Runtime: ' + stats.averageAgentRuntimeMinutes + ' min';
 
     var feedItems = buildExecutiveCommunicationFeedItems(sprint);
 
@@ -40447,12 +40420,13 @@ bindSeoContentButtons();
 bindSeoAuthorityButtons();
 bindSeoCompetitorButtons();
 bindSeoLocalButtons();
-if (typeof bindSeoTechnicalButtons === "function") {
-    bindSeoTechnicalButtons();
-}
-if (typeof bindSeoForecastButtons === "function") {
-    bindSeoForecastButtons();
-}
+/* bindSeoTechnicalButtons and bindSeoForecastButtons used to be called here,
+   behind typeof guards. seo-technical.js and seo-forecast.js load after this
+   script, so both guards were always false and the ten buttons they served
+   never had a click handler. The buttons are removed from the SEO card rather
+   than wired up: their handlers generate figures from a hash of the input
+   (Core Web Vitals, mobile scores, traffic and revenue forecasts), and making
+   them work would add more fabricated figures, not fewer. */
 window.getAgentMemories = getAgentMemories;
 window.saveAgentMemory = saveAgentMemory;
 window.saveExecutiveAssignmentMemories = saveExecutiveAssignmentMemories;
