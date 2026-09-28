@@ -1028,14 +1028,25 @@
           },
           body: JSON.stringify({ phone: phone, name: name, consent: consent })
         })
-          .then(function (r) { return r.json(); })
-          .then(function () {
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d || {} }; },
+                                 function ()  { return { ok: r.ok, data: {} }; });
+          })
+          .then(function (res) {
+            // On failure the fields are left as typed, so the add can be retried.
+            if (!res.ok) {
+              alert("Could not add the subscriber: " + (res.data.error || "the server refused the request") + ". Nothing was cleared, so you can try again.");
+              return;
+            }
             phoneEl.value   = "";
             nameEl.value    = "";
             consentEl.value = "opted_in";
             loadSubscribers();
           })
-          .catch(function (err) { console.error("[sms] addSubscriber error:", err); })
+          .catch(function (err) {
+            console.error("[sms] addSubscriber error:", err);
+            alert("Could not add the subscriber — the server could not be reached. Nothing was cleared, so you can try again.");
+          })
           .finally(function () { btn.disabled = false; });
       });
     }
@@ -1205,12 +1216,23 @@
           },
           body: JSON.stringify({ name: name })
         })
-          .then(function (r) { return r.json(); })
-          .then(function () {
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d || {} }; },
+                                 function ()  { return { ok: r.ok, data: {} }; });
+          })
+          .then(function (res) {
+            // On failure the name is left as typed, so the create can be retried.
+            if (!res.ok) {
+              alert("Could not create the campaign: " + (res.data.error || "the server refused the request") + ". The name was kept, so you can try again.");
+              return;
+            }
             nameEl.value = "";
             loadCampaigns();
           })
-          .catch(function (err) { console.error("[sms] createCampaign error:", err); })
+          .catch(function (err) {
+            console.error("[sms] createCampaign error:", err);
+            alert("Could not create the campaign — the server could not be reached. The name was kept, so you can try again.");
+          })
           .finally(function () { btn.disabled = false; });
       });
     }
@@ -1270,12 +1292,24 @@
         },
         body: JSON.stringify({ subscriber_ids: ids })
       })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+        .then(function (r) {
+          return r.json().then(function (d) { return { ok: r.ok, data: d || {} }; },
+                               function ()  { return { ok: r.ok, data: {} }; });
+        })
+        .then(function (res) {
+          // A refusal used to read as "Enrolled: 0", which looks like a result.
+          if (!res.ok) {
+            alert("Enrollment failed: " + (res.data.error || "the server refused the request") + ".");
+            return;
+          }
+          var data = res.data;
           alert("Enrolled: " + (data.enrolled || 0));
           loadEnrollments();
         })
-        .catch(function (err) { console.error("[sms] enrollAllSubscribers error:", err); });
+        .catch(function (err) {
+          console.error("[sms] enrollAllSubscribers error:", err);
+          alert("Enrollment failed — the server could not be reached.");
+        });
     }
 
     function loadEnrollments() {
@@ -1345,12 +1379,23 @@
           },
           body: JSON.stringify({ step_number: stepNumber, body: bodyText, delay_hours: delayHours })
         })
-          .then(function (r) { return r.json(); })
-          .then(function () {
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d || {} }; },
+                                 function ()  { return { ok: r.ok, data: {} }; });
+          })
+          .then(function (res) {
+            // On failure the message text is left as typed, so it can be retried.
+            if (!res.ok) {
+              alert("Could not add the message: " + (res.data.error || "the server refused the request") + ". Your text was kept, so you can try again.");
+              return;
+            }
             bodyEl.value = "";
             loadMessages(campaignId);
           })
-          .catch(function (err) { console.error("[sms] addMessage error:", err); })
+          .catch(function (err) {
+            console.error("[sms] addMessage error:", err);
+            alert("Could not add the message — the server could not be reached. Your text was kept, so you can try again.");
+          })
           .finally(function () { btn.disabled = false; });
       });
     }

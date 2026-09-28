@@ -667,6 +667,7 @@ document.getElementById("quizSkipBtn").addEventListener("click", function(){
 });
 
 /* ── Quiz: submit & score ── */
+var awardSubmissions = 0;
 function submitQuiz() {
   var qs = QUESTIONS[activeCert.id];
   var correct = 0;
@@ -677,25 +678,105 @@ function submitQuiz() {
   var pct = Math.round((correct / total) * 100);
   var passed = pct >= 80;
 
-  // Record via API
-  authFetch("/api/certifications/award", {
-    method: "POST",
-    body: JSON.stringify({cert_id: activeCert.id, category: activeCert.category, score: pct, passed: passed})
-  })
-  .then(function(){
-    if (passed) {
-      earnedSet.add(activeCert.id);
-      earnedScores[activeCert.id] = pct;
-      document.getElementById("statEarned").textContent = earnedSet.size;
-    }
-  })
-  .catch(function(){});
+  var cert = activeCert;
+  var submission = ++awardSubmissions;
 
-  // Show result
-  showResult(pct, passed);
+  // Record via API
+  var saving = authFetch("/api/certifications/award", {
+    method: "POST",
+    body: JSON.stringify({cert_id: cert.id, category: cert.category, score: pct, passed: passed})
+  })
+  .then(function(r){
+    return r.json().then(
+      function(d){ return {ok: r.ok, data: d || {}}; },
+      function(){ return {ok: r.ok, data: {}}; }
+    );
+  });
+
+  // A fail is shown straight away, as it always was: it claims nothing.
+  if (!passed) {
+    saving.catch(function(){});
+    showResult(pct, false);
+    return;
+  }
+
+  /* A PASS WAITS FOR THE SERVER. "Certification Earned!" used to appear
+     whatever the request did, so a failed save still read as earned and
+     rewarded. The server answers with already_earned and credited
+     (POST /api/certifications/award), and the result screen says what it
+     actually recorded. */
+  showResult(pct, true, "saving");
+
+  // Only drawn if this quiz's result screen is still the one showing when the
+  // answer lands — not after Done, Try Again, or opening another quiz.
+  function render(outcome, reason){
+    if (submission === awardSubmissions && activeCert === cert &&
+        document.getElementById("quizResult").style.display === "block") {
+      showResult(pct, true, outcome, reason);
+    }
+  }
+
+  saving
+    .then(function(res){
+      if (!res.ok) {
+        render("failed", res.data.error);
+        return;
+      }
+      earnedSet.add(cert.id);
+      earnedScores[cert.id] = pct;
+      document.getElementById("statEarned").textContent = earnedSet.size;
+      if (res.data.already_earned === true) render("already");
+      else if (res.data.credited === true) render(null);
+      else render("uncredited");
+    })
+    .catch(function(){
+      render("failed");
+    });
 }
 
-function showResult(pct, passed) {
+/* The pass outcomes the server can answer with, plus the wait before it does.
+   "already" and "uncredited" are successes: the certification is earned. */
+function showSaveOutcome(pct, outcome, reason) {
+  var ok = outcome !== "failed" && outcome !== "saving";
+
+  var ring = document.getElementById("resultRing");
+  ring.className = "result-ring" + (outcome === "failed" ? " fail" : ok ? " pass" : "");
+  ring.textContent = outcome === "saving" ? "…" : outcome === "failed" ? "!" : "✓";
+
+  var headline = document.getElementById("resultHeadline");
+  headline.className = "result-headline" + (outcome === "failed" ? " fail" : ok ? " pass" : "");
+  headline.textContent =
+    outcome === "saving"  ? "Saving your result…" :
+    outcome === "already" ? "Already Earned" :
+    outcome === "failed"  ? "Not Saved" :
+                            "Certification Earned!";
+
+  document.getElementById("resultSub").textContent =
+    outcome === "saving"  ? "You scored " + pct + "%." :
+    outcome === "already" ? "You passed " + activeCert.name + " again. It was already on your profile, so no BFC was credited this time." :
+    outcome === "failed"  ? "You scored " + pct + "% and passed, but your result could not be saved" +
+                            (reason ? " (" + reason + ")" : "") +
+                            ". Nothing was added to your profile — use Try Again to take it once more and save it." :
+                            "You demonstrated mastery of " + activeCert.name + ". Your badge has been added to your profile, but the 100 BFC reward could not be credited.";
+
+  document.getElementById("resultScore").textContent = pct + "%";
+
+  var badge = document.getElementById("resultCertBadge");
+  badge.style.display = ok ? "flex" : "none";
+  if (ok) document.getElementById("resultCertName").textContent = activeCert.name;
+
+  document.getElementById("resultProgressFill") && (document.getElementById("resultProgressFill").style.width = "100%");
+  document.getElementById("quizProgressFill").style.width = "100%";
+
+  showScreen("result");
+}
+
+function showResult(pct, passed, outcome, reason) {
+  if (passed && outcome) {
+    showSaveOutcome(pct, outcome, reason);
+    return;
+  }
+
   var ring = document.getElementById("resultRing");
   ring.className = "result-ring " + (passed ? "pass" : "fail");
   ring.textContent = passed ? "✓" : pct + "%";

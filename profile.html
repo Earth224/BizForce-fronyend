@@ -1943,7 +1943,9 @@ document.getElementById("fi-banner").addEventListener("change", async function()
   if (!this.files[0] || !isOwner) return;
   try {
     var url = await uploadToStorage(this.files[0], "banners");
-    await apiFetch("/api/bfp/profile/me","PUT",{ banner_url:url });
+    var saved = await apiFetch("/api/bfp/profile/me","PUT",{ banner_url:url });
+    // The file is in storage, but the profile only shows it once this saves.
+    if (!saved.ok) { showToast("Banner uploaded but not saved to your profile — please try again",true); this.value=""; return; }
     var img=document.getElementById("bannerImg"); img.src=url; img.style.display="block";
     showToast("Banner updated!");
   } catch(e) { showToast("Banner upload failed",true); }
@@ -1953,7 +1955,9 @@ document.getElementById("fi-avatar").addEventListener("change", async function()
   if (!this.files[0] || !isOwner) return;
   try {
     var url = await uploadToStorage(this.files[0], "avatars");
-    await apiFetch("/api/bfp/profile/me","PUT",{ avatar_url:url });
+    var saved = await apiFetch("/api/bfp/profile/me","PUT",{ avatar_url:url });
+    // The file is in storage, but the profile only shows it once this saves.
+    if (!saved.ok) { showToast("Avatar uploaded but not saved to your profile — please try again",true); this.value=""; return; }
     var img=document.getElementById("avatarImg"); img.src=url; img.style.display="block";
     document.getElementById("avatarInitials").style.display="none";
     showToast("Avatar updated!");

@@ -1714,8 +1714,14 @@
           });
       }
 
+      /* TWO STEPS, AND A FAILURE MEANS DIFFERENT THINGS AFTER EACH. The browser
+         subscription is dropped first, then the server is told. If the browser
+         step fails, notifications are still on. If only the server step fails,
+         this browser will not receive them, but the server still holds the
+         subscription. The catch says which, instead of "Disabled." for both. */
       function disablePush() {
         notifToggle.disabled = true;
+        var browserOff = false;
 
         navigator.serviceWorker.getRegistration()
           .then(function (reg) {
@@ -1724,7 +1730,9 @@
           .then(function (sub) {
             if (!sub) return null;
             var endpoint = sub.endpoint;
-            return sub.unsubscribe().then(function () {
+            return sub.unsubscribe().then(function (dropped) {
+              if (dropped === false) throw new Error("The browser kept the subscription.");
+              browserOff = true;
               return fetch(API_URL + "/api/push/subscribe", {
                 method: "DELETE",
                 headers: {
@@ -1735,7 +1743,8 @@
               });
             });
           })
-          .then(function () {
+          .then(function (res) {
+            if (res && !res.ok) throw new Error("The server did not accept the change.");
             notifToggle.disabled = false;
             notifToggle.checked = false;
             notifTestRow.style.display = "none";
@@ -1743,9 +1752,14 @@
           })
           .catch(function () {
             notifToggle.disabled = false;
-            notifToggle.checked = false;
-            notifTestRow.style.display = "none";
-            setNotifStatus("Disabled.", "");
+            if (browserOff) {
+              notifToggle.checked = false;
+              notifTestRow.style.display = "none";
+              setNotifStatus("Off in this browser, but the server couldn't be updated — turn notifications on and off again to retry.", "err");
+            } else {
+              notifToggle.checked = true;
+              setNotifStatus("Couldn't disable notifications — please try again.", "err");
+            }
           });
       }
 
