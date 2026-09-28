@@ -3,14 +3,51 @@
 <head>
 <script src="/scripts/bf-session.js"></script>
 <script>
-    function logout() {
+    /* SIGN-OUT ENDS THE SESSION ON THE SERVER, NOT ONLY IN THIS BROWSER.
+       Clearing storage alone left the auth_sessions row and its refresh token
+       live, so on a shared machine the server still counted the user as signed
+       in. POST /api/auth/logout revokes the row, and it is awaited before
+       anything local is cleared, because the call needs the token to say
+       which session to end.
+
+       A FAILED CALL STILL SIGNS THE DEVICE OUT. Nobody can be kept in a
+       session by a dropped connection, so storage is cleared whatever the
+       answer, and a request that hangs is abandoned after 10 seconds. The
+       failure is not silent: the reason travels to app.html in ?session=, the
+       same way scripts/bf-session.js sends "expired", and is shown there. */
+    var signingOut = false;
+    async function logout() {
+    if (signingOut) return;
+    signingOut = true;
+
+    var token = localStorage.getItem("bf_token");
+    var reason = "";
+
+    if (token) {
+      var controller = new AbortController();
+      var abortTimer = setTimeout(function () { controller.abort(); }, 10000);
+
+      try {
+        var res = await fetch(API_URL + "/api/auth/logout", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token },
+          signal: controller.signal
+        });
+        if (!res.ok) reason = "signout-unconfirmed";
+      } catch (e) {
+        reason = "signout-offline";
+      }
+
+      clearTimeout(abortTimer);
+    }
+
     localStorage.removeItem("bf_token");
     /* The refresh token is a live credential - it mints access tokens with no
        password - so a sign-out that left it behind would leave the account
        reachable from this browser by anything that reads storage. */
     localStorage.removeItem("bf_refresh");
     localStorage.removeItem("bf_user");
-    window.location.replace("/app.html");
+    window.location.replace("/app.html" + (reason ? "?session=" + reason : ""));
 }
 </script>
 

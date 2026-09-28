@@ -453,9 +453,19 @@ document.addEventListener("DOMContentLoaded", function () {
       reason = new URLSearchParams(window.location.search).get("session");
     } catch (e) { return; }
 
-    if (reason !== "expired") return;
+    /* "expired" comes from scripts/bf-session.js. The two signout- reasons
+       come from the Sign Out buttons on dashboard.html and settings.html,
+       which always clear this device but could not get the server to end the
+       session. */
+    var REASONS = {
+      "expired": "Your session expired. Please sign in again.",
+      "signout-offline": "You're signed out on this device, but the server couldn't be reached to end your session. Sign in and sign out again once you're back online to close it.",
+      "signout-unconfirmed": "You're signed out on this device, but the server couldn't confirm your session was ended. Sign in and sign out again to make sure it's closed."
+    };
 
-    setError("Your session expired. Please sign in again.");
+    if (!Object.prototype.hasOwnProperty.call(REASONS, reason)) return;
+
+    setError(REASONS[reason]);
 
     try {
       window.history.replaceState({}, "", window.location.pathname);

@@ -2277,14 +2277,45 @@
         loadPasskeysOnce();
       }
 
-      document.getElementById("signOutBtn").addEventListener("click", function () {
+      /* The same sign-out as dashboard.html's logout(): revoke the session on
+         the server first, then clear this device whatever the answer, and
+         carry any failure to app.html in ?session=. This page does not load
+         scripts/bf-session.js, so an expired access token is not refreshed
+         and retried here; the server answers 401 and that is reported as
+         unconfirmed, which is what it is. */
+      var signingOut = false;
+      document.getElementById("signOutBtn").addEventListener("click", async function () {
+        if (signingOut) return;
+        signingOut = true;
+
+        var signOutToken = localStorage.getItem("bf_token");
+        var reason = "";
+
+        if (signOutToken) {
+          var controller = new AbortController();
+          var abortTimer = setTimeout(function () { controller.abort(); }, 10000);
+
+          try {
+            var res = await fetch(API_URL + "/api/auth/logout", {
+              method: "POST",
+              headers: { "Authorization": "Bearer " + signOutToken },
+              signal: controller.signal
+            });
+            if (!res.ok) reason = "signout-unconfirmed";
+          } catch (e) {
+            reason = "signout-offline";
+          }
+
+          clearTimeout(abortTimer);
+        }
+
         localStorage.removeItem("bf_token");
         /* Cleared for the same reason dashboard.html clears it: a refresh
            token outlives the access token by design and would still open the
            account after the user believed they had signed out. */
         localStorage.removeItem("bf_refresh");
         localStorage.removeItem("bf_user");
-        window.location.replace("app.html");
+        window.location.replace("app.html" + (reason ? "?session=" + reason : ""));
       });
     })();
   </script>
