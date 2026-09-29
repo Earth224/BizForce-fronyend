@@ -882,6 +882,68 @@
     return e;
   }
 
+  /* A FAILED LOAD, SAID WHERE THE DATA WOULD HAVE BEEN, WITH A WAY TO TRY
+     AGAIN. The three list loaders below used to turn a failed request into an
+     empty list ("No drafts in queue yet", "No tasks run yet", zeroed stats) or
+     into nothing at all, so a failure read as an account with no activity.
+
+     The note goes ABOVE whatever is already in the container rather than
+     replacing it: rows drawn by an earlier successful load were true when
+     drawn. Only a placeholder that claims emptiness is cleared first. Any
+     earlier note is removed, so there is only ever one.
+
+     The retry never stays disabled. With no session it says so and stays
+     usable — the loaders return before fetching without a token, and nothing
+     would redraw it. Otherwise every loader redraws its container when it
+     finishes, success, emptiness and failure alike, which replaces this
+     button; and a synchronous throw re-enables it. */
+  function showLoadFailure(container, message, retry, opts) {
+    if (!container) return;
+    opts = opts || {};
+    removeLoadFailure(container);
+    if (opts.clearIf && container.querySelector(opts.clearIf) && !(opts.keepIf && container.querySelector(opts.keepIf))) {
+      container.innerHTML = "";
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "ap-load-fail";
+    if (opts.spanGrid) wrap.style.gridColumn = "1 / -1";
+    var msg = document.createElement("div");
+    msg.className = "ap-msg err";
+    msg.textContent = message;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ap-btn";
+    btn.textContent = "Try again";
+    btn.addEventListener("click", function () {
+      if (!tok()) {
+        msg.textContent = "Your session has ended — sign in again to load this.";
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "Retrying…";
+      try {
+        retry();
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "Try again";
+      }
+    });
+    wrap.appendChild(msg);
+    wrap.appendChild(btn);
+    container.insertBefore(wrap, container.firstChild);
+  }
+
+  function removeLoadFailure(container) {
+    var old = container && container.querySelector(".ap-load-fail");
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
+
+  // A non-2xx is a failure, not an empty answer.
+  function okJson(r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }
+
   var AUTO_SUBJECT = "Autonomous mode";
   var AUTO_CLAIM   = "this switch is not showing whether it is on";
 
@@ -2870,12 +2932,17 @@
     fetch(API_URL + "/api/social-drafts", {
       headers: { "Authorization": "Bearer " + token }
     })
-    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(okJson)
     .then(function(data) {
       var drafts = (data && Array.isArray(data.drafts)) ? data.drafts : [];
       renderApprovalQueue(drafts);
     })
-    .catch(function() {});
+    .catch(function(err) {
+      showLoadFailure(document.getElementById("apApprovalQueue"),
+        "Your approval queue could not be loaded (" + ((err && err.message) || "the request failed") +
+        ") — this is not a statement that it is empty.",
+        loadApprovalQueue, { clearIf: ".ap-queue-empty", keepIf: ".ap-queue-list" });
+    });
   }
 
   function renderApprovalQueue(drafts) {
@@ -3368,15 +3435,19 @@
     fetch(API_URL + "/api/ai/tasks?agent_type=" + encodeURIComponent(AGENT_TYPE) + "&limit=50", {
       headers: { "Authorization": "Bearer " + token }
     })
-    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(okJson)
     .then(function (data) {
       var tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
       renderStats(tasks);
       renderHistory(tasks);
     })
-    .catch(function () {
-      var el = document.getElementById("apHistory");
-      if (el) el.innerHTML = '<div class="ap-empty-state">Could not load history.</div>';
+    .catch(function (err) {
+      /* The stat tiles are left as they are — "—" before any load, or the last
+         figures a successful load drew — rather than set to zero. */
+      showLoadFailure(document.getElementById("apHistory"),
+        "Your task history could not be loaded (" + ((err && err.message) || "the request failed") +
+        ") — the history and the figures above are not a count of what this agent has done.",
+        loadHistory, { clearIf: ".ap-empty-state", keepIf: ".ap-history" });
     });
   }
 
@@ -3496,8 +3567,11 @@
       fetch(API_URL + "/api/business-profile", {
         headers: { "Authorization": "Bearer " + token }
       })
-      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(okJson)
       .then(function(d) {
+        // A successful read clears any earlier failure note, including one
+        // that answered with no profile and so draws nothing itself.
+        removeLoadFailure(grid);
         if (!d || !d.profile) return;
         var store = {};
         try {
@@ -3562,8 +3636,20 @@
           grid.innerHTML = html;
         }
       })
-      .catch(function() {});
-    } catch (e) {}
+      .catch(function(err) { showContextFailure(grid, err); });
+    } catch (e) {
+      showContextFailure(grid, e);
+    }
+  }
+
+  /* What is in the grid before this read is the page's own copy, built from
+     this browser's saved profile — so after a failure it still shows
+     something, and nothing said it was not the server's. */
+  function showContextFailure(grid, err) {
+    showLoadFailure(grid,
+      "Your business profile could not be loaded from the server (" + ((err && err.message) || "the request failed") +
+      ") — what is shown here is this browser's saved copy, which may be out of date.",
+      loadBusinessContext, { spanGrid: true });
   }
 
   /* ── boot ── */
