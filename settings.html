@@ -908,24 +908,56 @@
         profileMsg.className = "msg" + (kind ? " " + kind : "");
       }
 
+      /* THE FORM IS NOT AUTHORITATIVE UNTIL THE PROFILE HAS LOADED. Save sends
+         all five fields and PUT /api/profile/me writes each one as sent, so
+         saving a form that never received the stored profile overwrites it with
+         blanks. Saving waits for a read that succeeded; { profile: null } — an
+         account with no profile row — is a successful read and may save. */
+      var profileFormLoadState = "loading";
+      profileSaveBtn.disabled = true;
+
+      function markProfileFormLoadFailed(detail) {
+        profileFormLoadState = "failed";
+        profileSaveBtn.disabled = true;
+        setProfileMsg("Your profile could not be loaded (" + detail + "). Saving is turned off so it cannot be " +
+          "overwritten with blank fields — reload the page to try again.", "err");
+      }
+
       fetch(API_URL + "/api/profile/me", {
         headers: { "Authorization": "Bearer " + token }
       })
         .then(function (r) {
-          return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; });
         })
         .then(function (res) {
-          if (!res.ok || !res.data || !res.data.profile) return;
+          if (!res.ok || !res.data || !Object.prototype.hasOwnProperty.call(res.data, "profile")) {
+            markProfileFormLoadFailed(res.ok ? "the response could not be read" : "HTTP " + res.status);
+            return;
+          }
           var p = res.data.profile;
-          pf.business_name.value = p.business_name || "";
-          pf.contact_email.value = p.contact_email || "";
-          pf.industry.value      = p.industry      || "";
-          pf.website.value       = p.website       || "";
-          pf.location.value      = p.location      || "";
+          if (p) {
+            pf.business_name.value = p.business_name || "";
+            pf.contact_email.value = p.contact_email || "";
+            pf.industry.value      = p.industry      || "";
+            pf.website.value       = p.website       || "";
+            pf.location.value      = p.location      || "";
+          }
+          profileFormLoadState = "ready";
+          profileSaveBtn.disabled = false;
         })
-        .catch(function () {});
+        .catch(function () {
+          markProfileFormLoadFailed("could not reach the server");
+        });
 
       profileSaveBtn.addEventListener("click", function () {
+        // Enforced here as well as by the disabled button.
+        if (profileFormLoadState !== "ready") {
+          setProfileMsg(profileFormLoadState === "loading"
+            ? "Your profile is still loading — save once it has loaded."
+            : "Not saved. Your profile could not be loaded, so saving is turned off to keep it from being " +
+              "overwritten with blank fields — reload the page to try again.", "err");
+          return;
+        }
         setProfileMsg("", "");
         profileSaveBtn.disabled = true;
 

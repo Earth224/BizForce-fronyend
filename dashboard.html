@@ -2220,6 +2220,28 @@ if (aiMailboxSearch) {
 renderAiMailbox();
 localStorage.setItem("AI_MAILBOX_HYDRATION_DISABLED", "1");
     
+/* THE FORM IS NOT AUTHORITATIVE UNTIL THE PROFILE HAS LOADED. Save posts every
+   field below, and POST /api/business-profile writes a field sent as "" as
+   null — so saving a form that never received the stored profile erases every
+   column it holds. Saving waits for a read that succeeded. A read answering
+   { ok: true, profile: null } is an account with no profile yet: that is a
+   successful read, and saving is allowed. */
+var businessProfileLoadState = "loading";
+function setBusinessProfileSaveAllowed(allowed) {
+  var b = document.getElementById("saveBusinessProfile");
+  if (b) b.disabled = !allowed;
+}
+function markBusinessProfileLoadFailed(detail) {
+  businessProfileLoadState = "failed";
+  setBusinessProfileSaveAllowed(false);
+  var s = document.getElementById("businessProfileStatus");
+  if (s) {
+    s.innerHTML = "<span style='color:#f87171;'>Your business profile could not be loaded (" + detail +
+      "). Saving is turned off so it cannot be overwritten with blank fields — reload the page to try again.</span>";
+  }
+}
+setBusinessProfileSaveAllowed(false);
+
 fetch(API_URL + "/api/business-profile", {
   method: "GET",
   headers: {
@@ -2227,9 +2249,19 @@ fetch(API_URL + "/api/business-profile", {
   }
 })
 .then(function (response) {
-  return response.json();
+  return response.json().then(
+    function (body) { return { ok: response.ok, status: response.status, data: body }; },
+    function () { return { ok: response.ok, status: response.status, data: null }; }
+  );
 })
-.then(function (data) {
+.then(function (res) {
+  // Only a response that carries the profile key — the profile, or null for
+  // an account with none — makes this form a copy of what is stored.
+  if (!res.ok || !res.data || !Object.prototype.hasOwnProperty.call(res.data, "profile")) {
+    markBusinessProfileLoadFailed(res.ok ? "the response could not be read" : "HTTP " + res.status);
+    return;
+  }
+  var data = res.data;
 
   console.log("LOADED BUSINESS PROFILE:", data);
 
@@ -2275,10 +2307,13 @@ setProfileField("business_description", profile.business_description);
 if (typeof window.updateBusinessProfileSummary === "function") {
     window.updateBusinessProfileSummary();
 }
+businessProfileLoadState = "ready";
+setBusinessProfileSaveAllowed(true);
 })
 .catch(function (err) {
 
   console.error("PROFILE LOAD ERROR:", err);
+  markBusinessProfileLoadFailed("could not reach the server");
 
 });
   var saveBtn = document.getElementById("saveBusinessProfile");
@@ -2288,6 +2323,15 @@ if (typeof window.updateBusinessProfileSummary === "function") {
   }
 
   saveBtn.addEventListener("click", async function () {
+
+    /* Enforced here as well as by the disabled button: a button is only a hint,
+       and this is the line that stops a blank form reaching the upsert. */
+    if (businessProfileLoadState !== "ready") {
+      document.getElementById("businessProfileStatus").innerHTML = businessProfileLoadState === "loading"
+        ? "<span style='color:#f87171;'>Your business profile is still loading — save once it has loaded.</span>"
+        : "<span style='color:#f87171;'>Not saved. Your business profile could not be loaded, so saving is turned off to keep it from being overwritten with blank fields — reload the page to try again.</span>";
+      return;
+    }
 
     try {
 

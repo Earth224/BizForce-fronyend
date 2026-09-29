@@ -980,6 +980,12 @@
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
 var activeCardId    = null;
+/* NO CARD ID IS ONLY TRUSTED AFTER A LOAD THAT SUCCEEDED. saveCard POSTs a new
+   card whenever activeCardId is null, so a failed load — which leaves it null
+   for someone who has a card — turned their next save into a second card, and
+   the newest card is the one this page loads from then on. Saving waits for a
+   successful read; { cards: [] } is a real "no card yet" and may save. */
+var cardLoadState   = "loading";
 var activeTheme     = "dark";
 var activeShareToken = null;
 var qrTimer = null;
@@ -1336,8 +1342,9 @@ async function loadCard() {
     var res = await fetch(API_URL + "/api/digital-cards", {
       headers: { "Authorization": "Bearer " + token }
     });
-    if (!res.ok) return;
+    if (!res.ok) { markCardLoadFailed("HTTP " + res.status); return; }
     var data = await res.json();
+    if (!data || !Array.isArray(data.cards)) { markCardLoadFailed("the response could not be read"); return; }
     if (data.cards && data.cards.length) {
       activeCardId = data.cards[0].id;
       if (data.cards[0].share_token) activeShareToken = data.cards[0].share_token;
@@ -1346,13 +1353,35 @@ async function loadCard() {
     } else {
       generateQR();
     }
+    cardLoadState = "ready";
   } catch(e) {
     generateQR();
+    markCardLoadFailed("could not reach the server");
+  }
+}
+
+// Written directly rather than through setStatus, which clears error text
+// after a few seconds: this has to stay until the page is reloaded.
+function markCardLoadFailed(detail) {
+  cardLoadState = "failed";
+  var el = document.getElementById("saveStatus");
+  if (el) {
+    el.textContent = "Your card could not be loaded (" + detail + "). Saving is turned off so a second card " +
+      "is not created in its place — reload the page to try again.";
+    el.className = "save-status err";
   }
 }
 
 async function saveCard() {
   if (_stillUploading) return;
+  /* Checked here rather than by disabling the button: the image upload flow
+     re-enables #saveBtn when it finishes, so the button cannot hold this. */
+  if (cardLoadState !== "ready") {
+    showToast(cardLoadState === "loading"
+      ? "Your card is still loading — save once it has loaded."
+      : "Not saved. Your card could not be loaded, so saving would create a second card — reload the page to try again.", true);
+    return;
+  }
   var btn = document.getElementById("saveBtn");
   btn.disabled = true;
   setStatus("Saving...", "info");

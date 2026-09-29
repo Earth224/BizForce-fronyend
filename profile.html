@@ -1107,6 +1107,7 @@
       </div>
       <p class="pf-tagline" id="taglineEl"></p>
       <div class="pf-meta-row" id="metaRow"></div>
+      <div id="profileLoadError" style="display:none;margin-top:14px"></div>
     </div>
   </div>
   <!-- Social links -->
@@ -1487,6 +1488,14 @@ async function readError(res) {
    "No products yet" at a visitor because a route failed is a claim about
    another person's business that this page is in no position to make. */
 var sectionState = { products: "loading", portfolio: "loading", videos: "loading", tracks: "loading" };
+/* THE PROFILE ITSELF, apart from the four sections. saveAbout and
+   saveCustomization send fields that applyProfile filled from this read, and
+   PUT /api/bfp/profile/me upserts them as sent — so after a failed read they
+   would write "" over the name, bio and industry, null over the username
+   (releasing it), [] over the skills, and the defaults over accent, font and
+   section visibility. Both saves wait for a read that succeeded. { profile:
+   null } is a new account with no profile yet — a successful read. */
+var bfProfileLoadState = "loading";
 var sectionError = { products: null, portfolio: null, videos: null, tracks: null };
 
 function errorState(svgPath, title, sub, detail, retryCall) {
@@ -1537,7 +1546,23 @@ async function loadAll() {
       fetch(API_URL + (own ? "/api/bfp/videos"     : "/api/bfp/videos/public/"     + uid), { headers: hdr }),
       fetch(API_URL + (own ? "/api/bfp/music"      : "/api/bfp/music/public/"      + uid), { headers: hdr })
     ]);
-    try { profileData = (await pRes.json()).profile || {}; }    catch(e){ console.error('[BF] profile parse:', e); profileData = {}; }
+    if (!pRes.ok) {
+      profileData = {};
+      bfProfileLoadState = "failed";
+      bfProfileLoadDetail = await readError(pRes);
+    } else {
+      try {
+        var pBody = await pRes.json();
+        if (!pBody || !Object.prototype.hasOwnProperty.call(pBody, "profile")) throw new Error("no profile key");
+        profileData = pBody.profile || {};
+        bfProfileLoadState = "ready";
+      } catch(e) {
+        console.error('[BF] profile parse:', e);
+        profileData = {};
+        bfProfileLoadState = "failed";
+        bfProfileLoadDetail = "The server sent a response this page could not read.";
+      }
+    }
     products  = await readSection(prodRes, "products", "products");
     portfolio = await readSection(portRes, "items",    "portfolio");
     videos    = await readSection(vidRes,  "videos",   "videos");
@@ -1546,12 +1571,15 @@ async function loadAll() {
     /* A thrown fetch took out all four at once. */
     console.error('[BF] loadAll fetch failed:', e);
     profileData = {}; products = []; portfolio = []; videos = []; tracks = [];
+    bfProfileLoadState = "failed";
+    bfProfileLoadDetail = "Could not reach the server. Check your connection and try again.";
     names.forEach(function(n) {
       sectionState[n] = "error";
       sectionError[n] = "Could not reach the server. Check your connection and try again.";
     });
   }
   applyProfile(profileData);
+  renderProfileLoadError();
   renderProducts();
   if (typeof renderPortfolio === "function") renderPortfolio();
   if (typeof renderVideos    === "function") renderVideos();
@@ -1563,6 +1591,31 @@ async function loadAll() {
     var sb = document.getElementById("shareLinkBtn");
     if (sb) sb.style.display = "none";
   }
+}
+
+var bfProfileLoadDetail = null;
+
+/* Said in the header, in the page's own error card, and for the owner it also
+   says why editing will not save. A visitor sees that the profile failed to
+   load rather than a blank page that reads as an empty profile. */
+function renderProfileLoadError() {
+  var el = document.getElementById("profileLoadError");
+  if (!el) return;
+  if (bfProfileLoadState !== "failed") { el.style.display = "none"; el.innerHTML = ""; return; }
+  el.innerHTML = errorState(WARN_SVG,
+    isOwner ? "Your profile could not be loaded" : "This profile could not be loaded",
+    isOwner ? "Saving your details and customization is turned off until it loads, so they cannot be overwritten with blanks."
+            : "This is a problem reaching the server, not a statement about this profile.",
+    bfProfileLoadDetail, "location.reload()");
+  el.style.display = "";
+}
+
+// Both saves that write profile fields call this first.
+function profileSaveBlockedMessage() {
+  if (bfProfileLoadState === "ready") return null;
+  return bfProfileLoadState === "loading"
+    ? "Your profile is still loading — save once it has loaded."
+    : "Not saved. Your profile could not be loaded, so saving is turned off to keep it from being overwritten with blanks — reload the page to try again.";
 }
 
 // ── Apply profile ────────────────────────────────────────────────────────────
@@ -1707,6 +1760,8 @@ function syncFontBtns(key) {
 // ── Customization panel ───────────────────────────────────────────────────────
 function toggleCustomPanel() { document.getElementById("customPanel").classList.toggle("open"); }
 async function saveCustomization() {
+  var blocked = profileSaveBlockedMessage();
+  if (blocked) { showToast(blocked, true); return; }
   var accent  = document.getElementById("colorPicker").value;
   var fontBtn = document.querySelector(".pf-font-btn.active");
   var font    = fontBtn ? fontBtn.dataset.font : "modern";
@@ -1745,6 +1800,8 @@ function removeSkill(i) { skills.splice(i,1); renderSkillsEdit(); }
 async function saveAbout() {
   var btn    = document.getElementById("saveAboutBtn");
   var status = document.getElementById("aboutStatus");
+  var blocked = profileSaveBlockedMessage();
+  if (blocked) { status.textContent = blocked; status.className = "pf-about-save-status err"; return false; }
   btn.disabled = true; status.textContent = "Saving…"; status.className = "pf-about-save-status";
   var ok = false;
   try {
