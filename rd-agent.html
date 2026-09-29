@@ -674,9 +674,26 @@
         retryBtn.className = "ap-btn";
         retryBtn.textContent = "Try Again";
         retryBtn.addEventListener("click", function () {
+          /* NO TOKEN, NO REQUEST. applyLiveAgentData returns before fetching
+             when the token is gone, so nothing would ever come back to redraw
+             this button. Said here instead, and the button left usable.
+             Redirecting to sign in is bf-session.js's decision, not this one. */
+          if (!localStorage.getItem("bf_token")) {
+            msgEl.textContent = "Agent stats could not be loaded — your session has ended, so sign in again to see your activity.";
+            return;
+          }
+
           retryBtn.disabled = true;
           retryBtn.textContent = "Retrying…";
-          applyLiveAgentData();
+
+          try {
+            applyLiveAgentData();
+          } catch (e) {
+            // A throw before the request is made would otherwise strand the
+            // button the same way.
+            retryBtn.disabled = false;
+            retryBtn.textContent = "Try Again";
+          }
         });
 
         failEl.appendChild(msgEl);
