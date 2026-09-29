@@ -51,10 +51,10 @@
       "Keep Products and Portfolio current — stale entries undercut the credibility this page is built to establish."
     ],
     "integrations.html": [
-      "A preview of every third-party connection planned for the platform — Stripe, Twilio, GoDaddy, Zernio, and every major social channel — 13 in total.",
-      "Nothing to connect yet; every \"Connect\" button here is intentionally disabled (\"Coming soon\") — there's no setup to do on this page today.",
-      "Use this page to see what's coming, not to configure anything right now — check back as connections go live.",
-      "If you need a tool connected today, use the platform's built-in equivalents (the Content Agent's social account connections, for instance) rather than waiting on this page."
+      "Thirteen services and what each one is to BizForce today: \"Unavailable\", \"Runs on BizForce\", or \"Not built\".",
+      "\"Unavailable\" means connecting was built and is turned off for now — that is the six social platforms.",
+      "\"Runs on BizForce\" means the app uses the service with its own account — Stripe, Twilio, Zernio and email — so there is nothing for you to connect.",
+      "There is no setup to do on this page; nothing here takes an account of yours."
     ],
     "marketplace.html": [
       "A peer-to-peer service marketplace — browse other members' listings by category, or list your own services for BFC.",

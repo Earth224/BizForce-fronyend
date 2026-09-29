@@ -1823,6 +1823,11 @@
           btns[b].disabled = true;
           btns[b].textContent = "Unavailable";
         }
+        /* The Create Account modal's Connect button lives in another script
+           and resets itself every time the modal opens, so it reads this
+           flag then; it is also set here in case the modal is already open. */
+        window.bfSocialConnectUnavailable = true;
+        if (typeof window.caApplyConnectAvailability === "function") window.caApplyConnectAvailability();
         return;
       }
 
@@ -1947,7 +1952,7 @@ window.AGENT_PROFILE_CONFIG = {
       </label>
     </div>
     <div id="caConnectReveal" style="display:none;margin-top:14px;padding:14px 16px;border-radius:12px;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.14)">
-      <p style="font-size:.78rem;color:#8892b8;margin:0 0 12px;line-height:1.5">Your account is ready to link. Connect it to BizForce now.</p>
+      <p id="caConnectNote" style="font-size:.78rem;color:#8892b8;margin:0 0 12px;line-height:1.5">Your account is ready to link. Connect it to BizForce now.</p>
       <button type="button" class="connect-btn" id="caModalConnectBtn" style="font-size:.75rem;width:auto;padding:9px 22px" onclick="caModalConnect(this)">Connect Account</button>
     </div>
   </div>
@@ -2005,10 +2010,26 @@ window.AGENT_PROFILE_CONFIG = {
     if (check) check.checked = false;
     var reveal = document.getElementById("caConnectReveal");
     if (reveal) reveal.style.display = "none";
-    var connectBtn = document.getElementById("caModalConnectBtn");
-    if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = "Connect Account"; }
+    window.caApplyConnectAvailability();
 
     document.getElementById("caModalOverlay").classList.add("open");
+  };
+
+  /* Matches the Connect buttons on the cards. While the server refuses to
+     connect accounts (window.bfSocialConnectUnavailable, set when
+     /api/social/accounts says listing is unavailable), this one is disabled
+     and reads "Unavailable" too, instead of looking live and answering with
+     the server's 503 as a toast. Otherwise it is reset as it always was. */
+  window.caApplyConnectAvailability = function () {
+    var connectBtn = document.getElementById("caModalConnectBtn");
+    var note = document.getElementById("caConnectNote");
+    if (window.bfSocialConnectUnavailable) {
+      if (connectBtn) { connectBtn.disabled = true; connectBtn.textContent = "Unavailable"; }
+      if (note) note.textContent = "Connecting social accounts is turned off for now, so it cannot be linked to BizForce right now.";
+    } else {
+      if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = "Connect Account"; }
+      if (note) note.textContent = "Your account is ready to link. Connect it to BizForce now.";
+    }
   };
 
   window.caToggleConnect = function (cb) {
