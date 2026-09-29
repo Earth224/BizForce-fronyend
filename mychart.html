@@ -5652,6 +5652,43 @@
       }
     }
 
+
+    /* A RETRY THAT CANNOT BE LEFT DISABLED. With no session there is no request to
+       make, so it says so and stays usable. Otherwise it is disabled while the load
+       runs, and the load's own success or failure render replaces it; if the load
+       returns without starting a request, or throws, it is re-enabled. */
+    window.bfLoadRetryButton = window.bfLoadRetryButton || function (label, className, retry, onNoSession) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      if (className) btn.className = className;
+      btn.textContent = label;
+      btn.addEventListener("click", function () {
+        if (!localStorage.getItem("bf_token")) { onNoSession(); return; }
+        btn.disabled = true;
+        btn.textContent = "Retrying…";
+        var settle = function () {
+          if (btn.isConnected && btn.disabled) { btn.disabled = false; btn.textContent = label; }
+        };
+        try { Promise.resolve(retry()).then(settle, settle); } catch (e) { settle(); }
+      });
+      return btn;
+    };
+    
+    /* Kept beside renderTodayEvents, and like it the one part of the today
+       strip that differs between mychart.html and oracle.html (element id and
+       class prefix). fetchTodayEvents itself is identical in both files. An
+       empty day renders nothing; a failed one says so. */
+    function renderTodayEventsFailure(detail) {
+      var el = document.getElementById("mcTodayEvents");
+      if (!el) return;
+      el.innerHTML = '<div class="cal-today-events-heading">Today</div><div class="cal-today-events-more"></div>';
+      var note = el.lastChild;
+      note.textContent = "Today's events could not be loaded (" + detail + ").";
+      el.appendChild(window.bfLoadRetryButton("Try again", "cel-now-btn", fetchTodayEvents, function () {
+        note.textContent = "Your session has ended — sign in again to see today's events.";
+      }));
+    }
+
     function renderTodayEvents(events) {
       var el = document.getElementById("mcTodayEvents");
       if (!el) return;
@@ -5679,14 +5716,20 @@
       var now = new Date();
       var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
-      fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+      return fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          // A non-2xx is a failure, not an empty day.
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           renderTodayEvents((data && data.events) || []);
         })
-        .catch(function () {});
+        .catch(function (err) {
+          renderTodayEventsFailure((err && err.message) || "the request failed");
+        });
     }
 
     if (mcCalendarTrigger && mcCalendarTriggerLabel && mcCalendarList) {

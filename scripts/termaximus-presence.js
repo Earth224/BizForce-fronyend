@@ -1182,16 +1182,58 @@
     chatMsgs.scrollTop = chatMsgs.scrollHeight;
   }
 
+  /* A FAILED HISTORY IS NOT AN EMPTY ONE. The chat used to show exactly what
+     it shows someone who has never spoken to Termaximus. Said at the top of
+     the chat, with a retry that is never left disabled: with no session it
+     says so and stays usable; otherwise it is re-enabled if the load settles
+     while it is still showing. */
+  function removeHistoryFailure() {
+    var old = document.getElementById("tmx-history-fail");
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+  }
+  function showHistoryFailure(detail) {
+    removeHistoryFailure();
+    var note = document.createElement("div");
+    note.id = "tmx-history-fail";
+    note.className = "tmx-msg tmx-msg-oracle";
+    var text = document.createElement("div");
+    text.textContent = "Your earlier conversation could not be loaded (" + detail + ") — this is not a sign there was none.";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Try again";
+    btn.style.cssText = "margin-top:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(0,229,255,.35);" +
+      "background:rgba(0,229,255,.08);color:#22d3ee;font:inherit;font-size:.75rem;cursor:pointer";
+    btn.addEventListener("click", function () {
+      if (!localStorage.getItem("bf_token")) {
+        text.textContent = "Your session has ended — sign in again to see your earlier conversation.";
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "Retrying…";
+      var settle = function () {
+        if (btn.isConnected && btn.disabled) { btn.disabled = false; btn.textContent = "Try again"; }
+      };
+      try { Promise.resolve(loadChatHistory()).then(settle, settle); } catch (e) { settle(); }
+    });
+    note.appendChild(text);
+    note.appendChild(btn);
+    chatMsgs.insertBefore(note, chatMsgs.firstChild);
+  }
+
   function loadChatHistory() {
     var token = localStorage.getItem("bf_token") || "";
     if (!token) return;
 
-    fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
+    return fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/oracle", {
       method: "GET",
       headers: { "Authorization": "Bearer " + token }
     })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
       .then(function (data) {
+        removeHistoryFailure();
         if (!data) return;
         var list = Array.isArray(data) ? data : (Array.isArray(data.messages) ? data.messages : null);
         if (!list || !list.length) return;
@@ -1204,7 +1246,9 @@
         });
         chatMsgs.scrollTop = chatMsgs.scrollHeight;
       })
-      .catch(function () {});
+      .catch(function (err) {
+        showHistoryFailure((err && err.message) || "the request failed");
+      });
   }
 
   function openChat() {

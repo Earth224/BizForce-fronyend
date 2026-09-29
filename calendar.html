@@ -808,6 +808,7 @@
       <button type="button" class="cal-nav-btn" id="calNextBtn" aria-label="Next month">&#x203A;</button>
       <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
     </div>
+    <div class="cal-day-panel-error" id="calEventsError" hidden style="text-align:center;margin:10px 0 0"></div>
 
     <div class="cal-grid-viewport">
       <div class="cal-page" id="calPage"></div>
@@ -3068,18 +3069,73 @@
       return occurrences;
     }
 
+
+    /* A RETRY THAT CANNOT BE LEFT DISABLED. With no session there is no request to
+       make, so it says so and stays usable. Otherwise it is disabled while the load
+       runs, and the load's own success or failure render replaces it; if the load
+       returns without starting a request, or throws, it is re-enabled. */
+    window.bfLoadRetryButton = window.bfLoadRetryButton || function (label, className, retry, onNoSession) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      if (className) btn.className = className;
+      btn.textContent = label;
+      btn.addEventListener("click", function () {
+        if (!localStorage.getItem("bf_token")) { onNoSession(); return; }
+        btn.disabled = true;
+        btn.textContent = "Retrying…";
+        var settle = function () {
+          if (btn.isConnected && btn.disabled) { btn.disabled = false; btn.textContent = label; }
+        };
+        try { Promise.resolve(retry()).then(settle, settle); } catch (e) { settle(); }
+      });
+      return btn;
+    };
+    
+    /* A MONTH THAT FAILED TO LOAD IS NOT AN EMPTY MONTH. A non-2xx used to
+       become an empty event list and redraw the grid without a single marker;
+       a network error left it as it was, which on a first load or after
+       navigating is also no markers. Said above the grid, and in the day panel
+       if it is open, until a load succeeds. */
+    var eventsErrorInPanel = false;
+    function showEventsError(detail) {
+      var el = document.getElementById("calEventsError");
+      if (!el) return;
+      if (!detail) {
+        el.hidden = true;
+        el.textContent = "";
+        if (eventsErrorInPanel) { clearDayPanelError(); eventsErrorInPanel = false; }
+        return;
+      }
+      var msg = "Your events for this month could not be loaded (" + detail +
+        ") — the calendar is not showing whether you have any. ";
+      el.textContent = msg;
+      var btn = window.bfLoadRetryButton("Try again", "cal-today-btn", refreshEventsForCurrentView, function () {
+        el.firstChild.textContent = "Your session has ended — sign in again to load your events. ";
+      });
+      el.appendChild(btn);
+      el.hidden = false;
+      if (calDayPanel && calDayPanel.classList.contains("is-open")) {
+        showDayPanelError("Events could not be loaded, so this day may not be empty.");
+        eventsErrorInPanel = true;
+      }
+    }
+
     function refreshEventsForCurrentView() {
       var range = currentVisibleJdnRange();
       if (!range) return;
       if (!token) return;
 
       var seq = ++eventsRequestSeq;
-      fetch(API_URL + "/api/calendar/events?startJdn=" + range.startJdn + "&endJdn=" + range.endJdn, {
+      return fetch(API_URL + "/api/calendar/events?startJdn=" + range.startJdn + "&endJdn=" + range.endJdn, {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           if (seq !== eventsRequestSeq) return; // superseded by a newer nav/switch
+          showEventsError(null);
           var byJdn = {};
           var events = (data && data.events) || [];
           events.forEach(function (ev) {
@@ -3092,7 +3148,10 @@
             renderDayPanelEvents(dayPanelJdn);
           }
         })
-        .catch(function () { /* grid already rendered without markers -- fine */ });
+        .catch(function (err) {
+          if (seq !== eventsRequestSeq) return; // a newer request owns the screen now
+          showEventsError((err && err.message) || "the request failed");
+        });
     }
 
     // eventsCache is bucketed by each event's STORED jdn, but a recurring

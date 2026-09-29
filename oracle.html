@@ -1905,11 +1905,13 @@
         <label for="lifeDetailsInput" class="bf-gold-text">The Book of You</label>
         <textarea id="lifeDetailsInput" rows="6" placeholder="Tell the Oracle everything it should know about you — your history, worldview, struggles, victories, beliefs, goals, and anything else that defines your path. The more you share, the deeper it sees you."></textarea>
       </div>
+      <div id="oracleProfileLoadError" hidden style="margin:0 0 12px;font-size:.8rem;line-height:1.5;color:#ff9d9d"></div>
       <button type="button" class="oracle-profile-save" id="oracleProfileSave">Save</button>
       <span class="oracle-profile-save-status" id="oracleProfileSaveStatus">Saved</span>
 
       <div class="oracle-profile-numerology" id="oracleProfileNumerology" style="display:none;">
         <div class="oracle-profile-numerology-title">Numerology</div>
+        <div id="numerologyLoadFail" style="display:none"></div>
 
         <div id="quantumSynthesisOutput"></div>
 
@@ -2898,13 +2900,60 @@
       }, 620);
     }
 
+
+    /* A RETRY THAT CANNOT BE LEFT DISABLED. With no session there is no request to
+       make, so it says so and stays usable. Otherwise it is disabled while the load
+       runs, and the load's own success or failure render replaces it; if the load
+       returns without starting a request, or throws, it is re-enabled. */
+    window.bfLoadRetryButton = window.bfLoadRetryButton || function (label, className, retry, onNoSession) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      if (className) btn.className = className;
+      btn.textContent = label;
+      btn.addEventListener("click", function () {
+        if (!localStorage.getItem("bf_token")) { onNoSession(); return; }
+        btn.disabled = true;
+        btn.textContent = "Retrying…";
+        var settle = function () {
+          if (btn.isConnected && btn.disabled) { btn.disabled = false; btn.textContent = label; }
+        };
+        try { Promise.resolve(retry()).then(settle, settle); } catch (e) { settle(); }
+      });
+      return btn;
+    };
+    
+    /* THE FORM IS NOT AUTHORITATIVE UNTIL THE SAVED DETAILS HAVE LOADED. Save
+       sends all ten fields and POST /api/oracle/sync upserts each optional one
+       as `value || null` — so after a failed read, saving with only name and
+       date typed erased the Arabic, Greek and Hebrew names, birth time and
+       place, location, path and life details. { synced: false } is an account
+       with nothing saved yet: a successful read, and saving is allowed. */
+    var profilePrefillState = "idle";
+    function showPrefillFailure(detail) {
+      var el = document.getElementById("oracleProfileLoadError");
+      if (!el) return;
+      if (!detail) { el.hidden = true; el.textContent = ""; return; }
+      el.textContent = "Your saved birth details could not be loaded (" + detail +
+        "). Saving is turned off so they are not overwritten with blanks. ";
+      el.appendChild(window.bfLoadRetryButton("Try again", "oracle-profile-save", prefillProfile, function () {
+        el.firstChild.textContent = "Your session has ended — sign in again to load your birth details. ";
+      }));
+      el.hidden = false;
+    }
+
     function prefillProfile() {
       if (typeof API_URL === "undefined" || typeof token === "undefined") return;
-      fetch(API_URL + "/api/oracle/sync", {
+      profilePrefillState = "loading";
+      return fetch(API_URL + "/api/oracle/sync", {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (result) {
+          profilePrefillState = "ready";
+          showPrefillFailure(null);
           if (!result || !result.synced || !result.data) return;
           var d        = result.data;
           var nameEl   = document.getElementById("birthNameInput");
@@ -2928,10 +2977,20 @@
           if (pathEl  && d.path_focus)       pathEl.value  = d.path_focus;
           if (lifeEl  && d.life_details)     lifeEl.value  = d.life_details;
         })
-        .catch(function () {});
+        .catch(function (err) {
+          profilePrefillState = "failed";
+          showPrefillFailure((err && err.message) || "the request failed");
+        });
     }
 
     var numerologyData = null;
+    /* The same distinction mychart.html's fetchNumerology draws (21fdabd): a
+       request that FAILED is recorded as such, and a non-2xx is a failure
+       rather than null. Here the consequence was different — the section was
+       hidden on failure exactly as on "no birth data", so a failed read looked
+       like a profile with no numerology. Empty still hides it; failure shows
+       the section and says so. */
+    var numerologyFailed = false;
 
     /* ── In-flight guard: if a fetch is already running, callers (the
        profile panel AND My Chart) share the same promise instead of
@@ -2939,21 +2998,57 @@
        re-fetch (e.g. after re-sync with new birth data) isn't blocked. ── */
     var numerologyFetchPromise = null;
 
+    function showNumerologyFailure(detail) {
+      var box    = document.getElementById("numerologyLoadFail");
+      var select = document.getElementById("numerologySystemSelect");
+      var sect   = document.getElementById("oracleProfileNumerology");
+      if (!box) return;
+      if (!detail) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        if (select) select.style.display = "";
+        return;
+      }
+      // The system picker and its outputs describe numbers that did not load.
+      if (select) select.style.display = "none";
+      ["quantumSynthesisOutput", "numerologySystemOutput"].forEach(function (id) {
+        var o = document.getElementById(id); if (o) o.innerHTML = "";
+      });
+      box.innerHTML = '<div class="num-sys-empty"></div>';
+      var note = box.firstChild;
+      note.textContent = "Your numerology could not be loaded (" + detail + ") — this is not a statement that you have none.";
+      box.appendChild(window.bfLoadRetryButton("Try again", "oracle-profile-save", fetchNumerology, function () {
+        note.textContent = "Your session has ended — sign in again to see your numerology.";
+      }));
+      box.style.display = "block";
+      if (sect) sect.style.display = "block";
+    }
+
     function fetchNumerology() {
       if (numerologyFetchPromise) return numerologyFetchPromise;
 
       var section = document.getElementById("oracleProfileNumerology");
       if (!section) return Promise.resolve(null);
       section.style.display = "none";
+      showNumerologyFailure(null);
 
       if (typeof API_URL === "undefined" || typeof token === "undefined") {
         return Promise.resolve(null);
       }
 
-      numerologyFetchPromise = fetch(API_URL + "/api/oracle/numerology", {
-        headers: { "Authorization": "Bearer " + token }
+      numerologyFailed = false;
+      // Started inside a .then so a synchronous throw from fetch becomes a
+      // rejection: the section is already hidden by this point, and only the
+      // .catch below would put the failure back on screen.
+      numerologyFetchPromise = Promise.resolve().then(function () {
+        return fetch(API_URL + "/api/oracle/numerology", {
+          headers: { "Authorization": "Bearer " + token }
+        });
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           numerologyData = data || null;
 
@@ -2979,7 +3074,11 @@
           renderQuantumSynthesis(true);
           return numerologyData;
         })
-        .catch(function () { return null; }) /* leave hidden — soft-fail on error */
+        .catch(function (err) {
+          numerologyFailed = true;
+          showNumerologyFailure((err && err.message) || "the request failed");
+          return null;
+        })
         .then(function (result) {
           numerologyFetchPromise = null;
           return result;
@@ -3929,6 +4028,17 @@
 
     function saveProfile() {
       if (typeof API_URL === "undefined" || typeof token === "undefined") return;
+
+      // Enforced here, where the payload is built — see profilePrefillState.
+      if (profilePrefillState !== "ready") {
+        if (saveStatusEl) {
+          saveStatusEl.textContent = profilePrefillState === "loading"
+            ? "Your saved details are still loading — save once they have loaded."
+            : "Not saved — your saved birth details could not be loaded, so saving could erase them. Try again first.";
+          saveStatusEl.classList.add("is-visible");
+        }
+        return;
+      }
 
       var birthNameInput       = document.getElementById("birthNameInput").value.trim();
       var birthNameArabicInput = document.getElementById("birthNameArabicInput").value.trim();
@@ -5827,6 +5937,22 @@
       }
     }
 
+
+    /* Kept beside renderTodayEvents, and like it the one part of the today
+       strip that differs between mychart.html and oracle.html (element id and
+       class prefix). fetchTodayEvents itself is identical in both files. An
+       empty day renders nothing; a failed one says so. */
+    function renderTodayEventsFailure(detail) {
+      var el = document.getElementById("celTodayEvents");
+      if (!el) return;
+      el.innerHTML = '<div class="cel-today-events-heading">Today</div><div class="cel-today-events-more"></div>';
+      var note = el.lastChild;
+      note.textContent = "Today's events could not be loaded (" + detail + ").";
+      el.appendChild(window.bfLoadRetryButton("Try again", "cel-now-btn", fetchTodayEvents, function () {
+        note.textContent = "Your session has ended — sign in again to see today's events.";
+      }));
+    }
+
     function renderTodayEvents(events) {
       var el = document.getElementById("celTodayEvents");
       if (!el) return;
@@ -5854,14 +5980,20 @@
       var now = new Date();
       var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
-      fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+      return fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          // A non-2xx is a failure, not an empty day.
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           renderTodayEvents((data && data.events) || []);
         })
-        .catch(function () {});
+        .catch(function (err) {
+          renderTodayEventsFailure((err && err.message) || "the request failed");
+        });
     }
 
     if (nowBtn) {
