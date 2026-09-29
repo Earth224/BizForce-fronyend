@@ -687,6 +687,22 @@
 
             <div class="identity-line" id="acctIdentity">Signed in</div>
 
+            <!-- Email confirmation. #evState is what the account IS (loaded
+                 from the server); #evStatus is what the resend button just
+                 did. Kept apart for the same reason as #pkListMsg and
+                 #pkStatus: one fact must not overwrite the other. -->
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="toggle-title">Email Address</div>
+                <div class="toggle-desc" id="evState">Checking whether your email address is confirmed…</div>
+                <div class="msg" id="evStatus"></div>
+              </div>
+            </div>
+
+            <div class="btn-row" id="evResendRow" style="display:none;">
+              <button class="btn" id="evResendBtn" type="button">Send a New Confirmation Link</button>
+            </div>
+
             <!-- Passkeys. The header row and the credential rows share one
                  container so that `.toggle-row + .toggle-row` draws the
                  separators between them; injecting the list into a sibling
@@ -2289,6 +2305,125 @@
 
       if (accountPanel && accountPanel.classList.contains("active")) {
         loadPasskeysOnce();
+      }
+
+      /* ── Email confirmation ──────────────────────────────────────────────
+         READ FROM GET /api/auth/me, NOT FROM bf_user. The stored bf_user is a
+         copy of the user object as it was at sign-in, and a copy saved before
+         the server started sending email_verified_at (backend b893548) simply
+         does not have the field. Absent there does not mean unverified — it
+         means that copy predates the question — so reading it would tell
+         confirmed accounts they are not. The server's answer is the only one
+         that means what it says. */
+      var evState     = document.getElementById("evState");
+      var evStatus    = document.getElementById("evStatus");
+      var evResendRow = document.getElementById("evResendRow");
+      var evResendBtn = document.getElementById("evResendBtn");
+
+      function setEvState(text, cls) {
+        evState.textContent = text;
+        evState.className = "toggle-desc" + (cls ? " msg " + cls : "");
+      }
+
+      function setEvStatus(text, cls) {
+        evStatus.textContent = text || "";
+        evStatus.className = "msg" + (cls ? " " + cls : "");
+      }
+
+      function loadVerification() {
+        setEvState("Checking whether your email address is confirmed…", "");
+
+        return fetch(API_URL + "/api/auth/me", {
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+          })
+          .then(function (res) {
+            var user = res.ok && res.data && res.data.user;
+
+            /* UNKNOWN IS NOT UNVERIFIED. A failed call, or a response without
+               the field at all, leaves the state unknown and says so; only an
+               explicit null from the server is "not confirmed". Showing the
+               resend button on a guess would tell a confirmed user something
+               false and invite them to spend a rate-limited request on it. */
+            if (!user || !Object.prototype.hasOwnProperty.call(user, "email_verified_at")) {
+              throw new Error("Could not check whether your email address is confirmed.");
+            }
+
+            if (user.email_verified_at) {
+              var day = formatDay(user.email_verified_at);
+              setEvState(day ? "Confirmed on " + day + "." : "Confirmed.", "");
+              evResendRow.style.display = "none";
+            } else {
+              setEvState("Not confirmed yet. Use the link we emailed you, or ask for a new one.", "");
+              evResendRow.style.display = "flex";
+            }
+          })
+          .catch(function () {
+            evResendRow.style.display = "none";
+            setEvState("Could not check whether your email address is confirmed. Reload the page to try again.", "err");
+          });
+      }
+
+      function resendVerification() {
+        // disabled until the answer arrives: three per hour per account, and
+        // a double-click must not spend two of them.
+        if (evResendBtn.disabled) { return; }
+        evResendBtn.disabled = true;
+        setEvStatus("Sending…", "");
+
+        fetch(API_URL + "/api/auth/resend-verification", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token }
+        })
+          .then(function (r) {
+            return r.json()
+              .catch(function () { return {}; })
+              .then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; });
+          })
+          .then(function (res) {
+            evResendBtn.disabled = false;
+
+            if (res.ok && res.data.already_verified) {
+              setEvStatus("Your email address is already confirmed — no new link was sent.", "ok");
+              // Redraw the state from the server so the row stops offering a
+              // link the account no longer needs.
+              loadVerification();
+            } else if (res.ok && res.data.sent) {
+              setEvStatus("A new confirmation link is on its way to your inbox. It expires in one hour.", "ok");
+            } else if (res.status === 502) {
+              setEvStatus("The server could not send the confirmation email. Please try again in a few minutes.", "err");
+            } else if (res.status === 429) {
+              setEvStatus(res.data.error || "Too many confirmation emails requested. Please try again later.", "err");
+            } else {
+              setEvStatus(res.data.error || "A new confirmation link could not be requested.", "err");
+            }
+          })
+          .catch(function () {
+            evResendBtn.disabled = false;
+            setEvStatus("The request did not reach the server. Check your connection and try again.", "err");
+          });
+      }
+
+      evResendBtn.addEventListener("click", resendVerification);
+
+      // Loaded when the Account panel is first opened, the same way the
+      // passkey list is, with its own listener beside that one.
+      var verificationLoaded = false;
+
+      function loadVerificationOnce() {
+        if (verificationLoaded) { return; }
+        verificationLoaded = true;
+        loadVerification();
+      }
+
+      if (accountNavItem) {
+        accountNavItem.addEventListener("click", loadVerificationOnce);
+      }
+
+      if (accountPanel && accountPanel.classList.contains("active")) {
+        loadVerificationOnce();
       }
 
       /* The same sign-out as dashboard.html's logout(): revoke the session on
