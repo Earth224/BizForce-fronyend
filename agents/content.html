@@ -716,7 +716,7 @@
 
     <section class="context-card" style="margin-top:32px" aria-label="Connect Social Accounts">
       <h2 class="section-label">Connect Accounts</h2>
-      <p style="font-size:.85rem;color:#8892b8;margin:0 0 20px;line-height:1.6">Connect your social accounts to enable direct scheduling from the Approval Queue.</p>
+      <p id="connectIntro" style="font-size:.85rem;color:#8892b8;margin:0 0 20px;line-height:1.6">Connect your social accounts to enable direct scheduling from the Approval Queue.</p>
       <div class="connect-grid">
         <div class="connect-card" data-platform="instagram">
           <div class="connect-icon" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)">
@@ -1807,6 +1807,25 @@
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
       if (!d || !Array.isArray(d.accounts)) return;
+
+      /* CLOSED, NOT EMPTY. The server returns no accounts on purpose while
+         connected accounts cannot be tied to the person who connected them,
+         and it refuses to connect new ones. An empty list here does not mean
+         "you have none", and a Connect button would only fail, so each one says
+         it is unavailable and the intro says why. */
+      if (d.listing_status === "unavailable_pending_per_user_scoping") {
+        var intro = document.getElementById("connectIntro");
+        if (intro) {
+          intro.textContent = "Connecting social accounts is turned off for now, while each account is tied to the person who connects it. Approved drafts are saved, not published.";
+        }
+        var btns = document.querySelectorAll(".connect-card .connect-btn");
+        for (var b = 0; b < btns.length; b++) {
+          btns[b].disabled = true;
+          btns[b].textContent = "Unavailable";
+        }
+        return;
+      }
+
       d.accounts.forEach(function (acct) {
         var card = document.querySelector('.connect-card[data-platform="' + acct.platform + '"]');
         if (!card) return;
@@ -2124,12 +2143,16 @@ window.AGENT_PROFILE_CONFIG = {
     .then(function (res) {
       if (!res.ok) throw new Error(res.data.error || "Save failed");
       approveBtn.parentNode.style.display = "none";
-      if (msgEl) { msgEl.textContent = "Added to queue."; msgEl.style.color = "#4ade80"; }
+      /* Says what the server did. While publishing is closed it answers
+         published: false and keeps the draft unpublished; "Added to queue"
+         promised a schedule that nothing was ever going to run. */
+      var notPublished = res.data && res.data.published === false;
+      if (msgEl) { msgEl.textContent = notPublished ? "Saved as a draft — not published. Publishing to social accounts is turned off for now." : "Published."; msgEl.style.color = "#4ade80"; }
       refreshQueue();
     })
     .catch(function (e) {
       approveBtn.disabled = false;
-      approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+      approveBtn.innerHTML = "✓ Approve &amp; Save Draft";
       if (rejectBtn) rejectBtn.disabled = false;
       if (msgEl) { msgEl.textContent = e.message || "Failed."; msgEl.style.color = "#f87171"; }
     });
@@ -2165,7 +2188,7 @@ window.AGENT_PROFILE_CONFIG = {
     var approveBtn = document.createElement("button");
     approveBtn.type = "button";
     approveBtn.className = "ap-approve-btn";
-    approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+    approveBtn.innerHTML = "✓ Approve &amp; Save Draft";
 
     var rejectBtn = document.createElement("button");
     rejectBtn.type = "button";

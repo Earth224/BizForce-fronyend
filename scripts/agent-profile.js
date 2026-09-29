@@ -2782,7 +2782,7 @@
         var approveBtn = document.createElement("button");
         approveBtn.type = "button";
         approveBtn.className = "ap-approve-btn";
-        approveBtn.innerHTML = "✓ Approve &amp; Schedule";
+        approveBtn.innerHTML = "✓ Approve &amp; Save Draft";
         var rejectBtn = document.createElement("button");
         rejectBtn.type = "button";
         rejectBtn.className = "ap-reject-btn";
@@ -2840,12 +2840,14 @@
       var actionRow = card.querySelector(".ap-approve-btn") && card.querySelector(".ap-approve-btn").parentNode;
       if (actionRow) actionRow.style.display = "none";
       var statusEl = card.querySelector(".ap-result-status");
-      if (statusEl) { statusEl.textContent = "✓ Approved"; statusEl.style.color = "#4ade80"; }
-      if (msgEl) { msgEl.textContent = "Added to Approval Queue."; msgEl.style.color = "#4ade80"; }
+      /* Says what the server did — see the same line in agents/content.html. */
+      var notPublished = res.data && res.data.published === false;
+      if (statusEl) { statusEl.textContent = notPublished ? "✓ Saved as draft" : "✓ Published"; statusEl.style.color = "#4ade80"; }
+      if (msgEl) { msgEl.textContent = notPublished ? "Saved as a draft — not published. Publishing to social accounts is turned off for now." : "Published."; msgEl.style.color = "#4ade80"; }
       loadApprovalQueue();
     })
     .catch(function(e) {
-      if (approveBtn) { approveBtn.disabled = false; approveBtn.innerHTML = "✓ Approve &amp; Schedule"; }
+      if (approveBtn) { approveBtn.disabled = false; approveBtn.innerHTML = "✓ Approve &amp; Save Draft"; }
       if (rejectBtn)  rejectBtn.disabled = false;
       if (msgEl) { msgEl.textContent = e.message || "Save failed."; msgEl.style.color = "#f87171"; }
     });
