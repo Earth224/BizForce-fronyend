@@ -2561,6 +2561,18 @@
 
       var natal = lastNatalData;
 
+      /* FAILED IS NOT LOADING. The natal chart is only requested once the
+         numerology blueprint is in (renderMyChart → loadAndRenderOrbit), so a
+         failed numerology request means the natal one never starts — and the
+         branch below would say "still loading" forever. */
+      if (natalFailed || (!natalReceived && numerologyFailed)) {
+        figureEl.innerHTML = "";
+        clearSigilExplain();
+        captionEl.innerHTML = '<span class="sigil-unavailable">Your chart could not be loaded — the request failed.</span>';
+        appendChartRetry(captionEl);
+        return;
+      }
+
       // Still in flight is not the same as refused, and only this branch keeps
       // them apart. Without it a render triggered by an early numerology
       // response would report the chart as unavailable while it was loading.
@@ -2612,6 +2624,9 @@
         var isMaster = SIGIL_MASTER_REDUCTION.hasOwnProperty(Number(lifePath));
         parts.push("inner figure from life path " + lifePath +
           (isMaster ? " (master number, drawn at " + SIGIL_MASTER_REDUCTION[Number(lifePath)] + " points)" : ""));
+      } else if (numerologyFailed) {
+        // Checked before "still loading": a failed request is not in flight.
+        parts.push("inner figure could not be loaded");
       } else if (!numerologyReceived) {
         /* NOT the same sentence as the branch below. "You have no life path"
            is a statement about the user's data; "it has not arrived" is a
@@ -2635,6 +2650,49 @@
       }
 
       captionEl.textContent = parts.join(" · ") + ".";
+      if (lifePath == null && numerologyFailed) appendChartRetry(captionEl);
+    }
+
+    /* ONE RETRY FOR BOTH LOADS. Numerology comes first because natal waits on
+       it; renderMyChart restarts that chain and redraws the stage. Every path
+       here ends in renderSigilPanel (fetchNumerology's final .then, or
+       loadAndRenderOrbit's), which redraws the caption with a fresh button —
+       so the disabled one is always replaced. */
+    function retryChartLoad() {
+      if (numerologyFailed) {
+        if (document.getElementById("myChartStage")) { renderMyChart(); }
+        else { fetchNumerology(); }
+      } else {
+        loadAndRenderOrbit();
+      }
+    }
+
+    /* Appends "Try again" to a failure message. With no session there is no
+       request to make, and fetchNumerology/fetchNatal would return without
+       touching anything — so nothing would redraw a disabled button. That
+       case is said instead, and the button is left usable. */
+    function appendChartRetry(container) {
+      var note = document.createElement("span");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cel-now-btn";
+      btn.textContent = "Try again";
+      btn.addEventListener("click", function () {
+        if (typeof token === "undefined" || !token || !localStorage.getItem("bf_token")) {
+          note.textContent = " Your session has ended — sign in again to load your chart.";
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Retrying…";
+        try {
+          retryChartLoad();
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = "Try again";
+        }
+      });
+      container.appendChild(note);
+      container.appendChild(btn);
     }
 
     /* ═══ Divine Triangle blueprint — copied verbatim from oracle.html,
@@ -2942,11 +3000,16 @@
        caption actually needs: has a response been seen at all.
 
        Deliberately set only on a successful body. A request that failed leaves
-       this false and the caption reads as still loading, which is imprecise
-       but never asserts an absence nobody observed — the failure mode worth
-       avoiding is telling someone they have no life path because a fetch
-       timed out. */
+       this false and sets numerologyFailed instead, so the page says the load
+       failed and offers a retry — it still never asserts an absence nobody
+       observed, the failure mode worth avoiding being telling someone they
+       have no life path because a fetch timed out. */
     var numerologyReceived = false;
+    /* The last numerology request FAILED: a non-2xx, a network error, or an
+       unreadable body. Cleared when a request starts. Without it a failure left
+       numerologyReceived false for good and the caption said "still loading"
+       forever. */
+    var numerologyFailed = false;
     var numerologyFetchPromise = null;
 
     function fetchNumerology() {
@@ -2955,16 +3018,23 @@
         return Promise.resolve(null);
       }
 
+      numerologyFailed = false;
       numerologyFetchPromise = fetch(API_URL + "/api/oracle/numerology", {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          /* A non-2xx is a failure, not an answer. The endpoint says "no birth
+             data" with a 200 and {}; a 401 or 500 read as null here used to
+             produce "no life path in your numerology". */
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           numerologyData = data || null;
           numerologyReceived = true;
           return numerologyData;
         })
-        .catch(function () { return null; })
+        .catch(function () { numerologyFailed = true; return null; })
         .then(function (result) {
           numerologyFetchPromise = null;
           /* The sigil panel may already have rendered from natal data alone,
@@ -2987,7 +3057,9 @@
        planets:[{name,sign,degree,longitude}], ascendant:{sign,degree,
        longitude}, midheaven:{...}, houses, moonUncertain }. Resolves to
        null on any failure OR on { available:false, ... } so the caller
-       can degrade gracefully (triangle alone, no orbit, no error shown). ═══ */
+       can degrade gracefully (triangle alone, no orbit). A failure also sets
+       natalFailed, so the sigil panel says the load failed instead of
+       "still loading" forever. ═══ */
     var natalFetchPromise = null;
 
     function fetchNatal() {
@@ -2996,10 +3068,16 @@
         return Promise.resolve(null);
       }
 
+      natalFailed = false;
       natalFetchPromise = fetch(API_URL + "/api/oracle/natal", {
         headers: { "Authorization": "Bearer " + token }
       })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+          // Refusals come back 200 with { available: false, reason }, so a
+          // non-2xx is a failed request, not a reason to show.
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
         .then(function (data) {
           /* Kept before the availability check, and this is the only reason
              it exists: the line below collapses every refusal to null, which
@@ -3012,7 +3090,7 @@
           if (!data || !data.available) return null;
           return data;
         })
-        .catch(function () { return null; })
+        .catch(function () { natalFailed = true; return null; })
         .then(function (result) {
           natalFetchPromise = null;
           return result;
@@ -3036,6 +3114,8 @@
        lastNatalRaw as a refusal and announce that the chart could not be
        loaded — while it was still in flight. */
     var natalReceived = false;
+    // The last natal request failed; see numerologyFailed.
+    var natalFailed = false;
 
     var NATAL_GLYPHS = {
       Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
@@ -3343,6 +3423,11 @@
         if (loadedBlueprint) {
           freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(731px, 66.65vw)", interactive: true });
           loadAndRenderOrbit();
+        } else if (numerologyFailed) {
+          // A failed request is not missing birth data; "sync your birth data"
+          // sent people to fix something that was fine.
+          freshStage.innerHTML = '<div class="my-chart-placeholder">Your chart could not be loaded — the request failed.</div>';
+          appendChartRetry(freshStage.firstChild);
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
         }
