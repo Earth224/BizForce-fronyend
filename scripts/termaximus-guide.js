@@ -26,10 +26,10 @@
       "Use this as your map, not your workbench; the real work — task launching, reports, history — happens on each agent's own page."
     ],
     "ai-agents.html": [
-      "The full directory of all 17 AI agents, each with a one-line description of what it actually specializes in.",
+      "The full directory of all 18 AI agents, each with a one-line description of what it actually specializes in.",
       "No setup happens here — it's pure navigation; your Business Profile (set via the Content Agent) is what every agent behind these cards reads from.",
       "Use this page when you're not sure which agent fits a task — the descriptions are specific enough to point you to the right specialist fast.",
-      "Bookmark the agents you use most; with 17 to choose from, a shortlist beats browsing the full list every time."
+      "Bookmark the agents you use most; with 18 to choose from, a shortlist beats browsing the full list every time."
     ],
     "analytics-dashboard.html": [
       "Your real-time business intelligence command center — Tasks Run, Tasks Completed, Content Items, Subscribers, Opted-In, and Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
