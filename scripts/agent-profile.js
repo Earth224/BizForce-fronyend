@@ -772,7 +772,7 @@
         '<div class="ap-section">' +
           '<div class="ap-card">' +
             '<h2 class="ap-section-label">Approval Queue</h2>' +
-            '<div id="apApprovalQueue"><div class="ap-queue-empty">No drafts in queue yet. Approve a Social Media Drafts result to add one.</div></div>' +
+            '<div id="apApprovalQueue"><div class="ap-queue-empty">Loading your approval queue…</div></div>' +
           '</div>' +
         '</div>'
       ) : ""
@@ -2928,7 +2928,13 @@
     var el = document.getElementById("apApprovalQueue");
     if (!el) return;
     var token = tok();
-    if (!token) return;
+    /* The one way this load never starts. Returning here used to leave the
+       placeholder claiming an empty queue; it would now leave "Loading…" up
+       for good, so it says what is actually true. */
+    if (!token) {
+      el.innerHTML = '<div class="ap-queue-empty">Sign in to see your approval queue.</div>';
+      return;
+    }
     fetch(API_URL + "/api/social-drafts", {
       headers: { "Authorization": "Bearer " + token }
     })

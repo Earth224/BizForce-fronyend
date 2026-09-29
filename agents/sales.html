@@ -1121,7 +1121,7 @@
               <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"></circle>
               <circle id="mcTargetRingFill" cx="60" cy="60" r="52" fill="none" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle>
             </svg>
-            <div class="mc-target-ring-center"><span class="mc-target-pct" id="mcTargetPct">0%</span></div>
+            <div class="mc-target-ring-center"><span class="mc-target-pct" id="mcTargetPct">—</span></div>
           </div>
           <div class="mc-target-goalrow">
             <label id="mcTargetGoalLabel" for="mcTargetGoalInput">Goal:</label>
@@ -1133,24 +1133,24 @@
           <div class="mc-target-money">
             <div class="mc-target-money-block">
               <span class="mc-target-money-label">Earned Today</span>
-              <span class="mc-target-money-val earned" id="mcTargetEarned">$0</span>
+              <span class="mc-target-money-val earned" id="mcTargetEarned">—</span>
             </div>
             <div class="mc-target-money-block">
               <span class="mc-target-money-label">Projected</span>
-              <span class="mc-target-money-val projected" id="mcTargetProjected">$0</span>
+              <span class="mc-target-money-val projected" id="mcTargetProjected">—</span>
             </div>
           </div>
-          <div class="mc-target-current" id="mcTargetCurrent" style="margin-top:10px;">0</div>
-          <div class="mc-target-of" id="mcTargetOf">of 0 today</div>
-          <span class="mc-target-pace ontrack" id="mcTargetPace" style="margin-top:8px;align-self:flex-start;">On track</span>
+          <div class="mc-target-current" id="mcTargetCurrent" style="margin-top:10px;">—</div>
+          <div class="mc-target-of" id="mcTargetOf">Loading today's activity…</div>
+          <span class="mc-target-pace" id="mcTargetPace" style="margin-top:8px;align-self:flex-start;">—</span>
         </div>
 
         <div class="mc-target-zone">
           <div class="mc-target-funnel">
-            <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted</span><span class="fn-count" id="mcFnDrafted">0</span></div>
-            <div class="mc-target-funnel-row fn-sent"><span class="fn-label">Sent</span><span class="fn-count" id="mcFnSent">0</span></div>
-            <div class="mc-target-funnel-row fn-replied"><span class="fn-label">Replied</span><span class="fn-count" id="mcFnReplied">0</span></div>
-            <div class="mc-target-funnel-row fn-converted"><span class="fn-label">Converted</span><span class="fn-count" id="mcFnConverted">0</span></div>
+            <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted</span><span class="fn-count" id="mcFnDrafted">—</span></div>
+            <div class="mc-target-funnel-row fn-sent"><span class="fn-label">Sent</span><span class="fn-count" id="mcFnSent">—</span></div>
+            <div class="mc-target-funnel-row fn-replied"><span class="fn-label">Replied</span><span class="fn-count" id="mcFnReplied">—</span></div>
+            <div class="mc-target-funnel-row fn-converted"><span class="fn-label">Converted</span><span class="fn-count" id="mcFnConverted">—</span></div>
           </div>
         </div>
       </div>
@@ -1989,7 +1989,10 @@
       var mcChartPipe = null;
       var mcTargetMode = "conversions";
       var MC_TARGET_REVENUE_PER_CONVERSION = 59;
-      var mcLastTasks = [];
+      /* null until the tasks have loaded — not [], which the target panel
+         rendered as a real day of zero activity when a tab or the goal was
+         changed before the load had answered. */
+      var mcLastTasks = null;
 
       async function mcFetchSalesTasks() {
         try {
@@ -2524,7 +2527,7 @@
             mcTargetMode = "conversions";
             targetTabConv.classList.add("active");
             if (targetTabRev) targetTabRev.classList.remove("active");
-            mcRenderTarget(mcLastTasks);
+            if (mcLastTasks) mcRenderTarget(mcLastTasks);
           });
         }
         if (targetTabRev) {
@@ -2532,7 +2535,7 @@
             mcTargetMode = "revenue";
             targetTabRev.classList.add("active");
             if (targetTabConv) targetTabConv.classList.remove("active");
-            mcRenderTarget(mcLastTasks);
+            if (mcLastTasks) mcRenderTarget(mcLastTasks);
           });
         }
 
@@ -2543,7 +2546,7 @@
             if (!isNaN(val) && val > 0) {
               mcSetTargetGoal(mcTargetMode, val);
             }
-            mcRenderTarget(mcLastTasks);
+            if (mcLastTasks) mcRenderTarget(mcLastTasks);
           });
         }
 

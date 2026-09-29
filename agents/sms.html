@@ -808,7 +808,7 @@
           <h2 class="sms-section-title">Subscribers</h2>
           <p class="sms-section-sub">Contacts + consent</p>
         </div>
-        <span class="sms-count-pill" id="sms-sub-count">0</span>
+        <span class="sms-count-pill" id="sms-sub-count">—</span>
       </div>
       <div class="sms-add-row">
         <input type="tel" id="sms-add-phone" placeholder="+1..." autocomplete="tel" />
@@ -849,14 +849,14 @@
           <h2 class="sms-section-title">Campaigns</h2>
           <p class="sms-section-sub">Drip sequences</p>
         </div>
-        <span class="sms-count-pill" id="sms-camp-count">0</span>
+        <span class="sms-count-pill" id="sms-camp-count">—</span>
       </div>
       <div class="sms-create-row">
         <input type="text" id="sms-camp-name" placeholder="Campaign name" autocomplete="off" />
         <button type="button" id="sms-camp-create-btn" class="sms-add-btn">Create</button>
       </div>
       <div id="sms-camp-list">
-        <p class="sms-camp-list-empty">No campaigns yet</p>
+        <p class="sms-camp-list-empty">Loading campaigns…</p>
       </div>
 
       <div id="sms-msg-block" class="sms-msg-block" style="display:none">
@@ -1156,7 +1156,16 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) { renderCampaigns(data.campaigns || []); })
-        .catch(function (err) { console.error("[sms] loadCampaigns error:", err); });
+        .catch(function (err) {
+          console.error("[sms] loadCampaigns error:", err);
+          /* The list starts as "Loading campaigns…", not as an empty list, so a
+             failure has to resolve it — but only while it is still loading,
+             so a failed reload does not wipe a list that was drawn. */
+          var listEl = document.getElementById("sms-camp-list");
+          if (listEl && listEl.textContent.trim() === "Loading campaigns…") {
+            listEl.innerHTML = "<p class=\"sms-camp-list-empty\">Campaigns could not be loaded — reload the page to try again.</p>";
+          }
+        });
     }
 
     function renderMessages(messages) {
@@ -1185,7 +1194,13 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) { renderMessages(data.messages || []); })
-        .catch(function (err) { console.error("[sms] loadMessages error:", err); });
+        .catch(function (err) {
+          console.error("[sms] loadMessages error:", err);
+          var listEl = document.getElementById("sms-msg-list");
+          if (listEl && listEl.textContent.trim() === "Loading messages…") {
+            listEl.innerHTML = "<p class=\"sms-msg-list-empty\">Messages could not be loaded — reload the page to try again.</p>";
+          }
+        });
     }
 
     function selectCampaign(id, name) {
@@ -1194,6 +1209,11 @@
       block.dataset.campId = id;
       if (nameEl) nameEl.textContent = name;
       block.style.display = "block";
+      /* Cleared before the request, not after: the list otherwise showed "No
+         messages yet" (first selection) or the PREVIOUS campaign's messages
+         until this one's arrived. */
+      var msgListEl = document.getElementById("sms-msg-list");
+      if (msgListEl) msgListEl.innerHTML = "<p class=\"sms-msg-list-empty\">Loading messages…</p>";
       loadMessages(id);
       loadEnrollments();
     }
