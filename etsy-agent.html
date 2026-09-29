@@ -596,14 +596,74 @@
       var token = localStorage.getItem("bf_token");
       if (!token) { return; }
 
+      /* WHERE THE TILES GO, found or made in one place so that a failed load
+         reports itself in the same spot a successful one would have drawn. */
+      function liveStatsSlot() {
+        var liveStatsEl = document.getElementById("liveAgentStats");
+        if (!liveStatsEl) {
+          var statsGridEl = document.getElementById("statsGrid");
+          if (statsGridEl && statsGridEl.parentNode) {
+            liveStatsEl = document.createElement("div");
+            liveStatsEl.id = "liveAgentStats";
+            liveStatsEl.className = "context-grid";
+            statsGridEl.parentNode.insertBefore(liveStatsEl, statsGridEl);
+          }
+        }
+        return liveStatsEl;
+      }
+
+      function clearLiveStatsFailure() {
+        var failEl = document.getElementById("liveAgentStatsFail");
+        if (failEl && failEl.parentNode) { failEl.parentNode.removeChild(failEl); }
+      }
+
+      /* A FAILED LOAD SAYS SO. This used to end in an empty .catch, so a load
+         that failed drew nothing at all — the same as an account with no agent
+         row — and nobody could tell a broken request from no activity. Tiles
+         already drawn by an earlier successful load are left in place; they
+         were true when drawn. */
+      function showLiveStatsFailure() {
+        var slot = liveStatsSlot();
+        if (!slot) { return; }
+        clearLiveStatsFailure();
+
+        var failEl = document.createElement("div");
+        failEl.id = "liveAgentStatsFail";
+        failEl.style.gridColumn = "1 / -1";
+
+        var msgEl = document.createElement("div");
+        msgEl.className = "ap-msg err";
+        msgEl.textContent = "Agent stats could not be loaded — the request failed, so nothing here reflects your activity.";
+
+        var retryBtn = document.createElement("button");
+        retryBtn.type = "button";
+        retryBtn.className = "ap-btn";
+        retryBtn.textContent = "Try Again";
+        retryBtn.addEventListener("click", function () {
+          retryBtn.disabled = true;
+          retryBtn.textContent = "Retrying…";
+          applyLiveAgentData();
+        });
+
+        failEl.appendChild(msgEl);
+        failEl.appendChild(retryBtn);
+        slot.appendChild(failEl);
+      }
+
       fetch(API_URL + "/api/agents/etsy", {
         method: "GET",
         headers: { "Authorization": "Bearer " + token }
       })
         .then(function (response) {
-          return response.ok ? response.json() : null;
+          /* 404 is this route's answer for an account with no agent row: an
+             empty result, not a failure, and it still draws nothing. Every
+             other non-2xx is a failure and goes to the catch. */
+          if (response.status === 404) { return null; }
+          if (!response.ok) { throw new Error("HTTP " + response.status); }
+          return response.json();
         })
         .then(function (data) {
+          clearLiveStatsFailure();
           if (!data || !data.agent) { return; }
           var agent = data.agent;
 
@@ -617,16 +677,7 @@
             if (subtitleEl) { subtitleEl.textContent = agent.description; }
           }
 
-          var liveStatsEl = document.getElementById("liveAgentStats");
-          if (!liveStatsEl) {
-            var statsGridEl = document.getElementById("statsGrid");
-            if (statsGridEl && statsGridEl.parentNode) {
-              liveStatsEl = document.createElement("div");
-              liveStatsEl.id = "liveAgentStats";
-              liveStatsEl.className = "context-grid";
-              statsGridEl.parentNode.insertBefore(liveStatsEl, statsGridEl);
-            }
-          }
+          var liveStatsEl = liveStatsSlot();
           if (liveStatsEl) {
             var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
             var estimatedRoi = agent.estimated_roi != null ? agent.estimated_roi : 0;
@@ -656,7 +707,9 @@
             liveStatsEl.appendChild(tile2);
           }
         })
-        .catch(function () {});
+        .catch(function () {
+          showLiveStatsFailure();
+        });
     }
     function refreshPage() {
       var profile = loadUserProfile();
