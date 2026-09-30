@@ -1050,25 +1050,234 @@
 
     function clTok() { return localStorage.getItem("bf_token") || ""; }
 
-    function loadLibrary() {
-      var headers = { "Authorization": "Bearer " + clTok() };
+    window.bfLoadRetryButton = window.bfLoadRetryButton || function (label, className, retry, onNoSession) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      if (className) btn.className = className;
+      btn.textContent = label;
+      btn.addEventListener("click", function () {
+        if (!localStorage.getItem("bf_token")) { onNoSession(); return; }
+        btn.disabled = true;
+        btn.textContent = "Retrying…";
+        var settle = function () {
+          if (btn.isConnected && btn.disabled) { btn.disabled = false; btn.textContent = label; }
+        };
+        try { Promise.resolve(retry()).then(settle, settle); } catch (e) { settle(); }
+      });
+      return btn;
+    };
 
-      Promise.all([
-        fetch(CL_API + "/api/content-library?type=blog", { headers: headers }).then(function (r) { return r.json(); }),
-        fetch(CL_API + "/api/content-library?type=sms",  { headers: headers }).then(function (r) { return r.json(); })
+    /* A FAILED LOAD IS NOT AN EMPTY LIBRARY. Both GETs used to go straight to
+       r.json() and fall back to [] — so a 401, a 500 or a missing token drew
+       "No articles saved yet." over a library that was never read, and the
+       header count stayed at "—". A failure now says so, in each drawer, with a
+       retry; a list that had loaded before stays drawn under the notice. */
+    var _libLoaded = false;
+
+    function drawerIds(type) {
+      return type === "blog"
+        ? { drawer: "drawerBlog", body: "drawerBlogBody", count: "drawerBlogCount" }
+        : { drawer: "drawerSms", body: "drawerSmsBody", count: "drawerSmsCount" };
+    }
+
+    /* One notice at the top of a drawer's body, replacing any earlier one. The
+       drawer is opened so the message is seen even if it was collapsed. */
+    function showDrawerNotice(type, message, retry) {
+      var ids = drawerIds(type);
+      var bodyEl = document.getElementById(ids.body);
+      if (!bodyEl) return null;
+      var old = bodyEl.querySelector(".cl-notice");
+      if (old) old.parentNode.removeChild(old);
+      var wrap = document.createElement("div");
+      wrap.className = "cl-notice";
+      var p = document.createElement("p");
+      p.className = "cl-empty-state";
+      p.setAttribute("role", "status");
+      p.style.color = "#f87171";
+      p.textContent = message;
+      wrap.appendChild(p);
+      if (retry) {
+        var btn = window.bfLoadRetryButton("Try again", "action-btn action-btn--ghost", retry, function () {
+          p.textContent = "Your session has ended — sign in again to load your library.";
+        });
+        btn.style.cssText = "font-size:.72rem;padding:4px 10px;margin-bottom:10px";
+        wrap.appendChild(btn);
+      }
+      bodyEl.insertBefore(wrap, bodyEl.firstChild);
+      var drawer = document.getElementById(ids.drawer);
+      if (drawer) drawer.classList.add("open");
+      return wrap;
+    }
+
+    function libraryLoadFailed(message) {
+      ["blog", "sms"].forEach(function (type) {
+        var ids = drawerIds(type);
+        var countEl = document.getElementById(ids.count);
+        var bodyEl = document.getElementById(ids.body);
+        if (!_libLoaded) {
+          if (countEl) countEl.textContent = "not loaded";
+          if (bodyEl) bodyEl.innerHTML = "";
+        }
+        showDrawerNotice(type, message, loadLibrary);
+      });
+    }
+
+    function readEntries(r) {
+      if (!r.ok) throw new Error("the server answered " + r.status);
+      return r.json().then(function (b) {
+        if (!b || !Array.isArray(b.entries)) throw new Error("the server's answer could not be read");
+        return b.entries;
+      });
+    }
+
+    function loadLibrary() {
+      var token = clTok();
+      if (!token) {
+        libraryLoadFailed("You are signed out, so your library could not be loaded. Sign in again to see it.");
+        return Promise.resolve();
+      }
+      var headers = { "Authorization": "Bearer " + token };
+
+      return Promise.all([
+        fetch(CL_API + "/api/content-library?type=blog", { headers: headers }).then(readEntries),
+        fetch(CL_API + "/api/content-library?type=sms",  { headers: headers }).then(readEntries)
       ]).then(function (results) {
-        _libBlog = results[0].entries || [];
-        _libSms  = results[1].entries || [];
+        _libBlog = results[0];
+        _libSms  = results[1];
+        _libLoaded = true;
         renderDrawer("blog");
         renderDrawer("sms");
       }).catch(function (err) {
         console.warn("[ContentLibrary] loadLibrary failed:", err.message || err);
+        libraryLoadFailed(err && err.name === "TypeError"
+          ? "Could not reach the server, so your library could not be loaded."
+          : "Could not load your library (" + (err.message || err) + ").");
       });
     }
 
     function toggleDrawer(id) {
       var el = document.getElementById(id);
       if (el) el.classList.toggle("open");
+    }
+
+    /* WHERE A POST WRITTEN FOR ANOTHER SITE STANDS. A row with a site was
+       written for that property and is stored here as a draft by design — it
+       always will be, so the draft badge said nothing true about it. What
+       matters is whether it has been recorded as live there: that URL is what
+       makes it a link target for the next article the SEO agent writes for the
+       same site. A row with no site is a post for this platform and keeps its
+       own status badge (liveState returns null for it).
+
+       external_published_at is when the mark was made HERE, not when the post
+       went live on the other site, so it is shown as "recorded here on". */
+    function liveState(item) {
+      if (!item || !item.site) return null;
+      var site = String(item.site);
+      var id = escapeHtml(item.id);
+      var btn = "class=\"action-btn action-btn--ghost\" style=\"font-size:.72rem;padding:4px 10px\"";
+      var url = item.external_url ? String(item.external_url) : "";
+      var form = [
+        "  <div class=\"cl-live-form\" data-live-form=\"" + id + "\" style=\"display:none;margin-top:8px\">",
+        "    <input class=\"bp-input cl-live-input\" type=\"url\" maxlength=\"500\" placeholder=\"https://" + escapeHtml(site) + "/…\" value=\"" + escapeHtml(url) + "\" aria-label=\"Where this post went live on " + escapeHtml(site) + "\">",
+        "    <div class=\"cl-item-actions\">",
+        "      <button type=\"button\" class=\"action-btn\" style=\"font-size:.72rem;padding:4px 10px\" data-live-save=\"" + id + "\">Save</button>",
+        "      <button type=\"button\" " + btn + " data-live-cancel=\"" + id + "\">Cancel</button>",
+        "    </div>",
+        "  </div>",
+        "  <div class=\"cl-live-status\" role=\"status\" style=\"display:none;color:#f87171;font-size:.75rem;margin-top:6px\"></div>"
+      ].join("\n");
+      if (!url) {
+        return {
+          badge: "  <span class=\"cl-status draft\">Not recorded as live</span>",
+          line: "  <div class=\"cl-item-meta\" style=\"margin-top:6px\">Written for " + escapeHtml(site) + " — not recorded as live there yet.</div>",
+          actions: "    <button type=\"button\" " + btn + " data-live-open=\"" + id + "\">Mark as live</button>",
+          form: form
+        };
+      }
+      var marked = item.external_published_at ? new Date(item.external_published_at).toLocaleDateString() : "";
+      var link = /^https?:\/\//i.test(url)
+        ? "<a href=\"" + escapeHtml(url) + "\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color:#34d399\">" + escapeHtml(url) + "</a>"
+        : escapeHtml(url);
+      return {
+        badge: "  <span class=\"cl-status published\">Live on " + escapeHtml(site) + "</span>",
+        line: "  <div class=\"cl-item-meta\" style=\"margin-top:6px;word-break:break-all\">Live at " + link + (marked ? " &middot; recorded here on " + escapeHtml(marked) : "") + "</div>",
+        actions: "    <button type=\"button\" " + btn + " data-live-open=\"" + id + "\">Change URL</button>" +
+                 "\n    <button type=\"button\" " + btn + " data-live-unmark=\"" + id + "\">Unmark</button>",
+        form: form
+      };
+    }
+
+    function findLibraryItem(id) {
+      var lists = { blog: _libBlog, sms: _libSms };
+      for (var type in lists) {
+        for (var i = 0; i < lists[type].length; i++) {
+          if (String(lists[type][i].id) === String(id)) return { type: type, list: lists[type], index: i };
+        }
+      }
+      return null;
+    }
+
+    /* Records (url) or clears (null) the live mark. On success the row is
+       redrawn from the entry the server returns, so what shows is what is
+       stored. On failure nothing is cleared: the row, the typed URL and the
+       buttons stay, and the reason is shown — for a 422, the server's own
+       message, which names the host it got and the site it expected. */
+    function recordLive(id, url, buttons, statusEl) {
+      function say(text) {
+        if (!statusEl) return;
+        statusEl.textContent = text || "";
+        statusEl.style.display = text ? "block" : "none";
+      }
+      var labels = buttons.map(function (b) { return b.textContent; });
+      function release() {
+        buttons.forEach(function (b, i) { b.disabled = false; b.textContent = labels[i]; });
+      }
+      var token = clTok();
+      if (!token) {
+        say("You are signed out, so nothing was recorded. Sign in again and retry.");
+        return Promise.resolve();
+      }
+      say("");
+      buttons.forEach(function (b) { b.disabled = true; });
+      if (buttons[0]) buttons[0].textContent = url === null ? "Unmarking…" : "Saving…";
+
+      var request;
+      try {
+        request = fetch(CL_API + "/api/content-library/" + encodeURIComponent(id) + "/external-published", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ external_url: url })
+        });
+      } catch (err) {
+        request = Promise.reject(err);
+      }
+
+      return request.then(function (r) {
+        return r.json().catch(function () { return null; }).then(function (body) {
+          if (r.ok && body && body.entry) {
+            var found = findLibraryItem(id);
+            if (found) {
+              found.list[found.index] = body.entry;
+              renderDrawer(found.type);
+            }
+            return;
+          }
+          if (r.status === 422 && body && body.error) {
+            say(body.error);
+          } else if (r.status === 404) {
+            say("This post is no longer in your library, so nothing was recorded. It may have been deleted — reload the page.");
+          } else if (r.ok) {
+            say("The server's answer could not be read, so this is not shown as recorded. Reload the page to see where it stands.");
+          } else {
+            say("Could not record this (the server answered " + r.status + "). Nothing was changed. Try again.");
+          }
+          release();
+        });
+      }, function (err) {
+        console.warn("[ContentLibrary] external-published failed:", err && err.message || err);
+        say("Could not reach the server, so nothing was recorded. Try again.");
+        release();
+      });
     }
 
     function renderDrawer(type) {
@@ -1090,17 +1299,21 @@
         var date    = item.created_at ? new Date(item.created_at).toLocaleDateString() : "";
         var status  = item.status || "draft";
         var snippet = (item.body || "").slice(0, 200);
+        var live    = liveState(item);
         return [
           "<div class=\"cl-item\" data-id=\"" + escapeHtml(item.id) + "\">",
           "  <div class=\"cl-item-title\">" + escapeHtml(title) + "</div>",
           "  <div class=\"cl-item-meta\">" + escapeHtml(date) + (item.keyword && item.title ? " &middot; " + escapeHtml(item.keyword) : "") + "</div>",
-          "  <span class=\"cl-status " + escapeHtml(status) + "\">" + escapeHtml(status) + "</span>",
+          live ? live.badge : "  <span class=\"cl-status " + escapeHtml(status) + "\">" + escapeHtml(status) + "</span>",
+          live ? live.line : "",
           "  <div class=\"cl-item-body\" id=\"clbody-" + escapeHtml(item.id) + "\">" + escapeHtml(item.body || "") + "</div>",
           "  <div class=\"cl-item-actions\">",
           "    <button type=\"button\" class=\"action-btn action-btn--ghost\" style=\"font-size:.72rem;padding:4px 10px\" data-expand=\"" + escapeHtml(item.id) + "\">Expand</button>",
           "    <button type=\"button\" class=\"action-btn action-btn--ghost\" style=\"font-size:.72rem;padding:4px 10px\" data-copy=\"" + escapeHtml(item.id) + "\" data-body=\"" + escapeHtml(item.body || "") + "\">Copy</button>",
+          live ? live.actions : "",
           "    <button type=\"button\" class=\"cl-delete-btn\" data-id=\"" + escapeHtml(item.id) + "\" data-type=\"" + escapeHtml(type) + "\">Delete</button>",
           "  </div>",
+          live ? live.form : "",
           "</div>"
         ].join("\n");
       }).join("\n");
@@ -1109,18 +1322,35 @@
     function emptyLibrary(type, btn) {
       var label = type === "blog" ? "blog articles" : "SMS campaigns";
       if (!confirm("Delete all " + label + " from your library? This cannot be undone.")) return;
+      /* A failed Empty used to log to the console and then reload, which read
+         as "it worked" whenever the list happened to redraw. It now says so in
+         the drawer, and the list is left as it was. */
+      if (!clTok()) {
+        showDrawerNotice(type, "You are signed out, so your " + label + " were not emptied. Sign in again and retry.");
+        return;
+      }
       btn.disabled = true;
-      fetch(CL_API + "/api/content-library/empty", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + clTok(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ type: type })
-      }).then(function () {
-        loadLibrary();
+      var emptyRequest;
+      try {
+        emptyRequest = fetch(CL_API + "/api/content-library/empty", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + clTok(),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ type: type })
+        });
+      } catch (err) {
+        emptyRequest = Promise.reject(err);
+      }
+      emptyRequest.then(function (r) {
+        if (!r.ok) throw new Error("the server answered " + r.status);
+        return loadLibrary();
       }).catch(function (err) {
         console.warn("[ContentLibrary] Empty failed:", err.message || err);
+        showDrawerNotice(type, err && err.name === "TypeError"
+          ? "Could not reach the server, so your " + label + " were not emptied."
+          : "Could not empty your " + label + " (" + (err.message || err) + "). Nothing was deleted.");
       }).finally(function () {
         btn.disabled = false;
       });
@@ -1134,6 +1364,50 @@
     });
 
     document.getElementById("contentLibrarySection").addEventListener("click", function (e) {
+      var liveItem = e.target.closest(".cl-item");
+      var liveForm = liveItem ? liveItem.querySelector(".cl-live-form") : null;
+      var liveStatus = liveItem ? liveItem.querySelector(".cl-live-status") : null;
+
+      var openBtn = e.target.closest("[data-live-open]");
+      if (openBtn && liveForm) {
+        liveForm.style.display = "block";
+        if (liveStatus) { liveStatus.textContent = ""; liveStatus.style.display = "none"; }
+        var input = liveForm.querySelector(".cl-live-input");
+        if (input) input.focus();
+        return;
+      }
+
+      var cancelBtn = e.target.closest("[data-live-cancel]");
+      if (cancelBtn && liveForm) {
+        liveForm.style.display = "none";
+        if (liveStatus) { liveStatus.textContent = ""; liveStatus.style.display = "none"; }
+        return;
+      }
+
+      var saveBtn = e.target.closest("[data-live-save]");
+      if (saveBtn && liveForm) {
+        var typed = String((liveForm.querySelector(".cl-live-input") || {}).value || "").trim();
+        if (!typed) {
+          if (liveStatus) { liveStatus.textContent = "Enter the URL where this post went live."; liveStatus.style.display = "block"; }
+          return;
+        }
+        var cancel = liveForm.querySelector("[data-live-cancel]");
+        recordLive(saveBtn.dataset.liveSave, typed, cancel ? [saveBtn, cancel] : [saveBtn], liveStatus);
+        return;
+      }
+
+      /* Confirmed first: unmarking takes this post out of the SEO agent's link
+         targets for its site and throws away the URL recorded here. It can be
+         marked again, but only by finding and pasting the URL again. */
+      var unmarkBtn = e.target.closest("[data-live-unmark]");
+      if (unmarkBtn) {
+        var found = findLibraryItem(unmarkBtn.dataset.liveUnmark);
+        var siteName = found && found.list[found.index].site ? found.list[found.index].site : "its site";
+        if (!confirm("Unmark this post as live?\n\nThe SEO agent will stop linking to it from new articles for " + siteName + ", and the URL recorded here will be removed. You can mark it again later.")) return;
+        recordLive(unmarkBtn.dataset.liveUnmark, null, [unmarkBtn], liveStatus);
+        return;
+      }
+
       var expandBtn = e.target.closest("[data-expand]");
       if (expandBtn) {
         var id      = expandBtn.dataset.expand;
