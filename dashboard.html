@@ -194,7 +194,29 @@
         <circle cx="12" cy="12" r="2.6" fill="url(#oracleGateCore)"/>
       </svg>
     </a>
-    <button type="button" class="topbar-icon-btn" id="notificationBtn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+    <!-- A NOTIFICATIONS BELL WAS HERE, AND WAS REMOVED BECAUSE NOTHING WAS WIRED
+         TO IT. It was a button with markup and CSS and no handler, no badge and
+         no dropdown: clicking it did nothing, on the one page that had it.
+
+         The backend half exists and works. GET /api/notifications returns the
+         caller's newest 100 (read and unread, newest first), and
+         PUT /api/notifications/:id/read marks one read, only if it is the
+         caller's. The notifications table has never held a row: it was created
+         on 2026-09-01 (migration 081), every insert before that went to a table
+         that did not exist, and none of its three writers (welcome at
+         registration, a new message, admin verification) has fired since.
+
+         A real version needs, before the bell comes back:
+           - a link or source column on notifications (the message, sender or
+             page a notice is about), and writers that fill it, so a notice can
+             be opened rather than only read;
+           - a mark-all-read route (only one-at-a-time exists);
+           - a 404 for an id that is missing or not the caller's (today
+             .single() fails and the error handler answers 500);
+           - the bell on the other pages too. Only dashboard.html has this
+             topbar, so one bell here would be missed on every other page.
+         .topbar-icon-btn in css/bizforce-ui.css was styled for this button
+         alone and is kept for when it returns. -->
     <label class="topbar-tmx-toggle" id="tmxPresenceToggle" title="Toggle the roaming Termaximus presence site-wide">
       <span class="topbar-tmx-toggle-label">Termaximus</span>
       <span class="topbar-tmx-switch">
