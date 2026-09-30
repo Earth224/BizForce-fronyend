@@ -3103,8 +3103,17 @@ function renderAgentMemories() {
                     '<div style="color:#ffffff;font-size:15px;font-weight:800;margin-top:4px;">' + assignmentEscapeHtml(memory.title || "Untitled memory") + '</div>' +
                     '<div style="color:#8888aa;font-size:11px;font-weight:700;margin-top:4px;">' + assignmentEscapeHtml(createdLabel) + '</div>' +
                 '</div>' +
-                '<button type="button" class="agentMemoryOpenBtn" data-id="' + assignmentEscapeHtml(memory.id) + '" style="border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:6px 12px;background:linear-gradient(135deg,rgba(8,12,20,.95),rgba(12,16,28,.98));color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;">Open</button>' +
+                '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                    '<button type="button" class="agentMemoryOpenBtn" data-id="' + assignmentEscapeHtml(memory.id) + '" style="border:1px solid rgba(0,229,255,.28);border-radius:999px;padding:6px 12px;background:linear-gradient(135deg,rgba(8,12,20,.95),rgba(12,16,28,.98));color:#00e5ff;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;">Open</button>' +
+                    /* Only a card with a server row behind it can be deleted: the sync
+                       stores those as "api_" + the agent_memory id. Every other card
+                       lives in this browser alone and has nothing to delete. */
+                    (isServerAgentMemory(memory.id)
+                        ? '<button type="button" class="agentMemoryDeleteBtn" data-id="' + assignmentEscapeHtml(memory.id) + '" style="border:1px solid rgba(248,113,113,.35);border-radius:999px;padding:6px 12px;background:linear-gradient(135deg,rgba(8,12,20,.95),rgba(12,16,28,.98));color:#f87171;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;">Delete</button>'
+                        : '') +
+                '</div>' +
             '</div>' +
+            '<div class="agentMemoryDeleteStatus" role="status" style="display:none;color:#f87171;font-size:12px;font-weight:700;"></div>' +
             '<div style="color:#c5cdd8;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">' + assignmentEscapeHtml(memory.summary || "No summary available.") + '</div>' +
             '<div class="agentMemoryDetail" style="display:none;margin-top:6px;padding:10px 12px;border-radius:12px;border:1px solid rgba(124,60,255,.22);background:rgba(8,8,18,.72);color:#dfe6ef;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"></div>';
 
@@ -3115,6 +3124,99 @@ function renderAgentMemories() {
 
         agentMemoryList.appendChild(card);
     });
+}
+
+/* DELETING A MEMORY. Only cards whose id starts "api_" have a row in
+   agent_memory behind them; the rest were written by this page into this
+   browser and are not the agents' memory at all.
+
+   What the agents do with these: each one reads its five most recent memories
+   into its instructions before it works. So a delete can change what that agent
+   does next. The confirmation says that about memories in general — whether
+   this particular one is among an agent's newest five is not something the page
+   knows, so it does not claim either way.
+
+   The browser store is updated as well as the card. syncAgentMemoryFromApi only
+   ever ADDS what the server returns; a row gone from the server stays in this
+   browser's copy — and on screen, after every reload — unless it is removed here.
+   It also skips anything deleted in this page's lifetime, in case its response
+   was read before the delete and arrives after it. */
+var agentMemoryDeletedIds = {};
+
+function isServerAgentMemory(id) {
+    return String(id || "").indexOf("api_") === 0;
+}
+
+function removeAgentMemoryLocally(id) {
+    agentMemoryDeletedIds[String(id)] = true;
+    var remaining = getAgentMemories().filter(function(m) { return String(m.id) !== String(id); });
+    localStorage.setItem(BF_AGENT_MEMORY_STORAGE_KEY, JSON.stringify(remaining));
+    renderAgentMemories();
+}
+
+async function deleteAgentMemory(button) {
+    var id = String(button.getAttribute("data-id") || "");
+    var card = button.closest(".agent-memory-card");
+    var status = card ? card.querySelector(".agentMemoryDeleteStatus") : null;
+
+    function say(text) {
+        if (!status) { return; }
+        status.textContent = text || "";
+        status.style.display = text ? "block" : "none";
+    }
+    function failed(text) {
+        say(text);
+        button.disabled = false;
+        button.textContent = "Delete";
+    }
+
+    if (!isServerAgentMemory(id)) {
+        return;
+    }
+
+    if (!window.confirm("Delete this memory?\n\nEach agent reads its five most recent memories before it works, so removing a memory can change what that agent does next. This cannot be undone.")) {
+        return;
+    }
+
+    var token = null;
+    try { token = localStorage.getItem("bf_token"); } catch (err) { token = null; }
+    if (!token) {
+        say("You are signed out, so this memory was not deleted. Sign in again and retry.");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Deleting…";
+    say("");
+
+    var response;
+    try {
+        response = await fetch(API_URL + "/api/memory/" + encodeURIComponent(id.slice(4)), {
+            method: "DELETE",
+            headers: { "Authorization": "Bearer " + token }
+        });
+    } catch (err) {
+        console.error("AGENT MEMORY DELETE ERROR:", err);
+        failed("Could not reach the server, so this memory was not deleted. Try again.");
+        return;
+    }
+
+    /* 404 is success from here: the server has no such memory for this
+       account, so it is already gone. Drop the stale copy either way. */
+    if (response.ok || response.status === 404) {
+        try {
+            removeAgentMemoryLocally(id);
+        } catch (err) {
+            /* The server copy is gone; only this browser's saved copy could not
+               be rewritten. Take the card off the screen now. It is also kept
+               out of any sync for the life of this page. */
+            console.error("AGENT MEMORY LOCAL REMOVE ERROR:", err);
+            if (card && card.parentNode) { card.parentNode.removeChild(card); }
+        }
+        return;
+    }
+
+    failed("Could not delete this memory (the server answered " + response.status + "). It has not been removed. Try again.");
 }
 
 function bindAgentMemoryControls() {
@@ -3134,6 +3236,12 @@ function bindAgentMemoryControls() {
     }
 
     section.addEventListener("click", function(event) {
+        var deleteButton = event.target.closest(".agentMemoryDeleteBtn");
+        if (deleteButton) {
+            deleteAgentMemory(deleteButton);
+            return;
+        }
+
         var button = event.target.closest(".agentMemoryOpenBtn");
         if (!button) {
             return;
@@ -40366,7 +40474,7 @@ window.agentMemories = agentMemories;
         var added = 0;
         data.memories.forEach(function(m) {
             var key = "api_" + m.id;
-            if (existingIds[key]) { return; }
+            if (existingIds[key] || agentMemoryDeletedIds[key]) { return; }
             existing.push({
                 id: key,
                 agentName: String(m.agent_type || "").toUpperCase(),
