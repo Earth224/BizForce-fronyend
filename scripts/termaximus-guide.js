@@ -108,7 +108,7 @@
     ],
 
     "seo.html": [
-      "This agent turns your business profile and executive memory into concrete SEO deliverables — audits, keyword research, rankings, and forecasts.",
+      "This agent turns your business profile into concrete SEO deliverables — audits, keyword research, rankings, and forecasts.",
       "Feed it real data: set your Website and top Competitors in your Business Profile (edit it from the Content Agent) so audits and keyword research aren't guessing in the dark.",
       "Use the launcher's specific task types — SEO Audit, Keyword Research, Competitor Analysis, Local SEO Plan — rather than vague prompts; narrower asks produce sharper deliverables.",
       "Refresh Data after each run to pull the latest report into Website Audits, Keyword Research, and Opportunities.",
