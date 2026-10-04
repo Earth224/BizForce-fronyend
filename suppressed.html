@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BizForce AI — for businesses the ad networks won't serve</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#070b18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BizForce">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<meta name="description" content="For businesses an ad network, a platform or a payment processor has cut off: search content you approve, a blog and storefront under your own handle, and eighteen AI agents. All Access, $199/month.">
+
+<!--
+  THE PAGE LEAD RADAR SENDS PEOPLE TO.
+
+  The person arriving here posted that an ad network, a platform or a payment
+  processor cut them off, and a reply linked them. The homepage speaks to a busy
+  generalist and never mentions any of that, so this page speaks to them.
+
+  EVERY CLAIM ON IT IS SOMETHING THE CODE DOES FOR A PAYING ACCOUNT TODAY. What
+  the master file's §1 says the platform is for, and what is built, are not the
+  same list: the SEO compliance check runs automatically only for the owner's
+  own two domains and no page lets anyone else ask for it, the platform drafts
+  email but sends none, consent capture is the owner's alone, and marketplace
+  card payments run on Stripe's test key. So the page says none of those four.
+  It also says what the
+  platform will not do — restore an account, process payments, promise
+  results — because the person reading has just been let down by a platform
+  and will believe a page that says no to something.
+
+  The arrival is recorded at the bottom (POST /api/engine-visits): only the ref
+  from the link, and this page's path.
+-->
+
+<link rel="stylesheet" href="/css/bizforce-ui.css">
+<style>
+  /* The homepage's own rules (index.html), reused so the two pages read as one
+     product: the palette, the type scale, the section furniture, the card grid,
+     the price card and the phone breakpoint. */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    color: #e8e8ff;
+    background: #070b18;
+  }
+
+  body {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%),
+      radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%),
+      #070b18;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+  }
+
+  .site-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 0 0;
+  }
+
+  .site-brand {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, #00e5ff, #9f6bff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .section { padding-top: 88px; }
+
+  .section-label {
+    margin: 0 0 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #22d3ee;
+  }
+
+  .section-title {
+    margin: 0 0 14px;
+    font-size: clamp(1.5rem, 3.4vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: #ffffff;
+  }
+
+  .section-lede {
+    margin: 0 0 32px;
+    max-width: 620px;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #8892b8;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    background: rgba(168, 85, 247, 0.1);
+    color: #c4b5fd;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hero {
+    padding: 76px 0 44px;
+    max-width: 780px;
+  }
+
+  .hero h1 {
+    margin: 18px 0 0;
+    font-size: clamp(2.2rem, 6.4vw, 3.7rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    line-height: 1.08;
+    background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .hero-sub {
+    margin: 22px 0 0;
+    max-width: 640px;
+    font-size: clamp(1rem, 2.1vw, 1.12rem);
+    line-height: 1.75;
+    color: #8892b8;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    margin-top: 34px;
+  }
+
+  .cta-note {
+    margin: 18px 0 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  .point-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(268px, 100%), 1fr));
+    gap: 18px;
+  }
+
+  .point-grid .bf-card { padding: 22px; }
+
+  .point-grid h3 {
+    margin: 0 0 8px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+
+  .point-grid p {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  .wont-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 14px 28px;
+  }
+
+  .wont-list li {
+    position: relative;
+    padding-left: 30px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e8e8ff;
+  }
+
+  .wont-list li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 0.72em;
+    width: 12px;
+    height: 2px;
+    background: #8892b8;
+  }
+
+  .price-card {
+    max-width: 560px;
+    text-align: center;
+  }
+
+  .price-amount {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin: 20px 0 6px;
+  }
+
+  .price-figure {
+    font-size: clamp(2.8rem, 8vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .price-period {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #8892b8;
+  }
+
+  .price-line {
+    margin: 0 auto 26px;
+    max-width: 420px;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: #8892b8;
+  }
+
+  .price-card .bf-btn {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .site-foot {
+    margin-top: 88px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(0, 229, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #8892b8;
+  }
+
+  .site-foot a {
+    color: #22d3ee;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .site-foot a:hover { text-decoration: underline; }
+
+  @media (max-width: 640px) {
+    .page {
+      padding: 0 18px 56px;
+      padding-left: max(18px, env(safe-area-inset-left, 0px));
+      padding-right: max(18px, env(safe-area-inset-right, 0px));
+    }
+    .hero { padding-top: 48px; padding-bottom: 36px; }
+    .section { padding-top: 62px; }
+    .cta-row .bf-btn { width: 100%; }
+    .point-grid { grid-template-columns: 1fr; }
+    .site-foot { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="site-top">
+    <span class="site-brand">BizForce AI</span>
+    <a class="bf-btn bf-btn-ghost" href="/app.html">Sign In</a>
+  </header>
+
+  <!-- ── 1. Who this is for ─────────────────────────────────────────────── -->
+  <section class="hero">
+    <span class="pill">All Access — $199/month</span>
+    <h1>Built for businesses the ad networks won't serve.</h1>
+    <p class="hero-sub">
+      An ad account disabled. A payment processor that dropped you. Reach that
+      went quiet for no reason anyone will explain. If that is where you are,
+      the usual advice — run more ads — is the one thing you can't do.
+    </p>
+    <p class="hero-sub">
+      BizForce AI assumes you can't run them. It works through channels that
+      don't need an ad network's approval: search content, a blog and a
+      storefront under your own handle, and AI agents that work from one
+      profile of your business.
+    </p>
+    <div class="cta-row">
+      <a class="bf-btn" href="/app.html">Create your account</a>
+    </div>
+    <p class="cta-note">You create an account first, then start the subscription.</p>
+  </section>
+
+  <!-- ── 2. What it does ────────────────────────────────────────────────── -->
+  <section class="section" id="what">
+    <p class="section-label">What it does</p>
+    <h2 class="section-title">Owned channels, because paid ones are closed to you</h2>
+    <p class="section-lede">
+      Four things, each of them built and working today.
+    </p>
+
+    <div class="point-grid">
+      <div class="bf-card">
+        <h3>Search content you approve</h3>
+        <p>The SEO agent writes articles from your business profile, linked to your earlier ones as they build up. Nothing publishes until you approve it.</p>
+      </div>
+      <div class="bf-card">
+        <h3>A blog and a storefront under your handle</h3>
+        <p>Published articles live at bizforceai.net/blog/your-handle, and your products appear on a storefront page under the same name.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Email sequences, written for you</h3>
+        <p>The email agent drafts sequences and follow-ups from the same profile, ready to send from whatever email service you already use.</p>
+      </div>
+      <div class="bf-card">
+        <h3>Eighteen agents, one profile</h3>
+        <p>Sales, content, social, analytics and more read the profile you fill in once, so none starts from a blank page. Anything that would publish an article or change a listing waits for your approval.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. What it won't do ────────────────────────────────────────────── -->
+  <section class="section" id="wont">
+    <p class="section-label">Straight answers</p>
+    <h2 class="section-title">What it won't do</h2>
+    <ul class="wont-list">
+      <li>Get your ad account, your social account or your payment processor back.</li>
+      <li>Process payments for you, or replace your payment processor.</li>
+      <li>Promise traffic, rankings or sales. It does the work; results depend on your market.</li>
+    </ul>
+  </section>
+
+  <!-- ── 4. Price ───────────────────────────────────────────────────────── -->
+  <section class="section" id="pricing">
+    <p class="section-label">Pricing</p>
+    <div class="bf-card price-card">
+      <span class="pill">All Access</span>
+      <div class="price-amount">
+        <span class="price-figure">$199</span>
+        <span class="price-period">/ month</span>
+      </div>
+      <p class="price-line">
+        One plan: all eighteen agents and everything above. Agent use has a
+        daily and a monthly limit.
+      </p>
+      <a class="bf-btn" href="/app.html">Create your account</a>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <span>BizForce AI — owned channels for businesses the ad networks won't serve.</span>
+    <a href="/app.html">Sign in or create an account &rarr;</a>
+  </footer>
+
+</div>
+
+<script>
+  /* ── The arrival, recorded once ────────────────────────────────────────────
+     A Lead Radar reply links here with ?ref=lr-<10 hex>. Only that ref and this
+     page's path are sent to POST /api/engine-visits — nothing else: no cookie,
+     no storage, no fingerprint, no referrer, no account. A ref that is not that
+     exact shape is not sent at all, and with no ref nothing is sent.
+
+     Fire and forget. The page never waits on it and never shows the visitor
+     anything about it: a 503 (the table not yet created), any other status, a
+     network failure or a browser without fetch all end in silence, because a
+     person who came here to read about their problem has no use for an error
+     about our measurement. Same API base and JSON shape as every other page. */
+  (function () {
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    try {
+      var ref = new URLSearchParams(window.location.search).get("ref");
+      if (!ref || !/^lr-[0-9a-f]{10}$/.test(ref)) return;
+      if (window.__bfArrivalSent) return;
+      window.__bfArrivalSent = true;
+      fetch(API_URL + "/api/engine-visits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ref: ref, path: window.location.pathname }),
+        keepalive: true,
+        credentials: "omit"
+      }).catch(function () {});
+    } catch (e) {
+      /* Nothing to show: see above. */
+    }
+  })();
+</script>
+
+</body>
+</html>
