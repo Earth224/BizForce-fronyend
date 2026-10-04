@@ -103,7 +103,7 @@
     "app.html": [
       "The front door — sign in or create an account here; this is the paywall/onboarding gateway to the entire platform.",
       "Creating an account only asks for Business Name, Email, and Password — your real Business Profile setup happens after this, on the Content Agent's Edit Profile.",
-      "The all-access subscription unlocks every AI agent and platform tool at once — there's no reason to hold back on exploring once you're in.",
+      "The All Access subscription opens every AI agent, but not every tool: Lead Radar isn't included, and publishing to social accounts and direct SMS sending aren't available.",
       "If you already have an account, use Sign In directly rather than creating a duplicate — your data and agent history live under one account."
     ],
 
