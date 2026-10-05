@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Digital Business Cards</title>
   <script src="/scripts/bf-session.js"></script>
+  <script src="/scripts/bf-paywall.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap"/>
@@ -1684,7 +1685,16 @@ async function shareCard() {
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ card_id: activeCardId })
       });
-      if (!r.ok) throw new Error("Could not generate share link");
+      if (!r.ok) {
+        var rerr = await r.json().catch(function () { return {}; });
+        /* 402: no share link, card kept — the notice goes under the Share
+           button and says so (scripts/bf-paywall.js). */
+        var paywall = window.bfPaywall && window.bfPaywall.from(r.status, rerr);
+        var shareBtn = document.querySelector(".btn-share");
+        if (paywall && shareBtn) { window.bfPaywall.show(shareBtn, paywall); return; }
+        throw new Error(rerr.error || "Could not generate share link");
+      }
+      if (window.bfPaywall) window.bfPaywall.clear(document.querySelector(".btn-share"));
       var rd = await r.json();
       st = rd.share_token;
       activeShareToken = st;

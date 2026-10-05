@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Certifications</title>
   <script src="/scripts/bf-session.js"></script>
+  <script src="/scripts/bf-paywall.js"></script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -727,6 +728,7 @@ function submitQuiz() {
       document.getElementById("statEarned").textContent = earnedSet.size;
       if (res.data.already_earned === true) render("already");
       else if (res.data.credited === true) render(null);
+      else if (window.bfPaywall && window.bfPaywall.from(201, res.data)) render("withheld", window.bfPaywall.from(201, res.data));
       else render("uncredited");
     })
     .catch(function(){
@@ -758,6 +760,13 @@ function showSaveOutcome(pct, outcome, reason) {
                             (reason ? " (" + reason + ")" : "") +
                             ". Nothing was added to your profile — use Try Again to take it once more and save it." :
                             "You demonstrated mastery of " + activeCert.name + ". Your badge has been added to your profile, but the 100 BFC reward could not be credited.";
+
+  /* Earned, but the reward is for subscribers (credit_withheld): the server's
+     own sentence, with the Billing link, in place of the generic line above,
+     which would read as a failure. */
+  if (outcome === "withheld" && reason && typeof reason === "object" && window.bfPaywall) {
+    window.bfPaywall.render(document.getElementById("resultSub"), reason);
+  }
 
   document.getElementById("resultScore").textContent = pct + "%";
 

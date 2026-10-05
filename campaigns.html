@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Crowdfunding</title>
   <script src="/scripts/bf-session.js"></script>
+  <script src="/scripts/bf-paywall.js"></script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -307,13 +308,20 @@ async function submitCampaign() {
   if (!Number.isInteger(goal) || goal <= 0) { showToast("Goal must be a positive integer", "error"); return; }
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
+  if (window.bfPaywall) window.bfPaywall.clear(btn);
   try {
     var res = await fetch(API_URL + "/api/crowdfunding/campaigns", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify({ title, description: desc, goal_bfc: goal, category, media: campaignMedia })
     });
-    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    if (!res.ok) {
+      var e = await res.json().catch(function () { return {}; });
+      /* 402: nothing created, form kept (scripts/bf-paywall.js). */
+      var paywall = window.bfPaywall && window.bfPaywall.from(res.status, e);
+      if (paywall) { window.bfPaywall.show(btn, paywall); btn.disabled = false; return; }
+      throw new Error(e.error || "Failed");
+    }
     closeModal();
     showToast("Campaign started!", "success");
     await loadCampaigns();

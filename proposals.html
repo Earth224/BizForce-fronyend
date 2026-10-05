@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Agent Proposals</title>
   <script src="/scripts/bf-session.js"></script>
+  <script src="/scripts/bf-paywall.js"></script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -386,7 +387,8 @@ function renderProposals() {
     var text = cardMessages[card.getAttribute("data-id")];
     if (!text) return;
     var el = card.querySelector(".card-message");
-    el.textContent = text;
+    if (typeof text === "object" && window.bfPaywall) window.bfPaywall.render(el, text);
+    else el.textContent = text;
     el.className = "card-message show";
   });
 }
@@ -423,6 +425,16 @@ async function decideProposal(btn, action) {
 
     if (!res.ok) {
       var e = await res.json().catch(function () { return {}; });
+      /* 402: not published; the proposal is still pending and can be approved
+         again after subscribing (scripts/bf-paywall.js). */
+      var paywall = window.bfPaywall && window.bfPaywall.from(res.status, e);
+      if (paywall) {
+        cardMessages[id] = paywall;
+        window.bfPaywall.render(message, paywall);
+        message.className = "card-message show";
+        await loadProposals();
+        return;
+      }
       throw new Error(e.error || "Could not " + action + " this proposal");
     }
 

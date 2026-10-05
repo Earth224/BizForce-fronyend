@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Garage Sale</title>
   <script src="/scripts/bf-session.js"></script>
+  <script src="/scripts/bf-paywall.js"></script>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
   <style>
     *,*::before,*::after{box-sizing:border-box}
@@ -459,6 +460,7 @@ async function submitListing() {
   if (listingMediaUploading > 0) { showToast("Please wait — your photo is still uploading.", "error"); return; }
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
+  if (window.bfPaywall) window.bfPaywall.clear(btn);
   try {
     var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
     var method = editingId ? "PUT" : "POST";
@@ -467,7 +469,14 @@ async function submitListing() {
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify({ title, description: desc, category: GARAGE_SALE_CATEGORY, price_bfc: price, price_usd: priceUsd, tags: tagsRaw, media: listingMedia })
     });
-    if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Failed"); }
+    if (!res.ok) {
+      var e = await res.json().catch(function () { return {}; });
+      /* 402: not published, nothing lost. The modal stays open with the form
+         as typed, and the notice says what was kept (scripts/bf-paywall.js). */
+      var paywall = window.bfPaywall && window.bfPaywall.from(res.status, e);
+      if (paywall) { window.bfPaywall.show(btn, paywall); btn.disabled = false; return; }
+      throw new Error(e.error || "Failed");
+    }
     closeModal();
     showToast(editingId ? "Item updated!" : "Item posted!", "success");
     await loadListings();
