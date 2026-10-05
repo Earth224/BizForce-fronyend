@@ -353,7 +353,7 @@
     <div class="point-grid">
       <div class="bf-card">
         <h3>Search content you approve</h3>
-        <p>The SEO agent writes articles from your business profile, linked to your earlier ones as they build up. Nothing publishes until you approve it.</p>
+        <p>The SEO agent writes each article from the topic and notes you give it for that article — or picks a topic itself if you leave it blank — linked to your earlier ones as they build up. Nothing publishes until you approve it.</p>
       </div>
       <div class="bf-card">
         <h3>A blog and a storefront under your handle</h3>
@@ -407,7 +407,8 @@
 
 <script>
   /* ── The arrival, recorded once ────────────────────────────────────────────
-     A Lead Radar reply links here with ?ref=lr-<10 hex>. Only that ref and this
+     A Lead Radar reply links here with ?ref=lr-<10 hex>, and a published blog
+     post's money link with ?ref=bl-<10 hex>. Only that ref and this
      page's path are sent to POST /api/engine-visits — nothing else: no cookie,
      no storage, no fingerprint, no referrer, no account. A ref that is not that
      exact shape is not sent at all, and with no ref nothing is sent.
@@ -421,7 +422,7 @@
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     try {
       var ref = new URLSearchParams(window.location.search).get("ref");
-      if (!ref || !/^lr-[0-9a-f]{10}$/.test(ref)) return;
+      if (!ref || !/^(?:lr|bl)-[0-9a-f]{10}$/.test(ref)) return;
       if (window.__bfArrivalSent) return;
       window.__bfArrivalSent = true;
       fetch(API_URL + "/api/engine-visits", {

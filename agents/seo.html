@@ -546,6 +546,9 @@
     .seo-opt-input::placeholder, .seo-opt-textarea::placeholder { color: #555c78; }
     .seo-opt-btn-row { margin-top: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
     .seo-opt-msg { font-size: 0.85rem; color: #8892b8; min-height: 20px; }
+    .seo-post-mode { border: 0; margin: 0 0 4px; padding: 0; min-width: 0; }
+    .seo-post-mode-option { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; font-size: 0.9rem; color: inherit; cursor: pointer; }
+    .seo-post-mode-option input { margin-top: 3px; flex: none; }
     .seo-opt-msg.ok { color: #4ade80; }
     .seo-opt-msg.err { color: #f87171; }
     .seo-opt-spinner {
@@ -663,14 +666,42 @@
         <a class="action-btn action-btn--ghost" href="../proposals.html">Review Pending Proposals</a>
       </div>
 
-      <label class="seo-opt-label" for="seoPostMoneyUrl">Money URL — the page this article should send readers to</label>
-      <input type="url" class="seo-opt-input" id="seoPostMoneyUrl" placeholder="https://swordvitality.com/products/tongkat-ali" />
+      <!-- Two kinds of article, and a request carries the fields of exactly one.
+           "Another site" sends money_url: the article is for a property outside
+           this platform and is kept here as a draft, never published here.
+           "This platform" sends money_path: the article publishes on your blog
+           here and links /suppressed.html. The server refuses a request with
+           both, so the fields of the other mode are hidden, disabled and never
+           read. -->
+      <fieldset class="seo-post-mode">
+        <legend class="seo-opt-label">Write For</legend>
+        <label class="seo-post-mode-option">
+          <input type="radio" name="seoPostMode" id="seoPostModeExternal" value="external" checked />
+          Another site — send readers to a product page you name
+        </label>
+        <label class="seo-post-mode-option">
+          <input type="radio" name="seoPostMode" id="seoPostModePlatform" value="platform" />
+          This platform — publish on your blog here and send readers to bizforceai.net/suppressed.html
+        </label>
+      </fieldset>
+
+      <div id="seoPostExternalFields">
+        <label class="seo-opt-label" for="seoPostMoneyUrl">Money URL — the page this article should send readers to</label>
+        <input type="url" class="seo-opt-input" id="seoPostMoneyUrl" placeholder="https://swordvitality.com/products/tongkat-ali" />
+      </div>
+
+      <p class="seo-opt-p" id="seoPostPlatformNote" hidden>
+        Once you approve it, this article is published at bizforceai.net/blog/your-handle, and its link goes to
+        bizforceai.net/suppressed.html — the page for businesses an ad network or payment processor has cut off.
+      </p>
 
       <label class="seo-opt-label" for="seoPostAnchor">Link Anchor Text</label>
       <input type="text" class="seo-opt-input" id="seoPostAnchor" placeholder="Clickable text for the link (optional — falls back to a sensible default)" />
 
-      <label class="seo-opt-label" for="seoPostSiteName">Site Name</label>
-      <input type="text" class="seo-opt-input" id="seoPostSiteName" placeholder="What to call the site in the article (optional — falls back to the domain)" />
+      <div id="seoPostSiteNameFields">
+        <label class="seo-opt-label" for="seoPostSiteName">Site Name</label>
+        <input type="text" class="seo-opt-input" id="seoPostSiteName" placeholder="What to call the site in the article (optional — falls back to the domain)" />
+      </div>
 
       <label class="seo-opt-label" for="seoPostTopic">Topic</label>
       <input type="text" class="seo-opt-input" id="seoPostTopic" placeholder="What the article should be about (optional — leave blank and the agent picks a topic from the money page)" />
@@ -1131,7 +1162,11 @@
 
         var note = document.createElement("div");
         note.className = "seo-opt-p";
-        note.textContent = "This post is now a pending proposal. It must be approved in Agent Proposals before it becomes a draft.";
+        /* What approval does differs by mode: a post for another site becomes
+           a draft kept here, a post for this platform is published publicly. */
+        note.textContent = payload.money_path
+          ? "This post is now a pending proposal. Once you approve it in Agent Proposals, it is published on your blog here and links to " + payload.money_path + "."
+          : "This post is now a pending proposal. It must be approved in Agent Proposals before it becomes a draft.";
         body.appendChild(note);
 
         var link = document.createElement("a");
@@ -1143,6 +1178,40 @@
         wrap.style.display = "block";
       }
 
+      /* The page this platform's articles link to. The server holds the list of
+         pages allowed here and refuses any other, so this is the one value it
+         accepts today, not a choice the page makes. */
+      var PLATFORM_MONEY_PATH = "/suppressed.html";
+
+      function seoPostMode() {
+        var platform = document.getElementById("seoPostModePlatform");
+        return platform && platform.checked ? "platform" : "external";
+      }
+
+      /* Hides and disables the fields the other mode would send, so a field
+         filled in under one mode cannot ride along under the other. The request
+         body below is built from the mode as well, so this is the visible half
+         of the rule, not the only half. */
+      function applySeoPostMode() {
+        var platform = seoPostMode() === "platform";
+        var external = document.getElementById("seoPostExternalFields");
+        var siteFields = document.getElementById("seoPostSiteNameFields");
+        var note = document.getElementById("seoPostPlatformNote");
+        var urlEl = document.getElementById("seoPostMoneyUrl");
+        var siteEl = document.getElementById("seoPostSiteName");
+        var topicEl = document.getElementById("seoPostTopic");
+        if (external) external.hidden = platform;
+        if (siteFields) siteFields.hidden = platform;
+        if (note) note.hidden = !platform;
+        if (urlEl) urlEl.disabled = platform;
+        if (siteEl) siteEl.disabled = platform;
+        if (topicEl) {
+          topicEl.placeholder = platform
+            ? "What the article should be about (optional — leave blank and the agent picks a question the linked page answers)"
+            : "What the article should be about (optional — leave blank and the agent picks a topic from the money page)";
+        }
+      }
+
       function runGeneratePost() {
         var urlEl     = document.getElementById("seoPostMoneyUrl");
         var anchorEl  = document.getElementById("seoPostAnchor");
@@ -1151,20 +1220,22 @@
         var contextEl = document.getElementById("seoPostContext");
         var btn       = document.getElementById("seoPostBtn");
         var token     = tok();
+        var mode      = seoPostMode();
 
         if (!token) { setPostMsg("Not signed in.", "err"); return; }
-        var moneyUrl = urlEl ? urlEl.value.trim() : "";
-        if (!moneyUrl) { setPostMsg("Enter the product page URL first.", "err"); return; }
+        var moneyUrl = mode === "external" && urlEl ? urlEl.value.trim() : "";
+        if (mode === "external" && !moneyUrl) { setPostMsg("Enter the product page URL first.", "err"); return; }
 
         var anchor  = anchorEl ? anchorEl.value.trim() : "";
-        var site    = siteEl ? siteEl.value.trim() : "";
+        var site    = mode === "external" && siteEl ? siteEl.value.trim() : "";
         var topic   = topicEl ? topicEl.value.trim() : "";
         var context = contextEl ? contextEl.value.trim() : "";
 
         /* Optional keys are omitted, never sent empty. The backend runs each
            through safeText, which reads "" as absent anyway — but an absent key
-           and an empty one are different requests to read back in a log. */
-        var body = { money_url: moneyUrl };
+           and an empty one are different requests to read back in a log.
+           Exactly one of money_url and money_path, chosen by the mode. */
+        var body = mode === "platform" ? { money_path: PLATFORM_MONEY_PATH } : { money_url: moneyUrl };
         if (anchor)  body.money_anchor = anchor;
         if (site)    body.site_name = site;
         if (topic)   body.topic = topic;
@@ -1206,6 +1277,11 @@
       document.addEventListener("DOMContentLoaded", function () {
         var btn = document.getElementById("seoPostBtn");
         if (btn) btn.addEventListener("click", runGeneratePost);
+        ["seoPostModeExternal", "seoPostModePlatform"].forEach(function (id) {
+          var radio = document.getElementById(id);
+          if (radio) radio.addEventListener("change", applySeoPostMode);
+        });
+        applySeoPostMode();
       });
     })();
   </script>
