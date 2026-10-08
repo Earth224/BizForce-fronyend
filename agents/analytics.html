@@ -548,7 +548,7 @@
         for (sk in store.stats) if (Object.prototype.hasOwnProperty.call(store.stats, sk) && store.stats[sk] != null && sk !== "updatedAt" && typeof store.stats[sk] !== "object") {
           sh += "<div class=\"context-item\"><label>" + escapeHtml(sk) + "</label><span>" + escapeHtml(store.stats[sk]) + "</span></div>";
         }
-        statsEl.innerHTML = sh || "<p class=\"report-item-body\">No stats recorded yet.</p>";
+        statsEl.innerHTML = sh || "<p class=\"report-item-body\">Nothing is recorded here. Real results come only from running this agent's tools on this page.</p>";
 
         /* THE SAMPLE LABEL, SHOWN ONLY WHILE THERE ARE STATS TO LABEL. Every
            figure in this store is written by hash-seeded generators on the
@@ -694,8 +694,14 @@
     }
     function refreshPage() {
       var profile = loadUserProfile();
-      var memory = loadExecutiveMemory();
-      var store = getAgentStore(memory);
+      /* THE analyticsAgent STORE IN EXECUTIVE MEMORY IS NOT READ. Everything in
+         it — stats, last run, the business context — was written by the
+         dashboard's hash-seeded simulation for this agent, which has been
+         removed. A browser that ran it still holds those figures, and
+         reading them would show invented numbers under this agent's name.
+         The page starts from an empty store; the profile and the live tiles
+         are the only sources. */
+      var store = getAgentStore(null);
       renderBusinessContext(buildBusinessContext(profile, store));
       renderRunMetaAndStats(store);
       applyLiveAgentData();
