@@ -753,8 +753,14 @@
 
     function refreshPage() {
       var profile = loadUserProfile();
-      var memory = loadExecutiveMemory();
-      var rdAgent = ensureRDAgentStore(memory);
+      /* THE rdAgent STORE IN EXECUTIVE MEMORY IS NOT READ. Everything in
+         it — stats, last run, the business context — was written by the
+         dashboard's hash-seeded simulation for this agent, which has been
+         removed. A browser that ran it still holds those figures, and
+         reading them would show invented numbers under this agent's name.
+         The page starts from an empty store; the profile and the live tiles
+         are the only sources. */
+      var rdAgent = ensureRDAgentStore(null);
       var context = buildBusinessContext(profile, rdAgent);
 
       renderBusinessContext(context);
