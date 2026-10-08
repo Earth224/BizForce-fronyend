@@ -685,8 +685,6 @@
           var liveStatsEl = liveStatsSlot();
           if (liveStatsEl) {
             var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
-            var estimatedRoi = agent.estimated_roi != null ? agent.estimated_roi : 0;
-            var roiFormatted = "$" + Math.round(estimatedRoi).toLocaleString("en-US");
 
             liveStatsEl.textContent = "";
 
@@ -699,17 +697,7 @@
             tile1.appendChild(label1);
             tile1.appendChild(value1);
 
-            var tile2 = document.createElement("div");
-            tile2.className = "context-item";
-            var label2 = document.createElement("label");
-            label2.textContent = "Est. ROI";
-            var value2 = document.createElement("span");
-            value2.textContent = roiFormatted;
-            tile2.appendChild(label2);
-            tile2.appendChild(value2);
-
             liveStatsEl.appendChild(tile1);
-            liveStatsEl.appendChild(tile2);
           }
         })
         .catch(function () {

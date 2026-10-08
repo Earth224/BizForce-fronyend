@@ -994,9 +994,6 @@
     }
     .mc-target-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
     .mc-target-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #22d3ee; }
-    .mc-target-toggle { display: flex; gap: 4px; background: rgba(0,0,0,0.3); border-radius: 999px; padding: 3px; }
-    .mc-target-toggle button { border: none; background: transparent; color: #8888aa; font-size: 0.7rem; font-weight: 600; padding: 4px 12px; border-radius: 999px; cursor: pointer; transition: all 0.2s ease; }
-    .mc-target-toggle button.active { background: linear-gradient(90deg, #22d3ee, #a855f7); color: #fff; }
     .mc-target-ring-wrap { display: flex; align-items: center; gap: 24px; }
     .mc-target-ring { position: relative; width: 120px; height: 120px; flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(34,211,238,0.4)); }
     .mc-target-ring svg { transform: rotate(-90deg); }
@@ -1005,7 +1002,6 @@
     .mc-target-stats { flex: 1; }
     .mc-target-current { font-size: 2.4rem; font-weight: 700; color: #fff; line-height: 1.1; text-shadow: 0 0 12px rgba(34,211,238,0.3); }
     .mc-target-of { font-size: 0.95rem; color: #8888aa; }
-    .mc-target.is-revenue .mc-target-current { color: #e5c76b; text-shadow: 0 0 14px rgba(229,199,107,0.35); }
     .mc-target-pace { display: inline-block; margin-top: 8px; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
     .mc-target-pace.hit { background: rgba(74,222,128,0.15); color: #4ade80; }
     .mc-target-pace.ontrack { background: rgba(34,211,238,0.15); color: #22d3ee; }
@@ -1026,12 +1022,6 @@
     .mc-target-grid { display: grid; grid-template-columns: auto 1.2fr 1fr; gap: 28px; align-items: center; margin-top: 18px; }
     @media (max-width: 900px) { .mc-target-grid { grid-template-columns: 1fr; } }
     .mc-target-zone { display: flex; flex-direction: column; }
-    .mc-target-money { display: flex; gap: 24px; }
-    .mc-target-money-block { display: flex; flex-direction: column; gap: 2px; }
-    .mc-target-money-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #8888aa; }
-    .mc-target-money-val { font-size: 2rem; font-weight: 700; color: #fff; line-height: 1.1; }
-    .mc-target-money-val.earned { color: #4ade80; text-shadow: 0 0 12px rgba(74,222,128,0.3); }
-    .mc-target-money-val.projected { color: #e5c76b; text-shadow: 0 0 12px rgba(229,199,107,0.3); }
     .mc-target-funnel { display: flex; flex-direction: column; gap: 8px; }
     .mc-target-funnel-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 8px; background: rgba(0,0,0,0.25); border-left: 3px solid transparent; }
     .mc-target-funnel-row .fn-label { font-size: 0.75rem; color: #c4b5fd; }
@@ -1109,10 +1099,6 @@
     <div class="mc-target">
       <div class="mc-target-head">
         <span class="mc-target-title">Daily Target</span>
-        <div class="mc-target-toggle">
-          <button id="mcTargetTabConv" class="active">Conversions</button>
-          <button id="mcTargetTabRev">Revenue</button>
-        </div>
       </div>
       <div class="mc-target-grid">
         <div class="mc-target-zone">
@@ -1130,17 +1116,7 @@
         </div>
 
         <div class="mc-target-zone">
-          <div class="mc-target-money">
-            <div class="mc-target-money-block">
-              <span class="mc-target-money-label">Earned Today</span>
-              <span class="mc-target-money-val earned" id="mcTargetEarned">—</span>
-            </div>
-            <div class="mc-target-money-block">
-              <span class="mc-target-money-label">Projected</span>
-              <span class="mc-target-money-val projected" id="mcTargetProjected">—</span>
-            </div>
-          </div>
-          <div class="mc-target-current" id="mcTargetCurrent" style="margin-top:10px;">—</div>
+          <div class="mc-target-current" id="mcTargetCurrent">—</div>
           <div class="mc-target-of" id="mcTargetOf">Loading today's activity…</div>
           <span class="mc-target-pace" id="mcTargetPace" style="margin-top:8px;align-self:flex-start;">—</span>
         </div>
@@ -1479,8 +1455,6 @@
           var liveStatsEl = liveStatsSlot();
           if (liveStatsEl) {
             var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
-            var estimatedRoi = agent.estimated_roi != null ? agent.estimated_roi : 0;
-            var roiFormatted = "$" + Math.round(estimatedRoi).toLocaleString("en-US");
 
             liveStatsEl.textContent = "";
 
@@ -1493,17 +1467,7 @@
             tile1.appendChild(label1);
             tile1.appendChild(value1);
 
-            var tile2 = document.createElement("div");
-            tile2.className = "context-item";
-            var label2 = document.createElement("label");
-            label2.textContent = "Est. ROI";
-            var value2 = document.createElement("span");
-            value2.textContent = roiFormatted;
-            tile2.appendChild(label2);
-            tile2.appendChild(value2);
-
             liveStatsEl.appendChild(tile1);
-            liveStatsEl.appendChild(tile2);
           }
         })
         .catch(function () {
@@ -1987,8 +1951,10 @@
       var mcChartConv = null;
       var mcChartSrc = null;
       var mcChartPipe = null;
-      var mcTargetMode = "conversions";
-      var MC_TARGET_REVENUE_PER_CONVERSION = 59;
+      /* NO REVENUE FIGURES. This panel used to multiply task counts by a typed
+         $59 to show "Earned Today", "Projected" and a revenue goal. No price,
+         order or payment reaches this page, so every dollar it showed was that
+         constant times a count. It now shows counts only. */
       /* null until the tasks have loaded — not [], which the target panel
          rendered as a real day of zero activity when a tab or the goal was
          changed before the load had answered. */
@@ -2291,20 +2257,18 @@
         }
       }
 
-      function mcGetTargetGoal(mode) {
+      function mcGetTargetGoal() {
         try {
-          var key = mode === "revenue" ? "mcTargetGoalRevenue" : "mcTargetGoalConversions";
-          var raw = localStorage.getItem(key);
+          var raw = localStorage.getItem("mcTargetGoalConversions");
           var val = raw !== null ? Number(raw) : NaN;
           if (!isNaN(val) && val > 0) return val;
         } catch (e) {}
-        return mode === "revenue" ? 590 : 10;
+        return 10;
       }
 
-      function mcSetTargetGoal(mode, value) {
+      function mcSetTargetGoal(value) {
         try {
-          var key = mode === "revenue" ? "mcTargetGoalRevenue" : "mcTargetGoalConversions";
-          localStorage.setItem(key, String(value));
+          localStorage.setItem("mcTargetGoalConversions", String(value));
         } catch (e) {}
       }
 
@@ -2347,27 +2311,11 @@
         try {
           var RING_CIRC = 326.7;
           var todayCount = mcCountWorkedToday(tasks);
-          var goal = mcGetTargetGoal(mcTargetMode);
-
+          var goal = mcGetTargetGoal();
           var targetCard = document.querySelector(".mc-target");
-          if (targetCard) {
-            if (mcTargetMode === "revenue") {
-              targetCard.classList.add("is-revenue");
-            } else {
-              targetCard.classList.remove("is-revenue");
-            }
-          }
-
-          var current, currentText, ofText;
-          if (mcTargetMode === "revenue") {
-            current = todayCount * MC_TARGET_REVENUE_PER_CONVERSION;
-            currentText = "$" + current;
-            ofText = "of $" + goal + " today";
-          } else {
-            current = todayCount;
-            currentText = String(current);
-            ofText = "of " + goal + " today";
-          }
+          var current = todayCount;
+          var currentText = String(current);
+          var ofText = "of " + goal + " today";
 
           var percent = goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
 
@@ -2411,7 +2359,7 @@
           if (goalInput) goalInput.value = goal;
 
           var goalLabel = document.getElementById("mcTargetGoalLabel");
-          if (goalLabel) goalLabel.textContent = mcTargetMode === "revenue" ? "Goal ($ revenue):" : "Goal (conversions):";
+          if (goalLabel) goalLabel.textContent = "Goal (conversions):";
 
           var todayTasks = mcGetTodayTasks(tasks);
 
@@ -2432,15 +2380,6 @@
           setFn("mcFnReplied", repliedCount);
           setFn("mcFnConverted", convertedCount);
 
-          var projected = (draftedCount + sentCount) * MC_TARGET_REVENUE_PER_CONVERSION;
-          var earned = convertedCount * MC_TARGET_REVENUE_PER_CONVERSION;
-
-          var projectedEl = document.getElementById("mcTargetProjected");
-          if (projectedEl) projectedEl.textContent = "$" + projected;
-
-          var earnedEl = document.getElementById("mcTargetEarned");
-          if (earnedEl) earnedEl.textContent = "$" + earned;
-
           var tickerEl = document.getElementById("mcTargetTicker");
           if (tickerEl) {
             var newestToday = null;
@@ -2457,7 +2396,7 @@
               } else if (newestToday.status === "completed") {
                 tickerEl.textContent = "📤 Sent to " + handle;
               } else if (newestToday.status === "converted") {
-                tickerEl.textContent = "💰 " + handle + " converted · $" + MC_TARGET_REVENUE_PER_CONVERSION;
+                tickerEl.textContent = "💰 " + handle + " converted";
               } else {
                 tickerEl.textContent = "Agent standing by…";
               }
@@ -2520,31 +2459,12 @@
           });
         }
 
-        var targetTabConv = document.getElementById("mcTargetTabConv");
-        var targetTabRev = document.getElementById("mcTargetTabRev");
-        if (targetTabConv) {
-          targetTabConv.addEventListener("click", function () {
-            mcTargetMode = "conversions";
-            targetTabConv.classList.add("active");
-            if (targetTabRev) targetTabRev.classList.remove("active");
-            if (mcLastTasks) mcRenderTarget(mcLastTasks);
-          });
-        }
-        if (targetTabRev) {
-          targetTabRev.addEventListener("click", function () {
-            mcTargetMode = "revenue";
-            targetTabRev.classList.add("active");
-            if (targetTabConv) targetTabConv.classList.remove("active");
-            if (mcLastTasks) mcRenderTarget(mcLastTasks);
-          });
-        }
-
         var targetGoalInput = document.getElementById("mcTargetGoalInput");
         if (targetGoalInput) {
           targetGoalInput.addEventListener("change", function () {
             var val = Number(targetGoalInput.value);
             if (!isNaN(val) && val > 0) {
-              mcSetTargetGoal(mcTargetMode, val);
+              mcSetTargetGoal(val);
             }
             if (mcLastTasks) mcRenderTarget(mcLastTasks);
           });
