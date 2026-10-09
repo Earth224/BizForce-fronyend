@@ -322,6 +322,49 @@
       "background:rgba(251,191,36,.08);color:#fde68a;font-size:.82rem;line-height:1.6}",
     ".ap-parsefail pre{margin:10px 0 0;padding:10px;border-radius:8px;background:rgba(0,0,0,.35);",
       "color:#e2e6f5;font-size:.74rem;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-word}",
+
+    /* SEO audit — its own renderer, below. FLAGS are what fixed rules found in the
+       measurements: a guideline gets an amber edge, an error a solid red frame and
+       a filled tag, so the two cannot be read as the same weight. The client-
+       rendered banner is orange and tagged as a heuristic, so it is not mistaken
+       for a flag or for the amber "no explanation" panel. */
+    ".ap-seo-audit{display:flex;flex-direction:column;gap:14px}",
+    ".ap-seo-flagzone .ap-zone-label{color:#fcd34d}",
+    ".ap-seo-flags{display:flex;flex-direction:column;gap:8px}",
+    ".ap-seo-flag{padding:10px 13px;border-radius:11px;border:1px solid rgba(251,191,36,.3);",
+      "border-left:3px solid #fbbf24;background:rgba(251,191,36,.05);transition:box-shadow .3s}",
+    ".ap-seo-flag.error{border:2px solid #f87171;border-left-width:5px;background:rgba(248,113,113,.11)}",
+    ".ap-seo-flag-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}",
+    ".ap-seo-flag-id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.78rem;font-weight:800;color:#fde68a}",
+    ".ap-seo-flag.error .ap-seo-flag-id{color:#fca5a5}",
+    ".ap-seo-basis{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;",
+      "border-radius:99px;background:rgba(251,191,36,.14);color:#fde68a}",
+    ".ap-seo-flag.error .ap-seo-basis{background:#f87171;color:#1a0505;font-weight:800}",
+    ".ap-seo-rule{font-size:.82rem;font-weight:600;color:#e8e8ff;line-height:1.5}",
+    ".ap-seo-evidence{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.76rem;color:#cbd2ee;margin-top:3px;line-height:1.55;word-break:break-word}",
+    ".ap-seo-noflags{padding:10px 13px;border-radius:11px;border:1px solid rgba(74,222,128,.32);",
+      "background:rgba(74,222,128,.06);font-size:.8rem;color:#bbf7d0;line-height:1.6}",
+    ".ap-seo-shell{padding:11px 14px;border-radius:11px;border:1px solid rgba(251,146,60,.5);",
+      "background:rgba(251,146,60,.08);font-size:.8rem;color:#fed7aa;line-height:1.6}",
+    ".ap-seo-shell strong{color:#fdba74}",
+    ".ap-seo-tag{display:inline-block;margin-right:6px;padding:1px 7px;border-radius:99px;font-size:.62rem;",
+      "text-transform:uppercase;letter-spacing:.06em;background:rgba(251,146,60,.18);color:#fdba74}",
+    ".ap-seo-points{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}",
+    ".ap-seo-chip{display:inline-block;margin:4px 4px 0 0;padding:1px 8px;border-radius:99px;",
+      "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.66rem;",
+      "background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);color:#c3c9e6;cursor:pointer}",
+    ".ap-seo-chip:hover{border-color:#22d3ee;color:#a5f3fc}",
+    ".ap-seo-hit{box-shadow:0 0 0 2px #22d3ee,0 0 18px rgba(34,211,238,.45)}",
+    ".ap-seo-dropped{margin-top:9px;font-size:.76rem;color:#8892b8}",
+    ".ap-seo-group{border-radius:9px;transition:box-shadow .3s}",
+    ".ap-seo-group+.ap-seo-group{margin-top:12px}",
+    ".ap-seo-group-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;",
+      "color:#67e8f9;margin-bottom:6px}",
+    ".ap-seo-mono{margin-top:4px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+      "font-size:.74rem;color:#cffafe;line-height:1.6;word-break:break-word}",
+    ".ap-seo-nm-list{margin:4px 0 0;padding-left:18px}",
     /* live status */
     ".ap-live-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}",
     ".ap-dot{width:10px;height:10px;border-radius:50%;background:#666;flex-shrink:0}",
@@ -2499,7 +2542,226 @@
     return '<div class="ap-nothing-read">This result was not saved to Task History.</div>';
   }
 
+  /* ── THE SEO AUDIT GETS THE WHOLE RESULT, NOT JUST THE GENERATED ZONE ────────
+     The plan's renderer replaces the generated zone and leaves the rest to the
+     shared panels. The audit cannot: what it measured is a dozen nested objects
+     that the flat measured grid would run together, its flags must come FIRST
+     because they are the finding, and its explanation is a list of points that
+     each cite the flag they rest on. So it renders the whole result, still in the
+     same three voices and still through the shared gate and provenance panels:
+
+       flags        what fixed rules found in the measurements — the finding
+       explanation  the model's reading of the flags, every point citing its ids
+       measured     the server's figures, grouped, in the measured panel
+       provenance   the shared dashed panel, unchanged
+
+     THE FAILURES MUST NOT LOOK LIKE PASSES. "No flags raised" is printed only for
+     a flags array that is really empty; a response without flags or measured is
+     shown as unreadable, never as a clean page; a null explanation is an amber
+     panel saying why, never an empty one. A 422 or a network failure never
+     reaches this function — runTool shows the server's message and no result.
+
+     Keyed agent/tool, because a bare tool id is not unique across pages: the
+     content agent has an "audit" too, which must keep the generic renderer. */
+  var TOOL_WHOLE_RENDERERS = { "seo/audit": renderSeoAudit };
+
+  function wholeRendererFor(tool) {
+    if (!tool) return null;
+    var own = Object.prototype.hasOwnProperty;
+    // An executive dispatch passes the qualified id; a panel on its own page the bare one.
+    if (own.call(TOOL_WHOLE_RENDERERS, tool.id)) return TOOL_WHOLE_RENDERERS[tool.id];
+    var qualified = AGENT_TYPE + "/" + tool.id;
+    return own.call(TOOL_WHOLE_RENDERERS, qualified) ? TOOL_WHOLE_RENDERERS[qualified] : null;
+  }
+
+  // The measured block's groups, in reading order. A key not listed here still
+  // renders, under "Other": nothing the server measured is dropped.
+  var SEO_AUDIT_GROUPS = [
+    { title: "Page", keys: ["final_status", "final_url", "final_url_is_https", "redirect_count",
+      "redirect_chain", "page_html_read", "title", "meta_description", "canonical",
+      "robots_directives", "lang", "viewport", "client_rendering"] },
+    { title: "Headings", keys: ["h1", "heading_sequence", "heading_skips"] },
+    { title: "Images", keys: ["images"] },
+    { title: "Links", keys: ["links"] },
+    { title: "robots.txt", keys: ["robots_txt"] },
+    { title: "Sitemap", keys: ["sitemap"] },
+    { title: "Structured data", keys: ["json_ld"] }
+  ];
+
+  // Ids arrive from the server's own list, but they go into a selector.
+  function seoAuditId(id) { return String(id).replace(/[^A-Za-z0-9_]/g, ""); }
+
+  var seoAuditChipsBound = false;
+  function bindSeoAuditChips() {
+    if (seoAuditChipsBound) return;
+    seoAuditChipsBound = true;
+    document.addEventListener("click", function (e) {
+      var chip = e.target && e.target.closest ? e.target.closest("[data-seo-cite]") : null;
+      if (!chip) return;
+      var root = chip.closest(".ap-seo-audit");
+      if (!root) return;
+      var id = seoAuditId(chip.getAttribute("data-seo-cite"));
+      var target = root.querySelector('[data-seo-flag="' + id + '"]') ||
+        root.querySelector('[data-seo-measure~="' + id + '"]');
+      if (!target) return;
+      if (target.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.remove("ap-seo-hit");
+      void target.offsetWidth;   // restart the highlight on a second tap
+      target.classList.add("ap-seo-hit");
+      setTimeout(function () { target.classList.remove("ap-seo-hit"); }, 1800);
+    });
+  }
+
+  function seoAuditChips(ids) {
+    return (Array.isArray(ids) ? ids : []).map(function (id) {
+      return '<button type="button" class="ap-seo-chip" data-seo-cite="' + esc(seoAuditId(id)) + '">' +
+        esc(String(id)) + '</button>';
+    }).join("");
+  }
+
+  /* Above the flags, because it changes what their absence means: F8, F9 and F16
+     are not checked on a page like this. Labelled a heuristic, as the server
+     labels it — it is a guess about how the page is built. */
+  function seoAuditShellBanner(m) {
+    var cr = m.client_rendering;
+    if (!isPlainObject(cr) || cr.appears_client_rendered !== true) return "";
+    return '<div class="ap-seo-shell"><span class="ap-seo-tag">Heuristic</span>' +
+      '<strong>This page looks client-rendered.</strong> Its HTML holds little content (' +
+      esc(String(cr.visible_text_length)) + ' characters of visible text, ' +
+      esc(String(cr.script_count)) + ' script(s)), so the content checks — one H1, heading ' +
+      'levels, image alt attributes — could not be made on it.' +
+      (cr.basis ? '<div style="margin-top:5px;font-size:.74rem;opacity:.85">' + esc(String(cr.basis)) + '</div>' : "") +
+      '</div>';
+  }
+
+  function seoAuditUnreadPage(m) {
+    if (m.page_html_read !== false) return "";
+    return '<div class="ap-nothing-read"><strong>The page\'s HTML was not read.</strong> It answered HTTP ' +
+      esc(String(m.final_status)) + ', so its title, headings, images, links and structured data below ' +
+      'are absent, not zero.</div>';
+  }
+
+  function seoAuditFlags(flags) {
+    var body;
+    if (flags.length === 0) {
+      body = '<div class="ap-seo-noflags"><strong>No flags raised.</strong> None of the fixed rules fired on ' +
+        'what was measured. That is not a verdict on rankings or traffic — see what was not measured.</div>';
+    } else {
+      body = '<div class="ap-seo-flags">' + flags.map(function (f) {
+        var isError = f && f.basis === "error";
+        return '<div class="ap-seo-flag' + (isError ? " error" : "") + '" data-seo-flag="' + esc(seoAuditId(f.id)) + '">' +
+          '<div class="ap-seo-flag-head">' +
+            '<span class="ap-seo-flag-id">' + esc(String(f.id)) + '</span>' +
+            '<span class="ap-seo-basis">' + esc(String(f.basis || "guideline")) + '</span>' +
+          '</div>' +
+          '<div class="ap-seo-rule">' + esc(String(f.rule || "")) + '</div>' +
+          '<div class="ap-seo-evidence">' + esc(String(f.evidence || "")) + '</div>' +
+          '</div>';
+      }).join("") + '</div>';
+    }
+    return '<div class="ap-seo-flagzone">' +
+      '<div class="ap-zone-label">Flagged by fixed rules over the measurements</div>' + body + '</div>';
+  }
+
+  function seoAuditExplanation(data) {
+    var dropped = Number(data.points_dropped) || 0;
+    var droppedLine = dropped > 0
+      ? '<div class="ap-seo-dropped">' + dropped + (dropped === 1 ? " point was" : " points were") +
+        ' dropped for citing nothing that was measured.</div>'
+      : "";
+
+    if (!Array.isArray(data.explanation)) {
+      return '<div class="ap-nothing-read"><strong>No explanation.</strong> ' +
+        esc(String(data.explanation_error || "The server returned no explanation and gave no reason.")) +
+        ' The flags above and the measured results below are complete without it.</div>';
+    }
+
+    var body = data.explanation.length
+      ? '<ol class="ap-seo-points">' + data.explanation.map(function (p) {
+          return '<li>' + esc(String((p && p.point) || "")) +
+            '<div>' + seoAuditChips(p && p.cites) + '</div></li>';
+        }).join("") + '</ol>'
+      : '<div>The model gave no point that cited anything measured, so there is no explanation. ' +
+        'The flags above and the measured results below are complete without it.</div>';
+
+    return '<div class="ap-generated">' +
+      '<div class="ap-zone-label">Written by the model — what to fix first, citing the ids it rests on</div>' +
+      body + droppedLine + '</div>';
+  }
+
+  function seoAuditCell(key, value) {
+    var wide = isPlainObject(value) ||
+      (Array.isArray(value) && value.some(function (v) { return isPlainObject(v); }));
+    return '<div class="ap-m-cell"' + (wide ? ' style="grid-column:1/-1"' : "") + '>' +
+      '<div class="ap-m-key">' + esc(humanise(key)) + '</div>' +
+      '<div class="' + (wide ? "ap-seo-mono" : "ap-m-val") + '">' + renderScalarish(value) + '</div></div>';
+  }
+
+  function seoAuditGroup(title, keys, m) {
+    var cells;
+    // A group that is one object — images, links, robots.txt — shows its fields as cells.
+    if (keys.length === 1 && isPlainObject(m[keys[0]])) {
+      var obj = m[keys[0]];
+      cells = Object.keys(obj).map(function (k) { return seoAuditCell(k, obj[k]); });
+    } else {
+      cells = keys.map(function (k) { return seoAuditCell(k, m[k]); });
+    }
+    return '<div class="ap-seo-group" data-seo-measure="' + esc(keys.map(seoAuditId).join(" ")) + '">' +
+      '<div class="ap-seo-group-title">' + esc(title) + '</div>' +
+      '<div class="ap-m-grid">' + cells.join("") + '</div></div>';
+  }
+
+  function seoAuditMeasured(m) {
+    var seen = {};
+    var groups = SEO_AUDIT_GROUPS.map(function (g) {
+      var keys = g.keys.filter(function (k) { return Object.prototype.hasOwnProperty.call(m, k); });
+      keys.forEach(function (k) { seen[k] = true; });
+      return keys.length ? seoAuditGroup(g.title, keys, m) : "";
+    });
+    var other = Object.keys(m).filter(function (k) { return !seen[k]; });
+    if (other.length) groups.push(seoAuditGroup("Other", other, m));
+    return '<div class="ap-measured">' +
+      '<div class="ap-zone-label">Measured by the server</div>' + groups.join("") + '</div>';
+  }
+
+  // Always shown, never collapsed: the limits of the audit are part of its answer.
+  function seoAuditNotMeasured(list) {
+    var items = Array.isArray(list) ? list : [];
+    return '<div class="ap-ref">' +
+      '<div class="ap-zone-label">Not measured by this audit</div>' +
+      (items.length
+        ? '<ul class="ap-seo-nm-list">' + items.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
+        : 'The server did not list what this audit leaves out; read it as covering only the figures above.') +
+      '</div>';
+  }
+
+  function renderSeoAudit(tool, data) {
+    var m = data.measured;
+    if (!isPlainObject(m) || !Array.isArray(data.flags)) {
+      return '<div class="ap-parsefail">' +
+        '<div class="ap-zone-label" style="color:#fbbf24">The audit could not be read</div>' +
+        'The response did not carry both the measured results and the flags, so nothing is being ' +
+        'reported as a result — not a clean page, and not a list of problems.</div>';
+    }
+    bindSeoAuditChips();
+    return '<div class="ap-seo-audit">' + [
+      renderGate(data),
+      renderNothingRead(data.provenance),
+      seoAuditShellBanner(m),
+      seoAuditUnreadPage(m),
+      seoAuditFlags(data.flags),
+      seoAuditExplanation(data),
+      seoAuditMeasured(m),
+      seoAuditNotMeasured(data.not_measured),
+      renderProvenance(data.provenance),
+      renderUnsaved(data)
+    ].filter(Boolean).join("") + '</div>';
+  }
+
   function renderToolResult(tool, data) {
+    var whole = wholeRendererFor(tool);
+    if (whole) return whole(tool, data);
+
     /* A per-tool renderer replaces the generated zone only. The gate, the measured
        panel and the provenance block are the same everywhere and stay that way —
        they are the part that must not vary between tools. */
