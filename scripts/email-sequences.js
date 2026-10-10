@@ -196,6 +196,7 @@
     var blockers = [];
     if (sender.enabled !== true) blockers.push("The sender is switched off on the server.");
     if (sender.postal_address_set !== true) blockers.push("No postal address is set, and marketing email must carry one.");
+    if (sender.webhook_secret_set !== true) blockers.push("Bounce and complaint reports are not connected, so marketing mail is held.");
     if (!capOk) blockers.push("The daily cap could not be read, so nothing is sent rather than guessing a limit.");
     var lines = [];
     if (blockers.length) {
@@ -203,9 +204,6 @@
       blockers.forEach(function (t) { lines.push('<div class="es-reason" data-es-reason>' + esc(t) + '</div>'); });
     } else {
       lines.push('<div class="es-sender-head es-on">Sending is on. Daily cap: ' + esc(String(sender.daily_cap)) + ' marketing emails per 24 hours.</div>');
-    }
-    if (sender.webhook_secret_set !== true) {
-      lines.push('<div class="es-reason" data-es-reason>The webhook secret is not set, so bounces and complaints are not being recorded and cannot stop later sends.</div>');
     }
     return '<div class="es-sender">' + lines.join("") + '</div>';
   }
