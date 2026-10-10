@@ -183,6 +183,53 @@ function pad2(n) {
   return (n < 10 && n >= 0 ? "0" : "") + n;
 }
 
+// A send_email_sequence proposal: its name, brand, step count, and each step's
+// day and subject — escaped, never as HTML. The day is counted from enrollment
+// by adding each step's delay_days, the way the sender times them; a delay that
+// is not a whole number stops the count rather than guessing past it.
+function sequencePayloadFields(payload) {
+  var steps = Array.isArray(payload.steps) ? payload.steps : [];
+  var day = 0;
+  var counting = true;
+  var stepsHtml = steps.length
+    ? '<ul>' + steps.map(function (s) {
+        var delay = s && s.delay_days;
+        if (counting && typeof delay === "number" && Number.isInteger(delay) && delay >= 0) {
+          day += delay;
+        } else {
+          counting = false;
+        }
+        var dayText = counting ? "Day " + day : "Day unknown";
+        return '<li>' + escapeHtml(dayText) + ': ' + escapeHtml(s && s.subject) + '</li>';
+      }).join('') + '</ul>'
+    : '<span class="pf-value">none</span>';
+  var brand = payload.brand == null || payload.brand === "" ? "(all brands)" : payload.brand;
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">sequence name</span><span class="pf-value">' + escapeHtml(payload.name || "(none)") + '</span></div>' +
+      '<div><span class="pf-label">brand</span><span class="pf-value">' + escapeHtml(brand) + '</span></div>' +
+      '<div><span class="pf-label">steps</span><span class="pf-value">' + steps.length + '</span></div>' +
+      '<div><span class="pf-label">emails</span>' + stepsHtml + '</div>' +
+    '</div>';
+}
+
+// What approving a send_email_sequence did, in plain words. A count the server
+// did not report says so; it is never shown as 0.
+var SEQUENCE_RESULT_LABELS = [
+  ["enrolled", "Enrolled now"],
+  ["already_enrolled", "Already enrolled"],
+  ["skipped_not_confirmed", "Skipped — consent not confirmed"],
+  ["skipped_unreadable", "Skipped — consent could not be read"]
+];
+function sequenceResultHtml(result) {
+  return '<div class="payload-fields">' +
+    SEQUENCE_RESULT_LABELS.map(function (pair) {
+      var v = result[pair[0]];
+      var text = typeof v === "number" ? String(v) : "not reported";
+      return '<div><span class="pf-label">' + escapeHtml(pair[1]) + '</span><span class="pf-value">' + escapeHtml(text) + '</span></div>';
+    }).join('') +
+  '</div>';
+}
+
 async function loadProposals() {
   var container = document.getElementById("proposalsList");
   container.innerHTML = '<div class="empty-state">Loading proposals...</div>';
@@ -238,6 +285,8 @@ function renderProposals() {
     var execHtml = '';
     if (p.execution_error) {
       execHtml = '<pre class="exec-block exec-error">' + escapeHtml(p.execution_error) + '</pre>';
+    } else if (p.action_type === "send_email_sequence" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = sequenceResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -341,6 +390,9 @@ function renderProposals() {
               '<div><span class="pf-label">jdn</span><span class="pf-value">' + escapeHtml(evJdn || "(none)") + '</span> <span class="pf-count">(reference — the day number that gets written)</span></div>' +
             '</div>';
         }
+      } else if (p.action_type === "send_email_sequence") {
+        fieldsHtml = sequencePayloadFields(p.payload);
+        collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);
       }

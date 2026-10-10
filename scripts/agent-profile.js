@@ -2870,6 +2870,11 @@
         }
 
         if (resultEl) resultEl.innerHTML = renderToolResult(tool, res.data);
+        // A page may add to a result after it is drawn (email-sequences.js files
+        // a sequence from under it). The result itself is never changed here.
+        if (resultEl && typeof window.bfAfterToolResult === "function") {
+          window.bfAfterToolResult(AGENT_TYPE, tool.id, res.data, resultEl);
+        }
         setToolMsg(tool.id, "", "");
       })
       .catch(function (error) {
