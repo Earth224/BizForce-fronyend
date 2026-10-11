@@ -2406,6 +2406,20 @@ window.AGENT_PROFILE_CONFIG = {
     .catch(function () {});
   }
 
+  /* "Published." only with proof: the draft is status "published" and carries
+     the platform's id for the post (platform_post_uri, or zernio_post_id).
+     Anything less says what happened instead. The same rule is draftSaveOutcome
+     in scripts/agent-profile.js. */
+  function draftSaveMessage(data) {
+    var draft = data && data.draft && typeof data.draft === "object" ? data.draft : {};
+    var postId = (typeof draft.platform_post_uri === "string" && draft.platform_post_uri) ||
+      (typeof draft.zernio_post_id === "string" && draft.zernio_post_id);
+    if (draft.status === "published" && postId) return "Published.";
+    if (data && data.published === false) return "Saved as a draft — not published. Publishing to social accounts is turned off for now.";
+    if (draft.status === "scheduled") return "Scheduled; not published yet.";
+    return "Saved as a draft; not published.";
+  }
+
   /* POST one approved draft to the backend */
   function doApprove(content, approveBtn, rejectBtn, msgEl) {
     var token = tok();
@@ -2429,8 +2443,7 @@ window.AGENT_PROFILE_CONFIG = {
       /* Says what the server did. While publishing is closed it answers
          published: false and keeps the draft unpublished; "Added to queue"
          promised a schedule that nothing was ever going to run. */
-      var notPublished = res.data && res.data.published === false;
-      if (msgEl) { msgEl.textContent = notPublished ? "Saved as a draft — not published. Publishing to social accounts is turned off for now." : "Published."; msgEl.style.color = "#4ade80"; }
+      if (msgEl) { msgEl.textContent = draftSaveMessage(res.data); msgEl.style.color = "#4ade80"; }
       refreshQueue();
     })
     .catch(function (e) {

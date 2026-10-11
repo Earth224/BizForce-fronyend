@@ -230,6 +230,56 @@ function sequenceResultHtml(result) {
   '</div>';
 }
 
+// A publish_social_post proposal: the exact text that will be posted,
+// escaped, with its line breaks kept, and its length in graphemes — the unit
+// Bluesky's 300 limit is counted in. A browser without Intl.Segmenter says it
+// cannot count rather than showing a count in the wrong unit.
+function graphemeCountText(text) {
+  if (typeof Intl === "undefined" || typeof Intl.Segmenter !== "function") {
+    return "not countable in this browser";
+  }
+  var n = 0;
+  var it = new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)[Symbol.iterator]();
+  while (!it.next().done) n++;
+  return n + " of 300 graphemes";
+}
+
+function socialPostPayloadFields(payload) {
+  var text = typeof payload.text === "string" ? payload.text : "";
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">posts to</span><span class="pf-value">Bluesky, as a new post from the platform&#39;s account</span></div>' +
+      '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(graphemeCountText(text)) + '</span></div>' +
+      '<div><span class="pf-label">text to be posted</span></div>' +
+      '<pre class="exec-block social-post-text">' + escapeHtml(text) + '</pre>' +
+    '</div>';
+}
+
+// The bsky.app address of a post, from the at:// uri the executor recorded:
+// at://<did>/app.bsky.feed.post/<rkey> → https://bsky.app/profile/<did>/post/<rkey>.
+// Anything else is null, and no link is drawn from it.
+var BSKY_POST_URI = new RegExp("^at://(did:[a-z0-9]+:[A-Za-z0-9._:%-]+)/app[.]bsky[.]feed[.]post/([A-Za-z0-9._~:-]+)$");
+function bskyPostUrl(uri) {
+  var m = typeof uri === "string" ? BSKY_POST_URI.exec(uri) : null;
+  return m ? "https://bsky.app/profile/" + m[1] + "/post/" + m[2] : null;
+}
+
+// What approving a publish_social_post did: the post, linked, and when.
+function socialPostResultHtml(result) {
+  var url = bskyPostUrl(result.uri);
+  if (!url) {
+    return '<div class="payload-fields"><div><span class="pf-label">post</span><span class="pf-value">' +
+      'The executor reported no Bluesky post address, so there is no link to show.</span></div></div>' +
+      '<pre class="exec-block">' + escapeHtml(formatResult(result)) + '</pre>';
+  }
+  var when = result.already_published === true
+    ? '<span class="pf-value">already published</span>'
+    : '<span class="pf-value">' + escapeHtml(result.published_at ? formatTime(result.published_at) : "time not reported") + '</span>';
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">post</span><a class="pf-value social-post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a></div>' +
+      '<div><span class="pf-label">' + (result.already_published === true ? "status" : "published") + '</span>' + when + '</div>' +
+    '</div>';
+}
+
 async function loadProposals() {
   var container = document.getElementById("proposalsList");
   container.innerHTML = '<div class="empty-state">Loading proposals...</div>';
@@ -287,6 +337,8 @@ function renderProposals() {
       execHtml = '<pre class="exec-block exec-error">' + escapeHtml(p.execution_error) + '</pre>';
     } else if (p.action_type === "send_email_sequence" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = sequenceResultHtml(p.execution_result);
+    } else if (p.action_type === "publish_social_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = socialPostResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -392,6 +444,9 @@ function renderProposals() {
         }
       } else if (p.action_type === "send_email_sequence") {
         fieldsHtml = sequencePayloadFields(p.payload);
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_social_post") {
+        fieldsHtml = socialPostPayloadFields(p.payload);
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);

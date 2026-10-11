@@ -2758,7 +2758,37 @@
     ].filter(Boolean).join("") + '</div>';
   }
 
+  /* A LENGTH IN ITS OWN UNIT. Bluesky's limit is in graphemes, and the server
+     says so in measured.length_unit. When it is set, every length on the result
+     is relabelled in that unit — length becomes "graphemes", chars_over_limit
+     "graphemes over limit", platform_limits.max_characters "max graphemes" — so
+     a grapheme count is never shown as characters. A result without
+     length_unit is returned unchanged. */
+  function withLengthUnit(data) {
+    var measured = isPlainObject(data) && isPlainObject(data.measured) ? data.measured : null;
+    var unit = measured && typeof measured.length_unit === "string"
+      ? measured.length_unit.replace(/[^A-Za-z_]/g, "") : "";
+    if (!unit) return data;
+    function relabel(key) {
+      if (key === "length") return unit;
+      if (/^chars_/.test(key)) return unit + key.slice(5);
+      if (key === "max_characters") return "max_" + unit;
+      return key;
+    }
+    function relabelled(obj, drop) {
+      var out = {};
+      Object.keys(obj).forEach(function (k) { if (k !== drop) out[relabel(k)] = obj[k]; });
+      return out;
+    }
+    var copy = {};
+    Object.keys(data).forEach(function (k) { copy[k] = data[k]; });
+    copy.measured = relabelled(measured, "length_unit");
+    if (isPlainObject(data.platform_limits)) copy.platform_limits = relabelled(data.platform_limits);
+    return copy;
+  }
+
   function renderToolResult(tool, data) {
+    data = withLengthUnit(data);
     var whole = wholeRendererFor(tool);
     if (whole) return whole(tool, data);
 
@@ -3145,6 +3175,29 @@
     try { saveToLibrary(task); } catch(e) {}
   }
 
+  /* "PUBLISHED." ONLY WITH PROOF. The answer to POST /api/social-drafts proves a
+     post went out only when its draft is status "published" AND carries the
+     platform's id for the post (platform_post_uri, or zernio_post_id from the
+     Zernio path). Anything less is said as what it is: published: false keeps
+     its own sentence, a scheduled draft is scheduled, and everything else is a
+     saved draft — never "Published." on the strength of a missing flag. The
+     same function is in agents/content.html. */
+  function draftSaveOutcome(data) {
+    var draft = data && data.draft && typeof data.draft === "object" ? data.draft : {};
+    var postId = (typeof draft.platform_post_uri === "string" && draft.platform_post_uri) ||
+      (typeof draft.zernio_post_id === "string" && draft.zernio_post_id);
+    if (draft.status === "published" && postId) {
+      return { status: "✓ Published", message: "Published." };
+    }
+    if (data && data.published === false) {
+      return { status: "✓ Saved as draft", message: "Saved as a draft — not published. Publishing to social accounts is turned off for now." };
+    }
+    if (draft.status === "scheduled") {
+      return { status: "✓ Scheduled", message: "Scheduled; not published yet." };
+    }
+    return { status: "✓ Saved as draft", message: "Saved as a draft; not published." };
+  }
+
   /* ── approve draft → POST /api/social-drafts ── */
   function approveDraft(result, card) {
     var approveBtn = card.querySelector(".ap-approve-btn");
@@ -3170,9 +3223,9 @@
       if (actionRow) actionRow.style.display = "none";
       var statusEl = card.querySelector(".ap-result-status");
       /* Says what the server did — see the same line in agents/content.html. */
-      var notPublished = res.data && res.data.published === false;
-      if (statusEl) { statusEl.textContent = notPublished ? "✓ Saved as draft" : "✓ Published"; statusEl.style.color = "#4ade80"; }
-      if (msgEl) { msgEl.textContent = notPublished ? "Saved as a draft — not published. Publishing to social accounts is turned off for now." : "Published."; msgEl.style.color = "#4ade80"; }
+      var outcome = draftSaveOutcome(res.data);
+      if (statusEl) { statusEl.textContent = outcome.status; statusEl.style.color = "#4ade80"; }
+      if (msgEl) { msgEl.textContent = outcome.message; msgEl.style.color = "#4ade80"; }
       loadApprovalQueue();
     })
     .catch(function(e) {
