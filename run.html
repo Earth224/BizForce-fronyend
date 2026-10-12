@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BizForce AI — Run</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#070b18">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+  <script src="/scripts/bf-session.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; color: #e8e8ff; background: #070b18; }
+    body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background: radial-gradient(circle at 15% 10%, rgba(0, 229, 255, 0.14), transparent 38%), radial-gradient(circle at 85% 90%, rgba(168, 85, 247, 0.18), transparent 40%), #070b18; }
+    .rv-wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; padding-top: calc(32px + env(safe-area-inset-top, 0px)); }
+    .rv-nav { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+    .rv-nav a { color: #67e8f9; text-decoration: none; font-size: .9rem; }
+    .rv-card { padding: 24px; border-radius: 20px; background: rgba(12, 18, 38, .72); border: 1px solid rgba(255, 255, 255, .08); margin-bottom: 20px; }
+    .rv-title { margin: 0 0 16px; font-size: 1.4rem; }
+    .rv-label { margin: 0 0 12px; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #22d3ee; }
+    .rv-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .rv-meta div { font-size: .88rem; }
+    .rv-meta span { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8892b8; margin-bottom: 3px; }
+    .rv-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .9rem; line-height: 1.6; color: #dfe6ff; }
+    .rv-msg { margin: 0; font-size: .95rem; color: #c9d4ff; }
+    .rv-msg.err { color: #f87171; }
+    .rv-retry { margin-top: 12px; padding: 9px 18px; border-radius: 12px; border: 1px solid rgba(0, 229, 255, .35); background: transparent; color: #e8e8ff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="rv-wrap">
+    <nav class="rv-nav">
+      <a href="dashboard.html#commandCenterSection">← Command Center</a>
+      <span style="color:#8892b8;font-size:.85rem">BizForce AI</span>
+    </nav>
+    <div id="runView"><div class="rv-card"><p class="rv-msg">Loading…</p></div></div>
+  </div>
+  <!-- The shared renderers. With no .page on this page, agent-profile.js adds
+       only its styles; nothing is injected. -->
+  <script src="/scripts/agent-profile.js"></script>
+  <script>
+  /* ONE RUN, READ FROM GET /api/ai/tasks/:id. The route answers only the
+     caller's own row and 404 for any other id, so a missing run and another
+     account's run read the same. It does not check the id's shape, so a
+     malformed id is answered here, before any request, as not found. */
+  (function runViewer() {
+    var API = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var view = document.getElementById("runView");
+
+    function esc(value) {
+      return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+    function when(value) {
+      if (!value) { return "—"; }
+      var d = new Date(value);
+      return isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+    }
+    function card(html) { return '<div class="rv-card">' + html + '</div>'; }
+
+    function notFound() {
+      view.innerHTML = card('<p class="rv-msg">No run with that id was found.</p>');
+    }
+    function failed(message) {
+      view.innerHTML = card('<p class="rv-msg err">The run could not be read: ' + esc(message) + '</p>' +
+        '<button type="button" class="rv-retry" id="runRetry">Try again</button>');
+      var retry = document.getElementById("runRetry");
+      if (retry) { retry.addEventListener("click", load); }
+    }
+
+    function resultHtml(task) {
+      var rendered = null;
+      if (task.output && typeof window.bfRenderStoredToolRun === "function") {
+        rendered = window.bfRenderStoredToolRun(task);
+      }
+      if (rendered) { return rendered; }
+      if (task.status === "failed" && task.error) {
+        return '<pre class="rv-pre rv-result">' + esc("Task failed: " + task.error) + '</pre>';
+      }
+      if (task.result) { return '<pre class="rv-pre rv-result">' + esc(task.result) + '</pre>'; }
+      if (task.status === "processing") { return '<p class="rv-msg">No result yet: the run is still processing.</p>'; }
+      return '<p class="rv-msg">This run recorded no result.</p>';
+    }
+
+    function render(task) {
+      view.innerHTML =
+        card('<h1 class="rv-title">' + esc(task.task_type || "Task") + '</h1>' +
+          '<div class="rv-meta">' +
+            '<div><span>Agent</span>' + esc(task.agent_type || "—") + '</div>' +
+            '<div><span>Tool or task type</span>' + esc(task.task_type || "—") + '</div>' +
+            '<div><span>Status</span>' + esc(task.status || "—") + '</div>' +
+            '<div><span>Created</span>' + esc(when(task.created_at)) + '</div>' +
+            '<div><span>Completed</span>' + esc(task.completed_at ? when(task.completed_at) : "not completed") + '</div>' +
+          '</div>') +
+        card('<h2 class="rv-label">Prompt</h2><pre class="rv-pre rv-prompt">' + esc(task.prompt || "") + '</pre>') +
+        card('<h2 class="rv-label">Result</h2>' + resultHtml(task));
+    }
+
+    function load() {
+      var id = "";
+      try { id = new URLSearchParams(window.location.search).get("id") || ""; } catch (e) { id = ""; }
+      var token = localStorage.getItem("bf_token");
+      if (!token) {
+        view.innerHTML = card('<p class="rv-msg">Sign in to see this run.</p>');
+        return;
+      }
+      if (!UUID.test(id)) { notFound(); return; }
+      view.innerHTML = card('<p class="rv-msg">Loading…</p>');
+      fetch(API + "/api/ai/tasks/" + encodeURIComponent(id), { headers: { "Authorization": "Bearer " + token } })
+        .then(function (r) {
+          if (r.status === 404) { return null; }
+          if (!r.ok) { throw new Error("HTTP " + r.status); }
+          return r.json();
+        })
+        .then(function (body) {
+          if (body === null) { notFound(); return; }
+          if (!body || !body.task || typeof body.task !== "object") { throw new Error("the answer carried no run"); }
+          render(body.task);
+        })
+        .catch(function (err) { failed((err && err.message) || "the request failed"); });
+    }
+
+    load();
+  })();
+  </script>
+</body>
+</html>

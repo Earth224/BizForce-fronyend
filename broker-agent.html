@@ -388,31 +388,6 @@
     }
   
     .agent-avatar{border-color:rgba(192,132,252,0.55);background:linear-gradient(135deg,rgba(192,132,252,0.2),rgba(168,85,247,0.12));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
-
-    /* Sample-output note for the Agent Stats grid. The same rules agents/seo.html
-       already carries for its note, and the same amber as the dashboard. */
-    .sim-note {
-      display: flex;
-      gap: 9px;
-      align-items: flex-start;
-      padding: 11px 13px;
-      border-radius: 11px;
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      background: rgba(251, 191, 36, 0.06);
-      margin-bottom: 18px;
-      font-size: 0.78rem;
-      line-height: 1.55;
-      color: #fcd34d;
-    }
-
-    .sim-note strong {
-      flex-shrink: 0;
-      font-size: 0.68rem;
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #fde68a;
-    }
   </style>
 </head>
 <body>
@@ -430,12 +405,12 @@
     </header>
     <section class="context-card" aria-label="Business Profile Context">
       <h2 class="section-label">Business Profile Context</h2>
-      <div class="context-grid" id="businessContextGrid"></div>
+      <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
       
-      <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
+      <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="liveAgentStats"></div></div>
     </section>
     <div class="toolbar">
-      <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong></div>
+      <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
         <a class="action-btn" href="dashboard.html">Open Dashboard</a>
@@ -443,123 +418,12 @@
     </div>
   </div>
   <script>
-    var AGENT_KEY = "brokerAgent";
-    var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
-    var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    /* partnerships and pipeline were never fields on memory.brokerAgent —
-       the store declares partners and dealPipelines. A name the store does
-       not have returns nothing and the section renders its empty state, so
-       these two read "no partnerships yet" no matter how much the Broker
-       Agent had actually produced. Titles are unchanged; only the lookup
-       keys are corrected.
-
-       strategicPartnerships and partnershipOpportunities are also real
-       fields on this store and are still not surfaced by any section here.
-       They are left alone deliberately — folding them in would change what
-       "Partnerships" means on this page, which is a product call rather
-       than a correction. */
-    var EXTRA_CONTEXT_FIELDS = [];
-    var GOALS_FIELD = "";
-    var AGENT_LABEL = "Broker Agent";
-
-    function escapeHtml(value) {
-      return String(value == null ? "" : value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-    function formatDate(value) {
-      if (!value) return "—";
-      try { return new Date(value).toLocaleString(); } catch (e) { return String(value); }
-    }
-    function loadUserProfile() {
-      try { return JSON.parse(localStorage.getItem("bf_user") || "null") || {}; } catch (e) { return {}; }
-    }
-    function loadExecutiveMemory() {
-      var keys = [BF_EXECUTIVE_MEMORY_KEY, BF_AGENT_MEMORY_KEY], i, stored;
-      for (i = 0; i < keys.length; i++) {
-        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
-        if (stored && typeof stored === "object" && stored[AGENT_KEY]) return stored;
-      }
-      for (i = 0; i < keys.length; i++) {
-        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
-        if (stored && typeof stored === "object") return stored;
-      }
-      return null;
-    }
-    function getAgentStore(memory) {
-      if (!memory || typeof memory !== "object") return { reports: {}, stats: {}, businessContext: {} };
-      var store = memory[AGENT_KEY];
-      if (!store || typeof store !== "object") store = { reports: {}, stats: {}, businessContext: {} };
-      if (!store.reports || typeof store.reports !== "object") store.reports = {};
-      if (!store.businessContext) store.businessContext = {};
-      return store;
-    }
-    function buildBusinessContext(profile, store) {
-      var ctx = store && store.businessContext ? store.businessContext : {};
-      var base = {
-        businessName: ctx.businessName || profile.business_name || profile.businessName || "Your Business",
-        industry: ctx.industry || profile.industry || profile.top_keywords || "—",
-        website: profile.website || ctx.website || "—",
-        location: profile.location || ctx.location || "—",
-        competitors: ctx.competitors || profile.top_competitors || "—"
-      };
-      var i;
-      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
-        var f = EXTRA_CONTEXT_FIELDS[i];
-        base[f.key] = ctx[f.key] || f.fallback || "—";
-      }
-      return base;
-    }
-    function renderBusinessContext(context) {
-      var fields = [
-        { label: "Business", value: context.businessName },
-        { label: "Industry", value: context.industry },
-        { label: "Website", value: context.website },
-        { label: "Location", value: context.location },
-        { label: "Competitors", value: context.competitors }
-      ];
-      var i, html = "";
-      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
-        fields.push({ label: EXTRA_CONTEXT_FIELDS[i].label, value: context[EXTRA_CONTEXT_FIELDS[i].key] || "—" });
-      }
-      for (i = 0; i < fields.length; i++) {
-        html += "<div class=\"context-item\"><label>" + escapeHtml(fields[i].label) + "</label><span>" + escapeHtml(fields[i].value) + "</span></div>";
-      }
-      document.getElementById("businessContextGrid").innerHTML = html;
-      var goalsEl = document.getElementById("agentGoalsText");
-      if (goalsEl && GOALS_FIELD) goalsEl.textContent = context[GOALS_FIELD] || "—";
-    }
-    function renderRunMetaAndStats(store) {
-      /* Renamed from renderReports when the report cards were removed. It never
-         only rendered reports: it also fills the toolbar's "Last run" and the
-         Agent Stats grid, both of which read the live bf_executive_memory store
-         and both of which work. The cards were the dead part. */
-      var lr = store.lastRun;
-      if (lr && typeof lr === "object") lr = lr.runAt || lr.timestamp;
-      document.getElementById("lastRunText").textContent = formatDate(lr || (store.stats && (store.stats.lastRun || store.stats.updatedAt)));
-      var statsEl = document.getElementById("statsGrid");
-      if (statsEl && store.stats && typeof store.stats === "object") {
-        var sk, sh = "";
-        for (sk in store.stats) if (Object.prototype.hasOwnProperty.call(store.stats, sk) && store.stats[sk] != null && sk !== "updatedAt" && typeof store.stats[sk] !== "object") {
-          sh += "<div class=\"context-item\"><label>" + escapeHtml(sk) + "</label><span>" + escapeHtml(store.stats[sk]) + "</span></div>";
-        }
-        statsEl.innerHTML = sh || "<p class=\"report-item-body\">Nothing is recorded here. Real results come only from running this agent's tools on this page.</p>";
-
-        /* THE SAMPLE LABEL, SHOWN ONLY WHILE THERE ARE STATS TO LABEL. Every
-           figure in this store is written by hash-seeded generators on the
-           dashboard; no agent run writes here. It goes above the grid, not in
-           it (the grid is a two-column layout), and comes off again when the
-           grid falls back to "No stats recorded yet." */
-        var simNote = document.getElementById("statsSimNote");
-        if (sh && !simNote) {
-          simNote = document.createElement("div");
-          simNote.id = "statsSimNote";
-          simNote.className = "sim-note";
-          simNote.innerHTML = "<strong>Sample</strong><span>— these figures were generated on the dashboard to demonstrate the interface. Nothing here is a measurement. Your task results below come from real agent runs and are not affected.</span>";
-          statsEl.parentNode.insertBefore(simNote, statsEl);
-        } else if (!sh && simNote) {
-          simNote.parentNode.removeChild(simNote);
-        }
-      }
-    }
+    /* SERVER ONLY. scripts/agent-profile.js reads the business context from
+       GET /api/business-profile and "Last run" from this agent's newest
+       ai_tasks row; applyLiveAgentData reads /api/agents/broker. Nothing on
+       this page reads bf_executive_memory, bf_executive_agent_memory or this
+       agent's key in them: what they held was written by the dashboard's
+       removed simulations, never by a run. */
     function applyLiveAgentData() {
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
       var token = localStorage.getItem("bf_token");
@@ -568,17 +432,7 @@
       /* WHERE THE TILES GO, found or made in one place so that a failed load
          reports itself in the same spot a successful one would have drawn. */
       function liveStatsSlot() {
-        var liveStatsEl = document.getElementById("liveAgentStats");
-        if (!liveStatsEl) {
-          var statsGridEl = document.getElementById("statsGrid");
-          if (statsGridEl && statsGridEl.parentNode) {
-            liveStatsEl = document.createElement("div");
-            liveStatsEl.id = "liveAgentStats";
-            liveStatsEl.className = "context-grid";
-            statsGridEl.parentNode.insertBefore(liveStatsEl, statsGridEl);
-          }
-        }
-        return liveStatsEl;
+        return document.getElementById("liveAgentStats");
       }
 
       function clearLiveStatsFailure() {
@@ -686,21 +540,12 @@
         });
     }
     function refreshPage() {
-      var profile = loadUserProfile();
-      /* THE brokerAgent STORE IN EXECUTIVE MEMORY IS NOT READ. Everything in
-         it — stats, last run, the business context — was written by the
-         dashboard's hash-seeded simulation for this agent, which has been
-         removed. A browser that ran it still holds those figures, and
-         reading them would show invented numbers under this agent's name.
-         The page starts from an empty store; the profile and the live tiles
-         are the only sources. */
-      var store = getAgentStore(null);
-      renderBusinessContext(buildBusinessContext(profile, store));
-      renderRunMetaAndStats(store);
+      if (typeof window.bfLoadBusinessContext === "function") window.bfLoadBusinessContext();
+      if (typeof window.bfLoadLastRun === "function") window.bfLoadLastRun();
       applyLiveAgentData();
     }
     document.getElementById("refreshBtn").addEventListener("click", refreshPage);
-    refreshPage();
+    applyLiveAgentData();
   </script>
 <script>
 window.AGENT_PROFILE_CONFIG = {

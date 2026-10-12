@@ -1582,15 +1582,10 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
     var CC_API = "https://dynamic-prosperity-production-5382.up.railway.app";
     var PANELS = { needs_you: "ccNeedsYou", plans: "ccPlans", activity: "ccActivity", autopilot: "ccAutopilot", outbound: "ccOutbound", spend: "ccSpend" };
 
-    /* The agent pages whose Task History lists a run. There is no page that
-       opens one run by id; Task History shows an agent's newest runs. */
-    var AGENT_PAGES = {
-        ads: "ads-agent.html", analytics: "agents/analytics.html", broker: "broker-agent.html", community: "community-agent.html",
-        content: "agents/content.html", email: "email-agent.html", etsy: "etsy-agent.html", executive: "executive-agent.html",
-        influencer: "influencer-agent.html", operations: "operations-agent.html", publicist: "publicist-agent.html", rd: "rd-agent.html",
-        reputation: "reputation-agent.html", sales: "agents/sales.html", seo: "agents/seo.html", social: "agents/social.html",
-        store: "store-agent.html", vertical_marketing: "vertical-marketing-agent.html"
-    };
+    /* Every run opens on run.html, which reads it by id from GET /api/ai/tasks/:id. */
+    function runLink(runId, text) {
+        return '<a href="run.html?id=' + encodeURIComponent(runId) + '">' + text + '</a>';
+    }
 
     var SENDER_REASONS = {
         enabled: "Email sequences are switched off on the server (ENABLE_EMAIL_SEQUENCES), so no sequence email is sent.",
@@ -1676,7 +1671,7 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
             html += '<p class="cc-muted">No failed runs.</p>';
         } else {
             html += '<ul>' + f.rows.map(function(r) {
-                return '<li>' + esc(r.agent_type) + ' · ' + esc(r.task_type) + ' <span class="cc-muted">' + esc(when(r.created_at)) + '</span></li>';
+                return '<li>' + runLink(r.id, esc(r.agent_type) + ' · ' + esc(r.task_type)) + ' <span class="cc-muted">' + esc(when(r.created_at)) + '</span></li>';
             }).join("") + '</ul>';
             if (f.count > f.rows.length) {
                 html += '<p class="cc-muted">and ' + (f.count - f.rows.length) + ' more.</p>';
@@ -1700,9 +1695,8 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
         var at = ' <span class="cc-muted">' + esc(when(ld.created_at)) + '</span>';
         if (ld.outcome === "ran") {
             var text = "Ran — the run is " + esc(ld.tool_task_status || "no longer found");
-            var page = AGENT_PAGES[a.agent];
-            if (ld.tool_task_id && page) {
-                text += ' · <a href="' + page + '">see it in Task History</a>';
+            if (ld.tool_task_id) {
+                text += ' · ' + runLink(ld.tool_task_id, "open the run");
             }
             return text + at;
         }
@@ -1775,7 +1769,7 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
             html += '<p class="cc-muted">No runs yet.</p>';
         } else {
             html += '<ul>' + d.newest_runs.map(function(r) {
-                return '<li>' + esc(r.agent_type) + ' · ' + esc(r.task_type) + ' · ' + esc(r.status) + ' <span class="cc-muted">' + esc(when(r.created_at)) + '</span></li>';
+                return '<li>' + runLink(r.id, esc(r.agent_type) + ' · ' + esc(r.task_type) + ' · ' + esc(r.status)) + ' <span class="cc-muted">' + esc(when(r.created_at)) + '</span></li>';
             }).join("") + '</ul>';
         }
         return html;

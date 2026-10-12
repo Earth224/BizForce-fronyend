@@ -884,6 +884,7 @@
     loadHistory();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
     loadBusinessContext();
+    loadLastRun();
   }
 
   /* ══ AUTONOMY ═══════════════════════════════════════════════════════════
@@ -4069,84 +4070,45 @@
     } catch (e) {}
   }
 
-  /* ── populate business context grid from live API ── */
+  /* ── business context: GET /api/business-profile and nothing else ──────────
+     The grid shows "Loading…" until the server answers, then the profile's own
+     fields. No profile is said as no profile; a failed read is said as a
+     failed read, with nothing shown in the profile's place. Nothing here reads
+     bf_user, bf_executive_memory, bf_executive_agent_memory or a page's agent
+     key in them: what those held was written in this browser, and the
+     executive stores by the dashboard's removed simulations. */
   function loadBusinessContext() {
     var grid = document.getElementById("businessContextGrid");
     if (!grid) return;
     var token = tok();
-    if (!token) return;
+    if (!token) {
+      grid.innerHTML = '<p class="ap-msg err" style="grid-column:1/-1">Sign in to see your business profile.</p>';
+      return;
+    }
     try {
       fetch(API_URL + "/api/business-profile", {
         headers: { "Authorization": "Bearer " + token }
       })
       .then(okJson)
       .then(function(d) {
-        // A successful read clears any earlier failure note, including one
-        // that answered with no profile and so draws nothing itself.
         removeLoadFailure(grid);
-        if (!d || !d.profile) return;
-        var store = {};
-        try {
-          if (typeof window.loadExecutiveMemory === "function" &&
-              typeof window.getAgentStore === "function") {
-            store = window.getAgentStore(window.loadExecutiveMemory());
-          }
-        } catch (e) {}
-        if (typeof window.buildBusinessContext === "function" &&
-            typeof window.renderBusinessContext === "function") {
-          var context = window.buildBusinessContext(d.profile, store);
-          window.renderBusinessContext(context);
-          /* TWO INDEPENDENT SURFACES THAT LOOK ALIKE ON THE SAME PAGE.
-
-             This call renders the agent_memory STORE — bf_executive_memory
-             keyed by the page's AGENT_KEY — into #reportsGrid, through each
-             page's own REPORT_SECTIONS.
-
-             A COMPLETED ai_task NEVER WRITES INTO THAT STORE. This file has no
-             saveExecutiveMemory call and no localStorage write; task results
-             arrive from POST /api/ai/tasks, are polled back, and are rendered
-             straight into #apHistory by prependResultCard. The store is read
-             here and written by nothing in this file.
-
-             So the two are unrelated content in adjacent boxes: the task panel
-             is injected beforebegin of #reportsGrid a few lines above, which
-             puts real model output directly on top of stored sample output
-             with the same card styling. Anyone adding a marker must scope it to
-             one or the other, never to the pair.
-
-             WHO WRITES THE STORE: only dashboard.html, from hash-seeded
-             generators. Eighteen pages load this script; sixteen read a slot a
-             dashboard generator writes. Of those sixteen, ONLY SEO's generators
-             are reachable from a button — the other fifteen are callable from
-             the console alone, so their sections are empty for every real user
-             and show an empty state telling them to "Run the agent from the
-             dashboard", where no such control exists. rd-agent.html declares no
-             AGENT_KEY at all and vertical-marketing-agent.html uses a key
-             nothing writes.
-
-             THIS IS THE MAP FOR THE PERSISTENCE PATH. Whoever wires a real task
-             result into the store closes that gap — and the moment they do, the
-             store stops being uniformly fabricated and the "absent provenance
-             means simulated" assumption behind the current labelling stops
-             holding. Mark the real records at that point, not after. */
-          if (typeof window.renderReports === "function") {
-            try { window.renderReports(store, AGENT_LABEL); } catch (e) {}
-          }
-        } else {
-          var p = d.profile;
-          var fields = [
-            { label: "Business",    value: p.business_name   || "—" },
-            { label: "Industry",    value: p.industry        || "—" },
-            { label: "Website",     value: p.website         || "—" },
-            { label: "Location",    value: p.location        || "—" },
-            { label: "Competitors", value: p.top_competitors || "—" }
-          ];
-          var html = "";
-          for (var i = 0; i < fields.length; i++) {
-            html += '<div class="context-item"><label>' + esc(fields[i].label) + '</label><span>' + esc(String(fields[i].value)) + '</span></div>';
-          }
-          grid.innerHTML = html;
+        if (!d || !d.profile) {
+          grid.innerHTML = '<p class="ap-msg" style="grid-column:1/-1">No business profile is saved yet.</p>';
+          return;
         }
+        var p = d.profile;
+        var fields = [
+          { label: "Business",    value: p.business_name   || "—" },
+          { label: "Industry",    value: p.industry        || "—" },
+          { label: "Website",     value: p.website         || "—" },
+          { label: "Location",    value: p.location        || "—" },
+          { label: "Competitors", value: p.top_competitors || "—" }
+        ];
+        var html = "";
+        for (var i = 0; i < fields.length; i++) {
+          html += '<div class="context-item"><label>' + esc(fields[i].label) + '</label><span>' + esc(String(fields[i].value)) + '</span></div>';
+        }
+        grid.innerHTML = html;
       })
       .catch(function(err) { showContextFailure(grid, err); });
     } catch (e) {
@@ -4154,15 +4116,102 @@
     }
   }
 
-  /* What is in the grid before this read is the page's own copy, built from
-     this browser's saved profile — so after a failure it still shows
-     something, and nothing said it was not the server's. */
   function showContextFailure(grid, err) {
+    grid.innerHTML = "";
     showLoadFailure(grid,
       "Your business profile could not be loaded from the server (" + ((err && err.message) || "the request failed") +
-      ") — what is shown here is this browser's saved copy, which may be out of date.",
+      "), so none of it is shown.",
       loadBusinessContext, { spanGrid: true });
   }
+
+  /* ── "Last run": this agent's newest ai_tasks row ──────────────────────────
+     GET /api/ai/tasks?agent_type=…&limit=1. Its time, linked to the run itself
+     on run.html. An agent that has never run has no last run, and the line is
+     removed rather than saying "Never" on a guess; a failed read says so. */
+  function loadLastRun() {
+    var el = document.getElementById("lastRunText");
+    if (!el) return;
+    var token = tok();
+    if (!token) return;
+    fetch(API_URL + "/api/ai/tasks?agent_type=" + encodeURIComponent(AGENT_TYPE) + "&limit=1", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(okJson)
+    .then(function (data) {
+      var newest = data && Array.isArray(data.tasks) ? data.tasks[0] : undefined;
+      if (!data || !Array.isArray(data.tasks)) throw new Error("the answer was not a list of runs");
+      if (!newest) {
+        var line = el.closest ? el.closest(".toolbar-meta") : null;
+        if (line && line.parentNode) line.parentNode.removeChild(line);
+        return;
+      }
+      el.innerHTML = '<a href="/run.html?id=' + encodeURIComponent(newest.id) + '" style="color:inherit">' +
+        esc(fmt(newest.created_at)) + '</a>';
+    })
+    .catch(function (err) {
+      el.textContent = "could not be read (" + ((err && err.message) || "the request failed") + ")";
+    });
+  }
+
+  /* ── for run.html: a stored tool run, through the same renderers ───────────
+     A tool run's ai_tasks row has task_type "agent/tool" and the route's
+     response body in `output` (without task_id and persisted, which are added
+     back here: the row exists, so it was saved). Returns the HTML, or null when
+     the row is not a tool run with a stored body. */
+  /* Each tool's declared field names, by "agent/tool": the same lists the agent
+     pages declare in AGENT_PROFILE_CONFIG.tools, which run.html does not load.
+     renderGenerated uses them to leave the user's own echoed input out of
+     "Written by the model". checkRunViewerAndAgentPages proves this map equals
+     every page's config. */
+  var STORED_TOOL_FIELDS = {
+    "ads/copy": ["product", "angle", "platform", "audience"],
+    "ads/policy-check": ["copy", "suggest_rewrites"],
+    "analytics/funnel": ["stages", "funnel_name", "context"],
+    "analytics/kpi-review": ["metrics", "period", "context"],
+    "broker/due-diligence": ["deal_type", "context"],
+    "broker/term-sheet": ["deal", "deal_type", "parties", "consideration", "governing_law"],
+    "community/engagement-calendar": ["cadence", "community_type", "capacity"],
+    "community/onboarding": ["community_type", "platform", "goal"],
+    "content/audit": ["article", "keyword"],
+    "content/outline": ["keyword", "audience", "angle"],
+    "email/sequence": ["goal", "audience", "sequence_type", "steps"],
+    "email/subject-lines": ["purpose", "audience", "count"],
+    "etsy/keyword-research": ["seed", "context"],
+    "etsy/pricing-strategy": ["listing_title", "listing_description", "current_price", "unit_cost", "comparables"],
+    "executive/plan": ["goal", "horizon", "constraints"],
+    "influencer/outreach": ["creator", "campaign", "channel"],
+    "influencer/partnership-offer": ["collaboration", "creator", "budget", "territory"],
+    "operations/checklist": ["task", "frequency", "context"],
+    "operations/sop": ["process", "context", "owner"],
+    "publicist/pitch": ["angle", "outlet_type", "journalist"],
+    "publicist/press-release": ["news", "company_name", "city", "quote_from", "contact"],
+    "rd/brief": ["question", "decision", "context"],
+    "rd/competitor-scan": ["competitors", "your_product", "dimensions"],
+    "rd/demand-signals": ["theme", "window_days", "sample_size"],
+    "reputation/review-request": ["moment", "channel", "platform"],
+    "reputation/review-response": ["review", "rating", "situation"],
+    "seo/audit": ["url"],
+    "social/calendar": ["goal", "cadence", "platforms", "weeks"],
+    "social/post": ["idea", "platform"],
+    "vertical_marketing/objections": ["industry", "offer", "price_context"],
+    "vertical_marketing/positioning": ["industry", "offering", "audience"]
+  };
+
+  function renderStoredToolRun(task) {
+    if (!task || !isPlainObject(task.output)) return null;
+    var parts = String(task.task_type || "").split("/");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+    var qualified = parts[0] + "/" + parts[1];
+    var tool = {
+      id: Object.prototype.hasOwnProperty.call(TOOL_WHOLE_RENDERERS, qualified) ? qualified : parts[1],
+      fields: (STORED_TOOL_FIELDS[qualified] || []).map(function (name) { return { name: name }; })
+    };
+    return renderToolResult(tool, Object.assign({}, task.output, { task_id: task.id, persisted: true }));
+  }
+
+  window.bfLoadBusinessContext = loadBusinessContext;
+  window.bfLoadLastRun = loadLastRun;
+  window.bfRenderStoredToolRun = renderStoredToolRun;
 
   /* ── boot ── */
   document.addEventListener("DOMContentLoaded", inject);
