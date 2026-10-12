@@ -624,7 +624,6 @@
       <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="statsGrid"></div></div>
     </section>
     <div class="toolbar">
-      <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
         <a class="action-btn" href="../dashboard.html">Open Dashboard</a>
@@ -727,11 +726,6 @@
     </section>
   </div>
   <script>
-    var AGENT_KEY = "contentAgent";
-    var BF_EXECUTIVE_MEMORY_KEY = "bf_executive_memory";
-    var BF_AGENT_MEMORY_KEY = "bf_executive_agent_memory";
-    var EXTRA_CONTEXT_FIELDS = [];
-    var GOALS_FIELD = "";
     var AGENT_LABEL = "Content Agent";
 
     function escapeHtml(value) {
@@ -751,76 +745,6 @@
         .replace(/[\u{E0100}-\u{E01EF}]/gu, "")
         .replace(/[\u200B\u200C\u200D\uFEFF]/g, "")
         .trim();
-    }
-    function loadUserProfile() {
-      try { return JSON.parse(localStorage.getItem("bf_user") || "null") || {}; } catch (e) { return {}; }
-    }
-    function loadExecutiveMemory() {
-      var keys = [BF_EXECUTIVE_MEMORY_KEY, BF_AGENT_MEMORY_KEY], i, stored;
-      for (i = 0; i < keys.length; i++) {
-        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
-        if (stored && typeof stored === "object" && stored[AGENT_KEY]) return stored;
-      }
-      for (i = 0; i < keys.length; i++) {
-        try { stored = JSON.parse(localStorage.getItem(keys[i]) || "null"); } catch (e) { stored = null; }
-        if (stored && typeof stored === "object") return stored;
-      }
-      return null;
-    }
-    function getAgentStore(memory) {
-      if (!memory || typeof memory !== "object") return { reports: {}, stats: {}, businessContext: {} };
-      var store = memory[AGENT_KEY];
-      if (!store || typeof store !== "object") store = { reports: {}, stats: {}, businessContext: {} };
-      if (!store.reports || typeof store.reports !== "object") store.reports = {};
-      if (!store.businessContext) store.businessContext = {};
-      return store;
-    }
-    function buildBusinessContext(profile, store) {
-      var ctx = store && store.businessContext ? store.businessContext : {};
-      var base = {
-        businessName: ctx.businessName || profile.business_name || profile.businessName || "Your Business",
-        industry: ctx.industry || profile.industry || profile.top_keywords || "—",
-        website: profile.website || ctx.website || "—",
-        location: profile.location || ctx.location || "—",
-        competitors: ctx.competitors || profile.top_competitors || "—"
-      };
-      var i;
-      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
-        var f = EXTRA_CONTEXT_FIELDS[i];
-        base[f.key] = ctx[f.key] || f.fallback || "—";
-      }
-      return base;
-    }
-    function renderBusinessContext(context) {
-      var fields = [
-        { label: "Business", value: context.businessName },
-        { label: "Industry", value: context.industry },
-        { label: "Website", value: context.website },
-        { label: "Location", value: context.location },
-        { label: "Competitors", value: context.competitors }
-      ];
-      var i, html = "";
-      for (i = 0; i < EXTRA_CONTEXT_FIELDS.length; i++) {
-        fields.push({ label: EXTRA_CONTEXT_FIELDS[i].label, value: context[EXTRA_CONTEXT_FIELDS[i].key] || "—" });
-      }
-      for (i = 0; i < fields.length; i++) {
-        html += "<div class=\"context-item\"><label>" + escapeHtml(fields[i].label) + "</label><span>" + escapeHtml(fields[i].value) + "</span></div>";
-      }
-      document.getElementById("businessContextGrid").innerHTML = html;
-      var goalsEl = document.getElementById("agentGoalsText");
-      if (goalsEl && GOALS_FIELD) goalsEl.textContent = context[GOALS_FIELD] || "—";
-    }
-    function renderRunMetaAndStats(store) {
-      /* Fills the toolbar's "Last run". It no longer reads contentAgent.stats:
-         every figure there was written by the dashboard's hash-seeded content
-         generators, which nothing reaches any more, so all that was left to show
-         was leftover "Sample" numbers in local storage. The Agent Stats section
-         now holds only the live tiles applyLiveAgentData draws from the server. */
-      var lr = store.lastRun;
-      if (lr && typeof lr === "object") lr = lr.runAt || lr.timestamp;
-      document.getElementById("lastRunText").textContent = formatDate(lr);
-      var statsEl = document.getElementById("statsGrid");
-      if (statsEl) statsEl.innerHTML = "";
     }
     function applyLiveAgentData() {
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -958,10 +882,12 @@
           showLiveStatsFailure();
         });
     }
+    /* The business context and the agent's figures come from the server only:
+       loadBusinessProfile reads /api/business-profile and applyLiveAgentData
+       /api/agents/content. Nothing here reads the bf_executive_memory store the
+       dashboard's removed content simulation wrote, and there is no "Last run":
+       no server field records one. */
     function refreshPage() {
-      var memory = loadExecutiveMemory();
-      var store = getAgentStore(memory);
-      renderRunMetaAndStats(store);
       if (typeof window.loadBusinessProfile === "function") window.loadBusinessProfile();
       applyLiveAgentData();
     }
