@@ -329,6 +329,20 @@
        rendered banner is orange and tagged as a heuristic, so it is not mistaken
        for a flag or for the amber "no explanation" panel. */
     ".ap-seo-audit{display:flex;flex-direction:column;gap:14px}",
+    ".ap-ds-theme{padding:10px 0;border-top:1px solid rgba(255,255,255,.07)}",
+    ".ap-ds-theme:first-of-type{border-top:none}",
+    ".ap-ds-theme-label{font-weight:700;color:#e8e8ff;margin-bottom:3px}",
+    ".ap-ds-want{font-size:.84rem;line-height:1.55;color:#c9cfe8}",
+    ".ap-ds-chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}",
+    ".ap-ds-chip{font-size:.68rem;padding:2px 8px;border-radius:99px;background:rgba(34,211,238,.08);",
+      "border:1px solid rgba(34,211,238,.3);color:#a5f3fc}",
+    ".ap-ds-support{font-size:.74rem;color:#8892b8}",
+    ".ap-ds-drop{font-size:.76rem;color:#fcd34d;margin-top:8px}",
+    ".ap-ds-note{font-size:.74rem;color:#8892b8;margin:6px 0}",
+    ".ap-ds-none{font-size:.76rem;color:#8892b8}",
+    ".ap-ds-table{width:100%;border-collapse:collapse;font-size:.78rem}",
+    ".ap-ds-table td{padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.06)}",
+    ".ap-ds-n{text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:nowrap}",
     ".ap-seo-flagzone .ap-zone-label{color:#fcd34d}",
     ".ap-seo-flags{display:flex;flex-direction:column;gap:8px}",
     ".ap-seo-flag{padding:10px 13px;border-radius:11px;border:1px solid rgba(251,191,36,.3);",
@@ -1699,25 +1713,33 @@
           'measured against the real limits, kept separate so you can see which is which.',
         '</div>',
         TOOLS.map(function (tool) {
-          return [
-            '<div class="ap-tool">',
-              '<button type="button" class="ap-tool-head" data-tool-toggle="' + esc(tool.id) + '">',
-                '<span>', esc(tool.label || tool.id),
-                  tool.description ? '<span class="ap-tool-sub">' + esc(tool.description) + '</span>' : "",
-                '</span>',
-                '<span class="ap-tool-caret" id="' + toolDomId(tool.id, "caret") + '">Show</span>',
-              '</button>',
-              '<div class="ap-tool-body" id="' + toolDomId(tool.id, "body") + '" hidden>',
-                (tool.fields || []).map(function (f) { return toolFieldMarkup(tool.id, f); }).join(""),
-                '<button type="button" class="ap-tool-run" data-tool-run="' + esc(tool.id) + '">',
-                  esc(tool.runLabel || "Run"),
-                '</button>',
-                '<div class="ap-tool-msg" id="' + toolDomId(tool.id, "msg") + '"></div>',
-                '<div class="ap-tool-result" id="' + toolDomId(tool.id, "result") + '"></div>',
-              '</div>',
-            '</div>'
-          ].join("");
+          // An owner-only tool starts as an empty slot; drawAdminTools fills it
+          // once /api/auth/me says admin, and leaves it empty for anyone else.
+          return tool.adminOnly
+            ? '<div id="' + toolDomId(tool.id, "gate") + '"></div>'
+            : toolMarkup(tool);
         }).join(""),
+      '</div>'
+    ].join("");
+  }
+
+  function toolMarkup(tool) {
+    return [
+      '<div class="ap-tool">',
+        '<button type="button" class="ap-tool-head" data-tool-toggle="' + esc(tool.id) + '">',
+          '<span>', esc(tool.label || tool.id),
+            tool.description ? '<span class="ap-tool-sub">' + esc(tool.description) + '</span>' : "",
+          '</span>',
+          '<span class="ap-tool-caret" id="' + toolDomId(tool.id, "caret") + '">Show</span>',
+        '</button>',
+        '<div class="ap-tool-body" id="' + toolDomId(tool.id, "body") + '" hidden>',
+          (tool.fields || []).map(function (f) { return toolFieldMarkup(tool.id, f); }).join(""),
+          '<button type="button" class="ap-tool-run" data-tool-run="' + esc(tool.id) + '">',
+            esc(tool.runLabel || "Run"),
+          '</button>',
+          '<div class="ap-tool-msg" id="' + toolDomId(tool.id, "msg") + '"></div>',
+          '<div class="ap-tool-result" id="' + toolDomId(tool.id, "result") + '"></div>',
+        '</div>',
       '</div>'
     ].join("");
   }
@@ -2563,7 +2585,7 @@
 
      Keyed agent/tool, because a bare tool id is not unique across pages: the
      content agent has an "audit" too, which must keep the generic renderer. */
-  var TOOL_WHOLE_RENDERERS = { "seo/audit": renderSeoAudit };
+  var TOOL_WHOLE_RENDERERS = { "seo/audit": renderSeoAudit, "rd/demand-signals": renderDemandSignals };
 
   function wholeRendererFor(tool) {
     if (!tool) return null;
@@ -2733,6 +2755,129 @@
         ? '<ul class="ap-seo-nm-list">' + items.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
         : 'The server did not list what this audit leaves out; read it as covering only the figures above.') +
       '</div>';
+  }
+
+  /* ── Demand signals (rd/demand-signals) ─────────────────────────────────────
+     Its own renderer because the generic one would print "<5" as a value and
+     bury the themes under the counts. THEMES come first, in the model's voice;
+     then MEASURED, counted by code; then what is NOT measured, always visible;
+     then provenance. A count the server suppressed ("<5") is shown as "fewer
+     than 5" and never as a number. Nothing here prints a post, a handle or an
+     address: the server sends none, and nothing renders an unknown field. */
+  function demandCount(v) {
+    if (typeof v === "number" && isFinite(v)) return String(v);
+    var m = typeof v === "string" ? /^<(\d+)$/.exec(v) : null;
+    if (m) return "fewer than " + m[1];
+    return "not reported";
+  }
+
+  function demandRows(list, labelKey) {
+    if (!Array.isArray(list) || !list.length) return '<div class="ap-ds-none">None in this window.</div>';
+    return '<table class="ap-ds-table"><tbody>' + list.map(function (x) {
+      return '<tr><td>' + esc(String((x && x[labelKey]) || "")) + '</td><td class="ap-ds-n">' + esc(demandCount(x && x.rows)) + '</td></tr>';
+    }).join("") + '</tbody></table>';
+  }
+
+  function demandThemes(data, sampleCount) {
+    var drops = [];
+    var dropped = Number(data.points_dropped) || 0;
+    var privacy = Number(data.privacy_drops) || 0;
+    if (dropped > 0) {
+      drops.push(dropped + (dropped === 1 ? " theme was" : " themes were") +
+        " dropped for citing no keyword in scope, or claiming more support than the sample has.");
+    }
+    if (privacy > 0) {
+      drops.push(privacy + (privacy === 1 ? " theme was" : " themes were") +
+        " removed because it repeated a sampled post word for word.");
+    }
+    var dropsHtml = drops.map(function (t) { return '<div class="ap-ds-drop">' + esc(t) + '</div>'; }).join("");
+
+    if (!Array.isArray(data.themes)) {
+      return '<div class="ap-nothing-read ap-ds-nothemes"><strong>No themes.</strong> ' +
+        esc(String(data.explanation_error || "The server returned no themes and gave no reason.")) +
+        ' The measured counts below are complete without them.</div>' + dropsHtml;
+    }
+    var body = data.themes.length
+      ? data.themes.map(function (t) {
+          var keywords = Array.isArray(t && t.keywords) ? t.keywords : [];
+          return '<div class="ap-ds-theme">' +
+            '<div class="ap-ds-theme-label">' + esc(String((t && t.label) || "")) + '</div>' +
+            '<div class="ap-ds-want">' + esc(String((t && t.what_people_want) || "")) + '</div>' +
+            '<div class="ap-ds-chips">' + keywords.map(function (k) { return '<span class="ap-ds-chip">' + esc(String(k)) + '</span>'; }).join("") + '</div>' +
+            '<div class="ap-ds-support">supported by ' + esc(demandCount(t && t.supporting_posts)) + ' of ' + esc(sampleCount) + ' sampled posts</div>' +
+          '</div>';
+        }).join("")
+      : '<div>No theme survived the checks, so there are no themes. The measured counts below are complete without them.</div>';
+    return '<div class="ap-generated">' +
+      '<div class="ap-zone-label">Written by the model — what people want or object to, from a cleaned sample</div>' +
+      body + dropsHtml + '</div>';
+  }
+
+  function demandMeasured(m) {
+    var scores = isPlainObject(m.intent_scores) ? m.intent_scores : {};
+    var buckets = isPlainObject(scores.buckets) ? scores.buckets : {};
+    var sample = isPlainObject(m.sample) ? m.sample : {};
+    var cell = function (label, value) {
+      return '<div class="ap-m-cell"><div class="ap-m-key">' + esc(label) + '</div><div class="ap-m-val">' + esc(value) + '</div></div>';
+    };
+    return '<div class="ap-measured">' +
+      '<div class="ap-zone-label">Measured by the server</div>' +
+      '<div class="ap-m-grid">' +
+        cell("Theme", String(m.theme || "")) +
+        cell("Window", (m.window_days != null ? m.window_days + " days" : "not reported") + (m.window_start ? " from " + String(m.window_start).slice(0, 10) : "")) +
+        cell("Posts in the window", demandCount(m.rows_in_window)) +
+        cell("With text", demandCount(m.rows_with_text)) +
+        cell("Undated posts", demandCount(m.undated_rows)) +
+        cell("Dated before the window", demandCount(m.dated_before_window)) +
+      '</div>' +
+      '<div class="ap-ds-note">Undated posts are counted, but never given a date: they are in no month, no window and no sample.</div>' +
+      '<div class="ap-ds-note">Any count below 5 is shown as "fewer than 5", never as the number.</div>' +
+      '<div class="ap-seo-group-title">By keyword</div>' + demandRows(m.by_keyword, "keyword") +
+      '<div class="ap-seo-group-title">By source</div>' + demandRows(m.by_source, "source") +
+      '<div class="ap-seo-group-title">By month the post was written</div>' + demandRows(m.by_month, "month") +
+      '<div class="ap-seo-group-title">Intent scores (the scorer\'s real scores only)</div>' +
+      '<div class="ap-m-grid">' +
+        cell("Real scores", demandCount(scores.real_scores)) +
+        cell("Without a real score", demandCount(scores.without_a_real_score)) +
+        Object.keys(buckets).map(function (b) { return cell(b, demandCount(buckets[b])); }).join("") +
+      '</div>' +
+      '<div class="ap-seo-group-title">The sample the model read</div>' +
+      '<div class="ap-m-grid">' +
+        cell("Posts sampled", demandCount(sample.posts)) +
+        cell("Requested", sample.requested != null ? String(sample.requested) : "not reported") +
+        cell("Keywords represented", demandCount(sample.keywords_represented)) +
+      '</div>' +
+      (sample.cleaning ? '<div class="ap-ds-note">' + esc(String(sample.cleaning)) + '</div>' : "") +
+      '</div>';
+  }
+
+  // Always shown, never collapsed: what this report cannot say is part of its answer.
+  function demandNotMeasured(list) {
+    var items = Array.isArray(list) ? list : [];
+    return '<div class="ap-ref ap-ds-notmeasured">' +
+      '<div class="ap-zone-label">Not measured by this report</div>' +
+      (items.length
+        ? '<ul class="ap-seo-nm-list">' + items.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
+        : 'The server did not list what this report leaves out; read it as covering only the counts above.') +
+      '</div>';
+  }
+
+  function renderDemandSignals(tool, data) {
+    var m = data && data.measured;
+    if (!isPlainObject(m)) {
+      return '<div class="ap-parsefail">' +
+        '<div class="ap-zone-label" style="color:#fbbf24">The demand report could not be read</div>' +
+        'The response did not carry the measured counts, so nothing is being reported as a result — ' +
+        'not "no demand", and not any themes.</div>';
+    }
+    var sampleCount = demandCount(isPlainObject(m.sample) ? m.sample.posts : null);
+    return '<div class="ap-seo-audit ap-demand">' + [
+      demandThemes(data, sampleCount),
+      demandMeasured(m),
+      demandNotMeasured(data.not_measured),
+      renderProvenance(data.provenance),
+      renderUnsaved(data)
+    ].filter(Boolean).join("") + '</div>';
   }
 
   function renderSeoAudit(tool, data) {
@@ -2917,6 +3062,47 @@
     if (!TOOLS.length) return;
 
     TOOLS.forEach(function (tool) {
+      if (!tool.adminOnly) bindTool(tool);
+    });
+    drawAdminTools();
+  }
+
+  /* OWNER-ONLY TOOLS. A tool with adminOnly: true is drawn and bound only when
+     /api/auth/me says role "admin". For anyone else its slot stays empty — no
+     button that would only answer 403. A /api/auth/me that cannot be read is
+     an error line in the slot, never the form and never silence, because an
+     unknown is not "not the owner". */
+  function drawAdminTools() {
+    var gated = TOOLS.filter(function (tool) { return tool.adminOnly; });
+    if (!gated.length) return Promise.resolve();
+    var token = tok();
+    return fetch(API_URL + "/api/auth/me", { headers: { "Authorization": "Bearer " + token } })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok || !res.parsed || !isPlainObject(res.data) || !isPlainObject(res.data.user)) {
+          throw new Error((res.data && typeof res.data.error === "string" && res.data.error) || ("HTTP " + res.status));
+        }
+        return res.data.user.role === "admin";
+      })
+      .then(function (admin) {
+        gated.forEach(function (tool) {
+          var slot = document.getElementById(toolDomId(tool.id, "gate"));
+          if (!slot) return;
+          slot.innerHTML = admin ? toolMarkup(tool) : "";
+          if (admin) bindTool(tool);
+        });
+      }, function (err) {
+        gated.forEach(function (tool) {
+          var slot = document.getElementById(toolDomId(tool.id, "gate"));
+          if (!slot) return;
+          slot.innerHTML = '<div class="ap-tool-msg err">Whether this account can use ' + esc(tool.label || tool.id) +
+            ' could not be checked — reload to try again. (' + esc((err && err.message) || "unknown error") + ')</div>';
+        });
+      });
+  }
+
+  function bindTool(tool) {
+    (function () {
       var head = document.querySelector('[data-tool-toggle="' + tool.id + '"]');
       if (head) {
         head.addEventListener("click", function () {
@@ -2945,7 +3131,7 @@
           wrap.appendChild(clone);
         });
       });
-    });
+    })();
   }
 
   /* ── button loading state ── */
