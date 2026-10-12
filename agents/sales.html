@@ -148,24 +148,6 @@
       color: #8892b8;
     }
 
-    .capability-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .capability-pill {
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      background: rgba(168, 85, 247, 0.1);
-      color: #c4b5fd;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
     .context-card {
       padding: 24px;
       border-radius: 20px;
@@ -1072,7 +1054,6 @@
       <div class="agent-header-text">
         <h1 class="agent-title">Sales Agent</h1>
         <p class="agent-subtitle">Pipeline, leads, and revenue intelligence from your business profile.</p>
-        <div class="capability-pills"><span class="capability-pill">Leads</span><span class="capability-pill">Pipeline</span><span class="capability-pill">Pricing</span><span class="capability-pill">CRM</span><span class="capability-pill">Forecasts</span></div>
       </div>
     </header>
 
@@ -1123,7 +1104,7 @@
 
         <div class="mc-target-zone">
           <div class="mc-target-funnel">
-            <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted</span><span class="fn-count" id="mcFnDrafted">—</span></div>
+            <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted (not sent)</span><span class="fn-count" id="mcFnDrafted">—</span></div>
             <div class="mc-target-funnel-row fn-sent"><span class="fn-label">Sent</span><span class="fn-count" id="mcFnSent">—</span></div>
             <div class="mc-target-funnel-row fn-replied"><span class="fn-label">Replied</span><span class="fn-count" id="mcFnReplied">—</span></div>
             <div class="mc-target-funnel-row fn-converted"><span class="fn-label">Converted</span><span class="fn-count" id="mcFnConverted">—</span></div>
@@ -1232,7 +1213,7 @@
       <div class="toolbar-meta">Last run: <strong id="lastRunText">Never</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
-        <a class="action-btn" href="../dashboard.html">Run on Dashboard</a>
+        <a class="action-btn" href="../dashboard.html">Open Dashboard</a>
       </div>
     </div>
     <div class="reports-grid mc-legacy-hidden" id="reportsGrid"></div>
@@ -1981,10 +1962,57 @@
         }
       }
 
+      /* The pipeline statuses the owner sets (POST /api/agents/sales/lead-status).
+         Replied and Converted are counted from here, because nothing writes those
+         values to ai_tasks. false when it could not be read — never an empty
+         pipeline, which would show as a real zero. */
+      var mcLastPipeline;
+      async function mcFetchPipeline() {
+        try {
+          var token = tok();
+          if (!token) return false;
+          var r = await fetch(API_URL + "/api/agents/sales/pipeline", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!r.ok) return false;
+          var data = await r.json();
+          return (data && data.pipeline && typeof data.pipeline === "object" && !Array.isArray(data.pipeline)) ? data.pipeline : false;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Replied and Converted today: pipeline rows at that status, last changed today.
+      function mcRenderPipelineCounts(pipeline) {
+        var setFn = function (id, v) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = String(v);
+        };
+        if (pipeline === undefined) return;
+        if (pipeline === false) {
+          setFn("mcFnReplied", "could not be read");
+          setFn("mcFnConverted", "could not be read");
+          return;
+        }
+        var today = function (rows) {
+          return (Array.isArray(rows) ? rows : []).filter(function (row) {
+            return mcGetTodayTasks([{ created_at: row && row.updated_at }]).length === 1;
+          }).length;
+        };
+        setFn("mcFnReplied", today(pipeline.replied));
+        setFn("mcFnConverted", today(pipeline.converted));
+      }
+
+      /* What each ai_tasks status actually means. Only "sent" went out: a dry run
+         and a draft were written and never posted, and "completed" is a finished
+         task, not a send. */
       function mcStatusMeta(status) {
         var map = {
-          completed:         { label: "Sent",             cls: "st-completed" },
-          dry_run:           { label: "Drafted (dry run)", cls: "st-dry" },
+          sent:              { label: "Sent",              cls: "st-completed" },
+          send_failed:       { label: "Send failed",       cls: "st-failed" },
+          drafted:           { label: "Drafted (not sent)", cls: "st-dry" },
+          completed:         { label: "Completed",         cls: "st-completed" },
+          dry_run:           { label: "Drafted (dry run, not sent)", cls: "st-dry" },
           processing:        { label: "Working…",          cls: "st-processing" },
           requires_approval: { label: "Needs approval",    cls: "st-approval" },
           failed:            { label: "Failed",            cls: "st-failed" }
@@ -2365,16 +2393,17 @@
           if (goalInput) goalInput.value = goal;
 
           var goalLabel = document.getElementById("mcTargetGoalLabel");
-          if (goalLabel) goalLabel.textContent = "Goal (conversions):";
+          if (goalLabel) goalLabel.textContent = "Goal (leads worked):";
 
           var todayTasks = mcGetTodayTasks(tasks);
 
-          var draftedCount = 0, sentCount = 0, repliedCount = 0, convertedCount = 0;
+          // Drafted and Sent from today's tasks: a dry run or a draft was never
+          // posted; only "sent" went out. Replied and Converted come from the
+          // pipeline (mcRenderPipelineCounts), which is where they are recorded.
+          var draftedCount = 0, sentCount = 0;
           todayTasks.forEach(function (t) {
-            if (t.status === "dry_run") draftedCount++;
-            else if (t.status === "completed") sentCount++;
-            else if (t.status === "replied") repliedCount++;
-            else if (t.status === "converted") convertedCount++;
+            if (t.status === "dry_run" || t.status === "drafted") draftedCount++;
+            else if (t.status === "sent") sentCount++;
           });
 
           var setFn = function (id, v) {
@@ -2383,8 +2412,7 @@
           };
           setFn("mcFnDrafted", draftedCount);
           setFn("mcFnSent", sentCount);
-          setFn("mcFnReplied", repliedCount);
-          setFn("mcFnConverted", convertedCount);
+          mcRenderPipelineCounts(mcLastPipeline);
 
           var tickerEl = document.getElementById("mcTargetTicker");
           if (tickerEl) {
@@ -2399,10 +2427,8 @@
               var handle = mcExtractHandle(newestToday.prompt) || "lead";
               if (newestToday.status === "dry_run") {
                 tickerEl.textContent = "⚡ Drafting outreach for " + handle + "…";
-              } else if (newestToday.status === "completed") {
+              } else if (newestToday.status === "sent") {
                 tickerEl.textContent = "📤 Sent to " + handle;
-              } else if (newestToday.status === "converted") {
-                tickerEl.textContent = "💰 " + handle + " converted";
               } else {
                 tickerEl.textContent = "Agent standing by…";
               }
@@ -2416,8 +2442,18 @@
       }
 
       async function mcRefreshConsole() {
-        var tasks = await mcFetchSalesTasks();
-        if (!tasks) return;
+        var results = await Promise.all([mcFetchSalesTasks(), mcFetchPipeline()]);
+        var tasks = results[0];
+        mcLastPipeline = results[1];
+        mcRenderPipelineCounts(mcLastPipeline);
+        if (!tasks) {
+          // A failed read is said, never shown as a day of zero activity.
+          ["mcFnDrafted", "mcFnSent"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = "could not be read";
+          });
+          return;
+        }
         try {
           mcLastTasks = tasks;
           mcComputeKpis(tasks);
