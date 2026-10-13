@@ -206,6 +206,7 @@
     ".ap-m-val{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
       "font-size:.9rem;font-weight:700;color:#a5f3fc;margin-top:2px;word-break:break-word}",
     ".ap-m-val.bad{color:#fca5a5}.ap-m-val.good{color:#86efac}",
+    ".ap-not-measured{color:#8892b8;font-style:italic}",
     ".ap-m-note{margin-top:10px;font-size:.78rem;color:#cffafe;line-height:1.6}",
     ".ap-m-list{margin:6px 0 0;padding-left:16px;font-size:.76rem;color:#cffafe;line-height:1.6}",
 
@@ -1612,7 +1613,7 @@
      gets its own quiet zone instead of competing with either. */
   var TOOL_REF_KEYS = ["constraints", "limits", "thresholds", "guides", "platform_limits",
     "platform_terms", "limitations", "rules", "statement", "clean_scan_is_not_approval",
-    "suggested_tag_set_note", "rules_checked"];
+    "suggested_tag_set_note", "suggested_tag_set_reason", "rules_checked"];
 
   function toolDomId(toolId, suffix) {
     return "apTool_" + String(toolId).replace(/[^A-Za-z0-9]/g, "_") + (suffix ? "_" + suffix : "");
@@ -1825,6 +1826,19 @@
     return v !== null && typeof v === "object" && !Array.isArray(v);
   }
 
+  /* A NULL ON A LIMIT CHECK IS A CHECK NOT MADE. A key that reports a limit
+     being met or broken (fits…, within…, over…, exceeds…, ready…, …_ready,
+     too_long…) is null when no limit was entered to check against, and it
+     reads as exactly that — never as "No", 0 or the broken-limit colour, and
+     never as the bare word "null". Read from the key's own wording, like the
+     colouring in renderMeasured. Any other null is the ordinary "—". */
+  var LIMIT_CHECK_KEY = /^(within|fits|over|exceeds|headline_within|ready)|_ready$|too_long/;
+  function renderNullFor(key) {
+    return LIMIT_CHECK_KEY.test(String(key || ""))
+      ? '<span class="ap-not-measured">not measured — no limit entered</span>'
+      : "—";
+  }
+
   // A compact, depth-limited rendering of whatever a value happens to be.
   function renderScalarish(value) {
     if (value === null || value === undefined || value === "") return "—";
@@ -1845,6 +1859,9 @@
   function renderObjectInline(obj) {
     return Object.keys(obj).map(function (k) {
       var v = obj[k];
+      if (v === null || v === undefined) {
+        return "<strong>" + esc(humanise(k)) + ":</strong> " + renderNullFor(k);
+      }
       if (isPlainObject(v) || Array.isArray(v)) {
         return "<strong>" + esc(humanise(k)) + ":</strong> " + renderScalarish(v);
       }
@@ -1890,7 +1907,7 @@
 
       cells.push('<div class="ap-m-cell">' +
         '<div class="ap-m-key">' + esc(humanise(key)) + '</div>' +
-        '<div class="ap-m-val' + cls + '">' + renderScalarish(value) + '</div></div>');
+        '<div class="ap-m-val' + cls + '">' + (value === null ? renderNullFor(key) : renderScalarish(value)) + '</div></div>');
     });
 
     return '<div class="ap-measured">' +
@@ -4176,7 +4193,7 @@
     "content/outline": ["keyword", "audience", "angle"],
     "email/sequence": ["goal", "audience", "sequence_type", "steps"],
     "email/subject-lines": ["purpose", "audience", "count"],
-    "etsy/keyword-research": ["seed", "context"],
+    "etsy/keyword-research": ["seed", "context", "max_tags", "max_tag_length"],
     "etsy/pricing-strategy": ["listing_title", "listing_description", "current_price", "unit_cost", "comparables"],
     "executive/plan": ["goal", "horizon", "constraints"],
     "influencer/outreach": ["creator", "campaign", "channel"],

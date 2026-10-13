@@ -163,11 +163,11 @@
       "Revisit the Analytics report section regularly — it's where channel performance gaps show up first."
     ],
     "etsy-agent.html": [
-      "This agent is an Etsy specialist — listing optimization, keyword research, pricing strategy, and competitor analysis built for the marketplace's own rules.",
-      "Set your Shop Goals — the one field unique to this agent, and it shapes every recommendation it makes for your shop.",
-      "Run Keyword Research and Listing Optimization together; Etsy ranks on both, and treating them separately leaves value on the table.",
-      "Use Pricing Strategy alongside Competitor Analysis so your prices are set relative to who you're actually up against, not in a vacuum.",
-      "Revisit Shop Audit periodically — Etsy's algorithm shifts, and last quarter's optimization can quietly go stale."
+      "This agent writes listing copy and keyword candidates for your online store or marketplace, and does pricing arithmetic on figures you type in. It reads no store, marketplace or search data.",
+      "Keyword Research: enter your platform's tags per listing and characters per tag to have each candidate measured against them. Leave them blank and nothing is measured against a limit.",
+      "Pricing Strategy works out the range, median and your margin from the comparable listings you type in, then writes a rationale. Nothing is fetched or checked.",
+      "Listing Optimization gives you copy to adapt, and Shop Audit Checklist gives you a list to work through on your own shop; neither looks at the shop itself.",
+      "Competitor Comparison works from the competitors in your Business Profile, so keep that list current, and treat any figure it gives as unverified."
     ],
     "broker-agent.html": [
       "This agent manages deal flow and partnerships — pipeline tracking, negotiation prep, and the actual documents brokers need to close.",

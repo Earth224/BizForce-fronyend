@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>BizForce AI — Etsy Agent</title>
+  <title>BizForce AI — Storefront Agent</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#070b18">
   <meta name="mobile-web-app-capable" content="yes">
@@ -399,7 +399,7 @@
     <header class="agent-header">
       <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v12H3z"/><path d="M7 9V5h10v4"/></svg></div>
       <div class="agent-header-text">
-        <h1 class="agent-title">Etsy Agent</h1>
+        <h1 class="agent-title">Storefront Agent</h1>
         <p class="agent-subtitle">Listing copy, tag-length keyword candidates, and pricing arithmetic on figures you supply.</p>
       </div>
     </header>
@@ -549,7 +549,7 @@
 <script>
 window.AGENT_PROFILE_CONFIG = {
   agentType:   "etsy",
-  agentLabel:  "Etsy Agent",
+  agentLabel:  "Storefront Agent",
   accentColor: "#fb923c",
   taskTypes: [
     { value: "etsy_listing",      label: "Listing Optimization" },
@@ -564,7 +564,7 @@ window.AGENT_PROFILE_CONFIG = {
       "id": "keyword-research",
       "label": "Keyword Research",
       "runLabel": "Find keywords",
-      "description": "Etsy-shaped keyword candidates, each measured against the 20-character tag limit.",
+      "description": "Keyword candidates for your listing. Enter your platform's tag limits to see which ones fit; leave them blank and nothing is measured against a limit.",
       "fields": [
         {
           "name": "seed",
@@ -578,6 +578,22 @@ window.AGENT_PROFILE_CONFIG = {
           "label": "What you make",
           "type": "textarea",
           "hint": "Optional. Helps the suggestions fit your actual products."
+        },
+        {
+          "name": "max_tags",
+          "label": "Tags allowed per listing",
+          "type": "number",
+          "min": 1,
+          "max": 100,
+          "hint": "How many tags your platform allows per listing, 1–100. Leave blank if you don't know."
+        },
+        {
+          "name": "max_tag_length",
+          "label": "Max characters per tag",
+          "type": "number",
+          "min": 1,
+          "max": 200,
+          "hint": "Your platform's maximum characters per tag, 1–200. Leave blank if you don't know."
         }
       ]
     },
@@ -614,7 +630,7 @@ window.AGENT_PROFILE_CONFIG = {
           "name": "comparables",
           "label": "Comparable listings",
           "type": "rows",
-          "hint": "Up to 50. Typed in by you — BizForce cannot read Etsy listings. A row with no price is counted but left out of the statistics.",
+          "hint": "Up to 50. Typed in by you — BizForce reads no marketplace listings. A row with no price is counted but left out of the statistics.",
           "columns": [
             {
               "name": "title",
