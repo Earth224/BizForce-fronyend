@@ -32,7 +32,7 @@
       "Bookmark the agents you use most; with 18 to choose from, a shortlist beats browsing the full list every time."
     ],
     "analytics-dashboard.html": [
-      "Your real-time business intelligence command center — Tasks Run, Tasks Completed, Content Items, Subscribers, Opted-In, and Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
+      "Your business intelligence command center, read once when the page opens — Tasks Run, Tasks Completed, Content Items, SMS Subscribers, Opted-In, and SMS Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
       "Nothing to configure here — it's a live read-only summary; the numbers only get interesting once you're actually running agents and generating content elsewhere.",
       "Check the Tasks by Agent chart to see which agents you're actually leaning on — it's a fast way to spot which parts of your AI team are underused.",
       "If the tiles show \"—\", it means data hasn't loaded or hasn't been generated yet — go run some agent tasks first, then come back."
@@ -118,7 +118,7 @@
       "This agent builds pipeline and revenue intelligence — funnels, lead generation, outreach scripts, offers, and objection handling — from your business data.",
       "Keep your Business Profile current (Industry, Website, Competitors); it shapes leads and pipeline recommendations that actually fit your market.",
       "Run Lead Generation and Sales Funnel first to set a baseline, then use Objection Handling and Offer Builder to sharpen conversion.",
-      "Watch the Pipeline and Opportunities panels — that's where I flag where deals are stalling.",
+      "Use the Sales Pipeline panel to see each lead's stage — New, Drafted, Contacted, Replied, Converted — and move it along; nothing here judges which deals are stalling, so check the older ones yourself.",
       "Re-run tasks as your offers evolve; stale pipeline data leads to stale advice."
     ],
     "content.html": [
@@ -135,7 +135,7 @@
       "Run Audience Growth Plan periodically; growth tactics that worked last quarter rarely hold up untouched."
     ],
     "analytics.html": [
-      "This is your KPI and forecasting layer — insights, revenue forecasts, and Warnings that flag risk before it becomes a problem.",
+      "This is your KPI and forecasting layer — KPI Review and Funnel Analysis measure the figures you enter, and Revenue Forecast builds a forecasting method for you to fill in; it reads no revenue data of its own.",
       "Accuracy depends on your Business Profile staying current (Industry, Website, Competitors) — thin profile data means thin forecasts.",
       "Don't skip the Warnings panel — it's the one section unique to this agent, built to catch anomalies early, not just report what already happened.",
       "Run KPI Review and Revenue Forecast on a schedule, not just once, so trend lines actually mean something.",
@@ -143,7 +143,7 @@
     ],
     "lead-radar.html": [
       "This is a live Bluesky lead-capture radar — it scans for buying-intent posts every 5 minutes, scores them, and separates real buyers from competitors by matched keyword and suggested product.",
-      "It tracks against your Business Profile's Competitors and Industry — keep those current so the radar is watching the conversations that actually matter to you.",
+      "It searches a fixed set of buyer-intent phrases and hashtags on Bluesky, Mastodon and YouTube, set in the radar's own code; it does not read your Business Profile, so editing your profile does not change what it finds.",
       "Sort by score and act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it straight to Bluesky.",
       "Check the Product Breakdown and Score Distribution charts to see which products are pulling the most buying intent, not just which leads came in.",
       "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
@@ -170,18 +170,18 @@
       "Competitor Comparison works from the competitors in your Business Profile, so keep that list current, and treat any figure it gives as unverified."
     ],
     "broker-agent.html": [
-      "This agent manages deal flow and partnerships — pipeline tracking, negotiation prep, and the actual documents brokers need to close.",
+      "This agent helps with deal flow and partnerships — Deal Pipeline analysis, negotiation prep, and the actual documents brokers need to close.",
       "Keep your Business Profile's Industry and Competitors accurate; Due Diligence Checklists and Term Sheet Drafts are only as sharp as the context behind them.",
       "Use Due Diligence Checklist and Term Sheet Draft when a deal is close to closing — this agent is built to produce real execution documents, not just strategy talk.",
       "Run Negotiation Brief before any high-stakes conversation; walk in with the leverage points already mapped.",
-      "Track the Pipeline report section as your single source of truth for where every deal actually stands."
+      "Each run is saved — open your latest from the Last run link on this page; the agent keeps no record of where your deals stand, so keep that yourself."
     ],
     "publicist-agent.html": [
       "This agent drafts the concrete artifacts a publicist needs — press releases, media pitches, and brand narrative — to earn coverage and visibility.",
       "Brand Voice and Business Goals from your Business Profile matter most here; your narrative should sound like you, not a generic press template.",
       "Start with Brand Narrative before writing a single Press Release — a clear narrative makes every pitch afterward land faster.",
       "Use Media Pitch for targeted outreach and Press Release for broader announcements; they're different tools for different moments.",
-      "Track Coverage and Media Outreach reports to see which angles are actually earning attention."
+      "Each run is saved — open your latest from the Last run link on this page; nothing here measures coverage, so note for yourself which angles earn attention."
     ],
     "reputation-agent.html": [
       "This agent does not watch or monitor mentions, reviews or sentiment anywhere. It works only from what you paste in or type, and from your Business Profile.",
@@ -195,7 +195,7 @@
       "Keep Business Goals and Target Audience current in your profile; they shape what \"healthy engagement\" even looks like for your specific community.",
       "Run Referral Loop and Retention System together — growth without retention just refills a leaky bucket.",
       "Use Moderation Plan proactively, before community size makes moderation reactive and painful.",
-      "Watch the Engagement and Growth Plans sections to see which tactics are actually compounding."
+      "Each run is saved — open your latest from the Last run link on this page; nothing here measures engagement or growth, so judge which tactics compound from your own community's numbers."
     ],
     "influencer-agent.html": [
       "This agent manages creator partnerships end to end — outreach, campaign planning, and forecasting ROI before you commit budget.",
