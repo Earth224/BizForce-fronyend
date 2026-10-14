@@ -184,11 +184,11 @@
       "Track Coverage and Media Outreach reports to see which angles are actually earning attention."
     ],
     "reputation-agent.html": [
-      "This agent watches reviews, sentiment, and mentions, and flags Risks early — built as much for recovery as for monitoring.",
-      "Keep Competitors and Industry current; sentiment and risk context are read relative to where you sit in your market.",
-      "Don't wait for a crisis to try Crisis Response — run it once proactively so you know what the plan looks like before you need it.",
-      "Use Review Strategy and Brand Trust Plan together to turn monitoring into an actual action plan, not just a dashboard of scores.",
-      "Check the Risks panel regularly; it's this agent's early-warning system, not an afterthought."
+      "This agent does not watch or monitor mentions, reviews or sentiment anywhere. It works only from what you paste in or type, and from your Business Profile.",
+      "Review Response drafts a reply to a review you paste in, and flags any phrasing that argues with or blames the reviewer before you post it.",
+      "Review Request builds a request sequence for a moment you choose, and flags incentive wording that breaks review-platform rules.",
+      "Reputation Audit and Sentiment Report give you the checklist and the scoring framework to fill in yourself; they read no review site and give no measured score.",
+      "Review Strategy, Brand Trust Plan and Crisis Response write plans from your request and Business Profile. Run Crisis Response once before you need it, so the plan is ready."
     ],
     "community-agent.html": [
       "This agent focuses on community health — engagement, growth, and the referral/retention systems that keep members coming back.",
