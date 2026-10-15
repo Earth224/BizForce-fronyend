@@ -14,9 +14,9 @@
   var PAGE_GUIDANCE = {
     "dashboard.html": [
       "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Profile, and Lead Radar.",
-      "Your business name and profile summary shown here come from what you set up on the Content Agent's Edit Profile and the Business Identity page — keep both current so this hub reflects who you actually are.",
-      "Use the Active Queue card and Recent Activity feed to see what's actually running before you dig into any single tool.",
-      "Treat the AI Agent Directory preview as your starting point for delegating work — jump into Agent Hub for a curated set or Full Directory for everything.",
+      "Your business name, industry and goal shown here come from your Business Profile — edit it here under Expand Profile or on the Content Agent's Edit Profile, and keep it current so this hub reflects who you actually are.",
+      "Use the Active Queue card and its View Queue button to see your active assignments before you dig into any single tool.",
+      "Treat the AI Agent Directory preview as your starting point for delegating work — Agent Hub and Full Directory each list all 18 agents.",
       "Revisit this page often; it's built to surface what needs your attention, not just to look impressive."
     ],
     "agents-hub.html": [
@@ -26,9 +26,9 @@
       "Use this as your map, not your workbench; the real work — task launching, reports, history — happens on each agent's own page."
     ],
     "ai-agents.html": [
-      "The full directory of all 18 AI agents, each with a one-line description of what it actually specializes in.",
+      "The full directory of all 18 AI agents — each card shows the agent's name and an Open Agent button to its own page.",
       "No setup happens here — it's pure navigation; your Business Profile (set via the Content Agent) is what every agent behind these cards reads from.",
-      "Use this page when you're not sure which agent fits a task — the descriptions are specific enough to point you to the right specialist fast.",
+      "Use this page when you're not sure where an agent lives — find it by name and press Open Agent to see what it does on its own page.",
       "Bookmark the agents you use most; with 18 to choose from, a shortlist beats browsing the full list every time."
     ],
     "analytics-dashboard.html": [
@@ -59,21 +59,21 @@
     "marketplace.html": [
       "A peer-to-peer service marketplace — browse other members' listings by category, or list your own services for BFC.",
       "To sell, use \"List a Service\" and fill in Title, Description, Category, Price in BFC, and optional Tags — a complete listing gets found faster than a bare one.",
-      "Check \"My Listings\" regularly to manage status (Active/Paused/Sold) — a listing left stale looks abandoned.",
+      "Check \"My Listings\" regularly — each of your listings shows its status there, with Edit and Delete buttons; a listing left stale looks abandoned.",
       "Use the category tabs and search before creating a duplicate service someone else already offers well."
     ],
     "wallet.html": [
-      "Your BFC Wallet — Available Balance, Total Earned, Total Spent, and full Transaction History for your BizForce Credits.",
-      "Nothing to configure — it's a read-only ledger; credits accumulate automatically as you use the platform.",
-      "Check \"How to Earn BFC\" — certifications (+100), agent tasks (+50), marketplace listings (+25), and the welcome bonus (+200) are all real, stackable ways to build balance.",
-      "Treat your BFC balance as a signal of how actively you're using the platform, not just spending money — it rewards real engagement."
+      "Your BFC Wallet — Available Balance, Total Earned, Total Spent, and Transaction History for your BizForce Credits. The history shows your latest 50 transactions, and Total Earned and Total Spent are added up from those 50.",
+      "Nothing to configure — the one action here is Send BFC, which sends credits to another member by their user ID; using the platform earns nothing by itself.",
+      "Check \"How to Earn BFC\" — your first pass of each certification pays 100 BFC while you're subscribed, and a one-time 1,000 BFC welcome bonus lands when your subscription goes active. Running agent tasks and posting listings pay nothing.",
+      "Your BFC balance reflects certifications passed, the welcome bonus, and what you've sent, received and spent — not how much you use the platform."
     ],
     "certifications.html": [
       "Earn real, quiz-based platform badges across Sales, Marketing, Analytics, and Leadership — 12 certifications across 3 difficulty tiers, each with 10 questions and an 80% pass threshold.",
       "Nothing to configure — just pick a certification and start; there's no profile data required to take an assessment.",
       "Start with Beginner-tier certs in the category closest to your actual work before attempting Advanced ones — the questions get genuinely harder.",
-      "Passing pays out BFC to your Wallet, so treat certifications as a way to both sharpen skills and build balance, not just collect badges.",
-      "Use \"Retake Assessment\" if you don't pass the first time — there's no penalty for trying again."
+      "Your first pass of each certification pays 100 BFC to your Wallet while you're subscribed, so treat certifications as a way to both sharpen skills and build balance, not just collect badges.",
+      "If you don't pass the first time, press Try Again on the result screen, or Start Assessment on the card later — there's no penalty for trying again."
     ],
     "digital-cards.html": [
       "A full multimedia digital business card studio — video pitch, background audio, dozens of fonts/textures/borders, holographic effects, and free-position text, all shown in the card preview.",
@@ -108,7 +108,7 @@
     ],
 
     "seo.html": [
-      "This agent turns your business profile into concrete SEO deliverables — audits, keyword research, rankings, and forecasts.",
+      "This agent turns your business profile into concrete SEO deliverables — keyword research, content plans, local SEO plans, and page audits.",
       "Feed it real data: set your Website and top Competitors in your Business Profile (edit it from the Content Agent) so audits and keyword research aren't guessing in the dark.",
       "Use the launcher's specific task types — Keyword Research, Competitor Comparison, Local SEO Plan — and the Page Audit tool rather than vague prompts; narrower asks produce sharper deliverables.",
       "Each run is saved — open your latest from the Last run link on this page; Refresh Data updates that link and your Business Profile after a new run.",
@@ -136,29 +136,29 @@
     ],
     "analytics.html": [
       "This is your KPI and forecasting layer — KPI Review and Funnel Analysis measure the figures you enter, and Revenue Forecast builds a forecasting method for you to fill in; it reads no revenue data of its own.",
-      "Accuracy depends on your Business Profile staying current (Industry, Website, Competitors) — thin profile data means thin forecasts.",
+      "Your Business Profile (Industry, Website, Competitors) is the context every analytics task is written from, so keep it current; the figures come only from what you enter.",
       "Each run is saved — open your latest from the Last run link on this page; nothing here checks your figures for anomalies, so compare each run with the last yourself.",
-      "Run KPI Review and Revenue Forecast on a schedule, not just once, so trend lines actually mean something.",
+      "Run the KPI Review tool each period, not just once — enter each metric's Now and Before figures and it works out the change; nothing here keeps a trend line across runs, so compare saved runs yourself.",
       "Enter current figures in KPI Review and Funnel Analysis before big decisions; they measure only the numbers you enter."
     ],
     "lead-radar.html": [
       "This is a Bluesky lead-capture radar — it collects buying-intent posts every 5 minutes; when intent scoring is switched on, it scores them and separates real buyers from competitors by suggested product and score. The list loads when you open the page and when you press Refresh.",
       "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on, and YouTube finds are not shown here. It does not read your Business Profile, so editing your profile does not change what it finds.",
-      "Sort by score and act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it straight to Bluesky.",
+      "The list puts the highest scores at the top, so act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it to your clipboard and post it on Bluesky yourself.",
       "Check the Product Breakdown and Score Distribution charts to see which products are pulling the most buying intent, not just which leads came in.",
       "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
     ],
     "email-agent.html": [
-      "This agent builds campaigns, sequences, and win-back/nurture flows, with a specific eye on deliverability, not just copy.",
+      "This agent builds campaigns, sequences, win-back/nurture flows, and subject line variations — it writes the copy and reads no delivery data.",
       "It draws on your shared Business Profile — Website and Brand Voice matter most here, since email tone should match how you actually talk to customers.",
-      "Run Subject Line Testing before committing to a full campaign; deliverability lives and dies in the subject line.",
+      "Run Subject Line Testing before committing to a full campaign; it writes subject line variations and notes which to A/B test first, and the test itself runs in your own email platform.",
       "Pair Nurture Campaign with Winback Flow to cover new leads and lapsed customers, not just one end of the funnel.",
       "Each run is saved — open your latest from the Last run link on this page; nothing here measures opens, clicks or delivery, so judge what lands from your email platform's own reports."
     ],
     "store-agent.html": [
-      "This agent manages multi-store commerce intelligence — inventory, product performance, and omnichannel strategy across every channel you sell on.",
-      "Keep Competitors and Industry current in your Business Profile; Store Audit and Conversion Audit compare you against that context.",
-      "Run Omnichannel Strategy if you sell on more than one channel — this agent's edge is coordinating across stores, not optimizing just one.",
+      "This agent writes commerce plans — store audits, inventory plans, omnichannel strategy, conversion audits, and product launch plans — from your Business Profile and what you tell it; it connects to no store or channel.",
+      "Keep Competitors and Industry current in your Business Profile; Store Audit and Conversion Audit are written from that context, not from your store's own data.",
+      "Run Omnichannel Strategy if you sell on more than one channel — it plans your channel mix, inventory sync approach, and a consistent customer experience; it does not connect to or run any store.",
       "Use Inventory Plan and Product Launch Plan together when introducing new SKUs so stocking and go-to-market line up.",
       "Each run is saved — open your latest from the Last run link on this page; this agent reads no sales, traffic or channel data, so find performance gaps in your own store's reports."
     ],
@@ -198,9 +198,9 @@
       "Each run is saved — open your latest from the Last run link on this page; nothing here measures engagement or growth, so judge which tactics compound from your own community's numbers."
     ],
     "influencer-agent.html": [
-      "This agent manages creator partnerships end to end — outreach, campaign planning, and forecasting ROI before you commit budget.",
+      "This agent drafts the work of creator partnerships — outreach, campaign plans, partnership offers, and an ROI model to fill in before you commit budget.",
       "Set Target Audience and Business Goals in your profile before running Creator List; they guide which creators actually make sense.",
-      "Run ROI Forecast before locking in a Partnership Offer — know the expected return before you negotiate terms.",
+      "Run ROI Forecast before locking in a Partnership Offer — it builds the return model and break-even from figures you supply, so you negotiate with your own numbers worked out.",
       "Re-run Creator List when your audience or goals change; it describes the kinds of creators to look for and how to score their fit, and it looks up no named or trending creators.",
       "Use Influencer Outreach and Campaign Plan together so outreach messaging and campaign goals stay aligned."
     ],
