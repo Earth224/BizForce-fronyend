@@ -33,7 +33,7 @@
     ],
     "analytics-dashboard.html": [
       "Your business intelligence command center, read once when the page opens — Tasks Run, Tasks Completed, Content Items, SMS Subscribers, Opted-In, and SMS Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
-      "Nothing to configure here — it's a live read-only summary; the numbers only get interesting once you're actually running agents and generating content elsewhere.",
+      "Nothing to configure here — it's a read-only summary, read once when the page opens (reload for fresh numbers); the numbers only get interesting once you're actually running agents and generating content elsewhere.",
       "Check the Tasks by Agent chart to see which agents you're actually leaning on — it's a fast way to spot which parts of your AI team are underused.",
       "If the tiles show \"—\", it means data hasn't loaded or hasn't been generated yet — go run some agent tasks first, then come back."
     ],
@@ -76,14 +76,14 @@
       "Use \"Retake Assessment\" if you don't pass the first time — there's no penalty for trying again."
     ],
     "digital-cards.html": [
-      "A full multimedia digital business card studio — video pitch, background audio, dozens of fonts/textures/borders, holographic effects, and free-position text, all live-previewed.",
+      "A full multimedia digital business card studio — video pitch, background audio, dozens of fonts/textures/borders, holographic effects, and free-position text, all shown in the card preview.",
       "Fill in Full Name, Job Title, Tagline, Company, Email, Phone, and Website first, then layer on media (background image, video pitch, audio track) and styling.",
       "Use Save Card and Share to generate a public link (viewable via the card viewer page) — the card only earns its keep once it's actually being shared.",
       "Don't over-stack effects; pick one Theme, one Border Style, and one Transition, or the card reads busy instead of premium.",
       "Export Print File with bleed guides if you're printing physical cards, not just Download PNG for digital use."
     ],
     "business-id.html": [
-      "Builds your official Business ID Card — a live-rendered identity card with your name, industry, bio, and contact details, plus a \"verified member\" badge.",
+      "Builds your official Business ID Card — an identity card with your name, industry, bio, and contact details, redrawn each time you save, plus a \"BizForce AI Member\" badge.",
       "Fill in Business Name, Industry, Tagline/Bio, Website, Phone, Location, and Contact Email — every field maps directly onto the card preview above the form.",
       "Write the bio like a real pitch, not a placeholder — it's the one line that renders as an italicized quote on the card itself.",
       "Keep this current alongside your Content Agent business profile; this card is often the first impression other members get of your business."
@@ -110,40 +110,40 @@
     "seo.html": [
       "This agent turns your business profile into concrete SEO deliverables — audits, keyword research, rankings, and forecasts.",
       "Feed it real data: set your Website and top Competitors in your Business Profile (edit it from the Content Agent) so audits and keyword research aren't guessing in the dark.",
-      "Use the launcher's specific task types — SEO Audit, Keyword Research, Competitor Analysis, Local SEO Plan — rather than vague prompts; narrower asks produce sharper deliverables.",
-      "Refresh Data after each run to pull the latest report into Website Audits, Keyword Research, and Opportunities.",
-      "Treat Executive Reports and Recommendations as your standing SEO playbook, not one-off outputs."
+      "Use the launcher's specific task types — Keyword Research, Competitor Comparison, Local SEO Plan — and the Page Audit tool rather than vague prompts; narrower asks produce sharper deliverables.",
+      "Each run is saved — open your latest from the Last run link on this page; Refresh Data updates that link and your Business Profile after a new run.",
+      "Treat your saved runs as your standing SEO playbook, not one-off outputs."
     ],
     "sales.html": [
       "This agent builds pipeline and revenue intelligence — funnels, lead generation, outreach scripts, offers, and objection handling — from your business data.",
-      "Keep your Business Profile current (Industry, Website, Competitors); it shapes leads and pipeline recommendations that actually fit your market.",
+      "Keep your Business Profile current (Industry, Website, Competitors); it shapes what Lead Generation and the other sales tasks write for your market. The leads and pipeline on this page come from Lead Radar, which does not read your profile.",
       "Run Lead Generation and Sales Funnel first to set a baseline, then use Objection Handling and Offer Builder to sharpen conversion.",
       "Use the Sales Pipeline panel to see each lead's stage — New, Drafted, Contacted, Replied, Converted — and move it along; nothing here judges which deals are stalling, so check the older ones yourself.",
       "Re-run tasks as your offers evolve; stale pipeline data leads to stale advice."
     ],
     "content.html": [
-      "The most feature-dense agent — it generates articles, social drafts, video scripts, SMS campaigns, and full content strategy, then lets you approve and schedule what it creates.",
+      "The most feature-dense agent — it generates articles, social drafts, video scripts, SMS campaigns, and full content strategy, then lets you approve or reject the social drafts it creates; approved drafts are saved, not published or scheduled.",
       "Start here: this is the only agent page with a real Edit Profile form. Fill in Business Name, Industry, Brand Voice, Brand Values, Target Audience, Goals, Banned Topics, and Posting Frequency — every other agent reads what you set here.",
-      "Use Generate SEO Article and Generate SMS Campaign for quick wins, then run Social Media Drafts and approve or reject each post in the Approval Queue before it goes live.",
-      "Connect your social accounts (Instagram, Facebook, TikTok, YouTube, LinkedIn, X) directly on this page so approved content has somewhere to go.",
+      "Use Generate SEO Article and Generate SMS Campaign for quick wins, then run Social Media Drafts and approve or reject each post; with publishing to social accounts turned off, approving saves it to the Approval Queue as an unpublished draft.",
+      "Social accounts (Instagram, Facebook, TikTok, YouTube, LinkedIn, X) cannot be connected on this platform at present, so approved drafts stay saved here for you to post yourself.",
       "Keep the Content Library tidy — expand, copy, or delete drafts so your queue stays a working set, not a graveyard."
     ],
     "social.html": [
-      "This agent is a strategic planning layer for your social presence — campaigns, content pillars, engagement strategy, platform playbooks, and audience growth plans.",
+      "This agent is a strategic planning layer for your social presence — campaigns, content calendars, engagement strategy, platform playbooks, and audience growth plans.",
       "It reads the same Business Profile as everything else — set Brand Voice, Target Audience, and Business Goals via the Content Agent's Edit Profile so its playbooks actually sound like you.",
-      "Use Content Calendar and Platform Playbook to plan, then hand execution — drafting and scheduling posts — to the Content Agent, where the Approval Queue and account connections live.",
+      "Use Content Calendar and Platform Playbook to plan, then hand drafting to the Content Agent, where Social Media Drafts and the Approval Queue are; posts cannot be scheduled and social accounts cannot be connected at present.",
       "Run Audience Growth Plan periodically; growth tactics that worked last quarter rarely hold up untouched."
     ],
     "analytics.html": [
       "This is your KPI and forecasting layer — KPI Review and Funnel Analysis measure the figures you enter, and Revenue Forecast builds a forecasting method for you to fill in; it reads no revenue data of its own.",
       "Accuracy depends on your Business Profile staying current (Industry, Website, Competitors) — thin profile data means thin forecasts.",
-      "Don't skip the Warnings panel — it's the one section unique to this agent, built to catch anomalies early, not just report what already happened.",
+      "Each run is saved — open your latest from the Last run link on this page; nothing here checks your figures for anomalies, so compare each run with the last yourself.",
       "Run KPI Review and Revenue Forecast on a schedule, not just once, so trend lines actually mean something.",
-      "Refresh Data before big decisions so the Executive Reports you're reading reflect current numbers."
+      "Enter current figures in KPI Review and Funnel Analysis before big decisions; they measure only the numbers you enter."
     ],
     "lead-radar.html": [
-      "This is a live Bluesky lead-capture radar — it scans for buying-intent posts every 5 minutes, scores them, and separates real buyers from competitors by matched keyword and suggested product.",
-      "It searches a fixed set of buyer-intent phrases and hashtags on Bluesky, Mastodon and YouTube, set in the radar's own code; it does not read your Business Profile, so editing your profile does not change what it finds.",
+      "This is a Bluesky lead-capture radar — it collects buying-intent posts every 5 minutes; when intent scoring is switched on, it scores them and separates real buyers from competitors by suggested product and score. The list loads when you open the page and when you press Refresh.",
+      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on, and YouTube finds are not shown here. It does not read your Business Profile, so editing your profile does not change what it finds.",
       "Sort by score and act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it straight to Bluesky.",
       "Check the Product Breakdown and Score Distribution charts to see which products are pulling the most buying intent, not just which leads came in.",
       "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
@@ -153,14 +153,14 @@
       "It draws on your shared Business Profile — Website and Brand Voice matter most here, since email tone should match how you actually talk to customers.",
       "Run Subject Line Testing before committing to a full campaign; deliverability lives and dies in the subject line.",
       "Pair Nurture Campaign with Winback Flow to cover new leads and lapsed customers, not just one end of the funnel.",
-      "Check Sequences and Insights after each send to see what's actually landing."
+      "Each run is saved — open your latest from the Last run link on this page; nothing here measures opens, clicks or delivery, so judge what lands from your email platform's own reports."
     ],
     "store-agent.html": [
       "This agent manages multi-store commerce intelligence — inventory, product performance, and omnichannel strategy across every channel you sell on.",
       "Keep Competitors and Industry current in your Business Profile; Store Audit and Conversion Audit compare you against that context.",
       "Run Omnichannel Strategy if you sell on more than one channel — this agent's edge is coordinating across stores, not optimizing just one.",
       "Use Inventory Plan and Product Launch Plan together when introducing new SKUs so stocking and go-to-market line up.",
-      "Revisit the Analytics report section regularly — it's where channel performance gaps show up first."
+      "Each run is saved — open your latest from the Last run link on this page; this agent reads no sales, traffic or channel data, so find performance gaps in your own store's reports."
     ],
     "etsy-agent.html": [
       "This agent writes listing copy and keyword candidates for your online store or marketplace, and does pricing arithmetic on figures you type in. It reads no store, marketplace or search data.",
@@ -201,20 +201,20 @@
       "This agent manages creator partnerships end to end — outreach, campaign planning, and forecasting ROI before you commit budget.",
       "Set Target Audience and Business Goals in your profile before running Creator List; they guide which creators actually make sense.",
       "Run ROI Forecast before locking in a Partnership Offer — know the expected return before you negotiate terms.",
-      "Check Trending Creators regularly; the influencer landscape shifts fast, and last month's list ages quickly.",
+      "Re-run Creator List when your audience or goals change; it describes the kinds of creators to look for and how to score their fit, and it looks up no named or trending creators.",
       "Use Influencer Outreach and Campaign Plan together so outreach messaging and campaign goals stay aligned."
     ],
     "operations-agent.html": [
       "This agent turns operations into concrete artifacts — SOP Documents, checklists, and automation plans, not just advice.",
-      "Keep your Business Profile's Industry and Description accurate; SOPs and Efficiency Audits are shaped by the kind of business you actually run.",
+      "Keep your Business Profile's Industry and Description accurate; SOP Documents and Efficiency Audits are shaped by the kind of business you actually run.",
       "Use Efficiency Audit first to find the bottleneck, then generate the specific SOP Document or Checklist Builder output to fix it.",
       "Sequence your requests — document a workflow before you automate it; Automation Plan works best once a process is already written down.",
-      "Revisit SOPs periodically as your team grows; a process built for 3 people rarely survives at 10 unchanged."
+      "Revisit your SOP Documents periodically as your team grows; a process built for 3 people rarely survives at 10 unchanged."
     ],
     "rd-agent.html": [
-      "This is the most analytical agent — market research, competitive intelligence, and innovation opportunities scored with real confidence and feasibility metrics.",
-      "Set your Market Goals and Research Goals directly; I read them alongside your Business Profile to decide what's actually worth researching.",
-      "Run Market Research and Competitive Intelligence together — differentiation scores mean more when you know both your market and your competitors.",
+      "This is the most analytical agent — market research, competitive intelligence, and innovation briefs with a written feasibility assessment; nothing here computes a score or metric.",
+      "Keep your Business Profile's Industry, Description, Target Audience, Business Goals and Competitors current (edit it from the Content Agent); I read them to decide what's actually worth researching.",
+      "Run Market Research and Competitive Intelligence together — your differentiation is clearer when you know both your market and your competitors.",
       "Use Innovation Brief to screen ideas by feasibility and impact before you invest real time in them.",
       "Build Executive Briefing last — it's designed to summarize everything else into something you can hand to a stakeholder."
     ],
