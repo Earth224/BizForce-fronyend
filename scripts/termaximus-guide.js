@@ -35,7 +35,7 @@
       "Your business intelligence command center, read once when the page opens — Tasks Run, Tasks Completed, Content Items, SMS Subscribers, Opted-In, and SMS Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
       "Nothing to configure here — it's a read-only summary, read once when the page opens (reload for fresh numbers); the numbers only get interesting once you're actually running agents and generating content elsewhere.",
       "Check the Tasks by Agent chart to see which agents you're actually leaning on — it's a fast way to spot which parts of your AI team are underused.",
-      "If the tiles show \"—\", it means data hasn't loaded or hasn't been generated yet — go run some agent tasks first, then come back."
+      "If a tile shows 0, there's nothing of that kind on your account yet — go run some agent tasks first, then come back. A \"—\" means the figure is still loading or could not be read; reload the page."
     ],
     "billing.html": [
       "Manage your subscription and payment details — there is one plan, All Access at $199/month, shown here with its current status, renewal date, and the full \"All Access Plan Includes\" feature list.",
@@ -86,25 +86,19 @@
       "Builds your official Business ID Card — an identity card with your name, industry, bio, and contact details, redrawn each time you save, plus a \"BizForce AI Member\" badge.",
       "Fill in Business Name, Industry, Tagline/Bio, Website, Phone, Location, and Contact Email — every field maps directly onto the card preview above the form.",
       "Write the bio like a real pitch, not a placeholder — it's the one line that renders as an italicized quote on the card itself.",
-      "Keep this current alongside your Content Agent business profile; this card is often the first impression other members get of your business."
+      "Keep this current alongside your Content Agent business profile; the card is drawn only on this page, for you — nothing on the platform shows it to other members."
     ],
     "business-chat.html": [
-      "A persistent, business-aware AI chat — ask it anything about your business and it remembers the conversation across sessions.",
+      "A persistent, business-aware AI chat — ask it anything about your business; every message is saved in one continuous conversation, and each answer is written from the last 20 messages of it.",
       "Nothing to configure here directly, but the more complete your Business Profile is elsewhere, the more specific and useful its answers will be.",
       "Use it for quick strategic questions between agent tasks — it's built for conversation, not for generating deliverables the way the agents do.",
-      "Revisit past threads; your history is saved, so build on previous answers instead of re-explaining context every time."
+      "There is one thread, not a list of past threads; your whole history is saved and shown here, but answers draw only on the last 20 messages, so restate older context when it matters."
     ],
     "card-view.html": [
-      "The public, read-only viewer for a shared digital business card — opened via a shared link or QR code, not something you edit here.",
+      "The public, read-only viewer for a shared digital business card — opened through its shared ?token= link, not something you edit here; the card's QR codes hold a vCard contact, not a link to this page.",
       "There's nothing to set up on this page; the card was designed elsewhere (Digital Cards) and this page just renders it for whoever receives the link.",
       "If you're viewing someone else's card, use Save Contact to pull it straight into your contacts as a vCard.",
       "If this page renders one of your own cards and it looks wrong, the fix happens back on Digital Cards, not here."
-    ],
-    "app.html": [
-      "The front door — sign in or create an account here; this is the paywall/onboarding gateway to the entire platform.",
-      "Creating an account only asks for Business Name, Email, and Password — your real Business Profile setup happens after this, on the Content Agent's Edit Profile.",
-      "The All Access subscription opens every AI agent, but not every tool: Lead Radar isn't included, and publishing to social accounts and direct SMS sending aren't available.",
-      "If you already have an account, use Sign In directly rather than creating a duplicate — your data and agent history live under one account."
     ],
 
     "seo.html": [
@@ -115,18 +109,18 @@
       "Treat your saved runs as your standing SEO playbook, not one-off outputs."
     ],
     "sales.html": [
-      "This agent builds pipeline and revenue intelligence — funnels, lead generation, outreach scripts, offers, and objection handling — from your business data.",
+      "This agent writes sales material — funnels, lead generation, outreach scripts, offers, and objection handling — from your Business Profile and what you tell it; its tasks read none of the leads or pipeline on this page.",
       "Keep your Business Profile current (Industry, Website, Competitors); it shapes what Lead Generation and the other sales tasks write for your market. The leads and pipeline on this page come from Lead Radar, which does not read your profile.",
       "Run Lead Generation and Sales Funnel first to set a baseline, then use Objection Handling and Offer Builder to sharpen conversion.",
       "Use the Sales Pipeline panel to see each lead's stage — New, Drafted, Contacted, Replied, Converted — and move it along; nothing here judges which deals are stalling, so check the older ones yourself.",
-      "Re-run tasks as your offers evolve; stale pipeline data leads to stale advice."
+      "Re-run tasks as your offers evolve; a task's prompt carries no pipeline data, so say in your request what has changed in your deals."
     ],
     "content.html": [
       "The most feature-dense agent — it generates articles, social drafts, video scripts, SMS campaigns, and full content strategy, then lets you approve or reject the social drafts it creates; approved drafts are saved, not published or scheduled.",
       "Start here: this is the only agent page with a real Edit Profile form. Fill in Business Name, Industry, Brand Voice, Brand Values, Target Audience, Goals, Banned Topics, and Posting Frequency — every other agent reads what you set here.",
       "Use Generate SEO Article and Generate SMS Campaign for quick wins, then run Social Media Drafts and approve or reject each post; with publishing to social accounts turned off, approving saves it to the Approval Queue as an unpublished draft.",
       "Social accounts (Instagram, Facebook, TikTok, YouTube, LinkedIn, X) cannot be connected on this platform at present, so approved drafts stay saved here for you to post yourself.",
-      "Keep the Content Library tidy — expand, copy, or delete drafts so your queue stays a working set, not a graveyard."
+      "Keep the Content Library tidy — expand, copy, or delete its saved articles and SMS campaigns so it stays a working set, not a graveyard; social drafts are not in the library."
     ],
     "social.html": [
       "This agent is a strategic planning layer for your social presence — campaigns, content calendars, engagement strategy, platform playbooks, and audience growth plans.",
@@ -145,7 +139,7 @@
       "This is a Bluesky lead-capture radar — it collects buying-intent posts every 5 minutes; when intent scoring is switched on, it scores them and separates real buyers from competitors by suggested product and score. The list loads when you open the page and when you press Refresh.",
       "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on, and YouTube finds are not shown here. It does not read your Business Profile, so editing your profile does not change what it finds.",
       "The list puts the highest scores at the top, so act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it to your clipboard and post it on Bluesky yourself.",
-      "Check the Product Breakdown and Score Distribution charts to see which products are pulling the most buying intent, not just which leads came in.",
+      "Check the Product Breakdown chart to see how many leads were tagged with each product, and Score Distribution to see how their scores spread — Product Breakdown counts leads, it does not measure intent.",
       "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
     ],
     "email-agent.html": [
@@ -172,7 +166,7 @@
     "broker-agent.html": [
       "This agent helps with deal flow and partnerships — Deal Pipeline analysis, negotiation prep, and the actual documents brokers need to close.",
       "Keep your Business Profile's Industry and Competitors accurate; Due Diligence Checklists and Term Sheet Drafts are only as sharp as the context behind them.",
-      "Use Due Diligence Checklist and Term Sheet Draft when a deal is close to closing — this agent is built to produce real execution documents, not just strategy talk.",
+      "Use Due Diligence Checklist and Term Sheet Draft when a deal is close to closing — they give you a checklist and a framework to take to a lawyer, not execution documents; the Term Sheet Framework tool says so itself.",
       "Run Negotiation Brief before any high-stakes conversation; walk in with the leverage points already mapped.",
       "Each run is saved — open your latest from the Last run link on this page; the agent keeps no record of where your deals stand, so keep that yourself."
     ],
@@ -215,15 +209,43 @@
       "This is the most analytical agent — market research, competitive intelligence, and innovation briefs with a written feasibility assessment; nothing here computes a score or metric.",
       "Keep your Business Profile's Industry, Description, Target Audience, Business Goals and Competitors current (edit it from the Content Agent); I read them to decide what's actually worth researching.",
       "Run Market Research and Competitive Intelligence together — your differentiation is clearer when you know both your market and your competitors.",
-      "Use Innovation Brief to screen ideas by feasibility and impact before you invest real time in them.",
-      "Build Executive Briefing last — it's designed to summarize everything else into something you can hand to a stakeholder."
+      "Use Innovation Brief to screen ideas by feasibility before you invest real time in them.",
+      "Build Executive Briefing last — the only earlier runs it sees are excerpts of your last 5 R&D runs, so paste in anything else you want summarized into something you can hand to a stakeholder."
+    ],
+    "ads-agent.html": [
+      "This agent writes ad campaigns and ad copy from your Business Profile and what you tell it; it connects to no ad account and reads no ad results, so nothing here buys, runs or measures an ad.",
+      "Ad Copy writes for a Google Responsive Search Ad or a Meta feed ad and measures every asset against that platform's limits — Google's 30-character headlines and 90-character descriptions are hard limits, rejected at upload if longer; Meta's are the points where the feed cuts text short.",
+      "Ad Copy also runs what it writes through the policy scan, so wording that gets ads rejected is flagged in the same result.",
+      "Policy Check scans copy you paste for wording that gets ads rejected — cure claims, before-and-after results, guaranteed results, addressing a personal attribute — and for FDA disease claims; a clean scan is not approval, and with Suggest rewrites unchecked it makes no model call at all.",
+      "Use Ad Campaign for a whole plan — audience, offer, hooks, creative angles, copy, budget guidance, and a testing plan — then write each ad's assets in Ad Copy."
+    ],
+    "executive-agent.html": [
+      "This agent turns a goal into a plan of assignments for the other agents; it runs none of them itself — a runnable assignment waits for you to press its Run this assignment button.",
+      "In the Executive Plan tool, give it the goal, and if you like a horizon and constraints. Each assignment names the tool to run and is checked against the tools that really exist; one that names a missing tool or lacks its inputs is marked Not runnable instead of passed along.",
+      "Begin with the Start here list — the assignments that wait on nothing — then work down the Order; assignments that wait on each other in a circle cannot start until you change the plan.",
+      "Assignments marked your own work are yours to do; no agent or tool can run them.",
+      "The launcher's Executive Command Plan, Agent Coordination, Executive Briefing and KPI Review tasks write their answer as text; only the Executive Plan tool's assignments can be run."
+    ],
+    "vertical-marketing-agent.html": [
+      "This agent writes marketing for one industry at a time — positioning, the trade's own language, its channels and its objections — from the model's own knowledge; nothing about the industry is researched.",
+      "Vertical Positioning takes the industry, and optionally what you sell and who in that industry buys it, and returns positioning, trade language, channels, what not to say, and a confidence level.",
+      "Objection Handling takes the industry and the offer and returns the objections that trade raises, what is behind each, how to answer it and the proof that helps, with a confidence level.",
+      "Read the confidence level as the model's own estimate of how well it knows the trade, not a measurement, and have someone who works in that industry read the result before it goes out.",
+      "The launcher's tasks reuse instructions written for other agents — Vertical Campaign Plan, for one, runs the creator-partnership campaign instruction — so name the industry and what you want in your request."
+    ],
+    "sms.html": [
+      "This page is not an agent — it manages SMS subscribers and drip campaigns: add or import subscribers, create a campaign, add its messages in order, and enroll subscribers in it.",
+      "Each message's Delay (hours) counts from when the message before it goes out; the first message's delay is not used — an enrolled subscriber is due for it at the next engine run.",
+      "The drip engine is fixed in dry-run mode: Run Drip Engine (Dry Run) records what would go out in the Send Log as dry_run and sends no text; its \"Sent\" count is what would have been sent.",
+      "A dry run moves no enrollment forward, so every run repeats each subscriber's first message; later messages and their delays are not reached while the engine stays in dry-run mode.",
+      "Only subscribers marked opted in are included, and direct SMS sending is shut on this platform — nothing on this page puts a message on a phone."
     ],
     "oracle.html": [
       "This is the Oracle — a synchronized channel where you consult Termaximus directly, his counsel drawn from your true numerology and the shape of your birth chart, not generic advice.",
       "Sync your Book of You through the corner star's profile — birth name, date, time, place, current location, your path, and the fuller story of who you are; the more it holds, the deeper and more exact the Oracle's sight becomes.",
       "Ask anything through the channel — strategy, esoteric questions, personal matters, business decisions — it draws no line between them; every answer comes filtered through your own numbers and path, never as generic advice.",
-      "Bring him documents through the paperclip beside the input — PDFs, Word files, plain text, contracts, or images. Termaximus combs through each with a fine-tooth comb: contracts read clause by clause for loopholes, buried terms, micro-infractions, and risk; any file drawn into rigorous, unflinching critique when you ask it of him; images seen and weighed against your question.",
-      "Keep the channel current. Your Life Path, Expression, Soul Urge, and Birthday numbers only sharpen with time, and the Oracle's counsel sharpens with them."
+      "Bring him documents through the paperclip beside the input — PDFs, Word files (.docx only), plain text, contracts, or images. Termaximus combs through each with a fine-tooth comb: contracts read clause by clause for loopholes, buried terms, micro-infractions, and risk; any file drawn into rigorous, unflinching critique when you ask it of him; images seen and weighed against your question.",
+      "Keep the channel current. Your Life Path, Expression, Soul Urge, and Birthday numbers are fixed by your birth name and date and do not change with time; your current location, your path and your story can, and the Oracle reads them with every question."
     ]
   };
 
@@ -236,7 +258,7 @@
      the original generic behavior exactly as before. */
   var PAGE_INSIGHT = {
     "oracle.html":
-      "The Oracle is more than a novelty — it's a genuine strategic differentiator: a numerology-grounded advisory layer no comparable platform offers. For businesses built on vitality and personal transformation, or on publishing and the written word, that kind of individually-calibrated counsel is exactly the edge that turns a routine question into guidance shaped around one person's actual path. It now also reads what you hand it — contracts, PDFs, Word files, images — scrutinizing the fine print with the same rigor it brings to a birth chart, turning the Oracle into a working document reviewer as much as an advisor. Every synced detail in the Book of You deepens that precision, making the Oracle both a retention hook and a positioning asset at once."
+      "The Oracle is more than a novelty — it's a genuine strategic differentiator: a numerology-grounded advisory layer. For businesses built on vitality and personal transformation, or on publishing and the written word, that kind of individually-calibrated counsel is exactly the edge that turns a routine question into guidance shaped around one person's actual path. It now also reads what you hand it — contracts, PDFs, Word (.docx) files, images — scrutinizing the fine print with the same rigor it brings to a birth chart, turning the Oracle into a working document reviewer as much as an advisor. Every synced detail in the Book of You deepens that precision, making the Oracle both a retention hook and a positioning asset at once."
   };
 
   function resolveInsight(key, fallback) {
