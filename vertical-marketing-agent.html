@@ -559,18 +559,18 @@ window.AGENT_PROFILE_CONFIG = {
   agentType:   "vertical_marketing",
   agentLabel:  "Vertical Marketing Agent",
   accentColor: "#a3e635",
-  /* Every value below already exists in allowedTaskTypes (server.js:8173).
-     That is a hard requirement: POST /api/ai/tasks rejects an unlisted
-     task_type with a 400, so an invented one would put a dropdown option here
-     that always fails.
+  /* Every value below is in allowedTaskTypes in server.js. That is a hard
+     requirement: POST /api/ai/tasks rejects an unlisted task_type with a 400,
+     so an invented one would put a dropdown option here that always fails.
 
-     Three task types this agent genuinely wants do NOT exist server-side and
-     were dropped rather than invented: there is no vertical or industry
-     positioning type, no channel research type, and no objection handling
-     type. The nearest existing values are used instead — brand_narrative
-     carries positioning, content_plan carries messaging — and the labels say
-     what the work is rather than what the constant is called. Adding real
-     types is a backend change, not something to fake from here. */
+     allowedTaskTypes also lists vertical_positioning, channel_research and
+     objection_handling, but none of the three has an instruction of its own in
+     taskInstructions, so each would run general's instruction under its own
+     name. This dropdown keeps the nearest types that do have one —
+     brand_narrative carries positioning, content_plan carries messaging — and
+     the labels say what the work is rather than what the constant is called.
+     Positioning (with the channels its buyers use) and objection handling are
+     the two tools below, each on its own route. */
   taskTypes: [
     { value: "market_research",    label: "Industry Research" },
     { value: "brand_narrative",    label: "Vertical Positioning" },
