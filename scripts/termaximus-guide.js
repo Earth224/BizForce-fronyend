@@ -154,6 +154,7 @@
       "Keep Competitors and Industry current in your Business Profile; Store Audit and Conversion Audit are written from that context, not from your store's own data.",
       "Run Omnichannel Strategy if you sell on more than one channel — it plans your channel mix, inventory sync approach, and a consistent customer experience; it does not connect to or run any store.",
       "Use Inventory Plan and Product Launch Plan together when introducing new SKUs so stocking and go-to-market line up.",
+      "Stock & Margin counts what you entered on your inventory page, in code, with no model call: stock value at cost and at price, unit margins, items at or below their reorder point, and days of cover once an item has 3 'out' movements in the window. A cost, price or reorder point you never entered is left out and counted, not taken as 0.",
       "Each run is saved — open your latest from the Last run link on this page; this agent reads no sales, traffic or channel data, so find performance gaps in your own store's reports."
     ],
     "etsy-agent.html": [

@@ -4208,6 +4208,7 @@
     "reputation/review-request": ["moment", "channel", "platform"],
     "reputation/review-response": ["review", "rating", "situation"],
     "seo/audit": ["url"],
+    "store/stock-margin": ["window_days"],
     "social/calendar": ["goal", "cadence", "platforms", "weeks"],
     "social/post": ["idea", "platform"],
     "vertical_marketing/objections": ["industry", "offer", "price_context"],
