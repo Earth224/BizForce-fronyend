@@ -4225,6 +4225,7 @@
     "social/calendar": ["goal", "cadence", "platforms", "weeks"],
     "social/post": ["idea", "platform"],
     "vertical_marketing/objections": ["industry", "offer", "price_context"],
+    "vertical_marketing/claims-scan": ["text", "scan_stored", "profile"],
     "vertical_marketing/positioning": ["industry", "offering", "audience"]
   };
 

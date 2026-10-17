@@ -232,7 +232,8 @@
       "Vertical Positioning takes the industry, and optionally what you sell and who in that industry buys it, and returns positioning, trade language, channels, what not to say, and a confidence level.",
       "Objection Handling takes the industry and the offer and returns the objections that trade raises, what is behind each, how to answer it and the proof that helps, with a confidence level.",
       "Read the confidence level as the model's own estimate of how well it knows the trade, not a measurement, and have someone who works in that industry read the result before it goes out.",
-      "The launcher's tasks reuse instructions written for other agents — Vertical Campaign Plan, for one, runs the creator-partnership campaign instruction — so name the industry and what you want in your request."
+      "The launcher's tasks reuse instructions written for other agents — Vertical Campaign Plan, for one, runs the creator-partnership campaign instruction — so name the industry and what you want in your request.",
+      "Claims Scan runs the supplement claim rules and the ad-policy rules over copy you paste, and over everything you have stored here if you tick the box, with no model call: each match shows its exact text and where it is, and copy without the required disclaimer is listed. No match is not approval from anybody, so a person still reads it."
     ],
     "sms.html": [
       "This page is not an agent — it manages SMS subscribers and drip campaigns: add or import subscribers, create a campaign, add its messages in order, and enroll subscribers in it.",
