@@ -1865,6 +1865,10 @@
       if (isPlainObject(v) || Array.isArray(v)) {
         return "<strong>" + esc(humanise(k)) + ":</strong> " + renderScalarish(v);
       }
+      // A per-item yes/no reads as Yes or No, not true/false. A null never gets here: it is "—" above.
+      if (typeof v === "boolean") {
+        return "<strong>" + esc(humanise(k)) + ":</strong> " + (v ? "Yes" : "No");
+      }
       return "<strong>" + esc(humanise(k)) + ":</strong> " + esc(String(v === "" ? "—" : v));
     }).join(" &middot; ");
   }
@@ -2146,6 +2150,15 @@
      the notice without this file being edited. */
   function renderNothingRead(prov) {
     if (!isPlainObject(prov)) return "";
+
+    /* ONLY WHEN A MODEL WROTE PART OF THIS RESPONSE. The notice says what follows
+       is the model's recollection, which is false of a tool that never called one
+       (content/audit, store/stock-margin, a policy check with no rewrites). Read
+       from provenance.inferred_by_model, which every tool's provenance carries:
+       empty means nothing here was written by a model. model_call_made: false,
+       where a route states it, also rules the notice out. */
+    var inferred = Array.isArray(prov.inferred_by_model) ? prov.inferred_by_model : [];
+    if (prov.model_call_made === false || !inferred.length) return "";
 
     var absent = Object.keys(prov).filter(function (k) {
       return prov[k] === false && NOT_READ_FLAG.test(k);
