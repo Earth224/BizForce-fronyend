@@ -4200,6 +4200,7 @@
     "analytics/kpi-review": ["metrics", "period", "context"],
     "broker/due-diligence": ["deal_type", "context"],
     "broker/term-sheet": ["deal", "deal_type", "parties", "consideration", "governing_law"],
+    "community/audience": ["window_days", "brand"],
     "community/engagement-calendar": ["cadence", "community_type", "capacity"],
     "community/onboarding": ["community_type", "platform", "goal"],
     "content/audit": ["article", "keyword"],

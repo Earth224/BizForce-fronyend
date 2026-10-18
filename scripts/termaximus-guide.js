@@ -190,7 +190,8 @@
       "Keep Business Goals and Target Audience current in your profile; they shape what \"healthy engagement\" even looks like for your specific community.",
       "Run Referral Loop and Retention System together — growth without retention just refills a leaky bucket.",
       "Use Moderation Plan proactively, before community size makes moderation reactive and painful.",
-      "Each run is saved — open your latest from the Last run link on this page; nothing here measures engagement or growth, so judge which tactics compound from your own community's numbers."
+      "Audience Ledger counts your own sign-up records for each brand, in code, with no model call: contacts, captures with email and SMS consent, new captures by month, SMS subscribers by consent status and email sequence enrollments. It shows counts only, never a person, and a table it could not read is shown as not measured, never as 0.",
+      "Each run is saved — open your latest from the Last run link on this page; nothing here measures engagement, and Audience Ledger counts sign-ups rather than activity, so judge which tactics compound from your own community's numbers."
     ],
     "influencer-agent.html": [
       "This agent drafts the work of creator partnerships — outreach, campaign plans, partnership offers, and an ROI model to fill in before you commit budget.",
