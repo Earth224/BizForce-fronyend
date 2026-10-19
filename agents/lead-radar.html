@@ -200,6 +200,56 @@
       font-size: 0.95rem;
     }
 
+    /* YouTube finds: their own section, below the scored list, never mixed into it. */
+    .yt-section {
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(248, 113, 113, 0.25);
+    }
+    .yt-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #f87171;
+      margin: 0 0 8px;
+    }
+    .yt-note {
+      font-size: 0.85rem;
+      color: #8892b8;
+      margin: 0 0 16px;
+    }
+    #ytList {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .yt-find {
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: rgba(12, 18, 38, 0.6);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .yt-find-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: #8892b8;
+    }
+    .yt-find-link {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #f87171;
+      text-decoration: none;
+      align-self: flex-start;
+    }
+    .yt-find-link:hover { text-decoration: underline; }
+
     .lead-card {
       padding: 20px 24px;
       border-radius: 18px;
@@ -468,7 +518,7 @@
       </div>
       <div class="agent-header-text">
         <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky every 5 minutes; Mastodon capture and intent scoring run only when switched on. YouTube finds are kept for at most 30 days and are not currently captured. One keyword set and one social account — enabled only for the account that owns them.</p>
+        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky every 5 minutes; Mastodon capture and intent scoring run only when switched on. YouTube capture also runs only when switched on; its finds are listed apart, never scored, and kept for at most 30 days. One keyword set and one social account — enabled only for the account that owns them.</p>
       </div>
     </header>
 
@@ -481,6 +531,13 @@
     </div>
 
     <div id="leadsList"></div>
+
+    <!-- YouTube data, on its own: not in the list, the counts or the charts above. -->
+    <section class="yt-section" id="ytSection" aria-label="YouTube finds" hidden>
+      <h2 class="yt-title">YouTube finds — not scored, cannot be replied to from here, kept 30 days</h2>
+      <p class="yt-note">YouTube data, shown apart: these comments are not in the list, the counts or the charts above, and are deleted 30 days after capture.</p>
+      <div id="ytList"></div>
+    </section>
 
   </div>
 
@@ -715,6 +772,7 @@
       refreshBtn.disabled = true;
       countEl.textContent = "Loading leads...";
       list.innerHTML = "";
+      loadYoutubeFinds();
 
       fetch(API + "/api/leads", {
         headers: { "Authorization": "Bearer " + tok() }
@@ -929,6 +987,63 @@
         cpBtn.textContent = "Failed";
         setTimeout(function () { cpBtn.textContent = "Copy"; }, 2000);
       });
+    }
+
+    /* YouTube finds, from GET /api/leads/youtube-signals: keyword, date, text
+       and a link to the comment. No Draft button and no score: they are never
+       scored and cannot be replied to from here. A refusal hides the section,
+       as the scored list is withheld for the same account. */
+    function buildYoutubeFind(find) {
+      var uri  = String(find.post_uri || "");
+      var when = find.post_created_at ? String(find.post_created_at).slice(0, 10) : "date unknown";
+      var link = uri.indexOf("https://www.youtube.com/") === 0
+        ? "  <a class=\"yt-find-link\" href=\"" + escHtml(uri) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Open on YouTube</a>"
+        : "";
+      return [
+        "<div class=\"yt-find\">",
+        "  <div class=\"yt-find-top\">",
+        "    <span class=\"lead-keyword\">" + escHtml(find.matched_keyword || "") + "</span>",
+        "    <span class=\"yt-find-date\">" + escHtml(when) + "</span>",
+        "  </div>",
+        "  <p class=\"lead-text\">" + escHtml(find.post_text || "") + "</p>",
+        link,
+        "</div>"
+      ].join("\n");
+    }
+
+    function loadYoutubeFinds() {
+      var section = document.getElementById("ytSection");
+      var ytList  = document.getElementById("ytList");
+      fetch(API + "/api/leads/youtube-signals", {
+        headers: { "Authorization": "Bearer " + tok() }
+      })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; })
+            .then(function (data) { return { ok: r.ok, status: r.status, data: data || {} }; });
+        })
+        .then(function (res) {
+          if (res.status === 403) {
+            section.hidden = true;
+            ytList.innerHTML = "";
+            return;
+          }
+          if (!res.ok) {
+            throw new Error(res.data.error || ("Server error " + res.status));
+          }
+          section.hidden = false;
+          var finds = res.data.finds || [];
+          if (!finds.length) {
+            ytList.innerHTML = res.data.capture_on
+              ? "<div class=\"empty-state\" data-state=\"youtube_none_yet\">YouTube capture is on, and nothing has been found yet.</div>"
+              : "<div class=\"empty-state\" data-state=\"youtube_capture_off\">YouTube capture is switched off, so nothing new is being found.</div>";
+            return;
+          }
+          ytList.innerHTML = finds.map(buildYoutubeFind).join("\n");
+        })
+        .catch(function (err) {
+          section.hidden = false;
+          ytList.innerHTML = "<div class=\"empty-state\">YouTube finds could not be loaded: " + escHtml(err.message || String(err)) + "</div>";
+        });
     }
 
     function escHtml(str) {
