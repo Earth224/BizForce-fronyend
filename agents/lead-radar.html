@@ -219,6 +219,16 @@
       color: #8892b8;
       margin: 0 0 16px;
     }
+    .yt-rules {
+      font-size: 0.85rem;
+      color: #c9d1f0;
+      margin: 0 0 8px;
+    }
+    .yt-hidden {
+      font-size: 0.82rem;
+      color: #8892b8;
+      margin: -8px 0 16px;
+    }
     #ytList {
       display: flex;
       flex-direction: column;
@@ -535,7 +545,9 @@
     <!-- YouTube data, on its own: not in the list, the counts or the charts above. -->
     <section class="yt-section" id="ytSection" aria-label="YouTube finds" hidden>
       <h2 class="yt-title">YouTube finds — not scored, cannot be replied to from here, kept 30 days</h2>
+      <p class="yt-rules" id="ytRules">Only comments that pass three rules are shown: no link, at least 6 words, and a word from the search they matched. Link spam, one-liners and off-topic comments are hidden.</p>
       <p class="yt-note">YouTube data, shown apart: these comments are not in the list, the counts or the charts above, and are deleted 30 days after capture.</p>
+      <p class="yt-hidden" id="ytHidden" hidden></p>
       <div id="ytList"></div>
     </section>
 
@@ -1011,9 +1023,19 @@
       ].join("\n");
     }
 
+    /* "N hidden: X with links, Y too short, Z off topic", from the route's
+       hidden_counts over the rows it read. Counts only: the hidden comments
+       themselves are never sent to the page, so there is nothing to reveal. */
+    function youtubeHiddenLine(counts) {
+      var c = counts || {};
+      var link = Number(c.link) || 0, short = Number(c.too_short) || 0, off = Number(c.off_topic) || 0;
+      return (link + short + off) + " hidden: " + link + " with links, " + short + " too short, " + off + " off topic";
+    }
+
     function loadYoutubeFinds() {
       var section = document.getElementById("ytSection");
       var ytList  = document.getElementById("ytList");
+      var ytHidden = document.getElementById("ytHidden");
       fetch(API + "/api/leads/youtube-signals", {
         headers: { "Authorization": "Bearer " + tok() }
       })
@@ -1025,15 +1047,23 @@
           if (res.status === 403) {
             section.hidden = true;
             ytList.innerHTML = "";
+            ytHidden.hidden = true;
+            ytHidden.textContent = "";
             return;
           }
           if (!res.ok) {
             throw new Error(res.data.error || ("Server error " + res.status));
           }
           section.hidden = false;
+          ytHidden.textContent = youtubeHiddenLine(res.data.hidden_counts);
+          ytHidden.hidden = false;
           var finds = res.data.finds || [];
           if (!finds.length) {
-            ytList.innerHTML = res.data.capture_on
+            var c = res.data.hidden_counts || {};
+            var anyHidden = (Number(c.link) || 0) + (Number(c.too_short) || 0) + (Number(c.off_topic) || 0) > 0;
+            ytList.innerHTML = anyHidden
+              ? "<div class=\"empty-state\" data-state=\"youtube_none_kept\">No stored YouTube comment passes the three rules yet.</div>"
+              : res.data.capture_on
               ? "<div class=\"empty-state\" data-state=\"youtube_none_yet\">YouTube capture is on, and nothing has been found yet.</div>"
               : "<div class=\"empty-state\" data-state=\"youtube_capture_off\">YouTube capture is switched off, so nothing new is being found.</div>";
             return;
@@ -1042,6 +1072,7 @@
         })
         .catch(function (err) {
           section.hidden = false;
+          ytHidden.hidden = true;
           ytList.innerHTML = "<div class=\"empty-state\">YouTube finds could not be loaded: " + escHtml(err.message || String(err)) + "</div>";
         });
     }
