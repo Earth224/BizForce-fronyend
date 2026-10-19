@@ -4196,6 +4196,7 @@
   var STORED_TOOL_FIELDS = {
     "ads/copy": ["product", "angle", "platform", "audience"],
     "ads/policy-check": ["copy", "suggest_rewrites"],
+    "analytics/arrivals": ["weeks"],
     "analytics/funnel": ["stages", "funnel_name", "context"],
     "analytics/kpi-review": ["metrics", "period", "context"],
     "broker/due-diligence": ["deal_type", "context"],

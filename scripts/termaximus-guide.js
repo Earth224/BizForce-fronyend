@@ -130,7 +130,8 @@
     ],
     "analytics.html": [
       "This is your KPI and forecasting layer — KPI Review and Funnel Analysis measure the figures you enter, and Revenue Forecast builds a forecasting method for you to fill in; it reads no revenue data of its own.",
-      "Your Business Profile (Industry, Website, Competitors) is the context every analytics task is written from, so keep it current; the figures come only from what you enter.",
+      "Your Business Profile (Industry, Website, Competitors) is the context every analytics task is written from, so keep it current; the figures in KPI Review and Funnel Analysis come only from what you enter.",
+      "Arrivals Ledger counts, in code with no model call, the arrivals through your own tracked links: a published post whose money link carries its ref, and a Lead Radar reply you sent. It shows each post's arrivals all-time and by week; an arrival is one landing-page request, not a person, so it cannot be told apart from your own test click, and it does not measure Bluesky reach, article views or sales.",
       "Each run is saved — open your latest from the Last run link on this page; nothing here checks your figures for anomalies, so compare each run with the last yourself.",
       "Run the KPI Review tool each period, not just once — enter each metric's Now and Before figures and it works out the change; nothing here keeps a trend line across runs, so compare saved runs yourself.",
       "Enter current figures in KPI Review and Funnel Analysis before big decisions; they measure only the numbers you enter."
