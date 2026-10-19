@@ -1613,7 +1613,7 @@
      gets its own quiet zone instead of competing with either. */
   var TOOL_REF_KEYS = ["constraints", "limits", "thresholds", "guides", "platform_limits",
     "platform_terms", "limitations", "rules", "statement", "clean_scan_is_not_approval",
-    "suggested_tag_set_note", "suggested_tag_set_reason", "rules_checked"];
+    "suggested_tag_set_note", "suggested_tag_set_reason", "rules_checked", "outreach_note"];
 
   function toolDomId(toolId, suffix) {
     return "apTool_" + String(toolId).replace(/[^A-Za-z0-9]/g, "_") + (suffix ? "_" + suffix : "");
@@ -1643,7 +1643,7 @@
         (field.placeholder ? ' placeholder="' + esc(field.placeholder) + '"' : "") + '></textarea>';
     } else if (field.type === "select") {
       control = '<select class="ap-select" id="' + id + '">' +
-        (field.required ? "" : '<option value="">(not set)</option>') +
+        (field.noDefault ? '<option value="">Choose…</option>' : field.required ? "" : '<option value="">(not set)</option>') +
         (field.options || []).map(function (o) {
           return '<option value="' + esc(o.value) + '">' + esc(o.label || o.value) + '</option>';
         }).join("") + '</select>';
@@ -1703,7 +1703,17 @@
         (field.placeholder ? ' placeholder="' + esc(field.placeholder) + '"' : "") + '>';
     }
 
-    return '<div class="ap-tool-field">' + label + control + hint + '</div>';
+    /* A field shown only for some values of another (Social Search's per-platform
+       fields) is drawn hidden; bindTool shows it while the controlling select holds
+       one of its values, and toolPayload never sends it while it is hidden. */
+    var shown = field.showWhen ? ' id="' + toolDomId(toolId, "w_" + field.name) + '" hidden' : "";
+    return '<div class="ap-tool-field"' + shown + '>' + label + control + hint + '</div>';
+  }
+
+  // Whether a showWhen field's controlling select holds one of its values.
+  function toolFieldShown(tool, field) {
+    var ctl = document.getElementById(toolDomId(tool.id, "f_" + field.showWhen.field));
+    return !!ctl && (field.showWhen.values || []).indexOf(ctl.value) !== -1;
   }
 
   function toolsMarkup() {
@@ -1755,6 +1765,7 @@
     var missing = [];
 
     (tool.fields || []).forEach(function (field) {
+      if (field.showWhen && !toolFieldShown(tool, field)) return;
       var id = toolDomId(tool.id, "f_" + field.name);
       var el = document.getElementById(id);
 
@@ -1811,6 +1822,13 @@
         var n = Number(value);
         if (!isFinite(n)) { missing.push(field.label || field.name); return; }
         body[field.name] = n;
+        return;
+      }
+
+      if (field.type === "list") {
+        var items = value.split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+        if (items.length) body[field.name] = items;
+        else if (field.required) missing.push(field.label || field.name);
         return;
       }
 
@@ -3162,6 +3180,16 @@
           wrap.appendChild(clone);
         });
       });
+
+      (tool.fields || []).forEach(function (field) {
+        if (!field.showWhen) return;
+        var ctl = document.getElementById(toolDomId(tool.id, "f_" + field.showWhen.field));
+        var wrap = document.getElementById(toolDomId(tool.id, "w_" + field.name));
+        if (!ctl || !wrap) return;
+        var sync = function () { wrap.hidden = !toolFieldShown(tool, field); };
+        ctl.addEventListener("change", sync);
+        sync();
+      });
     })();
   }
 
@@ -4223,6 +4251,7 @@
     "reputation/review-request": ["moment", "channel", "platform"],
     "reputation/review-response": ["review", "rating", "situation"],
     "seo/audit": ["url"],
+    "seo/social-search": ["platform", "target_phrase", "title", "description", "tags", "caption", "suggest_rewrites"],
     "store/stock-margin": ["window_days"],
     "social/calendar": ["goal", "cadence", "platforms", "weeks"],
     "social/post": ["idea", "platform"],

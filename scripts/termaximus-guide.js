@@ -106,7 +106,8 @@
       "Feed it real data: set your Website and top Competitors in your Business Profile (edit it from the Content Agent) so audits and keyword research aren't guessing in the dark.",
       "Use the launcher's specific task types — Keyword Research, Competitor Comparison, Local SEO Plan — and the Page Audit tool rather than vague prompts; narrower asks produce sharper deliverables.",
       "Each run is saved — open your latest from the Last run link on this page; Refresh Data updates that link and your Business Profile after a new run.",
-      "Treat your saved runs as your standing SEO playbook, not one-off outputs."
+      "Treat your saved runs as your standing SEO playbook, not one-off outputs.",
+      "Social Search measures a YouTube, TikTok or Instagram draft in code against the phrase you want it found by: where the phrase appears, whether it shows before the cut, each length against its limit, and the hashtag or tag counts. It searches no platform, so it knows nothing of search volume, ranking or reach; tick Suggested rewrites and the model drafts fixes, each one measured again."
     ],
     "sales.html": [
       "This agent writes sales material — funnels, lead generation, outreach scripts, offers, and objection handling — from your Business Profile and what you tell it; its tasks read none of the leads or pipeline on this page.",
@@ -138,7 +139,7 @@
     ],
     "lead-radar.html": [
       "This is a Bluesky lead-capture radar — it collects buying-intent posts every 5 minutes; when intent scoring is switched on, it scores them and separates real buyers from competitors by suggested product and score. The list loads when you open the page and when you press Refresh.",
-      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on, and YouTube finds are not shown here. It does not read your Business Profile, so editing your profile does not change what it finds.",
+      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on, and YouTube capture is switched off. Older scored YouTube finds can appear in the list; new YouTube finds are not scored or shown. It does not read your Business Profile, so editing your profile does not change what it finds.",
       "The list puts the highest scores at the top, so act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it to your clipboard and post it on Bluesky yourself.",
       "Check the Product Breakdown chart to see how many leads were tagged with each product, and Score Distribution to see how their scores spread — Product Breakdown counts leads, it does not measure intent.",
       "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."

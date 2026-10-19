@@ -1174,6 +1174,70 @@ window.AGENT_PROFILE_CONFIG = {
           "hint": "One page. Without a scheme, https:// is assumed. Only the HTML the server is sent is read — nothing JavaScript adds afterwards."
         }
       ]
+    },
+    {
+      "id": "social-search",
+      "label": "Social Search",
+      "runLabel": "Measure the draft",
+      "description": "Measures a YouTube, TikTok or Instagram draft against the phrase it should be found by: where the phrase appears, whether it is visible before the cut, every length against its limit, and the hashtag or tag counts. Code only; no platform is searched, and nothing here knows search volume, ranking or reach.",
+      "fields": [
+        {
+          "name": "platform",
+          "label": "Platform",
+          "type": "select",
+          "required": true,
+          "noDefault": true,
+          "options": [
+            { "value": "youtube", "label": "YouTube" },
+            { "value": "tiktok", "label": "TikTok" },
+            { "value": "instagram", "label": "Instagram" }
+          ]
+        },
+        {
+          "name": "target_phrase",
+          "label": "Phrase to be found by",
+          "type": "text",
+          "required": true,
+          "placeholder": "tongkat ali",
+          "hint": "2 to 100 characters. Matched in any case and with any spacing; #tongkatali counts as \"tongkat ali\"."
+        },
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "text",
+          "showWhen": { "field": "platform", "values": ["youtube"] },
+          "hint": "At most 100 characters. About 70 show in search results (approximate)."
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "textarea",
+          "showWhen": { "field": "platform", "values": ["youtube"] },
+          "hint": "At most 5000 bytes: an accented or non-Latin letter takes more than one. About 150 characters show before \"more\" (approximate)."
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "type": "list",
+          "showWhen": { "field": "platform", "values": ["youtube"] },
+          "placeholder": "tongkat ali, supplements, honest review",
+          "hint": "Separate tags with commas. 500 characters for the whole list, counting one comma between each pair."
+        },
+        {
+          "name": "caption",
+          "label": "Caption",
+          "type": "textarea",
+          "required": true,
+          "showWhen": { "field": "platform", "values": ["tiktok", "instagram"] },
+          "hint": "With its hashtags, as you would post it. At most 2200 characters."
+        },
+        {
+          "name": "suggest_rewrites",
+          "label": "Suggested rewrites",
+          "type": "checkbox",
+          "checkboxLabel": "Ask the model for rewrites of what the measurement found (each one measured again)"
+        }
+      ]
     }
   ]
 };
