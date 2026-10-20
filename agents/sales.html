@@ -1633,6 +1633,8 @@
         .then(function (res) {
           btn.disabled = false;
           btn.textContent = originalLabel;
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) { setLeadsMsg("", "err"); window.bfPaywall.render(document.getElementById("salesLeadsMsg"), paywall); return; }
           if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
           var result = res.data.results && res.data.results[0];
           if (result) renderConversion(idx, result.conversion);
@@ -1697,6 +1699,8 @@
         .then(function (res) {
           btn.disabled = false;
           btn.textContent = originalLabel;
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) { setLeadsMsg("", "err"); window.bfPaywall.render(document.getElementById("salesLeadsMsg"), paywall); return; }
           if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
           setLeadsMsg(describeSendOutcome(res.data.results), "ok");
           loadLeads();
@@ -2412,6 +2416,7 @@ window.AGENT_PROFILE_CONFIG = {
   ]
 };
 </script>
+<script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

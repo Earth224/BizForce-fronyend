@@ -461,7 +461,9 @@
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok() }
         });
         var d = await r.json();
-        if (!r.ok || !d.url) throw new Error(d.error || "Checkout failed.");
+        /* A refusal carries `message` (already subscribed, or the check could
+           not be made); it is shown in place of the bare error code. */
+        if (!r.ok || !d.url) throw new Error(d.message || d.error || "Checkout failed.");
         window.location.href = d.url;
       } catch (e) {
         btn.disabled = false;

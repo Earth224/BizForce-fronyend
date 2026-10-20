@@ -970,6 +970,8 @@
         .then(function (res) {
           btn.disabled = false;
           btn.textContent = "Optimize";
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) { setOptMsg("", "err"); window.bfPaywall.render(document.getElementById("seoOptMsg"), paywall); return; }
           if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
           setOptMsg("Report ready.", "ok");
           renderReport(res.data.report);
@@ -1115,6 +1117,8 @@
         .then(function (res) {
           btn.disabled = false;
           btn.textContent = "Generate Post";
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) { setPostMsg("", "err"); window.bfPaywall.render(document.getElementById("seoPostMsg"), paywall); return; }
           if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
           setPostMsg("Post created and awaiting approval.", "ok");
           renderGeneratedPost(res.data);
@@ -1242,6 +1246,7 @@ window.AGENT_PROFILE_CONFIG = {
   ]
 };
 </script>
+<script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

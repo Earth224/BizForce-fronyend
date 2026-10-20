@@ -1587,8 +1587,18 @@
         },
         body: JSON.stringify({ agent_type: "content", task_type: "content_plan", prompt: prompt })
       })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+        .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+        .then(function (res) {
+          /* A 402 in the server's words, with the Billing link (bf-paywall.js). */
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) {
+            outputEl.innerHTML = "";
+            window.bfPaywall.render(outputEl, paywall);
+            btn.disabled = false;
+            btn.textContent = "Launch Task";
+            return;
+          }
+          var data = res.data;
           if (!data.task || !data.task.id) throw new Error(data.error || "No task ID returned");
           pollForResult(data.task.id);
         })
@@ -1628,8 +1638,18 @@
         },
         body: JSON.stringify({ agent_type: "content", task_type: "sms_campaign", prompt: smsPrompt })
       })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+        .then(function (r) { return r.json().then(function (d) { return { status: r.status, data: d }; }); })
+        .then(function (res) {
+          /* A 402 in the server's words, with the Billing link (bf-paywall.js). */
+          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
+          if (paywall) {
+            outputEl.innerHTML = "";
+            window.bfPaywall.render(outputEl, paywall);
+            btn.disabled = false;
+            btn.textContent = "Generate SMS";
+            return;
+          }
+          var data = res.data;
           if (!data.task || !data.task.id) throw new Error(data.error || "No task ID returned");
           pollForSmsResult(data.task.id);
         })
@@ -2040,6 +2060,7 @@ window.AGENT_PROFILE_CONFIG = {
   ]
 };
 </script>
+<script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 
 <!-- ── Create New Account modal ── -->

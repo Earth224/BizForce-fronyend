@@ -31,6 +31,19 @@
   }
   function tok() { return localStorage.getItem("bf_token") || ""; }
 
+  /* A 402 is a paywall answer: the server says what was blocked, that nothing
+     ran, and where to subscribe. Shown in those words with a Billing link
+     (scripts/bf-paywall.js), never as "HTTP 402". True when it was shown;
+     false for any other answer, or on a page without bf-paywall.js, so the
+     caller carries on exactly as before. */
+  function showPaywall(el, res) {
+    var notice = (window.bfPaywall && res) ? window.bfPaywall.from(res.status, res.data) : null;
+    if (!notice || !el) return false;
+    el.className = "ap-tool-msg err";
+    window.bfPaywall.render(el, notice);
+    return true;
+  }
+
   /* ── inject CSS ── */
   var css = [
     ".ap-section{margin-top:32px}",
@@ -2444,6 +2457,8 @@
     })
       .then(readJsonResult)
       .then(function (res) {
+        if (showPaywall(msgEl, res)) { btn.disabled = false; return; }
+
         if (!res.ok || !res.parsed || !isPlainObject(res.data)) {
           btn.disabled = false;
           msg("The request failed (HTTP " + res.status + "). Whether the tool ran is unknown.", "err");
@@ -3078,6 +3093,8 @@
           setToolMsg(tool.id, "The model's answer could not be read. Nothing is being reported as a result.", "err");
           return;
         }
+
+        if (showPaywall(document.getElementById(toolDomId(tool.id, "msg")), res)) return;
 
         if (!res.ok) {
           var detail = (res.data && res.data.error) || ("HTTP " + res.status);

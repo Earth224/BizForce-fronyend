@@ -225,7 +225,7 @@
   <span class="hq-eyebrow hero-pill">BIZFORCE AI</span>
   <h1 class="hq-hero-title hero-title">EXECUTIVE HQ</h1>
   <p class="hq-hero-sub">Control your AI business empire.</p>
-  <p class="hq-hero-welcome" id="welcomeMsg">Welcome back</p>
+  <p class="hq-hero-welcome" id="welcomeMsg">Welcome</p>
 </header>
 <!-- CHECKOUT OUTCOME NOTICE, shown when Stripe redirects here with
      ?subscribed=1 (success_url) or ?checkout=cancel (cancel_url). One element,
@@ -318,6 +318,23 @@
   } catch (e) { /* file://, or a browser refusing the rewrite; the banner still shows */ }
 }());
 </script>
+<!-- FIRST RUN: SUBSCRIBE TO START. Shown by showStartPanel (below the plan
+     status script) to an account the server says is NOT entitled, in place of
+     the three sections whose controls need a subscription — AI tasks, the
+     command center and agent assignments — which otherwise sit there and
+     answer every click with a 402. The business profile and memory stay:
+     they work without a subscription, and filling them in is the useful
+     first step. -->
+<style>
+  .bf-start-panel{padding:18px 20px;border-radius:16px;border:1px solid rgba(212,175,55,.45);background:rgba(212,175,55,.08);backdrop-filter:blur(12px);margin-bottom:24px}
+  .bf-start-panel h2{margin:0 0 6px;font-size:1.15rem;color:#f5d97a}
+  .bf-start-panel p{margin:0 0 14px;line-height:1.5;color:#e8e8ff}
+</style>
+<div class="bf-start-panel" id="subscribeStartPanel" role="region" aria-labelledby="subscribeStartTitle" style="display:none">
+  <h2 id="subscribeStartTitle">Subscribe to start</h2>
+  <p id="subscribeStartText">Your account is ready. Running agents, AI tasks and assignments needs the All Access subscription ($199 a month). Your business profile and memory, below, work now, and everything you fill in is kept.</p>
+  <a class="bf-btn" id="subscribeStartLink" href="/billing.html">Subscribe on Billing</a>
+</div>
 <div class="bf-feature-grid cards">
 <div class="bf-feature-card card bf-card" data-card="analytics" onclick="window.location.href='/analytics-dashboard.html'" style="cursor:pointer">
   <div class="bf-neon-icon bf-hq-icon bf-card-icon analytics" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
@@ -597,7 +614,9 @@ if (!token) {
     var name = bfDisplayName(u);
     if (name) {
       document.getElementById('bizName').textContent = name;
-      document.getElementById('welcomeMsg').textContent = 'Welcome back, ' + name;
+      /* "Welcome" until /api/auth/me shows the account is past its first day;
+         see welcomeLine. "Welcome" is never wrong; "Welcome back" can be. */
+      document.getElementById('welcomeMsg').textContent = 'Welcome, ' + name;
       var av = document.getElementById('userAvatar');
       if (av) { av.textContent = bfUserInitials(name); }
     }
@@ -925,6 +944,11 @@ function planStatusText(access, subscription) {
     return "Subscription status could not be determined right now.";
   }
   if (access.active === true) {
+    /* past_due inside its grace still entitles, and the person should hear
+       about the card before the grace runs out, not after. */
+    if (access.exempt !== true && subscription && subscription.status === "past_due") {
+      return "Your last payment failed — update your card on the Billing page. Access continues while the payment is retried.";
+    }
     return access.exempt === true
       ? "Admin access — full access, not billed."
       : "Subscription ACTIVE — Full Access";
@@ -933,6 +957,51 @@ function planStatusText(access, subscription) {
     return "Your last payment failed — update your card on the Billing page.";
   }
   return "Subscription not active yet.";
+}
+
+/* FIRST RUN. Shown only on a definite "not entitled" (access.active === false)
+   from the same check every gated route runs. An unknown (access null) changes
+   nothing, so a database blip never hides a paying customer's controls. Not
+   shown while the "Payment received" banner is up: the webhook that grants
+   access may simply not have landed yet, and "subscribe" would be wrong. */
+var START_PANEL_REPLACES = ["aiTaskSection", "commandCenterSection", "agentAssignmentsSection"];
+function showStartPanel(access) {
+  if (!access || access.active !== false) return false;
+  var banner = document.getElementById("paidBanner");
+  if (banner && banner.classList.contains("show") && !banner.classList.contains("neutral")) return false;
+  var panel = document.getElementById("subscribeStartPanel");
+  if (!panel) return false;
+  var title = document.getElementById("subscribeStartTitle");
+  var text = document.getElementById("subscribeStartText");
+  var link = document.getElementById("subscribeStartLink");
+  if (access.inactive_reason === "past_due") {
+    if (title) title.textContent = "Update your card";
+    if (text) text.textContent = "Your last card payment failed and the grace period has ended, so agents, AI tasks and assignments are paused. Nothing is lost. Open Billing and choose Manage / Cancel Subscription to update your card.";
+    if (link) link.textContent = "Open Billing";
+  } else if (access.inactive_reason && access.inactive_reason !== "no_subscription") {
+    if (title) title.textContent = "Your subscription is not active";
+    if (text) text.textContent = "Agents, AI tasks and assignments need an active subscription. Your business profile and memory, below, still work, and everything you saved is kept.";
+    if (link) link.textContent = "Open Billing";
+  }
+  panel.style.display = "block";
+  START_PANEL_REPLACES.forEach(function (id) {
+    var section = document.getElementById(id);
+    if (section) section.style.display = "none";
+  });
+  return true;
+}
+
+/* FIRST VISIT, from data the page already has: users.created_at, which
+   /api/auth/me returns. An account less than a day old is on its first visit
+   and is greeted "Welcome"; after that, "Welcome back". A missing or
+   unreadable date keeps "Welcome", which is never wrong. Nothing is stored
+   and nothing is recorded to decide this. */
+var FIRST_VISIT_MS = 24 * 60 * 60 * 1000;
+function welcomeLine(current, createdAt, nowMs) {
+  var line = String(current || "Welcome");
+  var created = Date.parse(createdAt);
+  if (!isFinite(created) || (nowMs - created) < FIRST_VISIT_MS) return line;
+  return line.indexOf("Welcome back") === 0 ? line : line.replace(/^Welcome/, "Welcome back");
 }
 
 if (planStatus) {
@@ -953,6 +1022,11 @@ if (planStatus) {
         var subscription = (data && data.subscription) || null;
 
         planStatus.innerHTML = planStatusText(access, subscription);
+        showStartPanel(access);
+        var welcomeEl = document.getElementById("welcomeMsg");
+        if (welcomeEl && data && data.user) {
+          welcomeEl.textContent = welcomeLine(welcomeEl.textContent, data.user.created_at, Date.now());
+        }
 
         if (access && access.active === true) {
 var bizNameEl = document.getElementById("bizName");

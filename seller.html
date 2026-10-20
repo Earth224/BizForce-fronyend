@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  /* Signed-out visitors may read this page, and bf-session.js begins by sending
+     anyone without a token to sign in. So it loads only for someone signed
+     in, and then handles their day-8 expiry as every other page does: it
+     renews the session, or signs them out with the reason. Loaded with
+     document.write so it is in place, as a blocking script in the head,
+     before any of this page's own requests go out. */
+  try {
+    if (localStorage.getItem("bf_token")) {
+      document.write('<scr' + 'ipt src="/scripts/bf-session.js"></scr' + 'ipt>');
+    }
+  } catch (e) { /* storage unavailable: signed out as far as this page can tell */ }
+</script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Seller Storefront</title>
