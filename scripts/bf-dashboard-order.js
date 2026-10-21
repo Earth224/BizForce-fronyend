@@ -46,7 +46,6 @@
     "prospecting",
     "business-chat",
     "agent-proposals",
-    "active-queue",
     "analytics",
     "self-reviews",
     "marketplace"

@@ -15,7 +15,7 @@
     "dashboard.html": [
       "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Profile, and Lead Radar.",
       "Your business name, industry and goal shown here come from your Business Profile — edit it here under Expand Profile or on the Content Agent's Edit Profile, and keep it current so this hub reflects who you actually are.",
-      "Use the Active Queue card and its View Queue button to see your active assignments before you dig into any single tool.",
+      "Start with the Command Center: Needs you lists the proposals waiting on you and the runs that failed, Executive plans lists each plan's assignments with a Dispatch button, and Agent activity counts the runs your agents actually made.",
       "Treat the AI Agent Directory preview as your starting point for delegating work — Agent Hub and Full Directory each list all 18 agents.",
       "Revisit this page often; it's built to surface what needs your attention, not just to look impressive."
     ],
@@ -51,9 +51,9 @@
       "Keep Products and Portfolio current — stale entries undercut the credibility this page is built to establish."
     ],
     "integrations.html": [
-      "Thirteen services and what each one is to BizForce today: \"Unavailable\", \"Runs on BizForce\", or \"Not built\".",
-      "\"Unavailable\" means connecting was built and is turned off for now — that is the six social platforms.",
-      "\"Runs on BizForce\" means the app uses the service with its own account — Stripe, Twilio, Zernio and email — so there is nothing for you to connect.",
+      "Thirteen services and what each one is to BizForce today: \"Runs on BizForce\", \"Removed\", or \"Not built\".",
+      "\"Removed\" means BizForce had it and took it out — Zernio and the six social platforms it posted to; BizForce posts to none of them.",
+      "\"Runs on BizForce\" means the app uses the service with its own account — Stripe, Twilio and email — so there is nothing for you to connect.",
       "There is no setup to do on this page; nothing here takes an account of yours."
     ],
     "marketplace.html": [

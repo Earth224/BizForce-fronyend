@@ -192,20 +192,6 @@
       flex-wrap: wrap;
     }
 
-    .int-connect-btn {
-      padding: 8px 18px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.05);
-      color: #555c78;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      cursor: not-allowed;
-      font-family: inherit;
-    }
-
     .int-note {
       font-size: 0.72rem;
       color: #555c78;
@@ -305,12 +291,13 @@
     <div id="integrationsBody">
       <div class="integrations-grid" id="integrationsGrid">
 
-        <!-- Three states, and each card is in exactly one. "Unavailable": connecting
-             was built and is gated off at the backend (POST
-             /api/social/connect answers 503) until connected accounts are tied
-             to their owner. "Runs on BizForce": the app uses the service with its
-             own credentials; there is nothing for a user to connect. "Not built":
-             exactly that. No state promises a date. -->
+        <!-- Three states, and each card is in exactly one. "Runs on BizForce": the
+             app uses the service with its own credentials; there is nothing for a
+             user to connect. "Removed": BizForce had it and took it out. The code
+             that posted to the six social platforms through Zernio was deleted
+             (launch audit #22c) because a connected account could not be tied to
+             the person who connected it; POST /api/social/connect answers 503.
+             "Not built": exactly that. No state promises a date. -->
 
         <div class="int-card">
           <p class="int-card-name">Stripe</p>
@@ -338,71 +325,44 @@
 
         <div class="int-card">
           <p class="int-card-name">Zernio</p>
-          <p class="int-card-desc">The posting service BizForce uses behind the social platforms below. It is part of BizForce, not an account you connect. Social posting is turned off for now.</p>
-          <span class="int-status">Runs on BizForce</span>
-          <div class="int-card-footer">
-            <span class="int-note">Nothing to connect: BizForce uses its own account.</span>
-          </div>
+          <p class="int-card-desc">The posting service BizForce once used for the social platforms below. That code was removed, so BizForce posts nothing through it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">Facebook</p>
-          <p class="int-card-desc">Schedule posts and manage your Facebook business page.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to Facebook. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">Instagram</p>
-          <p class="int-card-desc">Publish photos, reels, and stories to your audience.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to Instagram. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">TikTok</p>
-          <p class="int-card-desc">Distribute short-form video content to your TikTok profile.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to TikTok. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">X / Twitter</p>
-          <p class="int-card-desc">Post updates, threads, and announcements to your X account.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to X / Twitter. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">YouTube</p>
-          <p class="int-card-desc">Publish videos and grow faceless video content for SEO.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to YouTube. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
           <p class="int-card-name">LinkedIn</p>
-          <p class="int-card-desc">Share business updates and build professional authority.</p>
-          <span class="int-status">Unavailable</span>
-          <div class="int-card-footer">
-            <button class="int-connect-btn" disabled>Unavailable</button>
-            <span class="int-note">Connecting was built and is turned off for now, while each connected account is tied to the person who connected it.</span>
-          </div>
+          <p class="int-card-desc">BizForce does not post to LinkedIn. Connecting an account was removed because it could not be tied to the person who connected it.</p>
+          <span class="int-status">Removed</span>
         </div>
 
         <div class="int-card">
