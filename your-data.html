@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Your data — BizForce AI</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#070b18">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<meta name="description" content="What BizForce stores about you, how it is protected, a download of all of it, and deleting your account.">
+<meta name="robots" content="noindex">
+
+<!--
+  YOUR DATA. What is stored about a member, the download of all of it, and
+  deleting the account.
+
+  NOTHING ON THIS PAGE IS WRITTEN HERE. Every statement about the data, how it
+  is protected, what the download leaves out and what deleting does is drawn
+  from GET /api/your-data, which serves lib/yourData.js in the backend: the
+  same description the export and the delete themselves run from, so the page
+  cannot say one thing while the code does another. scripts/checkYourData.js
+  in the backend holds each protection claim to a fact it asserts. If the
+  description cannot be loaded, the page says so and claims nothing.
+
+  Readable signed out (the footer links here); the download and the delete
+  need a signed-in member. bf-session.js is loaded only when a token exists,
+  so an expired access token is renewed rather than sending a visitor to the
+  sign-in page.
+-->
+<script>
+  try { if (localStorage.getItem("bf_token")) document.write('<script src="/scripts/bf-session.js"><\/script>'); } catch (e) {}
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; color: #e8e8ff; background: #070b18; }
+  body { -webkit-text-size-adjust: 100%; }
+  .page { max-width: 860px; margin: 0 auto; padding: 28px 16px 80px; }
+  a { color: #22d3ee; }
+  .back { display: inline-block; margin-bottom: 18px; font-weight: 600; text-decoration: none; }
+  h1 { font-size: 2rem; margin: 0 0 8px; }
+  h2 { font-size: 1.3rem; margin: 40px 0 12px; color: #fff; }
+  h3 { font-size: 1.02rem; margin: 22px 0 8px; color: #cfd8ff; }
+  p, li { line-height: 1.6; color: #c3c9e6; }
+  .lede { font-size: 1.05rem; color: #aab3d8; }
+  .card { background: rgba(255,255,255,.04); border: 1px solid rgba(0,229,255,.14); border-radius: 14px; padding: 18px 20px; margin: 12px 0; }
+  .items { list-style: none; padding: 0; margin: 0; }
+  .items li { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.06); }
+  .items li:first-child { border-top: 0; }
+  .on-delete { display: block; font-size: .86rem; color: #8e98c2; margin-top: 3px; }
+  .muted { color: #8e98c2; font-size: .9rem; }
+  .danger { border-color: rgba(248,113,113,.4); }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; }
+  input { width: 100%; max-width: 420px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: #0d1328; color: #fff; font-size: 1rem; }
+  button { margin-top: 16px; padding: 11px 18px; border-radius: 10px; border: 0; font-weight: 700; font-size: .98rem; cursor: pointer; background: #22d3ee; color: #04121a; }
+  button.delete { background: #ef4444; color: #fff; }
+  button:disabled { opacity: .55; cursor: default; }
+  .status { margin-top: 12px; min-height: 1.4em; }
+  .status.error { color: #fca5a5; }
+  .status.ok { color: #86efac; }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="back" href="settings.html">&larr; Settings</a>
+  <h1>Your data</h1>
+  <p class="lede">What BizForce stores about you, how it is protected, a download of all of it, and deleting your account.</p>
+
+  <p class="status" id="loadStatus">Loading…</p>
+
+  <section id="described" hidden>
+    <h2>What we store</h2>
+    <div id="groups"></div>
+
+    <h2>Protections</h2>
+    <ul id="protections"></ul>
+
+    <h2>Download my data</h2>
+    <div class="card">
+      <p>One file, in JSON, of every record that belongs to you. It leaves out:</p>
+      <ul id="neverExported"></ul>
+      <div id="downloadSignedIn" hidden>
+        <button type="button" id="downloadBtn">Download my data</button>
+        <p class="status" id="downloadStatus"></p>
+      </div>
+      <p class="muted" id="downloadSignedOut"><a href="app.html">Sign in</a> to download your data.</p>
+    </div>
+
+    <h2>Delete my account</h2>
+    <div class="card danger">
+      <ul id="deleteNotes"></ul>
+      <p class="bfc-notice" data-bfc-notice></p>
+      <script src="/scripts/bf-bfc-notice.js"></script>
+      <form id="deleteForm" hidden autocomplete="off">
+        <label for="delUsername">Your username</label>
+        <input id="delUsername" name="username" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+        <label for="delPassword">Your password</label>
+        <input id="delPassword" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit" class="delete" id="deleteBtn">Delete my account</button>
+        <p class="status" id="deleteStatus"></p>
+      </form>
+      <p class="muted" id="deleteSignedOut"><a href="app.html">Sign in</a> to delete your account.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+  window.API_URL = API_URL;
+
+  function token() { try { return localStorage.getItem("bf_token"); } catch (e) { return null; } }
+  function el(id) { return document.getElementById(id); }
+  function add(parent, tag, text, cls) {
+    var node = document.createElement(tag);
+    if (text !== undefined) node.textContent = text;
+    if (cls) node.className = cls;
+    parent.appendChild(node);
+    return node;
+  }
+  function say(id, text, kind) {
+    var node = el(id);
+    node.textContent = text;
+    node.className = "status" + (kind ? " " + kind : "");
+  }
+
+  /* ── What is stored, from the one description ── */
+  function render(d) {
+    var groups = el("groups");
+    d.groups.forEach(function (g) {
+      if (!g.items.length) return;
+      add(groups, "h3", g.title);
+      var card = add(groups, "div", undefined, "card");
+      var list = add(card, "ul", undefined, "items");
+      g.items.forEach(function (item) {
+        var li = add(list, "li", item.what);
+        add(li, "span", "If you delete your account: " + item.onDeleteText, "on-delete");
+      });
+    });
+    d.protections.forEach(function (p) { add(el("protections"), "li", p.text); });
+    d.neverExported.forEach(function (t) { add(el("neverExported"), "li", t); });
+    d.deleteNotes.forEach(function (t) { add(el("deleteNotes"), "li", t); });
+    var signedIn = !!token();
+    el("downloadSignedIn").hidden = !signedIn;
+    el("downloadSignedOut").hidden = signedIn;
+    el("deleteForm").hidden = !signedIn;
+    el("deleteSignedOut").hidden = signedIn;
+    el("described").hidden = false;
+    el("loadStatus").hidden = true;
+  }
+
+  fetch(API_URL + "/api/your-data")
+    .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+    .then(render)
+    .catch(function () {
+      say("loadStatus", "The description of your data could not be loaded just now, so this page shows nothing rather than guess. Reload to try again.", "error");
+    });
+
+  /* ── Download ── */
+  el("downloadBtn").addEventListener("click", function () {
+    var btn = el("downloadBtn");
+    btn.disabled = true;
+    say("downloadStatus", "Preparing your file. This can take a minute.");
+    fetch(API_URL + "/api/me/export", { headers: { "Authorization": "Bearer " + token() } })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error(body.error || ("The download was refused (HTTP " + res.status + ")."));
+          });
+        }
+        var name = "bizforce-your-data.json";
+        var cd = res.headers.get("Content-Disposition") || "";
+        var m = /filename="([^"]+)"/.exec(cd);
+        if (m) name = m[1];
+        return res.text().then(function (text) {
+          var parsed;
+          try { parsed = JSON.parse(text); } catch (e) { throw new Error("The file was cut short on the way, so it was not saved. Try again."); }
+          var blob = new Blob([text], { type: "application/json" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url; a.download = name;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+          var manifest = parsed.manifest || {};
+          var unreadable = (manifest.tables || []).filter(function (t) { return t.status === "unreadable"; }).map(function (t) { return t.table; });
+          if (manifest.complete === false) {
+            say("downloadStatus", "Saved, but it is not complete: " + unreadable.join(", ") + " could not be read just now. The file's manifest says so. Try again later for a complete copy.", "error");
+          } else {
+            say("downloadStatus", "Saved as " + name + ".", "ok");
+          }
+        });
+      })
+      .catch(function (err) { say("downloadStatus", err.message || "The download failed. Try again.", "error"); })
+      .then(function () { btn.disabled = false; });
+  });
+
+  /* ── Delete ── */
+  el("deleteForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var btn = el("deleteBtn");
+    btn.disabled = true;
+    say("deleteStatus", "Deleting…");
+    fetch(API_URL + "/api/me/delete", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token(), "Content-Type": "application/json" },
+      body: JSON.stringify({ username: el("delUsername").value, password: el("delPassword").value })
+    })
+      .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, body: body }; }); })
+      .then(function (r) {
+        el("delPassword").value = "";
+        if (r.status === 200 && r.body.deleted) {
+          try { localStorage.removeItem("bf_token"); localStorage.removeItem("bf_refresh"); localStorage.removeItem("bf_user"); } catch (x) {}
+          el("deleteForm").hidden = true;
+          var done = el("deleteForm").parentNode;
+          add(done, "p", "Your account is deleted. You have been signed out, and this account can never sign in again.", "status ok");
+          var home = add(done, "a", "Go to the home page");
+          home.href = "index.html";
+          return;
+        }
+        say("deleteStatus", r.body.error || ("Nothing was deleted (HTTP " + r.status + ")."), "error");
+        if (r.body.billing_url) {
+          var link = add(el("deleteStatus"), "a", " Open Billing");
+          link.href = r.body.billing_url;
+        }
+        btn.disabled = false;
+      })
+      .catch(function () {
+        say("deleteStatus", "The server could not be reached, so no answer came back. Reload this page: if you can still sign in, press Delete again.", "error");
+        btn.disabled = false;
+      });
+  });
+})();
+</script>
+</body>
+</html>
