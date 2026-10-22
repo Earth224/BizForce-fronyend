@@ -73,6 +73,15 @@
     .send-input-amount{flex:0 0 140px}
     .send-btn{padding:13px 28px;border:none;border-radius:12px;font-size:.82rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:linear-gradient(135deg,#22d3ee,#a855f7);cursor:pointer;transition:all .25s;font-family:inherit;flex-shrink:0}
     .send-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(34,211,238,.3)}
+    .send-btn:disabled{opacity:.6;cursor:default;transform:none;box-shadow:none}
+    .send-confirm{margin-top:16px;padding:16px 18px;border:1px solid rgba(34,211,238,.35);border-radius:14px;background:rgba(7,11,24,.6);display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+    .send-confirm[hidden]{display:none}
+    .send-confirm-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0}
+    .send-confirm-avatar[hidden]{display:none}
+    .send-confirm-text{flex:1;min-width:200px;margin:0;color:#f4f7ff;font-size:.92rem;font-weight:600;overflow-wrap:anywhere}
+    .send-confirm-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .send-btn-cancel{background:transparent;border:1px solid rgba(255,255,255,.18);color:#c8cde6}
+    .send-btn-cancel:hover{box-shadow:none}
     .send-status{margin-top:14px;font-size:.85rem;min-height:18px;color:#8892b8}
     .send-status.ok{color:#34d399}
     .send-status.err{color:#f87171}
@@ -124,9 +133,17 @@
       Send BFC
     </div>
     <div class="send-row">
-      <input type="text" id="send-recipient" class="send-input" placeholder="Recipient user ID" />
+      <input type="text" id="send-username" class="send-input" placeholder="Recipient username" autocomplete="off" autocapitalize="off" spellcheck="false" />
       <input type="number" id="send-amount" class="send-input send-input-amount" placeholder="Amount" min="1" />
       <button type="button" id="send-btn" class="send-btn">Send BFC</button>
+    </div>
+    <div class="send-confirm" id="send-confirm" hidden>
+      <img class="send-confirm-avatar" id="send-confirm-avatar" alt="" hidden />
+      <p class="send-confirm-text" id="send-confirm-text"></p>
+      <div class="send-confirm-actions">
+        <button type="button" id="send-confirm-btn" class="send-btn">Confirm</button>
+        <button type="button" id="send-cancel-btn" class="send-btn send-btn-cancel">Cancel</button>
+      </div>
     </div>
     <div class="send-status" id="send-status"></div>
   </div>
@@ -268,23 +285,47 @@ function renderWallet(data) {
 }
 
 var sendBtn = document.getElementById("send-btn");
-var sendRecipient = document.getElementById("send-recipient");
+var sendUsername = document.getElementById("send-username");
 var sendAmount = document.getElementById("send-amount");
 var sendStatus = document.getElementById("send-status");
+var sendConfirm = document.getElementById("send-confirm");
+var sendConfirmText = document.getElementById("send-confirm-text");
+var sendConfirmAvatar = document.getElementById("send-confirm-avatar");
+var sendConfirmBtn = document.getElementById("send-confirm-btn");
+var sendCancelBtn = document.getElementById("send-cancel-btn");
 
 function setSendStatus(text, kind) {
   sendStatus.textContent = text;
   sendStatus.className = "send-status" + (kind ? " " + kind : "");
 }
 
+/* BFC goes to a member by username, and only after the person has seen whose
+   it is. "Send BFC" looks the username up and asks "Send N BFC to <name>
+   (@username)?"; only Confirm calls the transfer, and it sends exactly what was
+   confirmed. pendingSend is set by a lookup the server answered and cleared by
+   Cancel, by Confirm, and by any edit to the username or the amount. */
+var pendingSend = null;
+
+function closeConfirm() {
+  pendingSend = null;
+  sendConfirm.hidden = true;
+  sendConfirmText.textContent = "";
+  sendConfirmAvatar.hidden = true;
+  sendConfirmAvatar.removeAttribute("src");
+}
+
+sendUsername.addEventListener("input", closeConfirm);
+sendAmount.addEventListener("input", closeConfirm);
+
 sendBtn.addEventListener("click", function () {
-  var recipientId = sendRecipient.value.trim();
+  var username = sendUsername.value.trim().replace(/^@/, "");
   var amount = parseInt(sendAmount.value, 10);
 
+  closeConfirm();
   setSendStatus("", "");
 
-  if (!recipientId) {
-    setSendStatus("Recipient is required.", "err");
+  if (!username) {
+    setSendStatus("Enter the username of the member you are sending to.", "err");
     return;
   }
 
@@ -292,6 +333,49 @@ sendBtn.addEventListener("click", function () {
     setSendStatus("Amount must be a positive integer.", "err");
     return;
   }
+
+  sendBtn.disabled = true;
+  sendBtn.textContent = "Looking up...";
+
+  fetch(API_URL + "/api/wallet/recipient?username=" + encodeURIComponent(username), {
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; });
+    })
+    .then(function (res) {
+      if (!res.ok || !res.data || !res.data.username) {
+        setSendStatus((res.data && res.data.error) || "Could not look up that username. Nothing was sent.", "err");
+        return;
+      }
+      var name = res.data.display_name || res.data.username;
+      pendingSend = { username: res.data.username, amount: amount };
+      sendConfirmText.textContent = "Send " + amount.toLocaleString() + " BFC to " + name + " (@" + res.data.username + ")?";
+      if (res.data.avatar_url && String(res.data.avatar_url).indexOf("https://") === 0) {
+        sendConfirmAvatar.src = res.data.avatar_url;
+        sendConfirmAvatar.hidden = false;
+      }
+      sendConfirm.hidden = false;
+      setSendStatus("Nothing has been sent yet.", "");
+    })
+    .catch(function () {
+      setSendStatus("Network error — could not look up that username. Nothing was sent.", "err");
+    })
+    .then(function () {
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send BFC";
+    });
+});
+
+sendCancelBtn.addEventListener("click", function () {
+  closeConfirm();
+  setSendStatus("Cancelled. Nothing was sent.", "");
+});
+
+sendConfirmBtn.addEventListener("click", function () {
+  if (!pendingSend) return;
+  var send = pendingSend;
+  closeConfirm();
 
   sendBtn.disabled = true;
   sendBtn.textContent = "Sending...";
@@ -302,15 +386,15 @@ sendBtn.addEventListener("click", function () {
       "Authorization": "Bearer " + token,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ recipientId: recipientId, amount: amount })
+    body: JSON.stringify({ recipientUsername: send.username, amount: send.amount })
   })
     .then(function (r) {
       return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; });
     })
     .then(function (res) {
       if (res.ok) {
-        setSendStatus("Sent " + amount.toLocaleString() + " BFC.", "ok");
-        sendRecipient.value = "";
+        setSendStatus("Sent " + send.amount.toLocaleString() + " BFC to @" + send.username + ".", "ok");
+        sendUsername.value = "";
         sendAmount.value = "";
         loadWallet();
       } else {

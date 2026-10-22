@@ -64,7 +64,7 @@
     ],
     "wallet.html": [
       "Your BFC Wallet — Available Balance, Total Earned, Total Spent, and Transaction History for your BizForce Credits. The history shows your latest 50 transactions, and Total Earned and Total Spent are added up from those 50.",
-      "Nothing to configure — the one action here is Send BFC, which sends credits to another member by their user ID; using the platform earns nothing by itself.",
+      "Nothing to configure — the one action here is Send BFC, which sends credits to another member by their username after you confirm the name it finds; using the platform earns nothing by itself.",
       "Check \"How to Earn BFC\" — your first pass of each certification pays 100 BFC while you're subscribed, and a one-time 1,000 BFC welcome bonus lands when your subscription goes active. Running agent tasks and posting listings pay nothing.",
       "Your BFC balance reflects certifications passed, the welcome bonus, and what you've sent, received and spent — not how much you use the platform."
     ],
