@@ -1,0 +1,6 @@
+# The service worker's cache is versioned by commit: this writes the commit
+# Netlify is deploying into sw.js, so each deploy installs a new worker with a
+# new cache and the old one is deleted. Nothing else is built; the site is
+# published as it is in the repo.
+[build]
+  command = 'sed -i "s/__BF_BUILD__/${COMMIT_REF:-local}/" sw.js'

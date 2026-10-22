@@ -30,6 +30,7 @@
 <script>
   try { if (localStorage.getItem("bf_token")) document.write('<script src="/scripts/bf-session.js"><\/script>'); } catch (e) {}
 </script>
+<script src="/scripts/bf-offline.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; color: #e8e8ff; background: #070b18; }
@@ -73,6 +74,12 @@
 
     <h2>Protections</h2>
     <ul id="protections"></ul>
+
+    <h2>On this device</h2>
+    <div class="card">
+      <ul id="deviceCopy"></ul>
+      <div id="offlineSetting" hidden></div>
+    </div>
 
     <h2>Download my data</h2>
     <div class="card">
@@ -140,7 +147,13 @@
     d.protections.forEach(function (p) { add(el("protections"), "li", p.text); });
     d.neverExported.forEach(function (t) { add(el("neverExported"), "li", t); });
     d.deleteNotes.forEach(function (t) { add(el("deleteNotes"), "li", t); });
+    ((d.deviceCopy && d.deviceCopy.lines) || []).forEach(function (t) { add(el("deviceCopy"), "li", t); });
     var signedIn = !!token();
+    /* The setting itself, signed in only: a copy is of a member's own data. */
+    if (signedIn && window.BFOffline) {
+      el("offlineSetting").hidden = false;
+      window.BFOffline.mountSetting(el("offlineSetting"));
+    }
     el("downloadSignedIn").hidden = !signedIn;
     el("downloadSignedOut").hidden = signedIn;
     el("deleteForm").hidden = !signedIn;
@@ -210,6 +223,9 @@
         el("delPassword").value = "";
         if (r.status === 200 && r.body.deleted) {
           try { localStorage.removeItem("bf_token"); localStorage.removeItem("bf_refresh"); localStorage.removeItem("bf_user"); } catch (x) {}
+          /* The saved offline copy and its setting go with the account (scripts/bf-offline.js). */
+          try { localStorage.removeItem("bf_offline_copy"); } catch (x) {}
+          try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (x) {}
           el("deleteForm").hidden = true;
           var done = el("deleteForm").parentNode;
           add(done, "p", "Your account is deleted. You have been signed out, and this account can never sign in again.", "status ok");

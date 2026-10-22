@@ -17,7 +17,8 @@
       "Your business name, industry and goal shown here come from your Business Profile — edit it here under Expand Profile or on the Content Agent's Edit Profile, and keep it current so this hub reflects who you actually are.",
       "Start with the Command Center: Needs you lists the proposals waiting on you and the runs that failed, Executive plans lists each plan's assignments with a Dispatch button, and Agent activity counts the runs your agents actually made.",
       "Treat the AI Agent Directory preview as your starting point for delegating work — Agent Hub and Full Directory each list all 18 agents.",
-      "Revisit this page often; it's built to surface what needs your attention, not just to look impressive."
+      "Revisit this page often; it's built to surface what needs your attention, not just to look impressive.",
+      "To open your recent tasks, business profile and wallet history with no connection, turn on \"Keep a copy on this device for offline use\" in Settings, under Account. Offline, a page shows the time its copy was saved, and nothing can be sent or changed until you're back online."
     ],
     "agents-hub.html": [
       "Browse and launch any of your AI agents from one place — each card opens that agent's dedicated workspace.",

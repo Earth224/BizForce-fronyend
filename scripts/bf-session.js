@@ -125,7 +125,12 @@
          session has ended would be leaving the front door key under the mat. */
       localStorage.removeItem(REFRESH_KEY);
       localStorage.removeItem(USER_KEY);
+      /* So does the saved offline copy's setting, and below, the copy itself
+         (scripts/bf-offline.js): nothing saved for offline use outlives the
+         session it was saved in. */
+      localStorage.removeItem("bf_offline_copy");
     } catch (e) { /* storage unavailable; the redirect still matters */ }
+    try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) { /* nothing to delete */ }
 
     /* THE REASON TRAVELS IN THE URL, and app.html reads it. A redirect that
        drops the reason lands the user on a login form having been thrown out

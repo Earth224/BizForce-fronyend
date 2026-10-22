@@ -457,6 +457,7 @@
       .settings-panel.active { display: block; }
     }
   </style>
+  <script src="/scripts/bf-offline.js"></script>
 </head>
 <body>
   <div class="page">
@@ -734,6 +735,13 @@
 
             <div class="toggle-row">
               <div class="toggle-copy">
+                <div class="toggle-title">Offline Copy</div>
+                <div class="toggle-desc" id="offlineSetting"></div>
+              </div>
+            </div>
+
+            <div class="toggle-row">
+              <div class="toggle-copy">
                 <div class="toggle-title">Your Data</div>
                 <div class="toggle-desc">See what BizForce stores about you, download all of it, or delete your account.</div>
               </div>
@@ -743,7 +751,7 @@
             </div>
 
             <div class="btn-row">
-              <button class="btn btn-danger" id="signOutBtn" type="button">Sign Out</button>
+              <button class="btn btn-danger" id="signOutBtn" type="button" data-offline-ok>Sign Out</button>
             </div>
           </section>
 
@@ -756,6 +764,10 @@
 <script src="/scripts/bf-agent-order.js"></script>
 <script src="/scripts/bf-dashboard-order.js"></script>
   <script src="/scripts/bf-identity.js"></script>
+  <script>
+    /* The offline-copy setting, drawn by scripts/bf-offline.js (loaded in the head). */
+    if (window.BFOffline) window.BFOffline.mountSetting(document.getElementById("offlineSetting"));
+  </script>
   <script>
     (function () {
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -2506,6 +2518,9 @@
            account after the user believed they had signed out. */
         localStorage.removeItem("bf_refresh");
         localStorage.removeItem("bf_user");
+        /* The saved offline copy and its setting go too (scripts/bf-offline.js). */
+        localStorage.removeItem("bf_offline_copy");
+        try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) {}
         window.location.replace("app.html" + (reason ? "?session=" + reason : ""));
       });
     })();

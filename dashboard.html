@@ -2,6 +2,7 @@
 <html>
 <head>
 <script src="/scripts/bf-session.js"></script>
+<script src="/scripts/bf-offline.js"></script>
 <script>
     /* SIGN-OUT ENDS THE SESSION ON THE SERVER, NOT ONLY IN THIS BROWSER.
        Clearing storage alone left the auth_sessions row and its refresh token
@@ -47,6 +48,10 @@
        reachable from this browser by anything that reads storage. */
     localStorage.removeItem("bf_refresh");
     localStorage.removeItem("bf_user");
+    /* The saved offline copy and its setting go with the session
+       (scripts/bf-offline.js): no copy outlives a sign-out. */
+    localStorage.removeItem("bf_offline_copy");
+    try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) {}
     window.location.replace("/app.html" + (reason ? "?session=" + reason : ""));
 }
 </script>
@@ -62,15 +67,6 @@
 <meta name="apple-mobile-web-app-title" content="BizForce">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<script>
-  /* Registered so Chrome will offer "Add to home screen". The worker
-     itself caches nothing — see sw.js. */
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("/sw.js").catch(function () {});
-    });
-  }
-</script>
 <link rel="stylesheet" href="/css/bizforce-ui.css">
 <style>
     /* Safe-area insets, scoped to this page. .topbar, .app-main and
@@ -205,7 +201,7 @@
       </div>
     </div>
     <a href="settings.html" class="bf-btn bf-btn-ghost" id="settingsNavBtn">Settings</a>
-    <button class="logout bf-btn bf-btn-ghost" type="button" onclick="logout()">Sign Out</button>
+    <button class="logout bf-btn bf-btn-ghost" type="button" onclick="logout()" data-offline-ok>Sign Out</button>
   </div>
 </header>
 <script>

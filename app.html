@@ -334,6 +334,16 @@
       }
     }
   </style>
+<script>
+  /* No session on this browser: the saved offline copy and its setting
+     (scripts/bf-offline.js) are deleted, whichever way the session ended. */
+  try {
+    if (!localStorage.getItem("bf_token")) {
+      localStorage.removeItem("bf_offline_copy");
+      if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline");
+    }
+  } catch (e) {}
+</script>
 </head>
 <body>
   <main class="wrap">
