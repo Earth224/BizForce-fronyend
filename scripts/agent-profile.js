@@ -116,6 +116,12 @@
     ".ap-sched-instr-label{display:block;font-size:.7rem;letter-spacing:.08em;",
       "text-transform:uppercase;color:#8892b8;margin-bottom:3px}",
     ".ap-sched-last{margin-top:8px;font-size:.75rem;color:#8892b8}",
+    ".ap-sched-last.failed{color:#f5b5b5}",
+    ".ap-sched-last a{color:#22d3ee}",
+    /* WAITING. Paused, or held for the subscription: the schedule exists and
+       is kept, and it is not going to run until the line says what changes. */
+    ".ap-sched-state{margin-top:10px;padding:9px 12px;border-radius:10px;font-size:.78rem;",
+      "line-height:1.55;color:#fde68a;background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.35)}",
     /* NONE. A real answer, and it says what the absence means. */
     ".ap-sched-empty{padding:12px 14px;border-radius:12px;font-size:.8rem;color:#8892b8;",
       "background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.14);line-height:1.55}",
@@ -704,6 +710,7 @@
                 '<span id="apSchedInstr"></span>',
               '</div>',
               '<div class="ap-sched-last" id="apSchedLast" hidden></div>',
+              '<div class="ap-sched-state" id="apSchedState" hidden></div>',
             '</div>',
 
             '<div class="ap-sched-empty" id="apSchedEmpty" hidden>',
@@ -712,17 +719,22 @@
 
             '<div class="ap-sched-actions" id="apSchedViewActions" hidden>',
               '<button type="button" class="ap-sched-btn ghost" id="apSchedEditBtn">Edit schedule</button>',
+              /* Pause beside Remove, because they answer the same wish — stop
+                 this — and only one of them keeps the instruction. Resume takes
+                 Pause's place while the schedule is paused. */
+              '<button type="button" class="ap-sched-btn ghost" id="apSchedPauseBtn">Pause</button>',
+              '<button type="button" class="ap-sched-btn" id="apSchedResumeBtn" hidden>Resume</button>',
               '<button type="button" class="ap-sched-btn danger" id="apSchedDeleteBtn">Remove</button>',
             '</div>',
 
-            /* The confirmation says what removal costs BEFORE it happens. There
-               is no route to pause a schedule, so the only way to stop one is to
-               delete it, and deleting it takes the instruction with it. Someone
-               should not find that out by losing a prompt they wrote. */
+            /* The confirmation says what removal costs BEFORE it happens:
+               deleting takes the instruction with it, and Pause is the way to
+               stop a schedule without losing it. Someone should not find that
+               out by losing a prompt they wrote. */
             '<div class="ap-sched-confirm" id="apSchedConfirm" hidden>',
-              'Remove this schedule? The standing instruction is not kept. There is no way to ',
-              'pause a schedule, so removing it is the only way to stop it — and the text above ',
-              'is deleted with it, so you would have to write it again.',
+              'Remove this schedule? The standing instruction is not kept — it is deleted with ',
+              'the schedule, so you would have to write it again. To stop it for a while and ',
+              'keep the instruction, choose Pause instead.',
               '<div class="ap-sched-actions">',
                 '<button type="button" class="ap-sched-btn danger" id="apSchedConfirmBtn">Remove schedule and instruction</button>',
                 '<button type="button" class="ap-sched-btn ghost" id="apSchedCancelDeleteBtn">Keep it</button>',
@@ -1194,6 +1206,81 @@
   var scheduleSaving   = false;
   var scheduleDeleting = false;
   var scheduleConfirmingDelete = false;
+  var schedulePausing  = false;
+  /* GET's subscription_active: true, false, or null when the server could not
+     read the plan. Only false says the schedule is waiting for it. */
+  var scheduleSubscriptionActive = null;
+
+  /* The words the card uses for each state, in one place. */
+  var SCHED_WORDS = {
+    pausedOwner:    "Paused. It will not run until you press Resume. The instruction, the days and the time are kept.",
+    pausedFailures: function (n) {
+      return "Paused after " + n + " failed runs in a row. It will not run again until you press Resume.";
+    },
+    lapsed:         "Paused while your subscription is inactive. Resumes automatically when it's active again."
+  };
+
+  /* A timestamp in the viewer's own time. last_attempt_at is a full instant,
+     unlike last_run_on, so new Date is right here. */
+  function fmtWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso || "");
+    try {
+      return d.toLocaleString(undefined, { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+      return d.toISOString();
+    }
+  }
+
+  /* The last run, as the runner recorded it: when, how it went, why in the
+     server's own words, and the task when one was queued. A row from before
+     the runner recorded outcomes has only last_run_on, and says only that. */
+  function renderScheduleLast(lastEl, row) {
+    lastEl.textContent = "";
+    lastEl.className = "ap-sched-last";
+    if (row.last_run_status && row.last_attempt_at) {
+      var text = "Last run: " + fmtWhen(row.last_attempt_at) + " — ";
+      if (row.last_run_status === "succeeded") {
+        text += "succeeded.";
+      } else if (row.last_run_status === "failed") {
+        text += "failed. " + (row.last_error || "No reason was recorded.");
+        lastEl.className = "ap-sched-last failed";
+      } else {
+        text += (row.last_error || "skipped.");
+      }
+      lastEl.appendChild(document.createTextNode(text));
+      if (row.last_run_status === "succeeded" && row.last_task_id) {
+        lastEl.appendChild(document.createTextNode(" "));
+        var link = document.createElement("a");
+        link.href = "/run.html?id=" + encodeURIComponent(row.last_task_id);
+        link.textContent = "Open the task";
+        lastEl.appendChild(link);
+      }
+      show(lastEl, true);
+    } else if (row.last_run_on) {
+      /* A fact about what happened, not a status. "Last ran on 9th September
+         2026" is a record; "Active" or "Healthy" would be a claim about the
+         present that this row cannot support. */
+      lastEl.textContent = "Last ran on " + fmtDateOnly(row.last_run_on) + ".";
+      show(lastEl, true);
+    } else {
+      show(lastEl, false);
+    }
+  }
+
+  /* Why the schedule is waiting, when it is. Both can be true at once, and
+     then both are said: Resume alone would not make a lapsed schedule run. */
+  function renderScheduleState(stateEl, row) {
+    var lines = [];
+    if (row.paused === true) {
+      lines.push(row.paused_reason === "failures"
+        ? SCHED_WORDS.pausedFailures(row.consecutive_failures || 3)
+        : SCHED_WORDS.pausedOwner);
+    }
+    if (scheduleSubscriptionActive === false) lines.push(SCHED_WORDS.lapsed);
+    stateEl.textContent = lines.join(" ");
+    show(stateEl, lines.length > 0);
+  }
 
   function setSchedMsg(text, cls) {
     var el = document.getElementById("apSchedMsg");
@@ -1301,19 +1388,18 @@
       schedEl("apSchedWhen").textContent  = scheduleSentence(scheduleState);
       schedEl("apSchedInstr").textContent = scheduleState.prompt || "";
       var lastEl = schedEl("apSchedLast");
-      if (lastEl) {
-        if (scheduleState.last_run_on) {
-          /* A fact about what happened, not a status. "Last ran on 9th September
-             2026" is a record; "Active" or "Healthy" would be a claim about the
-             present that this row cannot support. */
-          lastEl.textContent = "Last ran on " + fmtDateOnly(scheduleState.last_run_on) + ".";
-          show(lastEl, true);
-        } else {
-          lastEl.textContent = "";
-          show(lastEl, false);
-        }
-      }
+      if (lastEl) renderScheduleLast(lastEl, scheduleState);
+      var stateEl = schedEl("apSchedState");
+      if (stateEl) renderScheduleState(stateEl, scheduleState);
     }
+
+    var isPaused = hasSchedule && scheduleState.paused === true;
+    show(schedEl("apSchedPauseBtn"),  hasSchedule && !isPaused);
+    show(schedEl("apSchedResumeBtn"), isPaused);
+    ["apSchedPauseBtn", "apSchedResumeBtn", "apSchedEditBtn", "apSchedDeleteBtn"].forEach(function (id) {
+      var b = schedEl(id);
+      if (b) b.disabled = schedulePausing || scheduleDeleting;
+    });
 
     show(summaryEl, hasSchedule && !scheduleEditing);
     /* Shown whenever there is no schedule, INCLUDING while the create form is
@@ -1363,6 +1449,8 @@
         }
 
         var rows = res.data.schedules;
+        scheduleSubscriptionActive = typeof res.data.subscription_active === "boolean"
+          ? res.data.subscription_active : null;
         var row = null;
         var i;
         for (i = 0; i < rows.length; i++) {
@@ -1530,7 +1618,51 @@
       });
   }
 
+  /* PUT /api/agent-schedules/<agent>/pause or /resume. Only the paused state
+     changes; the server answers with the row, which is what is then shown.
+     A failure leaves the schedule as it was on screen, as a failed delete does:
+     a control that claims a pause that did not happen leaves an agent running
+     that its owner believes is stopped. */
+  function setSchedulePaused(pause) {
+    var token = tok();
+    if (!token) return;
+    if (scheduleState === null || scheduleState === SCHED_NONE) return;
+
+    schedulePausing = true;
+    renderSchedule();
+    setSchedMsg(pause ? "Pausing…" : "Resuming…", "");
+
+    fetch(API_URL + "/api/agent-schedules/" + encodeURIComponent(AGENT_TYPE) + (pause ? "/pause" : "/resume"), {
+      method: "PUT",
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(readJsonResult)
+      .then(function (res) {
+        if (!res.ok || !res.parsed || !res.data || !res.data.schedule) {
+          throw new Error((res.data && res.data.error) ||
+            ("The schedule could not be " + (pause ? "paused" : "resumed") + " (HTTP " + res.status + ")."));
+        }
+        schedulePausing = false;
+        scheduleState = res.data.schedule;
+        renderSchedule();
+        setSchedMsg(pause
+          ? "Schedule paused. The instruction, the days and the time are kept."
+          : "Schedule resumed. It runs next at its usual time; runs missed while it was paused are not made up.", "ok");
+      })
+      .catch(function (error) {
+        schedulePausing = false;
+        renderSchedule();
+        setSchedMsg((error && error.message) ||
+          ("The schedule could not be " + (pause ? "paused" : "resumed") + "."), "err");
+      });
+  }
+
   function bindSchedule() {
+    var pauseBtn = schedEl("apSchedPauseBtn");
+    if (pauseBtn) pauseBtn.addEventListener("click", function () { setSchedulePaused(true); });
+    var resumeBtn = schedEl("apSchedResumeBtn");
+    if (resumeBtn) resumeBtn.addEventListener("click", function () { setSchedulePaused(false); });
+
     var cadenceEl = schedEl("apSchedCadence");
     if (cadenceEl) cadenceEl.addEventListener("change", syncSchedDayFields);
 
