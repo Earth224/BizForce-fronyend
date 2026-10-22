@@ -213,6 +213,14 @@
           el("deleteForm").hidden = true;
           var done = el("deleteForm").parentNode;
           add(done, "p", "Your account is deleted. You have been signed out, and this account can never sign in again.", "status ok");
+          var f = r.body.files;
+          if (f) {
+            var parts = [f.deleted + (f.deleted === 1 ? " file" : " files") + " deleted"];
+            if (f.queued) parts.push(f.queued + (f.queued === 1 ? " file" : " files") + " could not be removed right away and will be removed automatically within a few days");
+            if (f.not_queued) parts.push(f.not_queued + (f.not_queued === 1 ? " file" : " files") + " could not be removed yet, and BizForce's owner has been told to remove them");
+            if (f.kept_for_buyers) parts.push(f.kept_for_buyers + (f.kept_for_buyers === 1 ? " file you sold stays" : " files you sold stay") + " available to the members who bought them");
+            add(done, "p", "Your files: " + parts.join("; ") + ".", "status ok");
+          }
           var home = add(done, "a", "Go to the home page");
           home.href = "index.html";
           return;
