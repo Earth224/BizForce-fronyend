@@ -334,14 +334,14 @@
       }
     }
   </style>
+<script src="/scripts/bf-session.js" data-clear-only></script>
 <script>
-  /* No session on this browser: the saved offline copy and its setting
-     (scripts/bf-offline.js) are deleted, whichever way the session ended. */
+  /* No session on this browser: every per-member key, cache and copy is
+     cleared (scripts/bf-session.js, clearDevice), whichever way the session
+     ended. bf_return_to is not on that list, so a return address set just
+     before sending a visitor here survives. */
   try {
-    if (!localStorage.getItem("bf_token")) {
-      localStorage.removeItem("bf_offline_copy");
-      if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline");
-    }
+    if (!localStorage.getItem("bf_token") && window.BFSession) window.BFSession.clearDevice();
   } catch (e) {}
 </script>
 </head>

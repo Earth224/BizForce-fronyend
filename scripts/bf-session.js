@@ -35,6 +35,60 @@
   var USER_KEY    = "bf_user";
   var LOGIN_PAGE  = "/app.html";
 
+  /* ── 0. Clearing this device: ONE function, every sign-out path ─────────
+     Everything a signed-in member leaves in this browser that is theirs:
+     the credentials, the offline-copy setting and copy (scripts/bf-offline.js),
+     dashboard.html's task-mailbox and agent-memory caches, the Oracle's birth
+     name and date, the sales page's daily goal, and the Termaximus insights
+     cached for this tab. Called by dashboard.html's and settings.html's Sign
+     Out, by endSession below, by the account delete on your-data.html, and by
+     app.html whenever it opens with no session.
+
+     LEFT ON PURPOSE (display choices, not a member's data): bf_editor_theme,
+     bf_recent_highlights and bf_recent_textcolors (the editor's look and
+     recent colours), tmx_presence_active, tmx_presence_pos, tmx_mist_corner
+     and tmx_agent_language (Termaximus on or off, where it sits, and the
+     language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
+     two Oracle widgets sit), bf_active_calendar (which calendar is shown),
+     bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
+     and bf_return_to (the public page to return to after signing in, which
+     app.html must still find). The backend's scripts/checkOfflineMode.js
+     fails on any storage key in the frontend that is on neither list.
+
+     A page that must not run the session guard (settings.html, app.html,
+     your-data.html signed out) loads this file with data-clear-only: it gets
+     clearDevice and nothing else. */
+  var PER_USER_LOCAL = [
+    "bf_token", "bf_refresh", "bf_user",
+    "bf_offline_copy",
+    "bizforce_ai_mailbox", "bf_agent_memories",
+    "bf_oracle_name", "bf_oracle_date",
+    "mcTargetGoalConversions"
+  ];
+  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:"];
+  var OFFLINE_DB = "bf-offline";
+
+  function clearDevice() {
+    PER_USER_LOCAL.forEach(function (key) {
+      try { localStorage.removeItem(key); } catch (e) { /* storage unavailable */ }
+    });
+    try {
+      for (var i = sessionStorage.length - 1; i >= 0; i--) {
+        var key = sessionStorage.key(i);
+        if (key && PER_USER_SESSION_PREFIXES.some(function (p) { return key.indexOf(p) === 0; })) sessionStorage.removeItem(key);
+      }
+    } catch (e) { /* storage unavailable */ }
+    try { if (window.indexedDB) window.indexedDB.deleteDatabase(OFFLINE_DB); } catch (e) { /* nothing to delete */ }
+  }
+
+  window.BFSession = {
+    clearDevice: clearDevice,
+    PER_USER_LOCAL: PER_USER_LOCAL.slice(),
+    PER_USER_SESSION_PREFIXES: PER_USER_SESSION_PREFIXES.slice()
+  };
+  var thisScript = typeof document !== "undefined" ? document.currentScript : null;
+  if (thisScript && thisScript.hasAttribute && thisScript.hasAttribute("data-clear-only")) return;
+
   /* Last-resort default only. The live value is read from window.API_URL at
      call time instead, because this script runs in <head> and every page
      declares `var API_URL = "..."` in a later script — so the constant does not
@@ -118,19 +172,11 @@
     if (redirecting) return;
     redirecting = true;
 
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-      /* The refresh token goes too. It is a live credential — it can mint
-         access tokens without a password — so leaving it behind after the
-         session has ended would be leaving the front door key under the mat. */
-      localStorage.removeItem(REFRESH_KEY);
-      localStorage.removeItem(USER_KEY);
-      /* So does the saved offline copy's setting, and below, the copy itself
-         (scripts/bf-offline.js): nothing saved for offline use outlives the
-         session it was saved in. */
-      localStorage.removeItem("bf_offline_copy");
-    } catch (e) { /* storage unavailable; the redirect still matters */ }
-    try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) { /* nothing to delete */ }
+    /* The token, and the refresh token with it: a live credential that can
+       mint access tokens without a password, so leaving it behind after the
+       session has ended would be leaving the front door key under the mat.
+       And every other per-member key, cache and copy (section 0). */
+    clearDevice();
 
     /* THE REASON TRAVELS IN THE URL, and app.html reads it. A redirect that
        drops the reason lands the user on a login form having been thrown out

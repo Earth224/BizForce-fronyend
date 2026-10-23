@@ -77,6 +77,15 @@
     .send-btn:disabled{opacity:.6;cursor:default;transform:none;box-shadow:none}
     .send-confirm{margin-top:16px;padding:16px 18px;border:1px solid rgba(34,211,238,.35);border-radius:14px;background:rgba(7,11,24,.6);display:flex;flex-wrap:wrap;align-items:center;gap:12px}
     .send-confirm[hidden]{display:none}
+    .trades-card{background:rgba(10,15,35,.78);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:24px 22px;margin:0 0 40px}
+    .trades-intro,.trades-check,.trades-status{font-size:.85rem;color:#aab3d8;line-height:1.55;margin:0 0 14px}
+    .trades-label{font-size:.8rem;font-weight:700;color:#cfd8ff}
+    .trades-date{flex:0 0 170px;min-width:0}
+    .trades-sub{font-size:.9rem;font-weight:800;color:#f4f7ff;margin:18px 0 10px}
+    .trades-sub[hidden]{display:none}
+    .trades-year{margin-top:18px}
+    .trades-status.error{color:#fca5a5}
+    .txn-ref{font-size:.68rem;color:#6b7499;word-break:break-all}
     .send-confirm-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0}
     .send-confirm-avatar[hidden]{display:none}
     .send-confirm-text{flex:1;min-width:200px;margin:0;color:#f4f7ff;font-size:.92rem;font-weight:600;overflow-wrap:anywhere}
@@ -154,6 +163,32 @@
     Transaction History
   </div>
   <div class="txn-list" id="txnList"><div class="loading">Loading transactions...</div></div>
+
+  <div class="section-title" style="margin-top:40px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    Trades
+  </div>
+  <div class="trades-card">
+    <p class="trades-intro">Every BizCash trade you made with another member: purchases, sales, transfers and donations, with who, what, how much and when (UTC). BizCash issued to you by BizForce, such as a certification credit or the welcome bonus, is listed apart: it is not a trade.</p>
+    <div class="send-row">
+      <label class="trades-label" for="tradesFrom">From</label>
+      <input type="date" id="tradesFrom" class="send-input trades-date" />
+      <label class="trades-label" for="tradesTo">To</label>
+      <input type="date" id="tradesTo" class="send-input trades-date" />
+      <button type="button" id="tradesShowBtn" class="send-btn">Show Trades</button>
+      <button type="button" id="tradesCsvBtn" class="send-btn">Download CSV</button>
+    </div>
+    <p class="trades-status" id="tradesStatus"></p>
+    <div class="txn-list" id="tradesList"></div>
+    <div class="trades-sub" id="issuedTitle" hidden>Issued by BizForce (not trades)</div>
+    <div class="txn-list" id="issuedList"></div>
+    <p class="trades-check" id="tradesCheck"></p>
+    <div class="send-row trades-year">
+      <label class="trades-label" for="statementYear">Year</label>
+      <select id="statementYear" class="send-input trades-date"></select>
+      <button type="button" id="statementBtn" class="send-btn">Yearly Statement</button>
+    </div>
+  </div>
 
   <div class="earn-section">
     <div class="section-title">
@@ -418,7 +453,136 @@ sendConfirmBtn.addEventListener("click", function () {
     });
 });
 
+/* ── Trades: GET /api/me/trades, /api/me/trades.csv and /api/me/trade-statement.
+   Every BizCash trade with another member, and what BizForce issued, apart.
+   BFC amounts only. Drawn with textContent: titles and usernames are other
+   members' words. */
+var tradesFrom = document.getElementById("tradesFrom");
+var tradesTo = document.getElementById("tradesTo");
+var tradesStatus = document.getElementById("tradesStatus");
+var tradesList = document.getElementById("tradesList");
+var issuedList = document.getElementById("issuedList");
+var issuedTitle = document.getElementById("issuedTitle");
+var tradesCheck = document.getElementById("tradesCheck");
+var statementYear = document.getElementById("statementYear");
+
+function tradesQuery() {
+  var q = [];
+  if (tradesFrom.value) q.push("from=" + encodeURIComponent(tradesFrom.value));
+  if (tradesTo.value) q.push("to=" + encodeURIComponent(tradesTo.value));
+  return q.length ? "?" + q.join("&") : "";
+}
+function setTradesStatus(text, isError) {
+  tradesStatus.textContent = text;
+  tradesStatus.className = "trades-status" + (isError ? " error" : "");
+}
+function bfcAmount(n) {
+  return (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toLocaleString("en-US") + " BFC";
+}
+function tradeItem(list, line, date, bfc, reference) {
+  var item = document.createElement("div");
+  item.className = "txn-item";
+  var details = document.createElement("div");
+  details.className = "txn-details";
+  var desc = document.createElement("div");
+  desc.className = "txn-desc";
+  desc.textContent = line;
+  var when = document.createElement("div");
+  when.className = "txn-date";
+  when.textContent = date.slice(0, 10) + " " + date.slice(11, 16) + " UTC";
+  var ref = document.createElement("div");
+  ref.className = "txn-ref";
+  ref.textContent = "Reference " + reference;
+  details.appendChild(desc); details.appendChild(when); details.appendChild(ref);
+  var amount = document.createElement("div");
+  amount.className = "txn-amount " + (bfc < 0 ? "debit" : "credit");
+  amount.textContent = bfcAmount(bfc);
+  item.appendChild(details); item.appendChild(amount);
+  list.appendChild(item);
+}
+function renderTrades(d) {
+  tradesList.textContent = "";
+  issuedList.textContent = "";
+  d.trades.forEach(function (t) {
+    var line = t.type.charAt(0).toUpperCase() + t.type.slice(1) + " \u2014 " + t.counterparty + (t.item ? ": " + t.item : "");
+    tradeItem(tradesList, line, t.date, t.bfc, t.reference);
+  });
+  d.issued.forEach(function (x) { tradeItem(issuedList, x.description || "Issued by BizForce", x.date, x.bfc, x.reference); });
+  issuedTitle.hidden = d.issued.length === 0;
+  setTradesStatus(d.trades.length
+    ? d.totals.trades + (d.totals.trades === 1 ? " trade" : " trades") + ": " + d.totals.received_bfc.toLocaleString("en-US") + " BFC received, " +
+      d.totals.sent_bfc.toLocaleString("en-US") + " BFC sent."
+    : "No trades in this period.");
+  var r = d.reconciliation;
+  tradesCheck.textContent = r.holds
+    ? "Checked against your wallet ledger: the trades and the BizCash issued to you add up to its total for this period, " + bfcAmount(r.ledger_net_bfc) + "."
+    : "Checked against your wallet ledger: they do not add up. The ledger's total for this period is " + bfcAmount(r.ledger_net_bfc) + ", " +
+      bfcAmount(r.difference_bfc) + " away" + (d.unmatched.length ? "; " + d.unmatched.length + " ledger " + (d.unmatched.length === 1 ? "entry is" : "entries are") + " not matched to a trade, and the CSV lists them." : ".");
+}
+async function loadTrades() {
+  setTradesStatus("Loading your trades\u2026");
+  tradesCheck.textContent = "";
+  try {
+    var res = await fetch(API_URL + "/api/me/trades" + tradesQuery(), { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { setTradesStatus(await readError(res), true); return; }
+    renderTrades(await res.json());
+  } catch (e) {
+    setTradesStatus("Your trades could not be loaded. Check your connection and try again.", true);
+  }
+}
+async function downloadTradesCsv() {
+  var btn = document.getElementById("tradesCsvBtn");
+  btn.disabled = true;
+  try {
+    var res = await fetch(API_URL + "/api/me/trades.csv" + tradesQuery(), { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { setTradesStatus(await readError(res), true); return; }
+    var name = "bizforce-trades.csv";
+    var m = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "");
+    if (m) name = m[1];
+    var url = URL.createObjectURL(new Blob([await res.text()], { type: "text/csv" }));
+    var a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  } catch (e) {
+    setTradesStatus("The CSV could not be downloaded. Check your connection and try again.", true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+/* The window is opened on the click itself, so a popup blocker allows it,
+   and filled when the statement arrives. */
+async function openStatement() {
+  var win = window.open("", "_blank");
+  try {
+    var res = await fetch(API_URL + "/api/me/trade-statement?year=" + encodeURIComponent(statementYear.value), { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { var why = await readError(res); if (win) win.close(); setTradesStatus(why, true); return; }
+    var html = await res.text();
+    if (win) { win.document.open(); win.document.write(html); win.document.close(); return; }
+    var url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    var a = document.createElement("a");
+    a.href = url; a.download = "bizforce-trade-statement-" + statementYear.value + ".html";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+  } catch (e) {
+    if (win) win.close();
+    setTradesStatus("The statement could not be loaded. Check your connection and try again.", true);
+  }
+}
+(function fillYears() {
+  var year = new Date().getUTCFullYear();
+  for (var y = year; y >= Math.max(2020, year - 4); y--) {
+    var opt = document.createElement("option");
+    opt.value = String(y); opt.textContent = String(y);
+    statementYear.appendChild(opt);
+  }
+})();
+document.getElementById("tradesShowBtn").addEventListener("click", loadTrades);
+document.getElementById("tradesCsvBtn").addEventListener("click", downloadTradesCsv);
+document.getElementById("statementBtn").addEventListener("click", openStatement);
+
 loadWallet();
+loadTrades();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

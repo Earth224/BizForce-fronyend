@@ -48,10 +48,10 @@
        reachable from this browser by anything that reads storage. */
     localStorage.removeItem("bf_refresh");
     localStorage.removeItem("bf_user");
-    /* The saved offline copy and its setting go with the session
-       (scripts/bf-offline.js): no copy outlives a sign-out. */
-    localStorage.removeItem("bf_offline_copy");
-    try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) {}
+    /* Every other per-member key, cache and copy on this device: the task
+       mailbox and agent memory caches, the offline copy, and the rest
+       (scripts/bf-session.js, clearDevice). */
+    window.BFSession.clearDevice();
     window.location.replace("/app.html" + (reason ? "?session=" + reason : ""));
 }
 </script>

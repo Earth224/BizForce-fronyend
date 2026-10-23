@@ -457,6 +457,8 @@
       .settings-panel.active { display: block; }
     }
   </style>
+  <!-- clearDevice only: this page does not run the session guard (see the sign-out below). -->
+  <script src="/scripts/bf-session.js" data-clear-only></script>
   <script src="/scripts/bf-offline.js"></script>
 </head>
 <body>
@@ -2518,9 +2520,9 @@
            account after the user believed they had signed out. */
         localStorage.removeItem("bf_refresh");
         localStorage.removeItem("bf_user");
-        /* The saved offline copy and its setting go too (scripts/bf-offline.js). */
-        localStorage.removeItem("bf_offline_copy");
-        try { if (window.indexedDB) window.indexedDB.deleteDatabase("bf-offline"); } catch (e) {}
+        /* Every other per-member key, cache and copy on this device
+           (scripts/bf-session.js, clearDevice). */
+        window.BFSession.clearDevice();
         window.location.replace("app.html" + (reason ? "?session=" + reason : ""));
       });
     })();
