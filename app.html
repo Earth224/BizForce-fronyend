@@ -185,6 +185,31 @@
       box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.1);
     }
 
+    /* The Terms box at sign-up. The general input rule above sizes text
+       fields; a checkbox keeps its own look. */
+    .terms-field label {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .terms-field input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin: 2px 0 0;
+      padding: 0;
+      -webkit-appearance: checkbox;
+      appearance: auto;
+      accent-color: #22d3ee;
+    }
+
+    .terms-field a {
+      color: #22d3ee;
+    }
+
     .btn {
       width: 100%;
       position: relative;
@@ -393,6 +418,12 @@
           <input id="rp" name="register_password" type="password" autocomplete="new-password" placeholder="Create a password" required>
         </div>
 
+        <!-- Unchecked by default. The server refuses registration without it
+             and records the Terms version accepted (lib/legal.js ACCEPT_LABEL). -->
+        <div class="field terms-field">
+          <label for="rterms"><input id="rterms" name="accept_terms" type="checkbox" required> <span>I am 18 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a></span></label>
+        </div>
+
         <button id="registerBtn" class="btn" type="submit">Create Account</button>
       </form>
 
@@ -432,6 +463,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var registerBusinessInput = document.getElementById("rb");
   var registerEmailInput = document.getElementById("re");
   var registerPasswordInput = document.getElementById("rp");
+  var registerTermsInput = document.getElementById("rterms");
 
   function setStatus(message) {
     if (statusBox) {
@@ -958,6 +990,14 @@ if (loginForm) {
         return;
       }
 
+      var acceptedTerms = !!(registerTermsInput && registerTermsInput.checked === true);
+      if (!acceptedTerms) {
+        setRegisterBusy(false);
+        setStatus("");
+        setError("To create an account, confirm that you are 18 or older and agree to the Terms and Privacy Policy.");
+        return;
+      }
+
       try {
         var response = await fetch(API_URL + "/api/auth/register", {
           method: "POST",
@@ -967,7 +1007,8 @@ if (loginForm) {
           body: JSON.stringify({
             business_name: businessName,
             email: email,
-            password: password
+            password: password,
+            accept_terms: acceptedTerms
           })
         });
 
@@ -1061,5 +1102,7 @@ if (loginForm) {
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
 </body>
 </html>     

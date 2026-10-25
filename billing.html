@@ -137,6 +137,8 @@
     .status-badge.active   { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.35); color: #4ade80; }
     .status-badge.trialing { background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.35); color: #22d3ee; }
     .status-badge.past_due { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); color: #fbbf24; }
+    .renewal-note { margin: 0 0 16px; font-size: .86rem; line-height: 1.6; color: #aab3d8; }
+    .renewal-note a { color: #22d3ee; }
     .status-badge.canceled { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.35); color: #f87171; }
     .status-badge.none     { background: rgba(136,136,170,0.12); border: 1px solid rgba(136,136,170,0.25); color: #8888aa; }
     .detail-grid {
@@ -286,6 +288,7 @@
             <span id="memberSince">—</span>
           </div>
         </div>
+        <p class="renewal-note" id="renewalNote">Renews automatically every month at $199 until you cancel. Cancel any time with Manage / Cancel Subscription; you keep access to the end of the month you paid for. No partial or prorated refunds. <a href="/terms">Terms</a> &middot; <a href="/refund">Refunds</a></p>
         <div class="btn-row" id="activeActions">
           <button class="btn" id="portalBtn" type="button">Manage / Cancel Subscription</button>
         </div>
@@ -295,6 +298,7 @@
         <p id="noSubText" style="color:#8892b8;font-size:.9rem;margin:0 0 20px">
           You don't have an active BizForce AI subscription.
         </p>
+        <p class="renewal-note" id="checkoutRenewalNote"><strong>Automatic renewal:</strong> All Access is $199 per month and renews automatically every month until you cancel. Cancel any time here, online, with Manage / Cancel Subscription; you keep access to the end of the month you paid for. No partial or prorated refunds. By subscribing you agree to the <a href="/terms">Terms</a> and the <a href="/refund">refund policy</a>.</p>
         <button class="btn" id="checkoutBtn" type="button">Subscribe — $199/month</button>
         <div id="checkoutMsg" class="msg"></div>
       </div>
@@ -371,6 +375,8 @@
       document.getElementById("statusText").textContent = status.replace(/_/g, " ");
 
       document.getElementById("cancelWarn").style.display  = sub.cancel_at_period_end ? "block" : "none";
+      // A subscription set not to renew says so above; the renewal line would contradict it.
+      document.getElementById("renewalNote").style.display = sub.cancel_at_period_end ? "none" : "block";
       document.getElementById("pastDueWarn").style.display = status === "past_due" ? "block" : "none";
     }
     /* `unknown` is the server having been unable to say whether this account
@@ -476,5 +482,7 @@
   </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
 </body>
 </html>
