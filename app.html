@@ -311,6 +311,10 @@
       margin-bottom: 8px;
     }
 
+    .renew-consent { display: flex; gap: 10px; align-items: flex-start; margin: 12px 26px 0; font-size: 13px; line-height: 1.5; color: #e8e8ff; text-align: left; cursor: pointer; }
+    .renew-consent[hidden] { display: none; }
+    .renew-consent input { margin-top: 2px; width: 18px; height: 18px; flex: 0 0 auto; }
+
     .plan span {
       display: block;
       color: #aab4d4;
@@ -434,6 +438,7 @@
         <strong>BizForce AI All Access — $199/month</strong>
         <span>One subscription covers all 18 AI business agents. Lead Radar isn't included, and publishing to social accounts and direct SMS sending aren't available.</span>
       </div>
+      <label class="renew-consent" data-bf-renew-consent hidden><input type="checkbox" data-bf-renew-consent-box> <span data-bf-renew-consent-text></span></label>
 <button id="subscribeBtn" class="btn">Start Subscription</button>
       <div class="fine">Deploy AI agents for SEO, sales, content, ads, analytics, social, storefronts, PR, and R&amp;D — 18 specialists in all, spanning marketing, operations, and executive strategy.</div>
     </section>
@@ -1067,6 +1072,14 @@ if (loginForm) {
         return;
       }
 
+      /* The automatic-renewal box beside the price (scripts/bf-renew-consent.js):
+         unticked, or its words not loaded, and no checkout is asked for. */
+      var consent = window.BFRenewConsent ? window.BFRenewConsent.consent(document) : { error: "The automatic-renewal terms could not be loaded. Reload the page and try again." };
+      if (consent.error) {
+        setError(consent.error);
+        return;
+      }
+
       subscribeBtn.disabled = true;
       setStatus("Opening checkout...");
       setError("");
@@ -1078,28 +1091,31 @@ if (loginForm) {
             "Content-Type": "application/json",
             "Authorization": "Bearer " + token
           },
-          body: JSON.stringify({
+          body: JSON.stringify(Object.assign({
             product: "all_access"
-          })
+          }, consent.body))
         });
 
         var data = await parseJson(response);
 
+        /* A refusal carries `message` (no consent, already subscribed); it is
+           shown in place of the bare error code. */
         if (!response.ok || !data.url) {
-          throw new Error(data.error || "Checkout failed.");
+          throw new Error(data.message || "Checkout failed. Try again.");
         }
 
         window.location.href = data.url;
       } catch (error) {
         subscribeBtn.disabled = false;
         setStatus("");
-        setError("Checkout failed. Try again.");
+        setError(error.message || "Checkout failed. Try again.");
       }
     });
   
 }
 });
 </script>
+<script src="/scripts/bf-renew-consent.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

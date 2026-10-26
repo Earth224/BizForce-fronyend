@@ -139,6 +139,9 @@
     .status-badge.past_due { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); color: #fbbf24; }
     .renewal-note { margin: 0 0 16px; font-size: .86rem; line-height: 1.6; color: #aab3d8; }
     .renewal-note a { color: #22d3ee; }
+    .renew-consent { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; font-size: .92rem; line-height: 1.5; color: #e8e8ff; cursor: pointer; }
+    .renew-consent[hidden] { display: none; }
+    .renew-consent input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; }
     .status-badge.canceled { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.35); color: #f87171; }
     .status-badge.none     { background: rgba(136,136,170,0.12); border: 1px solid rgba(136,136,170,0.25); color: #8888aa; }
     .detail-grid {
@@ -299,6 +302,7 @@
           You don't have an active BizForce AI subscription.
         </p>
         <p class="renewal-note" id="checkoutRenewalNote"><strong>Automatic renewal:</strong> All Access is $199 per month and renews automatically every month until you cancel. Cancel any time here, online, with Manage / Cancel Subscription; you keep access to the end of the month you paid for. No partial or prorated refunds. By subscribing you agree to the <a href="/terms">Terms</a> and the <a href="/refund">refund policy</a>.</p>
+        <label class="renew-consent" data-bf-renew-consent hidden><input type="checkbox" data-bf-renew-consent-box> <span data-bf-renew-consent-text></span></label>
         <button class="btn" id="checkoutBtn" type="button">Subscribe — $199/month</button>
         <div id="checkoutMsg" class="msg"></div>
       </div>
@@ -459,12 +463,20 @@
 
     document.getElementById("checkoutBtn").addEventListener("click", async function () {
       var btn = this;
+      /* The automatic-renewal box beside the price (scripts/bf-renew-consent.js):
+         unticked, or its words not loaded, and no checkout is asked for. */
+      var consent = window.BFRenewConsent ? window.BFRenewConsent.consent(document) : { error: "The automatic-renewal terms could not be loaded. Reload the page and try again." };
+      if (consent.error) {
+        setMsg("checkoutMsg", consent.error, "err");
+        return;
+      }
       btn.disabled = true;
       setMsg("checkoutMsg", "Opening checkout...");
       try {
         var r = await fetch(API_URL + "/api/stripe/checkout", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok() }
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok() },
+          body: JSON.stringify(Object.assign({ product: "all_access" }, consent.body))
         });
         var d = await r.json();
         /* A refusal carries `message` (already subscribed, or the check could
@@ -480,6 +492,7 @@
     loadSubscription();
   })();
   </script>
+<script src="/scripts/bf-renew-consent.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
