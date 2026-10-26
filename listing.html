@@ -21,7 +21,6 @@
     .listing-title{margin:0 0 18px;font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.03em;line-height:1.2;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
     .listing-description{margin:0 0 28px;font-size:17px;line-height:1.75;color:#e6edf3;white-space:pre-wrap;word-break:break-word}
     .listing-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)}
-    .price-usd{font-size:1.7rem;font-weight:800;color:#f4f7ff;letter-spacing:-.02em}
     .price-sep{color:#4a5280;font-size:1rem}
     .price-bfc{font-size:1rem;font-weight:700;color:#22d3ee;letter-spacing:.02em}
     .price-none{font-size:1rem;color:#8892b8}
@@ -79,12 +78,6 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-function formatUsd(cents) {
-  var n = Number(cents);
-  if (!isFinite(n)) return null;
-  return "$" + (n / 100).toFixed(2) + " USD";
-}
-
 function showState(message, isError) {
   document.getElementById("listingRoot").innerHTML =
     '<div class="state' + (isError ? " error" : "") + '">' + escapeHtml(message) + "</div>";
@@ -119,27 +112,15 @@ async function loadListing() {
 
     document.title = String(listing.title || "BizForce AI");
 
-    // Price: USD when present, BFC when positive, both when both.
-    var priceBits = [];
-    if (listing.price_usd !== null && listing.price_usd !== undefined) {
-      var usd = formatUsd(listing.price_usd);
-      if (usd) priceBits.push('<span class="price-usd">' + escapeHtml(usd) + "</span>");
-    }
-    if (Number(listing.price_bfc) > 0) {
-      priceBits.push('<span class="price-bfc">' + escapeHtml(String(Math.round(Number(listing.price_bfc)))) + " BFC</span>");
-    }
-    var priceHtml = priceBits.length
-      ? priceBits.join('<span class="price-sep">or</span>')
-      : '<span class="price-none">Price on request</span>';
+    // Priced in BizCash only. A listing with no BFC price is shown, not sold.
+    var forSale = Number(listing.price_bfc) > 0;
+    var priceHtml = forSale
+      ? '<span class="price-bfc">' + escapeHtml(String(Math.round(Number(listing.price_bfc)))) + " BFC</span>"
+      : '<span class="price-none">Not for sale until the seller sets a BizCash price</span>';
 
-    // Buy goes to the seller's store — checkout does not happen on this page.
-    var handle = (d && d.handle) || (d && d.seller_handle) ||
-                 listing.seller_handle || listing.handle || "";
-    // Root-relative: this page is served at /listing/<id>, so a bare
-    // "seller.html" would resolve against /listing/ and 404.
-    var buyHref = handle
-      ? "/seller.html?u=" + encodeURIComponent(handle)
-      : "/marketplace.html";
+    // Buying is in BizCash on the marketplace, signed in; nothing is bought on this page.
+    // Root-relative: this page is served at /listing/<id>.
+    var buyHref = "/marketplace.html";
 
     var categoryHtml = listing.category
       ? '<div class="listing-category">' + escapeHtml(listing.category) + "</div>"
@@ -150,7 +131,7 @@ async function loadListing() {
       '<h1 class="listing-title">' + escapeHtml(listing.title) + "</h1>" +
       '<p class="listing-description">' + escapeHtml(listing.description || "") + "</p>" +
       '<div class="listing-price">' + priceHtml + "</div>" +
-      '<a class="buy-btn" href="' + escapeHtml(buyHref) + '">Buy</a>';
+      (forSale ? '<a class="buy-btn" href="' + escapeHtml(buyHref) + '">Buy with BizCash</a>' : "");
   } catch (e) {
     showState(e.message || "Could not load this listing", true);
   }

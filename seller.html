@@ -133,6 +133,8 @@
   <p class="sf-bio" id="sfBio" style="display:none"></p>
 
   <div class="sf-sections">
+    <p class="bfc-notice" data-bfc-notice></p>
+    <script src="/scripts/bf-bfc-notice.js"></script>
     <div class="sf-section" id="sec-services" style="display:none">
       <div class="sf-section-head">
         <div class="sf-section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 16l2.5 2.5L16 13"/></svg></div>
@@ -186,11 +188,11 @@ function initials(name) {
   return String(name || "").split(" ").filter(Boolean).map(function(w){ return w[0]; }).join("").toUpperCase().slice(0,2) || "?";
 }
 
-function formatPrice(price, currency) {
+// Priced in BizCash only (the route sends currency "BFC"). No BFC price: shown, not sold.
+function formatPrice(price) {
   var n = Number(price);
-  if (price == null || !isFinite(n) || n === 0) return "Free";
-  var cur = (currency || "USD").toUpperCase();
-  return cur + " " + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price == null || !isFinite(n) || n <= 0) return "Not for sale until the seller sets a BizCash price";
+  return Math.round(n).toLocaleString() + " BFC";
 }
 
 function setAccent(hex) {
@@ -218,20 +220,21 @@ async function startCheckout(id) {
     return;
   }
 
-  showMsg("Starting checkout…");
+  if (!window.confirm("Buy this listing with BizCash?")) return;
+  showMsg("Buying with BizCash…");
   try {
-    var res = await fetch(API_URL + "/api/marketplace/listings/" + encodeURIComponent(id) + "/checkout-usd", {
+    var res = await fetch(API_URL + "/api/marketplace/listings/" + encodeURIComponent(id) + "/buy", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token }
     });
     var data = await res.json().catch(function() { return {}; });
-    if (!res.ok || !data.url) {
-      showMsg(data.error || "Checkout unavailable. Please try again.");
+    if (!res.ok || data.balance === undefined) {
+      showMsg(data.error || "The purchase did not go through. Please try again.");
       return;
     }
-    window.location.href = data.url;
+    showMsg("Bought. Your BizCash balance is now " + data.balance + " BFC. It is in My Purchases.");
   } catch (e) {
-    showMsg("Checkout failed. Please try again.");
+    showMsg("The purchase did not go through. Please try again.");
   }
 }
 
@@ -278,13 +281,11 @@ function renderListingCard(item) {
   var buyBtn = "";
   if (isPurchasable) {
     buyBtn = localStorage.getItem("bf_token")
-      ? '<button type="button" class="sf-buy-btn" data-listing-id="' + esc(item.id) + '">Buy</button>'
+      ? '<button type="button" class="sf-buy-btn" data-listing-id="' + esc(item.id) + '">Buy with BizCash</button>'
       : '<a class="sf-buy-btn sf-buy-signin" href="app.html">Sign in to buy</a>';
     buyBtn += '<div class="sf-buy-msg" id="buyMsg-' + esc(item.id) + '"></div>';
   }
-  var priceHtml = (item.is_purchasable === false && item.price == null)
-    ? ""
-    : '<div class="sf-card-price">' + formatPrice(item.price, item.currency) + '</div>';
+  var priceHtml = '<div class="sf-card-price">' + esc(formatPrice(item.price)) + '</div>';
   // slug is null on rows created before slugs existed; the /listing/:id route resolves both.
   var listingRef = item.slug || item.id;
   var nameHtml = listingRef
