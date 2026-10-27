@@ -257,6 +257,7 @@
       <p class="msg" id="adminNotice" style="display:none">
         Admin account — access does not depend on a subscription, and nothing is billed.
       </p>
+      <p class="msg ok" id="ownerNotice" style="display:none">Owner account: full access, no subscription needed</p>
       <div id="subSkeleton">
         <div class="skeleton-line skeleton" style="width:40%"></div>
         <div class="skeleton-line skeleton" style="width:60%"></div>
@@ -272,6 +273,9 @@
         </div>
         <div class="warn-banner" id="pastDueWarn">
           Your last payment failed. Update your card with Manage to keep access.
+        </div>
+        <div class="warn-banner" id="ownerCancelWarn">
+          Cancel this in Stripe so it stops retrying your card.
         </div>
         <div class="detail-grid">
           <div class="detail-item">
@@ -382,6 +386,16 @@
       // A subscription set not to renew says so above; the renewal line would contradict it.
       document.getElementById("renewalNote").style.display = sub.cancel_at_period_end ? "none" : "block";
       document.getElementById("pastDueWarn").style.display = status === "past_due" ? "block" : "none";
+      document.getElementById("ownerCancelWarn").style.display = "none";
+    }
+    /* The owner's Stripe row is information only: his access never depends on
+       it. It is shown with the line telling him to cancel it, and Manage stays,
+       so he can. The renewal and failed-payment lines are not his. */
+    function showOwnerRow(sub) {
+      showActive(sub);
+      document.getElementById("pastDueWarn").style.display = "none";
+      document.getElementById("renewalNote").style.display = "none";
+      document.getElementById("ownerCancelWarn").style.display = "block";
     }
     /* `unknown` is the server having been unable to say whether this account
        is entitled. That gets the message and NOT the Subscribe button — offering
@@ -410,9 +424,15 @@
       var sub = d.subscription || null;
       var access = (d.access != null) ? d.access : null;
       var admin = !!(access && access.exempt === true);
+      var owner = !!(access && access.access_reason === "owner");
 
-      document.getElementById("adminNotice").style.display = admin ? "block" : "none";
+      document.getElementById("ownerNotice").style.display = owner ? "block" : "none";
+      document.getElementById("adminNotice").style.display = admin && !owner ? "block" : "none";
 
+      if (sub && owner) {
+        showOwnerRow(sub);
+        return;
+      }
       if (sub) {
         showActive(sub);
         return;
@@ -439,6 +459,7 @@
         /* The request itself failed, so nothing is known. Same answer as an
            access of null: the message, and no Subscribe button. */
         document.getElementById("adminNotice").style.display = "none";
+        document.getElementById("ownerNotice").style.display = "none";
         showNone(true);
       }
     }
