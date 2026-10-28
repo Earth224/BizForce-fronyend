@@ -59,7 +59,8 @@
       "Press \"Edit Profile\", fill in your bio and press \"Save About\"; then add work with \"Add Product\", \"Add Work\", \"Add Video\" or \"Upload Track\".",
       "Each item shows on this page once saved; press \"Copy Profile Link\" or \"Share\" to send the page to people.",
       "Others see this page only while your subscription is active; it returns when you resubscribe, and nothing is deleted.",
-      "A section you hide in the customize panel is only hidden; its items are kept, and showing it again brings them back."
+      "A section you hide in the customize panel is only hidden; its items are kept, and showing it again brings them back.",
+      "Under \"Support links\" add up to five payment pages and press \"Save support links\"; visitors also get \"Support with BizCash\"."
     ],
     "integrations.html": [
       "Read each service's status: \"Runs on BizForce\", \"Removed\" or \"Not built\"; there is nothing here to connect or press.",
@@ -79,7 +80,7 @@
       "The transfer joins your history, which lists your latest 50 transactions; \"Show Trades\" lists your trades with other members.",
       "Your first pass of each certification pays 100 BFC while you're subscribed, and a one-time 1,000 BFC welcome bonus is paid once your subscription is active.",
       "Send refused? One transfer, a day's total and a new account each have a limit; the message says which one you reached.",
-      "\"Download CSV\" and \"Yearly Statement\" export your trades for your own records."
+      "\"Download CSV\" and \"Yearly Statement\" export your trades, support included; \"Your support link\" has Copy and Share."
     ],
     "certifications.html": [
       "Pick a certification, press \"Start Assessment\" and then \"Begin Assessment\"; the pass score is shown before you begin.",
@@ -89,7 +90,7 @@
     ],
     "digital-cards.html": [
       "Fill in \"Full Name\", \"Job Title\" and your contact fields, style the card while the preview updates as you type, then press \"Save Card\".",
-      "Press \"Share\" for the card's public link; its QR codes open that same link, where people can save your contact.",
+      "Press \"Share\" for the card's public link, where people save your contact; \"Your support link\" below has its own Copy and Share.",
       "\"Copy vCard\" copies the contact file itself; \"Download PNG\" is for screens and \"Export Print File\" for printing.",
       "Shared card not showing your change? Press \"Save Card\" again; the public page shows only what was last saved.",
       "Card looks busy? Pick one theme, one border and one transition; stacked effects read cluttered, not premium."
@@ -110,7 +111,8 @@
       "Press \"Save Contact\" to add this card's details to your phone's contacts.",
       "The card's short link and its QR codes open this same page, so anyone you share it with sees what you see.",
       "Nothing here can be edited; the card's owner changes it on the Digital Cards page and saves it there.",
-      "Card not showing? The link may be mistyped or the card removed; ask its owner to send the link again."
+      "Card not showing? The link may be mistyped or the card removed; ask its owner to send the link again.",
+      "\"Support\" lists the owner's payment links; each opens the provider in a new tab, and BizForce never handles that money."
     ],
     "seo.html": [
       "Pick \"Keyword Research\" or \"Local SEO Plan\", describe your market, and press \"Launch Task\".",
@@ -295,7 +297,15 @@
       "Press \"Buy with BizCash\" on an item and confirm; the price is taken from your balance.",
       "A digital item's file then waits for you on your My Purchases page.",
       "Everything here is priced in BizCash; BizForce takes no dollar payments between members.",
-      "Page empty? The username in the link may be wrong, or this member has nothing listed yet."
+      "Page empty? The username in the link may be wrong, or this member has nothing listed yet.",
+      "\"Support with BizCash\" sends this member BFC with an optional note that only the two of you see."
+    ],
+    "support.html": [
+      "Enter an amount and an optional note, press \"Support with BizCash\", check the name shown, then press \"Send\".",
+      "The note is kept for you and this member alone; the BFC arrives in their wallet at once, within the usual BizCash limits.",
+      "A provider button pays the member on that provider's own site; BizForce never sees, holds or refunds that payment.",
+      "Press \"Share\" or \"Copy link\" to pass this page on; the QR code opens this same address.",
+      "Signed out? Press \"Sign in to support with BizCash\"; after signing in you come back to this page."
     ],
     "services.html": [
       "Press \"View / Buy\" on a card to open that member's own buy link in a new tab.",
@@ -404,6 +414,9 @@
   }
 
   function currentPageKey() {
+    // A page served at another address (the support page, /support/<username>) names its entry itself.
+    var named = document.documentElement.getAttribute("data-bf-page");
+    if (named) return named.toLowerCase();
     var path = window.location.pathname || "";
     var file = path.split("/").pop();
     if (!file) file = "index.html";

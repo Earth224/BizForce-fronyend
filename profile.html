@@ -1214,6 +1214,24 @@
     </div>
   </div>
 
+  <!-- ══ SUPPORT ══ (scripts/bf-support.js draws both halves) -->
+  <div class="pf-section" id="sec-support">
+    <div class="pf-section-head">
+      <div class="pf-section-left">
+        <span class="pf-section-title">Support</span>
+      </div>
+    </div>
+    <div class="pf-glass-card" style="padding:20px">
+      <div id="supportPublic" hidden></div>
+      <div id="supportOwn" hidden>
+        <div id="supportOwnLink"></div>
+        <div id="supportSettings"></div>
+      </div>
+      <p class="bfc-notice" data-bfc-notice></p>
+      <script src="/scripts/bf-bfc-notice.js"></script>
+    </div>
+  </div>
+
   <!-- ══ PRODUCTS ══ -->
   <div class="pf-section" id="sec-products">
     <div class="pf-section-head">
@@ -1577,6 +1595,8 @@ async function loadAll() {
         var pBody = await pRes.json();
         if (!pBody || !Object.prototype.hasOwnProperty.call(pBody, "profile")) throw new Error("no profile key");
         profileData = pBody.profile || {};
+        // The public route adds the member's support links, rebuilt by the server; the owner's own route does not.
+        supportLinksData = Array.isArray(pBody.support_links) ? pBody.support_links : [];
         bfProfileLoadState = "ready";
       } catch(e) {
         console.error('[BF] profile parse:', e);
@@ -1607,6 +1627,7 @@ async function loadAll() {
   if (typeof renderVideos    === "function") renderVideos();
   if (typeof renderMusic     === "function") renderMusic();
   if (typeof renderShareCard === "function") renderShareCard();
+  renderSupport();
   if (!isOwner) {
     var eb = document.getElementById("editBtn");
     if (eb) eb.style.display = "none";
@@ -1616,6 +1637,25 @@ async function loadAll() {
 }
 
 var bfProfileLoadDetail = null;
+var supportLinksData = [];
+
+/* Support: a visitor sees the member's support links and Support with
+   BizCash; the owner sees their support link and their Support links
+   settings instead (scripts/bf-support.js). */
+function renderSupport() {
+  if (!window.BFSupport || bfProfileLoadState !== "ready") return;
+  if (isOwner) {
+    document.getElementById("supportOwn").hidden = false;
+    window.BFSupport.mountOwnLink(document.getElementById("supportOwnLink"));
+    window.BFSupport.mountSettings(document.getElementById("supportSettings"));
+    return;
+  }
+  window.BFSupport.mountPublic(document.getElementById("supportPublic"), {
+    username: profileData.username, displayName: profileData.display_name || profileData.username,
+    links: supportLinksData, bizcash: true
+  });
+  if (document.getElementById("supportPublic").hidden) document.getElementById("sec-support").hidden = true;
+}
 
 /* Said in the header, in the page's own error card, and for the owner it also
    says why editing will not save. A visitor sees that the profile failed to
@@ -2813,6 +2853,7 @@ function renderShareCard() {
   document.getElementById("embedCode").innerHTML=embedHtml;
 }
 </script>
+<script src="/scripts/bf-support.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

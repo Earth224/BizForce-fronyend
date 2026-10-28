@@ -563,7 +563,22 @@ document.addEventListener("DOMContentLoaded", function () {
        gate themselves rather than demanding the $199 All Access subscription
        before any route into the app. The subscription field is read there, not
        here. */
-    window.location.href = "/dashboard.html";
+    window.location.href = signInReturnTo() || "/dashboard.html";
+  }
+
+  /* A public page that sent the visitor here to sign in (the support page,
+     a storefront, a profile or a card) set bf_return_to; they go back to it.
+     Only this site's own public pages are accepted, so the key can never
+     send anyone elsewhere. It is read once and removed. */
+  function signInReturnTo() {
+    var raw = null;
+    try { raw = localStorage.getItem("bf_return_to"); localStorage.removeItem("bf_return_to"); } catch (e) { return null; }
+    if (!raw) return null;
+    var u;
+    try { u = new URL(raw, window.location.origin); } catch (e) { return null; }
+    if (u.origin !== window.location.origin) return null;
+    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80})$/i.test(u.pathname)) return null;
+    return u.pathname + u.search;
   }
 
   function setLoginBusy(isBusy) {

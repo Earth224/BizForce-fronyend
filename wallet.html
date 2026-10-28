@@ -165,12 +165,20 @@
   </div>
   <div class="txn-list" id="txnList"><div class="loading">Loading transactions...</div></div>
 
+  <div class="section-title" style="margin-top:40px">Support</div>
+  <div class="trades-card">
+    <div id="supportOwnLink" hidden></div>
+    <div class="trades-sub">Support received</div>
+    <p class="trades-status" id="supportReceivedStatus"></p>
+    <div class="txn-list" id="supportReceivedList"></div>
+  </div>
+
   <div class="section-title" style="margin-top:40px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
     Trades
   </div>
   <div class="trades-card">
-    <p class="trades-intro">Every BizCash trade you made with another member: purchases, sales, transfers and donations, with who, what, how much and when (UTC). BizCash issued to you by BizForce, such as a certification credit or the welcome bonus, is listed apart: it is not a trade.</p>
+    <p class="trades-intro">Every BizCash trade you made with another member: purchases, sales, transfers, donations and support, with who, what, how much and when (UTC). BizCash issued to you by BizForce, such as a certification credit or the welcome bonus, is listed apart: it is not a trade.</p>
     <div class="send-row">
       <label class="trades-label" for="tradesFrom">From</label>
       <input type="date" id="tradesFrom" class="send-input trades-date" />
@@ -505,7 +513,8 @@ function renderTrades(d) {
   tradesList.textContent = "";
   issuedList.textContent = "";
   d.trades.forEach(function (t) {
-    var line = t.type.charAt(0).toUpperCase() + t.type.slice(1) + " \u2014 " + t.counterparty + (t.item ? ": " + t.item : "");
+    var line = t.type.charAt(0).toUpperCase() + t.type.slice(1) + " \u2014 " + t.counterparty + (t.item ? ": " + t.item : "") +
+      (t.note ? " \u2014 \u201c" + t.note + "\u201d" : "");
     tradeItem(tradesList, line, t.date, t.bfc, t.reference);
   });
   d.issued.forEach(function (x) { tradeItem(issuedList, x.description || "Issued by BizForce", x.date, x.bfc, x.reference); });
@@ -519,6 +528,46 @@ function renderTrades(d) {
     ? "Checked against your wallet ledger: the trades and the BizCash issued to you add up to its total for this period, " + bfcAmount(r.ledger_net_bfc) + "."
     : "Checked against your wallet ledger: they do not add up. The ledger's total for this period is " + bfcAmount(r.ledger_net_bfc) + ", " +
       bfcAmount(r.difference_bfc) + " away" + (d.unmatched.length ? "; " + d.unmatched.length + " ledger " + (d.unmatched.length === 1 ? "entry is" : "entries are") + " not matched to a trade, and the CSV lists them." : ".");
+}
+/* Support received: the support notifications (GET /api/notifications, type
+   "support"), each "@X supported you with N BFC" and the note, which is
+   stored escaped and drawn here as text. */
+function unescapeNote(s) {
+  return String(s).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+}
+async function loadSupportReceived() {
+  var list = document.getElementById("supportReceivedList"), status = document.getElementById("supportReceivedStatus");
+  try {
+    var res = await fetch(API_URL + "/api/notifications", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) { status.textContent = await readError(res); return; }
+    var notes = ((await res.json()).notifications || []).filter(function (n) { return n.type === "support"; });
+    list.textContent = "";
+    status.textContent = notes.length ? "" : "No support received yet. Share your support link to start.";
+    notes.forEach(function (n) {
+      var item = document.createElement("div");
+      item.className = "txn-item";
+      var details = document.createElement("div");
+      details.className = "txn-details";
+      var title = document.createElement("div");
+      title.className = "txn-desc";
+      title.textContent = n.title || "Support received";
+      details.appendChild(title);
+      if (n.message) {
+        var msg = document.createElement("div");
+        msg.className = "txn-ref";
+        msg.textContent = "\u201c" + unescapeNote(n.message) + "\u201d";
+        details.appendChild(msg);
+      }
+      var when = document.createElement("div");
+      when.className = "txn-date";
+      when.textContent = String(n.created_at || "").slice(0, 10);
+      details.appendChild(when);
+      item.appendChild(details);
+      list.appendChild(item);
+    });
+  } catch (e) {
+    status.textContent = "Support received could not be loaded. Check your connection and try again.";
+  }
 }
 async function loadTrades() {
   setTradesStatus("Loading your trades\u2026");
@@ -585,6 +634,8 @@ document.getElementById("statementBtn").addEventListener("click", openStatement)
 loadWallet();
 loadTrades();
 </script>
+<script src="/scripts/bf-support.js"></script>
+<script>if (window.BFSupport) window.BFSupport.mountOwnLink(document.getElementById("supportOwnLink")); if (typeof loadSupportReceived === "function" && token) loadSupportReceived();</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

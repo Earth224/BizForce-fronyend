@@ -1164,6 +1164,9 @@
   var TMX_SHOW_MS = 6000;
 
   function tmxPageKey() {
+    // The support page, served at /support/<username>, names its page key itself.
+    var named = document.documentElement.getAttribute("data-bf-page");
+    if (named) return named.toLowerCase();
     var file = (window.location.pathname || "").split("/").pop();
     return (file || "index.html").toLowerCase();
   }
