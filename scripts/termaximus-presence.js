@@ -562,6 +562,49 @@
     "  display: block;",
     "}",
     "#tmx-chat-header, #tmx-chat-msgs, #tmx-chat-foot { position: relative; z-index: 1; }",
+    /* Guide and Oracle tabs. Guide is the default; in Guide mode the Oracle's
+       own three parts are hidden, never changed, and come back as they were. */
+    "#tmx-chat-tabs, #tmx-guide { position: relative; z-index: 1; }",
+    "#tmx-chat-tabs { display: flex; gap: 6px; padding: 6px 14px 0; flex-shrink: 0; }",
+    ".tmx-tab {",
+    "  flex: 1; background: rgba(80,40,180,0.12); border: 1px solid rgba(120,80,220,0.28);",
+    "  border-radius: 8px 8px 0 0; color: rgba(190,175,240,0.7); cursor: pointer;",
+    "  font-family: Georgia, 'Palatino Linotype', serif; font-size: 11px; letter-spacing: 0.12em;",
+    "  text-transform: uppercase; padding: 5px 0;",
+    "}",
+    ".tmx-tab[aria-selected='true'] { background: rgba(80,40,180,0.38); color: rgba(235,225,255,0.95); }",
+    ".tmx-tab:focus-visible, .tmx-guide-show:focus-visible, #tmx-guide-send:focus-visible, #tmx-guide-answer a:focus-visible { outline: 2px solid #f7dd8a; outline-offset: 2px; }",
+    "#tmx-chat.tmx-mode-guide #tmx-chat-msgs, #tmx-chat.tmx-mode-guide #tmx-chat-attach-info, #tmx-chat.tmx-mode-guide #tmx-chat-foot { display: none !important; }",
+    "#tmx-chat:not(.tmx-mode-guide) #tmx-guide { display: none; }",
+    "#tmx-guide { flex: 1; display: flex; flex-direction: column; min-height: 0; }",
+    "#tmx-guide-answer {",
+    "  flex: 1; overflow-y: auto; padding: 10px 14px 6px; font-family: Georgia, 'Palatino Linotype', serif;",
+    "  font-size: 12px; line-height: 1.55; color: rgba(205,192,248,0.9);",
+    "  scrollbar-width: thin; scrollbar-color: rgba(100,70,200,0.3) transparent;",
+    "}",
+    "#tmx-guide-answer ol { margin: 6px 0; padding-left: 20px; }",
+    "#tmx-guide-answer li { margin: 0 0 8px; }",
+    "#tmx-guide-answer a { color: #f7dd8a; }",
+    ".tmx-guide-note { margin: 0 0 6px; font-style: italic; }",
+    ".tmx-guide-error { margin: 0; color: #ffb4b4; }",
+    ".tmx-guide-show {",
+    "  margin-left: 6px; background: rgba(80,40,180,0.32); border: 1px solid rgba(150,110,255,0.5);",
+    "  border-radius: 6px; color: rgba(235,225,255,0.95); cursor: pointer; font-size: 11px; padding: 1px 7px;",
+    "}",
+    "#tmx-guide-foot { display: flex; gap: 8px; padding: 8px 14px 12px; border-top: 1px solid rgba(100,70,200,0.18); flex-shrink: 0; }",
+    "#tmx-guide-input {",
+    "  flex: 1; min-width: 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(100,70,200,0.28);",
+    "  border-radius: 8px; padding: 7px 11px; color: rgba(220,210,255,0.9);",
+    "  font-family: Georgia, 'Palatino Linotype', serif; font-size: 12px;",
+    "}",
+    "#tmx-guide-input:focus { border-color: rgba(140,100,240,0.55); outline: none; }",
+    "#tmx-guide-send {",
+    "  width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(120,80,220,0.4);",
+    "  background: rgba(80,40,180,0.32); color: rgba(200,180,255,0.8); font-size: 14px; cursor: pointer; flex-shrink: 0;",
+    "}",
+    "@media (max-width: 480px) { .tmx-guide-show { padding: 4px 9px; } #tmx-guide-answer { font-size: 13px; } }",
+    /* Show me: the control the step names, outlined until a click or 6 seconds. */
+    ".tmx-show-me { outline: 3px solid #f7dd8a !important; outline-offset: 3px !important; box-shadow: 0 0 0 6px rgba(247,221,138,0.28) !important; }",
     "#tmx-chat-header {",
     "  display: flex;",
     "  align-items: center;",
@@ -1107,6 +1150,253 @@
   var _closeToken    = 0;
   var _stagedFiles   = [];
 
+  /* ── Guide mode ─────────────────────────────────────────────────────────────
+     Two tabs in the mist: Guide (the default) asks POST /api/guide/ask for
+     verified steps; Oracle is the Oracle, untouched. What Guide sends is the
+     question, the page key, a WHITELIST of what is visible (open panel ids, the
+     selected tab, empty-state ids, whether an error banner shows) and the last
+     five pages visited in this tab. Never an input's value, a name, an email,
+     an amount or a message: only element ids, and only ids that look like ids.
+     The trail lives in sessionStorage (bf_tmx_trail), so it ends with the tab,
+     and bf-session.js clears it at sign-out. */
+  var TMX_TRAIL_KEY = "bf_tmx_trail";
+  var TMX_GUIDE_ID_RE = /^[A-Za-z][\w-]{0,59}$/;
+  var TMX_SHOW_MS = 6000;
+
+  function tmxPageKey() {
+    var file = (window.location.pathname || "").split("/").pop();
+    return (file || "index.html").toLowerCase();
+  }
+
+  function tmxReadTrail() {
+    try {
+      var t = JSON.parse(sessionStorage.getItem(TMX_TRAIL_KEY) || "[]");
+      return Array.isArray(t) ? t.filter(function (e) { return e && typeof e.page === "string" && typeof e.t === "number"; }) : [];
+    } catch (e) { return []; }
+  }
+
+  /* This visit goes on the trail; at most six are kept (this page and the five before it). */
+  (function tmxRecordVisit() {
+    var trail = tmxReadTrail();
+    var here = tmxPageKey();
+    if (!trail.length || trail[trail.length - 1].page !== here) trail.push({ page: here, t: Date.now() });
+    try { sessionStorage.setItem(TMX_TRAIL_KEY, JSON.stringify(trail.slice(-6))); } catch (e) { /* storage unavailable */ }
+  })();
+
+  /* The five pages before this one, newest last, with whole seconds since each visit. */
+  function tmxTrailForRequest() {
+    var now = Date.now();
+    var trail = tmxReadTrail();
+    if (trail.length && trail[trail.length - 1].page === tmxPageKey()) trail = trail.slice(0, -1);
+    return trail.slice(-5).filter(function (e) { return /^[a-z0-9][a-z0-9-]{0,60}\.html$/.test(e.page); }).map(function (e) {
+      return { page: e.page, ago_s: Math.max(0, Math.min(86400, Math.round((now - e.t) / 1000))) };
+    });
+  }
+
+  function tmxShown(el) {
+    if (!el || chat.contains(el)) return false;
+    var r = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    return !!(r && (r.width || r.height));
+  }
+  function tmxIds(nodes, max) {
+    var out = [];
+    Array.prototype.forEach.call(nodes, function (el) {
+      if (out.length < max && el.id && TMX_GUIDE_ID_RE.test(el.id) && out.indexOf(el.id) === -1 && tmxShown(el)) out.push(el.id);
+    });
+    return out;
+  }
+
+  /* The whitelisted page state: ids and one true/false, nothing else. */
+  function tmxVisibleState() {
+    var open = tmxIds(document.querySelectorAll("dialog[open], [aria-modal='true'], details[open], .modal.open, .panel.open"), 10);
+    Array.prototype.forEach.call(document.querySelectorAll("[aria-expanded='true'][aria-controls]"), function (b) {
+      var id = b.getAttribute("aria-controls");
+      if (open.length < 10 && TMX_GUIDE_ID_RE.test(id) && open.indexOf(id) === -1 && !chat.contains(b)) open.push(id);
+    });
+    var tab = tmxIds(document.querySelectorAll("[role='tab'][aria-selected='true']"), 1)[0] || null;
+    var empty = tmxIds(document.querySelectorAll("[id*='empty' i], [id*='Empty']"), 10);
+    var banner = Array.prototype.some.call(document.querySelectorAll("[role='alert'], .error-banner, .alert-error"), function (el) {
+      return tmxShown(el) && !!(el.textContent || "").trim();
+    });
+    return { open_panels: open, selected_tab: tab, empty: empty, error_banner: banner };
+  }
+
+  /* SHOW ME, ONLY FOR A CONTROL THAT IS HERE. The step must name this page, and
+     the control must exist on it outside the mist; otherwise there is no
+     button, because highlighting nothing would be a promise the page can't keep. */
+  function tmxShowMeTarget(step, pageKey, doc) {
+    if (!step || !step.control_id || step.page !== pageKey) return null;
+    var el = null;
+    try { el = doc.querySelector(step.control_id); } catch (e) { return null; }
+    if (!el || chat.contains(el)) return null;
+    return el;
+  }
+  var _tmxShowEl = null, _tmxShowTimer = 0;
+  function tmxClearShowMe() {
+    if (_tmxShowEl) _tmxShowEl.classList.remove("tmx-show-me");
+    _tmxShowEl = null;
+    clearTimeout(_tmxShowTimer);
+    document.removeEventListener("click", tmxClearShowMe, true);
+  }
+  function tmxShowMe(el) {
+    tmxClearShowMe();
+    _tmxShowEl = el;
+    el.classList.add("tmx-show-me");
+    try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { el.scrollIntoView(); }
+    _tmxShowTimer = setTimeout(tmxClearShowMe, TMX_SHOW_MS);
+    setTimeout(function () { document.addEventListener("click", tmxClearShowMe, true); }, 0);
+  }
+
+  /* The tabs and the Guide pane, added beside the Oracle's parts. */
+  var tabs = document.createElement("div");
+  tabs.id = "tmx-chat-tabs";
+  tabs.setAttribute("role", "tablist");
+  tabs.setAttribute("aria-label", "Termaximus");
+  tabs.innerHTML =
+    '<button type="button" class="tmx-tab" role="tab" id="tmx-tab-guide" aria-controls="tmx-guide" aria-selected="true">Guide</button>' +
+    '<button type="button" class="tmx-tab" role="tab" id="tmx-tab-oracle" aria-controls="tmx-chat-msgs" aria-selected="false" tabindex="-1">Oracle</button>';
+  chat.insertBefore(tabs, chatMsgs);
+
+  var guide = document.createElement("div");
+  guide.id = "tmx-guide";
+  guide.setAttribute("role", "tabpanel");
+  guide.setAttribute("aria-labelledby", "tmx-tab-guide");
+  guide.innerHTML =
+    '<div id="tmx-guide-answer" aria-live="polite" tabindex="-1">' +
+      '<p class="tmx-guide-note">Ask how to do something in BizForce, and I will show you the way, step by step.</p>' +
+    '</div>' +
+    '<form id="tmx-guide-foot">' +
+      '<label for="tmx-guide-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Ask the Guide</label>' +
+      '<input id="tmx-guide-input" type="text" maxlength="500" placeholder="How do I…?" autocomplete="off" />' +
+      '<button id="tmx-guide-send" type="submit" aria-label="Ask the Guide">&#x2191;</button>' +
+    '</form>';
+  chat.insertBefore(guide, chatMsgs);
+  chat.classList.add("tmx-mode-guide");
+
+  var tabGuide = document.getElementById("tmx-tab-guide");
+  var tabOracle = document.getElementById("tmx-tab-oracle");
+  var guideAnswer = document.getElementById("tmx-guide-answer");
+  var guideForm = document.getElementById("tmx-guide-foot");
+  var guideInput = document.getElementById("tmx-guide-input");
+  var guideSend = document.getElementById("tmx-guide-send");
+  var _guideAsking = false;
+
+  function tmxSelectTab(which, focusTab) {
+    var isGuide = which === "guide";
+    chat.classList.toggle("tmx-mode-guide", isGuide);
+    tabGuide.setAttribute("aria-selected", String(isGuide));
+    tabOracle.setAttribute("aria-selected", String(!isGuide));
+    tabGuide.tabIndex = isGuide ? 0 : -1;
+    tabOracle.tabIndex = isGuide ? -1 : 0;
+    if (focusTab) (isGuide ? tabGuide : tabOracle).focus();
+    else (isGuide ? guideInput : chatInput).focus();
+  }
+  tabGuide.addEventListener("click", function (e) { e.stopPropagation(); tmxSelectTab("guide"); });
+  tabOracle.addEventListener("click", function (e) { e.stopPropagation(); tmxSelectTab("oracle"); });
+  tabs.addEventListener("keydown", function (e) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    var toGuide = e.key === "Home" || (e.key !== "End" && document.activeElement === tabOracle);
+    tmxSelectTab(toGuide ? "guide" : "oracle", true);
+  });
+
+  /* After the mist opens, the cursor goes where the selected tab is. */
+  function tmxFocusModeSoon() {
+    setTimeout(function () {
+      if (_chatOpen && chat.classList.contains("tmx-mode-guide")) guideInput.focus();
+    }, 450);
+  }
+
+  function tmxGuideMessage(cls, text) {
+    var p = document.createElement("p");
+    p.className = cls;
+    p.textContent = text;
+    return p;
+  }
+
+  /* An answer, drawn from the server's verified reply: numbered steps, each a
+     real link to its page, and Show me where the control is on this page. */
+  function tmxRenderGuide(data) {
+    guideAnswer.textContent = "";
+    var here = tmxPageKey();
+    if (data.note) guideAnswer.appendChild(tmxGuideMessage("tmx-guide-note", data.note));
+    if (data.steps && data.steps.length) {
+      var ol = document.createElement("ol");
+      data.steps.forEach(function (step) {
+        var li = document.createElement("li");
+        li.appendChild(document.createTextNode(step.text + " "));
+        var a = document.createElement("a");
+        a.href = step.href;
+        a.textContent = step.page === here ? "This page" : "Go there";
+        li.appendChild(a);
+        var target = tmxShowMeTarget(step, here, document);
+        if (target) {
+          var show = document.createElement("button");
+          show.type = "button";
+          show.className = "tmx-guide-show";
+          show.textContent = "Show me";
+          show.setAttribute("aria-label", "Show me " + (step.label || "this control"));
+          show.addEventListener("click", function (e) { e.stopPropagation(); tmxShowMe(target); });
+          li.appendChild(show);
+        }
+        ol.appendChild(li);
+      });
+      guideAnswer.appendChild(ol);
+    }
+    if (data.link && data.link.href) {
+      var p = document.createElement("p");
+      var a2 = document.createElement("a");
+      a2.href = data.link.href;
+      a2.textContent = data.known === false ? "Open the closest page" : "Open the page";
+      p.appendChild(a2);
+      guideAnswer.appendChild(p);
+    }
+  }
+
+  function tmxAskGuide() {
+    var q = guideInput.value.replace(/\s+/g, " ").trim();
+    if (!q || _guideAsking) return;
+    _guideAsking = true;
+    guideSend.disabled = true;
+    guideAnswer.setAttribute("aria-busy", "true");
+    guideAnswer.textContent = "";
+    guideAnswer.appendChild(tmxGuideMessage("tmx-guide-note", "Termaximus is tracing the way…"));
+    chatTitleName.classList.add("tmx-thinking");
+    var body = { question: q, context: { page: tmxPageKey(), visible: tmxVisibleState(), trail: tmxTrailForRequest() } };
+    fetch("https://dynamic-prosperity-production-5382.up.railway.app/api/guide/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") },
+      body: JSON.stringify(body)
+    })
+    .then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) { return { ok: r.ok, status: r.status, data: data }; });
+    })
+    .then(function (res) {
+      if (!res.ok) {
+        guideAnswer.textContent = "";
+        if (res.data && res.data.link) tmxRenderGuide({ link: res.data.link, known: true });
+        guideAnswer.insertBefore(tmxGuideMessage("tmx-guide-error", (res.data && res.data.error) || ("Guide mode could not answer (error " + res.status + "). Try again in a moment.")), guideAnswer.firstChild);
+        return;
+      }
+      guideInput.value = "";
+      tmxRenderGuide(res.data || {});
+    })
+    .catch(function () {
+      guideAnswer.textContent = "";
+      guideAnswer.appendChild(tmxGuideMessage("tmx-guide-error", "Guide mode could not reach BizForce just now. Check your connection and ask again."));
+    })
+    .then(function () {
+      _guideAsking = false;
+      guideSend.disabled = false;
+      guideAnswer.removeAttribute("aria-busy");
+      chatTitleName.classList.remove("tmx-thinking");
+      guideInput.focus();
+    });
+  }
+  guideForm.addEventListener("submit", function (e) { e.preventDefault(); e.stopPropagation(); tmxAskGuide(); });
+  guideForm.addEventListener("click", function (e) { e.stopPropagation(); });
+  guideAnswer.addEventListener("click", function (e) { e.stopPropagation(); });
+
   /* 10 open/close transition styles — one picked at random each open */
   var TMX_STYLES = [
     /* 0 — scale bloom */
@@ -1547,7 +1837,7 @@
 
   root.addEventListener("click", function (e) {
     if (_tmxDragMoved) return;
-    if (_chatOpen) { closeChat(); } else { openChat(); }
+    if (_chatOpen) { closeChat(); } else { openChat(); tmxFocusModeSoon(); }
   });
 
   /* ── shooting star ── */

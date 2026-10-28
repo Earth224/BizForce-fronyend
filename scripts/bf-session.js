@@ -65,7 +65,7 @@
     "bf_oracle_name", "bf_oracle_date",
     "mcTargetGoalConversions"
   ];
-  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:"];
+  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail"];
   var OFFLINE_DB = "bf-offline";
 
   function clearDevice() {
