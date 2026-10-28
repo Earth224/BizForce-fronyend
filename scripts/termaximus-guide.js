@@ -10,252 +10,379 @@
 
   if (document.getElementById("tmx-guide-root")) return;
 
-  /* per-page "Page Guidance" text, keyed by the page's filename */
+  /* per-page "Page Guidance" text, keyed by the page's filename.
+
+     ONE STANDARD FOR EVERY ENTRY (scripts/checkGuideStandard.js holds it):
+     four tips, five at most, each at most 160 characters, in this order —
+       Do        the page's main action, naming its button as rendered;
+       Then      what happens next, and where the result appears;
+       Know      the one most important truth or limit;
+       If stuck  the most common failure and its fix, or the next page;
+       (optional) one advanced tip.
+     A quoted label must exist on the page or in a script it loads; no tip
+     restates the page's heading; no sentence appears twice in the guide. What
+     every agent page shares is said once, in GUIDE_COMMON below. A page that
+     loads this script and has no entry here shows no guide at all. */
   var PAGE_GUIDANCE = {
     "dashboard.html": [
-      "This is your Executive HQ — the single hub linking every agent, tool, and workflow: Analytics, Integrations, Business Chat, Certifications, BFC Wallet, Marketplace, Business Identity, Digital Cards, Profile, and Lead Radar.",
-      "Your business name, industry and goal shown here come from your Business Profile — edit it here under Expand Profile or on the Content Agent's Edit Profile, and keep it current so this hub reflects who you actually are.",
-      "Start with the Command Center: Needs you lists the proposals waiting on you and the runs that failed, Executive plans lists each plan's assignments with a Dispatch button, and Agent activity counts the runs your agents actually made.",
-      "Treat the AI Agent Directory preview as your starting point for delegating work — Agent Hub and Full Directory each list all 18 agents.",
-      "Revisit this page often; it's built to surface what needs your attention, not just to look impressive.",
-      "To open your recent tasks, business profile and wallet history with no connection, turn on \"Keep a copy on this device for offline use\" in Settings, under Account. Offline, a page shows the time its copy was saved, and nothing can be sent or changed until you're back online."
+      "Start in \"Command Center\": \"Needs you\" lists the proposals waiting for your approval and the runs that failed.",
+      "Under \"Executive plans\", press \"Dispatch\" to run an assignment; that run then joins the count in \"Agent activity\".",
+      "\"Agent activity\" counts the runs your agents actually made in the last 30 days, by agent; nothing in it is estimated.",
+      "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
+      "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
     ],
     "agents-hub.html": [
-      "Browse and launch any of your AI agents from one place — each card opens that agent's dedicated workspace.",
-      "The agents themselves pull from your Business Profile (set via the Content Agent), so get that right before expecting sharp output from any card here.",
-      "Don't run every agent at once — open the ones tied to your current priority and check back after each finishes a task.",
-      "Use this as your map, not your workbench; the real work — task launching, reports, history — happens on each agent's own page."
+      "Press an agent's card, such as \"Content Agent\", to open its own page; that is where its tasks are written and run.",
+      "Begin with \"Content Agent\": its page holds the Business Profile form, and every other agent reads what you save there.",
+      "This page runs nothing itself; an agent works only when you launch a task on its page, or on a schedule you set there.",
+      "Can't place an agent? The dashboard's Full Directory lists the same agents by name, each with an Open Agent link."
     ],
     "ai-agents.html": [
-      "The full directory of all 18 AI agents — each card shows the agent's name and an Open Agent button to its own page.",
-      "No setup happens here — it's pure navigation; your Business Profile (set via the Content Agent) is what every agent behind these cards reads from.",
-      "Use this page when you're not sure where an agent lives — find it by name and press Open Agent to see what it does on its own page.",
-      "Bookmark the agents you use most; with 18 to choose from, a shortlist beats browsing the full list every time."
+      "Find an agent by name and press \"Open Agent\" to go to its own page.",
+      "That page is where you describe a job and launch it; each card here holds only a name and that link, with no description.",
+      "The list is read from the server each time you open it, so it holds the 18 agents registered, no more and no fewer.",
+      "List did not load? Reload the page, or open Agent Hub from the dashboard, which shows the same agents as cards."
     ],
     "analytics-dashboard.html": [
-      "Your business intelligence command center, read once when the page opens — Tasks Run, Tasks Completed, Content Items, SMS Subscribers, Opted-In, and SMS Campaigns, plus a Content Breakdown chart and a Tasks by Agent chart.",
-      "Nothing to configure here — it's a read-only summary, read once when the page opens (reload for fresh numbers); the numbers only get interesting once you're actually running agents and generating content elsewhere.",
-      "Check the Tasks by Agent chart to see which agents you're actually leaning on — it's a fast way to spot which parts of your AI team are underused.",
-      "If a tile shows 0, there's nothing of that kind on your account yet — go run some agent tasks first, then come back. A \"—\" means the figure is still loading or could not be read; reload the page."
+      "Read the six tiles, from \"Tasks Run\" to \"SMS Campaigns\", then \"Tasks by Agent\" to see which agents you lean on.",
+      "Figures are fetched once, as the page loads; reload it after running agents to see the new counts.",
+      "A 0 means there is nothing of that kind on your account yet; a \"—\" means the figure is still loading or could not be read.",
+      "Seeing \"Could not load analytics data.\"? The read failed, not your data; reload the page."
     ],
     "billing.html": [
-      "Manage your subscription and payment details — there is one plan, All Access at $199/month, shown here with its current status, renewal date, and the full \"All Access Plan Includes\" feature list.",
-      "Nothing to fill in directly here — subscribing or updating payment happens through Stripe's own checkout and billing portal, launched from this page's buttons.",
-      "Watch for the cancellation warning banner — if it's showing, your access has an end date, and you'll want to resubscribe before it hits.",
-      "Use \"Manage / Cancel Subscription\" to update your payment method or cancel; you don't need to contact anyone, and there are no tiers to move between."
+      "Tick the automatic-renewal box beside the price, then press \"Subscribe — $199/month\"; checkout will not start until it is ticked.",
+      "Payment happens on Stripe's own checkout page; afterwards this page shows your \"Status\" and \"Current Period End\".",
+      "\"Manage / Cancel Subscription\" opens Stripe's billing portal to change your card or cancel; there is one plan, All Access.",
+      "Watch for the cancellation warning banner — if it's showing, your access has an end date, and you'll want to resubscribe before it hits."
     ],
     "profile.html": [
-      "Your public business profile and portfolio — bio, skills, products, portfolio pieces, videos, music, and a shareable digital card, all in one branded page.",
-      "Fill in About (bio, industry, skills) first, then add Products, Portfolio pieces, Videos, and Music through their own \"Add\" modals — each has its own required fields.",
-      "Use the Customize panel to set your accent color, font, and which sections are visible — a focused profile beats a cluttered one.",
-      "Once it's built, use Share or Copy Profile Link to actually put it in front of people; a great profile does nothing sitting unshared.",
-      "Keep Products and Portfolio current — stale entries undercut the credibility this page is built to establish."
+      "Press \"Edit Profile\", fill in your bio and press \"Save About\"; then add work with \"Add Product\", \"Add Work\", \"Add Video\" or \"Upload Track\".",
+      "Each item shows on this page once saved; press \"Copy Profile Link\" or \"Share\" to send the page to people.",
+      "Others see this page only while your subscription is active; it returns when you resubscribe, and nothing is deleted.",
+      "A section you hide in the customize panel is only hidden; its items are kept, and showing it again brings them back."
     ],
     "integrations.html": [
-      "Thirteen services and what each one is to BizForce today: \"Runs on BizForce\", \"Removed\", or \"Not built\".",
-      "\"Removed\" means BizForce had it and took it out — Zernio and the six social platforms it posted to; BizForce posts to none of them.",
-      "\"Runs on BizForce\" means the app uses the service with its own account — Stripe, Twilio and email — so there is nothing for you to connect.",
-      "There is no setup to do on this page; nothing here takes an account of yours."
+      "Read each service's status: \"Runs on BizForce\", \"Removed\" or \"Not built\"; there is nothing here to connect or press.",
+      "\"Removed\" means BizForce had it and took it out: Zernio and the six social platforms it posted to.",
+      "\"Runs on BizForce\" means the app uses the service with its own account, as with Stripe, Twilio and email.",
+      "Hoping to post to your social accounts? That is not built; the Content Agent saves drafts for you to post yourself."
     ],
     "marketplace.html": [
-      "A peer-to-peer service marketplace — browse other members' listings by category, or list your own services for BFC.",
-      "To sell, use \"List a Service\" and fill in Title, Description, Category, Price in BFC, and optional Tags — a complete listing gets found faster than a bare one.",
-      "Check \"My Listings\" regularly — each of your listings shows its status there, with Edit and Delete buttons; a listing left stale looks abandoned.",
-      "Use the category tabs and search before creating a duplicate service someone else already offers well."
+      "Find a service by category or search, press \"Buy\" on its card and confirm; the price is paid from your BizCash balance.",
+      "A digital listing's file then waits on \"My Purchases\" with a Download button; for a service, press \"Message\" to arrange it.",
+      "Prices are BizCash only, entered in \"Price (BFC) *\"; no member pays another in dollars here.",
+      "\"Not for sale until the seller sets a BizCash price\" means no Buy button yet; press \"Message\" to ask the seller.",
+      "To sell, press \"List a Service\"; your own listings, with \"Edit\" and \"Delete\", are under \"My Listings\"."
     ],
     "wallet.html": [
-      "Your BFC Wallet — Available Balance, Total Earned, Total Spent, and Transaction History for your BizForce Credits. The history shows your latest 50 transactions, and Total Earned and Total Spent are added up from those 50.",
-      "Nothing to configure — the one way to move BFC here is Send BFC, which sends credits to another member by their username after you confirm the name it finds; Trades lists every trade you made with another member, with a CSV download and a yearly statement. Using the platform earns nothing by itself.",
-      "Check \"How to Earn BFC\" — your first pass of each certification pays 100 BFC while you're subscribed, and a one-time 1,000 BFC welcome bonus lands when your subscription goes active. Running agent tasks and posting listings pay nothing.",
-      "Your BFC balance reflects certifications passed, the welcome bonus, and what you've sent, received and spent — not how much you use the platform."
+      "Press \"Send BFC\", enter the member's username and the amount, check the name it finds, then press \"Confirm\".",
+      "The transfer joins your history, which lists your latest 50 transactions; \"Show Trades\" lists your trades with other members.",
+      "Your first pass of each certification pays 100 BFC while you're subscribed, and a one-time 1,000 BFC welcome bonus is paid once your subscription is active.",
+      "Send refused? One transfer, a day's total and a new account each have a limit; the message says which one you reached.",
+      "\"Download CSV\" and \"Yearly Statement\" export your trades for your own records."
     ],
     "certifications.html": [
-      "Earn real, quiz-based platform badges across Sales, Marketing, Analytics, and Leadership — 12 certifications across 3 difficulty tiers, each with 10 questions and an 80% pass threshold.",
-      "Nothing to configure — just pick a certification and start; there's no profile data required to take an assessment.",
-      "Start with Beginner-tier certs in the category closest to your actual work before attempting Advanced ones — the questions get genuinely harder.",
-      "Your first pass of each certification pays 100 BFC to your Wallet while you're subscribed, so treat certifications as a way to both sharpen skills and build balance, not just collect badges.",
-      "If you don't pass the first time, press Try Again on the result screen, or Start Assessment on the card later — there's no penalty for trying again."
+      "Pick a certification, press \"Start Assessment\" and then \"Begin Assessment\"; the pass score is shown before you begin.",
+      "Your answers are graded on the server, and your score appears on the result screen as soon as you finish.",
+      "Your first pass of each certification pays 100 BFC to your Wallet while you're subscribed; passing it again pays nothing more.",
+      "Didn't pass? Press \"Try Again\" on the result screen, or \"Start Assessment\" on the card later; there is no penalty for trying again."
     ],
     "digital-cards.html": [
-      "A full multimedia digital business card studio — video pitch, background audio, dozens of fonts/textures/borders, holographic effects, and free-position text, all shown in the card preview.",
-      "Fill in Full Name, Job Title, Tagline, Company, Email, Phone, and Website first, then layer on media (background image, video pitch, audio track) and styling.",
-      "Use Save Card and Share to generate a public link (viewable via the card viewer page) — the card only earns its keep once it's actually being shared.",
-      "Don't over-stack effects; pick one Theme, one Border Style, and one Transition, or the card reads busy instead of premium.",
-      "Export Print File with bleed guides if you're printing physical cards, not just Download PNG for digital use."
+      "Fill in \"Full Name\", \"Job Title\" and your contact fields, style the card while the preview updates as you type, then press \"Save Card\".",
+      "Press \"Share\" for the card's public link; its QR codes open that same link, where people can save your contact.",
+      "\"Copy vCard\" copies the contact file itself; \"Download PNG\" is for screens and \"Export Print File\" for printing.",
+      "Shared card not showing your change? Press \"Save Card\" again; the public page shows only what was last saved.",
+      "Card looks busy? Pick one theme, one border and one transition; stacked effects read cluttered, not premium."
     ],
     "business-id.html": [
-      "Builds your official Business ID Card — an identity card with your name, industry, bio, and contact details, redrawn each time you save, plus a \"BizForce AI Member\" badge.",
-      "Fill in Business Name, Industry, Tagline/Bio, Website, Phone, Location, and Contact Email — every field maps directly onto the card preview above the form.",
-      "Write the bio like a real pitch, not a placeholder — it's the one line that renders as an italicized quote on the card itself.",
-      "Keep this current alongside your Content Agent business profile; the card is drawn only on this page, for you — nothing on the platform shows it to other members."
+      "Fill in \"Business Name\", \"Industry\", \"Tagline / Bio\" and your contact fields, then press \"Save Profile\".",
+      "The card above the form is redrawn from what you saved, with a \"BizForce AI Member\" badge.",
+      "The card is drawn only on this page, for you; nothing on the platform shows it to other members.",
+      "No \"Saved successfully!\" after saving? The save did not land; check your connection and press \"Save Profile\" again."
     ],
     "business-chat.html": [
-      "A persistent, business-aware AI chat — ask it anything about your business; every message is saved in one continuous conversation, and each answer is written from the last 20 messages of it.",
-      "Nothing to configure here directly, but the more complete your Business Profile is elsewhere, the more specific and useful its answers will be.",
-      "Use it for quick strategic questions between agent tasks — it's built for conversation, not for generating deliverables the way the agents do.",
-      "There is one thread, not a list of past threads; your whole history is saved and shown here, but answers draw only on the last 20 messages, so restate older context when it matters."
+      "Type a question about your business and press \"Send\"; the answer is written with your saved Business Profile in view.",
+      "Every message is kept in one thread, not a list of past threads, and shown here whenever you return.",
+      "Each answer is written from the last 20 messages only, so restate older context when it matters.",
+      "Need a finished deliverable, such as a plan or a draft? Launch a task on the matching agent's page instead."
     ],
     "card-view.html": [
-      "The public, read-only viewer for a shared digital business card — opened through its short link (bizforceai.net/c/ and a name) or its shared ?token= link, not something you edit here; the card's QR codes open this page.",
-      "There's nothing to set up on this page; the card was designed elsewhere (Digital Cards) and this page just renders it for whoever receives the link.",
-      "If you're viewing someone else's card, use Save Contact to pull it straight into your contacts as a vCard.",
-      "If this page renders one of your own cards and it looks wrong, the fix happens back on Digital Cards, not here."
+      "Press \"Save Contact\" to add this card's details to your phone's contacts.",
+      "The card's short link and its QR codes open this same page, so anyone you share it with sees what you see.",
+      "Nothing here can be edited; the card's owner changes it on the Digital Cards page and saves it there.",
+      "Card not showing? The link may be mistyped or the card removed; ask its owner to send the link again."
     ],
-
     "seo.html": [
-      "This agent turns your business profile into concrete SEO deliverables — keyword research, content plans, local SEO plans, and page audits.",
-      "Feed it real data: set your Website and top Competitors in your Business Profile (edit it from the Content Agent) so audits and keyword research aren't guessing in the dark.",
-      "Use the launcher's specific task types — Keyword Research, Competitor Comparison, Local SEO Plan — and the Page Audit tool rather than vague prompts; narrower asks produce sharper deliverables.",
-      "Each run is saved — open your latest from the Last run link on this page; Refresh Data updates that link and your Business Profile after a new run.",
-      "Treat your saved runs as your standing SEO playbook, not one-off outputs.",
-      "Social Search measures a YouTube, TikTok or Instagram draft in code against the phrase you want it found by: where the phrase appears, whether it shows before the cut, each length against its limit, and the hashtag or tag counts. It searches no platform, so it knows nothing of search volume, ranking or reach; tick Suggested rewrites and the model drafts fixes, each one measured again."
+      "Pick \"Keyword Research\" or \"Local SEO Plan\", describe your market, and press \"Launch Task\".",
+      "To check one page, enter its address under \"Optimize My Website\" and press \"Optimize\"; the report reads that page as served now.",
+      "Keyword research here knows no search volume, competition or ranking; treat its keywords as candidates to test.",
+      "Results too generic? Set Website and Competitors in your Business Profile, press \"Refresh Data\", and run again.",
+      "\"Social Search\" measures a YouTube, TikTok or Instagram draft against your phrase in code; it searches no platform."
     ],
     "sales.html": [
-      "This agent writes sales material — funnels, lead generation, outreach scripts, offers, and objection handling — from your Business Profile and what you tell it; its tasks read none of the leads or pipeline on this page.",
-      "Keep your Business Profile current (Industry, Website, Competitors); it shapes what Lead Generation and the other sales tasks write for your market. The leads and pipeline on this page come from Lead Radar, which does not read your profile.",
-      "Run Lead Generation and Sales Funnel first to set a baseline, then use Objection Handling and Offer Builder to sharpen conversion.",
-      "Use the Sales Pipeline panel to see each lead's stage — New, Drafted, Contacted, Replied, Converted — and move it along; nothing here judges which deals are stalling, so check the older ones yourself.",
-      "Re-run tasks as your offers evolve; a task's prompt carries no pipeline data, so say in your request what has changed in your deals."
+      "Pick \"Sales Funnel\" or \"Outreach Script\", describe your offer and your buyer, and press \"Launch Task\".",
+      "In \"Sales Pipeline\", move each lead through New, Drafted, Contacted, Replied, Converted; nothing here judges which deals are stalling.",
+      "The tasks read none of the leads or pipeline on this page, so say in your request what has changed in your deals.",
+      "No leads listed? They come from Lead Radar, which works only for the account that owns its keyword set; press \"Refresh\" to reload."
     ],
     "content.html": [
-      "The most feature-dense agent — it generates articles, social drafts, video scripts, SMS campaigns, and full content strategy, then lets you approve or reject the social drafts it creates; approved drafts are saved, not published or scheduled.",
-      "Start here: this is the only agent page with a real Edit Profile form. Fill in Business Name, Industry, Brand Voice, Brand Values, Target Audience, Goals, Banned Topics, and Posting Frequency — every other agent reads what you set here.",
-      "Use Generate SEO Article and Generate SMS Campaign for quick wins, then run Social Media Drafts and approve or reject each post; with publishing to social accounts turned off, approving saves it to the Approval Queue as an unpublished draft.",
-      "Social accounts (Instagram, Facebook, TikTok, YouTube, LinkedIn, X) cannot be connected on this platform at present, so approved drafts stay saved here for you to post yourself.",
-      "Keep the Content Library tidy — expand, copy, or delete its saved articles and SMS campaigns so it stays a working set, not a graveyard; social drafts are not in the library."
+      "Start with \"Edit Profile\": fill in the Business Profile and press \"Save Profile\"; every other agent reads what you save.",
+      "Pick \"Social Media Drafts\" and press \"Launch Task\"; each draft waits in \"Approval Queue\" for you to approve or reject.",
+      "Approved drafts are saved, not published or scheduled; social accounts cannot be connected yet, so you post them yourself.",
+      "Looking for an article you made? \"Content Library\" keeps saved articles and SMS campaigns; social drafts are not in it.",
+      "\"Generate SEO Article\" and \"Generate SMS Campaign\" each write one piece from a single form, with no task to set up."
     ],
     "social.html": [
-      "This agent is a strategic planning layer for your social presence — campaigns, content calendars, engagement strategy, platform playbooks, and audience growth plans.",
-      "It reads the same Business Profile as everything else — set Brand Voice, Target Audience, and Business Goals via the Content Agent's Edit Profile so its playbooks actually sound like you.",
-      "Use Content Calendar and Platform Playbook to plan, then hand drafting to the Content Agent, where Social Media Drafts and the Approval Queue are; posts cannot be scheduled and social accounts cannot be connected at present.",
-      "Run Audience Growth Plan periodically; growth tactics that worked last quarter rarely hold up untouched."
+      "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
+      "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
+      "Posts cannot be scheduled and social accounts cannot be connected at present; every plan here is yours to carry out.",
+      "Want drafts you can approve? Run Social Media Drafts on the Content Agent page; they wait in its Approval Queue."
     ],
     "analytics.html": [
-      "This is your KPI and forecasting layer — KPI Review and Funnel Analysis measure the figures you enter, and Revenue Forecast builds a forecasting method for you to fill in; it reads no revenue data of its own.",
-      "Your Business Profile (Industry, Website, Competitors) is the context every analytics task is written from, so keep it current; the figures in KPI Review and Funnel Analysis come only from what you enter.",
-      "Arrivals Ledger counts, in code with no model call, the arrivals through your own tracked links: a published post whose money link carries its ref, and a Lead Radar reply you sent. It shows each post's arrivals all-time and by week; an arrival is one landing-page request, not a person, so it cannot be told apart from your own test click, and it does not measure Bluesky reach, article views or sales.",
-      "Each run is saved — open your latest from the Last run link on this page; nothing here checks your figures for anomalies, so compare each run with the last yourself.",
-      "Run the KPI Review tool each period, not just once — enter each metric's Now and Before figures and it works out the change; nothing here keeps a trend line across runs, so compare saved runs yourself.",
-      "Enter current figures in KPI Review and Funnel Analysis before big decisions; they measure only the numbers you enter."
+      "Open \"KPI Review\", enter each metric's Now and Before figures, and press \"Review the metrics\"; it works out each change.",
+      "For a funnel, enter each stage's count in \"Funnel Analysis\" and press \"Compute the funnel\" to see where people drop off.",
+      "\"Revenue Forecast\" builds a forecasting method for you to fill in; this agent reads no revenue data of its own.",
+      "Results feel thin? These tools measure only the figures you enter, and nothing keeps a trend across runs, so compare runs yourself.",
+      "\"Arrivals Ledger\" counts landings through your own tracked links, in code; an arrival is one page request, not a person or a sale."
     ],
     "lead-radar.html": [
-      "This is a Bluesky lead-capture radar — it collects buying-intent posts every 5 minutes; when intent scoring is switched on, it scores them and separates real buyers from competitors by suggested product and score. The list loads when you open the page and when you press Refresh.",
-      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code; Mastodon and YouTube searches run only when switched on. YouTube finds are listed in their own section below the scored list: not scored, not replyable from here, and kept for at most 30 days; a Sales pipeline entry built on one is removed with it. A YouTube comment is shown only if it has no link, at least 6 words, and a word from the search it matched; the section says how many were hidden and why. It does not read your Business Profile, so editing your profile does not change what it finds.",
-      "The list puts the highest scores at the top, so act on High-Intent leads (60+) first — use Draft Engagement to generate a ready-to-send reply, then Copy it to your clipboard and post it on Bluesky yourself.",
-      "Check the Product Breakdown chart to see how many leads were tagged with each product, and Score Distribution to see how their scores spread — Product Breakdown counts leads, it does not measure intent.",
-      "Refresh regularly and use Show Noise sparingly — sub-15 scores are hidden by default for good reason; only surface them once your high-intent queue runs dry."
+      "Press \"Draft Engagement\" on a \"High-Intent\" lead (60+) for a reply, then \"Copy\" it to your clipboard and post it on Bluesky yourself.",
+      "New Bluesky finds arrive every 5 minutes; Mastodon, YouTube and scoring each wait on their own switch. Press \"Refresh\" to load.",
+      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code, and does not read your Business Profile.",
+      "\"Not enabled on this account\" means just that: leads appear solely on the account that owns the keyword set and its credentials.",
+      "Sub-15 scores are hidden as noise; press \"Show Noise\" once the high-intent leads run dry."
     ],
     "email-agent.html": [
-      "This agent builds campaigns, sequences, win-back/nurture flows, and subject line variations — it writes the copy and reads no delivery data.",
-      "It draws on your shared Business Profile — Website and Brand Voice matter most here, since email tone should match how you actually talk to customers.",
-      "Run Subject Line Testing before committing to a full campaign; it writes subject line variations and notes which to A/B test first, and the test itself runs in your own email platform.",
-      "Pair Nurture Campaign with Winback Flow to cover new leads and lapsed customers, not just one end of the funnel.",
-      "Each run is saved — open your latest from the Last run link on this page; nothing here measures opens, clicks or delivery, so judge what lands from your email platform's own reports."
+      "Open \"Email Sequence\", set its goal, audience and \"Number of steps\", and press \"Build the sequence\".",
+      "Each step's copy appears under the tool, ready to paste into your own email platform.",
+      "It writes the copy and reads no delivery data; nothing here measures opens, clicks or delivery.",
+      "Unsure which subject wins? \"Subject Lines\" with \"Write variants\" notes which to A/B test first; run the test in your own email platform."
     ],
     "store-agent.html": [
-      "This agent writes commerce plans — store audits, inventory plans, omnichannel strategy, conversion audits, and product launch plans — from your Business Profile and what you tell it; it connects to no store or channel.",
-      "Keep Competitors and Industry current in your Business Profile; Store Audit and Conversion Audit are written from that context, not from your store's own data.",
-      "Run Omnichannel Strategy if you sell on more than one channel — it plans your channel mix, inventory sync approach, and a consistent customer experience; it does not connect to or run any store.",
-      "Use Inventory Plan and Product Launch Plan together when introducing new SKUs so stocking and go-to-market line up.",
-      "Stock & Margin counts what you entered on your inventory page, in code, with no model call: stock value at cost and at price, unit margins, items at or below their reorder point, and days of cover once an item has 3 'out' movements in the window. A cost, price or reorder point you never entered is left out and counted, not taken as 0.",
-      "Each run is saved — open your latest from the Last run link on this page; this agent reads no sales, traffic or channel data, so find performance gaps in your own store's reports."
+      "Pick \"Store Audit\" or \"Product Launch Plan\", describe the store and the product, and press \"Launch Task\".",
+      "\"Stock & Margin\" with \"Measure my stock\" counts what you entered on your inventory page, in code, with no model call.",
+      "It connects to no store or channel; audits are written from your Business Profile and what you tell it, not your store's own data.",
+      "A cost, price or reorder point you never entered is left out and counted, not taken as 0; fill it in on the inventory page."
     ],
     "etsy-agent.html": [
-      "This agent writes listing copy and keyword candidates for your online store or marketplace, and does pricing arithmetic on figures you type in. It reads no store, marketplace or search data.",
-      "Keyword Research: enter your platform's tags per listing and characters per tag to have each candidate measured against them. Leave them blank and nothing is measured against a limit.",
-      "Pricing Strategy works out the range, median and your margin from the comparable listings you type in, then writes a rationale. Nothing is fetched or checked.",
-      "Listing Optimization gives you copy to adapt, and Shop Audit Checklist gives you a list to work through on your own shop; neither looks at the shop itself.",
-      "Competitor Comparison works from the competitors in your Business Profile, so keep that list current, and treat any figure it gives as unverified."
+      "Open \"Keyword Research\", enter a seed term and your tag limits, and press \"Find keywords\"; each candidate is measured against them.",
+      "\"Pricing Strategy\" works out the range, median and your margin from comparable listings you type in, then writes a rationale.",
+      "It reads no store, marketplace or search data; \"Listing Optimization\" and \"Shop Audit Checklist\" give you copy and a list to work through.",
+      "Competitor Comparison works from the competitors in your Business Profile; keep that list current and treat any figure as unverified."
     ],
     "broker-agent.html": [
-      "This agent helps with deal flow and partnerships — Deal Pipeline analysis, negotiation prep, and the actual documents brokers need to close.",
-      "Keep your Business Profile's Industry and Competitors accurate; Due Diligence Checklists and Term Sheet Drafts are only as sharp as the context behind them.",
-      "Use Due Diligence Checklist and Term Sheet Draft when a deal is close to closing — they give you a checklist and a framework to take to a lawyer, not execution documents; the Term Sheet Framework tool says so itself.",
-      "Run Negotiation Brief before any high-stakes conversation; walk in with the leverage points already mapped.",
-      "Each run is saved — open your latest from the Last run link on this page; the agent keeps no record of where your deals stand, so keep that yourself."
+      "Open \"Term Sheet Framework\", describe the deal and the parties, and press \"Draft the framework\".",
+      "Take that framework and the \"Due Diligence Checklist\" to a lawyer; they are not execution documents, and each says so.",
+      "The agent keeps no record of where your deals stand; \"Deal Pipeline\" analyses only the deals you describe in your request.",
+      "High-stakes call coming? Run \"Negotiation Brief\" first, so you walk in with the leverage points mapped."
     ],
     "publicist-agent.html": [
-      "This agent drafts the concrete artifacts a publicist needs — press releases, media pitches, and brand narrative — to earn coverage and visibility.",
-      "Brand Voice and Business Goals from your Business Profile matter most here; your narrative should sound like you, not a generic press template.",
-      "Start with Brand Narrative before writing a single Press Release — a clear narrative makes every pitch afterward land faster.",
-      "Use Media Pitch for targeted outreach and Press Release for broader announcements; they're different tools for different moments.",
-      "Each run is saved — open your latest from the Last run link on this page; nothing here measures coverage, so note for yourself which angles earn attention."
+      "Open \"Press Release\", enter the news, the company and the dateline, and press \"Write the release\".",
+      "For one outlet or journalist, open \"Media Pitch\" and press \"Write the pitch\"; send both from your own email.",
+      "Nothing here sends a pitch, and nothing here measures coverage; note for yourself which angles earn attention.",
+      "Pitches sound generic? Run \"Brand Narrative\" first; a clear story sharpens every release and pitch after it."
     ],
     "reputation-agent.html": [
-      "This agent does not watch or monitor mentions, reviews or sentiment anywhere. It works only from what you paste in or type, and from your Business Profile.",
-      "Review Response drafts a reply to a review you paste in, and flags any phrasing that argues with or blames the reviewer before you post it.",
-      "Review Request builds a request sequence for a moment you choose, and flags incentive wording that breaks review-platform rules.",
-      "Reputation Audit and Sentiment Report give you the checklist and the scoring framework to fill in yourself; they read no review site and give no measured score.",
-      "Review Strategy, Brand Trust Plan and Crisis Response write plans from your request and Business Profile. Run Crisis Response once before you need it, so the plan is ready."
+      "Paste a review into \"Review Response\", add the star rating and what actually happened, and press \"Draft the reply\".",
+      "The reply comes back with any phrasing flagged that argues with or blames the reviewer; \"Review Request\" flags incentive wording.",
+      "This agent does not watch or monitor mentions, reviews or sentiment anywhere; it works only from what you paste in or type.",
+      "\"Reputation Audit\" and \"Sentiment Report\" read no review site and give no measured score; each is a framework you fill in.",
+      "Run \"Crisis Response\" once before you need it, so the plan is ready."
     ],
     "community-agent.html": [
-      "This agent focuses on community health — engagement, growth, and the referral/retention systems that keep members coming back.",
-      "Keep Business Goals and Target Audience current in your profile; they shape what \"healthy engagement\" even looks like for your specific community.",
-      "Run Referral Loop and Retention System together — growth without retention just refills a leaky bucket.",
-      "Use Moderation Plan proactively, before community size makes moderation reactive and painful.",
-      "Audience Ledger counts your own sign-up records for each brand, in code, with no model call: contacts, captures with email and SMS consent, new captures by month, SMS subscribers by consent status and email sequence enrollments. It shows counts only, never a person, and a table it could not read is shown as not measured, never as 0.",
-      "Each run is saved — open your latest from the Last run link on this page; nothing here measures engagement, and Audience Ledger counts sign-ups rather than activity, so judge which tactics compound from your own community's numbers."
+      "Open \"Member Onboarding\", set the community type, platform and goal, and press \"Build the sequence\".",
+      "\"Audience Ledger\" with \"Count my audience\" counts your own sign-up records in code, with no model call, as counts only.",
+      "Nothing here measures engagement, and Audience Ledger counts sign-ups rather than activity; judge tactics by your own numbers.",
+      "A table the ledger could not read is shown as not measured, never as 0; run it again later.",
+      "Pair \"Referral Loop\" with \"Retention System\": growth without retention just refills a leaky bucket."
     ],
     "influencer-agent.html": [
-      "This agent drafts the work of creator partnerships — outreach, campaign plans, partnership offers, and an ROI model to fill in before you commit budget.",
-      "Set Target Audience and Business Goals in your profile before running Creator List; they guide which creators actually make sense.",
-      "Run ROI Forecast before locking in a Partnership Offer — it builds the return model and break-even from figures you supply, so you negotiate with your own numbers worked out.",
-      "Re-run Creator List when your audience or goals change; it describes the kinds of creators to look for and how to score their fit, and it looks up no named or trending creators.",
-      "Use Influencer Outreach and Campaign Plan together so outreach messaging and campaign goals stay aligned."
+      "Open \"Creator Outreach\", name the creator, the campaign and the channel, and press \"Write the first message\".",
+      "When a creator replies, open \"Partnership Offer\" and press \"Draft the offer\" to put budget and territory in writing.",
+      "\"Creator List\" describes the kinds of creators to look for and how to score their fit; it looks up no named or trending creators.",
+      "Unsure a deal pays? Run \"ROI Forecast\" first; it builds the return model and break-even from figures you supply."
     ],
     "operations-agent.html": [
-      "This agent turns operations into concrete artifacts — SOP Documents, checklists, and automation plans, not just advice.",
-      "Keep your Business Profile's Industry and Description accurate; SOP Documents and Efficiency Audits are shaped by the kind of business you actually run.",
-      "Use Efficiency Audit first to find the bottleneck, then generate the specific SOP Document or Checklist Builder output to fix it.",
-      "Sequence your requests — document a workflow before you automate it; Automation Plan works best once a process is already written down.",
-      "Revisit your SOP Documents periodically as your team grows; a process built for 3 people rarely survives at 10 unchanged."
+      "Open \"Standard Operating Procedure\", describe the process and who owns it, and press \"Write the SOP\".",
+      "For a recurring job, open \"Checklist\" and press \"Build the checklist\" to turn it into steps to tick off.",
+      "Document a workflow before you automate it; \"Automation Plan\" works best on a process already written down.",
+      "Not sure what to fix first? Run \"Efficiency Audit\" to find the bottleneck, then write that process down."
     ],
     "rd-agent.html": [
-      "This is the most analytical agent — market research, competitive intelligence, and innovation briefs with a written feasibility assessment; nothing here computes a score or metric.",
-      "Keep your Business Profile's Industry, Description, Target Audience, Business Goals and Competitors current (edit it from the Content Agent); I read them to decide what's actually worth researching.",
-      "Run Market Research and Competitive Intelligence together — your differentiation is clearer when you know both your market and your competitors.",
-      "Use Innovation Brief to screen ideas by feasibility before you invest real time in them.",
-      "Build Executive Briefing last — the only earlier runs it sees are excerpts of your last 5 R&D runs, so paste in anything else you want summarized into something you can hand to a stakeholder."
+      "Pick \"Market Research\" or \"Competitive Intelligence\", say what you need to decide, and press \"Launch Task\".",
+      "\"Innovation Brief\" screens an idea with a written feasibility assessment; nothing here computes a score or metric.",
+      "\"Executive Briefing\" sees excerpts of your last 5 runs on this page and no others; paste in anything else to be summarized.",
+      "Research off target? Keep Industry, Target Audience and Competitors current in your Business Profile; I read them first."
     ],
     "ads-agent.html": [
-      "This agent writes ad campaigns and ad copy from your Business Profile and what you tell it; it connects to no ad account and reads no ad results, so nothing here buys, runs or measures an ad.",
-      "Ad Copy writes for a Google Responsive Search Ad or a Meta feed ad and measures every asset against that platform's limits — Google's 30-character headlines and 90-character descriptions are hard limits, rejected at upload if longer; Meta's are the points where the feed cuts text short.",
-      "Ad Copy also runs what it writes through the policy scan, so wording that gets ads rejected is flagged in the same result.",
-      "Policy Check scans copy you paste for wording that gets ads rejected — cure claims, before-and-after results, guaranteed results, addressing a personal attribute — and for FDA disease claims; a clean scan is not approval, and with Suggest rewrites unchecked it makes no model call at all.",
-      "Use Ad Campaign for a whole plan — audience, offer, hooks, creative angles, copy, budget guidance, and a testing plan — then write each ad's assets in Ad Copy."
+      "Open \"Ad Copy\", enter the product, angle, platform and audience, and press \"Write the copy\".",
+      "Each asset comes back measured against that platform's limits and run through the policy scan, so rejected wording is flagged.",
+      "It connects to no ad account and reads no ad results, so nothing here buys, runs or measures an ad.",
+      "Ad refused elsewhere? Paste it into \"Policy Check\"; a clean scan is not approval, and with \"Suggest rewrites\" unticked it makes no model call.",
+      "Use \"Ad Campaign\" for a whole plan — audience, offer, hooks, budget guidance and a testing plan — then write each ad in \"Ad Copy\"."
     ],
     "executive-agent.html": [
-      "This agent turns a goal into a plan of assignments for the other agents; it runs none of them itself — a runnable assignment waits for you to press its Run this assignment button.",
-      "In the Executive Plan tool, give it the goal, and if you like a horizon and constraints. Each assignment names the tool to run and is checked against the tools that really exist; one that names a missing tool or lacks its inputs is marked Not runnable instead of passed along.",
-      "Begin with the Start here list — the assignments that wait on nothing — then work down the Order; assignments that wait on each other in a circle cannot start until you change the plan.",
-      "Assignments marked your own work are yours to do; no agent or tool can run them.",
-      "The launcher's Executive Command Plan, Agent Coordination, Executive Briefing and KPI Review tasks write their answer as text; only the Executive Plan tool's assignments can be run."
+      "Open \"Executive Plan\", give it the goal, and if you like a horizon and constraints, then press \"Build the plan\".",
+      "Begin with the \"Start here\" list and press \"Run this assignment\" on each; the plan runs none of them itself.",
+      "Each assignment is checked against the tools that really exist; one naming a missing tool is marked \"Not runnable\".",
+      "Assignments marked \"your own work\" are yours to do, and the launcher's tasks answer in text; only plan assignments can be run."
     ],
     "vertical-marketing-agent.html": [
-      "This agent writes marketing for one industry at a time — positioning, the trade's own language, its channels and its objections — from the model's own knowledge; nothing about the industry is researched.",
-      "Vertical Positioning takes the industry, and optionally what you sell and who in that industry buys it, and returns positioning, trade language, channels, what not to say, and a confidence level.",
-      "Objection Handling takes the industry and the offer and returns the objections that trade raises, what is behind each, how to answer it and the proof that helps, with a confidence level.",
-      "Read the confidence level as the model's own estimate of how well it knows the trade, not a measurement, and have someone who works in that industry read the result before it goes out.",
-      "The launcher's tasks reuse instructions written for other agents — Vertical Campaign Plan, for one, runs the creator-partnership campaign instruction — so name the industry and what you want in your request.",
-      "Claims Scan runs the supplement claim rules and the ad-policy rules over copy you paste, and over everything you have stored here if you tick the box, with no model call: each match shows its exact text and where it is, and copy without the required disclaimer is listed. No match is not approval from anybody, so a person still reads it."
+      "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",
+      "\"Objection Handling\" with \"Work the objections\" lists what that trade raises, what is behind each and how to answer it.",
+      "Nothing about the industry is researched; its confidence level is the model's own estimate, not a measurement.",
+      "Before copy goes out, paste it into \"Claims Scan\" and press \"Scan for claims\"; no match is not approval, so a person still reads it.",
+      "Launcher tasks reuse other agents' instructions — \"Vertical Campaign Plan\" runs the creator campaign one — so name the industry."
     ],
     "sms.html": [
-      "This page is not an agent — it manages SMS subscribers and drip campaigns: add or import subscribers, create a campaign, add its messages in order, and enroll subscribers in it.",
-      "Each message's Delay (hours) counts from when the message before it goes out; the first message's delay is not used — an enrolled subscriber is due for it at the next engine run.",
-      "The drip engine is fixed in dry-run mode: Run Drip Engine (Dry Run) records what would go out in the Send Log as dry_run and sends no text; its \"Sent\" count is what would have been sent.",
-      "A dry run moves no enrollment forward, so every run repeats each subscriber's first message; later messages and their delays are not reached while the engine stays in dry-run mode.",
-      "Only subscribers marked opted in are included, and direct SMS sending is shut on this platform — nothing on this page puts a message on a phone."
+      "Add people with \"Add\" or \"Import\", press \"Create\" for a campaign, add its messages with \"Add Message\", then \"Enroll All Subscribers\".",
+      "\"Run Drip Engine (Dry Run)\" records in \"Send Log\" what would go out, marked dry_run; its count is what would have been sent.",
+      "A dry run moves no enrollment forward, so each run repeats every subscriber's first message and later ones are never reached.",
+      "Someone left out? Only subscribers marked opted in are included, and direct SMS sending is shut on this platform.",
+      "Each message's \"Delay (hours)\" counts from the message before it; the first message's delay is not used."
     ],
     "oracle.html": [
-      "This is the Oracle — a synchronized channel where you consult Termaximus directly, his counsel drawn from your true numerology and the shape of your birth chart, not generic advice.",
-      "Sync your Book of You through the corner star's profile — birth name, date, time, place, current location, your path, and the fuller story of who you are; the more it holds, the deeper and more exact the Oracle's sight becomes.",
-      "Ask anything through the channel — strategy, esoteric questions, personal matters, business decisions — it draws no line between them; every answer comes filtered through your own numbers and path, never as generic advice.",
-      "Bring him documents through the paperclip beside the input — PDFs, Word files (.docx only), plain text, contracts, or images. Termaximus combs through each with a fine-tooth comb: contracts read clause by clause for loopholes, buried terms, micro-infractions, and risk; any file drawn into rigorous, unflinching critique when you ask it of him; images seen and weighed against your question.",
-      "Keep the channel current. Your Life Path, Expression, Soul Urge, and Birthday numbers are fixed by your birth name and date and do not change with time; your current location, your path and your story can, and the Oracle reads them with every question."
+      "Give your \"Birth Name\" and \"Birth Date\", press \"SYNCHRONIZE\", then put your question to the channel.",
+      "Each answer draws on your numbers and birth chart, and on your Business Profile and recent agent runs as well.",
+      "Your Life Path, Expression, Soul Urge and Birthday numbers are fixed by birth name and date; place, path and story can change.",
+      "File refused? The paperclip takes PDFs, Word files (.docx only), plain text, CSV, Markdown and four image types.",
+      "\"The Book of You\" holds the fuller story of who you are; the more it holds, the closer the counsel fits."
+    ],
+    "artists.html": [
+      "Press a member's card to open their seller page.",
+      "On that page you can buy their listings with BizCash from your balance.",
+      "Cards come from the portfolio work members add on their profiles; only members with an active subscription are shown.",
+      "A card that opens nothing belongs to a member with no username yet, so there is no seller page to go to."
+    ],
+    "bizdoc.html": [
+      "Pick a template such as \"NDA\" or \"Invoice\", or \"Blank Document\", fill it in and press \"Save\".",
+      "Your saved documents are listed under \"Documents\"; open one to sign it by typing your full legal name.",
+      "These templates are starting points, not legal advice; have a lawyer read anything that binds you.",
+      "Making a book instead? Open \"Biz-EBook\", choose a manuscript (.docx or .txt) and press \"Generate Book\".",
+      "\"Cover\" designs a front, spine and back wrap; \"Download Print PDF\" exports it for the printer."
+    ],
+    "campaigns.html": [
+      "Press \"Donate BFC\" on a campaign and enter an amount; it moves from your balance to the campaign's owner.",
+      "Each donation counts toward the campaign's goal and is listed on your Receipts page.",
+      "Donations have limits: a cap per donation, a daily total, a wait for new accounts, and none to your own campaign.",
+      "To raise funds, press \"Start a Campaign\" and set \"Goal (BFC) *\"; members give in BizCash, never in dollars."
+    ],
+    "garage-sale.html": [
+      "Press \"Buy\" on an item and confirm; its price comes out of your BizCash balance.",
+      "Press \"Message\" to agree pickup or shipping with the seller; the conversation opens on your Messages page.",
+      "BizForce moves only the BizCash; handing over the item is between you and the seller.",
+      "Selling? Press \"Post an Item\", add a title, price and photos, then \"Post Item\"; change or remove it later from its card."
+    ],
+    "receipts.html": [
+      "Press \"View Receipt\" on any purchase, sale, transfer or donation to open its full record.",
+      "Press \"Print / Save as PDF\" to print it or keep a PDF copy.",
+      "Entries come from your marketplace orders, wallet history and donations; nothing here is typed in by hand.",
+      "A part that failed to load says so, with \"Try again\"; press it rather than reloading the whole page."
+    ],
+    "routines.html": [
+      "Press \"+ New routine\", give it a \"Name\", pick an agent and a tool for each step with \"Add step\", then press \"Save routine\".",
+      "Press \"Run\" on a routine, then \"Run now\"; the run window shows each step's result.",
+      "The builder shows how many steps the server allows; at that limit, no more can be added.",
+      "\"Stopped at step\" means that step failed and the ones after it never ran; fix its inputs with \"Edit\" and run it again."
+    ],
+    "saved-prompts.html": [
+      "Press \"+ New prompt\", pick the \"Agent\", write the \"Prompt\" using {{customer}}-style blanks, and press \"Save prompt\".",
+      "Press \"Run\", fill in each blank, and the agent's answer appears in the run window.",
+      "Two prompts cannot share a name that differs only by capitals or spaces.",
+      "\"This is not a usable blank\" means the braces hold something else; a blank takes letters, digits and underscores only."
+    ],
+    "seller.html": [
+      "Press \"Buy with BizCash\" on an item and confirm; the price is taken from your balance.",
+      "A digital item's file then waits for you on your My Purchases page.",
+      "Everything here is priced in BizCash; BizForce takes no dollar payments between members.",
+      "Page empty? The username in the link may be wrong, or this member has nothing listed yet."
+    ],
+    "services.html": [
+      "Press \"View / Buy\" on a card to open that member's own buy link in a new tab.",
+      "Payment happens on the member's own site; BizForce takes no part in that sale.",
+      "Cards are the services members add on their profiles; only members with an active subscription are listed.",
+      "Rather pay in BizCash? The marketplace sells services that are bought from your balance."
+    ],
+    "index.html": [
+      "Signed in, this page sends you straight on to your dashboard; if it has not moved, reload it.",
+      "On the dashboard, the Command Center holds the proposals and failed runs waiting for you.",
+      "As a member you never need this public introduction, and nothing on it changes your account.",
+      "Stuck here after your session ended? Press \"Sign In\" again."
+    ],
+    "settings.html": [
+      "Pick a panel — \"Profile\", \"API Key\", \"Billing\", \"Preferences\" or \"Account\" — change what you need, and press its save button.",
+      "Under \"Preferences\", \"Mist Default Position\" sets where Termaximus' mist first appears; drag the mist and this device remembers where.",
+      "Turn on \"Keep a copy on this device for offline use\" under \"Account\" to open recent tasks, profile and wallet with no connection.",
+      "Offline, a page shows when its copy was saved, and nothing can be sent or changed until you're back online.",
+      "\"Add a Passkey\" lets this device sign you in without typing your password."
+    ],
+    "crm.html": [
+      "Press \"+ Add Customer\", fill in \"Name\" and what you know, and press \"Save\".",
+      "Press \"Activity\" on a record to see its history, and \"Log Activity\" there to note a call or a meeting.",
+      "A converted prospect arrives here as a new record, made by the Convert button on the Prospects page.",
+      "List not loaded? Press \"Try again\" before entering anything a second time."
+    ],
+    "inventory.html": [
+      "Press \"+ Add Item\", fill in \"Name\", \"Unit Cost\", \"Unit Price\" and \"Reorder Point\", then press \"Save\".",
+      "Press \"Movements\" on an item for its history, and \"Record Movement\" there to log stock coming in or going out.",
+      "The Store Agent's Stock & Margin tool counts what you enter here, so a blank cost or price is left out, never taken as 0.",
+      "Can't delete an item with movements? Press \"Archive it instead\"; its history is kept."
+    ],
+    "proposals.html": [
+      "Read each pending proposal's reasoning, then press \"Approve\" or \"Reject\".",
+      "An approved proposal moves to \"Executing\", then \"Executed\" or \"Failed\"; the filters above find it.",
+      "Calendar events sent with Propose for Approval wait here too, and are not saved until you approve them.",
+      "Under \"Failed\"? It did not run; its card says why, so fix the cause before proposing it again."
+    ],
+    "prospecting.html": [
+      "Press \"+ Add Prospect\", fill in \"Name\" and contact details, and choose an \"ICP Profile\" to judge them by.",
+      "Under \"ICP Profiles\", press \"+ Add ICP Profile\" to set the criteria and the \"Pass Threshold\" a prospect must reach.",
+      "\"Convert\" turns a prospect into a CRM customer and marks it converted; it cannot be undone from here.",
+      "\"Fit Score\" is yours to enter; leave it blank until you have scored the prospect."
+    ],
+    "calendar.html": [
+      "Pick a day, give the event a \"Title\" and \"Type\", set \"Remind me\" if you want one, and press \"Save Event\".",
+      "\"Propose for Approval\" sends the event to Agent Proposals instead, to approve before it is saved.",
+      "Tick \"Recurring annually\" for a birthday or an anniversary, and it repeats every year from one save.",
+      "Lost in another month? Press \"Today\" to come back."
+    ],
+    "messages.html": [
+      "Pick a conversation, type in the box and press \"Send\", or press Enter.",
+      "An open conversation refreshes every 8 seconds, so replies appear without reloading.",
+      "A new conversation starts from the Message button on a marketplace or garage-sale listing; there is no new-message button here.",
+      "\"No conversations yet.\" means none has started; open a listing and press its Message button."
+    ],
+    "mychart.html": [
+      "Tap any part of the triangle to open its reading in the side panel.",
+      "Press \"Ask Termaximus about\" in that panel to send the question to the same thread as the Oracle page.",
+      "The triangle is built from the birth name and date you synchronized on the Oracle page; it does not shift with time.",
+      "Chart empty? Synchronize your birth name and date on the Oracle page first, then reload this one."
+    ],
+    "self-reviews.html": [
+      "Press \"Run Weekly\" or \"Run Monthly\" to review your last closed week or month.",
+      "The review shows the activity counted for that period, with a written narrative beneath it.",
+      "The counts are measured from your saved records; only the narrative is written by the model.",
+      "A review with no narrative still shows its counts; the writing failed, not the measurement, so run it again."
+    ],
+    "synastry.html": [
+      "Enter a \"Label\", \"Birth name\", \"Birth date\" and \"Birth place\", then press \"Save Record\".",
+      "Press \"Compare\" on a saved record to read that person against your own chart.",
+      "Each person is read against the birth details you synchronized on the Oracle page, so synchronize there first.",
+      "No \"Compare\" on a record? Its place could not be resolved, so no chart can be computed; delete it and save it again."
+    ],
+    "your-data.html": [
+      "Press \"Download my data\" for a copy of everything BizForce stores about you.",
+      "\"On this device\" lists what this browser keeps for offline use, and where to turn it off.",
+      "\"Delete my account\" asks for \"Your username\" and \"Your password\" before anything is removed.",
+      "Offline, both buttons are disabled; they work again once you are back online."
     ]
   };
 
-  var DEFAULT_GUIDANCE = "Explore this page — Termaximus will surface guidance here as it learns the terrain.";
+  /* What every agent page shares, said once and shown under that page's tips:
+     the pages that carry the "Last run" line (#lastRunText, filled by
+     agent-profile.js). The Content Agent page has no Last run line, so it is
+     not shown there; its own tips say where the Business Profile is set. */
+  var GUIDE_COMMON = "Each run is saved, and \"Last run\" opens the newest. Every agent reads the Business Profile you set on the Content Agent page.";
 
   /* per-page fallback for the "Termaximus Insights" section — used as
      the initial text and whenever the live /api/insights/page call is
@@ -282,6 +409,12 @@
     if (!file) file = "index.html";
     return file.toLowerCase();
   }
+
+  /* NO ENTRY, NO GUIDE. There is no generic fallback text any more: a page
+     that loads this script without an entry above shows nothing, rather than
+     a sentence that says nothing. checkGuideStandard fails on such a page. */
+  var guidanceText = resolveGuidance(currentPageKey());
+  if (!guidanceText) return;
 
   /* ── styles ── */
   var style = document.createElement("style");
@@ -433,9 +566,138 @@
     "#tmx-guide-panel .tmx-guide-list li::marker {",
     "  color: #22d3ee;",
     "}",
+    "#tmx-guide-panel .tmx-guide-common, #tmx-guide-sheet .tmx-guide-common {",
+    "  margin: 14px 0 0;",
+    "  padding-top: 12px;",
+    "  border-top: 1px dashed rgba(255, 255, 255, 0.1);",
+    "  font-size: 0.8rem;",
+    "  line-height: 1.55;",
+    "  color: #7d84a8;",
+    "}",
+
+    /* ── phones: a "Guide" button and a bottom sheet ──
+       The panel above stays hidden at 860px and below; this button opens the
+       same tips there. BOTTOM-LEFT, 16px in: the mist's four default corners
+       (termaximus-presence.js MIST_CORNERS) all sit 120px or more above the
+       bottom edge, or 180px in from the right, so this 44px button clears
+       every one of them; a mist dragged onto it moves the button to the
+       bottom-right instead (placeFab, below). Z-INDEX 40: below every modal
+       overlay (50 and up), the profile's customize panel (50) and the terms
+       notice (9000), so it never sits over a page's own controls. */
+    "#tmx-guide-fab {",
+    "  display: none;",
+    "  position: fixed;",
+    "  left: 16px;",
+    "  bottom: calc(16px + env(safe-area-inset-bottom, 0px));",
+    "  width: 88px;",
+    "  height: 44px;",
+    "  z-index: 40;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  gap: 6px;",
+    "  border: 1px solid rgba(168, 85, 247, 0.45);",
+    "  border-radius: 22px;",
+    "  background: rgba(12, 18, 38, 0.92);",
+    "  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 229, 255, 0.12);",
+    "  color: #e8e8ff;",
+    "  font: 700 0.82rem system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
+    "  letter-spacing: 0.06em;",
+    "  cursor: pointer;",
+    "}",
+    "#tmx-guide-fab.tmx-guide-fab--right {",
+    "  left: auto;",
+    "  right: 16px;",
+    "}",
+    "#tmx-guide-fab:focus-visible, #tmx-guide-sheet-close:focus-visible {",
+    "  outline: 2px solid #22d3ee;",
+    "  outline-offset: 2px;",
+    "}",
+    "#tmx-guide-sheet-backdrop {",
+    "  position: fixed;",
+    "  inset: 0;",
+    "  z-index: 2147483600;",
+    "  background: rgba(2, 4, 12, 0.55);",
+    "}",
+    "#tmx-guide-sheet {",
+    "  position: fixed;",
+    "  left: 0;",
+    "  right: 0;",
+    "  bottom: 0;",
+    "  z-index: 2147483601;",
+    "  max-height: 75vh;",
+    "  overflow-y: auto;",
+    "  padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));",
+    "  border-radius: 20px 20px 0 0;",
+    "  border-top: 1px solid rgba(168, 85, 247, 0.35);",
+    "  background: rgba(12, 18, 38, 0.98);",
+    "  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);",
+    "  color: #e8e8ff;",
+    "  font-family: system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
+    "  transition: transform 0.2s ease;",
+    "}",
+    "#tmx-guide-sheet-backdrop[hidden], #tmx-guide-sheet[hidden] {",
+    "  display: none;",
+    "}",
+    "#tmx-guide-sheet .tmx-guide-sheet-head {",
+    "  position: sticky;",
+    "  top: 0;",
+    "  display: flex;",
+    "  align-items: center;",
+    "  justify-content: space-between;",
+    "  padding: 18px 0 12px;",
+    "  background: rgba(12, 18, 38, 0.98);",
+    "  touch-action: none;",
+    "}",
+    "#tmx-guide-sheet .tmx-guide-sheet-grip {",
+    "  position: absolute;",
+    "  top: 7px;",
+    "  left: 50%;",
+    "  width: 40px;",
+    "  height: 4px;",
+    "  margin-left: -20px;",
+    "  border-radius: 2px;",
+    "  background: rgba(255, 255, 255, 0.25);",
+    "}",
+    "#tmx-guide-sheet-title {",
+    "  margin: 0;",
+    "  font-size: 0.78rem;",
+    "  font-weight: 800;",
+    "  letter-spacing: 0.14em;",
+    "  text-transform: uppercase;",
+    "  color: #22d3ee;",
+    "}",
+    "#tmx-guide-sheet-close {",
+    "  min-width: 44px;",
+    "  height: 36px;",
+    "  border: 1px solid rgba(255, 255, 255, 0.18);",
+    "  border-radius: 18px;",
+    "  background: transparent;",
+    "  color: #e8e8ff;",
+    "  font: 600 0.8rem system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
+    "  cursor: pointer;",
+    "}",
+    "#tmx-guide-sheet .tmx-guide-list {",
+    "  margin: 0;",
+    "  padding-left: 18px;",
+    "  font-size: 0.9rem;",
+    "  line-height: 1.6;",
+    "  color: #a8acc8;",
+    "}",
+    "#tmx-guide-sheet .tmx-guide-list li {",
+    "  margin-bottom: 10px;",
+    "}",
+    "#tmx-guide-sheet .tmx-guide-list li::marker {",
+    "  color: #22d3ee;",
+    "}",
+    /* While the sheet is open the mist would float over it (its z-index is
+       the highest there is), so it is hidden until the sheet closes. */
+    "html.tmx-guide-sheet-open #tmx-presence-root, html.tmx-guide-sheet-open #tmx-chat, html.tmx-guide-sheet-open #tmx-chat-glow-wrap {",
+    "  visibility: hidden !important;",
+    "}",
 
     "@media (max-width: 860px) {",
     "  #tmx-guide-root { display: none; }",
+    "  #tmx-guide-fab { display: inline-flex; }",
     "}"
 
   ].join("\n");
@@ -457,13 +719,13 @@
   panel.id = "tmx-guide-panel";
   panel.setAttribute("aria-label", "Termaximus Guide");
 
-  function renderGuidance(value) {
-    if (Array.isArray(value)) {
-      return '<ul class="tmx-guide-list">' +
-        value.map(function (point) { return '<li>' + point + '</li>'; }).join('') +
-        '</ul>';
-    }
-    return '<p class="tmx-guide-placeholder">' + value + '</p>';
+  /* The tips, then the COMMON line on an agent page: one that carries the
+     "Last run" line agent-profile.js fills. Used by the panel and the sheet. */
+  function renderGuidance(tips) {
+    return '<ul class="tmx-guide-list">' +
+      tips.map(function (point) { return '<li>' + point + '</li>'; }).join('') +
+      '</ul>' +
+      (document.getElementById("lastRunText") ? '<p class="tmx-guide-common" data-tmx-guide-common>' + GUIDE_COMMON + '</p>' : '');
   }
 
   function resolveGuidance(key) {
@@ -472,10 +734,9 @@
       var withExtension = key + ".html";
       if (PAGE_GUIDANCE[withExtension]) return PAGE_GUIDANCE[withExtension];
     }
-    return DEFAULT_GUIDANCE;
+    return null;
   }
 
-  var guidanceText = resolveGuidance(currentPageKey());
   var initialInsightText = resolveInsight(currentPageKey(), "Placeholder — Termaximus’s insights will appear here.");
 
   panel.innerHTML =
@@ -494,6 +755,108 @@
   root.appendChild(tab);
   root.appendChild(panel);
   document.body.appendChild(root);
+
+  /* ── phones: the "Guide" button and its bottom sheet ────────────────────────
+     The same tips as the panel, in a sheet that rises from the bottom edge.
+     It closes on the Close button, a tap on the dimmed page behind it, a
+     downward swipe on its header, or Escape. Opening moves focus into the
+     sheet (its Close button) and keeps Tab there; closing hands focus back to
+     the button that opened it. The Insights section stays on the desktop
+     panel: the sheet makes no request at all. */
+  var fab = document.createElement("button");
+  fab.type = "button";
+  fab.id = "tmx-guide-fab";
+  fab.setAttribute("aria-label", "Open the Termaximus Guide for this page");
+  fab.setAttribute("aria-haspopup", "dialog");
+  fab.setAttribute("aria-expanded", "false");
+  fab.setAttribute("aria-controls", "tmx-guide-sheet");
+  fab.textContent = "Guide";
+
+  var sheetBackdrop = document.createElement("div");
+  sheetBackdrop.id = "tmx-guide-sheet-backdrop";
+  sheetBackdrop.hidden = true;
+
+  var sheet = document.createElement("div");
+  sheet.id = "tmx-guide-sheet";
+  sheet.hidden = true;
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  sheet.setAttribute("aria-labelledby", "tmx-guide-sheet-title");
+  sheet.setAttribute("tabindex", "-1");
+  sheet.innerHTML =
+    '<div class="tmx-guide-sheet-head">' +
+      '<span class="tmx-guide-sheet-grip" aria-hidden="true"></span>' +
+      '<h2 id="tmx-guide-sheet-title">Termaximus Guide</h2>' +
+      '<button type="button" id="tmx-guide-sheet-close" aria-label="Close the Termaximus Guide">Close</button>' +
+    '</div>' +
+    renderGuidance(guidanceText);
+
+  document.body.appendChild(fab);
+  document.body.appendChild(sheetBackdrop);
+  document.body.appendChild(sheet);
+
+  var sheetClose = document.getElementById("tmx-guide-sheet-close");
+  var sheetOpen = false;
+
+  function setSheet(next) {
+    sheetOpen = next;
+    sheet.hidden = !next;
+    sheetBackdrop.hidden = !next;
+    sheet.style.transform = "";
+    fab.setAttribute("aria-expanded", next ? "true" : "false");
+    document.documentElement.classList.toggle("tmx-guide-sheet-open", next);
+    if (next) sheetClose.focus();
+    else fab.focus();
+  }
+
+  fab.addEventListener("click", function (e) {
+    e.stopPropagation();
+    setSheet(!sheetOpen);
+  });
+  sheetClose.addEventListener("click", function () { setSheet(false); });
+  sheetBackdrop.addEventListener("click", function () { setSheet(false); });
+  sheet.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); setSheet(false); }
+    /* One control in the sheet, so Tab stays on it rather than leaving the
+       dialog for the page behind. */
+    else if (e.key === "Tab") { e.preventDefault(); sheetClose.focus(); }
+  });
+
+  /* A downward swipe of 60px or more on the header closes the sheet; a shorter
+     one springs back. */
+  var swipeHead = sheet.querySelector(".tmx-guide-sheet-head");
+  var swipeStartY = null;
+  swipeHead.addEventListener("touchstart", function (e) {
+    swipeStartY = e.touches && e.touches[0] ? e.touches[0].clientY : null;
+  }, { passive: true });
+  swipeHead.addEventListener("touchmove", function (e) {
+    if (swipeStartY === null || !e.touches || !e.touches[0]) return;
+    var dy = e.touches[0].clientY - swipeStartY;
+    sheet.style.transform = dy > 0 ? "translateY(" + dy + "px)" : "";
+  }, { passive: true });
+  swipeHead.addEventListener("touchend", function (e) {
+    if (swipeStartY === null) return;
+    var t = e.changedTouches && e.changedTouches[0];
+    var dy = t ? t.clientY - swipeStartY : 0;
+    swipeStartY = null;
+    if (dy >= 60) setSheet(false);
+    else sheet.style.transform = "";
+  });
+
+  /* A mist dragged down onto the bottom-left corner would sit on the button,
+     so the button moves to the bottom-right while the two would touch. */
+  function placeFab() {
+    var mist = document.getElementById("tmx-presence-root");
+    fab.classList.remove("tmx-guide-fab--right");
+    if (!mist || !fab.getBoundingClientRect) return;
+    var a = fab.getBoundingClientRect(), b = mist.getBoundingClientRect();
+    if (!a.width || !b.width) return;
+    var touching = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    if (touching) fab.classList.add("tmx-guide-fab--right");
+  }
+  placeFab();
+  window.addEventListener("resize", placeFab);
+  document.addEventListener("pointerup", function () { setTimeout(placeFab, 0); });
 
   /* ── the insight, fetched on demand and cached for the sitting ──────────────
 
