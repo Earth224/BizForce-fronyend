@@ -1,0 +1,38 @@
+# Browser security headers for every page Netlify serves (launch item #8).
+#
+# Strict-Transport-Security: HTTPS only, for a year, on bizforceai.net and
+#   every subdomain of it. Every subdomain that serves a web page must serve
+#   it over HTTPS.
+# X-Frame-Options DENY and the enforced CSP frame-ancestors 'none': no other
+#   site may put a BizForce page in a frame (clickjacking). The pages frame
+#   YouTube and Vimeo players; nothing frames them.
+# Permissions-Policy: the camera, microphone, payment, USB, serial and HID
+#   APIs are off; geolocation stays on for this site alone (oracle.html asks
+#   for the visitor's location to set a birth place). Motion sensors are left
+#   alone: digital-cards.html's holographic card tilts with the phone.
+# Content-Security-Policy-Report-Only: the sources the pages really use,
+#   gathered from the code on 2026-10-27, reported (in the browser console)
+#   and NOT enforced, so a source missed here breaks nothing. Once a week of
+#   real use shows no violations, it can be renamed to Content-Security-Policy.
+#   script-src  this site, cdn.jsdelivr.net (qrcode, html2canvas, chart.js) and
+#               cdnjs.cloudflare.com (jspdf), each tag pinned with SRI; inline
+#               scripts and onclick handlers are still everywhere, hence
+#               'unsafe-inline'.
+#   style-src   this site, inline styles, Google Fonts' stylesheets.
+#   font-src    this site and Google Fonts' files.
+#   img-src     this site, data: and blob: (generated previews), Supabase
+#               Storage (members' uploads), YouTube thumbnails and the
+#               Wikimedia moon image the calendar, chart and oracle pages draw.
+#   media-src   this site, blob: and Supabase Storage (card videos and audio).
+#   connect-src this site, the BizForce API on Railway, and Supabase Storage
+#               (direct uploads to signed URLs, and the card photo the vCard
+#               embeds).
+#   frame-src   the YouTube and Vimeo players on profile and seller pages.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), payment=(), usb=(), serial=(), hid=()
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://img.youtube.com https://upload.wikimedia.org; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://dynamic-prosperity-production-5382.up.railway.app https://*.supabase.co; frame-src https://www.youtube.com https://player.vimeo.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

@@ -3,11 +3,20 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>BizForce AI — Business Card</title>
+  <title>Business Card — BizForce AI Digital Cards</title>
+  <meta name="description" content="A digital business card made with BizForce AI. Tap to call or email, scan the QR code to open the card, and save the contact to your phone in one tap."/>
+  <link rel="canonical" href="https://bizforceai.net/card-view.html"/>
+  <meta property="og:type" content="profile"/>
+  <meta property="og:site_name" content="BizForce AI"/>
+  <meta property="og:title" content="Business Card — BizForce AI Digital Cards"/>
+  <meta property="og:description" content="A digital business card made with BizForce AI. Tap to call or email, scan the QR code to open the card, and save the contact to your phone in one tap."/>
+  <meta property="og:url" content="https://bizforceai.net/card-view.html"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap"/>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <!-- qrcode 1.4.4 is the library's last browser build; the 1.5.3 path this page named returns 404, so no QR was ever drawn. -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
+  <script src="/scripts/bf-card.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{width:100%;height:100%;background:#070b18;overflow:hidden;
@@ -277,6 +286,9 @@
     .cv-audio-btn svg{width:14px;height:14px}
     .cv-audio-track{flex:1;min-width:0;font-size:.7rem;font-weight:700;color:#22d3ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.03em}
 
+    /* Tap-to-call and tap-to-email: links that look like the card's text lines. */
+    .card-contact-link{display:block;color:inherit;text-decoration:none}
+    .card-contact-link[href]{text-decoration:underline;text-decoration-color:rgba(255,255,255,.25);text-underline-offset:2px}
     /* ── BizForce watermark ── */
     .page-watermark{
       position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:25;
@@ -325,8 +337,8 @@
         <div class="card-tagline" id="pTagline"></div>
       </div>
       <div class="card-contacts-block">
-        <div class="card-contact-line" id="pEmail"></div>
-        <div class="card-contact-line" id="pPhone"></div>
+        <a class="card-contact-line card-contact-link" id="pEmail"></a>
+        <a class="card-contact-line card-contact-link" id="pPhone"></a>
         <div class="card-contact-line" id="pWebsite"></div>
       </div>
     </div>
@@ -402,17 +414,21 @@ function _applyPosterExit(el, style) {
   (exits[style] || exits['fade'])(el);
 }
 
-function buildVCard(c) {
-  return [
-    "BEGIN:VCARD", "VERSION:3.0",
-    "FN:"    + (c.full_name || ""),
-    "TITLE:" + (c.job_title || ""),
-    "ORG:"   + (c.company   || ""),
-    c.phone   ? "TEL:"   + c.phone   : "",
-    c.email   ? "EMAIL:" + c.email   : "",
-    c.website ? "URL:"   + c.website : "",
-    "END:VCARD"
-  ].filter(Boolean).join("\n");
+/* A tap-to-call or tap-to-email link, or plain text when the value is not one
+   (or is "", which is how the server sends a field the member hid). */
+function setContactLink(id, text, href) {
+  var el = document.getElementById(id);
+  el.textContent = text || "";
+  if (href) el.setAttribute("href", href); else el.removeAttribute("href");
+}
+
+/* The card's public URL is what the QR encodes, and the canonical. */
+function setCanonical(url) {
+  if (!url) return;
+  var link = document.querySelector('link[rel="canonical"]');
+  if (link) link.setAttribute("href", url);
+  var og = document.querySelector('meta[property="og:url"]');
+  if (og) og.setAttribute("content", url);
 }
 
 function renderCard(c) {
@@ -499,23 +515,25 @@ function renderCard(c) {
   document.getElementById("pName").textContent     = c.full_name || "";
   document.getElementById("pTitle").textContent    = c.job_title || "";
   document.getElementById("pTagline").textContent  = (c.media_layout && c.media_layout.tagline) || "";
-  document.getElementById("pEmail").textContent   = c.email   || "";
-  document.getElementById("pPhone").textContent   = c.phone   || "";
+  setContactLink("pEmail", c.email, window.bfCard.mailtoHref(c.email));
+  setContactLink("pPhone", c.phone, window.bfCard.telHref(c.phone));
   var ws = (c.website || "").replace(/^https?:\/\//, "");
   document.getElementById("pWebsite").textContent = ws;
 
-  var vcard  = buildVCard(c);
+  if (c.full_name) document.title = c.full_name + (c.company ? " — " + c.company : "") + " — BizForce AI Card";
+  var cardUrl = window.bfCard.publicUrl(c) || window.location.href;
+  setCanonical(cardUrl);
   var colors = THEME_QR[theme] || THEME_QR.dark;
   try {
-    QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
+    QRCode.toCanvas(document.getElementById("qrCanvas"), cardUrl, {
       width: 80, margin: 1, errorCorrectionLevel: "M",
       color: { dark: colors.dark, light: colors.light }
     }, function() {});
-    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
+    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), cardUrl, {
       width: 52, margin: 1, errorCorrectionLevel: "M",
       color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
     }, function() {});
-  } catch(e) {}
+  } catch(e) { console.error("[BF] the card's QR code could not be drawn:", e); }
 
   if (c.video_url) {
     var cvid = document.getElementById("cardVideo");
@@ -583,6 +601,7 @@ function startVideoLoop(c) {
 function onCardTap(e) {
   var audioBar = document.getElementById("cvAudioBar");
   if (audioBar && audioBar.contains(e.target)) return;
+  if (e.target && e.target.closest && e.target.closest("a[href]")) return; // a tap to call or email is not a tap to play
   _tapReady = true;
   if (_vtState === "still")   { enterVideoMode(); }
   else if (_vtState === "playing") { pauseVideo(); }
@@ -719,9 +738,10 @@ function exitVideoMode() {
   }
 }
 
-function saveContact() {
+async function saveContact() {
   if (!cardData) return;
-  var blob = new Blob([buildVCard(cardData)], { type: "text/vcard" });
+  var photo = await window.bfCard.photoFor(cardData.photo_url);
+  var blob = new Blob([window.bfCard.buildVCard(cardData, photo)], { type: "text/vcard" });
   var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = (cardData.full_name || "contact").replace(/\s+/g, "_") + ".vcf";
@@ -729,15 +749,23 @@ function saveContact() {
   setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
 }
 
-(async function() {
+/* Which card: the short link /c/<slug> (Netlify serves this page there), or ?token=. */
+function cardSource() {
+  var m = /^\/c\/([a-z0-9-]{3,40})\/?$/.exec(window.location.pathname);
+  if (m) return API_URL + "/api/cards/slug/" + encodeURIComponent(m[1]);
   var token = new URLSearchParams(window.location.search).get("token");
-  if (!token) {
+  return token ? API_URL + "/api/cards/share/" + encodeURIComponent(token) : null;
+}
+
+(async function() {
+  var source = cardSource();
+  if (!source) {
     document.getElementById("stateLoading").style.display = "none";
     document.getElementById("stateError").style.display   = "block";
     return;
   }
   try {
-    var res = await fetch(API_URL + "/api/cards/share/" + encodeURIComponent(token));
+    var res = await fetch(source);
     if (!res.ok) throw new Error("not found");
     var d = await res.json();
     cardData = d.card;

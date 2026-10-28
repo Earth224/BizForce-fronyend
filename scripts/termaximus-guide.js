@@ -96,7 +96,7 @@
       "There is one thread, not a list of past threads; your whole history is saved and shown here, but answers draw only on the last 20 messages, so restate older context when it matters."
     ],
     "card-view.html": [
-      "The public, read-only viewer for a shared digital business card — opened through its shared ?token= link, not something you edit here; the card's QR codes hold a vCard contact, not a link to this page.",
+      "The public, read-only viewer for a shared digital business card — opened through its short link (bizforceai.net/c/ and a name) or its shared ?token= link, not something you edit here; the card's QR codes open this page.",
       "There's nothing to set up on this page; the card was designed elsewhere (Digital Cards) and this page just renders it for whoever receives the link.",
       "If you're viewing someone else's card, use Save Contact to pull it straight into your contacts as a vCard.",
       "If this page renders one of your own cards and it looks wrong, the fix happens back on Digital Cards, not here."

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="robots" content="noindex"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BizForce AI — Digital Business Cards</title>
   <script src="/scripts/bf-session.js"></script>
@@ -10,9 +11,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap"/>
   <link rel="stylesheet" href="/css/bizforce-ui.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- qrcode 1.4.4 is the library's last browser build; the 1.5.3 path this page named returns 404, so no QR was ever drawn. -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
+  <script src="/scripts/bf-card.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
@@ -462,6 +465,21 @@
       <div class="form-group">
         <label class="form-label">Website</label>
         <input class="form-input" id="fWebsite" type="url" placeholder="https://acme.com" maxlength="200">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="fSlug">Short link</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:.8rem;color:#8892b8;white-space:nowrap">bizforceai.net/c/</span>
+          <input class="form-input" id="fSlug" type="text" placeholder="jane-smith" maxlength="40" autocomplete="off" spellcheck="false">
+        </div>
+        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">3 to 40 lowercase letters, numbers and hyphens. Your QR code opens this link once the card is saved.</p>
+      </div>
+      <div class="form-group" id="cardPrivacyGroup">
+        <span class="form-label">On your public card</span>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowEmail" checked> Show my email (tap to email)</label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowPhone" checked> Show my phone (tap to call)</label>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowPhoto" checked> Put my profile photo in the saved contact</label>
+        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">A field you untick is not sent to anyone who opens your card, scans its QR code or saves the contact.</p>
       </div>
 
       <hr class="form-divider">
@@ -1110,35 +1128,65 @@ function updatePreview() {
   syncStillText();
 }
 
+/* The QR encodes the card's public URL (scripts/bf-card.js says why): the
+   short link once one is saved, else the card-view link. A card that has
+   never been saved has no URL yet, so its QR is left blank rather than
+   pointing anywhere else. */
+function cardQrUrl() {
+  return window.bfCard.publicUrl({ slug: activeSlug, share_token: activeShareToken });
+}
+
 async function generateQR() {
-  var f = getFields();
-  var vcard = buildVCard(f);
+  var url = cardQrUrl();
   var colors = THEME_QR[activeTheme];
+  var qr = document.getElementById("qrCanvas"), qrVideo = document.getElementById("qrVideoCanvas");
+  if (!url) {
+    [qr, qrVideo].forEach(function (cv) { if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); });
+    return;
+  }
   try {
     await new Promise(function(res, rej) {
-      QRCode.toCanvas(document.getElementById("qrCanvas"), vcard || "BizForce AI", {
+      QRCode.toCanvas(qr, url, {
         width: 90, margin: 1, errorCorrectionLevel: "M",
         color: { dark: colors.dark, light: colors.light }
       }, function(err) { err ? rej(err) : res(); });
     });
-    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), vcard || "BizForce AI", {
+    QRCode.toCanvas(qrVideo, url, {
       width: 52, margin: 1, errorCorrectionLevel: "M",
       color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
     }, function() {});
-  } catch(e) { /* silent */ }
+  } catch(e) { console.error("[BF] the card's QR code could not be drawn:", e); }
 }
 
 function buildVCard(f) {
-  return [
-    "BEGIN:VCARD", "VERSION:3.0",
-    "FN:" + f.full_name,
-    "TITLE:" + f.job_title,
-    "ORG:" + f.company,
-    f.phone   ? "TEL:" + f.phone   : "",
-    f.email   ? "EMAIL:" + f.email : "",
-    f.website ? "URL:" + f.website : "",
-    "END:VCARD"
-  ].filter(Boolean).join("\n");
+  return window.bfCard.buildVCard(Object.assign({}, f, { public_url: cardQrUrl() }), null);
+}
+
+/* The short link and the three show_ choices, sent only once the server has
+   them (a loaded card carries show_email after migration 149), or for a new
+   card. */
+var activeSlug = null;
+var cardPrivacyReady = true;
+function privacyFields() {
+  return {
+    slug: document.getElementById("fSlug").value.trim().toLowerCase(),
+    show_email: document.getElementById("fShowEmail").checked,
+    show_phone: document.getElementById("fShowPhone").checked,
+    show_photo: document.getElementById("fShowPhoto").checked
+  };
+}
+function fillPrivacy(card) {
+  cardPrivacyReady = Object.prototype.hasOwnProperty.call(card, "show_email");
+  activeSlug = card.slug || null;
+  document.getElementById("fSlug").value = card.slug || "";
+  document.getElementById("fShowEmail").checked = card.show_email !== false;
+  document.getElementById("fShowPhone").checked = card.show_phone !== false;
+  document.getElementById("fShowPhoto").checked = card.show_photo !== false;
+  ["fSlug", "fShowEmail", "fShowPhone", "fShowPhoto"].forEach(function (id) { document.getElementById(id).disabled = !cardPrivacyReady; });
+  if (!cardPrivacyReady) {
+    var note = document.querySelector("#cardPrivacyGroup p");
+    if (note) note.textContent = "Short links and hiding fields are switched on shortly. Until then your card shows its email and phone, as it always has.";
+  }
 }
 
 function setTheme(t) {
@@ -1349,7 +1397,9 @@ async function loadCard() {
     if (data.cards && data.cards.length) {
       activeCardId = data.cards[0].id;
       if (data.cards[0].share_token) activeShareToken = data.cards[0].share_token;
+      fillPrivacy(data.cards[0]);
       fillForm(data.cards[0]);
+      generateQR();
       setStatus("Card loaded.", "info");
     } else {
       generateQR();
@@ -1387,7 +1437,7 @@ async function saveCard() {
   btn.disabled = true;
   setStatus("Saving...", "info");
   var body = getFields();
-  console.log("[BF] saveCard payload:", JSON.stringify(body, null, 2));
+  if (cardPrivacyReady) Object.assign(body, privacyFields());
   try {
     var url, method;
     if (activeCardId) {
@@ -1405,7 +1455,12 @@ async function saveCard() {
     if (!res.ok) { var e = await res.json(); throw new Error(e.error || "Save failed"); }
     var d = await res.json();
     var saved = d.card;
-    if (saved) { activeCardId = saved.id; if (saved.share_token) activeShareToken = saved.share_token; }
+    if (saved) {
+      activeCardId = saved.id;
+      if (saved.share_token) activeShareToken = saved.share_token;
+      if (Object.prototype.hasOwnProperty.call(saved, "show_email")) fillPrivacy(saved);
+      generateQR();
+    }
     setStatus("", "info");
     showToast("Card saved!");
   } catch(e) {
@@ -1699,7 +1754,7 @@ async function shareCard() {
       st = rd.share_token;
       activeShareToken = st;
     }
-    var url = "https://bizforceai.net/card-view.html?token=" + st;
+    var url = window.bfCard.publicUrl({ slug: activeSlug, share_token: st });
     if (navigator.clipboard) {
       await navigator.clipboard.writeText(url);
     } else {

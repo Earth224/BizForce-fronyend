@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="robots" content="noindex"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>BizForce AI — SMS Drip Campaigns</title>
   <link rel="manifest" href="/manifest.json">
@@ -898,6 +899,13 @@
 
     function tok() { return localStorage.getItem("bf_token") || ""; }
 
+    /* Server text (message bodies, numbers, statuses) is escaped before it
+       goes into HTML (launch item #8). */
+    function smsEsc(value) {
+      return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
     function fmtDate(iso) {
       if (!iso) return "—";
       var d = new Date(iso);
@@ -1154,9 +1162,9 @@
           ? "Send immediately"
           : "After " + m.delay_hours + " hr" + (m.delay_hours === 1 ? "" : "s");
         return "<div class=\"sms-msg-item\">" +
-          "<div class=\"sms-msg-step-badge\">" + m.step_order + "</div>" +
+          "<div class=\"sms-msg-step-badge\">" + smsEsc(m.step_order) + "</div>" +
           "<div class=\"sms-msg-item-body\">" +
-            "<p class=\"sms-msg-item-text\">" + m.message_body + "</p>" +
+            "<p class=\"sms-msg-item-text\">" + smsEsc(m.message_body) + "</p>" +
             "<p class=\"sms-msg-item-delay\">" + delayText + "</p>" +
           "</div>" +
           "</div>";
@@ -1258,10 +1266,10 @@
                 })
               : "—";
             return "<tr>" +
-              "<td>" + to     + "</td>" +
-              "<td>" + msg    + "</td>" +
-              "<td>" + status + "</td>" +
-              "<td>" + sentAt + "</td>" +
+              "<td>" + smsEsc(to)     + "</td>" +
+              "<td>" + smsEsc(msg)    + "</td>" +
+              "<td>" + smsEsc(status) + "</td>" +
+              "<td>" + smsEsc(sentAt) + "</td>" +
               "</tr>";
           }).join("");
         })
@@ -1333,12 +1341,12 @@
               "<span style=\"color:#8892b8;font-size:0.7rem;font-weight:700;" +
                 "text-transform:uppercase;letter-spacing:0.06em;flex-shrink:0;padding-top:2px;\">ID</span>" +
               "<span style=\"color:#e8e8ff;font-weight:500;flex:1;min-width:0;" +
-                "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">" + subId + "</span>" +
+                "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">" + smsEsc(subId) + "</span>" +
               "<span style=\"color:#8892b8;font-size:0.78rem;font-weight:600;" +
-                "white-space:nowrap;\">Step " + step + "</span>" +
+                "white-space:nowrap;\">Step " + smsEsc(step) + "</span>" +
               "<span style=\"color:" + (status === "active" ? "#34d399" : "#8892b8") + ";" +
                 "font-size:0.7rem;font-weight:700;text-transform:uppercase;" +
-                "letter-spacing:0.06em;white-space:nowrap;\">" + status + "</span>" +
+                "letter-spacing:0.06em;white-space:nowrap;\">" + smsEsc(status) + "</span>" +
               "</div>";
           }).join("");
         })

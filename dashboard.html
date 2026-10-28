@@ -57,6 +57,7 @@
 </script>
 
 <meta charset="UTF-8">
+<meta name="robots" content="noindex"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>BizForce AI — Executive HQ</title>
 <link rel="manifest" href="/manifest.json">
@@ -2104,8 +2105,13 @@ business_description: document.getElementById("business_description").value
 
       console.error(err);
 
-      document.getElementById("businessProfileStatus").innerHTML =
-        "<span style='color:red;'>" + err.message + "</span>";
+      // The server's words, as text (launch item #8).
+      var bpStatus = document.getElementById("businessProfileStatus");
+      var bpErr = document.createElement("span");
+      bpErr.style.color = "red";
+      bpErr.textContent = err.message || "Save failed.";
+      bpStatus.textContent = "";
+      bpStatus.appendChild(bpErr);
     }
 
   });
@@ -2521,7 +2527,7 @@ activePollInterval = setInterval(async function () {
 
             console.error("AI TASK UI ERROR:", err);
 
-            statusEl.innerHTML = err.message || "Task failed.";
+            statusEl.textContent = err.message || "Task failed.";
             statusEl.style.color = "#ff6b6b";
         }
 
