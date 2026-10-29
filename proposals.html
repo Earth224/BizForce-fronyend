@@ -245,10 +245,21 @@ function graphemeCountText(text) {
   return n + " of 300 graphemes";
 }
 
+// Which account it posts as, from what the server recorded when it was filed:
+// a member's own connected account, or (no posts_as, or account "platform") the platform's.
+function postsAsText(payload) {
+  var a = payload && payload.posts_as;
+  if (a && a.account === "member" && typeof a.handle === "string" && a.handle) return "Posts as @" + a.handle;
+  return "Posts as the platform's Bluesky account";
+}
+
 function socialPostPayloadFields(payload) {
   var text = typeof payload.text === "string" ? payload.text : "";
   return '<div class="payload-fields">' +
-      '<div><span class="pf-label">posts to</span><span class="pf-value">Bluesky, as a new post from the platform&#39;s account</span></div>' +
+      '<div><span class="pf-label">posts to</span><span class="pf-value social-posts-as">' + escapeHtml(postsAsText(payload)) + ', as a new post</span></div>' +
+      (payload.posts_as && payload.posts_as.automatic === true
+        ? '<div><span class="pf-label">approval</span><span class="pf-value">posted automatically: "Post approved drafts automatically" was on</span></div>'
+        : '') +
       '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(graphemeCountText(text)) + '</span></div>' +
       '<div><span class="pf-label">text to be posted</span></div>' +
       '<pre class="exec-block social-post-text">' + escapeHtml(text) + '</pre>' +
@@ -279,6 +290,15 @@ function socialPostResultHtml(result) {
       '<div><span class="pf-label">post</span><a class="pf-value social-post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a></div>' +
       '<div><span class="pf-label">' + (result.already_published === true ? "status" : "published") + '</span>' + when + '</div>' +
     '</div>';
+}
+
+// An update_bluesky_profile proposal: exactly the two fields it sets, and the account.
+function blueskyProfilePayloadFields(payload) {
+  var rows = ['<div><span class="pf-label">profile</span><span class="pf-value social-posts-as">' + escapeHtml(postsAsText(payload).replace(/^Posts as /, "Updates ")) + '</span></div>'];
+  if (typeof payload.display_name === "string") rows.push('<div><span class="pf-label">display name</span></div><pre class="exec-block">' + escapeHtml(payload.display_name) + '</pre>');
+  if (typeof payload.description === "string") rows.push('<div><span class="pf-label">description</span></div><pre class="exec-block">' + escapeHtml(payload.description) + '</pre>');
+  rows.push('<div><span class="pf-label">unchanged</span><span class="pf-value">picture, banner and everything else on the profile</span></div>');
+  return '<div class="payload-fields">' + rows.join("") + '</div>';
 }
 
 async function loadProposals() {
@@ -448,6 +468,9 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "publish_social_post") {
         fieldsHtml = socialPostPayloadFields(p.payload);
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "update_bluesky_profile") {
+        fieldsHtml = blueskyProfilePayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);

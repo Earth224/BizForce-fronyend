@@ -66,7 +66,7 @@
       "Read each service's status: \"Runs on BizForce\", \"Removed\" or \"Not built\"; there is nothing here to connect or press.",
       "\"Removed\" means BizForce had it and took it out: Zernio and the six social platforms it posted to.",
       "\"Runs on BizForce\" means the app uses the service with its own account, as with Stripe, Twilio and email.",
-      "Hoping to post to your social accounts? That is not built; the Content Agent saves drafts for you to post yourself."
+      "Hoping to post to your social accounts? Bluesky connects on the Social Agent page; the other platforms are not built."
     ],
     "marketplace.html": [
       "Find a service by category or search, press \"Buy\" on its card and confirm; the price is paid from your BizCash balance.",
@@ -130,15 +130,16 @@
     "content.html": [
       "Start with \"Edit Profile\": fill in the Business Profile and press \"Save Profile\"; every other agent reads what you save.",
       "Pick \"Social Media Drafts\" and press \"Launch Task\"; each draft waits in \"Approval Queue\" for you to approve or reject.",
-      "Approved drafts are saved, not published or scheduled; social accounts cannot be connected yet, so you post them yourself.",
+      "Approved drafts are saved, not published or scheduled; to post on Bluesky from your own account, use the Social Agent page.",
       "Looking for an article you made? \"Content Library\" keeps saved articles and SMS campaigns; social drafts are not in it.",
       "\"Generate SEO Article\" and \"Generate SMS Campaign\" each write one piece from a single form, with no task to set up."
     ],
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
       "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
-      "Posts cannot be scheduled and social accounts cannot be connected at present; every plan here is yours to carry out.",
-      "Want drafts you can approve? Run Social Media Drafts on the Content Agent page; they wait in its Approval Queue."
+      "Under \"Connect Bluesky\", make an app password in Bluesky, enter it with your handle and press \"Connect\"; never your main password.",
+      "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
+      "Only Bluesky connects so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
     ],
     "analytics.html": [
       "Open \"KPI Review\", enter each metric's Now and Before figures, and press \"Review the metrics\"; it works out each change.",
@@ -342,7 +343,8 @@
       "Read each pending proposal's reasoning, then press \"Approve\" or \"Reject\".",
       "An approved proposal moves to \"Executing\", then \"Executed\" or \"Failed\"; the filters above find it.",
       "Calendar events sent with Propose for Approval wait here too, and are not saved until you approve them.",
-      "Under \"Failed\"? It did not run; its card says why, so fix the cause before proposing it again."
+      "Under \"Failed\"? It did not run; its card says why, so fix the cause before proposing it again.",
+      "A Bluesky card says which account it posts as; approving it posts exactly that text from that account."
     ],
     "prospecting.html": [
       "Press \"+ Add Prospect\", fill in \"Name\" and contact details, and choose an \"ICP Profile\" to judge them by.",

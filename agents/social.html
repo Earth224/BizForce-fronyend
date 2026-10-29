@@ -388,7 +388,22 @@
       .agent-header { gap: 16px; }
       .report-items { grid-template-columns: 1fr; }
     }
-  
+
+    .bsky-card { margin-top: 24px; }
+    .bsky-card ol { margin: 8px 0 14px; padding-left: 20px; color: #c4cbe6; font-size: .86rem; line-height: 1.7; }
+    .bsky-card a { color: #22d3ee; }
+    .bsky-fields { display: grid; gap: 10px; max-width: 420px; }
+    .bsky-fields label { display: grid; gap: 4px; font-size: .8rem; color: #8892b8; }
+    .bsky-fields input, .bsky-fields textarea { padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(244,114,182,.3); background: rgba(10,14,30,.6); color: #e6edf3; font: inherit; }
+    .bsky-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .bsky-quiet { color: #8892b8; font-size: .82rem; margin: 6px 0; line-height: 1.6; }
+    .bsky-msg { font-size: .82rem; color: #8892b8; margin-top: 8px; }
+    .bsky-msg.err { color: #f87171; }
+    .bsky-connected-as { font-weight: 700; color: #e6edf3; }
+    .bsky-warn { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #fecaca; font-size: .84rem; }
+    .bsky-switch { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: #e6edf3; }
+    .bsky-sub { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(244,114,182,.18); }
+
     .agent-avatar{border-color:rgba(244,114,182,0.5);background:linear-gradient(135deg,rgba(0,229,255,0.18),rgba(168,85,247,0.22));box-shadow:0 0 24px rgba(0,229,255,0.18),0 0 32px rgba(168,85,247,0.12);}
   </style>
 </head>
@@ -410,6 +425,49 @@
       <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
       
       
+    </section>
+    <section class="context-card bsky-card" id="bskyConnect" aria-label="Connect Bluesky">
+      <h2 class="section-label">Connect Bluesky</h2>
+      <p class="bsky-quiet">Connect your own Bluesky account and the posts you file here go out from it: after you approve them on the proposals page, or at once if you turn on automatic posting.</p>
+      <div class="bsky-msg" id="bskyStatusMsg"></div>
+      <div id="bskyConnected" hidden>
+        <p><span class="bsky-connected-as" id="bskyConnectedAs"></span> <span class="bsky-quiet" id="bskySince"></span></p>
+      </div>
+      <div id="bskyReconnect" hidden>
+        <p class="bsky-warn" id="bskyReconnectText"></p>
+      </div>
+      <div id="bskyForm">
+        <ol>
+          <li>In Bluesky, open <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noopener">Settings → Privacy and security → App passwords</a>.</li>
+          <li>Add an app password, name it BizForce, and copy it. It looks like xxxx-xxxx-xxxx-xxxx.</li>
+          <li>Enter your handle and that app password here, and press Connect. Never enter your main Bluesky password.</li>
+        </ol>
+        <div class="bsky-fields">
+          <label>Bluesky handle<input type="text" id="bskyHandle" placeholder="yourname.bsky.social" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+          <label>App password<input type="password" id="bskyAppPassword" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="off" /></label>
+        </div>
+        <div class="bsky-row"><button type="button" class="action-btn" id="bskyConnectBtn">Connect</button></div>
+        <div class="bsky-msg" id="bskyConnectMsg"></div>
+      </div>
+      <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="bskyDisconnectBtn" hidden>Disconnect</button></div>
+      <div class="bsky-sub" id="bskyAutomation" hidden>
+        <label class="bsky-switch"><input type="checkbox" id="bskyAutoPost" /> <span>Post approved drafts automatically</span></label>
+        <p class="bsky-quiet">Off unless you turn it on. When on, a Bluesky post you file goes out at once, without the approve step. The 300-grapheme limit and the claims screen still run first, and a post they refuse is not posted. Profile changes always wait for your approval.</p>
+        <p class="bsky-quiet" id="bskyAutoLog"></p>
+        <div class="bsky-msg" id="bskyAutoMsg"></div>
+      </div>
+      <div class="bsky-sub" id="bskyProfile" hidden>
+        <p class="bsky-connected-as">Propose a profile update</p>
+        <p class="bsky-quiet">Only the display name and the description. Your picture and banner are never changed. It waits on the proposals page until you approve it.</p>
+        <div class="bsky-fields">
+          <label>Display name (up to 64)<input type="text" id="bskyDisplayName" maxlength="200" /></label>
+          <label>Description (up to 256)<textarea id="bskyDescription" rows="3" maxlength="1000"></textarea></label>
+        </div>
+        <div class="bsky-row"><button type="button" class="action-btn" id="bskyProfileBtn">File for approval</button>
+          <a href="/proposals.html" id="bskyProfileLink" hidden>Open the proposals page</a></div>
+        <div class="bsky-msg" id="bskyProfileMsg"></div>
+      </div>
+      <p class="bsky-quiet" id="bskyOtherPlatforms">X, Instagram, LinkedIn, TikTok and Facebook are coming, through each platform's own sign-in.</p>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
@@ -678,6 +736,7 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/social-publish.js"></script>
+<script src="/scripts/bluesky-connect.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
