@@ -129,7 +129,7 @@
       "On that account, \"Lead Radar finds\" under the page header counts each source apart; YouTube finds are kept 30 days and never added to the total."
     ],
     "content.html": [
-      "Start with \"Edit Profile\": fill in the Business Profile and press \"Save Profile\"; every other agent reads what you save.",
+      "Start with \"Edit Profile\" and press \"Save Profile\"; every agent reads it, and \"Business Profile\" under the page header ticks each field set.",
       "Pick \"Social Media Drafts\" and press \"Launch Task\"; each draft waits in \"Approval Queue\" for you to approve or reject.",
       "Approved drafts are saved, not published or scheduled; to post on Bluesky from your own account, use the Social Agent page.",
       "Looking for an article you made? \"Content Library\" keeps saved articles and SMS campaigns; social drafts are not in it.",
@@ -212,13 +212,15 @@
       "Open \"Standard Operating Procedure\", describe the process and who owns it, and press \"Write the SOP\".",
       "For a recurring job, open \"Checklist\" and press \"Build the checklist\" to turn it into steps to tick off.",
       "Document a workflow before you automate it; \"Automation Plan\" works best on a process already written down.",
-      "Not sure what to fix first? Run \"Efficiency Audit\" to find the bottleneck, then write that process down."
+      "Not sure what to fix first? Run \"Efficiency Audit\" to find the bottleneck, then write that process down.",
+      "Under the page header, \"Routines\" lists your own with how often each has run; with none yet, it links to the Routines page."
     ],
     "rd-agent.html": [
       "Pick \"Market Research\" or \"Competitive Intelligence\", say what you need to decide, and press \"Launch Task\".",
       "\"Innovation Brief\" screens an idea with a written feasibility assessment; nothing here computes a score or metric.",
       "\"Executive Briefing\" sees excerpts of your last 5 runs on this page and no others; paste in anything else to be summarized.",
-      "Research off target? Keep Industry, Target Audience and Competitors current in your Business Profile; I read them first."
+      "Research off target? Keep Industry, Target Audience and Competitors current in your Business Profile; I read them first.",
+      "Under the page header, \"Demand signals\" and \"Competitor scans\" count those runs over 30 days, each linked; no lead text is shown there."
     ],
     "ads-agent.html": [
       "Open \"Ad Copy\", enter the product, angle, platform and audience, and press \"Write the copy\".",
@@ -231,7 +233,8 @@
       "Open \"Executive Plan\", give it the goal, and if you like a horizon and constraints, then press \"Build the plan\".",
       "Begin with the \"Start here\" list and press \"Run this assignment\" on each; the plan runs none of them itself.",
       "Each assignment is checked against the tools that really exist; one naming a missing tool is marked \"Not runnable\".",
-      "Assignments marked \"your own work\" are yours to do, and the launcher's tasks answer in text; only plan assignments can be run."
+      "Assignments marked \"your own work\" are yours to do, and the launcher's tasks answer in text; only plan assignments can be run.",
+      "Under the page header, \"Plans\" shows your latest plans; each assignment reads ready, refused, or its own run's result, linked to the run."
     ],
     "vertical-marketing-agent.html": [
       "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",

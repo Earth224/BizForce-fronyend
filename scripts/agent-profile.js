@@ -4769,8 +4769,8 @@
      Its styles travel inside the panel, so the shared stylesheet above is
      unchanged. prefers-reduced-motion stops the glow, the pulse, the
      heartbeat and the transitions. The signature slot below the cells holds
-     the agent's own module for Analytics, Store, Social, Email, SEO and
-     Sales (SIGNATURE MODULES, below), and stays empty for the other twelve. */
+     each agent's own module, on all eighteen pages (SIGNATURE MODULES,
+     below). */
   var LIVE_IDLE_MS = 60000;
   var LIVE_BUSY_MS = 15000;
   var LIVE_MAX_BACKOFF_MS = 300000;
@@ -4864,6 +4864,12 @@
         '.ap-sig-table th,.ap-sig-table td{padding:3px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05)}' +
         '.ap-sig-table th:first-child,.ap-sig-table td:first-child{text-align:left}' +
         '.ap-sig-table tr.is-apart td{border-top:1px dashed rgba(251,191,36,.35)}' +
+        '.ap-sig--thin{border-top-color:var(--ap-sig-accent,rgba(0,229,255,.1))}' +
+        '.ap-sig--thin .ap-sig-title{color:var(--ap-sig-accent,#cfd6ff)}' +
+        '.ap-sig--thin .ap-sig-tile{border-color:var(--ap-sig-accent,rgba(168,85,247,.14))}' +
+        '.ap-sig-go{margin-left:6px;padding:4px 10px;border-radius:8px;border:1px solid rgba(0,229,255,.35);background:transparent;color:#22d3ee;font:inherit;font-size:.76rem;cursor:pointer}' +
+        '.ap-sig--thin .ap-sig-go{border-color:var(--ap-sig-accent,rgba(0,229,255,.35));color:var(--ap-sig-accent,#22d3ee)}' +
+        '.ap-sig-check li.is-set{color:#a7f3d0}.ap-sig-check li.is-missing{color:#8892b8}' +
         '.ap-sig-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' +
         '@media (prefers-reduced-motion:reduce){.ap-live::before,.ap-live-cell.is-running,.ap-live.is-live .ap-live-beat polyline{animation:none}' +
           '.ap-live-v,.ap-live-beat{transition:none}.ap-live.is-live .ap-live-beat polyline{stroke-dashoffset:0}}' +
@@ -5075,9 +5081,12 @@
   }
 
   /* ══ SIGNATURE MODULES ══════════════════════════════════════════════════
-     Analytics, Store, Social, Email, SEO and Sales fill #apLiveSignature from
-     agent.signature in the same /live answer (lib/agentSignatures.js), and
-     only from it. Every string is set with textContent. A section the server
+     Every agent fills #apLiveSignature from agent.signature in the same /live
+     answer (lib/agentSignatures.js), and only from it: Analytics, Store,
+     Social, Email, SEO and Sales with their own data; Executive, Content,
+     Operations and R&D with plans, posts, routines and runs; the eight thin
+     agents with their own recent runs, in the page's accent, or the first
+     tool to try, named as the page labels it. Every string is set with textContent. A section the server
      could not read says "Could not be read", never 0; a real empty says so and
      links to where to start. Nothing here animates as if work were happening:
      the module redraws only when the answer changes, and the charts animate
@@ -5442,7 +5451,172 @@
     return m;
   }
 
-  var SIG_RENDER = { analytics: sigAnalytics, store: sigStore, social: sigSocial, email: sigEmail, seo: sigSeo, sales: sigSales };
+  /* ── the remaining twelve ── */
+  function sigRunList(newest, withType) {
+    var ul = sigEl("ul", "ap-sig-list");
+    newest.forEach(function (x) {
+      var li = sigEl("li");
+      li.appendChild(sigLink((LIVE_STATUS_WORDS[x.status] || x.status) + " · " + fmt(x.at), "/run.html?id=" + encodeURIComponent(x.task_id)));
+      if (withType !== false) li.appendChild(document.createTextNode(" · " + liveTaskName(x.task_type)));
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  // Click the page's own control, wherever it sits, and bring it into view.
+  function sigPress(selector, label) {
+    var b = sigEl("button", "ap-sig-go", label);
+    b.type = "button";
+    b.setAttribute("data-press", selector);
+    b.addEventListener("click", function () {
+      var target = document.querySelector(selector);
+      if (!target) return;
+      if (target.scrollIntoView) target.scrollIntoView({ block: "center" });
+      target.click();
+    });
+    return b;
+  }
+
+  var SIG_ASSIGNMENT = { ready: "Ready", not_dispatchable: "Not dispatchable", ran: "Ran", refused: "Refused", failed: "Failed" };
+
+  function sigExecutive(s) {
+    var m = sigModule("executive", "Plans", "Your latest plans and what became of each assignment");
+    var plans = s.plans;
+    if (sigUnread(plans)) { m.appendChild(sigEl("div", "ap-sig-tiles")).appendChild(sigUnreadTile("Plans")); return m; }
+    if (!plans.length) {
+      var p = sigEmpty("No plans yet —");
+      p.appendChild(document.createTextNode(" "));
+      p.appendChild(sigLink("start one in the Command Center", "/dashboard.html#commandCenterSection"));
+      m.appendChild(p);
+      return m;
+    }
+    var tiles = sigEl("div", "ap-sig-tiles");
+    plans.forEach(function (plan) {
+      var t = sigTile("Plan · " + fmt(plan.created_at), plan.goal || "A plan with no stated goal",
+        plan.started ? sigPlural(plan.assignments_total, "assignment", "assignments") : "Not started");
+      t.setAttribute("data-plan", plan.id);
+      var ul = sigEl("ul", "ap-sig-list");
+      plan.assignments.forEach(function (a) {
+        var li = sigEl("li");
+        li.setAttribute("data-assignment", a.id);
+        li.appendChild(document.createTextNode("#" + a.id + " " + (a.agent || "an agent") + (a.tool ? " · " + a.tool : "") + " — "));
+        if (a.state === "ran" && a.run) li.appendChild(sigLink(a.run.label, "/run.html?id=" + encodeURIComponent(a.run.task_id)));
+        else li.appendChild(sigEl("span", null, (SIG_ASSIGNMENT[a.state] || a.state) + (a.refused_reason ? ": " + a.refused_reason : "")));
+        li.style.whiteSpace = "normal";
+        ul.appendChild(li);
+      });
+      t.appendChild(ul);
+      tiles.appendChild(t);
+    });
+    m.appendChild(tiles);
+    return m;
+  }
+
+  function sigContent(s) {
+    var m = sigModule("content", "Published, last 30 days", "Posts, outlines and audits, and what every agent reads about you");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var pub = s.published_30d;
+    tiles.appendChild(sigUnread(pub) ? sigUnreadTile("Posts published") : sigTile("Posts published", sigPlural(pub, "post", "posts"), "In the last 30 days"));
+    var runs = s.runs_30d;
+    if (sigUnread(runs)) tiles.appendChild(sigUnreadTile("Outlines and audits"));
+    else {
+      var rt = sigTile("Outlines and audits", (runs.by_type["content/outline"] || 0) + " outlines · " + (runs.by_type["content/audit"] || 0) + " audits",
+        runs.count ? null : "None run in the last 30 days");
+      if (runs.count) rt.appendChild(sigRunList(runs.newest));
+      tiles.appendChild(rt);
+    }
+    var pr = s.profile;
+    if (sigUnread(pr)) tiles.appendChild(sigUnreadTile("Business Profile"));
+    else {
+      var ptile = sigTile("Business Profile", pr.exists ? pr.set + " of " + pr.of + " set" : "Not filled in yet", null, pr.set === pr.of ? "is-ok" : "is-warn");
+      var ul = sigEl("ul", "ap-sig-list ap-sig-check");
+      pr.fields.forEach(function (f) {
+        var li = sigEl("li", f.set ? "is-set" : "is-missing", (f.set ? "✓ " : "○ ") + f.label);
+        li.setAttribute("data-field", f.label);
+        ul.appendChild(li);
+      });
+      ptile.appendChild(ul);
+      if (pr.set < pr.of && document.getElementById("editProfileBtn")) ptile.appendChild(sigPress("#editProfileBtn", "Edit Profile"));
+      tiles.appendChild(ptile);
+    }
+    m.appendChild(tiles);
+    return m;
+  }
+
+  function sigOperations(s) {
+    var m = sigModule("operations", "Routines and runs", "Your routines, and SOPs and checklists from the last 30 days");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var ro = s.routines;
+    if (sigUnread(ro)) tiles.appendChild(sigUnreadTile("Routines"));
+    else if (!ro.count) {
+      var e = sigTile("Routines", "No routines yet", null);
+      e.appendChild(sigLink("Make one on the Routines page", "/routines.html"));
+      tiles.appendChild(e);
+    } else {
+      var rt = sigTile("Routines", sigPlural(ro.count, "routine", "routines"), null);
+      var ul = sigEl("ul", "ap-sig-list");
+      ro.list.forEach(function (x) {
+        ul.appendChild(sigEl("li", null, x.name + " · " + sigPlural(x.run_count, "run", "runs") + " · " + (x.last_run_at ? "last " + fmt(x.last_run_at) : "never run")));
+      });
+      rt.appendChild(ul);
+      rt.appendChild(sigLink("Open Routines", "/routines.html"));
+      tiles.appendChild(rt);
+    }
+    var runs = s.runs_30d;
+    if (sigUnread(runs)) tiles.appendChild(sigUnreadTile("SOPs and checklists"));
+    else {
+      var st = sigTile("SOPs and checklists", (runs.by_type["operations/sop"] || 0) + " SOPs · " + (runs.by_type["operations/checklist"] || 0) + " checklists",
+        runs.count ? null : "None run in the last 30 days");
+      if (runs.count) st.appendChild(sigRunList(runs.newest));
+      tiles.appendChild(st);
+    }
+    m.appendChild(tiles);
+    return m;
+  }
+
+  function sigRd(s) {
+    var m = sigModule("rd", "Signals and scans", "Demand-signal runs and competitor scans, last 30 days");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var runs = s.runs_30d;
+    if (sigUnread(runs)) tiles.appendChild(sigUnreadTile("Runs"));
+    else {
+      tiles.appendChild(sigTile("Demand signals", sigPlural(runs.by_type["rd/demand-signals"] || 0, "run", "runs"), "In the last 30 days"));
+      tiles.appendChild(sigTile("Competitor scans", sigPlural(runs.by_type["rd/competitor-scan"] || 0, "scan", "scans"), "In the last 30 days"));
+      if (runs.count) {
+        var nt = sigTile("Newest", liveTaskName(runs.newest[0].task_type), null);
+        nt.appendChild(sigRunList(runs.newest));
+        tiles.appendChild(nt);
+      } else tiles.appendChild(sigTile("Newest", "None yet", "Nothing run in the last 30 days"));
+    }
+    m.appendChild(tiles);
+    return m;
+  }
+
+  // The eight thin agents: their own recent runs, in the page's own accent, or the first thing to do.
+  function sigThin(s) {
+    var m = sigModule(s.kind, "Recent runs", "This agent's own runs, last 30 days");
+    m.className += " ap-sig--thin";
+    m.style.setProperty("--ap-sig-accent", ACCENT);
+    var runs = s.runs_30d;
+    if (sigUnread(runs)) { m.appendChild(sigEl("div", "ap-sig-tiles")).appendChild(sigUnreadTile("Runs")); return m; }
+    if (!runs.count) {
+      var fa = s.first_action;
+      var p = sigEmpty("No runs yet." + (fa ? " Open \"" + fa.open + "\" and press \"" + fa.press + "\"." : ""));
+      if (fa) { p.appendChild(document.createTextNode(" ")); p.appendChild(sigPress("[data-tool-toggle=\"" + fa.tool + "\"]", "Open " + fa.open)); }
+      m.appendChild(p);
+      return m;
+    }
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var t = sigTile("Runs", sigPlural(runs.count, "run", "runs"), null);
+    t.appendChild(sigRunList(runs.newest));
+    tiles.appendChild(t);
+    m.appendChild(tiles);
+    return m;
+  }
+
+  var SIG_RENDER = { analytics: sigAnalytics, store: sigStore, social: sigSocial, email: sigEmail, seo: sigSeo, sales: sigSales,
+    executive: sigExecutive, content: sigContent, operations: sigOperations, rd: sigRd,
+    ads: sigThin, reputation: sigThin, community: sigThin, influencer: sigThin, publicist: sigThin, broker: sigThin, etsy: sigThin, vertical_marketing: sigThin };
 
   function sigRender(s) {
     var slot = document.getElementById("apLiveSignature");
