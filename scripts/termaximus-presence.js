@@ -643,6 +643,15 @@
     "  transition: color 0.15s;",
     "}",
     "#tmx-chat-close:hover { color: rgba(200,180,255,0.9); }",
+    /* the chat box moves by its header above 860px; at 860px and below it keeps its corner */
+    "#tmx-chat-reset {",
+    "  margin-left: auto; margin-right: 4px; background: none; border: none; color: rgba(160,140,220,0.55);",
+    "  font-size: 13px; cursor: pointer; padding: 2px 6px; line-height: 1; font-family: inherit;",
+    "}",
+    "#tmx-chat-reset:hover { color: rgba(200,180,255,0.9); }",
+    "#tmx-chat-header:focus-visible, #tmx-chat-reset:focus-visible { outline: 2px solid #f7dd8a; outline-offset: 2px; }",
+    "@media (min-width: 861px) { #tmx-chat-header { cursor: move; touch-action: none; -webkit-user-select: none; user-select: none; } }",
+    "@media (max-width: 860px) { #tmx-chat-reset { display: none; } }",
     "#tmx-chat-msgs {",
     "  flex: 1;",
     "  overflow-y: auto;",
@@ -1775,9 +1784,11 @@
   var _tmxStartLeft  = 0;
   var _tmxStartTop   = 0;
 
-  function _tmxClampPosition(left, top) {
-    var maxLeft = Math.max(window.innerWidth  - root.offsetWidth,  0);
-    var maxTop  = Math.max(window.innerHeight - root.offsetHeight, 0);
+  /* el defaults to the mist; the chat box below is clamped by the same rule */
+  function _tmxClampPosition(left, top, el) {
+    el = el || root;
+    var maxLeft = Math.max(window.innerWidth  - el.offsetWidth,  0);
+    var maxTop  = Math.max(window.innerHeight - el.offsetHeight, 0);
     return {
       left: Math.min(Math.max(left, 0), maxLeft),
       top:  Math.min(Math.max(top,  0), maxTop)
@@ -1842,6 +1853,155 @@
     if (_tmxDragMoved) return;
     if (_chatOpen) { closeChat(); } else { openChat(); tmxFocusModeSoon(); }
   });
+
+  /* ── drag the chat box by its header bar, the way the mist moves above ──
+     Same pattern: press, a 6px threshold, clamped fully on screen, saved on
+     release (tmx_chat_pos, this device only). Only the header bar grabs; its
+     buttons, and every input in the box, stay clickable. Wider than 860px
+     only: at 860px and below the box keeps its corner, as the phone layout
+     (termaximus-guide.js's bottom sheet) has it. A resize re-clamps it. The
+     reset button or a double-click on the header returns it to the corner;
+     the header takes focus, the arrow keys nudge it, Home resets it. */
+  var TMX_CHAT_POS_KEY    = "tmx_chat_pos";
+  var TMX_CHAT_DRAG_MIN_W = 860;
+  var TMX_CHAT_NUDGE      = 10;
+  var chatHeader = document.getElementById("tmx-chat-header");
+  var _tmxChatPressX = 0, _tmxChatPressY = 0;
+  var _tmxChatDragging  = false;
+  var _tmxChatDragMoved = false;
+  var _tmxChatStartLeft = 0;
+  var _tmxChatStartTop  = 0;
+
+  var chatReset = document.createElement("button");
+  chatReset.id = "tmx-chat-reset";
+  chatReset.type = "button";
+  chatReset.setAttribute("aria-label", "Reset the chat box position");
+  chatReset.title = "Reset position";
+  chatReset.innerHTML = "&#x27F2;";
+  chatHeader.insertBefore(chatReset, chatClose);
+  chatHeader.setAttribute("aria-label", "Ask Termaximus. Drag, or use the arrow keys, to move the chat box; Home or a double-click resets it.");
+
+  function _tmxChatDraggable() {
+    return window.innerWidth > TMX_CHAT_DRAG_MIN_W;
+  }
+
+  function _tmxChatGrabbable(target) {
+    if (!target || !target.closest) return false;
+    if (target.closest("button, input, textarea, select, a, label")) return false;
+    return !!target.closest("#tmx-chat-header");
+  }
+
+  function _tmxChatPlace(left, top) {
+    var c = _tmxClampPosition(left, top, chat);
+    [chat, chatGlowWrap].forEach(function (el) {
+      el.style.left   = c.left + "px";
+      el.style.top    = c.top  + "px";
+      el.style.right  = "auto";
+      el.style.bottom = "auto";
+    });
+    return c;
+  }
+
+  function _tmxChatDefault() {
+    [chat, chatGlowWrap].forEach(function (el) {
+      el.style.left = ""; el.style.top = ""; el.style.right = ""; el.style.bottom = "";
+    });
+  }
+
+  function _tmxChatSave(c) {
+    try { localStorage.setItem(TMX_CHAT_POS_KEY, JSON.stringify({ left: c.left, top: c.top })); } catch (err) {}
+  }
+
+  function _tmxChatStored() {
+    var raw, pos;
+    try { raw = localStorage.getItem(TMX_CHAT_POS_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    try { pos = JSON.parse(raw); } catch (e) { return null; }
+    if (!pos || typeof pos.left !== "number" || typeof pos.top !== "number") return null;
+    return pos;
+  }
+
+  /* on load and on every resize: the saved spot, or the corner, clamped on screen */
+  function _tmxChatRestore() {
+    if (!_tmxChatDraggable()) {
+      chatHeader.removeAttribute("tabindex");
+      _tmxChatDefault();
+      return;
+    }
+    chatHeader.setAttribute("tabindex", "0");
+    var pos = _tmxChatStored();
+    if (pos) { _tmxChatPlace(pos.left, pos.top); return; }
+    _tmxChatDefault();
+    var rect = chat.getBoundingClientRect();
+    var c = _tmxClampPosition(rect.left, rect.top, chat);
+    if (c.left !== rect.left || c.top !== rect.top) _tmxChatPlace(c.left, c.top);
+  }
+
+  function _tmxChatReset() {
+    try { localStorage.removeItem(TMX_CHAT_POS_KEY); } catch (err) {}
+    _tmxChatRestore();
+  }
+
+  chat.addEventListener("pointerdown", function (e) {
+    if (!_tmxChatDraggable() || !_tmxChatGrabbable(e.target)) return;
+    _tmxChatPressX    = e.clientX;
+    _tmxChatPressY    = e.clientY;
+    _tmxChatDragMoved = false;
+    _tmxChatDragging  = true;
+    var rect = chat.getBoundingClientRect();
+    _tmxChatStartLeft = rect.left;
+    _tmxChatStartTop  = rect.top;
+    if (chatHeader.setPointerCapture) {
+      try { chatHeader.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+  });
+
+  chat.addEventListener("pointermove", function (e) {
+    if (!_tmxChatDragging) return;
+    var dx = e.clientX - _tmxChatPressX;
+    var dy = e.clientY - _tmxChatPressY;
+    if (!_tmxChatDragMoved && Math.sqrt(dx * dx + dy * dy) < TMX_DRAG_THRESHOLD) return;
+    _tmxChatDragMoved = true;
+    _tmxChatPlace(_tmxChatStartLeft + dx, _tmxChatStartTop + dy);
+  });
+
+  function _tmxChatEndDrag() {
+    if (!_tmxChatDragging) return;
+    _tmxChatDragging = false;
+    if (_tmxChatDragMoved) {
+      var rect = chat.getBoundingClientRect();
+      _tmxChatSave(_tmxClampPosition(rect.left, rect.top, chat));
+    }
+  }
+
+  chat.addEventListener("pointerup", _tmxChatEndDrag);
+  chat.addEventListener("pointercancel", _tmxChatEndDrag);
+
+  chatHeader.addEventListener("dblclick", function (e) {
+    if (!_tmxChatDraggable() || !_tmxChatGrabbable(e.target)) return;
+    _tmxChatReset();
+  });
+
+  chatReset.addEventListener("click", function (e) {
+    e.stopPropagation();
+    _tmxChatReset();
+    chatHeader.focus();
+  });
+
+  chatHeader.addEventListener("keydown", function (e) {
+    if (e.target !== chatHeader || !_tmxChatDraggable()) return;
+    if (e.key === "Home") { e.preventDefault(); _tmxChatReset(); return; }
+    var step = e.shiftKey ? TMX_CHAT_NUDGE * 4 : TMX_CHAT_NUDGE;
+    var dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+    var dy = e.key === "ArrowUp"   ? -step : e.key === "ArrowDown"  ? step : 0;
+    if (!dx && !dy) return;
+    e.preventDefault();
+    var rect = chat.getBoundingClientRect();
+    _tmxChatSave(_tmxChatPlace(rect.left + dx, rect.top + dy));
+  });
+
+  window.addEventListener("resize", _tmxChatRestore);
+  _tmxChatRestore();
 
   /* ── shooting star ── */
   var shoot = document.createElement("div");

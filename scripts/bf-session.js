@@ -46,9 +46,9 @@
 
      LEFT ON PURPOSE (display choices, not a member's data): bf_editor_theme,
      bf_recent_highlights and bf_recent_textcolors (the editor's look and
-     recent colours), tmx_presence_active, tmx_presence_pos, tmx_mist_corner
-     and tmx_agent_language (Termaximus on or off, where it sits, and the
-     language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
+     recent colours), tmx_presence_active, tmx_presence_pos, tmx_mist_corner,
+     tmx_chat_pos and tmx_agent_language (Termaximus on or off, where it and
+     its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
      and bf_return_to (the public page to return to after signing in, which
