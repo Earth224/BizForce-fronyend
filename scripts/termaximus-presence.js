@@ -851,6 +851,9 @@
   });
 
   document.body.appendChild(root);
+  /* Assigned before the restore below reads it; declared further down, it was
+     still undefined here, so the saved spot was never read back. */
+  var TMX_POS_KEY = "tmx_presence_pos";
   _tmxRestorePosition();
 
   /* ── chat panel back-glow DOM ── */
@@ -1776,7 +1779,6 @@
   });
 
   /* ── drag the whole presence anywhere on screen; a quick tap still opens the chat ── */
-  var TMX_POS_KEY       = "tmx_presence_pos";
   var TMX_DRAG_THRESHOLD = 6;
   var _tmxPressX = 0, _tmxPressY = 0;
   var _tmxDragging   = false;

@@ -945,6 +945,7 @@
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
     loadBusinessContext();
     loadLastRun();
+    liveMount();
   }
 
   /* ══ AUTONOMY ═══════════════════════════════════════════════════════════
@@ -4752,6 +4753,293 @@
   window.bfLoadBusinessContext = loadBusinessContext;
   window.bfLoadLastRun = loadLastRun;
   window.bfRenderStoredToolRun = renderStoredToolRun;
+
+  /* ══ LIVE ACTIVITY ══════════════════════════════════════════════════════
+     The panel under the agent's header on all eighteen pages: Now · Last ·
+     Next · Approvals · Score · This month, from GET /api/agents/<type>/live
+     and nothing else. Every value is the server's; an empty state says what
+     is true, and a section the server could not read says so, never 0.
+
+     POLLING. Every 60 s; every 15 s while this agent has a run in progress.
+     Stopped while the tab is hidden (fetched again on show) and while offline
+     ("Offline — live activity paused"); /live is not one of bf-offline.js's
+     saved reads, so an offline answer is never an old copy. A 429 or a 5xx
+     doubles the wait each time, up to 5 minutes, and a good answer resets it.
+
+     Its styles travel inside the panel, so the shared stylesheet above is
+     unchanged. prefers-reduced-motion stops the glow, the pulse, the
+     heartbeat and the transitions. The signature slot is empty until the
+     per-agent modules arrive. */
+  var LIVE_IDLE_MS = 60000;
+  var LIVE_BUSY_MS = 15000;
+  var LIVE_MAX_BACKOFF_MS = 300000;
+  var live = { timer: null, ticker: null, base: LIVE_IDLE_MS, failures: 0, data: null, top: null, at: 0, stopped: null, note: "" };
+
+  var LIVE_NEXT_REASONS = {
+    no_schedule:           ["No schedule", "Set one in Scheduled runs below"],
+    disabled:              ["Schedule switched off", "It will not run until it is switched on"],
+    paused:                ["Paused", "Resume it in Scheduled runs below"],
+    scheduler_off:         ["Scheduled runs are off", "The server is not running schedules right now"],
+    autonomy_off:          ["Autonomous mode is off", "The schedule will not run until it is on"],
+    subscription_inactive: ["Waiting for your subscription", "Scheduled runs resume when it is active"],
+    subscription_unknown:  ["Subscription could not be checked", "Nothing is claimed about the next run"],
+    no_slot_in_32_days:    ["No run in the next 32 days", ""]
+  };
+  var LIVE_STATUS_WORDS = { completed: "Completed", failed: "Failed", processing: "In progress", requires_approval: "Awaiting approval" };
+
+  function liveMarkup() {
+    var cell = function (key, label) {
+      return '<div class="ap-live-cell" data-live-cell="' + key + '">' +
+        '<div class="ap-live-k">' + label + '</div>' +
+        '<div class="ap-live-v" id="apLive_' + key + '">…</div>' +
+        '<div class="ap-live-s" id="apLive_' + key + '_s"></div>' +
+      '</div>';
+    };
+    return '<section class="ap-live" id="apLive" aria-label="Live activity">' +
+      '<style>' +
+        '.ap-live{position:relative;margin:18px 0 22px;padding:16px 18px 14px;border-radius:18px;background:rgba(10,14,32,.72);' +
+          'backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 10px 40px rgba(0,0,0,.45);isolation:isolate}' +
+        '.ap-live::before{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;z-index:-1;' +
+          'background:linear-gradient(120deg,rgba(0,229,255,.55),rgba(168,85,247,.35),rgba(0,229,255,.08),rgba(168,85,247,.55));' +
+          'background-size:300% 300%;animation:apLiveRim 9s ease-in-out infinite;' +
+          '-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}' +
+        '@keyframes apLiveRim{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}' +
+        '.ap-live-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}' +
+        '.ap-live-title{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#cfd6ff}' +
+        '.ap-live-beat{flex:1;height:18px;min-width:40px;opacity:0;transition:opacity .4s ease}' +
+        '.ap-live.is-live .ap-live-beat{opacity:.85}' +
+        '.ap-live-beat polyline{fill:none;stroke:#22d3ee;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;' +
+          'stroke-dasharray:240;stroke-dashoffset:240;filter:drop-shadow(0 0 3px rgba(0,229,255,.7))}' +
+        '.ap-live.is-live .ap-live-beat polyline{animation:apLiveBeat 2.4s linear infinite}' +
+        '@keyframes apLiveBeat{0%{stroke-dashoffset:240}70%{stroke-dashoffset:0}100%{stroke-dashoffset:-240}}' +
+        '.ap-live-status{font-size:.74rem;color:#8892b8;font-variant-numeric:tabular-nums;white-space:nowrap}' +
+        '.ap-live-status::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;background:#4b5578}' +
+        '.ap-live.is-live .ap-live-status::before{background:#34d399;box-shadow:0 0 8px rgba(52,211,153,.8)}' +
+        '.ap-live.is-off .ap-live-status::before{background:#fbbf24}' +
+        '.ap-live-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}' +
+        '@media (max-width:980px){.ap-live-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
+        '@media (max-width:560px){.ap-live-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}' +
+        '.ap-live-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(0,229,255,.1);min-width:0}' +
+        '.ap-live-k{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin-bottom:5px}' +
+        '.ap-live-v{font-size:.98rem;font-weight:700;color:#e8e8ff;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
+          'transition:opacity .35s ease,transform .35s ease}' +
+        '.ap-live-v a{color:inherit;text-decoration:none;border-bottom:1px dashed rgba(0,229,255,.45)}' +
+        '.ap-live-v a:hover,.ap-live-v a:focus-visible{color:#22d3ee;outline:none}' +
+        '.ap-live-v.is-changing{opacity:0;transform:translateY(3px)}' +
+        '.ap-live-s{margin-top:3px;font-size:.72rem;color:#8892b8;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+        '.ap-live-cell.is-running{border-color:rgba(52,211,153,.45);animation:apLivePulse 2.2s ease-in-out infinite}' +
+        '.ap-live-cell.is-running .ap-live-v{color:#34d399}' +
+        '.ap-live-cell.is-stalled .ap-live-v{color:#fbbf24}' +
+        '.ap-live-cell.is-unread .ap-live-v{color:#fca5a5;font-weight:600;font-size:.86rem}' +
+        '@keyframes apLivePulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}50%{box-shadow:0 0 0 4px rgba(52,211,153,.14)}}' +
+        '.ap-live-signature:empty{display:none}' +
+        '@media (prefers-reduced-motion:reduce){.ap-live::before,.ap-live-cell.is-running,.ap-live.is-live .ap-live-beat polyline{animation:none}' +
+          '.ap-live-v,.ap-live-beat{transition:none}.ap-live.is-live .ap-live-beat polyline{stroke-dashoffset:0}}' +
+      '</style>' +
+      '<div class="ap-live-head">' +
+        '<span class="ap-live-title">Live activity</span>' +
+        '<svg class="ap-live-beat" viewBox="0 0 120 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+          '<polyline points="0,9 34,9 40,9 44,2 49,16 53,6 57,9 120,9"></polyline></svg>' +
+        '<span class="ap-live-status" id="apLiveStatus">Connecting…</span>' +
+      '</div>' +
+      '<div class="ap-live-grid">' +
+        cell("now", "Now") + cell("last", "Last") + cell("next", "Next") +
+        cell("approvals", "Approvals") + cell("score", "Score") + cell("month", "This month") +
+      '</div>' +
+      '<div class="ap-live-signature" id="apLiveSignature"></div>' +
+    '</section>';
+  }
+
+  function liveSet(key, value, sub, state, href) {
+    var v = document.getElementById("apLive_" + key), s = document.getElementById("apLive_" + key + "_s");
+    if (!v) return;
+    var cellEl = v.parentNode;
+    var html = href ? '<a href="' + esc(href) + '">' + esc(value) + '</a>' : esc(value);
+    if (v.innerHTML !== html) {
+      if (v.getAttribute("data-shown") === "1" && v.classList) {
+        v.classList.add("is-changing");
+        setTimeout(function () { v.classList.remove("is-changing"); }, 180);
+      }
+      v.innerHTML = html;
+      v.setAttribute("data-shown", "1");
+    }
+    if (s) s.textContent = sub || "";
+    if (cellEl && cellEl.classList) {
+      ["is-running", "is-stalled", "is-unread"].forEach(function (c) { cellEl.classList.remove(c); });
+      if (state) cellEl.classList.add(state);
+    }
+  }
+
+  function liveUnread(key, section) {
+    liveSet(key, "Could not be read", section && section.unavailable ? "The server could not read this just now" : "", "is-unread");
+  }
+
+  function liveTaskName(t) {
+    return t ? String(t).replace(/\//g, " · ").replace(/_/g, " ") : "a task";
+  }
+
+  function liveRender() {
+    var a = live.data, top = live.top || {};
+    if (!a) return;
+
+    var now = a.now || {};
+    if (now.unavailable !== undefined) liveUnread("now", now);
+    else if (now.state === "running") liveSet("now", "Running", liveTaskName(now.task_type) + " · since " + fmt(now.since), "is-running");
+    else if (now.state === "stalled") liveSet("now", "Stalled — no result after " + (top.stall_after_min || 10) + " min", "Started " + fmt(now.since), "is-stalled");
+    else liveSet("now", "Idle", "Nothing in progress");
+
+    var runs = a.runs || {};
+    if (runs.unavailable !== undefined) liveUnread("last", runs);
+    else if (!runs.last) liveSet("last", "No runs yet", "Nothing in the last 7 days");
+    else {
+      liveSet("last", (LIVE_STATUS_WORDS[runs.last.status] || runs.last.status) + " · " + fmt(runs.last.finished_at || runs.last.started_at),
+        runs.runs_7d + (runs.runs_7d === 1 ? " run" : " runs") + " · " + runs.failed_7d + " failed in 7 days", null,
+        "/run.html?id=" + encodeURIComponent(runs.last.task_id));
+    }
+
+    var next = a.next;
+    if (next && next.unavailable !== undefined) liveUnread("next", next);
+    else if (next && next.at) liveSet("next", fmt(next.at), (next.cadence || "") + " · " + liveTaskName(next.task_type), null, "#ap-live-schedule");
+    else {
+      var why = LIVE_NEXT_REASONS[a.next_reason] || ["No schedule", ""];
+      var sub = a.next_reason === "paused" && a.schedule && a.schedule.paused_reason ? a.schedule.paused_reason : why[1];
+      liveSet("next", why[0], sub, null, "#ap-live-schedule");
+    }
+
+    var p = a.proposals || {};
+    if (p.unavailable !== undefined) liveUnread("approvals", p);
+    else liveSet("approvals", p.pending ? p.pending + " waiting" : "None waiting",
+      p.pending && p.newest && p.newest[0] ? p.newest[0].title : "Nothing needs your approval", null, "/proposals.html");
+
+    var sc = a.score || {};
+    if (sc.unavailable !== undefined) liveUnread("score", sc);
+    else if (!sc.up && !sc.down) liveSet("score", "No ratings yet", "Rate a result with 👍 or 👎");
+    else liveSet("score", "▲ " + sc.up + "  ▼ " + sc.down, sc.pinned + " pinned as examples");
+
+    var usd = a.spend_month_usd, calls = top.daily_calls || {};
+    var callsLine = calls.unavailable !== undefined || typeof calls.used !== "number"
+      ? "Today's model calls could not be read"
+      : "Your model calls today: " + calls.used + " of " + calls.limit;
+    if (usd && usd.unavailable !== undefined) liveSet("month", "Could not be read", callsLine, "is-unread");
+    else liveSet("month", "$" + Number(usd || 0).toFixed(2) + " model spend", callsLine);
+  }
+
+  function liveStatus() {
+    var root = document.getElementById("apLive"), el = document.getElementById("apLiveStatus");
+    if (!el) return;
+    var text;
+    if (live.stopped === "offline") text = "Offline — live activity paused";
+    else if (live.stopped === "hidden") text = "Paused while this tab is hidden";
+    else if (live.stopped === "signed-out") text = "Sign in to see live activity";
+    else if (live.note) text = live.note;
+    else if (live.at) text = "Live · updated " + Math.max(0, Math.round((Date.now() - live.at) / 1000)) + "s ago";
+    else text = "Connecting…";
+    el.textContent = text;
+    if (root && root.classList) {
+      root.classList.toggle("is-live", !live.stopped && !live.note && !!live.at);
+      root.classList.toggle("is-off", live.stopped === "offline");
+    }
+  }
+
+  function liveTicker(on) {
+    if (live.ticker) { clearInterval(live.ticker); live.ticker = null; }
+    if (on) live.ticker = setInterval(liveStatus, 1000);
+  }
+
+  function liveOffline() {
+    if (window.BFOffline && typeof window.BFOffline.isOffline === "function" && window.BFOffline.isOffline()) return true;
+    return typeof navigator !== "undefined" && navigator.onLine === false;
+  }
+
+  function liveSchedule(ms) {
+    if (live.timer) clearTimeout(live.timer);
+    live.timer = setTimeout(liveFetch, ms);
+  }
+
+  function liveStop(reason) {
+    if (live.timer) clearTimeout(live.timer);
+    live.timer = null;
+    live.stopped = reason;
+    liveTicker(false);
+    liveStatus();
+  }
+
+  /* 2×, 4×, 8× … the interval in force, never more than 5 minutes. */
+  function liveBackoff(status) {
+    live.failures += 1;
+    var wait = Math.min(LIVE_MAX_BACKOFF_MS, live.base * Math.pow(2, live.failures));
+    live.note = "Retrying in " + Math.round(wait / 1000) + "s — " + (status ? "the server answered " + status : "the request did not complete");
+    liveTicker(false);
+    liveStatus();
+    liveSchedule(wait);
+  }
+
+  function liveFetch() {
+    live.timer = null;
+    if (document.hidden) { liveStop("hidden"); return; }
+    if (liveOffline()) { liveStop("offline"); return; }
+    var token = tok();
+    if (!token) { liveStop("signed-out"); return; }
+    live.stopped = null;
+    fetch(API_URL + "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/live", { headers: { "Authorization": "Bearer " + token } })
+      .then(function (r) {
+        if (r.status === 429 || r.status >= 500) { liveBackoff(r.status); return null; }
+        if (!r.ok) {
+          live.note = "Live activity could not be read (" + r.status + ")";
+          liveStatus();
+          liveSchedule(live.base);
+          return null;
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        if (!data.agent) throw new Error("the answer had no agent");
+        live.failures = 0;
+        live.note = "";
+        live.top = data;
+        live.data = data.agent;
+        live.at = Date.now();
+        live.base = data.agent.now && data.agent.now.state === "running" ? LIVE_BUSY_MS : LIVE_IDLE_MS;
+        liveRender();
+        liveStatus();
+        liveTicker(true);
+        liveSchedule(live.base);
+      })
+      .catch(function () {
+        if (liveOffline()) { liveStop("offline"); return; }
+        liveBackoff(0);
+      });
+  }
+
+  function liveMount() {
+    var page = document.querySelector(".page");
+    var header = page && page.querySelector ? page.querySelector(".agent-header") : null;
+    if (!header || typeof header.insertAdjacentHTML !== "function" || document.getElementById("apLive")) return;
+    header.insertAdjacentHTML("afterend", liveMarkup());
+
+    // Next opens the schedule card, wherever this page puts it.
+    var nextCell = document.getElementById("apLive_next");
+    if (nextCell) {
+      nextCell.addEventListener("click", function (e) {
+        var link = e.target && e.target.closest ? e.target.closest("a") : null;
+        var card = document.querySelector(".ap-sched");
+        if (!link || !card) return;
+        e.preventDefault();
+        if (!card.hasAttribute("tabindex")) card.setAttribute("tabindex", "-1");
+        if (card.scrollIntoView) card.scrollIntoView({ block: "center" });
+        card.focus();
+      });
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) liveStop("hidden");
+      else liveFetch();
+    });
+    window.addEventListener("offline", function () { liveStop("offline"); });
+    window.addEventListener("online", function () { liveFetch(); });
+    liveFetch();
+  }
 
   /* ── boot ── */
   document.addEventListener("DOMContentLoaded", inject);
