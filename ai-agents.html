@@ -356,6 +356,7 @@
   </div>
 
 <script src="/scripts/bf-agent-order.js"></script>
+<script src="/scripts/agent-descriptions.js"></script>
 <script>
 (function renderLiveAgents() {
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -420,7 +421,12 @@
 
       var description = document.createElement("p");
       description.className = "agent-description";
-      description.textContent = agent.description || "";
+      /* The agent's one honest description (scripts/agent-descriptions.js,
+         generated from the backend's config/brain.js), beside the display
+         name the member may change. Never agent.description: a stored copy
+         is what showed "Etsy listing optimization" long after it was untrue. */
+      var descriptions = window.BF_AGENT_DESCRIPTIONS || {};
+      description.textContent = Object.prototype.hasOwnProperty.call(descriptions, type) ? descriptions[type] : "";
 
       var link = document.createElement("a");
       link.className = "open-agent-btn";

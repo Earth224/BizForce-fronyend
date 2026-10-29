@@ -417,7 +417,7 @@
       <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
       <div class="agent-header-text">
         <h1 class="agent-title">Social Agent</h1>
-        <p class="agent-subtitle">Social presence, campaigns, and engagement intelligence.</p>
+        <p class="agent-subtitle">Social campaigns, content calendars and platform playbooks, plus Bluesky posts from your own connected account.</p>
       </div>
     </header>
     <section class="context-card" aria-label="Business Profile Context">
@@ -587,10 +587,10 @@
             if (titleEl) { titleEl.textContent = agent.display_name; }
           }
 
-          if (typeof agent.description === "string" && agent.description.trim()) {
-            var subtitleEl = document.querySelector(".agent-subtitle");
-            if (subtitleEl) { subtitleEl.textContent = agent.description; }
-          }
+          /* The subtitle stays as written: it is this agent's one honest
+             description (config/brain.js, written here by the backend's
+             scripts/buildAgentDescriptions.js). agent.description is never
+             shown; only the display name is the member's. */
 
           var liveStatsEl = liveStatsSlot();
           if (liveStatsEl) {

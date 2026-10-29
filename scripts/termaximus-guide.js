@@ -39,7 +39,7 @@
     ],
     "ai-agents.html": [
       "Find an agent by name and press \"Open Agent\" to go to its own page.",
-      "That page is where you describe a job and launch it; each card here holds only a name and that link, with no description.",
+      "That page is where you describe a job and launch it; each card shows the agent's name and one line on what it does.",
       "The list is read from the server each time you open it, so it holds the 18 agents registered, no more and no fewer.",
       "List did not load? Reload the page, or open Agent Hub from the dashboard, which shows the same agents as cards."
     ],
