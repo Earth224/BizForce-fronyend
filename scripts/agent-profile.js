@@ -4768,8 +4768,9 @@
 
      Its styles travel inside the panel, so the shared stylesheet above is
      unchanged. prefers-reduced-motion stops the glow, the pulse, the
-     heartbeat and the transitions. The signature slot is empty until the
-     per-agent modules arrive. */
+     heartbeat and the transitions. The signature slot below the cells holds
+     the agent's own module for Analytics, Store, Social, Email, SEO and
+     Sales (SIGNATURE MODULES, below), and stays empty for the other twelve. */
   var LIVE_IDLE_MS = 60000;
   var LIVE_BUSY_MS = 15000;
   var LIVE_MAX_BACKOFF_MS = 300000;
@@ -4833,6 +4834,37 @@
         '.ap-live-cell.is-unread .ap-live-v{color:#fca5a5;font-weight:600;font-size:.86rem}' +
         '@keyframes apLivePulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}50%{box-shadow:0 0 0 4px rgba(52,211,153,.14)}}' +
         '.ap-live-signature:empty{display:none}' +
+        '.ap-live{--ap-live-accent:#22d3ee;--ap-live-accent-2:#a855f7;--ap-live-muted:#8892b8;--ap-live-grid:rgba(255,255,255,.06)}' +
+        '.ap-sig{margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,229,255,.1)}' +
+        '.ap-sig-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}' +
+        '.ap-sig-title{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#cfd6ff}' +
+        '.ap-sig-sub{font-size:.72rem;color:#8892b8}' +
+        '.ap-sig-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}' +
+        '.ap-sig-tile{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(168,85,247,.14);min-width:0}' +
+        '.ap-sig-tk{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin-bottom:5px}' +
+        '.ap-sig-tv{font-size:.98rem;font-weight:700;color:#e8e8ff;font-variant-numeric:tabular-nums}' +
+        '.ap-sig-tv a,.ap-sig-list a,.ap-sig-empty a{color:#22d3ee;text-decoration:none;border-bottom:1px dashed rgba(0,229,255,.45)}' +
+        '.ap-sig-ts{margin-top:3px;font-size:.72rem;color:#8892b8;font-variant-numeric:tabular-nums}' +
+        '.ap-sig-tile.is-unread .ap-sig-tv{color:#fca5a5;font-weight:600;font-size:.86rem}' +
+        '.ap-sig-tile.is-warn .ap-sig-tv{color:#fbbf24}' +
+        '.ap-sig-tile.is-ok .ap-sig-tv{color:#34d399}' +
+        '.ap-sig-bars{display:grid;gap:5px;margin-top:6px}' +
+        '.ap-sig-bar{display:grid;grid-template-columns:minmax(70px,auto) 1fr 3ch;gap:8px;align-items:center;font-size:.72rem;color:#b8c0e6;font-variant-numeric:tabular-nums}' +
+        '.ap-sig-track{height:6px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}' +
+        '.ap-sig-fill{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#22d3ee,#a855f7)}' +
+        '.ap-sig-n{text-align:right}' +
+        '.ap-sig-list{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px;font-size:.76rem;color:#b8c0e6}' +
+        '.ap-sig-list li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+        '.ap-sig-empty{font-size:.86rem;color:#b8c0e6}' +
+        '.ap-sig-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}' +
+        '.ap-sig-chart{margin:0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(0,229,255,.08);min-width:0}' +
+        '.ap-sig-chart figcaption{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin-bottom:6px}' +
+        '.ap-sig-canvas{position:relative;height:130px}' +
+        '.ap-sig-table{width:100%;border-collapse:collapse;font-size:.72rem;color:#b8c0e6;font-variant-numeric:tabular-nums}' +
+        '.ap-sig-table th,.ap-sig-table td{padding:3px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05)}' +
+        '.ap-sig-table th:first-child,.ap-sig-table td:first-child{text-align:left}' +
+        '.ap-sig-table tr.is-apart td{border-top:1px dashed rgba(251,191,36,.35)}' +
+        '.ap-sig-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}' +
         '@media (prefers-reduced-motion:reduce){.ap-live::before,.ap-live-cell.is-running,.ap-live.is-live .ap-live-beat polyline{animation:none}' +
           '.ap-live-v,.ap-live-beat{transition:none}.ap-live.is-live .ap-live-beat polyline{stroke-dashoffset:0}}' +
       '</style>' +
@@ -5002,6 +5034,7 @@
         live.at = Date.now();
         live.base = data.agent.now && data.agent.now.state === "running" ? LIVE_BUSY_MS : LIVE_IDLE_MS;
         liveRender();
+        sigRender(data.agent.signature || null);
         liveStatus();
         liveTicker(true);
         liveSchedule(live.base);
@@ -5039,6 +5072,404 @@
     window.addEventListener("offline", function () { liveStop("offline"); });
     window.addEventListener("online", function () { liveFetch(); });
     liveFetch();
+  }
+
+  /* ══ SIGNATURE MODULES ══════════════════════════════════════════════════
+     Analytics, Store, Social, Email, SEO and Sales fill #apLiveSignature from
+     agent.signature in the same /live answer (lib/agentSignatures.js), and
+     only from it. Every string is set with textContent. A section the server
+     could not read says "Could not be read", never 0; a real empty says so and
+     links to where to start. Nothing here animates as if work were happening:
+     the module redraws only when the answer changes, and the charts animate
+     once, on first draw, unless prefers-reduced-motion is set.
+
+     Analytics draws with Chart.js 4.4.1, loaded on agents/analytics.html by
+     the same SRI tag as agents/lead-radar.html. Each chart's numbers are also
+     a table (hidden from sight, read by screen readers) and an aria-label; if
+     Chart.js did not load, the table is shown instead. */
+  var sig = { key: "", charts: [], drawn: false };
+
+  function sigEl(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = String(text);
+    return e;
+  }
+
+  function sigLink(text, href) {
+    var a = sigEl("a", null, text);
+    a.setAttribute("href", href);
+    if (/^https:/.test(href)) { a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener noreferrer"); }
+    return a;
+  }
+
+  function sigUnread(section) {
+    return section === null || section === undefined || (typeof section === "object" && section.unavailable !== undefined);
+  }
+
+  // A tile: label, value (text or a link), sub line, and a state class.
+  function sigTile(label, value, sub, state) {
+    var t = sigEl("div", "ap-sig-tile" + (state ? " " + state : ""));
+    t.appendChild(sigEl("div", "ap-sig-tk", label));
+    var v = sigEl("div", "ap-sig-tv");
+    if (value && value.nodeType) v.appendChild(value); else v.textContent = String(value);
+    t.appendChild(v);
+    if (sub) t.appendChild(sub.nodeType ? sub : sigEl("div", "ap-sig-ts", sub));
+    return t;
+  }
+
+  function sigUnreadTile(label) {
+    return sigTile(label, "Could not be read", "The server could not read this just now", "is-unread");
+  }
+
+  function sigBars(rows) {
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.value); }, 0);
+    var box = sigEl("div", "ap-sig-bars");
+    rows.forEach(function (r) {
+      var row = sigEl("div", "ap-sig-bar");
+      row.setAttribute("data-bar", r.key || r.label);
+      row.appendChild(sigEl("span", null, r.label));
+      var track = sigEl("span", "ap-sig-track"), fill = sigEl("span", "ap-sig-fill");
+      fill.style.width = (max ? Math.round((r.value / max) * 100) : 0) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(sigEl("span", "ap-sig-n", r.value));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  function sigModule(kind, title, sub) {
+    var m = sigEl("div", "ap-sig ap-sig--" + kind);
+    m.setAttribute("data-sig", kind);
+    var head = sigEl("div", "ap-sig-head");
+    head.appendChild(sigEl("span", "ap-sig-title", title));
+    if (sub) head.appendChild(sigEl("span", "ap-sig-sub", sub));
+    m.appendChild(head);
+    return m;
+  }
+
+  function sigEmpty(text, linkText, href) {
+    var p = sigEl("p", "ap-sig-empty", text + (linkText ? " " : ""));
+    if (linkText) p.appendChild(sigLink(linkText, href));
+    return p;
+  }
+
+  function sigPlural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+
+  /* ── charts (Analytics) ── */
+  function sigTheme() {
+    var root = document.getElementById("apLive");
+    var cs = root && window.getComputedStyle ? window.getComputedStyle(root) : null;
+    var v = function (name, fallback) { var x = cs ? String(cs.getPropertyValue(name) || "").trim() : ""; return x || fallback; };
+    return { accent: v("--ap-live-accent", ACCENT || "#22d3ee"), accent2: v("--ap-live-accent-2", "#a855f7"), muted: v("--ap-live-muted", "#8892b8"), grid: v("--ap-live-grid", "rgba(255,255,255,.06)") };
+  }
+
+  function sigReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function sigDayLabels(from, n) {
+    var start = Date.parse(from + "T00:00:00Z"), out = [];
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    for (var i = 0; i < n; i++) { var d = new Date(start + i * 86400000); out.push(months[d.getUTCMonth()] + " " + d.getUTCDate()); }
+    return out;
+  }
+
+  // One chart in a figure: the canvas with its aria-label, and the same numbers as a table.
+  function sigChart(id, caption, type, labels, values, summary, colour) {
+    var fig = sigEl("figure", "ap-sig-chart");
+    fig.setAttribute("data-chart", id);
+    fig.appendChild(sigEl("figcaption", null, caption));
+    var wrap = sigEl("div", "ap-sig-canvas");
+    var canvas = sigEl("canvas");
+    canvas.id = id;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", caption + ". " + summary);
+    wrap.appendChild(canvas);
+    fig.appendChild(wrap);
+    var table = sigEl("table", "ap-sig-table ap-sig-sr");
+    var head = sigEl("tr");
+    head.appendChild(sigEl("th", null, type === "bar" ? "Agent" : "Day"));
+    head.appendChild(sigEl("th", null, caption.indexOf("Arrivals") === 0 ? "Arrivals" : "Runs"));
+    table.appendChild(head);
+    labels.forEach(function (l, i) {
+      var tr = sigEl("tr");
+      tr.appendChild(sigEl("td", null, l));
+      tr.appendChild(sigEl("td", null, values[i]));
+      table.appendChild(tr);
+    });
+    fig.appendChild(table);
+    if (typeof window.Chart !== "function") {
+      wrap.parentNode.removeChild(wrap);
+      table.className = "ap-sig-table";
+      fig.appendChild(sigEl("div", "ap-sig-ts", "The chart could not load; the numbers are in the table."));
+      return fig;
+    }
+    var t = sigTheme();
+    var c = colour === 2 ? t.accent2 : t.accent;
+    fig.__chartSpec = {
+      type: type,
+      data: { labels: labels, datasets: [{ data: values, label: caption, borderColor: c, backgroundColor: type === "bar" ? c : "rgba(34,211,238,.12)",
+        fill: type !== "bar", tension: 0.3, pointRadius: 0, borderWidth: 2, borderRadius: type === "bar" ? 4 : 0 }] },
+      options: {
+        animation: sig.drawn || sigReducedMotion() ? false : { duration: 400 },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: t.muted, maxTicksLimit: type === "bar" ? 8 : 6, autoSkip: true }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: t.muted, precision: 0 }, grid: { color: t.grid } }
+        }
+      }
+    };
+    return fig;
+  }
+
+  function sigSeriesSummary(labels, values, noun) {
+    var total = values.reduce(function (n, x) { return n + x; }, 0), best = 0;
+    values.forEach(function (x, i) { if (x > values[best]) best = i; });
+    return sigPlural(total, noun, noun + "s") + " in all" + (total ? "; the most was " + values[best] + " on " + labels[best] : "") + ".";
+  }
+
+  function sigAnalytics(s) {
+    var m = sigModule("analytics", "Last 30 days", "From " + s.days_from + ", UTC days");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var runs = s.runs, arr = s.arrivals;
+    tiles.appendChild(sigUnread(runs) ? sigUnreadTile("Runs") : sigTile("Runs", sigPlural(runs.total, "run", "runs"), "Dry runs are not counted"));
+    if (sigUnread(arr)) tiles.appendChild(sigUnreadTile("Blog arrivals"));
+    else if (arr.none) tiles.appendChild(sigTile("Blog arrivals", "Cannot be counted", "None of your posts carries a tracked link yet"));
+    else tiles.appendChild(sigTile("Blog arrivals", sigPlural(arr.total, "arrival", "arrivals"), "Through " + sigPlural(arr.tracked_posts, "tracked post", "tracked posts") + " · not visitors"));
+    m.appendChild(tiles);
+
+    var charts = sigEl("div", "ap-sig-charts");
+    var labels = sigDayLabels(s.days_from, s.days || 30);
+    if (!sigUnread(runs)) {
+      if (runs.total) {
+        charts.appendChild(sigChart("apSigRunsDay", "Runs per day", "line", labels, runs.per_day, sigSeriesSummary(labels, runs.per_day, "run")));
+        var names = runs.by_agent.map(function (a) { return a.name; }), counts = runs.by_agent.map(function (a) { return a.runs; });
+        charts.appendChild(sigChart("apSigByAgent", "Runs by agent", "bar", names, counts,
+          runs.by_agent.map(function (a) { return a.name + " " + a.runs; }).join(", ") + ".", 2));
+      } else {
+        charts.appendChild(sigEmpty("No runs in the last 30 days, so there is nothing to chart."));
+      }
+    }
+    if (!sigUnread(arr) && !arr.none) {
+      if (arr.total) charts.appendChild(sigChart("apSigArrivals", "Arrivals per day", "line", labels, arr.per_day, sigSeriesSummary(labels, arr.per_day, "arrival")));
+      else charts.appendChild(sigEmpty("No arrivals through your tracked links in the last 30 days."));
+    }
+    if (charts.childNodes.length) m.appendChild(charts);
+    return m;
+  }
+
+  function sigStore(s) {
+    var m = sigModule("store", "Your shop", "From your Inventory page and BizCash trades");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var st = s.stock;
+    if (sigUnread(st)) tiles.appendChild(sigUnreadTile("Inventory"));
+    else if (!st.items) {
+      m.appendChild(sigEmpty("No inventory yet.", "Add inventory", "/inventory.html"));
+    } else {
+      tiles.appendChild(sigTile("Inventory", sigPlural(st.items, "item", "items"), sigLink("Open Inventory", "/inventory.html")));
+      var low = !st.with_reorder_point
+        ? sigTile("Low stock", "No reorder points", "Set one on an item to be told when it runs low")
+        : st.low.count
+          ? sigTile("Low stock", st.low.count + " at or below reorder point", st.low.named.join(", "), "is-warn")
+          : sigTile("Low stock", "None", "Nothing is at or below its reorder point", "is-ok");
+      tiles.appendChild(low);
+      var b = st.margin_bands;
+      var mt = sigTile("Margin", sigPlural(st.items - b.not_priced, "item", "items") + " priced", null);
+      mt.appendChild(sigBars([
+        { key: "loss", label: "Loss", value: b.loss }, { key: "under_20", label: "Under 20%", value: b.under_20 },
+        { key: "from_20_to_40", label: "20–40%", value: b.from_20_to_40 }, { key: "from_40", label: "40% and up", value: b.from_40 },
+        { key: "not_priced", label: "No cost or price", value: b.not_priced }]));
+      tiles.appendChild(mt);
+    }
+    tiles.appendChild(sigUnread(s.pending) ? sigUnreadTile("Store proposals")
+      : sigTile("Store proposals", s.pending ? sigLink(s.pending + " waiting", "/proposals.html") : "None waiting", "Market listings wait for your approval"));
+    var tr = s.trades_30d;
+    if (sigUnread(tr)) tiles.appendChild(sigUnreadTile("BizCash trades"));
+    else if (!tr.sales && !tr.purchases) tiles.appendChild(sigTile("BizCash trades", "None in 30 days", "Market sales and purchases in BFC"));
+    else tiles.appendChild(sigTile("BizCash trades", sigPlural(tr.sales, "sale", "sales") + " · " + tr.sales_bfc + " BFC",
+      sigPlural(tr.purchases, "purchase", "purchases") + " · " + tr.purchases_bfc + " BFC, last 30 days"));
+    m.appendChild(tiles);
+    return m;
+  }
+
+  function sigSocial(s) {
+    var m = sigModule("social", "Bluesky", "Your own account, and what was posted from here");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var c = s.connection;
+    if (sigUnread(c)) tiles.appendChild(sigUnreadTile("Connection"));
+    else if (c.status === "disconnected" || !c.handle) {
+      m.appendChild(sigEmpty("Not connected.", "Connect Bluesky", "#bskyConnect"));
+    } else {
+      var sub = sigEl("div", "ap-sig-ts", c.last_ok_at ? "Last worked " + fmt(c.last_ok_at) : "Not used yet");
+      if (c.last_error_code) sub.textContent += " · last error " + c.last_error_code + (c.last_error_at ? " at " + fmt(c.last_error_at) : "");
+      tiles.appendChild(c.connected ? sigTile("Connection", "Connected as " + c.handle, sub, "is-ok")
+        : sigTile("Connection", "Reconnect needed", sub, "is-warn"));
+      var a = s.automation || {};
+      var latest = a.latest;
+      tiles.appendChild(sigTile("Automatic posting", a.on ? "On" : "Off",
+        sigUnread(latest) && latest !== null ? "Its change log could not be read" : latest ? "Turned " + latest.to + " " + fmt(latest.at) : "Never changed"));
+    }
+    var d = s.drafts_30d;
+    if (sigUnread(d)) tiles.appendChild(sigUnreadTile("Drafts, 30 days"));
+    else {
+      var total = d.pending_approval + d.published + d.refused + d.failed + d.other;
+      if (!total) tiles.appendChild(sigTile("Drafts, 30 days", "None", "No draft was made in the last 30 days"));
+      else {
+        var dt = sigTile("Drafts, 30 days", sigPlural(total, "draft", "drafts"), null);
+        var rows = [{ key: "pending_approval", label: "Waiting", value: d.pending_approval }, { key: "published", label: "Published", value: d.published },
+          { key: "refused", label: "Refused", value: d.refused }, { key: "failed", label: "Failed", value: d.failed }];
+        if (d.other) rows.push({ key: "other", label: "Saved", value: d.other });
+        dt.appendChild(sigBars(rows));
+        tiles.appendChild(dt);
+        var nt = sigTile("Newest", d.newest.length ? d.newest[0].label : "None", null);
+        var ul = sigEl("ul", "ap-sig-list");
+        d.newest.forEach(function (x) {
+          var li = sigEl("li");
+          li.appendChild(x.href ? sigLink(x.label, x.href) : sigEl("span", null, x.label));
+          li.appendChild(document.createTextNode(" · " + fmt(x.at) + (x.excerpt ? " · " + x.excerpt : "")));
+          ul.appendChild(li);
+        });
+        nt.appendChild(ul);
+        tiles.appendChild(nt);
+      }
+    }
+    m.appendChild(tiles);
+    return m;
+  }
+
+  var SIG_SEQ_STATUS = { draft: "Draft", pending_approval: "Waiting for approval", active: "Running", paused: "Paused", cancelled: "Cancelled", completed: "Finished" };
+
+  function sigEmail(s) {
+    var m = sigModule("email", "Sequences", "Your sequences and whether mail can go out");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var q = s.sequences;
+    if (sigUnread(q)) tiles.appendChild(sigUnreadTile("Sequences"));
+    else if (!q.count) m.appendChild(sigEmpty("No sequences yet.", "Propose one", "#esPanel"));
+    else {
+      var st = sigTile("Sequences", sigPlural(q.count, "sequence", "sequences"), null);
+      var ul = sigEl("ul", "ap-sig-list");
+      q.list.forEach(function (x) { ul.appendChild(sigEl("li", null, x.name + " · " + (SIG_SEQ_STATUS[x.status] || x.status) + " · " + x.active + " active")); });
+      st.appendChild(ul);
+      tiles.appendChild(st);
+      tiles.appendChild(sigTile("Enrolments", q.enrolments_active + " active · " + q.enrolments_stopped + " stopped", "Across all your sequences"));
+      tiles.appendChild(sigTile("Next send", q.next_send_at ? fmt(q.next_send_at) : "None scheduled", q.next_send_at ? "The earliest active enrolment" : "No active enrolment has a send due"));
+    }
+    var snd = s.sender || { blockers: [] };
+    if (snd.ready) tiles.appendChild(sigTile("Sender", "Ready", snd.daily_cap ? "Up to " + snd.daily_cap + " marketing emails a day" : "", "is-ok"));
+    else {
+      var bt = sigTile("Sender", "Blocked", null, "is-warn");
+      var bl = sigEl("ul", "ap-sig-list ap-sig-blockers");
+      snd.blockers.forEach(function (b) { var li = sigEl("li", null, b.text); li.style.whiteSpace = "normal"; li.setAttribute("data-blocker", b.key); bl.appendChild(li); });
+      bt.appendChild(bl);
+      tiles.appendChild(bt);
+    }
+    m.appendChild(tiles);
+    return m;
+  }
+
+  function sigSeo(s) {
+    var m = sigModule("seo", "Search, last 30 days", "Audits, posts and the arrivals they brought");
+    var tiles = sigEl("div", "ap-sig-tiles");
+    var au = s.audits_30d, la = s.latest_audit;
+    if (sigUnread(au)) tiles.appendChild(sigUnreadTile("Audits"));
+    else {
+      var sub = null;
+      if (la && la.unavailable !== undefined) sub = "The latest audit could not be read";
+      else if (la) {
+        sub = sigEl("div", "ap-sig-ts");
+        sub.appendChild(sigLink("Latest " + fmt(la.at), "/run.html?id=" + encodeURIComponent(la.task_id)));
+        sub.appendChild(document.createTextNode(la.errors === null ? " · its flags were not stored" : " · " + sigPlural(la.errors, "error", "errors") + " · " + sigPlural(la.guidelines, "guideline", "guidelines") + " · no score: an audit stores its flags"));
+      } else sub = "No audit has completed yet";
+      tiles.appendChild(sigTile("Audits", sigPlural(au.runs, "audit", "audits"), sub));
+    }
+    var pp = s.posts_published_30d;
+    tiles.appendChild(sigUnread(pp) ? sigUnreadTile("Blog posts") : sigTile("Blog posts", pp + " published", "In the last 30 days"));
+    var ar = s.arrivals_30d;
+    if (sigUnread(ar)) tiles.appendChild(sigUnreadTile("Blog arrivals"));
+    else if (ar.none) tiles.appendChild(sigTile("Blog arrivals", "Cannot be counted", "None of your posts carries a tracked link yet"));
+    else tiles.appendChild(sigTile("Blog arrivals", sigPlural(ar.total, "arrival", "arrivals"), "Through " + sigPlural(ar.tracked_posts, "tracked post", "tracked posts") + " · not visitors"));
+    var op = s.latest_optimize;
+    if (sigUnread(op) && op !== null) tiles.appendChild(sigUnreadTile("Optimize"));
+    else if (!op) tiles.appendChild(sigTile("Optimize", "Not run yet", "No website optimize run on record"));
+    else tiles.appendChild(sigTile("Optimize", sigLink((LIVE_STATUS_WORDS[op.status] || op.status) + " · " + fmt(op.at), "/run.html?id=" + encodeURIComponent(op.task_id)), "The latest website optimize run"));
+    m.appendChild(tiles);
+    return m;
+  }
+
+  var SIG_STAGES = { new: "New", drafted: "Drafted", contacted: "Contacted", replied: "Replied", converted: "Converted" };
+
+  function sigCount(v) { return typeof v === "number" ? String(v) : "Could not be read"; }
+
+  function sigSales(s) {
+    var m = sigModule("sales", "Pipeline", "Your own leads, by stage");
+    var p = s.pipeline;
+    if (sigUnread(p)) m.appendChild(sigEl("div", "ap-sig-tiles")).appendChild(sigUnreadTile("Pipeline"));
+    else if (!p.total) m.appendChild(sigEmpty("No leads in your pipeline yet."));
+    else {
+      var tiles = sigEl("div", "ap-sig-tiles");
+      var pt = sigTile("Pipeline", sigPlural(p.total, "lead", "leads"), null);
+      pt.appendChild(sigBars(Object.keys(p.stages).map(function (k) { return { key: k, label: SIG_STAGES[k] || k, value: p.stages[k] }; })));
+      tiles.appendChild(pt);
+      m.appendChild(tiles);
+    }
+    if (s.radar) {
+      var r = s.radar;
+      var head = sigEl("div", "ap-sig-head");
+      head.style.marginTop = "12px";
+      head.appendChild(sigEl("span", "ap-sig-title", "Lead Radar finds"));
+      head.appendChild(sigEl("span", "ap-sig-sub", "Your account only"));
+      m.appendChild(head);
+      var table = sigEl("table", "ap-sig-table ap-sig-radar");
+      var hr = sigEl("tr");
+      ["Source", "7 days", "30 days"].forEach(function (h) { hr.appendChild(sigEl("th", null, h)); });
+      table.appendChild(hr);
+      var row = function (label, pair, cls) {
+        var tr = sigEl("tr", cls || null);
+        tr.appendChild(sigEl("td", null, label));
+        tr.appendChild(sigEl("td", null, sigCount(pair.d7)));
+        tr.appendChild(sigEl("td", null, sigCount(pair.d30)));
+        table.appendChild(tr);
+      };
+      row("Bluesky", r.bluesky);
+      row("Mastodon", r.mastodon);
+      row("Bluesky + Mastodon", r.bluesky_and_mastodon);
+      row("YouTube — " + r.youtube.note, r.youtube, "is-apart");
+      m.appendChild(table);
+    }
+    return m;
+  }
+
+  var SIG_RENDER = { analytics: sigAnalytics, store: sigStore, social: sigSocial, email: sigEmail, seo: sigSeo, sales: sigSales };
+
+  function sigRender(s) {
+    var slot = document.getElementById("apLiveSignature");
+    if (!slot) return;
+    var key = s ? JSON.stringify(s) : "";
+    if (key === sig.key) return;
+    sig.key = key;
+    sig.charts.forEach(function (c) { try { c.destroy(); } catch (e) {} });
+    sig.charts = [];
+    while (slot.firstChild) slot.removeChild(slot.firstChild);
+    var draw = s && SIG_RENDER[s.kind];
+    if (!draw) return;
+    try {
+      slot.appendChild(draw(s));
+      var figs = slot.querySelectorAll ? slot.querySelectorAll("figure.ap-sig-chart") : [];
+      for (var i = 0; i < figs.length; i++) {
+        var spec = figs[i].__chartSpec, canvas = figs[i].querySelector("canvas");
+        if (spec && canvas && typeof window.Chart === "function") {
+          try { sig.charts.push(new window.Chart(canvas, spec)); }
+          catch (e) { figs[i].appendChild(sigEl("div", "ap-sig-ts", "The chart could not be drawn; the numbers are in the table.")); figs[i].querySelector("table").className = "ap-sig-table"; }
+        }
+      }
+      sig.drawn = true;
+    } catch (e) {
+      while (slot.firstChild) slot.removeChild(slot.firstChild);
+      slot.appendChild(sigEl("p", "ap-sig-empty", "This agent's live summary could not be shown."));
+    }
   }
 
   /* ── boot ── */

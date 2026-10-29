@@ -125,7 +125,8 @@
       "Pick \"Sales Funnel\" or \"Outreach Script\", describe your offer and your buyer, and press \"Launch Task\".",
       "In \"Sales Pipeline\", move each lead through New, Drafted, Contacted, Replied, Converted; nothing here judges which deals are stalling.",
       "The tasks read none of the leads or pipeline on this page, so say in your request what has changed in your deals.",
-      "No leads listed? They come from Lead Radar, which works only for the account that owns its keyword set; press \"Refresh\" to reload."
+      "No leads listed? They come from Lead Radar, which works only for the account that owns its keyword set; press \"Refresh\" to reload.",
+      "On that account, \"Lead Radar finds\" under the page header counts each source apart; YouTube finds are kept 30 days and never added to the total."
     ],
     "content.html": [
       "Start with \"Edit Profile\": fill in the Business Profile and press \"Save Profile\"; every other agent reads what you save.",
@@ -159,13 +160,15 @@
       "Open \"Email Sequence\", set its goal, audience and \"Number of steps\", and press \"Build the sequence\".",
       "Each step's copy appears under the tool, ready to paste into your own email platform.",
       "It writes the copy and reads no delivery data; nothing here measures opens, clicks or delivery.",
-      "Unsure which subject wins? \"Subject Lines\" with \"Write variants\" notes which to A/B test first; run the test in your own email platform."
+      "Unsure which subject wins? \"Subject Lines\" with \"Write variants\" notes which to A/B test first; run the test in your own email platform.",
+      "Under the page header, \"Sender\" reads \"Blocked\" with each reason when sequence mail cannot go out, from the server's own settings."
     ],
     "store-agent.html": [
       "Pick \"Store Audit\" or \"Product Launch Plan\", describe the store and the product, and press \"Launch Task\".",
       "\"Stock & Margin\" with \"Measure my stock\" counts what you entered on your inventory page, in code, with no model call.",
       "It connects to no store or channel; audits are written from your Business Profile and what you tell it, not your store's own data.",
-      "A cost, price or reorder point you never entered is left out and counted, not taken as 0; fill it in on the inventory page."
+      "A cost, price or reorder point you never entered is left out and counted, not taken as 0; fill it in on the inventory page.",
+      "Under the page header, \"Low stock\" names items at or below your own reorder point; with no items yet, \"Add inventory\" opens that page."
     ],
     "etsy-agent.html": [
       "Open \"Keyword Research\", enter a seed term and your tag limits, and press \"Find keywords\"; each candidate is measured against them.",
