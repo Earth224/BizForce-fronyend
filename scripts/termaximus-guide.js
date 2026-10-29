@@ -233,8 +233,8 @@
       "Open \"Executive Plan\", give it the goal, and if you like a horizon and constraints, then press \"Build the plan\".",
       "Begin with the \"Start here\" list and press \"Run this assignment\" on each; the plan runs none of them itself.",
       "Each assignment is checked against the tools that really exist; one naming a missing tool is marked \"Not runnable\".",
-      "Assignments marked \"your own work\" are yours to do, and the launcher's tasks answer in text; only plan assignments can be run.",
-      "Under the page header, \"Plans\" shows your latest plans; each assignment reads ready, refused, or its own run's result, linked to the run."
+      "In \"Headquarters\", each tile shows an agent's Now, Last, Next, Approvals and Score; \"Sort: attention\" puts stalled and failed agents first.",
+      "\"Approval queue\" lists what waits for you; nothing is approved until you press \"Approve\", and the server checks it again before it acts."
     ],
     "vertical-marketing-agent.html": [
       "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",
@@ -362,7 +362,8 @@
       "Pick a day, give the event a \"Title\" and \"Type\", set \"Remind me\" if you want one, and press \"Save Event\".",
       "\"Propose for Approval\" sends the event to Agent Proposals instead, to approve before it is saved.",
       "Tick \"Recurring annually\" for a birthday or an anniversary, and it repeats every year from one save.",
-      "Lost in another month? Press \"Today\" to come back."
+      "Lost in another month? Press \"Today\" to come back.",
+      "Press \"Agent runs\" to see when your agent schedules come due; it only reads, and a paused or switched-off schedule shows nothing, with why."
     ],
     "messages.html": [
       "Pick a conversation, type in the box and press \"Send\", or press Enter.",

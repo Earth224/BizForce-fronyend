@@ -436,6 +436,13 @@
       border-color: rgba(34,211,238,0.4);
       background: rgba(255,255,255,0.04);
     }
+    /* The read-only Agent runs layer (off until toggled). */
+    .cal-agent-runs-btn[aria-pressed="true"] { color: #041018; background: linear-gradient(135deg, #00e5ff, #7b2ff7); border-color: transparent; }
+    .cal-agent-runs { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+    .cal-agent-run { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .6rem; line-height: 1.4; padding: 0 4px; border-radius: 4px;
+      color: #a5f3fc; background: rgba(0, 229, 255, .1); border: 1px solid rgba(0, 229, 255, .35); }
+    .cal-agent-runs-note { max-width: 900px; margin: 10px auto 0; padding: 0 16px; font-size: .82rem; line-height: 1.5; color: #9aa6d6; }
+    .cal-agent-runs-note p { margin: 2px 0; }
     .cal-day-dots {
       display: flex;
       gap: 3px;
@@ -808,7 +815,9 @@
       </div>
       <button type="button" class="cal-nav-btn" id="calNextBtn" aria-label="Next month">&#x203A;</button>
       <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
+      <button type="button" class="cal-today-btn cal-agent-runs-btn" id="calAgentRunsBtn" aria-pressed="false">Agent runs</button>
     </div>
+    <div class="cal-agent-runs-note" id="calAgentRunsNote" role="status" hidden></div>
     <div class="cal-day-panel-error" id="calEventsError" hidden style="text-align:center;margin:10px 0 0"></div>
 
     <div class="cal-grid-viewport">
@@ -3122,6 +3131,7 @@
     }
 
     function refreshEventsForCurrentView() {
+      refreshAgentRuns();
       var range = currentVisibleJdnRange();
       if (!range) return;
       if (!token) return;
@@ -3193,6 +3203,105 @@
         return '<span class="cal-day-dot" style="background:' + eventTypeColor(o.event.event_type) + ';"></span>';
       }).join('');
       return '<div class="cal-day-dots" title="' + escapeHtml(titles) + '">' + dots + '</div>';
+    }
+
+    // ---------------------------------------------------------------------
+    // Agent runs — a READ-ONLY layer, off until "Agent runs" is pressed.
+    // GET /api/agents/live/calendar walks each of your schedules through the
+    // same rule as the agent panel's "Next" (lib/agentLive.js runsBetween:
+    // nextSlot through the runner's agentScheduleIsDue, after nextRun's
+    // gates), so the two cannot disagree. Nothing here writes: no
+    // calendar_events row, no proposal, no POST. Only runs still to come.
+    // ---------------------------------------------------------------------
+    var AGENT_RUN_WHY = {
+      disabled: "the schedule is switched off",
+      paused: "the schedule is paused",
+      scheduler_off: "scheduled runs are off on the server",
+      autonomy_off: "autonomous mode is off for this agent",
+      subscription_inactive: "your subscription is not active",
+      subscription_unknown: "your subscription could not be checked",
+      no_run_in_range: "no run falls in these dates"
+    };
+    var agentRuns = { on: false, byJdn: {}, lines: [], seq: 0 };
+    function agentRunDay(jdn) {
+      var g = jdnToGregorian(jdn);
+      return g.year + "-" + (g.month < 10 ? "0" : "") + g.month + "-" + (g.day < 10 ? "0" : "") + g.day;
+    }
+    function agentRunsHtml(dayJdn) {
+      if (!agentRuns.on) return '';
+      var runs = agentRuns.byJdn[dayJdn];
+      if (!runs || !runs.length) return '';
+      var shown = runs.slice(0, 2).map(function (r) { return '<span class="cal-agent-run">' + escapeHtml(r.label) + '</span>'; }).join('');
+      if (runs.length > 2) shown += '<span class="cal-agent-run">+' + (runs.length - 2) + '</span>';
+      return '<div class="cal-agent-runs" title="' + escapeHtml(runs.map(function (r) { return r.label; }).join(', ')) + '">' + shown + '</div>';
+    }
+    function agentRunsNote() {
+      var note = document.getElementById("calAgentRunsNote");
+      if (!note) return;
+      note.textContent = "";
+      note.hidden = !agentRuns.on;
+      agentRuns.lines.forEach(function (line) {
+        var p = document.createElement("p");
+        p.textContent = line;
+        note.appendChild(p);
+      });
+    }
+    function whyNoRuns(s) {
+      if (s.unavailable !== undefined) return "it could not be read (" + s.unavailable + ")";
+      if (s.reason === "paused" && s.consecutive_failures > 0) {
+        return "the runner paused it after " + s.consecutive_failures + " failed run" + (s.consecutive_failures === 1 ? "" : "s");
+      }
+      return AGENT_RUN_WHY[s.reason] || s.reason || "no run falls in these dates";
+    }
+    function refreshAgentRuns() {
+      if (!agentRuns.on) { agentRuns.byJdn = {}; agentRuns.lines = []; agentRunsNote(); return; }
+      var range = currentVisibleJdnRange();
+      if (!range) return;
+      if (!token) { agentRuns.byJdn = {}; agentRuns.lines = ["Sign in to see your agents' runs."]; agentRunsNote(); return; }
+      var seq = ++agentRuns.seq;
+      // A day either side, so a run near midnight lands on your own local day.
+      var url = API_URL + "/api/agents/live/calendar?from=" + agentRunDay(range.startJdn - 1) + "&to=" + agentRunDay(range.endJdn + 2);
+      return fetch(url, { headers: { "Authorization": "Bearer " + token } })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          if (seq !== agentRuns.seq) return;
+          var byJdn = {}, lines = [], count = 0;
+          if (!data || !Array.isArray(data.schedules)) {
+            var why = data && data.schedules && data.schedules.unavailable;
+            lines.push("Your schedules could not be read" + (why ? " (" + why + ")" : "") + " — this is not showing whether any agent runs.");
+          } else if (!data.schedules.length) {
+            lines.push("No agent has a schedule yet. Set one under Scheduled runs on an agent's page.");
+          } else {
+            data.schedules.forEach(function (sch) {
+              var placed = 0;
+              (sch.runs || []).forEach(function (iso) {
+                var d = new Date(iso);
+                var jdn = gregorianToJDN(d.getFullYear(), d.getMonth() + 1, d.getDate());
+                if (jdn < range.startJdn || jdn > range.endJdn) return;
+                var label = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " " + sch.name;
+                (byJdn[jdn] = byJdn[jdn] || []).push({ label: label, iso: iso });
+                placed++;
+              });
+              count += placed;
+              if (!placed) lines.push(sch.name + " · " + (sch.task_type || sch.cadence) + ": nothing shown — " + whyNoRuns(sch) + ".");
+            });
+            lines.unshift("Agent runs: " + count + " still to come in this view, from your own schedules. Read-only; past runs are on each agent's page.");
+          }
+          agentRuns.byJdn = byJdn;
+          agentRuns.lines = lines;
+          renderCalendarPage();
+          agentRunsNote();
+        })
+        .catch(function (err) {
+          if (seq !== agentRuns.seq) return;
+          agentRuns.byJdn = {};
+          agentRuns.lines = ["Agent runs could not be loaded (" + ((err && err.message) || "the request failed") + ") — this is not showing whether any agent runs."];
+          renderCalendarPage();
+          agentRunsNote();
+        });
     }
 
     // ---------------------------------------------------------------------
@@ -3280,6 +3389,7 @@
             '<div class="cal-day-greg">' + WEEKDAY_LABELS[weekdayFromJdn(dayJdn)] + ' ' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
             hol.html +
             dayMarkersHtml(dayJdn) +
+            agentRunsHtml(dayJdn) +
           '</div>';
       }
       html += '</div>';
@@ -3353,6 +3463,7 @@
             '<div class="cal-day-num">' + d + '</div>' +
             '<div class="cal-day-greg">' + WEEKDAY_LABELS[weekdayFromJdn(dayJdn)] + ' ' + GREGORIAN_MONTH_NAMES[gd.month - 1].slice(0, 3) + ' ' + gd.day + '</div>' +
             dayMarkersHtml(dayJdn) +
+            agentRunsHtml(dayJdn) +
           '</div>';
       }
       html += '</div>';
@@ -4164,6 +4275,13 @@
     if (calPrevBtn) calPrevBtn.addEventListener("click", function () { turnPage(-1); });
     if (calNextBtn) calNextBtn.addEventListener("click", function () { turnPage(1); });
     if (calTodayBtn) calTodayBtn.addEventListener("click", goToToday);
+    var calAgentRunsBtn = document.getElementById("calAgentRunsBtn");
+    if (calAgentRunsBtn) calAgentRunsBtn.addEventListener("click", function () {
+      agentRuns.on = !agentRuns.on;
+      calAgentRunsBtn.setAttribute("aria-pressed", agentRuns.on ? "true" : "false");
+      refreshAgentRuns();
+      renderCalendarPage();
+    });
 
     // Escape closes the day-detail panel first if it's open; otherwise
     // does nothing further (there's no overlay to close on this page --
