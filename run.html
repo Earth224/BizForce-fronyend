@@ -97,7 +97,11 @@
             '<div><span>Completed</span>' + esc(task.completed_at ? when(task.completed_at) : "not completed") + '</div>' +
           '</div>') +
         card('<h2 class="rv-label">Prompt</h2><pre class="rv-pre rv-prompt">' + esc(task.prompt || "") + '</pre>') +
-        card('<h2 class="rv-label">Result</h2>' + resultHtml(task));
+        card('<h2 class="rv-label">Result</h2>' + resultHtml(task)) +
+        // 👍/👎 from agent-profile.js, for a run that has finished.
+        (task.status !== "processing" && typeof window.bfRatingBarHtml === "function"
+          ? card('<h2 class="rv-label">Your rating</h2>' + window.bfRatingBarHtml(task.id)) : "");
+      if (typeof window.bfAttachRatingBars === "function") { window.bfAttachRatingBars(view); }
     }
 
     function load() {

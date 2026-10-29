@@ -392,7 +392,7 @@
      the pages that carry the "Last run" line (#lastRunText, filled by
      agent-profile.js). The Content Agent page has no Last run line, so it is
      not shown there; its own tips say where the Business Profile is set. */
-  var GUIDE_COMMON = "Each run is saved, and \"Last run\" opens the newest. Every agent reads the Business Profile you set on the Content Agent page.";
+  var GUIDE_COMMON = "Each run is saved; \"Last run\" opens the newest. Rate runs 👍 or 👎 to tune the agent. Every agent reads the Business Profile you set on the Content Agent page.";
 
   /* per-page fallback for the "Termaximus Insights" section — used as
      the initial text and whenever the live /api/insights/page call is

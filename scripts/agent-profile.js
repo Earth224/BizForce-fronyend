@@ -510,7 +510,35 @@
       "border:1px solid rgba(0,229,255,.1);margin-bottom:10px}",
     ".ap-social-post:last-child{margin-bottom:0}",
     ".ap-social-post-num{font-size:.63rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;",
-      "color:#22d3ee;margin-bottom:8px}"
+      "color:#22d3ee;margin-bottom:8px}",
+    /* the learning loop: the rating bar under a result, and its panel */
+    ".ap-rate{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.05)}",
+    ".ap-rate-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}",
+    ".ap-rate-q{font-size:.8rem;font-weight:700;color:#c4b5fd}",
+    ".ap-rate-btn{font-size:1.05rem;padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer}",
+    ".ap-rate-btn[aria-pressed=true]{background:rgba(124,58,237,.3);border-color:#a78bfa}",
+    ".ap-rate-reason,.ap-rate-comment,.ap-learn-add input,.ap-learn-pref{background:rgba(8,12,28,.65);color:#e5e7ff;border:1px solid rgba(255,255,255,.15);",
+      "border-radius:8px;padding:6px 9px;font-size:.8rem;min-width:0}",
+    ".ap-rate-comment{flex:1 1 220px}",
+    ".ap-rate-save,.ap-rate-pin,.ap-learn-btn{font-size:.76rem;font-weight:700;padding:6px 12px;border-radius:8px;cursor:pointer;",
+      "border:1px solid rgba(34,211,238,.35);background:rgba(34,211,238,.08);color:#22d3ee}",
+    ".ap-rate-msg{font-size:.76rem;color:#8892b8;min-height:14px}",
+    ".ap-rate-msg.ok{color:#4ade80}.ap-rate-msg.err{color:#f87171}",
+    ".ap-learn-copy{font-size:.86rem;color:#e5e7ff;margin:0 0 12px}",
+    ".ap-learn-score{font-size:.9rem;color:#e5e7ff;margin-bottom:8px}",
+    ".ap-learn-arrow{color:#22d3ee;font-weight:700}",
+    ".ap-learn-outcomes{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;color:#c7cbe8}",
+    ".ap-learn-outcomes span{color:#8892b8}",
+    ".ap-learn-h{font-size:.82rem;font-weight:800;color:#c4b5fd;margin:16px 0 6px}",
+    ".ap-learn-note{font-size:.74rem;color:#8892b8;margin:4px 0}",
+    ".ap-learn-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap}",
+    ".ap-learn-item-text{flex:1 1 220px;font-size:.8rem;color:#c7cbe8;white-space:pre-wrap;word-break:break-word}",
+    ".ap-learn-pref{flex:1 1 220px}",
+    ".ap-learn-suggest{font-size:.8rem;color:#e5e7ff;padding:8px 10px;border-radius:8px;background:rgba(34,211,238,.06);margin-bottom:8px}",
+    ".ap-learn-add{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}",
+    ".ap-learn-add input{flex:1 1 220px}",
+    ".ap-learn-told{margin-top:12px;font-size:.78rem;color:#8892b8}",
+    ".ap-learn-told pre{white-space:pre-wrap;word-break:break-word;font-size:.74rem;color:#c7cbe8;max-height:320px;overflow:auto}"
   ].join("");
 
   var styleEl = document.createElement("style");
@@ -850,6 +878,9 @@
         '</div>',
       '</div>',
 
+      /* ── 4b. How this agent learns from you: score, examples, preferences ── */
+      learningSectionHtml(),
+
       /* ── 5. Approval queue (social drafts only) ── */
       HAS_SOCIAL_DRAFTS ? (
         '<div class="ap-section">' +
@@ -900,6 +931,7 @@
 
     bindSchedule();
     bindTools();
+    bindLearning();
     /* Returns null, and adds nothing to the page, on a browser without the API. */
     bindDictation();
 
@@ -908,6 +940,8 @@
     renderSchedule();
     loadSchedule();
     loadHistory();
+    loadLearning();
+    loadPlatformLearning();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
     loadBusinessContext();
     loadLastRun();
@@ -3249,6 +3283,15 @@
           window.bfAfterToolResult(AGENT_TYPE, tool.id, res.data, resultEl);
         }
         setToolMsg(tool.id, "", "");
+        // The run is rated through its ai_tasks row, which only a saved run has; last,
+        // under anything the page added.
+        // A bar that cannot be drawn never costs the member the result above it.
+        if (resultEl && res.data.task_id) {
+          try {
+            resultEl.insertAdjacentHTML("beforeend", ratingBarHtml(String(res.data.task_id)));
+            attachRatingBars(resultEl);
+          } catch (e) {}
+        }
       })
       .catch(function (error) {
         if (runBtn) runBtn.disabled = false;
@@ -3563,6 +3606,13 @@
       respBody.innerHTML = renderMarkdown(result || "No result returned.");
       card.appendChild(respLabel);
       card.appendChild(respBody);
+    }
+
+    if (task.id) {
+      try {
+        card.insertAdjacentHTML("beforeend", ratingBarHtml(String(task.id)));
+        attachRatingBars(card);
+      } catch (e) {}
     }
 
     wrapper.insertBefore(card, wrapper.firstChild);
@@ -4359,6 +4409,284 @@
       el.textContent = "could not be read (" + ((err && err.message) || "the request failed") + ")";
     });
   }
+
+  /* ── THE LEARNING LOOP: rate, pin and tune ─────────────────────────────────
+     A 👍/👎 bar under every agent result (a task, a tool run, and a stored run
+     on run.html), and the "How this agent learns from you" panel on the agent
+     page: the score, the outcomes, "Your examples", the preferences, and the
+     exact words the agent is told. The server (GET /api/agents/:agentType/
+     learning) answers all of it; nothing is kept in the browser. The model does
+     not change, and the panel says so in LEARNING_COPY. */
+  var RATE_REASONS = ["Too long", "Too short", "Wrong tone", "Off topic", "Inaccurate", "Other"];
+  var LEARNING_COPY = "Your ratings and pinned examples shape how this agent writes for you. The AI model itself does not change.";
+
+  function learnFetch(method, path, body) {
+    var token = tok();
+    if (!token) return Promise.reject(new Error("Sign in first."));
+    var init = { method: method, headers: { "Authorization": "Bearer " + token } };
+    if (body !== undefined) {
+      init.headers["Content-Type"] = "application/json";
+      init.body = JSON.stringify(body);
+    }
+    return fetch(API_URL + path, init).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (!r.ok) throw new Error((data && typeof data.error === "string" && data.error) || ("HTTP " + r.status));
+        return data;
+      });
+    });
+  }
+
+  function ratingBarHtml(taskId) {
+    return '<div class="ap-rate" data-rate-task="' + esc(taskId) + '">' +
+      '<div class="ap-rate-row">' +
+        '<span class="ap-rate-q">Rate this result</span>' +
+        '<button type="button" class="ap-rate-btn" data-rate="up" aria-pressed="false" title="Good result">👍</button>' +
+        '<button type="button" class="ap-rate-btn" data-rate="down" aria-pressed="false" title="Not good">👎</button>' +
+        '<select class="ap-rate-reason" aria-label="Reason (optional)"><option value="">Reason (optional)</option>' +
+          RATE_REASONS.map(function (r) { return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join("") +
+        '</select>' +
+      '</div>' +
+      '<div class="ap-rate-row">' +
+        '<input type="text" class="ap-rate-comment" maxlength="200" placeholder="Comment (optional, up to 200 characters)" aria-label="Comment (optional)">' +
+        '<button type="button" class="ap-rate-save">Save rating</button>' +
+        '<button type="button" class="ap-rate-pin" hidden>Use this as an example</button>' +
+      '</div>' +
+      '<div class="ap-rate-msg" role="status"></div>' +
+    '</div>';
+  }
+
+  function drawRating(bar, fb, outcome) {
+    bar.setAttribute("data-rating", fb ? fb.rating : "");
+    bar.setAttribute("data-pinned", fb && fb.pinned ? "1" : "");
+    Array.prototype.forEach.call(bar.querySelectorAll(".ap-rate-btn"), function (b) {
+      b.setAttribute("aria-pressed", fb && fb.rating === b.getAttribute("data-rate") ? "true" : "false");
+    });
+    var reason = bar.querySelector(".ap-rate-reason");
+    var comment = bar.querySelector(".ap-rate-comment");
+    if (fb && reason) reason.value = fb.reason || "";
+    if (fb && comment) comment.value = fb.comment || "";
+    var pin = bar.querySelector(".ap-rate-pin");
+    if (pin) {
+      pin.hidden = !(fb && fb.rating === "up");
+      pin.textContent = fb && fb.pinned ? "Pinned as an example · Remove" : "Use this as an example";
+    }
+    var msg = bar.querySelector(".ap-rate-msg");
+    if (msg && outcome) {
+      msg.textContent = "Outcome: proposal " + outcome.proposal + (outcome.published ? ", published" : "") + ".";
+    }
+  }
+
+  function setRateMsg(bar, text, cls) {
+    var msg = bar.querySelector(".ap-rate-msg");
+    if (!msg) return;
+    msg.textContent = text;
+    msg.className = "ap-rate-msg" + (cls ? " " + cls : "");
+  }
+
+  function attachRatingBars(root) {
+    if (!root || !root.querySelectorAll) return;
+    Array.prototype.forEach.call(root.querySelectorAll(".ap-rate[data-rate-task]"), function (bar) {
+      if (bar.getAttribute("data-rate-bound")) return;
+      bar.setAttribute("data-rate-bound", "1");
+      var taskId = bar.getAttribute("data-rate-task");
+      learnFetch("GET", "/api/agents/feedback/" + encodeURIComponent(taskId))
+        .then(function (data) { drawRating(bar, data.feedback, data.outcome); })
+        .catch(function (err) { setRateMsg(bar, "Your rating could not be read: " + err.message, "err"); });
+
+      function save(rating) {
+        var reason = bar.querySelector(".ap-rate-reason").value;
+        var comment = bar.querySelector(".ap-rate-comment").value;
+        setRateMsg(bar, "Saving…", "");
+        return learnFetch("PUT", "/api/agents/feedback/" + encodeURIComponent(taskId), { rating: rating, reason: reason || null, comment: comment || null })
+          .then(function (data) {
+            drawRating(bar, data.feedback, null);
+            setRateMsg(bar, "Rating saved. You can change it any time.", "ok");
+            loadLearning();
+          })
+          .catch(function (err) { setRateMsg(bar, err.message, "err"); });
+      }
+      bar.addEventListener("click", function (e) {
+        var t = e.target;
+        if (t.classList.contains("ap-rate-btn")) { save(t.getAttribute("data-rate")); return; }
+        if (t.classList.contains("ap-rate-save")) {
+          var current = bar.getAttribute("data-rating");
+          if (!current) { setRateMsg(bar, "Choose 👍 or 👎 first.", "err"); return; }
+          save(current);
+          return;
+        }
+        if (t.classList.contains("ap-rate-pin")) {
+          var pinned = bar.getAttribute("data-pinned") === "1";
+          learnFetch("POST", "/api/agents/feedback/" + encodeURIComponent(taskId) + "/pin", { pinned: !pinned })
+            .then(function (data) {
+              drawRating(bar, data.feedback, null);
+              setRateMsg(bar, pinned ? "Removed from your examples."
+                : "Pinned. The newest two examples go in this agent's prompts for you" +
+                  (data.unpinned && data.unpinned.length ? "; your oldest example was unpinned to keep five." : "."), "ok");
+              loadLearning();
+            })
+            .catch(function (err) { setRateMsg(bar, err.message, "err"); });
+        }
+      });
+    });
+  }
+
+  function learningSectionHtml() {
+    return '<div class="ap-section">' +
+      '<div class="ap-card" id="apLearn">' +
+        '<h2 class="ap-section-label">How this agent learns from you</h2>' +
+        '<p class="ap-learn-copy">' + esc(LEARNING_COPY) + '</p>' +
+        '<div class="ap-learn-score" id="apLearnScore">Loading your score…</div>' +
+        '<ul class="ap-learn-outcomes" id="apLearnOutcomes"></ul>' +
+        '<h3 class="ap-learn-h">Your examples</h3>' +
+        '<p class="ap-learn-note">Results you rated 👍 and chose with "Use this as an example". Up to five are kept; the newest two go in this agent\'s prompts for you.</p>' +
+        '<div id="apLearnExamples"></div>' +
+        '<h3 class="ap-learn-h">What this agent knows about your preferences</h3>' +
+        '<div id="apLearnSuggest"></div>' +
+        '<div id="apLearnPrefs"></div>' +
+        '<div class="ap-learn-add">' +
+          '<input type="text" id="apLearnPrefInput" maxlength="80" placeholder="Add a preference, e.g. Use short paragraphs" aria-label="New preference">' +
+          '<button type="button" class="ap-learn-btn" id="apLearnPrefAdd">Add preference</button>' +
+        '</div>' +
+        '<details class="ap-learn-told"><summary>Exactly what this agent is told</summary>' +
+          '<pre id="apLearnGuidance"></pre></details>' +
+        '<div id="apLearnPlatform"></div>' +
+        '<div class="ap-msg" id="apLearnMsg"></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function setLearnMsg(text, cls) {
+    var el = document.getElementById("apLearnMsg");
+    if (!el) return;
+    el.textContent = text;
+    el.className = "ap-msg" + (cls ? " " + cls : "");
+  }
+
+  function scoreHtml(score) {
+    if (!score) return "";
+    var head = score.enough
+      ? '<strong>' + esc(score.percent + "% 👍") + '</strong>' +
+        (score.arrow ? ' <span class="ap-learn-arrow">' + esc(score.arrow) + " " + esc((score.change_points > 0 ? "+" : "") + score.change_points) +
+          ' points</span> against the 30 days before (' + esc(score.previous.percent + "%") + ')' : "")
+      : '<strong>Score: not enough ratings yet</strong> (a score needs at least 5 ratings in 30 days)';
+    return head + '<div class="ap-learn-note">' + esc(score.based_on) + ' in the last ' + esc(score.window_days) + ' days.</div>';
+  }
+
+  function outcomesHtml(o) {
+    if (!o) return '<li>Outcomes could not be read.</li>';
+    var rows = [
+      ["Proposals approved", o.proposals_approved],
+      ["Proposals rejected", o.proposals_rejected],
+      ["Published", o.published],
+      ["Claims refusals", o.claims_refusals],
+      ["Arrivals through your tracked links", o.arrivals]
+    ].filter(function (r) { return typeof r[1] === "number"; });
+    return rows.map(function (r) { return '<li><span>' + esc(r[0]) + '</span> ' + esc(r[1]) + '</li>'; }).join("") +
+      '<li class="ap-learn-note">Last ' + esc(o.window_days) + ' days, from records BizForce already keeps.</li>';
+  }
+
+  function renderLearning(data) {
+    var score = document.getElementById("apLearnScore");
+    if (!score) return;
+    score.innerHTML = scoreHtml(data.score);
+    document.getElementById("apLearnOutcomes").innerHTML = outcomesHtml(data.outcomes);
+
+    var ex = data.examples || [];
+    document.getElementById("apLearnExamples").innerHTML = ex.length
+      ? ex.map(function (e) {
+          return '<div class="ap-learn-item"><div class="ap-learn-item-text">' + esc(e.excerpt) +
+            '<div class="ap-learn-note">' + esc(e.task_type || "") + ' · ' + esc(fmt(e.created_at)) + '</div></div>' +
+            '<button type="button" class="ap-learn-btn" data-unpin="' + esc(e.task_id) + '">Remove</button></div>';
+        }).join("")
+      : '<p class="ap-learn-note">None yet. Rate a result 👍, then choose "Use this as an example".</p>';
+
+    var sug = data.suggestions || [];
+    document.getElementById("apLearnSuggest").innerHTML = sug.map(function (s) {
+      return '<div class="ap-learn-suggest">You rated ' + esc(s.count) + ' recent results 👎 as "' + esc(s.reason) +
+        '". Add the preference "' + esc(s.text) + '"? ' +
+        '<button type="button" class="ap-learn-btn" data-accept="' + esc(s.text) + '">Add it</button></div>';
+    }).join("");
+
+    var prefs = data.preferences || [];
+    var limits = data.limits || {};
+    document.getElementById("apLearnPrefs").innerHTML = prefs.length
+      ? prefs.map(function (p) {
+          return '<div class="ap-learn-item"><input type="text" class="ap-learn-pref" maxlength="80" value="' + esc(p.text) +
+            '" data-pref="' + esc(p.id) + '" aria-label="Preference">' +
+            '<button type="button" class="ap-learn-btn" data-save-pref="' + esc(p.id) + '">Save</button>' +
+            '<button type="button" class="ap-learn-btn" data-remove-pref="' + esc(p.id) + '">Remove</button></div>';
+        }).join("") + '<p class="ap-learn-note">' + esc(prefs.length + " of " + (limits.preferences || 8)) + ' preferences.</p>'
+      : '<p class="ap-learn-note">None yet. Add one below, or accept a suggestion when one appears.</p>';
+
+    document.getElementById("apLearnGuidance").textContent = data.guidance
+      ? data.guidance.replace(/^\n+/, "")
+      : "Nothing yet: with no examples or preferences, this agent is told nothing about you beyond your business profile.";
+  }
+
+  function loadLearning() {
+    if (!document.getElementById("apLearn")) return;
+    learnFetch("GET", "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/learning")
+      .then(function (data) { renderLearning(data); setLearnMsg("", ""); })
+      .catch(function (err) {
+        var score = document.getElementById("apLearnScore");
+        if (score) score.textContent = "Your ratings, examples and preferences could not be loaded (" + err.message + ").";
+      });
+  }
+
+  function loadPlatformLearning() {
+    var slot = document.getElementById("apLearnPlatform");
+    if (!slot) return;
+    learnFetch("GET", "/api/auth/me").then(function (me) {
+      if (!me || !me.user || me.user.role !== "admin") return;
+      return learnFetch("GET", "/api/admin/agent-learning").then(function (data) {
+        var rows = (data && data.agents) || [];
+        slot.innerHTML = '<h3 class="ap-learn-h">Platform view (owner only)</h3>' +
+          '<p class="ap-learn-note">All members together, per agent, last ' + esc(data.window_days) + ' days. Counts only: no member is identified.</p>' +
+          (rows.length ? '<ul class="ap-learn-outcomes">' + rows.map(function (r) {
+            return '<li><span>' + esc(r.agent_type) + '</span> ' + esc(r.label) + ' · ' + esc(r.rated) + ' rated' +
+              (r.arrow ? ' · ' + esc(r.arrow + " " + r.change_points + " points") : "") + '</li>';
+          }).join("") + '</ul>' : '<p class="ap-learn-note">No ratings yet.</p>');
+      });
+    }).catch(function () { slot.innerHTML = ""; });
+  }
+
+  function bindLearning() {
+    var box = document.getElementById("apLearn");
+    if (!box) return;
+    function addPref(text, source) {
+      return learnFetch("POST", "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/preferences", { text: text, source: source })
+        .then(function () { setLearnMsg("Preference saved.", "ok"); loadLearning(); })
+        .catch(function (err) { setLearnMsg(err.message, "err"); });
+    }
+    box.addEventListener("click", function (e) {
+      var t = e.target;
+      var id;
+      if (t.id === "apLearnPrefAdd") {
+        var input = document.getElementById("apLearnPrefInput");
+        var text = (input.value || "").trim();
+        if (!text) { setLearnMsg("Type a preference first.", "err"); return; }
+        addPref(text, "member").then(function () { input.value = ""; });
+      } else if (t.getAttribute("data-accept")) {
+        addPref(t.getAttribute("data-accept"), "suggestion");
+      } else if ((id = t.getAttribute("data-save-pref"))) {
+        var field = box.querySelector('input[data-pref="' + id + '"]');
+        learnFetch("PUT", "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/preferences/" + encodeURIComponent(id), { text: field ? field.value : "" })
+          .then(function () { setLearnMsg("Preference saved.", "ok"); loadLearning(); })
+          .catch(function (err) { setLearnMsg(err.message, "err"); });
+      } else if ((id = t.getAttribute("data-remove-pref"))) {
+        learnFetch("DELETE", "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/preferences/" + encodeURIComponent(id))
+          .then(function () { setLearnMsg("Preference removed.", "ok"); loadLearning(); })
+          .catch(function (err) { setLearnMsg(err.message, "err"); });
+      } else if ((id = t.getAttribute("data-unpin"))) {
+        learnFetch("POST", "/api/agents/feedback/" + encodeURIComponent(id) + "/pin", { pinned: false })
+          .then(function () { setLearnMsg("Removed from your examples.", "ok"); loadLearning(); })
+          .catch(function (err) { setLearnMsg(err.message, "err"); });
+      }
+    });
+  }
+
+  window.bfRatingBarHtml = ratingBarHtml;
+  window.bfAttachRatingBars = attachRatingBars;
 
   /* ── for run.html: a stored tool run, through the same renderers ───────────
      A tool run's ai_tasks row has task_type "agent/tool" and the route's
