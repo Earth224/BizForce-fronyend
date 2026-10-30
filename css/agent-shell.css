@@ -21,16 +21,11 @@ body {
   position: relative;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(0, 229, 255, 0.14), transparent 38%),
-    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 40%),
-    #070b18;
-  z-index: 0;
-  pointer-events: none;
+/* The backdrop is the token rule in scripts/bf-theme.js, which a page using
+   this shell loads first in <head>; the shell keeps its glows in the corners. */
+:root {
+  --bf-glow-a-at: top left;
+  --bf-glow-b-at: bottom right;
 }
 
 .shell {

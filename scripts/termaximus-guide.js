@@ -327,11 +327,11 @@
       "Stuck here after your session ended? Press \"Sign In\" again."
     ],
     "settings.html": [
-      "Pick a panel — \"Profile\", \"API Key\", \"Billing\", \"Preferences\" or \"Account\" — change what you need, and press its save button.",
-      "Under \"Preferences\", \"Mist Default Position\" sets where Termaximus' mist first appears; drag the mist and this device remembers where.",
+      "Pick a panel — \"Profile\", \"API Key\", \"Billing\", \"Preferences\", \"Theme\" or \"Account\" — change what you need, and press its save button.",
+      "Under \"Theme\", choose a preset or set \"Top-left glow\", \"Bottom-right glow\" and \"Middle backdrop\", then press \"Save as…\" to name it.",
+      "\"Apply to\" puts a saved theme on \"All pages\", \"This page\" or \"Selected pages\"; \"Reset everything to the original\" brings the first look back.",
       "Turn on \"Keep a copy on this device for offline use\" under \"Account\" to open recent tasks, profile and wallet with no connection.",
-      "Offline, a page shows when its copy was saved, and nothing can be sent or changed until you're back online.",
-      "\"Add a Passkey\" lets this device sign you in without typing your password."
+      "Offline, a page shows when its copy was saved, and nothing can be sent or changed until you're back online."
     ],
     "crm.html": [
       "Press \"+ Add Customer\", fill in \"Name\" and what you know, and press \"Save\".",

@@ -51,7 +51,9 @@
      its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
-     and bf_return_to (the public page to return to after signing in, which
+     bf_theme (the device's cache of the member's themes, so a page shows its
+     look before first paint; scripts/bf-theme.js applies it only to the
+     member it belongs to, or when nobody is signed in), and bf_return_to (the public page to return to after signing in, which
      app.html must still find). The backend's scripts/checkOfflineMode.js
      fails on any storage key in the frontend that is on neither list.
 

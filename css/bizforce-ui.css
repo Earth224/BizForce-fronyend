@@ -72,6 +72,42 @@
   --bf-warning: #fbbf24;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE BACKDROP TOKENS — the one part of the look a member can change.
+
+   The palette above is still not a switcher. The backdrop is: every app page
+   draws it from ONE token rule, which scripts/bf-theme.js writes into <head>
+   before first paint (it is loaded first on each of those pages, including
+   the ones that do not link this file). Settings → Theme sets these on <html>.
+   The values here are today's, the same as bf-theme.js's own defaults, and are
+   declared at :where(:root) so a page's own :root (the pages whose glows
+   differ) always wins. scripts/checkThemes.js holds the two lists equal.
+
+     --bf-bg            the middle colour (declared in the palette above)
+     --bf-bg-image      none, or url(...) of the member's own photo
+     --bf-bg-dim        0 … 0.85: the black shade over the middle
+     --bf-glow-a        the top-left glow's colour (and -rgb, its channels)
+     --bf-glow-b        the bottom-right glow's colour (and -rgb)
+     --bf-glow-a-alpha  .14, how strong the top-left glow is
+     --bf-glow-b-alpha  .18, how strong the bottom-right glow is
+     --bf-alive         0 or 1: whether the glows drift ("Alive corners")
+     --bf-scrim         0 …: the shade readability protection adds over the glows
+
+   Public pages (seller, support, card-view, the blog, the legal pages) never
+   load bf-theme.js, and digital_cards.theme stays separate, as above. */
+:where(:root) {
+  --bf-bg-image: none;
+  --bf-bg-dim: 0;
+  --bf-glow-a: #00e5ff;
+  --bf-glow-a-rgb: 0, 229, 255;
+  --bf-glow-a-alpha: 0.14;
+  --bf-glow-b: #a855f7;
+  --bf-glow-b-rgb: 168, 85, 247;
+  --bf-glow-b-alpha: 0.18;
+  --bf-alive: 0;
+  --bf-scrim: 0;
+}
+
 /* ── App shell & topbar (Dashboard V2) ── */
 .app-shell {
   min-height: 100vh;

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/scripts/bf-theme.js"></script>
 <script>
   /* Signed-out visitors may read this page, and bf-session.js begins by sending
      anyone without a token to sign in. So it loads only for someone signed
@@ -46,15 +47,8 @@
     body { overflow-x: hidden; position: relative; }
 
     /* ── Ambient background ───────────────────────────────────────────── */
-    body::before {
-      content: "";
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background:
-        radial-gradient(ellipse 60% 50% at 15% 5%,  rgba(0,229,255,.11), transparent),
-        radial-gradient(ellipse 50% 60% at 85% 92%, rgba(168,85,247,.14), transparent),
-        radial-gradient(ellipse 40% 40% at 60% 40%, rgba(0,229,255,.04), transparent),
-        var(--bg);
-    }
+    /* The backdrop is the token rule in scripts/bf-theme.js; this page keeps its own glows. */
+    :root { --bf-glow-a-shape: ellipse 60% 50%; --bf-glow-a-at: 15% 5%; --bf-glow-a-alpha: .11; --bf-glow-a-reach: 100%; --bf-glow-b-shape: ellipse 50% 60%; --bf-glow-b-at: 85% 92%; --bf-glow-b-alpha: .14; --bf-glow-b-reach: 100%; --bf-glow-c: rgba(0,229,255,.04); --bf-glow-c-shape: ellipse 40% 40%; --bf-glow-c-at: 60% 40%; }
 
     /* ── Page wrapper ─────────────────────────────────────────────────── */
     .pf-page { position: relative; z-index: 1; }

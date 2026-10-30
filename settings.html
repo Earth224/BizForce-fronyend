@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/scripts/bf-theme.js"></script>
   <meta charset="UTF-8" />
   <meta name="robots" content="noindex"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,17 +20,7 @@
       position: relative;
       overflow-x: hidden;
     }
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(circle at 15% 10%, rgba(0,229,255,0.14), transparent 38%),
-        radial-gradient(circle at 85% 90%, rgba(168,85,247,0.18), transparent 40%),
-        #070b18;
-      z-index: 0;
-      pointer-events: none;
-    }
+    /* The backdrop is the token rule in scripts/bf-theme.js. */
 
     /* dark scrollbars, site-wide + any scrollable panel */
     * { scrollbar-width: thin; scrollbar-color: rgba(34,211,238,0.3) #070b18; }
@@ -457,6 +448,74 @@
       }
       .settings-panel.active { display: block; }
     }
+    /* ── Theme studio (scripts/bf-theme-studio.js) ─────────────────────── */
+    .ts-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+    .ts-preset {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px;
+      border-radius: 12px; border: 1px solid rgba(148,163,184,0.22); background: rgba(15,23,42,0.6);
+      color: #e8e8ff; font: inherit; font-size: 0.9rem; cursor: pointer;
+    }
+    .ts-preset[aria-pressed="true"] { border-color: #22d3ee; box-shadow: 0 0 0 1px #22d3ee inset; }
+    .ts-preset:focus-visible, .ts-small:focus-visible, #tsApply:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+    .ts-preset-swatch { display: block; width: 100%; height: 34px; border-radius: 8px; }
+    .ts-sw-default { background: radial-gradient(circle at 15% 10%, rgba(0,229,255,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(168,85,247,.6), transparent 60%), #070b18; }
+    .ts-sw-ember { background: radial-gradient(circle at 15% 10%, rgba(255,122,24,.6), transparent 60%), radial-gradient(circle at 85% 90%, rgba(255,46,99,.55), transparent 60%), #070b18; }
+    .ts-sw-verdant { background: radial-gradient(circle at 15% 10%, rgba(52,211,153,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(34,197,94,.5), transparent 60%), #05140e; }
+    .ts-sw-royal { background: radial-gradient(circle at 15% 10%, rgba(99,102,241,.65), transparent 60%), radial-gradient(circle at 85% 90%, rgba(245,197,66,.45), transparent 60%), #0a0a24; }
+    .ts-sw-rose { background: radial-gradient(circle at 15% 10%, rgba(251,113,133,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(240,171,252,.5), transparent 60%), #160a14; }
+    .ts-sw-mono { background: radial-gradient(circle at 15% 10%, rgba(229,231,235,.35), transparent 60%), radial-gradient(circle at 85% 90%, rgba(156,163,175,.35), transparent 60%), #0b0b0d; }
+    .ts-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+    @media (max-width: 760px) { .ts-grid { grid-template-columns: 1fr; } }
+    .ts-part { border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; padding: 10px 14px 14px; margin: 0 0 12px; }
+    .ts-part legend { padding: 0 6px; color: #e8e8ff; font-weight: 600; font-size: 0.92rem; }
+    .ts-colour { display: flex; gap: 10px; align-items: center; margin: 6px 0 10px; }
+    .ts-colour input[type="color"] { width: 48px; height: 36px; padding: 0; border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; background: transparent; cursor: pointer; }
+    .ts-colour input[type="text"] { width: 110px; font-family: ui-monospace, Consolas, monospace; }
+    .ts-range { display: flex; justify-content: space-between; color: #8892b8; font-size: 0.85rem; }
+    .ts-part input[type="range"] { width: 100%; accent-color: #22d3ee; }
+    .ts-choices, .ts-scope { display: flex; flex-wrap: wrap; gap: 14px; }
+    .ts-choices label, .ts-scope label, .ts-check { color: #e8e8ff; font-size: 0.9rem; cursor: pointer; }
+    .ts-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .ts-file:focus-visible + label { outline: 2px solid #22d3ee; outline-offset: 2px; }
+    .ts-small { padding: 7px 12px; font-size: 0.82rem; }
+    .ts-preview { position: relative; overflow: hidden; isolation: isolate; border-radius: 16px; min-height: 280px; border: 1px solid rgba(148,163,184,0.2); }
+    .ts-pv-middle, .ts-pv-glows { position: absolute; inset: 0; pointer-events: none; }
+    .ts-pv-middle {
+      background:
+        linear-gradient(rgba(0, 0, 0, var(--bf-bg-dim)), rgba(0, 0, 0, var(--bf-bg-dim))),
+        var(--bf-bg-image) center / cover no-repeat,
+        var(--bf-bg);
+    }
+    .ts-pv-glows {
+      background:
+        linear-gradient(rgba(0, 0, 0, var(--bf-scrim)), rgba(0, 0, 0, var(--bf-scrim))),
+        radial-gradient(circle at 15% 10%, rgba(var(--bf-glow-a-rgb), var(--bf-glow-a-alpha)), transparent 38%),
+        radial-gradient(circle at 85% 90%, rgba(var(--bf-glow-b-rgb), var(--bf-glow-b-alpha)), transparent 40%);
+    }
+    .ts-preview[data-alive="1"] .ts-pv-glows { inset: -8%; animation: bf-glow-drift 32s ease-in-out infinite alternate; }
+    @media (prefers-reduced-motion: reduce) { .ts-preview[data-alive="1"] .ts-pv-glows { inset: 0; animation: none; } }
+    .ts-pv-card { position: relative; margin: 34px 28px; padding: 16px 18px; border-radius: 14px; background: rgba(15,23,42,0.55); border: 1px solid rgba(148,163,184,0.2); }
+    .ts-pv-title { color: #e8e8ff; font-weight: 700; margin-bottom: 6px; }
+    .ts-pv-text { color: #e8e8ff; margin: 0 0 4px; font-size: 0.9rem; }
+    .ts-pv-muted { color: #8892b8; margin: 0 0 8px; font-size: 0.85rem; }
+    .ts-pv-link { color: #22d3ee; font-size: 0.88rem; text-decoration: underline; }
+    .ts-pv-buttons { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+    .ts-pv-ghost { padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(34,211,238,0.5); color: #22d3ee; font-size: 0.82rem; }
+    .ts-meter { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(74,222,128,0.4); background: rgba(74,222,128,0.06); }
+    .ts-meter[data-state="protected"] { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
+    .ts-meter strong { color: #4ade80; margin-right: 8px; }
+    .ts-meter[data-state="protected"] strong { color: #fbbf24; }
+    .ts-meter span { color: #e8e8ff; font-size: 0.85rem; }
+    .ts-save { margin-top: 18px; }
+    .ts-h { margin: 22px 0 8px; font-size: 1rem; color: #e8e8ff; }
+    .ts-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .ts-saved, .ts-assigned { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(15,23,42,0.5); border: 1px solid rgba(148,163,184,0.16); }
+    .ts-saved-name, .ts-assigned span { flex: 1 1 140px; color: #e8e8ff; }
+    .ts-swatch { width: 28px; height: 28px; border-radius: 8px; flex: 0 0 auto; }
+    .ts-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+    .ts-group { border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; padding: 8px 12px 10px; display: grid; gap: 4px; margin: 0; }
+    .ts-group legend { padding: 0 6px; color: #8892b8; font-size: 0.85rem; }
+    .ts-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   </style>
   <!-- clearDevice only: this page does not run the session guard (see the sign-out below). -->
   <script src="/scripts/bf-session.js" data-clear-only></script>
@@ -496,6 +555,10 @@
           </button>
           <button type="button" class="sidebar-item" data-target="preferences">
             <span>Preferences</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
+          <button type="button" class="sidebar-item" data-target="theme">
+            <span>Theme</span>
             <span class="sidebar-chevron">&#8250;</span>
           </button>
           <button type="button" class="sidebar-item" data-target="account">
@@ -686,6 +749,140 @@
             </div>
           </section>
 
+          <!-- Theme: the studio. scripts/bf-theme-studio.js runs it; scripts/bf-theme.js
+               (loaded first in <head>) does the arithmetic, so the preview and the meter
+               use exactly what every page uses. The page checklist is not written here:
+               it comes from GET /api/themes, which reads it from the app map. -->
+          <section class="settings-panel" id="panel-theme" data-panel="theme" aria-labelledby="themeHeading">
+            <h2 id="themeHeading">Theme</h2>
+            <p class="pref-note">Choose the glow in two corners and what sits in the middle. Any colour is allowed: if a choice makes text hard to read, the backdrop is shaded just enough to keep it clear.</p>
+
+            <div class="ts-presets" role="group" aria-label="Presets">
+              <button type="button" class="ts-preset" data-preset="default" aria-pressed="true"><span class="ts-preset-swatch ts-sw-default" aria-hidden="true"></span>Default</button>
+              <button type="button" class="ts-preset" data-preset="ember" aria-pressed="false"><span class="ts-preset-swatch ts-sw-ember" aria-hidden="true"></span>Ember</button>
+              <button type="button" class="ts-preset" data-preset="verdant" aria-pressed="false"><span class="ts-preset-swatch ts-sw-verdant" aria-hidden="true"></span>Verdant</button>
+              <button type="button" class="ts-preset" data-preset="royal" aria-pressed="false"><span class="ts-preset-swatch ts-sw-royal" aria-hidden="true"></span>Royal</button>
+              <button type="button" class="ts-preset" data-preset="rose" aria-pressed="false"><span class="ts-preset-swatch ts-sw-rose" aria-hidden="true"></span>Rosé</button>
+              <button type="button" class="ts-preset" data-preset="mono" aria-pressed="false"><span class="ts-preset-swatch ts-sw-mono" aria-hidden="true"></span>Mono</button>
+            </div>
+
+            <div class="ts-grid">
+              <div class="ts-controls">
+                <fieldset class="ts-part">
+                  <legend>Top-left glow</legend>
+                  <div class="ts-colour">
+                    <input type="color" id="tsGlowAColor" aria-label="Top-left glow colour" value="#00e5ff" />
+                    <input type="text" id="tsGlowAHex" aria-label="Top-left glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#00e5ff" />
+                  </div>
+                  <label class="ts-range" for="tsGlowAAlpha">Strength <output id="tsGlowAAlphaOut" for="tsGlowAAlpha">14%</output></label>
+                  <input type="range" id="tsGlowAAlpha" min="0" max="50" step="1" value="14" />
+                </fieldset>
+
+                <fieldset class="ts-part">
+                  <legend>Bottom-right glow</legend>
+                  <div class="ts-colour">
+                    <input type="color" id="tsGlowBColor" aria-label="Bottom-right glow colour" value="#a855f7" />
+                    <input type="text" id="tsGlowBHex" aria-label="Bottom-right glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                  </div>
+                  <label class="ts-range" for="tsGlowBAlpha">Strength <output id="tsGlowBAlphaOut" for="tsGlowBAlpha">18%</output></label>
+                  <input type="range" id="tsGlowBAlpha" min="0" max="50" step="1" value="18" />
+                </fieldset>
+
+                <fieldset class="ts-part">
+                  <legend>Middle backdrop</legend>
+                  <div class="ts-choices">
+                    <label><input type="radio" name="tsMiddle" value="black" checked /> Black</label>
+                    <label><input type="radio" name="tsMiddle" value="colour" /> Colour</label>
+                    <label><input type="radio" name="tsMiddle" value="photo" /> Photo</label>
+                  </div>
+                  <div class="ts-colour" id="tsColourRow" hidden>
+                    <input type="color" id="tsBgColor" aria-label="Middle colour" value="#070b18" />
+                    <input type="text" id="tsBgHex" aria-label="Middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#070b18" />
+                  </div>
+                  <div id="tsPhotoRow" hidden>
+                    <input type="file" id="tsPhotoFile" class="ts-file" accept="image/jpeg,image/png,image/webp" />
+                    <label for="tsPhotoFile" class="btn ts-small" id="tsPhotoPick">Choose a photo</label>
+                    <span class="pref-note" id="tsPhotoStatus">No photo yet.</span>
+                    <p class="pref-note">JPEG, PNG or WebP, up to 5 MB. It fills the middle and stays still while you scroll.</p>
+                    <label class="ts-range" for="tsDim">Dim <output id="tsDimOut" for="tsDim">55%</output></label>
+                    <input type="range" id="tsDim" min="0" max="85" step="1" value="55" />
+                    <div class="msg" id="tsPhotoMsg" role="status" aria-live="polite"></div>
+                  </div>
+                </fieldset>
+
+                <div class="toggle-row">
+                  <div class="toggle-copy">
+                    <div class="toggle-title" id="tsAliveLabel">Alive corners</div>
+                    <div class="toggle-desc" id="tsAliveNote">The two corner glows drift and breathe slowly, about once every half minute.</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="tsAlive" aria-labelledby="tsAliveLabel" aria-describedby="tsAliveNote" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="ts-side">
+                <div class="ts-preview" id="tsPreview" role="img" aria-label="Preview of your theme: the backdrop with a sample card, buttons and text">
+                  <div class="ts-pv-middle"></div>
+                  <div class="ts-pv-glows"></div>
+                  <div class="ts-pv-card" aria-hidden="true">
+                    <div class="ts-pv-title">Sample card</div>
+                    <p class="ts-pv-text">Body text reads like this.</p>
+                    <p class="ts-pv-muted">Muted text, for labels and captions.</p>
+                    <span class="ts-pv-link">An accent link</span>
+                    <div class="ts-pv-buttons"><span class="btn ts-small">Button</span><span class="ts-pv-ghost">Secondary</span></div>
+                  </div>
+                </div>
+                <div class="ts-meter" id="tsMeter" role="status" aria-live="polite" data-state="readable">
+                  <strong id="tsMeterState">Readable</strong>
+                  <span id="tsMeterRatios"></span>
+                  <p class="pref-note" id="tsMeterNote"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group ts-save">
+              <label for="tsName">Theme name</label>
+              <input type="text" id="tsName" maxlength="60" autocomplete="off" placeholder="My theme" />
+              <div class="btn-row">
+                <button type="button" class="btn" id="tsSaveAs">Save as…</button>
+                <button type="button" class="btn" id="tsUpdate" hidden>Save changes</button>
+              </div>
+              <p class="pref-note" id="tsEditing">Not saved yet.</p>
+              <div class="msg" id="tsMsg" role="status" aria-live="polite"></div>
+            </div>
+
+            <h3 class="ts-h">Your themes</h3>
+            <p class="pref-note" id="tsSavedEmpty">No saved themes yet. Pick a preset or your own colours, then "Save as…".</p>
+            <ul class="ts-list" id="tsSavedList" aria-label="Your saved themes"></ul>
+
+            <h3 class="ts-h">Apply to</h3>
+            <fieldset class="ts-part ts-scope">
+              <legend class="ts-sr">Apply the theme you are editing to</legend>
+              <label><input type="radio" name="tsScope" value="all" checked /> All pages</label>
+              <label><input type="radio" name="tsScope" value="page" /> This page (<span id="tsThisPageName">Settings</span>)</label>
+              <label><input type="radio" name="tsScope" value="pages" /> Selected pages</label>
+            </fieldset>
+            <div id="tsPagePicker" hidden>
+              <button type="button" class="btn ts-small" id="tsSelectAgents">Select all agent pages</button>
+              <div class="ts-groups" id="tsPageGroups"></div>
+            </div>
+            <div class="btn-row">
+              <button type="button" class="btn" id="tsApply">Apply</button>
+            </div>
+            <div class="msg" id="tsApplyMsg" role="status" aria-live="polite"></div>
+
+            <h3 class="ts-h">Pages and their themes</h3>
+            <p class="pref-note" id="tsMainTheme">Main theme: the original look.</p>
+            <p class="pref-note" id="tsAssignmentsEmpty">No page has its own theme.</p>
+            <ul class="ts-list" id="tsAssignments" aria-label="Pages with their own theme"></ul>
+            <div class="btn-row">
+              <button type="button" class="btn btn-danger" id="tsResetAll">Reset everything to the original</button>
+            </div>
+            <p class="pref-note">Puts every page back on the original look. Your saved themes are kept.</p>
+          </section>
+
           <section class="settings-panel" id="panel-account" data-panel="account">
             <h2>Account</h2>
 
@@ -806,6 +1003,9 @@
           activateSection(this.getAttribute("data-target"));
         });
       }
+
+      // settings.html#theme opens the Theme section (each page's way into the studio).
+      if (window.location.hash === "#theme") activateSection("theme");
 
       /* ── API Key (verbatim logic, reused from the previous single-purpose page) ── */
       var statusLine = document.getElementById("statusLine");
@@ -2528,6 +2728,7 @@
       });
     })();
   </script>
+<script src="/scripts/bf-theme-studio.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
