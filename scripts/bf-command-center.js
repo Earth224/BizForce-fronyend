@@ -93,7 +93,13 @@
             return '<p class="cc-clear">Nothing needs you.</p>';
         }
         var html = '<div class="cc-sub">Proposals waiting for you</div>';
-        if (p.count === 0) {
+        /* The Executive deck's Approvals tab draws these in its own approval
+           queue, beside this panel; there the panel points at it instead of
+           listing them a second time (data-cc-queue="elsewhere"). */
+        var box = document.getElementById("ccNeedsYou");
+        if (box && box.dataset && box.dataset.ccQueue === "elsewhere") {
+            html += '<p class="cc-muted">' + (p.count === 0 ? 'No pending proposals.' : p.count + (p.count === 1 ? ' proposal waits' : ' proposals wait') + ' in the approval queue above.') + '</p>';
+        } else if (p.count === 0) {
             html += '<p class="cc-muted">No pending proposals.</p>';
         } else {
             html += '<ul>' + p.rows.map(function(r) {

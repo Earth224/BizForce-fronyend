@@ -1149,7 +1149,7 @@
     '<div id="tmx-chat-attach-info"></div>' +
     '<div id="tmx-chat-foot">' +
       '<input id="tmx-chat-file" type="file" multiple accept=".pdf,.doc,.docx,.txt,.md,.csv,image/*" style="display:none;" />' +
-      '<button id="tmx-chat-attach" type="button" aria-label="Attach files">&#x1F4CE;</button>' +
+      '<button id="tmx-chat-attach" type="button" aria-label="Attach files"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 11.5l-8.3 8.3a5 5 0 0 1-7.1-7.1l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.7-7.7"/></svg></button>' +
       '<input id="tmx-chat-input" type="text" placeholder="Ask the Oracle…" autocomplete="off" />' +
       '<button id="tmx-chat-send" aria-label="Send">&#x2191;</button>' +
     '</div>';

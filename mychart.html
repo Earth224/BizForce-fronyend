@@ -761,6 +761,9 @@
     }
     .mc-tappable:hover .sigil-dot   { fill: #34d399; }
     .mc-tappable:hover .sigil-glyph { fill: #34d399; }
+    .sigil-drawn { fill: none; stroke: rgba(232,220,255,0.72); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }
+    .mc-tappable:hover .sigil-drawn { stroke: #34d399; }
+    .natal-drawn { vertical-align: -0.12em; }
     .mc-tappable:hover .sigil-axis  {
       stroke: rgba(52,211,153,0.75);
       stroke-opacity: 1;
@@ -2299,9 +2302,16 @@
            orbit cards remain the way to reach either. */
         svg += '<circle class="sigil-hit" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="10" fill="transparent"/>';
 
-        svg += '<text class="sigil-glyph" x="' + sigilN(gpt.x) + '" y="' + sigilN(gpt.y) + '" ' +
-               'text-anchor="middle" dominant-baseline="middle" font-size="9">' +
-               escapeXml(NATAL_GLYPHS[p.name] || p.name) + '</text>';
+        /* Venus and Mars are drawn in the same 9-unit square a typed glyph
+           takes, centred on the same point, so the radius sums above hold. */
+        if (NATAL_DRAWN[p.name]) {
+          svg += '<g class="sigil-drawn" transform="translate(' + sigilN(gpt.x - 4.5) + ' ' + sigilN(gpt.y - 4.5) + ') scale(0.375)">' +
+                 NATAL_DRAWN[p.name] + '</g>';
+        } else {
+          svg += '<text class="sigil-glyph" x="' + sigilN(gpt.x) + '" y="' + sigilN(gpt.y) + '" ' +
+                 'text-anchor="middle" dominant-baseline="middle" font-size="9">' +
+                 escapeXml(NATAL_GLYPHS[p.name] || p.name) + '</text>';
+        }
 
         svg += '</g>';
       });
@@ -3113,8 +3123,18 @@
     // The last natal request failed; see numerologyFailed.
     var natalFailed = false;
 
+    /* Venus and Mars are drawn, not typed: U+2640 and U+2642 are emoji code
+       points as well as planet signs, and some systems paint them as coloured
+       emoji badges in the middle of the chart. Their marks, in a 24-unit box. */
+    var NATAL_DRAWN = {
+      Venus: '<circle cx="12" cy="9" r="5"/><path d="M12 14v8M8.5 18.5h7"/>',
+      Mars: '<circle cx="10" cy="14" r="5"/><path d="M13.6 10.4L20 4M15 4h5v5"/>'
+    };
+    function natalDrawnSvg(name) {
+      return '<svg class="natal-drawn" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + name + '">' + NATAL_DRAWN[name] + '</svg>';
+    }
     var NATAL_GLYPHS = {
-      Sun: "☉", Moon: "☽", Mercury: "☿", Venus: "♀", Mars: "♂",
+      Sun: "☉", Moon: "☽", Mercury: "☿",
       Jupiter: "♃", Saturn: "♄", Uranus: "♅", Neptune: "♆", Pluto: "♇",
       ASC: "ASC", MC: "MC"
     };
@@ -3329,7 +3349,7 @@
         var angle = (i / count) * Math.PI * 2 - Math.PI / 2; /* start at 12 o'clock, clockwise */
         var x = centerX + radius * Math.cos(angle);
         var y = centerY + radius * Math.sin(angle);
-        var glyph = NATAL_GLYPHS[node.name] || node.name;
+        var glyph = NATAL_DRAWN[node.name] ? natalDrawnSvg(node.name) : (NATAL_GLYPHS[node.name] || node.name);
         var deg   = (node.degree != null) ? (Math.round(node.degree * 10) / 10) : null;
 
         var accentClass = "";

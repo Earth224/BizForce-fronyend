@@ -18,17 +18,23 @@
                       executors re-check everything on the server.
 
    Act side, every request on a click and one request per click:
-     the command box  an agent and a typed task: POST /api/ai/tasks, then the
-                      run on its tile and in run.html. A tool: opens it on the
+     the command box  ONE box on the deck's Command tab. "Do a task": an agent
+                      (and, for the Executive, a kind of task) and a typed
+                      task: POST /api/ai/tasks, then the run on its tile and in
+                      run.html. A tool: opens it on the
                       agent's own page (#tool=<id>, read once on arrival, runs
                       nothing). A tool that ACTS (the server's
                       CHAIN_NON_DISPATCHABLE_TOOLS) never runs from here; it
-                      goes through approval on its own page. "Let the
-                      Executive decide": POST /api/agents/executive/plan;
-     the plan runner  each plan from the Command Center, one assignment per
+                      goes through approval on its own page. "Make a plan"
+                      (the same as "Executive decides"): POST
+                      /api/agents/executive/plan, with Horizon and Constraints
+                      shown only in that mode;
+     the plan board   on the Plans tab, one plan at a time (a picker when there
+                      are several), each from the Command Center, one assignment per
                       "Run next" (POST /api/assignments/dispatch; the server
                       mints the chain and applies every guard). The next one
-                      always needs another click;
+                      always needs another click. A Done card's "View result"
+                      opens the deck's result drawer (scripts/bf-exec-deck.js);
      the controls     "Automatic" (PUT /api/agent-autonomy) and Pause / Resume
                       (the schedule routes), beside each tile, never opening it;
      voice            the browser's own SpeechRecognition fills the box and
@@ -80,7 +86,6 @@
     content: [["outline", "Article Outline"], ["audit", "Article Audit"]],
     email: [["sequence", "Email Sequence"], ["subject-lines", "Subject Lines"]],
     etsy: [["keyword-research", "Keyword Research"], ["pricing-strategy", "Pricing Strategy"]],
-    executive: [["plan", "Executive Plan"]],
     influencer: [["outreach", "Creator Outreach"], ["partnership-offer", "Partnership Offer"]],
     operations: [["sop", "Standard Operating Procedure"], ["checklist", "Checklist"]],
     publicist: [["press-release", "Press Release"], ["pitch", "Media Pitch"]],
@@ -140,9 +145,9 @@
   var FILTER_LABELS = { all: "All", running: "Running", approval: "Needs approval", failed: "Failed in 7 days", scheduled: "Scheduled" };
 
   var poll = { timer: null, base: HQ_IDLE_MS, failures: 0, stopped: null, note: "", at: 0 };
-  var view = { filter: "all", sort: "attention", data: null, cc: null, queue: null, queueError: "", decided: {} };
+  var view = { filter: "all", sort: "attention", data: null, cc: null, queue: null, queueError: "", decided: {}, planPick: null };
   // In-flight guards (one request per click) and what each answer said.
-  var act = { sending: false, dispatching: {}, controls: {}, said: {}, lastPlan: null, recognition: null, listening: false };
+  var act = { sending: false, dispatching: {}, controls: {}, said: {}, lastPlan: null, recognition: null, listening: false, lastAgent: null };
 
   // The one place Headquarters navigates.
   function go(url) { window.location.assign(url); }
@@ -191,7 +196,7 @@
   function scoreText(a) {
     if (unread(a.score)) return "Could not be read";
     var s = a.score || {};
-    return s.up || s.down ? s.up + " up · " + s.down + " down" : "No ratings yet";
+    return s.up || s.down ? s.up + " helpful · " + s.down + " not helpful" : "No ratings yet";
   }
 
   // Lower is more urgent: stalled or failed, then waiting on you, then running.
@@ -261,9 +266,10 @@
         if (unread(a.runs)) unreadRuns = true; else failed += a.runs.failed_7d || 0;
         if (!unread(a.proposals)) waiting += a.proposals.pending || 0;
       });
-      if (unreadRuns) out.push({ alert: true, text: "Runs could not be read, so failures are not known", href: "#commandCenterSection" });
-      else if (failed) out.push({ alert: true, text: plural(failed, "failed run", "failed runs") + " in 7 days", href: "#commandCenterSection" });
-      if (waiting) out.push({ alert: true, text: plural(waiting, "approval", "approvals") + " waiting", href: "#hqQueue" });
+      // Each lands on the deck's tab that holds it: failed runs and approvals are on Approvals.
+      if (unreadRuns) out.push({ alert: true, text: "Runs could not be read, so failures are not known", href: "#approvals" });
+      else if (failed) out.push({ alert: true, text: plural(failed, "failed run", "failed runs") + " in 7 days", href: "#approvals" });
+      if (waiting) out.push({ alert: true, text: plural(waiting, "approval", "approvals") + " waiting", href: "#approvals" });
       agents.forEach(function (a) {
         var s = a.schedule;
         if (s && !unread(s) && s.paused && s.consecutive_failures > 0) {
@@ -284,16 +290,16 @@
     var cc = view.cc;
     if (cc && cc.spend) {
       var sp = cc.spend.ok === true ? cc.spend.data : null;
-      if (!sp || typeof sp.usd !== "number") out.push({ alert: true, text: "This month's spend could not be read", href: "#ccSpend" });
-      else if (typeof sp.monthly_cap_usd !== "number") out.push({ alert: true, text: "Spend this month: " + money(sp.usd) + " — the monthly cap is not a usable number, so model calls are refused", href: "#ccSpend" });
+      if (!sp || typeof sp.usd !== "number") out.push({ alert: true, text: "This month's spend could not be read", href: "#history" });
+      else if (typeof sp.monthly_cap_usd !== "number") out.push({ alert: true, text: "Spend this month: " + money(sp.usd) + " — the monthly cap is not a usable number, so model calls are refused", href: "#history" });
       else out.push({ alert: sp.usd >= sp.monthly_cap_usd, text: "Spend this month: " + money(sp.usd) + " of " + money(sp.monthly_cap_usd) +
-        (sp.usd >= sp.monthly_cap_usd ? " — the cap is reached; calls on your own key are not counted" : ""), href: sp.usd >= sp.monthly_cap_usd ? "/settings.html" : "#ccSpend" });
+        (sp.usd >= sp.monthly_cap_usd ? " — the cap is reached; calls on your own key are not counted" : ""), href: sp.usd >= sp.monthly_cap_usd ? "/settings.html" : "#history" });
     }
     // The platform section exists only in an admin's answer; its ceiling only there.
     if (cc && cc.platform && cc.platform.ok === true && cc.platform.data && cc.platform.data.ceiling) {
       var c = cc.platform.data.ceiling;
-      if (unread(c)) out.push({ alert: true, text: "Platform ceiling could not be read: " + c.unavailable, href: "#ccPlatformPanel" });
-      else out.push({ alert: c.spent_usd >= c.cap_usd * 0.8, text: "Platform ceiling today: " + money(c.spent_usd) + " of " + money(c.cap_usd), href: "#ccPlatformPanel" });
+      if (unread(c)) out.push({ alert: true, text: "Platform ceiling could not be read: " + c.unavailable, href: "#history" });
+      else out.push({ alert: c.spent_usd >= c.cap_usd * 0.8, text: "Platform ceiling today: " + money(c.spent_usd) + " of " + money(c.cap_usd), href: "#history" });
     }
     return out;
   }
@@ -318,6 +324,8 @@
     var box = document.getElementById("hqQueue");
     if (!box) return;
     box.textContent = "";
+    // The Approvals tab's count: what is waiting now, or null while unknown.
+    if (typeof CustomEvent === "function") document.dispatchEvent(new CustomEvent("bf:hq-queue", { detail: { count: view.queueError || !view.queue ? null : view.queue.length } }));
     if (view.queueError) { box.appendChild(el("p", "hq-error", "The approval queue could not be read: " + view.queueError)); return; }
     if (!view.queue) { box.appendChild(el("p", "hq-muted", "Loading…")); return; }
     if (!view.queue.length) { box.appendChild(el("p", "hq-muted", "Nothing is waiting for your approval.")); return; }
@@ -417,7 +425,7 @@
     }
     if (status === 429) {
       if (/^BizForce has reached today's AI usage limit/.test(msg)) return { kind: "refusal", name: "The platform's daily AI limit is reached", text: msg };
-      if (/^Daily model-call limit reached/.test(msg)) return { kind: "refusal", name: "Your daily model-call cap is reached", text: msg, href: "#hqAlerts", go: "See today's count" };
+      if (/^Daily model-call limit reached/.test(msg)) return { kind: "refusal", name: "Your daily model-call cap is reached", text: msg, href: "#command", go: "See today's count" };
       return { kind: "refusal", name: "Too many requests", text: "More than 20 AI requests in a minute. Wait a minute, then press it again." };
     }
     if (b.refused_reason === "not_entitled" || b.refused_reason === "entitlement_unknown") {
@@ -537,8 +545,20 @@
   function choose(value) {
     var pick = $("hqAgent");
     if (!pick || (value !== DECIDE && !AGENTS[value])) return;
+    if (value !== DECIDE) act.lastAgent = value;
     pick.value = value;
     syncTools();
+  }
+  /* The mode switch: "Make a plan" is "Executive decides"; "Do a task" goes back
+     to the last agent picked, or the Executive itself. */
+  function mode(which) {
+    if (which === "plan") choose(DECIDE);
+    else if (which === "task") choose(act.lastAgent || "executive");
+  }
+  // The Executive's own kinds of task, as its page declares them (window.AGENT_PROFILE_CONFIG.taskTypes).
+  function taskKinds() {
+    var cfg = window.AGENT_PROFILE_CONFIG;
+    return cfg && cfg.agentType === "executive" && Array.isArray(cfg.taskTypes) ? cfg.taskTypes : [];
   }
   function syncTools() {
     var pick = $("hqAgent"), tool = $("hqTool"), wrap = $("hqToolWrap"), extras = $("hqPlanExtras"), label = $("hqCommandLabel");
@@ -562,6 +582,22 @@
     if (wrap) wrap.hidden = agent === DECIDE;
     if (extras) extras.hidden = agent !== DECIDE;
     if (label) label.textContent = agent === DECIDE ? "The goal" : "What should it do?";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-hq-mode]"), function (b) {
+      var on = b.getAttribute("data-hq-mode") === (agent === DECIDE ? "plan" : "task");
+      b.classList.toggle("is-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    syncKind();
+  }
+  // "Kind of task" shows for the Executive and a task in words only.
+  function syncKind() {
+    var pick = $("hqAgent"), tool = $("hqTool"), kind = $("hqTaskType"), wrap = $("hqTaskTypeWrap");
+    if (!kind) return;
+    var kinds = taskKinds();
+    if (!kind.options.length && kinds.length) kinds.forEach(function (k) { var o = el("option", null, k.label); o.value = k.value; kind.appendChild(o); });
+    var on = !!pick && pick.value === "executive" && !(tool && tool.value) && kinds.length > 0;
+    if (wrap) wrap.hidden = !on;
+    kind.disabled = !on;
   }
   function say(said) { var box = $("hqCommandMsg"); if (box) renderSaid(box, said); }
   function sent(ok) {
@@ -604,14 +640,18 @@
         act.lastPlan = { id: res.body.task_id, goal: text, assignments: list.map(function (x) {
           return { id: x.id, agent: x.agent || null, tool: x.tool || null, task: x.task || null, is_dispatchable: x.is_dispatchable === true, latest_dispatch: "not dispatched" };
         }) };
-        say({ kind: "ok", name: "Plan ready", text: plural(list.length, "assignment", "assignments") + ", " + ready + " of them can run from here, one at a time, under Plan runner.", href: "#hqPlans", go: "See the plan" });
+        view.planPick = res.body.task_id || view.planPick;
+        say({ kind: "ok", name: "Plan ready", text: plural(list.length, "assignment", "assignments") + ", " + ready + " of them can run from here, one at a time, on the Plans tab.", href: "#plans", go: "See the plan" });
         box.value = "";
         sent(true);
         renderBoard();
         reloadCenter();
       });
     } else {
-      req = api("POST", "/api/ai/tasks", { agent_type: agent, prompt: text }).then(function (res) {
+      var task = { agent_type: agent, prompt: text };
+      var kind = $("hqTaskType");
+      if (kind && !kind.disabled && kind.value) task.task_type = kind.value;
+      req = api("POST", "/api/ai/tasks", task).then(function (res) {
         if (res.status !== 202 || !res.body || !res.body.task) { say(refusalOf(res.status, res.body)); return; }
         say({ kind: "ok", name: "Queued (202)", text: name(agent) + " has the task; it shows on the agent's tile while it runs.", href: "/run.html?id=" + encodeURIComponent(res.body.task.id), go: "Follow the run" });
         box.value = "";
@@ -671,11 +711,15 @@
       else box.appendChild(el("p", "hq-muted", "Loading…"));
       return;
     }
-    if (!plans.length) { box.appendChild(el("p", "hq-muted", "No plans yet. Choose “Let the Executive decide”, write a goal and press Send.")); return; }
+    if (!plans.length) { syncPicker([]); box.appendChild(el("p", "hq-muted", "No plans yet. On the Command tab choose “Make a plan”, write a goal and press Send.")); return; }
     var off = cc && cc.chaining_on === false;
+    if (!plans.some(function (p) { return p.id === view.planPick; })) view.planPick = plans[0].id;
+    syncPicker(plans);
     plans.forEach(function (plan) {
       var card = el("article", "hq-plan");
       card.setAttribute("data-hq-plan", plan.id);
+      // Every plan is drawn once; only the picked one shows.
+      card.hidden = plan.id !== view.planPick;
       var head = el("div", "hq-plan-head");
       head.appendChild(el("h4", "hq-plan-goal", plan.goal || "A plan with no goal written"));
       head.appendChild(el("p", "hq-progress", progressOf(plan)));
@@ -713,7 +757,14 @@
           if (a.task) li.appendChild(el("div", "hq-acard-task", String(a.task).slice(0, 160)));
           li.appendChild(el("div", "hq-astatus", st.text));
           var d = a.latest_dispatch;
-          if (d && typeof d === "object" && d.tool_task_id) {
+          if (d && typeof d === "object" && d.tool_task_id && st.col === "done") {
+            // Done: the result opens in the drawer, beside the board, with "Open full run" inside it.
+            var vr = el("button", "hq-btn", "View result");
+            vr.type = "button";
+            vr.setAttribute("data-hq-view", d.tool_task_id);
+            vr.setAttribute("aria-label", "View result: assignment " + a.id + ", " + name(a.agent));
+            li.appendChild(vr);
+          } else if (d && typeof d === "object" && d.tool_task_id) {
             var r = el("a", "hq-link", "Open the run");
             r.setAttribute("href", "/run.html?id=" + encodeURIComponent(d.tool_task_id));
             li.appendChild(r);
@@ -731,6 +782,24 @@
       card.appendChild(cols);
       box.appendChild(card);
     });
+  }
+  // The picker: shown only when there is more than one plan; each option a plan's goal and day.
+  function syncPicker(plans) {
+    var pick = $("hqPlanPick"), wrap = $("hqPlanPickWrap");
+    if (!pick) return;
+    if (wrap) wrap.hidden = plans.length < 2;
+    pick.textContent = "";
+    plans.forEach(function (p) {
+      var o = el("option", null, (p.goal || "A plan with no goal written").slice(0, 80) + (p.created_at ? " · " + when(p.created_at) : ""));
+      o.value = p.id;
+      pick.appendChild(o);
+    });
+    pick.value = view.planPick || "";
+  }
+  // "View result": the deck's drawer where there is one, else the run's own page.
+  function viewResult(id) {
+    if (window.BFExecDeck && typeof window.BFExecDeck.openRun === "function") window.BFExecDeck.openRun(id);
+    else go("/run.html?id=" + encodeURIComponent(id));
   }
   // One click, one dispatch: the server mints a new chain at depth 0 and applies every guard.
   function runNext(button) {
@@ -896,6 +965,10 @@
     if (c) { control(c); return; }
     var chip = t && t.closest ? t.closest("[data-hq-chip]") : null;
     if (chip) { choose(chip.getAttribute("data-hq-chip")); return; }
+    var md = t && t.closest ? t.closest("[data-hq-mode]") : null;
+    if (md) { mode(md.getAttribute("data-hq-mode")); return; }
+    var vw = t && t.closest ? t.closest("[data-hq-view]") : null;
+    if (vw) { viewResult(vw.getAttribute("data-hq-view")); return; }
     if (t && t.closest && t.closest("#hqSend")) { send(); return; }
     var open = t && t.closest ? t.closest("[data-hq-open]") : null;
     if (open) { go(open.getAttribute("data-hq-open")); return; }
@@ -905,7 +978,9 @@
     if (d) decide(d);
   });
   root.addEventListener("change", function (e) {
-    if (e.target && e.target.id === "hqAgent") syncTools();
+    if (e.target && e.target.id === "hqAgent") { if (e.target.value !== DECIDE) act.lastAgent = e.target.value; syncTools(); }
+    else if (e.target && e.target.id === "hqTool") syncKind();
+    else if (e.target && e.target.id === "hqPlanPick") { view.planPick = e.target.value; renderBoard(); }
   });
   // Arrow keys move between tiles; Home and End jump to the first and last.
   root.addEventListener("keydown", function (e) {
@@ -934,7 +1009,7 @@
   window.addEventListener("online", function () { fetchLive(); });
 
   if (still()) root.classList.add("hq--still");
-  window.BFHeadquarters = { poll: poll, view: view, act: act, refresh: fetchLive, progressOf: progressOf, stepOf: stepOf };
+  window.BFHeadquarters = { poll: poll, view: view, act: act, refresh: fetchLive, progressOf: progressOf, stepOf: stepOf, queueCount: function () { return view.queue ? view.queue.length : null; } };
   buildConsole();
   voice();
   renderBoard();

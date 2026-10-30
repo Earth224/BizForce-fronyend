@@ -733,7 +733,7 @@
 
         var msgEl = document.createElement("div");
         msgEl.className = "ap-msg err";
-        msgEl.textContent = "Agent stats could not be loaded — the request failed, so nothing here reflects your activity.";
+        msgEl.textContent = "This agent's saved name could not be loaded — the request failed, so the default name is shown.";
 
         var retryBtn = document.createElement("button");
         retryBtn.type = "button";
@@ -745,7 +745,7 @@
              this button. Said here instead, and the button left usable.
              Redirecting to sign in is bf-session.js's decision, not this one. */
           if (!localStorage.getItem("bf_token")) {
-            msgEl.textContent = "Agent stats could not be loaded — your session has ended, so sign in again to see your activity.";
+            msgEl.textContent = "This agent's saved name could not be loaded — your session has ended, so sign in again.";
             return;
           }
 
@@ -794,23 +794,11 @@
              scripts/buildAgentDescriptions.js). agent.description is never
              shown; only the display name is the member's. */
 
-          var liveStatsEl = liveStatsSlot();
-          if (liveStatsEl) {
-            var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
-
-            liveStatsEl.textContent = "";
-
-            var tile1 = document.createElement("div");
-            tile1.className = "context-item";
-            var label1 = document.createElement("label");
-            label1.textContent = "Tasks Completed";
-            var value1 = document.createElement("span");
-            value1.textContent = String(tasksCompleted);
-            tile1.appendChild(label1);
-            tile1.appendChild(value1);
-
-            liveStatsEl.appendChild(tile1);
-          }
+          /* ONE STATS TRUTH. A "Tasks Completed" tile stood here, read from
+             ai_agents.tasks_completed: a counter only an approved proposal
+             moves, so it said 0 beside a week of real runs. This agent's
+             figures are the Agent Stats tiles (scripts/agent-profile.js), read
+             from /api/agents/<type>/live: ai_tasks, dry runs left out. */
         })
         .catch(function () {
           showLiveStatsFailure();

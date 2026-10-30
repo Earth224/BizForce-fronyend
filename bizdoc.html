@@ -2572,7 +2572,7 @@ async function loadCoverImages() {
       img.src = d.url;
     } catch (e) {
       var wrap = document.querySelector('.ebook-cover[data-book-id="' + b.id + '"]');
-      if (wrap) { wrap.innerHTML = '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>'; }
+      if (wrap) { wrap.innerHTML = '<div class="ebook-cover-fallback"><span class="ebook-cover-icon"><svg class="ebook-cover-svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5zM12 6.5v13"/></svg></span><span>No cover</span></div>'; }
     }
   });
 }
@@ -2685,7 +2685,7 @@ function renderWrapTile(w) {
   var fd = w.front_design || null;
   var thumbInner = fd
     ? '<div class="wrap-thumb-face" data-wrap-id="' + escapeHtml(w.id) + '"></div>'
-    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No design</span></div>';
+    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon"><svg class="wrap-thumb-svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.4-1 .3-2.2 1.4-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="14.5" cy="7" r="1.2"/></svg></span><span>No design</span></div>';
   return '<div class="wrap-tile">' +
     '<div class="wrap-thumb">' + thumbInner + '</div>' +
     '<div class="wrap-tile-meta">' +
@@ -2753,7 +2753,7 @@ function renderSavedCoverPickerTile(w) {
   var hasImage = !!frontPath;
   var thumbInner = hasImage
     ? '<div class="wrap-thumb-face"><img class="wrap-thumb-bg" data-picker-thumb-wrap-id="' + escapeHtml(w.id) + '" alt=""></div>'
-    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon">🎨</span><span>No image (color/text only)</span></div>';
+    : '<div class="wrap-thumb-fallback"><span class="wrap-thumb-icon"><svg class="wrap-thumb-svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.4-1.8-.4-1 .3-2.2 1.4-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="14.5" cy="7" r="1.2"/></svg></span><span>No image (color/text only)</span></div>';
   var tileClass = "wrap-tile" + (hasImage ? " wrap-tile-selectable" : " wrap-tile-disabled");
   var clickAttr = hasImage ? ' onclick="selectSavedCoverForBook(\'' + escapeHtml(w.id) + '\')"' : '';
   return '<div class="' + tileClass + '"' + clickAttr + '>' +
@@ -2940,7 +2940,7 @@ function renderBookCard(b) {
   var status = b.status || "ready";
   var coverInner = b.cover_path
     ? '<img class="ebook-cover-img" data-cover="1" alt="cover">'
-    : '<div class="ebook-cover-fallback"><span class="ebook-cover-icon">📖</span><span>No cover</span></div>';
+    : '<div class="ebook-cover-fallback"><span class="ebook-cover-icon"><svg class="ebook-cover-svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 6.5C10 5 7 4.5 3 5v13c4-.5 7 0 9 1.5 2-1.5 5-2 9-1.5V5c-4-.5-7 0-9 1.5zM12 6.5v13"/></svg></span><span>No cover</span></div>';
   var coverHtml = '<div class="ebook-cover" data-book-id="' + escapeHtml(b.id) + '">' + coverInner + '</div>';
   return '<div class="ebook-tile" onclick="openEditor(\'' + escapeHtml(b.id) + '\')">' +
     coverHtml +

@@ -52,6 +52,7 @@
      tmx_chat_pos and tmx_agent_language (Termaximus on or off, where it and
      its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
+     bf_exec_tab (the Executive command deck's last tab on this device),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
      and bf_return_to (the public page to return to after signing in, which
      app.html must still find). The backend's scripts/checkOfflineMode.js

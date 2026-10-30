@@ -516,6 +516,57 @@
       .hq-tile:hover { transform: none; }
     }
     .hq.hq--still *, .hq.hq--still *::before, .hq.hq--still *::after { animation: none !important; transition: none !important; }
+    /* ── THE COMMAND DECK: six tabs and a result drawer (scripts/bf-exec-deck.js) ── */
+    .deck-header { margin-bottom: 18px; align-items: center; }
+    .deck-header .agent-title { font-size: clamp(1.4rem, 3vw, 1.8rem); margin-bottom: 4px; }
+    .deck-header .agent-subtitle { margin: 0; font-size: .88rem; }
+    .deck-header .agent-avatar { width: 52px; height: 52px; }
+    .deck-header .agent-avatar svg { width: 26px; height: 26px; }
+    .deck-header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .deck-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(0, 229, 255, 0.16); }
+    .deck-tab { font: inherit; font-size: .82rem; font-weight: 800; letter-spacing: .06em; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+      color: #b6c2ee; background: rgba(12, 16, 36, 0.9); border: 1px solid rgba(148, 163, 255, 0.22); display: inline-flex; align-items: center; gap: 6px; }
+    .deck-tab.is-on { color: var(--bf-btn-text, #041018); background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff), var(--bf-btn-b, #7b2ff7)); border-color: transparent; }
+    .deck-tab:focus-visible, .deck-mode:focus-visible, .deck-run-btn:focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+    .deck-badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; font-size: .7rem; text-align: center; color: #fff; background: #dc2626; }
+    .deck-panel:focus-visible { outline: none; }
+    .deck-panel-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+    .deck-panel-head .hq-h { margin-top: 4px; }
+    .deck-pick { min-width: 220px; margin: 0; }
+    .deck-modes { display: inline-flex; gap: 4px; padding: 3px; margin-bottom: 10px; border-radius: 12px; border: 1px solid rgba(0, 229, 255, 0.28); background: rgba(2, 6, 16, 0.9); }
+    .deck-mode { font: inherit; font-size: .8rem; font-weight: 800; padding: 6px 14px; border-radius: 9px; cursor: pointer; color: #b6c2ee; background: transparent; border: none; }
+    .deck-mode.is-on { color: #041018; background: #5eead4; }
+    .deck-runs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .deck-run-btn { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; text-align: left; font: inherit; cursor: pointer;
+      padding: 10px 12px; border-radius: 12px; color: #e8e8ff; background: rgba(8, 10, 24, 0.85); border: 1px solid rgba(0, 229, 255, 0.14); }
+    .deck-run-btn:hover { border-color: rgba(0, 229, 255, 0.45); }
+    .deck-run-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .88rem; }
+    .deck-run-date { font-size: .76rem; color: #8892b8; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .deck-pill { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+      color: #cbd5ff; border: 1px solid rgba(148, 163, 255, 0.3); }
+    .deck-pill.is-completed { color: #86efac; border-color: rgba(134, 239, 172, 0.4); }
+    .deck-pill.is-failed { color: #fca5a5; border-color: rgba(248, 113, 113, 0.45); }
+    .deck-pill.is-processing { color: #67e8f9; border-color: rgba(0, 229, 255, 0.45); }
+    .deck-note { margin: 8px 0; font-size: .85rem; color: #8892b8; }
+    .deck-note:empty { display: none; }
+    .deck-note.is-err { color: #fca5a5; }
+    .deck-pager { display: flex; align-items: center; gap: 10px; margin: 10px 0 18px; }
+    .deck-pager-at { font-size: .78rem; color: #8892b8; font-variant-numeric: tabular-nums; }
+    #deckStats, #deckSettings { margin: 16px 0; }
+    #commandCenterSection { margin-top: 18px; }
+    .deck-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 50; width: min(640px, 100%); overflow-y: auto; padding: 20px;
+      padding-top: calc(20px + env(safe-area-inset-top, 0px)); background: rgba(5, 8, 20, 0.98); border-left: 1px solid rgba(0, 229, 255, 0.3); box-shadow: -24px 0 60px rgba(0, 0, 0, 0.55); }
+    .deck-drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+    .deck-drawer-title { margin: 0; font-size: 1.05rem; color: #f1f5ff; line-height: 1.4; }
+    .deck-drawer-meta { margin: 0 0 12px; font-size: .78rem; color: #8892b8; }
+    .deck-drawer-rate { margin-top: 16px; }
+    .deck-drawer-full { display: inline-block; margin-top: 16px; }
+    .deck-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .88rem; line-height: 1.6; color: #dfe6ff; }
+    @media (max-width: 640px) {
+      .deck-tab { padding: 7px 10px; font-size: .78rem; }
+      .deck-run-btn { grid-template-columns: minmax(0, 1fr) auto; }
+      .deck-run-date { grid-column: 1; }
+    }
   </style>
 </head>
 <body>
@@ -524,11 +575,15 @@
       <a class="back-link" href="ai-agents.html">← Agent Directory</a>
       <span class="brand-badge">BizForce AI</span>
     </nav>
-    <header class="agent-header">
+    <header class="agent-header deck-header">
       <div class="agent-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
       <div class="agent-header-text">
         <h1 class="agent-title">Executive Agent</h1>
         <p class="agent-subtitle">Executive plans of assignments for the other agents, plus coordination, briefings, and KPI reviews.</p>
+      </div>
+      <div class="deck-header-actions">
+        <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
+        <a class="action-btn" href="dashboard.html">Open Dashboard</a>
       </div>
     </header>
     <section class="hq" id="hq" aria-labelledby="hqTitle">
@@ -541,93 +596,141 @@
         </div>
         <div class="hq-status" id="hqStatus" role="status" aria-live="polite">Loading…</div>
       </div>
-      <div class="hq-alerts" id="hqAlerts" role="region" aria-label="Alerts"></div>
-      <div class="hq-console" id="hqConsole" role="region" aria-labelledby="hqConsoleTitle">
-        <div class="hq-console-head">
-          <h3 class="hq-console-title" id="hqConsoleTitle">Command</h3>
-          <span class="hq-prompt" aria-hidden="true">hq://order<span class="hq-caret"></span></span>
+      <div class="deck" id="execDeck">
+        <div class="deck-tabs" role="tablist" aria-label="Command deck">
+          <button type="button" class="deck-tab is-on" role="tab" id="deckTab-command" data-deck-tab="command" aria-controls="deckPanel-command" aria-selected="true" tabindex="0">Command</button>
+          <button type="button" class="deck-tab" role="tab" id="deckTab-plans" data-deck-tab="plans" aria-controls="deckPanel-plans" aria-selected="false" tabindex="-1">Plans</button>
+          <button type="button" class="deck-tab" role="tab" id="deckTab-agents" data-deck-tab="agents" aria-controls="deckPanel-agents" aria-selected="false" tabindex="-1">Agents</button>
+          <button type="button" class="deck-tab" role="tab" id="deckTab-approvals" data-deck-tab="approvals" aria-controls="deckPanel-approvals" aria-selected="false" tabindex="-1">Approvals <span class="deck-badge" id="deckApprovalsCount" hidden></span></button>
+          <button type="button" class="deck-tab" role="tab" id="deckTab-history" data-deck-tab="history" aria-controls="deckPanel-history" aria-selected="false" tabindex="-1">History</button>
+          <button type="button" class="deck-tab" role="tab" id="deckTab-settings" data-deck-tab="settings" aria-controls="deckPanel-settings" aria-selected="false" tabindex="-1">Settings</button>
         </div>
-        <div class="hq-chips" id="hqChips" role="group" aria-label="Pick an agent"></div>
-        <div class="hq-console-row">
-          <label class="hq-field"><span class="hq-field-label">Agent</span>
-            <select class="hq-select" id="hqAgent"></select></label>
-          <label class="hq-field" id="hqToolWrap"><span class="hq-field-label">Tool</span>
-            <select class="hq-select" id="hqTool"></select></label>
-        </div>
-        <label class="hq-field"><span class="hq-field-label" id="hqCommandLabel">The goal</span>
-          <textarea class="hq-command" id="hqCommand" rows="3" maxlength="2000" placeholder="Type it, or press Speak where your browser offers it."></textarea></label>
-        <div class="hq-console-row" id="hqPlanExtras">
-          <label class="hq-field"><span class="hq-field-label">Horizon (optional)</span>
-            <input class="hq-select" id="hqHorizon" type="text" maxlength="200" placeholder="e.g. the next 30 days"></label>
-          <label class="hq-field"><span class="hq-field-label">Constraints (optional)</span>
-            <input class="hq-select" id="hqConstraints" type="text" maxlength="1000" placeholder="e.g. no paid ads"></label>
-        </div>
-        <div class="hq-console-actions">
-          <button type="button" class="hq-btn" id="hqMic" aria-pressed="false" hidden>Speak</button>
-          <button type="button" class="hq-btn hq-btn-go hq-send" id="hqSend">Send</button>
-        </div>
-        <p class="hq-mic-note" id="hqMicNote" hidden>Voice only fills the box, through your browser's own speech service; BizForce records and stores nothing, and nothing is sent until you press Send.</p>
-        <div class="hq-said" id="hqCommandMsg" role="status" aria-live="polite"></div>
-      </div>
-      <h3 class="hq-h" id="hqPlansTitle">Plan runner</h3>
-      <div id="hqPlans" role="region" aria-labelledby="hqPlansTitle"></div>
-      <div class="hq-tools">
-        <div class="hq-filters" role="group" aria-label="Show agents">
-          <button type="button" class="hq-filter is-on" data-hq-filter="all" aria-pressed="true">All</button>
-          <button type="button" class="hq-filter" data-hq-filter="running" aria-pressed="false">Running</button>
-          <button type="button" class="hq-filter" data-hq-filter="approval" aria-pressed="false">Needs approval</button>
-          <button type="button" class="hq-filter" data-hq-filter="failed" aria-pressed="false">Failed in 7 days</button>
-          <button type="button" class="hq-filter" data-hq-filter="scheduled" aria-pressed="false">Scheduled</button>
-        </div>
-        <button type="button" class="hq-sort" id="hqSort" aria-label="Sorted by attention; press to sort A to Z">Sort: attention</button>
-      </div>
-      <p class="hq-muted hq-auto-note" id="hqAutoNote">Automatic: lets background passes act for this agent (schedules, store proposals, self-review). Pause and Resume change only its schedule.</p>
-      <div class="hq-grid" id="hqGrid" role="group" aria-label="The 18 agents"></div>
-      <p class="hq-empty" id="hqGridEmpty" hidden></p>
-      <h3 class="hq-h" id="hqQueueTitle">Approval queue</h3>
-      <div id="hqQueue" role="region" aria-labelledby="hqQueueTitle"></div>
-      <h3 class="hq-h">Command Center</h3>
-      <section id="commandCenterSection" class="bf-section">
-        <div class="bf-section-header">
-          <div class="bf-section-header-copy">
-            <h2 class="bf-section-title">Command Center</h2>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span class="cc-muted" id="ccStatus">Loading…</span>
-            <button type="button" class="bf-btn bf-btn-ghost" id="ccRefresh">Refresh</button>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-command" aria-labelledby="deckTab-command" tabindex="0">
+          <div class="hq-alerts" id="hqAlerts" role="region" aria-label="Alerts"></div>
+          <div class="hq-console" id="hqConsole" role="region" aria-labelledby="hqConsoleTitle">
+            <div class="hq-console-head">
+              <h3 class="hq-console-title" id="hqConsoleTitle">Command</h3>
+              <span class="hq-prompt" aria-hidden="true">hq://order<span class="hq-caret"></span></span>
+            </div>
+            <div class="deck-modes" role="group" aria-label="What to send">
+              <button type="button" class="deck-mode" data-hq-mode="task" aria-pressed="false">Do a task</button>
+              <button type="button" class="deck-mode is-on" data-hq-mode="plan" aria-pressed="true">Make a plan</button>
+            </div>
+            <div class="hq-chips" id="hqChips" role="group" aria-label="Pick an agent"></div>
+            <div class="hq-console-row">
+              <label class="hq-field"><span class="hq-field-label">Agent</span>
+                <select class="hq-select" id="hqAgent"></select></label>
+              <label class="hq-field" id="hqToolWrap"><span class="hq-field-label">Tool</span>
+                <select class="hq-select" id="hqTool"></select></label>
+            </div>
+            <label class="hq-field" id="hqTaskTypeWrap" hidden><span class="hq-field-label">Kind of task</span>
+              <select class="hq-select" id="hqTaskType"></select></label>
+            <label class="hq-field"><span class="hq-field-label" id="hqCommandLabel">The goal</span>
+              <textarea class="hq-command" id="hqCommand" rows="3" maxlength="2000" placeholder="Type it, or press Speak where your browser offers it."></textarea></label>
+            <div class="hq-console-row" id="hqPlanExtras">
+              <label class="hq-field"><span class="hq-field-label">Horizon (optional)</span>
+                <input class="hq-select" id="hqHorizon" type="text" maxlength="200" placeholder="e.g. the next 30 days"></label>
+              <label class="hq-field"><span class="hq-field-label">Constraints (optional)</span>
+                <input class="hq-select" id="hqConstraints" type="text" maxlength="1000" placeholder="e.g. no paid ads"></label>
+            </div>
+            <div class="hq-console-actions">
+              <button type="button" class="hq-btn" id="hqMic" aria-pressed="false" hidden>Speak</button>
+              <button type="button" class="hq-btn hq-btn-go hq-send" id="hqSend">Send</button>
+            </div>
+            <p class="hq-mic-note" id="hqMicNote" hidden>Voice only fills the box, through your browser's own speech service; BizForce records and stores nothing, and nothing is sent until you press Send.</p>
+            <div class="hq-said" id="hqCommandMsg" role="status" aria-live="polite"></div>
           </div>
         </div>
-        <div class="cc-grid">
-          <div class="bf-card bf-panel cc-panel"><h3>Needs you</h3><div id="ccNeedsYou">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel"><h3>Executive plans</h3><div id="ccPlans">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel"><h3>Agent activity</h3><div id="ccActivity">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel"><h3>Autopilot</h3><div id="ccAutopilot">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel"><h3>Outbound</h3><div id="ccOutbound">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel"><h3>Spend</h3><div id="ccSpend">Loading…</div></div>
-          <div class="bf-card bf-panel cc-panel" id="ccPlatformPanel" style="display:none"><h3>Platform</h3><div id="ccPlatform"></div></div>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-plans" aria-labelledby="deckTab-plans" tabindex="0" hidden>
+          <div class="deck-panel-head">
+            <h3 class="hq-h" id="hqPlansTitle">Plans</h3>
+            <label class="hq-field deck-pick" id="hqPlanPickWrap" hidden><span class="hq-field-label">Plan</span>
+              <select class="hq-select" id="hqPlanPick"></select></label>
+          </div>
+          <div id="hqPlans" role="region" aria-labelledby="hqPlansTitle"></div>
         </div>
-      </section>
-    </section>
-    <script src="/scripts/bf-hq.js"></script>
-    <script src="/scripts/bf-command-center.js"></script>
-    <section class="context-card" aria-label="Business Profile Context">
-      <h2 class="section-label">Business Profile Context</h2>
-      <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
-      
-      <div class="research-goals"><h2 class="section-label">Agent Stats</h2><div class="context-grid" id="liveAgentStats"></div><p class="report-item-body">What your executive plans dispatched, what ran and what was refused is in the Command Center: <a href="#commandCenterSection">open it in Headquarters</a>, or on <a href="dashboard.html#commandCenterSection">the dashboard</a>.</p></div>
-    </section>
-    <div class="toolbar">
-      <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button type="button" class="action-btn action-btn--ghost" id="refreshBtn">Refresh Data</button>
-        <a class="action-btn" href="dashboard.html">Open Dashboard</a>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-agents" aria-labelledby="deckTab-agents" tabindex="0" hidden>
+          <div class="hq-tools">
+            <div class="hq-filters" role="group" aria-label="Show agents">
+              <button type="button" class="hq-filter is-on" data-hq-filter="all" aria-pressed="true">All</button>
+              <button type="button" class="hq-filter" data-hq-filter="running" aria-pressed="false">Running</button>
+              <button type="button" class="hq-filter" data-hq-filter="approval" aria-pressed="false">Needs approval</button>
+              <button type="button" class="hq-filter" data-hq-filter="failed" aria-pressed="false">Failed in 7 days</button>
+              <button type="button" class="hq-filter" data-hq-filter="scheduled" aria-pressed="false">Scheduled</button>
+            </div>
+            <button type="button" class="hq-sort" id="hqSort" aria-label="Sorted by attention; press to sort A to Z">Sort: attention</button>
+          </div>
+          <p class="hq-muted hq-auto-note" id="hqAutoNote">Automatic: lets background passes act for this agent (schedules, store proposals, self-review). Pause and Resume change only its schedule.</p>
+          <div class="hq-grid" id="hqGrid" role="group" aria-label="The 18 agents"></div>
+          <p class="hq-empty" id="hqGridEmpty" hidden></p>
+        </div>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-approvals" aria-labelledby="deckTab-approvals" tabindex="0" hidden>
+          <h3 class="hq-h" id="hqQueueTitle">Approval queue</h3>
+          <div id="hqQueue" role="region" aria-labelledby="hqQueueTitle"></div>
+          <h3 class="hq-h" id="ccNeedsYouTitle">Needs you</h3>
+          <div class="bf-card bf-panel cc-panel" role="region" aria-labelledby="ccNeedsYouTitle"><div id="ccNeedsYou" data-cc-queue="elsewhere">Loading…</div></div>
+        </div>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-history" aria-labelledby="deckTab-history" tabindex="0" hidden>
+          <div class="deck-panel-head">
+            <h3 class="hq-h" id="deckHistoryTitle">Executive runs</h3>
+            <button type="button" class="hq-btn" id="deckHistoryReload">Reload</button>
+          </div>
+          <ul class="deck-runs" id="deckHistoryList" aria-labelledby="deckHistoryTitle"></ul>
+          <p class="deck-note" id="deckHistoryNote" role="status" aria-live="polite"></p>
+          <div class="deck-pager" id="deckHistoryPager" hidden>
+            <button type="button" class="hq-btn" id="deckHistoryPrev">Prev</button>
+            <span class="deck-pager-at" id="deckHistoryAt"></span>
+            <button type="button" class="hq-btn" id="deckHistoryNext">Next</button>
+          </div>
+          <div id="deckStats"></div>
+          <section id="commandCenterSection" class="bf-section">
+            <div class="bf-section-header">
+              <div class="bf-section-header-copy">
+                <h2 class="bf-section-title">Command Center</h2>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span class="cc-muted" id="ccStatus">Loading…</span>
+                <button type="button" class="bf-btn bf-btn-ghost" id="ccRefresh">Refresh</button>
+              </div>
+            </div>
+            <div class="cc-grid">
+              <div class="bf-card bf-panel cc-panel"><h3>Agent activity</h3><div id="ccActivity">Loading…</div></div>
+              <div class="bf-card bf-panel cc-panel"><h3>Autopilot</h3><div id="ccAutopilot">Loading…</div></div>
+              <div class="bf-card bf-panel cc-panel"><h3>Outbound</h3><div id="ccOutbound">Loading…</div></div>
+              <div class="bf-card bf-panel cc-panel"><h3>Spend</h3><div id="ccSpend">Loading…</div></div>
+              <div class="bf-card bf-panel cc-panel" id="ccPlatformPanel" style="display:none"><h3>Platform</h3><div id="ccPlatform"></div></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="deck-panel" role="tabpanel" id="deckPanel-settings" aria-labelledby="deckTab-settings" tabindex="0" hidden>
+          <div id="deckSettings"></div>
+          <section class="context-card" aria-label="Business Profile Context">
+            <h2 class="section-label">Business Profile Context</h2>
+            <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
+            <div class="research-goals"><div class="context-grid" id="liveAgentStats"></div><p class="report-item-body">What your executive plans dispatched, what ran and what was refused is on the <a href="#history">History tab</a>, and on <a href="dashboard.html#commandCenterSection">the dashboard</a>.</p></div>
+          </section>
+        </div>
       </div>
-    </div>
+      <aside class="deck-drawer" id="deckDrawer" role="dialog" aria-modal="false" aria-labelledby="deckDrawerTitle" hidden>
+        <div class="deck-drawer-head">
+          <h3 class="deck-drawer-title" id="deckDrawerTitle">Result</h3>
+          <button type="button" class="hq-btn" id="deckDrawerClose">Close</button>
+        </div>
+        <div class="deck-drawer-body" id="deckDrawerBody"></div>
+        <a class="hq-link deck-drawer-full" id="deckDrawerFull" href="/run.html">Open full run</a>
+      </aside>
+    </section>
   </div>
   <script>
     /* SERVER ONLY. scripts/agent-profile.js reads the business context from
-       GET /api/business-profile and "Last run" from this agent's newest
-       ai_tasks row; applyLiveAgentData reads /api/agents/executive. Nothing on
+       GET /api/business-profile and this agent's runs from ai_tasks (the
+       deck's History tab); applyLiveAgentData reads /api/agents/executive. Nothing on
        this page reads bf_executive_memory, bf_executive_agent_memory or this
        agent's key in them: what they held was written by the dashboard's
        removed simulations, never by a run. */
@@ -663,7 +766,7 @@
 
         var msgEl = document.createElement("div");
         msgEl.className = "ap-msg err";
-        msgEl.textContent = "Agent stats could not be loaded — the request failed, so nothing here reflects your activity.";
+        msgEl.textContent = "This agent's saved name could not be loaded — the request failed, so the default name is shown.";
 
         var retryBtn = document.createElement("button");
         retryBtn.type = "button";
@@ -675,7 +778,7 @@
              this button. Said here instead, and the button left usable.
              Redirecting to sign in is bf-session.js's decision, not this one. */
           if (!localStorage.getItem("bf_token")) {
-            msgEl.textContent = "Agent stats could not be loaded — your session has ended, so sign in again to see your activity.";
+            msgEl.textContent = "This agent's saved name could not be loaded — your session has ended, so sign in again.";
             return;
           }
 
@@ -724,23 +827,11 @@
              scripts/buildAgentDescriptions.js). agent.description is never
              shown; only the display name is the member's. */
 
-          var liveStatsEl = liveStatsSlot();
-          if (liveStatsEl) {
-            var tasksCompleted = agent.tasks_completed != null ? agent.tasks_completed : 0;
-
-            liveStatsEl.textContent = "";
-
-            var tile1 = document.createElement("div");
-            tile1.className = "context-item";
-            var label1 = document.createElement("label");
-            label1.textContent = "Tasks Completed";
-            var value1 = document.createElement("span");
-            value1.textContent = String(tasksCompleted);
-            tile1.appendChild(label1);
-            tile1.appendChild(value1);
-
-            liveStatsEl.appendChild(tile1);
-          }
+          /* ONE STATS TRUTH. A "Tasks Completed" tile stood here, read from
+             ai_agents.tasks_completed: a counter only an approved proposal
+             moves, so it said 0 beside a week of real runs. This agent's
+             figures are the Agent Stats tiles (scripts/agent-profile.js), read
+             from /api/agents/<type>/live: ai_tasks, dry runs left out. */
         })
         .catch(function () {
           showLiveStatsFailure();
@@ -759,6 +850,11 @@ window.AGENT_PROFILE_CONFIG = {
   agentType:   "executive",
   agentLabel:  "Executive Agent",
   accentColor: "#e2e8f0",
+  /* The command deck: agent-profile.js draws no launcher, no Live Status and no
+     Task History here, and hands its settings, stats and learning cards to the
+     deck tabs. The plan tool below stays declared (run.html reads stored plans
+     by it); on this page it is sent from the Command tab, never drawn twice. */
+  deck: true,
   taskTypes: [
     { value: "executive_plan",     label: "Executive Command Plan" },
     { value: "agent_coordination", label: "Agent Coordination" },
@@ -798,6 +894,9 @@ window.AGENT_PROFILE_CONFIG = {
 </script>
 <script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
+<script src="/scripts/bf-hq.js"></script>
+<script src="/scripts/bf-command-center.js"></script>
+<script src="/scripts/bf-exec-deck.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

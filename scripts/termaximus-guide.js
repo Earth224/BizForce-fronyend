@@ -230,11 +230,11 @@
       "Use \"Ad Campaign\" for a whole plan — audience, offer, hooks, budget guidance and a testing plan — then write each ad in \"Ad Copy\"."
     ],
     "executive-agent.html": [
-      "In \"Command\", pick an agent or \"Let the Executive decide\", type the task or goal, and press \"Send\"; nothing goes before you press it.",
-      "A goal becomes a plan in \"Plan runner\"; press \"Run next\" for one assignment at a time, and each next one waits for another press.",
+      "On the \"Command\" tab pick an agent or \"Executive decides\", choose \"Do a task\" or \"Make a plan\", type it and press \"Send\"; nothing goes before that.",
+      "On \"Plans\", \"Run next\" sends one assignment per press; if it is greyed out, running plans is switched off on the server.",
       "A tool that acts, such as publishing or a proposal set, never runs from here; it opens its own page and goes through approval there.",
-      "\"Run next\" greyed out? Running plans is switched off on the server; any refusal is named where you pressed, with where to go.",
-      "On a tile, \"Pause schedule\" or \"Resume schedule\" changes only that agent's schedule; \"Approval queue\" still holds what needs you."
+      "\"History\" lists this agent's runs, 10 a page; a row, or a Done card's \"View result\", opens its result beside the page.",
+      "\"Approvals\" holds what needs you; on \"Agents\", \"Pause schedule\" changes only that agent's schedule; \"Settings\" holds Autonomous mode."
     ],
     "vertical-marketing-agent.html": [
       "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",
@@ -400,8 +400,9 @@
   /* What every agent page shares, said once and shown under that page's tips:
      the pages that carry the "Last run" line (#lastRunText, filled by
      agent-profile.js). The Content Agent page has no Last run line, so it is
-     not shown there; its own tips say where the Business Profile is set. */
-  var GUIDE_COMMON = "Each run is saved; \"Last run\" opens the newest. Rate runs 👍 or 👎 to tune the agent. Every agent reads the Business Profile you set on the Content Agent page.";
+     not shown there; its own tips say where the Business Profile is set. The
+     Executive command deck has none either: its runs are its History tab. */
+  var GUIDE_COMMON = "Each run is saved; \"Last run\" opens the newest; rate it Helpful or Not helpful. Every agent reads the Business Profile you set on the Content Agent page.";
 
   /* per-page fallback for the "Termaximus Insights" section — used as
      the initial text and whenever the live /api/insights/page call is

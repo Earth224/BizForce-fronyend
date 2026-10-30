@@ -12,7 +12,15 @@
   /* This agent's own tools, the same idea as taskTypes: declared per page, so one
      mechanism serves eighteen pages without any of them being special-cased here.
      An agent with none configured gets NO tools section at all — see inject(). */
-  var TOOLS       = Array.isArray(cfg.tools) ? cfg.tools : [];
+  /* THE COMMAND DECK (executive-agent.html, scripts/bf-exec-deck.js): one
+     command box on its Command tab is the launcher, and "Make a plan" there is
+     the plan tool. So on a deck page this file draws no launcher, no tools, no
+     Live Status and no Task History; Autonomous mode, Scheduled runs, Agent
+     Stats and "How this agent learns" are drawn as everywhere and moved into
+     the deck's tabs. Every other page is unchanged. */
+  var DECK        = cfg.deck === true;
+  var TOOLS       = Array.isArray(cfg.tools) && !DECK ? cfg.tools : [];
+  var LAUNCH_WORDS = DECK ? "send it a task from the Command tab" : "press Launch Task above";
   var HAS_SOCIAL_DRAFTS = TASK_TYPES.some(function(t) { return t.value === "social_media_drafts"; });
 
   var pollTimer     = null;
@@ -419,6 +427,27 @@
     ".ap-bar{flex:1;border-radius:4px 4px 0 0;min-height:4px;transition:height .5s ease;cursor:default}",
     ".ap-chart-labels{display:flex;gap:5px;margin-bottom:4px}",
     ".ap-chart-day{flex:1;text-align:center;font-size:.6rem;color:#555c78}",
+    ".ap-chart-empty{margin:4px 0 0;font-size:.8rem;color:#8892b8}",
+    ".ap-stats-note{margin:10px 0 0;font-size:.72rem;color:#7b83a6;line-height:1.5}",
+    /* the readable result (readableToolRun): summary, cards with labelled rows, one-line provenance */
+    ".ap-read-summary{margin:0 0 14px;font-size:.98rem;line-height:1.6;color:#eef1ff}",
+    ".ap-read-sec{margin:0 0 14px}",
+    ".ap-read-h{margin:0 0 8px;font-size:.78rem;font-weight:800;letter-spacing:.06em;color:#c4b5fd}",
+    ".ap-read-p{margin:0 0 8px;font-size:.88rem;line-height:1.6;color:#dfe6ff}",
+    ".ap-read-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}",
+    ".ap-read-card{padding:12px 14px;border-radius:12px;background:rgba(8,12,28,.65);border:1px solid rgba(255,255,255,.08)}",
+    ".ap-read-card-title{margin:0 0 8px;font-size:.88rem;font-weight:700;color:#e8e8ff;line-height:1.4}",
+    ".ap-read-rows{margin:0;display:grid;gap:6px}",
+    ".ap-read-row{display:grid;grid-template-columns:minmax(80px,32%) 1fr;gap:8px;font-size:.8rem;line-height:1.5}",
+    ".ap-read-row dt{color:#8892b8;font-weight:700}",
+    ".ap-read-row dd{margin:0;color:#dfe6ff;overflow-wrap:anywhere}",
+    ".ap-read-list{margin:0;padding-left:18px;font-size:.84rem;line-height:1.55;color:#dfe6ff}",
+    ".ap-read-how{margin-top:14px;padding:10px 13px;border-radius:11px;border:1px dashed rgba(255,255,255,.16);background:rgba(255,255,255,.02)}",
+    ".ap-read-how>summary{cursor:pointer;font-size:.8rem;color:#c3c9e6;line-height:1.5}",
+    ".ap-read-how-open{color:#22d3ee;text-decoration:underline;text-underline-offset:2px}",
+    ".ap-read-how[open]>summary{margin-bottom:10px}",
+    ".ap-rate-icon{flex-shrink:0}",
+    ".ap-gate-icon{flex-shrink:0}",
     /* result card (fresh task output) */
     "@keyframes ap-fadein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}",
     ".ap-result-card{padding:20px 22px;border-radius:16px;background:rgba(8,12,28,.88);",
@@ -515,7 +544,7 @@
     ".ap-rate{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(124,58,237,.25);background:rgba(124,58,237,.05)}",
     ".ap-rate-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}",
     ".ap-rate-q{font-size:.8rem;font-weight:700;color:#c4b5fd}",
-    ".ap-rate-btn{font-size:1.05rem;padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer}",
+    ".ap-rate-btn{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.78rem;font-weight:700;color:#d6dbff;padding:5px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.15);background:transparent;cursor:pointer}",
     ".ap-rate-btn[aria-pressed=true]{background:rgba(124,58,237,.3);border-color:#a78bfa}",
     ".ap-rate-reason,.ap-rate-comment,.ap-learn-add input,.ap-learn-pref{background:rgba(8,12,28,.65);color:#e5e7ff;border:1px solid rgba(255,255,255,.15);",
       "border-radius:8px;padding:6px 9px;font-size:.8rem;min-width:0}",
@@ -665,9 +694,11 @@
     var accentRgb = ACCENT;
 
     var html = [
-      /* ── 1. Task launcher ── */
-      '<div class="ap-section">',
+      /* ── 1. Task launcher ── (none on the command deck: the card keeps only
+         Autonomous mode and Scheduled runs, and goes to the Settings tab) */
+      '<div class="ap-section"' + (DECK ? ' id="apSettingsSection"' : '') + '>',
         '<div class="ap-card">',
+          DECK ? '' : [
           '<h2 class="ap-section-label">Run ' + esc(AGENT_LABEL) + ' Task</h2>',
           '<div class="ap-row">',
             '<select class="ap-select" id="apTaskType">' + taskTypeOptions() + '</select>',
@@ -683,7 +714,8 @@
             'Run this often? Keep it in ',
             '<a href="/saved-prompts.html" style="color:#22d3ee">Saved Prompts</a>',
             ' and fill in the parts that change.',
-          '</p>',
+          '</p>'
+          ].join(""),
 
           /* IN THIS CARD, NOT A PANEL OF ITS OWN. Running the agent by hand
              and letting it run by itself are the two ways this agent does
@@ -698,7 +730,7 @@
                 '<div class="ap-auto-desc">',
                   'Lets the ' + esc(AGENT_LABEL) + ' carry out its scheduled runs below in the ',
                   'background, without you launching them. Off means it ',
-                  'only ever runs when you press Launch Task above.',
+                  'only ever runs when you ' + LAUNCH_WORDS + '.',
                 '</div>',
               '</div>',
               /* Starts DISABLED and marked unknown. It is enabled only by a
@@ -717,7 +749,7 @@
              decision about how this agent does work, so they share one surface.
              A schedule in a panel of its own could be read while the toggle
              above it said something that contradicted it. */
-          '<div class="ap-sched">',
+          '<div class="ap-sched" id="ap-live-schedule">',
             '<div class="ap-sched-title">Scheduled runs</div>',
             '<div class="ap-sched-desc">',
               'A standing instruction the ' + esc(AGENT_LABEL) + ' carries out on a repeating ',
@@ -742,7 +774,7 @@
             '</div>',
 
             '<div class="ap-sched-empty" id="apSchedEmpty" hidden>',
-              'No schedule set. This ' + esc(AGENT_LABEL) + ' runs only when you launch it above.',
+              'No schedule set. This ' + esc(AGENT_LABEL) + ' runs only when you ' + (DECK ? LAUNCH_WORDS : 'launch it above') + '.',
             '</div>',
 
             '<div class="ap-sched-actions" id="apSchedViewActions" hidden>',
@@ -831,7 +863,9 @@
         '</div>',
       '</div>',
 
-      /* ── 2. Live status ── */
+      /* ── 2. Live status ── (none on the command deck: the panel under the
+         page header already says what the agent is doing, once) */
+      DECK ? '' : [
       '<div class="ap-section">',
         '<div class="ap-card">',
           '<h2 class="ap-section-label">Live Status</h2>',
@@ -841,15 +875,18 @@
           '</div>',
           '<div class="ap-live-meta" id="apLiveMeta">No active task</div>',
         '</div>',
-      '</div>',
+      '</div>'
+      ].join(""),
 
-      /* ── 3. Stats + sparkline ── */
-      '<div class="ap-section">',
+      /* ── 3. Stats + weekday chart. ONE STATS TRUTH: every figure here is
+         this agent's GET /api/agents/<type>/live (renderLiveStats), the same
+         ai_tasks count, dry runs left out, as the panel under the header. ── */
+      '<div class="ap-section" id="apStatsSection">',
         '<div class="ap-card">',
           '<h2 class="ap-section-label">Agent Stats</h2>',
           '<div class="ap-stats-row">',
             '<div class="ap-stat">',
-              '<div class="ap-stat-label">Tasks Run</div>',
+              '<div class="ap-stat-label">Runs, last 7 days</div>',
               '<div class="ap-stat-val" id="apStatTotal" style="color:' + esc(accentRgb) + '">—</div>',
             '</div>',
             '<div class="ap-stat">',
@@ -857,26 +894,31 @@
               '<div class="ap-stat-val" id="apStatDone" style="color:#4ade80">—</div>',
             '</div>',
             '<div class="ap-stat">',
-              '<div class="ap-stat-label">In Progress</div>',
-              '<div class="ap-stat-val" id="apStatActive" style="color:#22d3ee">—</div>',
+              '<div class="ap-stat-label">Failed</div>',
+              '<div class="ap-stat-val" id="apStatFailed" style="color:#f87171">—</div>',
             '</div>',
             '<div class="ap-stat">',
-              '<div class="ap-stat-label">Last Active</div>',
+              '<div class="ap-stat-label">Last run</div>',
               '<div class="ap-stat-val" id="apStatLast" style="font-size:.78rem;color:#c4b5fd">—</div>',
             '</div>',
           '</div>',
-          '<div class="ap-chart" id="apChart"></div>',
-          '<div class="ap-chart-labels" id="apChartDays"></div>',
+          '<div class="ap-chart" id="apChart" hidden></div>',
+          '<div class="ap-chart-labels" id="apChartDays" hidden></div>',
+          '<p class="ap-chart-empty" id="apChartEmpty">Loading this week…</p>',
+          '<p class="ap-stats-note">This agent’s runs in the last 7 days, dry runs left out: the same count as the panel under the page header.</p>',
         '</div>',
       '</div>',
 
-      /* ── 4. Task history ── */
+      /* ── 4. Task history ── (on the command deck, the History tab's compact
+         list, scripts/bf-exec-deck.js, replaces these full-text cards) */
+      DECK ? '' : [
       '<div class="ap-section">',
         '<div class="ap-card">',
           '<h2 class="ap-section-label">Task History</h2>',
           '<div id="apHistory"><div class="ap-empty-state">Loading history…</div></div>',
         '</div>',
-      '</div>',
+      '</div>'
+      ].join(""),
 
       /* ── 4b. How this agent learns from you: score, examples, preferences ── */
       learningSectionHtml(),
@@ -920,7 +962,19 @@
       });
     }
 
-    document.getElementById("apLaunchBtn").addEventListener("click", launchTask);
+    var launchBtn = document.getElementById("apLaunchBtn");
+    if (launchBtn && !DECK) launchBtn.addEventListener("click", launchTask);
+
+    /* The deck's tabs hold what is left of this card and the two below it:
+       Settings takes Autonomous mode, Scheduled runs and "How this agent
+       learns", History takes Agent Stats. Moved, not redrawn, so every
+       listener bound below still holds. */
+    if (DECK) {
+      [["apSettingsSection", "deckSettings"], ["apStatsSection", "deckStats"], ["apLearnSection", "deckSettings"]].forEach(function (pair) {
+        var node = document.getElementById(pair[0]), slot = document.getElementById(pair[1]);
+        if (node && slot && slot.appendChild) slot.appendChild(node);
+      });
+    }
 
     var autoToggle = document.getElementById("apAutoToggle");
     if (autoToggle) {
@@ -939,7 +993,8 @@
     loadAutonomy();
     renderSchedule();
     loadSchedule();
-    loadHistory();
+    // The deck's History tab reads the runs itself (scripts/bf-exec-deck.js).
+    if (!DECK) loadHistory();
     loadLearning();
     loadPlatformLearning();
     if (HAS_SOCIAL_DRAFTS) loadApprovalQueue();
@@ -2161,6 +2216,11 @@
       '</div>';
   }
 
+  // The gate's warning sign: a drawn triangle in the line style, never a pictograph character.
+  var GATE_ICON = '<svg class="ap-gate-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"' +
+    ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+
   /* THE GATE. Rendered first and loudest when the server says this draft is not
      ready. The reason is spelled out from the measured block's own findings
      rather than left as a bare flag, because "not ready" without the phrases is
@@ -2182,10 +2242,10 @@
        deal gets priced on it. The measured block reports it accurately and
        quietly, and quietly is the wrong volume for this one. */
     if (data.ready_to_post === false) {
-      title = "⚠ Do not post this as written";
+      title = "Do not post this as written";
       lead = measured.note || "The server marked this draft not ready.";
     } else if (data.ready_to_send === false) {
-      title = "⚠ Do not send this as written";
+      title = "Do not send this as written";
       lead = measured.note || "The server marked this draft not ready.";
     } else if (isPlainObject(data.execution_order) &&
                Array.isArray(data.execution_order.circular_dependencies) &&
@@ -2198,7 +2258,7 @@
          Ranked above the benchmark and figure cases because it invalidates the
          whole output rather than part of it. */
       var circ = data.execution_order.circular_dependencies;
-      title = "⚠ This plan cannot start — " + circ.length + " assignment(s) wait on each other";
+      title = "This plan cannot start — " + circ.length + " assignment(s) wait on each other";
       lead = data.execution_order.note ||
         "Assignments " + circ.join(", ") + " depend on each other in a loop, so there is no order " +
         "in which they can be run. Break the loop before starting any of this.";
@@ -2213,13 +2273,13 @@
 
          Note these two live inside `measured` rather than at the top level, which
          is why the gate reads from there. */
-      title = "⚠ This cites a benchmark that does not exist";
+      title = "This cites a benchmark that does not exist";
       lead = measured.note ||
         "The reading below compares your figures to an industry average, typical rate or " +
         "benchmark. BizForce holds no industry data of any kind, so that comparison was invented " +
         "rather than looked up. Your own arithmetic above is exact; the comparison is not.";
     } else if (data.contains_unverifiable_figures === true) {
-      title = "⚠ These numbers were not looked up — delete them";
+      title = "These numbers were not looked up — delete them";
       /* Deliberately "delete rather than check". Checking implies the figure came
          from somewhere and needs confirming. It did not come from anywhere: this
          route reads nothing, so the number was generated, and a generated figure
@@ -2269,7 +2329,7 @@
     }
 
     return '<div class="ap-gate">' +
-      '<div class="ap-gate-title">' + esc(title) + '</div>' +
+      '<div class="ap-gate-title">' + GATE_ICON + esc(title) + '</div>' +
       esc(String(lead)) +
       (reasons.length
         ? '<ul>' + reasons.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + '</ul>'
@@ -2280,6 +2340,27 @@
   // GENERATED. Everything the model wrote, in ordinary prose on the card ground.
   function renderGenerated(data, tool) {
     var parts = [];
+
+    generatedKeys(data, tool).forEach(function (key) {
+      var value = data[key];
+      parts.push('<div class="ap-gen-item">' +
+        '<div class="ap-gen-key">' + esc(humanise(key)) + '</div>' +
+        (typeof value === "string"
+          ? "<pre>" + esc(value) + "</pre>"
+          : renderScalarish(value)) +
+        '</div>');
+    });
+
+    if (!parts.length) return "";
+    return '<div class="ap-generated">' +
+      '<div class="ap-zone-label">Written by the model</div>' + parts.join("") + '</div>';
+  }
+
+  /* The keys of a result that the model wrote, in the result's own order: the
+     one rule for "Written by the model", shared by renderGenerated and the
+     readable result (readableToolRun) so the two can never disagree. */
+  function generatedKeys(data, tool) {
+    var keys = [];
 
     /* THE USER'S OWN INPUT IS NOT MODEL WRITING. Most routes echo their inputs
        back — `keyword`, `seed`, `goal`, `industry` — and rendering those under a
@@ -2306,18 +2387,10 @@
 
       var value = data[key];
       if (value === null || value === undefined || value === "") return;
-
-      parts.push('<div class="ap-gen-item">' +
-        '<div class="ap-gen-key">' + esc(humanise(key)) + '</div>' +
-        (typeof value === "string"
-          ? "<pre>" + esc(value) + "</pre>"
-          : renderScalarish(value)) +
-        '</div>');
+      keys.push(key);
     });
 
-    if (!parts.length) return "";
-    return '<div class="ap-generated">' +
-      '<div class="ap-zone-label">Written by the model</div>' + parts.join("") + '</div>';
+    return keys;
   }
 
   function renderReference(data) {
@@ -4235,48 +4308,63 @@
     .then(okJson)
     .then(function (data) {
       var tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
-      renderStats(tasks);
       renderHistory(tasks);
     })
     .catch(function (err) {
-      /* The stat tiles are left as they are — "—" before any load, or the last
-         figures a successful load drew — rather than set to zero. */
+      /* Agent Stats does not come from this read (renderLiveStats), so a
+         failure here says only that the list is missing. */
       showLoadFailure(document.getElementById("apHistory"),
         "Your task history could not be loaded (" + ((err && err.message) || "the request failed") +
-        ") — the history and the figures above are not a count of what this agent has done.",
+        ") — the list here is not a record of what this agent has done.",
         loadHistory, { clearIf: ".ap-empty-state", keepIf: ".ap-history" });
     });
   }
 
-  /* ── stats + bar chart ── */
-  function renderStats(tasks) {
-    var total    = tasks.length;
-    var done     = tasks.filter(function (t) { return t.status === "completed"; }).length;
-    var active   = tasks.filter(function (t) { return t.status === "processing"; }).length;
-    var lastTask = tasks[0];
-    var lastDate = lastTask ? (lastTask.updated_at || lastTask.created_at) : null;
-
+  /* ── stats + bar chart: ONE STATS TRUTH ───────────────────────────────────
+     From this agent's /live answer (liveRender calls this), and nothing else:
+     runs_7d, completed_7d and failed_7d count ai_tasks with dry runs left out,
+     and days_ago_7d splits runs_7d by day (bucket 0 is the last 24 hours). The
+     old tiles counted a 50-row page of the history list, dry runs included,
+     and the pages' own tile read ai_agents.tasks_completed, which only an
+     approved proposal moves; neither is shown any more. A section the server
+     could not read says so, never 0. The chart shows only when there is a run
+     to draw; otherwise it says "No runs this week". */
+  function renderLiveStats(a) {
     var setVal = function (id, v) {
       var el = document.getElementById(id);
       if (el) el.textContent = String(v);
     };
-    setVal("apStatTotal",  total);
-    setVal("apStatDone",   done);
-    setVal("apStatActive", active);
-    setVal("apStatLast",   lastDate ? fmt(lastDate) : "Never");
-
     var chartEl   = document.getElementById("apChart");
     var daysLblEl = document.getElementById("apChartDays");
-    if (!chartEl) return;
+    var emptyEl   = document.getElementById("apChartEmpty");
+    var showChart = function (on, words) {
+      if (chartEl) chartEl.hidden = !on;
+      if (daysLblEl) daysLblEl.hidden = !on;
+      if (emptyEl) { emptyEl.hidden = on; emptyEl.textContent = words || ""; }
+    };
+    var runs = a && a.runs;
+    if (!runs || runs.unavailable !== undefined) {
+      ["apStatTotal", "apStatDone", "apStatFailed", "apStatLast"].forEach(function (id) { setVal(id, "Could not be read"); });
+      showChart(false, "This week's runs could not be read just now.");
+      return;
+    }
+    setVal("apStatTotal",  runs.runs_7d);
+    setVal("apStatDone",   typeof runs.completed_7d === "number" ? runs.completed_7d : "—");
+    setVal("apStatFailed", runs.failed_7d);
+    setVal("apStatLast",   runs.last ? fmt(runs.last.finished_at || runs.last.started_at) : "Never");
 
+    if (!chartEl) return;
+    var byDay = Array.isArray(runs.days_ago_7d) && runs.days_ago_7d.length === 7 ? runs.days_ago_7d : null;
     var buckets = [0,0,0,0,0,0,0];
-    var now = Date.now();
-    tasks.forEach(function (t) {
-      var d = new Date(t.created_at || t.updated_at);
-      if (isNaN(d.getTime())) return;
-      var diff = Math.floor((now - d.getTime()) / 86400000);
-      if (diff >= 0 && diff < 7) buckets[6 - diff]++;
-    });
+    if (byDay) byDay.forEach(function (n, ago) { buckets[6 - ago] = Number(n) || 0; });
+    var drawn = buckets.reduce(function (s, n) { return s + n; }, 0);
+    if (!byDay || !drawn) {
+      chartEl.innerHTML = "";
+      if (daysLblEl) daysLblEl.innerHTML = "";
+      showChart(false, "No runs this week");
+      return;
+    }
+    showChart(true, "");
     var peak = Math.max.apply(null, buckets) || 1;
     var labels = dayLabels();
     var accentSafe = esc(ACCENT);
@@ -4438,7 +4526,7 @@
   }
 
   /* ── THE LEARNING LOOP: rate, pin and tune ─────────────────────────────────
-     A 👍/👎 bar under every agent result (a task, a tool run, and a stored run
+     A Helpful / Not helpful bar under every agent result (a task, a tool run, and a stored run
      on run.html), and the "How this agent learns from you" panel on the agent
      page: the score, the outcomes, "Your examples", the preferences, and the
      exact words the agent is told. The server (GET /api/agents/:agentType/
@@ -4446,6 +4534,15 @@
      not change, and the panel says so in LEARNING_COPY. */
   var RATE_REASONS = ["Too long", "Too short", "Wrong tone", "Off topic", "Inaccurate", "Other"];
   var LEARNING_COPY = "Your ratings and pinned examples shape how this agent writes for you. The AI model itself does not change.";
+  /* The two rating controls are drawn icons in the BizForce line style
+     (currentColor, the 24-unit grid, round joins), each beside its word. No
+     emoji: scripts/checkNoEmoji.js fails on one anywhere in BizForce's own text. */
+  var RATE_ICON_ATTRS = ' class="ap-rate-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"' +
+    ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+  var RATE_ICON_UP = '<svg' + RATE_ICON_ATTRS + '><path d="M7 11v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3z"/>' +
+    '<path d="M7 11l4-8a2.5 2.5 0 0 1 2.5 2.5V9h5.2a2 2 0 0 1 2 2.3l-1.3 8A2 2 0 0 1 17.4 21H7"/></svg>';
+  var RATE_ICON_DOWN = '<svg' + RATE_ICON_ATTRS + '><path d="M17 13V3h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-3z"/>' +
+    '<path d="M17 13l-4 8a2.5 2.5 0 0 1-2.5-2.5V15H5.3a2 2 0 0 1-2-2.3l1.3-8A2 2 0 0 1 6.6 3H17"/></svg>';
 
   function learnFetch(method, path, body) {
     var token = tok();
@@ -4467,8 +4564,8 @@
     return '<div class="ap-rate" data-rate-task="' + esc(taskId) + '">' +
       '<div class="ap-rate-row">' +
         '<span class="ap-rate-q">Rate this result</span>' +
-        '<button type="button" class="ap-rate-btn" data-rate="up" aria-pressed="false" title="Good result">👍</button>' +
-        '<button type="button" class="ap-rate-btn" data-rate="down" aria-pressed="false" title="Not good">👎</button>' +
+        '<button type="button" class="ap-rate-btn" data-rate="up" aria-pressed="false" aria-label="Helpful">' + RATE_ICON_UP + '<span class="ap-rate-word">Helpful</span></button>' +
+        '<button type="button" class="ap-rate-btn" data-rate="down" aria-pressed="false" aria-label="Not helpful">' + RATE_ICON_DOWN + '<span class="ap-rate-word">Not helpful</span></button>' +
         '<select class="ap-rate-reason" aria-label="Reason (optional)"><option value="">Reason (optional)</option>' +
           RATE_REASONS.map(function (r) { return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join("") +
         '</select>' +
@@ -4534,10 +4631,12 @@
       }
       bar.addEventListener("click", function (e) {
         var t = e.target;
+        // The drawn icon and its word sit inside the button; a click on either is the button's.
+        if (t && t.closest && t.closest(".ap-rate-btn")) t = t.closest(".ap-rate-btn");
         if (t.classList.contains("ap-rate-btn")) { save(t.getAttribute("data-rate")); return; }
         if (t.classList.contains("ap-rate-save")) {
           var current = bar.getAttribute("data-rating");
-          if (!current) { setRateMsg(bar, "Choose 👍 or 👎 first.", "err"); return; }
+          if (!current) { setRateMsg(bar, "Choose Helpful or Not helpful first.", "err"); return; }
           save(current);
           return;
         }
@@ -4558,14 +4657,14 @@
   }
 
   function learningSectionHtml() {
-    return '<div class="ap-section">' +
+    return '<div class="ap-section" id="apLearnSection">' +
       '<div class="ap-card" id="apLearn">' +
         '<h2 class="ap-section-label">How this agent learns from you</h2>' +
         '<p class="ap-learn-copy">' + esc(LEARNING_COPY) + '</p>' +
         '<div class="ap-learn-score" id="apLearnScore">Loading your score…</div>' +
         '<ul class="ap-learn-outcomes" id="apLearnOutcomes"></ul>' +
         '<h3 class="ap-learn-h">Your examples</h3>' +
-        '<p class="ap-learn-note">Results you rated 👍 and chose with "Use this as an example". Up to five are kept; the newest two go in this agent\'s prompts for you.</p>' +
+        '<p class="ap-learn-note">Results you rated Helpful and chose with "Use this as an example". Up to five are kept; the newest two go in this agent\'s prompts for you.</p>' +
         '<div id="apLearnExamples"></div>' +
         '<h3 class="ap-learn-h">What this agent knows about your preferences</h3>' +
         '<div id="apLearnSuggest"></div>' +
@@ -4592,7 +4691,7 @@
   function scoreHtml(score) {
     if (!score) return "";
     var head = score.enough
-      ? '<strong>' + esc(score.percent + "% 👍") + '</strong>' +
+      ? '<strong>' + esc(score.percent + "% helpful") + '</strong>' +
         (score.arrow ? ' <span class="ap-learn-arrow">' + esc(score.arrow) + " " + esc((score.change_points > 0 ? "+" : "") + score.change_points) +
           ' points</span> against the 30 days before (' + esc(score.previous.percent + "%") + ')' : "")
       : '<strong>Score: not enough ratings yet</strong> (a score needs at least 5 ratings in 30 days)';
@@ -4625,11 +4724,11 @@
             '<div class="ap-learn-note">' + esc(e.task_type || "") + ' · ' + esc(fmt(e.created_at)) + '</div></div>' +
             '<button type="button" class="ap-learn-btn" data-unpin="' + esc(e.task_id) + '">Remove</button></div>';
         }).join("")
-      : '<p class="ap-learn-note">None yet. Rate a result 👍, then choose "Use this as an example".</p>';
+      : '<p class="ap-learn-note">None yet. Rate a result Helpful, then choose "Use this as an example".</p>';
 
     var sug = data.suggestions || [];
     document.getElementById("apLearnSuggest").innerHTML = sug.map(function (s) {
-      return '<div class="ap-learn-suggest">You rated ' + esc(s.count) + ' recent results 👎 as "' + esc(s.reason) +
+      return '<div class="ap-learn-suggest">You rated ' + esc(s.count) + ' recent results Not helpful as "' + esc(s.reason) +
         '". Add the preference "' + esc(s.text) + '"? ' +
         '<button type="button" class="ap-learn-btn" data-accept="' + esc(s.text) + '">Add it</button></div>';
     }).join("");
@@ -4773,8 +4872,161 @@
       id: Object.prototype.hasOwnProperty.call(TOOL_WHOLE_RENDERERS, qualified) ? qualified : parts[1],
       fields: (STORED_TOOL_FIELDS[qualified] || []).map(function (name) { return { name: name }; })
     };
-    return renderToolResult(tool, Object.assign({}, task.output, { task_id: task.id, persisted: true }));
+    var data = Object.assign({}, task.output, { task_id: task.id, persisted: true });
+    // The whole-result tools keep their own renderer; every other run reads as the readable result.
+    if (wholeRendererFor(tool)) return renderToolResult(tool, data);
+    return readableToolRun(tool, withLengthUnit(data));
   }
+
+  /* ── THE READABLE RESULT: run.html and the command deck's result drawer ────
+     A stored run leads with what a person reads first: a plain summary (the
+     first section's first lines), then the model's entries as tidy cards with
+     small labelled rows, never "Day: 1 · Hook: … · Week: 1" run on in a line.
+     Nothing honest is dropped. The gate stays first and loud, the measured
+     panel stays open, the rating bar is the page's, outside all of this, and
+     the provenance (the "Nothing was looked up" notice and its chips, the
+     counted/written split, the limits) is collapsed to ONE line that opens
+     to all of it, unchanged: the same renderers draw it inside the details.
+     The whole-result tools (seo/audit, rd/demand-signals) keep their own. */
+  var READ_TITLE_KEYS = ["title", "name", "headline", "subject", "subject_line", "hook", "label", "theme", "day", "week", "step", "date", "platform"];
+  var READ_SUMMARY_KEYS = /^(summary|overview|executive_summary|strategy|positioning|positioning_statement|headline|intro|introduction|recommendation|answer)$/;
+  var READ_SUMMARY_LINES = 3;
+  var READ_SUMMARY_MAX = 420;
+
+  // Markdown marks taken off, so the summary reads as a sentence: "# Plan" is "Plan".
+  function plainLine(line) {
+    return String(line).replace(/^\s{0,3}#{1,6}\s+/, "").replace(/^\s*[-*+]\s+/, "").replace(/^\s*\d+[.)]\s+/, "")
+      .replace(/[*_`]{1,3}([^*_`]+)[*_`]{1,3}/g, "$1").replace(/\s+/g, " ").trim();
+  }
+
+  /* The first section's first lines: up to the first blank line, at most three
+     lines and a little over 400 characters, cut at a word. "" when there is no text. */
+  function summaryText(text) {
+    var first = String(text == null ? "" : text).replace(/\r\n/g, "\n").replace(/^\s+/, "").split(/\n\s*\n/)[0] || "";
+    var lines = first.split("\n").map(plainLine).filter(Boolean).slice(0, READ_SUMMARY_LINES);
+    var out = lines.join(" ");
+    if (out.length > READ_SUMMARY_MAX) out = out.slice(0, READ_SUMMARY_MAX).replace(/\s+\S*$/, "") + "…";
+    return out;
+  }
+
+  function summaryHtml(text) {
+    var s = summaryText(text);
+    return s ? '<p class="ap-read-summary">' + esc(s) + '</p>' : "";
+  }
+
+  // A run of the model's own text, as paragraphs; escaped, never rendered.
+  function readParagraphs(text) {
+    return String(text).replace(/\r\n/g, "\n").split(/\n\s*\n/).map(function (p) {
+      p = p.replace(/^\s+|\s+$/g, "");
+      return p ? '<p class="ap-read-p">' + esc(p).replace(/\n/g, "<br>") + '</p>' : "";
+    }).join("");
+  }
+
+  function readScalar(key, v) {
+    if (v === null || v === undefined || v === "") return renderNullFor(key);
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    return esc(String(v));
+  }
+
+  // One value inside a card row, kept small: lists as lists, objects as rows of their own.
+  function readValue(key, v, depth) {
+    if (Array.isArray(v)) {
+      if (!v.length) return "None";
+      if (v.every(function (x) { return !isPlainObject(x) && !Array.isArray(x); })) {
+        return v.length > 1 && v.join(", ").length > 60
+          ? '<ul class="ap-read-list">' + v.map(function (x) { return "<li>" + esc(String(x)) + "</li>"; }).join("") + '</ul>'
+          : esc(v.join(", "));
+      }
+      if (depth > 1) return renderScalarish(v);
+      return '<ul class="ap-read-list">' + v.map(function (x) {
+        return "<li>" + (isPlainObject(x) ? readRows(x, null, depth + 1) : esc(String(x))) + "</li>";
+      }).join("") + '</ul>';
+    }
+    if (isPlainObject(v)) return depth > 1 ? renderObjectInline(v) : readRows(v, null, depth + 1);
+    return readScalar(key, v);
+  }
+
+  function readRows(obj, skip, depth) {
+    var rows = Object.keys(obj).filter(function (k) { return k !== skip; }).map(function (k) {
+      return '<div class="ap-read-row"><dt>' + esc(humanise(k)) + '</dt><dd>' + readValue(k, obj[k], depth || 0) + '</dd></div>';
+    });
+    return rows.length ? '<dl class="ap-read-rows">' + rows.join("") + '</dl>' : "";
+  }
+
+  // A card's title: its first title-like field, "Day 1" for a number.
+  function readCard(obj, index) {
+    var key = READ_TITLE_KEYS.filter(function (k) {
+      return Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== null && obj[k] !== "" && !isPlainObject(obj[k]) && !Array.isArray(obj[k]);
+    })[0];
+    var title = key === undefined ? "Item " + (index + 1)
+      : typeof obj[key] === "number" ? humanise(key).replace(/^./, function (c) { return c.toUpperCase(); }) + " " + obj[key]
+      : String(obj[key]);
+    return '<article class="ap-read-card"><h4 class="ap-read-card-title">' + esc(title) + '</h4>' + readRows(obj, key, 0) + '</article>';
+  }
+
+  function readEntries(data, keys) {
+    var glance = [];
+    var parts = keys.map(function (key) {
+      var v = data[key], head = '<h3 class="ap-read-h">' + esc(humanise(key).replace(/^./, function (c) { return c.toUpperCase(); })) + '</h3>';
+      if (typeof v === "string") return '<section class="ap-read-sec">' + head + readParagraphs(v) + '</section>';
+      if (Array.isArray(v) && v.length && v.every(isPlainObject)) {
+        return '<section class="ap-read-sec">' + head + '<div class="ap-read-cards">' + v.map(readCard).join("") + '</div></section>';
+      }
+      if (Array.isArray(v)) return '<section class="ap-read-sec">' + head + (v.length ? '<ul class="ap-read-list">' + v.map(function (x) {
+        return "<li>" + (isPlainObject(x) || Array.isArray(x) ? renderScalarish(x) : esc(String(x))) + "</li>";
+      }).join("") + '</ul>' : '<p class="ap-read-p">None</p>') + '</section>';
+      if (isPlainObject(v)) return '<section class="ap-read-sec">' + head + '<div class="ap-read-cards"><article class="ap-read-card">' + readRows(v, null, 0) + '</article></div></section>';
+      glance.push(key);
+      return "";
+    });
+    var glanceHtml = glance.length ? '<section class="ap-read-sec"><div class="ap-read-cards"><article class="ap-read-card">' +
+      readRows(glance.reduce(function (o, k) { o[k] = data[k]; return o; }, {}), null, 0) + '</article></div></section>' : "";
+    return glanceHtml + parts.join("");
+  }
+
+  // The summary: a summary-like field first, else the first text the model wrote, else what the entries are.
+  function readSummaryOf(data, keys) {
+    var texts = keys.filter(function (k) { return typeof data[k] === "string"; });
+    var pick = texts.filter(function (k) { return READ_SUMMARY_KEYS.test(k); })[0] || texts[0];
+    if (pick) return summaryHtml(data[pick]);
+    var list = keys.filter(function (k) { return Array.isArray(data[k]) && data[k].length; })[0];
+    if (list) return '<p class="ap-read-summary">' + esc(humanise(list).replace(/^./, function (c) { return c.toUpperCase(); }) + ": " +
+      data[list].length + (data[list].length === 1 ? " entry" : " entries")) + ', each below.</p>';
+    return "";
+  }
+
+  // The one line the provenance collapses to. The words lead with what is most true of this run.
+  function provenanceLine(data) {
+    var prov = isPlainObject(data.provenance) ? data.provenance : null;
+    if (prov && renderNothingRead(prov)) return "Written from the model’s own knowledge — nothing was looked up.";
+    var counted = prov && Array.isArray(prov.measured_from) && prov.measured_from.length;
+    var inferred = prov && Array.isArray(prov.inferred_by_model) && prov.inferred_by_model.length;
+    if (counted && inferred) return "Counted by the server and written by the model.";
+    if (inferred) return "Written by the model.";
+    if (counted) return "Counted by the server; no model wrote any of it.";
+    return "";
+  }
+
+  function readableToolRun(tool, data) {
+    var keys = generatedKeys(data, tool);
+    var custom = tool && TOOL_RENDERERS[tool.id];
+    var how = [renderNothingRead(data.provenance), renderProvenance(data.provenance), renderReference(data)].filter(Boolean).join("");
+    var line = provenanceLine(data);
+    return '<div class="ap-read">' + [
+      // The gate first, and never folded away: an unsafe draft outranks everything.
+      renderGate(data),
+      readSummaryOf(data, keys),
+      custom ? custom(tool, data)
+        : (keys.length ? '<div class="ap-generated"><div class="ap-zone-label">Written by the model</div>' + readEntries(data, keys) + '</div>' : ""),
+      renderMeasured(data.measured),
+      renderAfterMeasured(data),
+      how ? '<details class="ap-read-how"><summary>' + (line ? '<span class="ap-read-how-line">' + esc(line) + '</span> ' : "") +
+        '<span class="ap-read-how-open">How this was made</span></summary>' + how + '</details>' : "",
+      renderUnsaved(data)
+    ].filter(Boolean).join("") + '</div>';
+  }
+
+  window.bfRunSummary = summaryHtml;
 
   window.bfLoadBusinessContext = loadBusinessContext;
   window.bfLoadLastRun = loadLastRun;
@@ -4945,6 +5197,7 @@
   function liveRender() {
     var a = live.data, top = live.top || {};
     if (!a) return;
+    renderLiveStats(a);
 
     var now = a.now || {};
     if (now.unavailable !== undefined) liveUnread("now", now);
@@ -4977,8 +5230,8 @@
 
     var sc = a.score || {};
     if (sc.unavailable !== undefined) liveUnread("score", sc);
-    else if (!sc.up && !sc.down) liveSet("score", "No ratings yet", "Rate a result with 👍 or 👎");
-    else liveSet("score", "▲ " + sc.up + "  ▼ " + sc.down, sc.pinned + " pinned as examples");
+    else if (!sc.up && !sc.down) liveSet("score", "No ratings yet", "Rate a result Helpful or Not helpful");
+    else liveSet("score", sc.up + " helpful · " + sc.down + " not helpful", sc.pinned + " pinned as examples");
 
     var usd = a.spend_month_usd, calls = top.daily_calls || {};
     var callsLine = calls.unavailable !== undefined || typeof calls.used !== "number"
@@ -5091,6 +5344,8 @@
         var card = document.querySelector(".ap-sched");
         if (!link || !card) return;
         e.preventDefault();
+        // On the command deck the schedule sits in the Settings tab: open it first.
+        if (window.BFExecDeck && typeof window.BFExecDeck.reveal === "function") window.BFExecDeck.reveal(card);
         if (!card.hasAttribute("tabindex")) card.setAttribute("tabindex", "-1");
         if (card.scrollIntoView) card.scrollIntoView({ block: "center" });
         card.focus();
@@ -5654,6 +5909,8 @@
     sig.charts = [];
     while (slot.firstChild) slot.removeChild(slot.firstChild);
     var draw = s && SIG_RENDER[s.kind];
+    // The command deck's Plans tab is the one plan board on that page, so its panel draws no Plans module.
+    if (DECK && s && s.kind === "executive") draw = null;
     if (!draw) return;
     try {
       slot.appendChild(draw(s));
