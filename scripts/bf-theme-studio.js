@@ -82,20 +82,34 @@
   var PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
   function $(id) { return document.getElementById(id); }
-  function api() { return (typeof window.API_URL === "string" && window.API_URL) || ""; }
+  /* Every request goes to the API's own origin: bf-theme.js's apiOrigin, the
+     base every page uses (window.API_URL, else the Railway backend). Never a
+     relative "/api/...": settings.html keeps its API_URL inside its own
+     function, so window.API_URL is unset here, and a relative path goes to
+     Netlify, which answers 404. */
+  function api() { return T.apiOrigin(); }
   function authHeaders(json) {
     var h = { "Authorization": "Bearer " + (localStorage.getItem("bf_token") || "") };
     if (json) h["Content-Type"] = "application/json";
     return h;
   }
-  function call(method, path, body) {
-    return fetch(api() + path, { method: method, headers: authHeaders(body !== undefined), body: body !== undefined ? JSON.stringify(body) : undefined })
-      .then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-          if (!res.ok) throw new Error(data.error || "That did not work. Try again.");
-          return data;
-        });
+  /* A failure names what failed and its status, so the next one explains
+     itself: "Couldn't save (404). Try again." The server's own words are kept
+     when it sent some. An answer that is not JSON is a failure too. */
+  var DOING = { GET: "load your themes", POST: "save", PUT: "save", DELETE: "delete" };
+  function send(what, path, opts) {
+    var base = api();
+    if (!base) return Promise.reject(new Error("Couldn't " + what + " (no API address). Try again."));
+    return fetch(base + path, opts).then(function (res) {
+      return res.json().catch(function () { return null; }).then(function (data) {
+        if (res.ok && data) return data;
+        if (data && typeof data.error === "string" && data.error) throw new Error(data.error + " (" + res.status + ")");
+        throw new Error("Couldn't " + what + " (" + res.status + (res.ok ? ", not JSON" : "") + "). Try again.");
       });
+    }, function () { throw new Error("Couldn't " + what + " (no connection). Try again."); });
+  }
+  function call(method, path, body, what) {
+    return send(what || DOING[method], path, { method: method, headers: authHeaders(body !== undefined), body: body !== undefined ? JSON.stringify(body) : undefined });
   }
 
   /* ── what the editor holds ──────────────────────────────────────────── */
@@ -272,14 +286,13 @@
       if (luma === null) throw new Error("That photo could not be opened.");
       var form = new FormData();
       form.append("photo", file);
-      return fetch(api() + "/api/themes/photo", { method: "POST", headers: authHeaders(false), body: form })
-        .then(function (res) { return res.json().catch(function () { return {}; }).then(function (data) {
-          if (!res.ok) throw new Error(data.error || "The photo could not be uploaded.");
+      return send("upload the photo", "/api/themes/photo", { method: "POST", headers: authHeaders(false), body: form })
+        .then(function (data) {
           editing.photo = data.path; editing.photo_luma = luma; editing.middle = "photo";
           photoUrl = data.url;
           say("tsPhotoMsg", "Photo ready. Save the theme to keep it.", "ok");
           render();
-        }); });
+        });
     }).catch(function (err) { say("tsPhotoMsg", err.message, "err"); });
   }
 
@@ -348,7 +361,7 @@
     input.type = "text"; input.maxLength = 60; input.value = row.name;
     input.setAttribute("aria-label", "New name for " + row.name);
     var save = button("Save name", "Save the new name", function () {
-      call("PUT", "/api/themes/" + encodeURIComponent(row.id), { name: input.value })
+      call("PUT", "/api/themes/" + encodeURIComponent(row.id), { name: input.value }, "rename")
         .then(function (next) { took(next, "Renamed."); })
         .catch(function (err) { say("tsMsg", err.message, "err"); });
     });
@@ -397,7 +410,7 @@
       text.textContent = pageName(k) + " — " + (themeName(state.page_themes[k]) || "a theme");
       li.appendChild(text);
       li.appendChild(button("Reset this page to the main theme", "Reset " + pageName(k) + " to the main theme", function () {
-        call("POST", "/api/themes/reset", { scope: "page", pages: [k] })
+        call("POST", "/api/themes/reset", { scope: "page", pages: [k] }, "reset")
           .then(function (next) { took(next, pageName(k) + " wears the main theme again."); })
           .catch(function (err) { say("tsMsg", err.message, "err"); });
       }));
@@ -502,7 +515,7 @@
       body.pages = Array.prototype.map.call(root.querySelectorAll("#tsPageGroups input:checked"), function (cb) { return cb.value; });
       if (!body.pages.length) return say("tsApplyMsg", "Tick at least one page.", "err");
     }
-    call("PUT", "/api/themes/apply", body)
+    call("PUT", "/api/themes/apply", body, "apply")
       .then(function (next) {
         took(next);
         say("tsApplyMsg", s === "all" ? "Applied to all pages. Pages with their own theme keep it."
@@ -520,7 +533,7 @@
     }
     b.removeAttribute("data-confirm");
     b.textContent = "Reset everything to the original";
-    call("POST", "/api/themes/reset", { scope: "all" })
+    call("POST", "/api/themes/reset", { scope: "all" }, "reset")
       .then(function (next) {
         /* The editor goes back to the original too: every part, every colour. */
         editing = clone(T.DEFAULT_THEME); editingId = null; savedSnapshot = null; photoUrl = null;

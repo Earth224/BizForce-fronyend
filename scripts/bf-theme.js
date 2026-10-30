@@ -618,7 +618,9 @@
     applyState: function (state) { return applyState(state, window, document); },
     stateChanged: function (state) { return stateChanged(state, window, document); },
     refresh: function (force) { return refresh(window, document, force); },
-    reducedMotion: function () { return reducedMotion(window); }
+    reducedMotion: function () { return reducedMotion(window); },
+    /* The API's origin, for the studio: the one base every request uses. */
+    apiOrigin: function () { return apiOrigin(window); }
   };
 
   boot(window, document);
