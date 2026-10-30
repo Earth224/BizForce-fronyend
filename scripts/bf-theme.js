@@ -42,9 +42,30 @@
    raised in steps of 0.01, the least that passes. readability() says which
    happened, for the meter in Settings → Theme.
 
-   bf_theme IS A DEVICE DISPLAY CACHE, left at sign-out like the other
-   display choices (scripts/bf-session.js says why). It is applied only when
-   it belongs to the member signed in, or when nobody is.
+   THE ELEMENT PALETTES (Block 4b) colour the rest of the look: the buttons
+   (--bf-btn-a, --bf-btn-b, --bf-btn-text), the wordmark (--bf-mark-a,
+   --bf-mark-b), the guide's lettering (--bf-guide-a, --bf-guide-b), the
+   glow behind Termaximus's chat box (--tmx-chat-glow-a, -b, -c) and every
+   colour of the mist (--tmx-core-1 … and the rest of MIST below). Every place
+   that draws one reads it as var(--token, its own colour), so with the token
+   unset each place is exactly what it was, and these tokens have NO default
+   in the rule. A theme sets an element's tokens only when that element is not
+   at its original (the mist colour by colour), and then every place follows.
+   Its readability is kept too, and nothing is refused:
+     the button lettering is at least 4.5:1 on both ends of its gradient: if
+       not, it is set to white or near-black, whichever reads better, and if
+       neither reaches 4.5:1 it is white and the gradient is shaded, 0.01 at
+       a time, until it does;
+     the guide's lettering is at least 4.5:1 on its panel, and the wordmark
+       at least 3:1 (it is large text) on the header; each end too dark for
+       that is lightened toward white, 0.01 at a time. Both stand on the
+       backdrop's brightest point, already protected above, so lightening
+       always reaches the mark.
+   readability().elements says what was done, for the meter.
+
+   bf_theme IS THE MEMBER'S, cleared at sign-out with their other things
+   (scripts/bf-session.js PER_USER_LOCAL), so the sign-in page shows the
+   original look. It is applied only when it belongs to the member signed in.
 
    NOTHING ELSE IS STORED, and no network is used before the page has loaded. */
 (function () {
@@ -63,6 +84,13 @@
   var MUTED_MIN = 4.5;
   var SHADE_MAX = 0.95;
   var BLACK = "#070b18";
+  var WHITE = "#ffffff";
+  var NEAR_BLACK = "#050c1a";
+  var BTN_MIN = 4.5;
+  var GUIDE_MIN = 4.5;
+  var MARK_MIN = 3;
+  var GUIDE_PANEL = [12, 18, 38], GUIDE_PANEL_ALPHA = 0.9;   // termaximus-guide.js #tmx-guide-panel
+  var HEADER = [8, 8, 18], HEADER_ALPHA = 0.88;              // css/bizforce-ui.css .topbar
 
   /* Today's look, the same values as lib/themes.js DEFAULT_THEME. */
   var DEFAULT_THEME = {
@@ -76,8 +104,54 @@
     photo: null,
     dim: 0.55,
     photo_luma: 0,
-    alive: false
+    alive: false,
+    btn_a: "#06b6d4",
+    btn_b: "#8b5cf6",
+    btn_text: "#ffffff",
+    mist_core: "#3c78ff",
+    mist_haze: "#300c96",
+    mist_pulse: "#500f6e",
+    mist_spark: "#ffe896",
+    mist_star: "#ffffff",
+    mist_dust: "#f0c850",
+    mist_trail: "#cddaff",
+    mist_whisper: "#d7cdf5",
+    chat_glow_a: "#00e5ff",
+    chat_glow_b: "#7b2ff7",
+    guide_a: "#22d3ee",
+    guide_b: "#a855f7",
+    mark_a: "#22d3ee",
+    mark_b: "#a855f7",
+    match_all: false
   };
+
+  /* The same sections as lib/themes.js ELEMENTS. */
+  var ELEMENTS = {
+    buttons: ["btn_a", "btn_b", "btn_text"],
+    mist: ["mist_core", "mist_haze", "mist_pulse", "mist_spark", "mist_star", "mist_dust", "mist_trail", "mist_whisper"],
+    chat: ["chat_glow_a", "chat_glow_b"],
+    guide: ["guide_a", "guide_b"],
+    mark: ["mark_a", "mark_b"]
+  };
+
+  /* Every colour the mist draws (scripts/termaximus-presence.js), as today's
+     channels, stop by stop. Stop n of a part is the token --tmx-<part>-<n>;
+     the part's own colour (mist_<part>) is one of its stops. A part at its
+     original sets nothing; any other colour C gives each stop C moved toward
+     white or black by the lightness that stop has above or below the part's
+     own colour today (stopsFor, below), so each keeps its place in the shape. */
+  var MIST = {
+    core: ["255, 255, 255", "200, 230, 255", "100, 180, 255", "60, 120, 255", "180, 100, 255", "140, 180, 255", "100, 120, 255"],
+    haze: ["48, 12, 150", "16, 4, 68", "4, 0, 24", "88, 8, 95", "45, 4, 60", "16, 1, 28", "12, 6, 100", "6, 2, 55", "2, 0, 22"],
+    pulse: ["80, 15, 110", "90, 6, 22", "12, 6, 85", "0, 32, 48", "70, 16, 4"],
+    spark: ["255, 232, 150", "255, 220, 100"],
+    star: ["255, 255, 255", "200, 220, 255"],
+    dust: ["220, 168, 60", "200, 140, 40", "240, 200, 80", "220, 170, 50", "255, 210, 90", "220, 165, 45", "235, 195, 75", "210, 160, 40"],
+    trail: ["190, 210, 255", "205, 218, 255", "210, 220, 255"],
+    whisper: ["215, 205, 245"]
+  };
+  /* The chat glow's third, outermost stop follows its outer colour. */
+  var CHAT_GLOW_C = "168, 85, 247";
 
   /* The same list as lib/themes.js UNTHEMED. */
   var UNTHEMED = [
@@ -93,6 +167,14 @@
     "--bf-glow-b", "--bf-glow-b-rgb", "--bf-glow-b-alpha",
     "--bf-alive", "--bf-scrim"
   ];
+  /* The element tokens. None has a default in the rule: each place keeps its
+     own colour as the var() fallback. */
+  var ELEMENT_TOKENS = ["--bf-btn-a", "--bf-btn-b", "--bf-btn-text", "--bf-mark-a", "--bf-mark-b", "--bf-guide-a", "--bf-guide-b",
+    "--tmx-chat-glow-a", "--tmx-chat-glow-b", "--tmx-chat-glow-c"];
+  Object.keys(MIST).forEach(function (part) {
+    MIST[part].forEach(function (stop, i) { ELEMENT_TOKENS.push("--tmx-" + part + "-" + (i + 1)); });
+  });
+  var ALL_TOKENS = THEME_TOKENS.concat(ELEMENT_TOKENS);
 
   var RULE =
     ":where(:root) {\n" +
@@ -182,11 +264,108 @@
     var r = ratiosAt(point);
     return r.text >= TEXT_MIN && r.muted >= MUTED_MIN;
   }
+  function hexOf(rgb) {
+    return "#" + rgb.map(function (c) { var v = Math.max(0, Math.min(255, Math.round(c))); return (v < 16 ? "0" : "") + v.toString(16); }).join("");
+  }
+  function channels(rgb) { return rgb.map(function (c) { return Math.round(c); }).join(", "); }
+  /* mix(x, y, w): x moved a share w of the way to y, per channel, rounded
+     (the same as lib/themes.js mixHex). */
+  function mixHex(x, y, w) {
+    var a = [1, 3, 5].map(function (i) { return parseInt(x.slice(i, i + 2), 16); });
+    var b = [1, 3, 5].map(function (i) { return parseInt(y.slice(i, i + 2), 16); });
+    return "#" + a.map(function (c, i) {
+      var v = Math.round(c + w * (b[i] - c));
+      return (v < 16 ? "0" : "") + v.toString(16);
+    }).join("");
+  }
+  /* "Match everything": the same rule as lib/themes.js matchAll. */
+  function matchAll(a, b) {
+    var W = WHITE;
+    return {
+      btn_a: a, btn_b: b, btn_text: W,
+      mark_a: a, mark_b: b,
+      guide_a: mixHex(a, W, 0.35), guide_b: mixHex(b, W, 0.35),
+      chat_glow_a: a, chat_glow_b: b,
+      mist_core: a, mist_haze: b,
+      mist_pulse: mixHex(mixHex(a, b, 0.5), W, 0.3),
+      mist_spark: mixHex(a, W, 0.6),
+      mist_star: mixHex(b, W, 0.85),
+      mist_dust: mixHex(b, W, 0.5),
+      mist_trail: mixHex(a, W, 0.7),
+      mist_whisper: mixHex(b, W, 0.75)
+    };
+  }
+  /* HSL lightness, 0 … 1. */
+  function lightness(rgb) { return (Math.max(rgb[0], rgb[1], rgb[2]) + Math.min(rgb[0], rgb[1], rgb[2])) / 2 / 255; }
+  function chOf(text) { return text.split(",").map(function (x) { return Number(x); }); }
+  /* One mist part's stops for colour `hex`, or null at its original. */
+  function stopsFor(part, hex) {
+    var key = DEFAULT_THEME["mist_" + part];
+    var c = rgbOf(hex);
+    if (!c || hex === key) return null;
+    var lk = lightness(rgbOf(key));
+    return MIST[part].map(function (stop) {
+      var t = lightness(chOf(stop)) - lk;
+      if (t > 0) return channels(over([255, 255, 255], t / (1 - lk), c));
+      if (t < 0) return channels(over([0, 0, 0], -t / lk, c));
+      return channels(c);
+    });
+  }
+  function atOriginal(t, section) {
+    return ELEMENTS[section].every(function (k) { return t[k] === DEFAULT_THEME[k]; });
+  }
 
   function normalTheme(theme) {
     var out = {};
     Object.keys(DEFAULT_THEME).forEach(function (k) {
-      out[k] = theme && theme[k] !== undefined ? theme[k] : DEFAULT_THEME[k];
+      var v = theme && theme[k] !== undefined ? theme[k] : DEFAULT_THEME[k];
+      if (k !== "v" && k !== "photo" && typeof DEFAULT_THEME[k] === "string" && /^#/.test(DEFAULT_THEME[k]) && !rgbOf(v)) v = DEFAULT_THEME[k];
+      out[k] = v;
+    });
+    if (out.match_all === true) {
+      var derived = matchAll(out.glow_a, out.glow_b);
+      Object.keys(derived).forEach(function (k) { out[k] = derived[k]; });
+    }
+    return out;
+  }
+
+  /* `hex` lightened toward white, 0.01 at a time, until it is `min`:1 on
+     `point`. */
+  function lift(hex, point, min) {
+    var c = rgbOf(hex), w = 0;
+    while (contrast(over([255, 255, 255], w / 100, c), point) < min && w < 100) w++;
+    return { hex: w ? hexOf(over([255, 255, 255], w / 100, c)) : hex, ratio: contrast(over([255, 255, 255], w / 100, c), point), lifted: w > 0 };
+  }
+  function worst(text, ends) { return Math.min.apply(null, ends.map(function (e) { return contrast(text, e); })); }
+
+  /* How readable the buttons, the guide's lettering and the wordmark are on
+     the backdrop's brightest point `peakPoint` (already protected), and what
+     is changed to keep them so. */
+  function elementReadability(t, peakPoint) {
+    var out = {};
+    var a = rgbOf(t.btn_a), b = rgbOf(t.btn_b), text = rgbOf(t.btn_text);
+    var btn = { original: atOriginal(t, "buttons"), before: worst(text, [a, b]), a: t.btn_a, b: t.btn_b, text: t.btn_text, fix: null };
+    if (!btn.original && btn.before < BTN_MIN) {
+      var white = worst(rgbOf(WHITE), [a, b]), dark = worst(rgbOf(NEAR_BLACK), [a, b]);
+      if (Math.max(white, dark) >= BTN_MIN) { btn.text = white >= dark ? WHITE : NEAR_BLACK; btn.fix = "text"; }
+      else {
+        var s = 0;
+        while (worst(rgbOf(WHITE), [shade(a, s / 100), shade(b, s / 100)]) < BTN_MIN && s < 100) s++;
+        btn.text = WHITE; btn.a = hexOf(shade(a, s / 100)); btn.b = hexOf(shade(b, s / 100)); btn.fix = "shade"; btn.shade = s / 100;
+      }
+    }
+    btn.ratio = worst(rgbOf(btn.text), [rgbOf(btn.a), rgbOf(btn.b)]);
+    out.buttons = btn;
+    [["guide", over(GUIDE_PANEL, GUIDE_PANEL_ALPHA, peakPoint), GUIDE_MIN],
+     ["mark", brightest([over(HEADER, HEADER_ALPHA, peakPoint), peakPoint]), MARK_MIN]].forEach(function (e) {
+      var keys = ELEMENTS[e[0]], point = e[1], min = e[2];
+      var r = { original: atOriginal(t, e[0]), before: Math.min(contrast(rgbOf(t[keys[0]]), point), contrast(rgbOf(t[keys[1]]), point)), fix: null };
+      var la = r.original ? { hex: t[keys[0]], lifted: false } : lift(t[keys[0]], point, min);
+      var lb = r.original ? { hex: t[keys[1]], lifted: false } : lift(t[keys[1]], point, min);
+      r.a = la.hex; r.b = lb.hex;
+      if (la.lifted || lb.lifted) r.fix = "lighten";
+      r.ratio = Math.min(contrast(rgbOf(r.a), point), contrast(rgbOf(r.b), point));
+      out[e[0]] = r;
     });
     return out;
   }
@@ -206,13 +385,16 @@
     while (!passes(shade(middle || rgbOf(BLACK), dimSteps / 100)) && dimSteps < SHADE_MAX * 100) dimSteps++;
     while (!passes(peak(dimSteps / 100, scrimSteps / 100)) && scrimSteps < SHADE_MAX * 100) scrimSteps++;
     var dim = dimSteps / 100, scrim = scrimSteps / 100;
+    var elements = elementReadability(t, peak(dim, scrim));
     return {
       readable: before.text >= TEXT_MIN && before.muted >= MUTED_MIN,
       protected: dim > userDim || scrim > 0,
       dim: dim,
       scrim: scrim,
       before: before,
-      ratios: ratiosAt(peak(dim, scrim))
+      ratios: ratiosAt(peak(dim, scrim)),
+      elements: elements,
+      elementsFixed: ["buttons", "guide", "mark"].some(function (k) { return !!elements[k].fix; })
     };
   }
 
@@ -233,7 +415,7 @@
     var a = rgbOf(t.glow_a) || rgbOf(DEFAULT_THEME.glow_a), b = rgbOf(t.glow_b) || rgbOf(DEFAULT_THEME.glow_b);
     var url = t.middle === "photo" ? safePhotoUrl(photoUrl) : null;
     var alive = t.alive === true && !reducedMotion(win || window);
-    return {
+    return Object.assign({
       "--bf-bg": t.middle === "colour" ? t.bg : BLACK,
       "--bf-bg-image": url ? "url(\"" + url + "\")" : "none",
       "--bf-bg-dim": String(r.dim),
@@ -245,7 +427,40 @@
       "--bf-glow-b-alpha": String(t.glow_b_alpha),
       "--bf-alive": alive ? "1" : "0",
       "--bf-scrim": String(r.scrim)
+    }, elementTokens(t, r.elements));
+  }
+
+  /* The element tokens one theme sets: only for the sections (and mist
+     parts) not at their original, with readability's corrections applied. */
+  function elementTokens(t, fixed) {
+    var out = {};
+    if (!atOriginal(t, "buttons")) {
+      out["--bf-btn-a"] = fixed.buttons.a; out["--bf-btn-b"] = fixed.buttons.b; out["--bf-btn-text"] = fixed.buttons.text;
+    }
+    if (!atOriginal(t, "mark")) { out["--bf-mark-a"] = fixed.mark.a; out["--bf-mark-b"] = fixed.mark.b; }
+    if (!atOriginal(t, "guide")) { out["--bf-guide-a"] = fixed.guide.a; out["--bf-guide-b"] = fixed.guide.b; }
+    if (!atOriginal(t, "chat")) {
+      out["--tmx-chat-glow-a"] = channels(rgbOf(t.chat_glow_a));
+      out["--tmx-chat-glow-b"] = channels(rgbOf(t.chat_glow_b));
+      out["--tmx-chat-glow-c"] = t.chat_glow_b === DEFAULT_THEME.chat_glow_b ? CHAT_GLOW_C : channels(over([255, 255, 255], 0.25, rgbOf(t.chat_glow_b)));
+    }
+    Object.keys(MIST).forEach(function (part) {
+      var stops = stopsFor(part, t["mist_" + part]);
+      if (stops) stops.forEach(function (v, i) { out["--tmx-" + part + "-" + (i + 1)] = v; });
+    });
+    return out;
+  }
+
+  /* Every element token at the original, for a preview that must not inherit
+     the page's own theme (the buttons at their most common original). */
+  function originalTokens() {
+    var t = DEFAULT_THEME, out = {
+      "--bf-btn-a": t.btn_a, "--bf-btn-b": t.btn_b, "--bf-btn-text": t.btn_text,
+      "--bf-mark-a": t.mark_a, "--bf-mark-b": t.mark_b, "--bf-guide-a": t.guide_a, "--bf-guide-b": t.guide_b,
+      "--tmx-chat-glow-a": channels(rgbOf(t.chat_glow_a)), "--tmx-chat-glow-b": channels(rgbOf(t.chat_glow_b)), "--tmx-chat-glow-c": CHAT_GLOW_C
     };
+    Object.keys(MIST).forEach(function (part) { MIST[part].forEach(function (v, i) { out["--tmx-" + part + "-" + (i + 1)] = v; }); });
+    return out;
   }
 
   /* ── which page, which member, which theme ─────────────────────────── */
@@ -306,7 +521,7 @@
   var applied = null;
   function setTokens(doc, tokens) {
     var root = doc.documentElement;
-    THEME_TOKENS.forEach(function (name) {
+    ALL_TOKENS.forEach(function (name) {
       if (tokens && tokens[name] !== undefined) root.style.setProperty(name, tokens[name]);
       else root.style.removeProperty(name);
     });
@@ -368,7 +583,7 @@
     injectRule(doc);
     var cache = readCache(win);
     var uid = signedInId(win);
-    if (cache && (!uid || cache.uid === uid)) applyState(cache.state, win, doc);
+    if (cache && uid && cache.uid === uid) applyState(cache.state, win, doc);
     var later = function () { refresh(win, doc, false); };
     if (doc.readyState === "loading" && doc.addEventListener) doc.addEventListener("DOMContentLoaded", later);
     else later();
@@ -377,10 +592,21 @@
   window.BFTheme = {
     DEFAULT_THEME: DEFAULT_THEME,
     UNTHEMED: UNTHEMED,
-    THEME_TOKENS: THEME_TOKENS,
+    THEME_TOKENS: ALL_TOKENS,
+    BACKDROP_TOKENS: THEME_TOKENS,
+    ELEMENT_TOKENS: ELEMENT_TOKENS,
+    ELEMENTS: ELEMENTS,
+    MIST: MIST,
     RULE: RULE,
     TEXT: TEXT, MUTED: MUTED, ACCENT: ACCENT, TEXT_MIN: TEXT_MIN, MUTED_MIN: MUTED_MIN,
+    BTN_MIN: BTN_MIN, GUIDE_MIN: GUIDE_MIN, MARK_MIN: MARK_MIN, WHITE: WHITE, NEAR_BLACK: NEAR_BLACK,
     rgbOf: rgbOf,
+    mixHex: mixHex,
+    matchAll: matchAll,
+    stopsFor: stopsFor,
+    atOriginal: atOriginal,
+    normalTheme: normalTheme,
+    originalTokens: originalTokens,
     luminance: luminance,
     contrast: contrast,
     readability: readability,

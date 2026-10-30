@@ -31,6 +31,15 @@
   } catch (e) {}
   var _tmxCorner = MIST_CORNERS[_tmxCornerKey];
 
+  /* Under prefers-reduced-motion the mist and its chat glow hold still: no
+     pulse, drift, morph, twinkle, colour cycle, streak, shooting star or
+     breathing. Each part stays at its resting look. */
+  var MIST_STILL = "\n@media (prefers-reduced-motion: reduce) {\n" +
+    "  #tmx-core, #tmx-soul, .tmx-blob, .tmx-star, #tmx-gold-a, #tmx-gold-b, #tmx-gold-c, #tmx-chat-glow { animation: none !important; }\n" +
+    "  #tmx-shoot { animation: none !important; opacity: 0 !important; }\n" +
+    "  .tmx-star { opacity: var(--sp-hi, 1); transition: none; }\n" +
+    "}\n";
+
   /* ── Styles ── */
   var style = document.createElement("style");
   style.textContent = [
@@ -124,13 +133,13 @@
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
-    "    rgba(255,255,255,0.98)  0%,",
-    "    rgba(200,230,255,0.92)  6%,",
-    "    rgba(100,180,255,0.80)  14%,",
-    "    rgba(60,120,255,0.60)   24%,",
-    "    rgba(180,100,255,0.38)  38%,",
-    "    rgba(220,168,60,0.22)   54%,",
-    "    rgba(200,140,40,0.08)   70%,",
+    "    rgba(var(--tmx-core-1, 255,255,255),0.98)  0%,",
+    "    rgba(var(--tmx-core-2, 200,230,255),0.92)  6%,",
+    "    rgba(var(--tmx-core-3, 100,180,255),0.80)  14%,",
+    "    rgba(var(--tmx-core-4, 60,120,255),0.60)   24%,",
+    "    rgba(var(--tmx-core-5, 180,100,255),0.38)  38%,",
+    "    rgba(var(--tmx-dust-1, 220,168,60),0.22)   54%,",
+    "    rgba(var(--tmx-dust-2, 200,140,40),0.08)   70%,",
     "    transparent             100%",
     "  );",
     "  filter: blur(4px);",
@@ -144,9 +153,9 @@
     "  inset: -22px;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
-    "    rgba(140,180,255,0.28)  0%,",
-    "    rgba(100,120,255,0.14)  40%,",
-    "    rgba(220,168,60,0.08)   65%,",
+    "    rgba(var(--tmx-core-6, 140,180,255),0.28)  0%,",
+    "    rgba(var(--tmx-core-7, 100,120,255),0.14)  40%,",
+    "    rgba(var(--tmx-dust-1, 220,168,60),0.08)   65%,",
     "    transparent             100%",
     "  );",
     "  filter: blur(14px);",
@@ -155,12 +164,12 @@
     /* soul-color cycle: radial-gradient reaches transparent before element
        edges — corners are fully empty, blur has nothing to spread outward  */
     "@keyframes tmx-soul-cycle {",
-    "  0%   { background: radial-gradient(circle at 50% 50%, rgba(80,15,110,0.62) 0%, rgba(80,15,110,0)  55%); }",
-    "  20%  { background: radial-gradient(circle at 50% 50%, rgba(90,6,22,0.58)   0%, rgba(90,6,22,0)    55%); }",
-    "  40%  { background: radial-gradient(circle at 50% 50%, rgba(12,6,85,0.65)   0%, rgba(12,6,85,0)    55%); }",
-    "  60%  { background: radial-gradient(circle at 50% 50%, rgba(0,32,48,0.55)   0%, rgba(0,32,48,0)    55%); }",
-    "  80%  { background: radial-gradient(circle at 50% 50%, rgba(70,16,4,0.60)   0%, rgba(70,16,4,0)    55%); }",
-    "  100% { background: radial-gradient(circle at 50% 50%, rgba(80,15,110,0.62) 0%, rgba(80,15,110,0)  55%); }",
+    "  0%   { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-1, 80,15,110),0.62) 0%, rgba(var(--tmx-pulse-1, 80,15,110),0)  55%); }",
+    "  20%  { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-2, 90,6,22),0.58)   0%, rgba(var(--tmx-pulse-2, 90,6,22),0)    55%); }",
+    "  40%  { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-3, 12,6,85),0.65)   0%, rgba(var(--tmx-pulse-3, 12,6,85),0)    55%); }",
+    "  60%  { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-4, 0,32,48),0.55)   0%, rgba(var(--tmx-pulse-4, 0,32,48),0)    55%); }",
+    "  80%  { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-5, 70,16,4),0.60)   0%, rgba(var(--tmx-pulse-5, 70,16,4),0)    55%); }",
+    "  100% { background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-1, 80,15,110),0.62) 0%, rgba(var(--tmx-pulse-1, 80,15,110),0)  55%); }",
     "}",
     "#tmx-soul {",
     "  position: absolute;",
@@ -186,9 +195,9 @@
     "  top: 12px;",
     "  left: 12px;",
     "  background: radial-gradient(ellipse at 42% 40%,",
-    "    rgba(48,12,150,0.88)   0%,",
-    "    rgba(16,4,68,0.74)     45%,",
-    "    rgba(4,0,24,0)         100%",
+    "    rgba(var(--tmx-haze-1, 48,12,150),0.88)   0%,",
+    "    rgba(var(--tmx-haze-2, 16,4,68),0.74)     45%,",
+    "    rgba(var(--tmx-haze-3, 4,0,24),0)         100%",
     "  );",
     "  filter: blur(19px);",
     "  animation:",
@@ -204,9 +213,9 @@
     "  top: 0px;",
     "  left: 31px;",
     "  background: radial-gradient(ellipse at 48% 44%,",
-    "    rgba(88,8,95,0.84)     0%,",
-    "    rgba(45,4,60,0.66)     48%,",
-    "    rgba(16,1,28,0)        100%",
+    "    rgba(var(--tmx-haze-4, 88,8,95),0.84)     0%,",
+    "    rgba(var(--tmx-haze-5, 45,4,60),0.66)     48%,",
+    "    rgba(var(--tmx-haze-6, 16,1,28),0)        100%",
     "  );",
     "  filter: blur(24px);",
     "  animation:",
@@ -222,9 +231,9 @@
     "  top: 31px;",
     "  left: 0px;",
     "  background: radial-gradient(ellipse at 44% 46%,",
-    "    rgba(12,6,100,0.90)    0%,",
-    "    rgba(6,2,55,0.70)      50%,",
-    "    rgba(2,0,22,0)         100%",
+    "    rgba(var(--tmx-haze-7, 12,6,100),0.90)    0%,",
+    "    rgba(var(--tmx-haze-8, 6,2,55),0.70)      50%,",
+    "    rgba(var(--tmx-haze-9, 2,0,22),0)         100%",
     "  );",
     "  filter: blur(22px);",
     "  animation:",
@@ -378,8 +387,8 @@
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
-    "    rgba(240,200,80,0.55) 0%,",
-    "    rgba(220,170,50,0.28) 40%,",
+    "    rgba(var(--tmx-dust-3, 240,200,80),0.55) 0%,",
+    "    rgba(var(--tmx-dust-4, 220,170,50),0.28) 40%,",
     "    transparent           100%",
     "  );",
     "  filter: blur(10px);",
@@ -396,8 +405,8 @@
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
-    "    rgba(255,210,90,0.48) 0%,",
-    "    rgba(220,165,45,0.22) 45%,",
+    "    rgba(var(--tmx-dust-5, 255,210,90),0.48) 0%,",
+    "    rgba(var(--tmx-dust-6, 220,165,45),0.22) 45%,",
     "    transparent           100%",
     "  );",
     "  filter: blur(12px);",
@@ -414,8 +423,8 @@
     "  pointer-events: none;",
     "  border-radius: 50%;",
     "  background: radial-gradient(ellipse at 50% 50%,",
-    "    rgba(235,195,75,0.32) 0%,",
-    "    rgba(210,160,40,0.12) 55%,",
+    "    rgba(var(--tmx-dust-7, 235,195,75),0.32) 0%,",
+    "    rgba(var(--tmx-dust-8, 210,160,40),0.12) 55%,",
     "    transparent           100%",
     "  );",
     "  filter: blur(16px);",
@@ -439,9 +448,9 @@
     "  transform-origin: right center;",
     "  background: linear-gradient(90deg,",
     "    transparent              0%,",
-    "    rgba(190,210,255,0.08)   18%,",
-    "    rgba(205,218,255,0.38)   52%,",
-    "    rgba(210,220,255,0.14)   82%,",
+    "    rgba(var(--tmx-trail-1, 190,210,255),0.08)   18%,",
+    "    rgba(var(--tmx-trail-2, 205,218,255),0.38)   52%,",
+    "    rgba(var(--tmx-trail-3, 210,220,255),0.14)   82%,",
     "    transparent             100%",
     "  );",
     "}",
@@ -459,7 +468,7 @@
     "  font-family: Georgia, 'Palatino Linotype', serif;",
     "  letter-spacing: 0.18em;",
     "  text-transform: uppercase;",
-    "  color: rgba(215,205,245,1);",
+    "  color: rgba(var(--tmx-whisper-1, 215,205,245),1);",
     "  opacity: 0;",
     "  transition: opacity 3s ease-in-out;",
     "  -webkit-user-select: none;",
@@ -484,8 +493,8 @@
     "  border-radius: 30px;",
     "  filter: blur(15px);",
     "  transform-origin: 50% 50%;",
-    "  background: radial-gradient(ellipse at 50% 50%, rgba(0,229,255,0.80) 0%, rgba(123,47,247,0.48) 45%, rgba(168,85,247,0.24) 75%, transparent 100%);",
-    "  box-shadow: 0 0 30px 7px rgba(0,229,255,0.45), 0 0 60px 13px rgba(123,47,247,0.32), 0 0 100px 18px rgba(168,85,247,0.18);",
+    "  background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0,229,255),0.80) 0%, rgba(var(--tmx-chat-glow-b, 123,47,247),0.48) 45%, rgba(var(--tmx-chat-glow-c, 168,85,247),0.24) 75%, transparent 100%);",
+    "  box-shadow: 0 0 30px 7px rgba(var(--tmx-chat-glow-a, 0,229,255),0.45), 0 0 60px 13px rgba(var(--tmx-chat-glow-b, 123,47,247),0.32), 0 0 100px 18px rgba(var(--tmx-chat-glow-c, 168,85,247),0.18);",
     "  animation: tmx-chat-glow-breathe 5s ease-in-out infinite;",
     "}",
     "@keyframes tmx-chat-glow-breathe {",
@@ -777,7 +786,7 @@
     "  );",
     "}"
 
-  ].join("\n");
+  ].join("\n") + MIST_STILL;
   document.head.appendChild(style);
 
   /* ── DOM ── */
@@ -795,45 +804,56 @@
   var starEls = [];
 
   var STARS = [
-    /* top, left, sz, color,     glow,                       lo,   hi,   dur,    del,    motion,          mdur,   mdel   */
+    /* top, left, sz, part,    glow alpha,          lo,   hi,   dur,    del,    motion,          mdur,   mdel   */
     /* ── swirl ── */
-    [  7,   17,   4, "#ffffff", "rgba(200,220,255,0.70)",   0.12, 1.00, "6.0s", "0.0s", "tmx-sswirl-1", "28s",  "0.0s" ],
-    [ 42,    6,   6, "#ffe896", "rgba(255,220,100,0.70)",   0.08, 0.92, "5.5s", "2.1s", "tmx-sswirl-2", "24s",  "1.3s" ],
-    [ 76,   24,   5, "#ffffff", "rgba(200,220,255,0.68)",   0.10, 0.95, "4.2s", "1.8s", "tmx-sswirl-1", "26s",  "8.2s" ],
-    [ 95,   82,   5, "#ffffff", "rgba(200,220,255,0.70)",   0.10, 0.96, "3.5s", "2.6s", "tmx-sswirl-2", "32s",  "7.1s" ],
+    [  7,   17,   4, "star",  0.70,   0.12, 1.00, "6.0s", "0.0s", "tmx-sswirl-1", "28s",  "0.0s" ],
+    [ 42,    6,   6, "spark", 0.70,   0.08, 0.92, "5.5s", "2.1s", "tmx-sswirl-2", "24s",  "1.3s" ],
+    [ 76,   24,   5, "star",  0.68,   0.10, 0.95, "4.2s", "1.8s", "tmx-sswirl-1", "26s",  "8.2s" ],
+    [ 95,   82,   5, "star",  0.70,   0.10, 0.96, "3.5s", "2.6s", "tmx-sswirl-2", "32s",  "7.1s" ],
     /* ── orbit ── */
-    [  5,   65,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.10, 0.95, "4.5s", "0.7s", "tmx-sorbit-1", "22s",  "2.1s" ],
-    [ 30,   50,   7, "#ffffff", "rgba(200,220,255,0.80)",   0.10, 1.00, "3.8s", "0.4s", "tmx-sorbit-2", "30s",  "6.0s" ],
-    [ 68,  102,   5, "#ffe896", "rgba(255,220,100,0.65)",   0.08, 0.88, "7.5s", "3.5s", "tmx-sorbit-1", "18s",  "0.8s" ],
-    [100,   11,   6, "#ffe896", "rgba(255,220,100,0.72)",   0.08, 0.92, "8.0s", "4.2s", "tmx-sorbit-2", "25s",  "2.9s" ],
+    [  5,   65,   5, "spark", 0.65,   0.10, 0.95, "4.5s", "0.7s", "tmx-sorbit-1", "22s",  "2.1s" ],
+    [ 30,   50,   7, "star",  0.80,   0.10, 1.00, "3.8s", "0.4s", "tmx-sorbit-2", "30s",  "6.0s" ],
+    [ 68,  102,   5, "spark", 0.65,   0.08, 0.88, "7.5s", "3.5s", "tmx-sorbit-1", "18s",  "0.8s" ],
+    [100,   11,   6, "spark", 0.72,   0.08, 0.92, "8.0s", "4.2s", "tmx-sorbit-2", "25s",  "2.9s" ],
     /* ── blink only ── */
-    [ 20,   96,   4, "#ffffff", "rgba(200,220,255,0.65)",   0.14, 1.00, "7.0s", "1.4s", "tmx-snone",    "60s",  "4.5s" ],
-    [ 62,   89,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.5s", "2.9s", "tmx-snone",    "60s",  "3.7s" ],
-    [ 90,   55,   4, "#ffffff", "rgba(200,220,255,0.62)",   0.14, 1.00, "5.0s", "1.1s", "tmx-snone",    "60s",  "5.5s" ],
-    [ 49,   38,   4, "#ffe896", "rgba(255,220,100,0.60)",   0.12, 0.90, "6.0s", "3.2s", "tmx-snone",    "60s",  "4.0s" ]
+    [ 20,   96,   4, "star",  0.65,   0.14, 1.00, "7.0s", "1.4s", "tmx-snone",    "60s",  "4.5s" ],
+    [ 62,   89,   4, "spark", 0.60,   0.12, 0.90, "6.5s", "2.9s", "tmx-snone",    "60s",  "3.7s" ],
+    [ 90,   55,   4, "star",  0.62,   0.14, 1.00, "5.0s", "1.1s", "tmx-snone",    "60s",  "5.5s" ],
+    [ 49,   38,   4, "spark", 0.60,   0.12, 0.90, "6.0s", "3.2s", "tmx-snone",    "60s",  "4.0s" ]
   ];
 
+  /* A star's colours are the mist's --tmx-star-* (white) or --tmx-spark-*
+     (gold) tokens, today's channels as the fallback: 1 is the star, 2 its glow.
+     Written as one style attribute, so the var()s reach the browser as they
+     are and the motion settings ride in the same place. */
+  var STAR_TONES = {
+    star:  ["--tmx-star-1", "255, 255, 255", "--tmx-star-2", "200, 220, 255"],
+    spark: ["--tmx-spark-1", "255, 232, 150", "--tmx-spark-2", "255, 220, 100"]
+  };
   STARS.forEach(function (s) {
     var el = document.createElement("div");
     el.className = "tmx-star";
     var sz = s[2];
-    el.style.cssText = [
+    var tone = STAR_TONES[s[3]];
+    var colour = "rgb(var(" + tone[0] + ", " + tone[1] + "))";
+    var glow = "rgba(var(" + tone[2] + ", " + tone[3] + "), " + s[4].toFixed(2) + ")";
+    el.setAttribute("style", [
       "top:"    + s[0] + "px",
       "left:"   + s[1] + "px",
       "width:"  + sz   + "px",
       "height:" + sz   + "px",
-      "color:"  + s[3],
+      "color:"  + colour,
       "background:radial-gradient(ellipse at 50% 50%," +
-        s[3] + " 0%," + s[4] + " 45%,transparent 100%)",
-      "box-shadow:0 0 " + (sz*1.2) + "px " + (sz*0.4) + "px " + s[4]
-    ].join(";");
-    el.style.setProperty("--sp-lo",   String(s[5]));
-    el.style.setProperty("--sp-hi",   String(s[6]));
-    el.style.setProperty("--sp-dur",  s[7]);
-    el.style.setProperty("--sp-del",  s[8]);
-    el.style.setProperty("--sd-name", s[9]);
-    el.style.setProperty("--sd-dur",  s[10]);
-    el.style.setProperty("--sd-del",  s[11]);
+        colour + " 0%," + glow + " 45%,transparent 100%)",
+      "box-shadow:0 0 " + (sz*1.2) + "px " + (sz*0.4) + "px " + glow,
+      "--sp-lo:"   + String(s[5]),
+      "--sp-hi:"   + String(s[6]),
+      "--sp-dur:"  + s[7],
+      "--sp-del:"  + s[8],
+      "--sd-name:" + s[9],
+      "--sd-dur:"  + s[10],
+      "--sd-del:"  + s[11]
+    ].join(";"));
     root.appendChild(el);
     starEls.push(el);
   });
@@ -2120,6 +2140,8 @@
   var patternIdx = 0;
 
   setInterval(function () {
+    /* Under reduced motion the stars stay where they are. */
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     patternIdx = (patternIdx + 1) % PATTERNS.length;
     var pts = PATTERNS[patternIdx];
     starEls.forEach(function (el, i) {

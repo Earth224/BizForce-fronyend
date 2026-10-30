@@ -13,7 +13,20 @@
    without a change here.
 
    The arithmetic (tokens, readability) is scripts/bf-theme.js's, loaded first
-   on this page, so the preview and the meter use exactly what every page uses. */
+   on this page, so the preview and the meter use exactly what every page uses.
+
+   EVERY COLOUR (Block 4b). Below the corners, five more parts: "Buttons",
+   "Termaximus mist", "Chat glow", "Guide text" and "BizForceAI wordmark".
+   Each has six presets (Original, and the corner presets' families, made by
+   the Match everything rule from that family's two glows), its own colours
+   (a picker and a hex field each), "Match my theme" (that part from the
+   member's own corners) and a reset ("Reset this element"; for the mist,
+   "Reset mist to original"). "Match everything" derives every part from the
+   corners at once (bf-theme.js matchAll, the same rule as lib/themes.js);
+   while it is on, the parts follow the corners and their controls rest;
+   turning it off keeps the derived colours to tune by hand. They are keys of
+   the same saved theme, so every part goes where the theme goes: all pages,
+   this page, or the pages ticked. */
 (function () {
   "use strict";
 
@@ -36,6 +49,35 @@
     content: "Content & tools",
     account: "Account"
   };
+  /* The element parts: each colour key with the id of its picker and hex
+     field (<id>Color, <id>Hex) in settings.html. */
+  var PARTS = {
+    buttons: [["btn_a", "tsBtnA"], ["btn_b", "tsBtnB"], ["btn_text", "tsBtnText"]],
+    mist: [["mist_core", "tsMistCore"], ["mist_haze", "tsMistHaze"], ["mist_pulse", "tsMistPulse"], ["mist_spark", "tsMistSpark"],
+      ["mist_star", "tsMistStar"], ["mist_dust", "tsMistDust"], ["mist_trail", "tsMistTrail"], ["mist_whisper", "tsMistWhisper"]],
+    chat: [["chat_glow_a", "tsChatA"], ["chat_glow_b", "tsChatB"]],
+    guide: [["guide_a", "tsGuideA"], ["guide_b", "tsGuideB"]],
+    mark: [["mark_a", "tsMarkA"], ["mark_b", "tsMarkB"]]
+  };
+  var PART_NAMES = { buttons: "Buttons", mist: "Termaximus mist", chat: "Chat glow", guide: "Guide text", mark: "BizForceAI wordmark" };
+  /* A part's preset: "original" is today's colours; any other is that corner
+     family's two glows through the Match everything rule. */
+  function partPreset(part, id) {
+    var from = id === "original" ? T.DEFAULT_THEME : null;
+    if (!from) {
+      var fam = PRESETS.filter(function (p) { return p.id === id; })[0];
+      if (!fam) return null;
+      from = T.matchAll(fam.theme.glow_a, fam.theme.glow_b);
+    }
+    var out = {};
+    PARTS[part].forEach(function (p) { out[p[0]] = from[p[0]]; });
+    return out;
+  }
+  function partFromCorners(part) {
+    var d = T.matchAll(editing.glow_a, editing.glow_b), out = {};
+    PARTS[part].forEach(function (p) { out[p[0]] = d[p[0]]; });
+    return out;
+  }
   var PHOTO_MAX = 5 * 1024 * 1024;
   var PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -101,21 +143,55 @@
   }
 
   /* ── preview and meter ──────────────────────────────────────────────── */
+  /* What the meter says about each part. */
+  function elementLines(r) {
+    var e = r.elements, lines = [];
+    var b = e.buttons;
+    lines.push(b.original ? "Buttons: the original look."
+      : "Button text " + b.ratio.toFixed(1) + ":1" + (b.fix === "text" ? ", set to " + (b.text === T.WHITE ? "white" : "near-black") + " so it stays clear."
+        : b.fix === "shade" ? ", white on a gradient shaded a little so it stays clear." : "."));
+    [["guide", "Guide text"], ["mark", "Wordmark"]].forEach(function (x) {
+      var g = e[x[0]];
+      lines.push(x[1] + " " + g.ratio.toFixed(1) + ":1" + (g.original ? " (the original)." : g.fix ? ", lightened so it stays clear." : "."));
+    });
+    return lines;
+  }
+
   function render() {
     var preview = $("tsPreview");
-    var tokens = T.tokensFor(editing, photoUrl, window);
+    /* The preview starts from every token at the original, so it never shows
+       the theme this page itself is wearing. */
+    var tokens = Object.assign(T.originalTokens(), T.tokensFor(editing, photoUrl, window));
     Object.keys(tokens).forEach(function (k) { preview.style.setProperty(k, tokens[k]); });
     preview.setAttribute("data-alive", tokens["--bf-alive"]);
 
     var r = T.readability(editing);
     var stateEl = $("tsMeterState");
-    stateEl.textContent = r.protected ? "Auto-protected" : "Readable";
-    $("tsMeter").setAttribute("data-state", r.protected ? "protected" : "readable");
+    var guarded = r.protected || r.elementsFixed;
+    stateEl.textContent = guarded ? "Auto-protected" : "Readable";
+    $("tsMeter").setAttribute("data-state", guarded ? "protected" : "readable");
     $("tsMeterRatios").textContent =
       "Text " + r.ratios.text.toFixed(1) + ":1 · Muted text " + r.ratios.muted.toFixed(1) + ":1 · Accent " + r.ratios.accent.toFixed(1) + ":1";
-    $("tsMeterNote").textContent = r.protected
+    $("tsMeterNote").textContent = (r.protected
       ? "This backdrop is bright, so it is shaded just enough for text to stay clear (at least 7:1, and 4.5:1 for muted text). Your colours are kept."
-      : "Text stays clear on this backdrop: at least 7:1, and 4.5:1 for muted text.";
+      : "Text stays clear on this backdrop: at least 7:1, and 4.5:1 for muted text.") +
+      (r.elementsFixed ? " Some parts were adjusted to stay readable (button text and guide text 4.5:1, the wordmark 3:1); each is listed here." : "");
+    var list = $("tsMeterElements");
+    list.innerHTML = "";
+    elementLines(r).forEach(function (line) { var li = document.createElement("li"); li.textContent = line; list.appendChild(li); });
+
+    Object.keys(PARTS).forEach(function (part) {
+      PARTS[part].forEach(function (p) {
+        $(p[1] + "Color").value = editing[p[0]]; $(p[1] + "Hex").value = editing[p[0]];
+        $(p[1] + "Color").disabled = editing.match_all === true; $(p[1] + "Hex").disabled = editing.match_all === true;
+      });
+    });
+    Array.prototype.forEach.call(root.querySelectorAll(".ts-el-preset"), function (btn) {
+      var part = btn.getAttribute("data-el"), want = partPreset(part, btn.getAttribute("data-preset"));
+      btn.setAttribute("aria-pressed", want && Object.keys(want).every(function (k) { return editing[k] === want[k]; }) ? "true" : "false");
+      btn.disabled = editing.match_all === true;
+    });
+    $("tsMatchAll").checked = editing.match_all === true;
 
     $("tsGlowAColor").value = editing.glow_a; $("tsGlowAHex").value = editing.glow_a;
     $("tsGlowBColor").value = editing.glow_b; $("tsGlowBHex").value = editing.glow_b;
@@ -147,7 +223,14 @@
       : "Not saved yet.";
   }
 
-  function set(key, value) { editing[key] = value; render(); }
+  /* With "Match everything" on, every part follows the corners. */
+  function followCorners() {
+    if (editing.match_all !== true) return;
+    var d = T.matchAll(editing.glow_a, editing.glow_b);
+    Object.keys(d).forEach(function (k) { editing[k] = d[k]; });
+  }
+  function set(key, value) { editing[key] = value; followCorners(); render(); }
+  function setPart(values) { Object.keys(values).forEach(function (k) { editing[k] = values[k]; }); render(); }
 
   function wireColour(pickerId, hexId, key) {
     $(pickerId).addEventListener("input", function () { set(key, this.value.toLowerCase()); });
@@ -334,12 +417,50 @@
       Object.keys(p.theme).forEach(function (k) { editing[k] = p.theme[k]; });
       editing.photo = null; editing.photo_luma = 0; photoUrl = null;
       if (!editingId) $("tsName").value = p.name;
+      followCorners();
       render();
     });
   });
   wireColour("tsGlowAColor", "tsGlowAHex", "glow_a");
   wireColour("tsGlowBColor", "tsGlowBHex", "glow_b");
   wireColour("tsBgColor", "tsBgHex", "bg");
+
+  /* ── every colour: the parts ────────────────────────────────────────── */
+  Object.keys(PARTS).forEach(function (part) {
+    PARTS[part].forEach(function (p) { wireColour(p[1] + "Color", p[1] + "Hex", p[0]); });
+  });
+  Array.prototype.forEach.call(root.querySelectorAll(".ts-el-preset"), function (btn) {
+    var part = btn.getAttribute("data-el"), want = partPreset(part, btn.getAttribute("data-preset"));
+    var sw = btn.querySelector(".ts-el-swatch");
+    if (sw && want) {
+      var cols = Object.keys(want).map(function (k) { return want[k]; }).slice(0, 2);
+      sw.style.background = "linear-gradient(135deg," + cols[0] + "," + (cols[1] || cols[0]) + ")";
+    }
+    btn.addEventListener("click", function () { if (want) setPart(want); });
+  });
+  Array.prototype.forEach.call(root.querySelectorAll("[data-el-match]"), function (btn) {
+    btn.addEventListener("click", function () {
+      var part = btn.getAttribute("data-el-match");
+      setPart(partFromCorners(part));
+      say("tsMsg", "“" + PART_NAMES[part] + "” now matches your corner glows.", "ok");
+    });
+  });
+  Array.prototype.forEach.call(root.querySelectorAll("[data-el-reset]"), function (btn) {
+    btn.addEventListener("click", function () {
+      var part = btn.getAttribute("data-el-reset");
+      var wasMatching = editing.match_all === true;
+      editing.match_all = false;   // or the corners would take the part straight back
+      setPart(partPreset(part, "original"));
+      say("tsMsg", (part === "mist" ? "The mist is back to its original colours." : "“" + PART_NAMES[part] + "” is back to the original.") +
+        (wasMatching ? " \"Match everything\" is off, so it stays that way." : ""), "ok");
+    });
+  });
+  $("tsMatchAll").addEventListener("change", function () {
+    editing.match_all = this.checked;
+    followCorners();
+    render();
+    say("tsMsg", this.checked ? "Every part now takes its colours from your corner glows." : "\"Match everything\" is off. The colours stay as they are, for you to fine-tune.", "ok");
+  });
   $("tsGlowAAlpha").addEventListener("input", function () { set("glow_a_alpha", Number(this.value) / 100); });
   $("tsGlowBAlpha").addEventListener("input", function () { set("glow_b_alpha", Number(this.value) / 100); });
   $("tsDim").addEventListener("input", function () { set("dim", Number(this.value) / 100); });
@@ -400,7 +521,12 @@
     b.removeAttribute("data-confirm");
     b.textContent = "Reset everything to the original";
     call("POST", "/api/themes/reset", { scope: "all" })
-      .then(function (next) { took(next, "Every page is back to the original look. Your saved themes are kept."); })
+      .then(function (next) {
+        /* The editor goes back to the original too: every part, every colour. */
+        editing = clone(T.DEFAULT_THEME); editingId = null; savedSnapshot = null; photoUrl = null;
+        $("tsName").value = "";
+        took(next, "Every page is back to the original look, every part included. Your saved themes are kept.");
+      })
       .catch(function (err) { say("tsMsg", err.message, "err"); });
   });
 
@@ -414,6 +540,6 @@
     }).catch(function (err) { say("tsMsg", err.message, "err"); });
   }
 
-  window.BFThemeStudio = { PRESETS: PRESETS, GROUP_LABELS: GROUP_LABELS, start: start, thisPageKey: thisPageKey };
+  window.BFThemeStudio = { PRESETS: PRESETS, GROUP_LABELS: GROUP_LABELS, PARTS: PARTS, partPreset: partPreset, start: start, thisPageKey: thisPageKey };
   if (localStorage.getItem("bf_token")) start();
 })();

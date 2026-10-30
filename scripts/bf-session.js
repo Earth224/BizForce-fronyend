@@ -39,9 +39,11 @@
      Everything a signed-in member leaves in this browser that is theirs:
      the credentials, the offline-copy setting and copy (scripts/bf-offline.js),
      dashboard.html's task-mailbox and agent-memory caches, the Oracle's birth
-     name and date, the sales page's daily goal, and the Termaximus insights
-     cached for this tab. Called by dashboard.html's and settings.html's Sign
-     Out, by endSession below, by the account delete on your-data.html, and by
+     name and date, the sales page's daily goal, the Termaximus insights
+     cached for this tab, and bf_theme, the member's themes as scripts/bf-theme.js
+     caches them (their look, and their backdrop photo's address), so the next
+     person at this browser, and the sign-in page, see the original look.
+     Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
      app.html whenever it opens with no session.
 
      LEFT ON PURPOSE (display choices, not a member's data): bf_editor_theme,
@@ -51,9 +53,7 @@
      its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
-     bf_theme (the device's cache of the member's themes, so a page shows its
-     look before first paint; scripts/bf-theme.js applies it only to the
-     member it belongs to, or when nobody is signed in), and bf_return_to (the public page to return to after signing in, which
+     and bf_return_to (the public page to return to after signing in, which
      app.html must still find). The backend's scripts/checkOfflineMode.js
      fails on any storage key in the frontend that is on neither list.
 
@@ -65,7 +65,8 @@
     "bf_offline_copy",
     "bizforce_ai_mailbox", "bf_agent_memories",
     "bf_oracle_name", "bf_oracle_date",
-    "mcTargetGoalConversions"
+    "mcTargetGoalConversions",
+    "bf_theme"
   ];
   var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail"];
   var OFFLINE_DB = "bf-offline";

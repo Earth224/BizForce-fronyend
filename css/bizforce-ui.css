@@ -108,6 +108,22 @@
   --bf-scrim: 0;
 }
 
+/* THE ELEMENT TOKENS (Block 4b). The rest of the look a member can change.
+   Unlike the backdrop tokens above, these have NO default here or anywhere:
+   every place that draws one reads var(--token, its own colour), so a page
+   whose wordmark or buttons were always a little different keeps them, and a
+   member's theme (scripts/bf-theme.js, on <html>) moves them all at once.
+
+     --bf-btn-a, --bf-btn-b   a primary button's gradient, start and end
+     --bf-btn-text            its lettering
+     --bf-mark-a, --bf-mark-b the "BizForce AI" wordmark, wherever it is drawn
+     --bf-guide-a, -b         the Termaximus guide's lettering
+     --tmx-chat-glow-a, -b, -c and --tmx-<part>-<n>: the chat box's glow and
+                              the mist (scripts/termaximus-presence.js)
+
+   Public pages never load bf-theme.js, so they always show the fallbacks:
+   their owner's look, never the visitor's. */
+
 /* ── App shell & topbar (Dashboard V2) ── */
 .app-shell {
   min-height: 100vh;
@@ -155,7 +171,7 @@
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #00e5ff, #9f6bff);
+  background: linear-gradient(135deg, var(--bf-mark-a, #00e5ff), var(--bf-mark-b, #9f6bff));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -284,6 +300,11 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* The dashboard's "BIZFORCE AI" eyebrow is the wordmark too. */
+.hq-eyebrow.bf-wordmark {
+  color: var(--bf-mark-a, #22d3ee);
 }
 
 .hq-hero-sub {
@@ -627,10 +648,10 @@ button.bf-btn,
   min-height: 44px;
   padding: 0 22px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #00d9ff, #7d5cff);
+  background: linear-gradient(90deg, var(--bf-btn-a, #00d9ff), var(--bf-btn-b, #7d5cff));
   font-weight: 700;
   border: none;
-  color: #fff;
+  color: var(--bf-btn-text, #fff);
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 0 16px rgba(0, 217, 255, 0.2);

@@ -49,7 +49,7 @@
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee), var(--bf-mark-b, #a855f7));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -182,8 +182,8 @@
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: #ffffff;
-      background: linear-gradient(135deg, #00e5ff, #7b2ff7);
+      color: var(--bf-btn-text, #ffffff);
+      background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff), var(--bf-btn-b, #7b2ff7));
       cursor: pointer;
       transition: all 0.25s ease;
       box-shadow: 0 4px 20px rgba(0,229,255,0.25);
@@ -516,6 +516,46 @@
     .ts-group { border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; padding: 8px 12px 10px; display: grid; gap: 4px; margin: 0; }
     .ts-group legend { padding: 0 6px; color: #8892b8; font-size: 0.85rem; }
     .ts-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    /* The element palettes (Block 4b): the preview's wordmark, button, guide tip, mist and chat glow
+       read the same tokens as the pages, the original as each fallback. */
+    .ts-preview { min-height: 360px; }
+    .ts-pv-card { margin-top: 44px; margin-bottom: 92px; }
+    .ts-pv-btn { display: inline-block; padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, var(--bf-btn-a, #06b6d4), var(--bf-btn-b, #8b5cf6)); color: var(--bf-btn-text, #ffffff); }
+    .ts-pv-head { position: absolute; top: 12px; right: 16px; }
+    .ts-pv-mark { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee), var(--bf-mark-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ts-pv-guide { position: absolute; left: 0; bottom: 16px; max-width: 52%; padding: 8px 12px; border-radius: 0 12px 12px 0; border: 1px solid rgba(168,85,247,0.28); border-left: none; background: rgba(12,18,38,0.9); color: #8888aa; font-size: 0.78rem; line-height: 1.45; }
+    .ts-pv-guide-title { display: block; margin-bottom: 4px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-guide-a, #22d3ee), var(--bf-guide-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ts-pv-guide-label { color: var(--bf-guide-a, #22d3ee); font-weight: 700; }
+    .ts-pv-mist { position: absolute; right: 22px; bottom: 22px; width: 76px; height: 76px; }
+    .ts-pv-mist span { position: absolute; pointer-events: none; }
+    .ts-pv-chatglow { left: -78px; top: 4px; width: 58px; height: 68px; border-radius: 14px; filter: blur(8px); background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0, 229, 255), 0.80) 0%, rgba(var(--tmx-chat-glow-b, 123, 47, 247), 0.48) 45%, rgba(var(--tmx-chat-glow-c, 168, 85, 247), 0.24) 75%, transparent 100%); animation: ts-pv-breathe 5s ease-in-out infinite; }
+    .ts-pv-chat { left: -70px; top: 12px; width: 42px; height: 52px; border-radius: 9px; background: rgba(2,1,10,0.98); }
+    .ts-pv-haze { inset: 6px; border-radius: 50%; filter: blur(10px); background: radial-gradient(ellipse at 45% 42%, rgba(var(--tmx-haze-1, 48,12,150), 0.88) 0%, rgba(var(--tmx-haze-2, 16,4,68), 0.74) 45%, rgba(var(--tmx-haze-3, 4,0,24), 0) 100%); }
+    .ts-pv-pulse { inset: 10px; filter: blur(10px); background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-1, 80,15,110), 0.62) 0%, rgba(var(--tmx-pulse-1, 80,15,110), 0) 55%); }
+    .ts-pv-core { left: 22px; top: 22px; width: 32px; height: 32px; border-radius: 50%; filter: blur(2px); background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-core-1, 255,255,255), 0.98) 0%, rgba(var(--tmx-core-2, 200,230,255), 0.92) 6%, rgba(var(--tmx-core-3, 100,180,255), 0.80) 14%, rgba(var(--tmx-core-4, 60,120,255), 0.60) 24%, rgba(var(--tmx-core-5, 180,100,255), 0.38) 38%, rgba(var(--tmx-dust-1, 220,168,60), 0.22) 54%, transparent 100%); animation: ts-pv-core 5.5s ease-in-out infinite; }
+    .ts-pv-dust { left: 12px; top: 6px; width: 6px; height: 32px; border-radius: 50%; filter: blur(4px); transform: rotate(-32deg); background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-dust-3, 240,200,80), 0.55) 0%, rgba(var(--tmx-dust-4, 220,170,50), 0.28) 40%, transparent 100%); }
+    .ts-pv-trail { left: -6px; top: -4px; width: 34px; height: 1px; transform: rotate(-18deg); background: linear-gradient(90deg, transparent 0%, rgba(var(--tmx-trail-1, 190,210,255), 0.08) 18%, rgba(var(--tmx-trail-2, 205,218,255), 0.38) 52%, rgba(var(--tmx-trail-3, 210,220,255), 0.14) 82%, transparent 100%); }
+    .ts-pv-spark, .ts-pv-star { width: 5px; height: 5px; border-radius: 50%; }
+    .ts-pv-spark { left: 58px; top: 10px; background: rgb(var(--tmx-spark-1, 255,232,150)); box-shadow: 0 0 6px 2px rgba(var(--tmx-spark-2, 255,220,100), 0.70); animation: ts-pv-twinkle 4.5s ease-in-out infinite; }
+    .ts-pv-star { left: 12px; top: 58px; background: rgb(var(--tmx-star-1, 255,255,255)); box-shadow: 0 0 6px 2px rgba(var(--tmx-star-2, 200,220,255), 0.70); animation: ts-pv-twinkle 3.8s ease-in-out infinite 1s; }
+    .ts-pv-whisper { left: 50%; bottom: -16px; transform: translateX(-50%); white-space: nowrap; font: 600 0.55rem Georgia, 'Palatino Linotype', serif; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(var(--tmx-whisper-1, 215,205,245), 0.58); }
+    @keyframes ts-pv-core { 0%, 100% { opacity: 0.72; transform: scale(1); } 50% { opacity: 1; transform: scale(1.22); } }
+    @keyframes ts-pv-twinkle { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
+    @keyframes ts-pv-breathe { 0%, 100% { transform: scale(1); opacity: 0.78; } 50% { transform: scale(1.06); opacity: 0.96; } }
+    @media (prefers-reduced-motion: reduce) { .ts-pv-core, .ts-pv-spark, .ts-pv-star, .ts-pv-chatglow { animation: none; } }
+    .ts-elements { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; margin-top: 10px; }
+    .ts-el { margin: 0; }
+    .ts-el .pref-note { margin: 2px 0 6px; }
+    .ts-el-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+    .ts-el-preset { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.22); background: rgba(15,23,42,0.6); color: #e8e8ff; font: inherit; font-size: 0.8rem; cursor: pointer; }
+    .ts-el-preset[aria-pressed="true"] { border-color: #22d3ee; box-shadow: 0 0 0 1px #22d3ee inset; }
+    .ts-el-preset:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+    .ts-el-preset:disabled, .ts-el input:disabled { opacity: 0.55; cursor: not-allowed; }
+    .ts-el-swatch { width: 16px; height: 16px; border-radius: 50%; flex: 0 0 auto; }
+    .ts-el-name { color: #8892b8; font-size: 0.85rem; }
+    .ts-el-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .ts-meter-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+    .ts-meter-list li { color: #e8e8ff; font-size: 0.82rem; }
   </style>
   <!-- clearDevice only: this page does not run the session guard (see the sign-out below). -->
   <script src="/scripts/bf-session.js" data-clear-only></script>
@@ -823,23 +863,207 @@
               </div>
 
               <div class="ts-side">
-                <div class="ts-preview" id="tsPreview" role="img" aria-label="Preview of your theme: the backdrop with a sample card, buttons and text">
+                <div class="ts-preview" id="tsPreview" role="img" aria-label="Preview of your theme: the backdrop with a sample card, a button, the wordmark, a guide tip, the mist and its chat glow">
                   <div class="ts-pv-middle"></div>
                   <div class="ts-pv-glows"></div>
+                  <div class="ts-pv-head" aria-hidden="true"><span class="ts-pv-mark">BizForce AI</span></div>
+                  <div class="ts-pv-guide" aria-hidden="true"><span class="ts-pv-guide-title">Termaximus guide</span><span class="ts-pv-guide-label">Tip</span> Save a look, then apply it.</div>
+                  <div class="ts-pv-mist" aria-hidden="true"><span class="ts-pv-chatglow"></span><span class="ts-pv-chat"></span><span class="ts-pv-haze"></span><span class="ts-pv-pulse"></span><span class="ts-pv-core"></span><span class="ts-pv-dust"></span><span class="ts-pv-trail"></span><span class="ts-pv-spark"></span><span class="ts-pv-star"></span><span class="ts-pv-whisper">Ask Termaximus</span></div>
                   <div class="ts-pv-card" aria-hidden="true">
                     <div class="ts-pv-title">Sample card</div>
                     <p class="ts-pv-text">Body text reads like this.</p>
                     <p class="ts-pv-muted">Muted text, for labels and captions.</p>
                     <span class="ts-pv-link">An accent link</span>
-                    <div class="ts-pv-buttons"><span class="btn ts-small">Button</span><span class="ts-pv-ghost">Secondary</span></div>
+                    <div class="ts-pv-buttons"><span class="ts-pv-btn">Button</span><span class="ts-pv-ghost">Secondary</span></div>
                   </div>
                 </div>
                 <div class="ts-meter" id="tsMeter" role="status" aria-live="polite" data-state="readable">
                   <strong id="tsMeterState">Readable</strong>
                   <span id="tsMeterRatios"></span>
                   <p class="pref-note" id="tsMeterNote"></p>
+                  <ul class="ts-meter-list" id="tsMeterElements" aria-label="Readability of each part"></ul>
                 </div>
               </div>
+            </div>
+
+            <h3 class="ts-h" id="tsElementsHeading">Every colour</h3>
+            <p class="pref-note">Each part below has presets and its own colours. "Match my theme" takes a part's colours from your two corner glows; "Match everything" does it for every part at once.</p>
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="toggle-title" id="tsMatchAllLabel">Match everything</div>
+                <div class="toggle-desc" id="tsMatchAllNote">Every part takes its colours from your two corner glows. Turn it off to fine-tune them by hand: the colours stay where they are.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="tsMatchAll" aria-labelledby="tsMatchAllLabel" aria-describedby="tsMatchAllNote" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="ts-elements" id="tsElements" aria-labelledby="tsElementsHeading">
+              <fieldset class="ts-part ts-el" data-el="buttons">
+                <legend>Buttons</legend>
+                <p class="pref-note">Every main button: its gradient and its lettering.</p>
+                <div class="ts-el-presets" role="group" aria-label="Buttons presets">
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
+                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsBtnAColor" aria-label="Buttons: gradient start colour" value="#06b6d4" />
+                  <input type="text" id="tsBtnAHex" aria-label="Buttons: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#06b6d4" />
+                  <label class="ts-el-name" for="tsBtnAColor">Gradient start</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsBtnBColor" aria-label="Buttons: gradient end colour" value="#8b5cf6" />
+                  <input type="text" id="tsBtnBHex" aria-label="Buttons: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#8b5cf6" />
+                  <label class="ts-el-name" for="tsBtnBColor">Gradient end</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsBtnTextColor" aria-label="Buttons: lettering colour" value="#ffffff" />
+                  <input type="text" id="tsBtnTextHex" aria-label="Buttons: lettering colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffffff" />
+                  <label class="ts-el-name" for="tsBtnTextColor">Lettering</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="buttons" aria-label="Buttons: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="buttons" aria-label="Buttons: reset this element">Reset this element</button>
+                </div>
+              </fieldset>
+              <fieldset class="ts-part ts-el" data-el="mist">
+                <legend>Termaximus mist</legend>
+                <p class="pref-note">Six palettes, or set each colour of the mist yourself.</p>
+                <div class="ts-el-presets" role="group" aria-label="Termaximus mist presets">
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
+                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistCoreColor" aria-label="Termaximus mist: core colour" value="#3c78ff" />
+                  <input type="text" id="tsMistCoreHex" aria-label="Termaximus mist: core colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#3c78ff" />
+                  <label class="ts-el-name" for="tsMistCoreColor">Core</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistHazeColor" aria-label="Termaximus mist: haze colour" value="#300c96" />
+                  <input type="text" id="tsMistHazeHex" aria-label="Termaximus mist: haze colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#300c96" />
+                  <label class="ts-el-name" for="tsMistHazeColor">Haze</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistPulseColor" aria-label="Termaximus mist: pulse colour" value="#500f6e" />
+                  <input type="text" id="tsMistPulseHex" aria-label="Termaximus mist: pulse colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#500f6e" />
+                  <label class="ts-el-name" for="tsMistPulseColor">Pulse</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistSparkColor" aria-label="Termaximus mist: gold sparks colour" value="#ffe896" />
+                  <input type="text" id="tsMistSparkHex" aria-label="Termaximus mist: gold sparks colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffe896" />
+                  <label class="ts-el-name" for="tsMistSparkColor">Gold sparks</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistStarColor" aria-label="Termaximus mist: white stars colour" value="#ffffff" />
+                  <input type="text" id="tsMistStarHex" aria-label="Termaximus mist: white stars colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffffff" />
+                  <label class="ts-el-name" for="tsMistStarColor">White stars</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistDustColor" aria-label="Termaximus mist: gold dust colour" value="#f0c850" />
+                  <input type="text" id="tsMistDustHex" aria-label="Termaximus mist: gold dust colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#f0c850" />
+                  <label class="ts-el-name" for="tsMistDustColor">Gold dust</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistTrailColor" aria-label="Termaximus mist: shooting star colour" value="#cddaff" />
+                  <input type="text" id="tsMistTrailHex" aria-label="Termaximus mist: shooting star colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#cddaff" />
+                  <label class="ts-el-name" for="tsMistTrailColor">Shooting star</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMistWhisperColor" aria-label="Termaximus mist: whisper colour" value="#d7cdf5" />
+                  <input type="text" id="tsMistWhisperHex" aria-label="Termaximus mist: whisper colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#d7cdf5" />
+                  <label class="ts-el-name" for="tsMistWhisperColor">Whisper</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="mist" aria-label="Termaximus mist: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="mist" aria-label="Termaximus mist: reset mist to original">Reset mist to original</button>
+                </div>
+              </fieldset>
+              <fieldset class="ts-part ts-el" data-el="chat">
+                <legend>Chat glow</legend>
+                <p class="pref-note">The pulsing glow around Termaximus's chat box.</p>
+                <div class="ts-el-presets" role="group" aria-label="Chat glow presets">
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
+                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsChatAColor" aria-label="Chat glow: inner glow colour" value="#00e5ff" />
+                  <input type="text" id="tsChatAHex" aria-label="Chat glow: inner glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#00e5ff" />
+                  <label class="ts-el-name" for="tsChatAColor">Inner glow</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsChatBColor" aria-label="Chat glow: outer glow colour" value="#7b2ff7" />
+                  <input type="text" id="tsChatBHex" aria-label="Chat glow: outer glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#7b2ff7" />
+                  <label class="ts-el-name" for="tsChatBColor">Outer glow</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="chat" aria-label="Chat glow: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="chat" aria-label="Chat glow: reset this element">Reset this element</button>
+                </div>
+              </fieldset>
+              <fieldset class="ts-part ts-el" data-el="guide">
+                <legend>Guide text</legend>
+                <p class="pref-note">The gradient lettering in the guide panel and on the phone guide sheet.</p>
+                <div class="ts-el-presets" role="group" aria-label="Guide text presets">
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
+                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsGuideAColor" aria-label="Guide text: gradient start colour" value="#22d3ee" />
+                  <input type="text" id="tsGuideAHex" aria-label="Guide text: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#22d3ee" />
+                  <label class="ts-el-name" for="tsGuideAColor">Gradient start</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsGuideBColor" aria-label="Guide text: gradient end colour" value="#a855f7" />
+                  <input type="text" id="tsGuideBHex" aria-label="Guide text: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                  <label class="ts-el-name" for="tsGuideBColor">Gradient end</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="guide" aria-label="Guide text: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="guide" aria-label="Guide text: reset this element">Reset this element</button>
+                </div>
+              </fieldset>
+              <fieldset class="ts-part ts-el" data-el="mark">
+                <legend>BizForceAI wordmark</legend>
+                <p class="pref-note">The "BizForce AI" wordmark at the top of each page.</p>
+                <div class="ts-el-presets" role="group" aria-label="BizForceAI wordmark presets">
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
+                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMarkAColor" aria-label="BizForceAI wordmark: gradient start colour" value="#22d3ee" />
+                  <input type="text" id="tsMarkAHex" aria-label="BizForceAI wordmark: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#22d3ee" />
+                  <label class="ts-el-name" for="tsMarkAColor">Gradient start</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMarkBColor" aria-label="BizForceAI wordmark: gradient end colour" value="#a855f7" />
+                  <input type="text" id="tsMarkBHex" aria-label="BizForceAI wordmark: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                  <label class="ts-el-name" for="tsMarkBColor">Gradient end</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="mark" aria-label="BizForceAI wordmark: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="mark" aria-label="BizForceAI wordmark: reset this element">Reset this element</button>
+                </div>
+              </fieldset>
             </div>
 
             <div class="form-group ts-save">
