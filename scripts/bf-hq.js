@@ -17,8 +17,28 @@
                       a click: nothing here approves on its own, and the
                       executors re-check everything on the server.
 
+   Act side, every request on a click and one request per click:
+     the command box  an agent and a typed task: POST /api/ai/tasks, then the
+                      run on its tile and in run.html. A tool: opens it on the
+                      agent's own page (#tool=<id>, read once on arrival, runs
+                      nothing). A tool that ACTS (the server's
+                      CHAIN_NON_DISPATCHABLE_TOOLS) never runs from here; it
+                      goes through approval on its own page. "Let the
+                      Executive decide": POST /api/agents/executive/plan;
+     the plan runner  each plan from the Command Center, one assignment per
+                      "Run next" (POST /api/assignments/dispatch; the server
+                      mints the chain and applies every guard). The next one
+                      always needs another click;
+     the controls     "Automatic" (PUT /api/agent-autonomy) and Pause / Resume
+                      (the schedule routes), beside each tile, never opening it;
+     voice            the browser's own SpeechRecognition fills the box and
+                      nothing else. Hidden where the browser has none.
+   Refusals are shown by name: a 402, the platform's daily AI limit, the
+   250-a-day cap, the per-minute limit, not entitled, chaining off.
+
    textContent only. Motion: a pulse on a running agent and on a real alert,
-   nothing else, and none under prefers-reduced-motion.
+   the console's caret, and a send pulse on a success, nothing else, and none
+   under prefers-reduced-motion.
    ══════════════════════════════════════════════════════════════════════════ */
 (function headquarters() {
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -29,26 +49,79 @@
   var HQ_BUSY_MS = 15000;
   var HQ_MAX_BACKOFF_MS = 300000;
 
-  // Each agent's page and accent, as the page's own AGENT_PROFILE_CONFIG has it.
+  // Each agent's page and accent, as the page's own AGENT_PROFILE_CONFIG has it,
+  // and its canonical name (lib/agentLive.js AGENT_NAMES).
   var AGENTS = {
-    ads:                { page: "/ads-agent.html",                accent: "#818cf8" },
-    analytics:          { page: "/agents/analytics.html",         accent: "#60a5fa" },
-    broker:             { page: "/broker-agent.html",             accent: "#c084fc" },
-    community:          { page: "/community-agent.html",          accent: "#4ade80" },
-    content:            { page: "/agents/content.html",           accent: "#34d399" },
-    email:              { page: "/email-agent.html",              accent: "#fbbf24" },
-    etsy:               { page: "/etsy-agent.html",               accent: "#fb923c" },
-    executive:          { page: "/executive-agent.html",          accent: "#e2e8f0" },
-    influencer:         { page: "/influencer-agent.html",         accent: "#e879f9" },
-    operations:         { page: "/operations-agent.html",         accent: "#94a3b8" },
-    publicist:          { page: "/publicist-agent.html",          accent: "#fcd34d" },
-    rd:                 { page: "/rd-agent.html",                 accent: "#22d3ee" },
-    reputation:         { page: "/reputation-agent.html",         accent: "#f87171" },
-    sales:              { page: "/agents/sales.html",             accent: "#a855f7" },
-    seo:                { page: "/agents/seo.html",               accent: "#22d3ee" },
-    social:             { page: "/agents/social.html",            accent: "#f472b6" },
-    store:              { page: "/store-agent.html",              accent: "#38bdf8" },
-    vertical_marketing: { page: "/vertical-marketing-agent.html", accent: "#a3e635" }
+    ads:                { page: "/ads-agent.html",                accent: "#818cf8", name: "Ads Agent" },
+    analytics:          { page: "/agents/analytics.html",         accent: "#60a5fa", name: "Analytics Agent" },
+    broker:             { page: "/broker-agent.html",             accent: "#c084fc", name: "Broker Agent" },
+    community:          { page: "/community-agent.html",          accent: "#4ade80", name: "Community Agent" },
+    content:            { page: "/agents/content.html",           accent: "#34d399", name: "Content Agent" },
+    email:              { page: "/email-agent.html",              accent: "#fbbf24", name: "Email Agent" },
+    etsy:               { page: "/etsy-agent.html",               accent: "#fb923c", name: "Storefront Agent" },
+    executive:          { page: "/executive-agent.html",          accent: "#e2e8f0", name: "Executive Agent" },
+    influencer:         { page: "/influencer-agent.html",         accent: "#e879f9", name: "Influencer Agent" },
+    operations:         { page: "/operations-agent.html",         accent: "#94a3b8", name: "Operations Agent" },
+    publicist:          { page: "/publicist-agent.html",          accent: "#fcd34d", name: "Publicist Agent" },
+    rd:                 { page: "/rd-agent.html",                 accent: "#22d3ee", name: "R&D Agent" },
+    reputation:         { page: "/reputation-agent.html",         accent: "#f87171", name: "Reputation Agent" },
+    sales:              { page: "/agents/sales.html",             accent: "#a855f7", name: "Sales Agent" },
+    seo:                { page: "/agents/seo.html",               accent: "#22d3ee", name: "SEO Agent" },
+    social:             { page: "/agents/social.html",            accent: "#f472b6", name: "Social Agent" },
+    store:              { page: "/store-agent.html",              accent: "#38bdf8", name: "Store Agent" },
+    vertical_marketing: { page: "/vertical-marketing-agent.html", accent: "#a3e635", name: "Vertical Marketing Agent" }
+  };
+  // Each agent page's tools, as the app map lists them ([data-tool-run] on that page).
+  var TOOLS = {
+    ads: [["copy", "Ad Copy"], ["policy-check", "Policy Check"]],
+    analytics: [["funnel", "Funnel Analysis"], ["kpi-review", "KPI Review"], ["arrivals", "Arrivals Ledger"]],
+    broker: [["term-sheet", "Term Sheet Framework"], ["due-diligence", "Due Diligence Checklist"]],
+    community: [["onboarding", "Member Onboarding"], ["engagement-calendar", "Engagement Calendar"], ["audience", "Audience Ledger"]],
+    content: [["outline", "Article Outline"], ["audit", "Article Audit"]],
+    email: [["sequence", "Email Sequence"], ["subject-lines", "Subject Lines"]],
+    etsy: [["keyword-research", "Keyword Research"], ["pricing-strategy", "Pricing Strategy"]],
+    executive: [["plan", "Executive Plan"]],
+    influencer: [["outreach", "Creator Outreach"], ["partnership-offer", "Partnership Offer"]],
+    operations: [["sop", "Standard Operating Procedure"], ["checklist", "Checklist"]],
+    publicist: [["press-release", "Press Release"], ["pitch", "Media Pitch"]],
+    rd: [["brief", "Executive Briefing"], ["competitor-scan", "Competitor Scan"]],
+    reputation: [["review-response", "Review Response"], ["review-request", "Review Request"]],
+    seo: [["audit", "Page Audit"], ["social-search", "Social Search"]],
+    social: [["post", "Platform Post"], ["calendar", "Posting Calendar"]],
+    store: [["stock-margin", "Stock & Margin"]],
+    vertical_marketing: [["positioning", "Vertical Positioning"], ["objections", "Objection Handling"], ["claims-scan", "Claims Scan"]]
+  };
+  // The tools that ACT (server.js CHAIN_NON_DISPATCHABLE_TOOLS), each with the page whose approval flow runs it.
+  var ACTING = {
+    "store/generate-proposals": { label: "Store proposals", page: "/proposals.html" },
+    "seo/generate-post": { label: "Blog post", page: "/proposals.html" },
+    "seo/optimize": { label: "Optimize", page: "/agents/seo.html" },
+    "sales/convert": { label: "Public replies to high-intent leads", page: "/agents/sales.html" },
+    "sales/lead-status": { label: "Lead status", page: "/agents/sales.html" },
+    "email/propose-sequence": { label: "Send a sequence", page: "/email-agent.html" },
+    "social/propose-post": { label: "Publish a post", page: "/agents/social.html" }
+  };
+  var DECIDE = "decide";
+  var AUTO_TEXT = "Lets background passes act for this agent (schedules, store proposals, self-review)";
+  // The dispatcher's refusal names (dispatchToolCall, POST /api/assignments/dispatch), in plain words.
+  var REASON_WORDS = {
+    chaining_disabled: "running plans is switched off on the server",
+    chain_total_calls_reached: "this chain has made all the calls it may (CHAIN_MAX_CALLS)",
+    chain_depth_reached: "the chain is as deep as it may go (CHAIN_MAX_DEPTH)",
+    chain_fanout_reached: "one step has dispatched all it may (CHAIN_MAX_FANOUT)",
+    dispatch_rate_reached: "too many dispatches in a short time; wait a minute",
+    tool_takes_external_action: "this tool acts, so it goes through approval on its own page",
+    tool_not_in_router: "the plan names a tool that does not exist",
+    tool_has_no_spec: "the tool's inputs cannot be checked",
+    body_missing_required_fields: "the plan left a required input empty",
+    entitlement_unknown: "your subscription could not be checked",
+    not_entitled: "this account is not entitled to run it",
+    plan_not_found: "no such plan belongs to this account",
+    not_an_executive_plan: "that task is not a plan",
+    plan_has_no_output: "the plan has nothing stored to run",
+    assignment_not_in_plan: "the plan has no such assignment",
+    assignment_not_dispatchable: "the plan marked it not dispatchable",
+    handler_error: "the tool failed while running"
   };
   var NEXT_WORDS = {
     no_schedule: "No schedule", disabled: "Schedule off", paused: "Paused", scheduler_off: "Scheduler off",
@@ -68,6 +141,11 @@
 
   var poll = { timer: null, base: HQ_IDLE_MS, failures: 0, stopped: null, note: "", at: 0 };
   var view = { filter: "all", sort: "attention", data: null, cc: null, queue: null, queueError: "", decided: {} };
+  // In-flight guards (one request per click) and what each answer said.
+  var act = { sending: false, dispatching: {}, controls: {}, said: {}, lastPlan: null, recognition: null, listening: false };
+
+  // The one place Headquarters navigates.
+  function go(url) { window.location.assign(url); }
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -157,8 +235,14 @@
       });
       b.setAttribute("aria-label", a.name + ": " + nowText(a) + ". Last: " + lastText(a) + ". Next: " + nextText(a) + ". Approvals: " +
         approvalsText(a) + ". Score: " + scoreText(a) + ". Opens the " + a.name + " page.");
-      b.addEventListener("click", function () { window.location.assign(meta.page); });
-      grid.appendChild(b);
+      b.addEventListener("click", function () { go(meta.page); });
+      // The controls sit beside the tile, never inside it: a button cannot hold buttons, and a control must not open the page.
+      var card = el("div", "hq-card");
+      card.setAttribute("data-hq-card", a.type);
+      card.style.setProperty("--hq-accent", meta.accent);
+      card.appendChild(b);
+      card.appendChild(controlsFor(a));
+      grid.appendChild(card);
     });
     if (empty) {
       empty.hidden = list.length !== 0;
@@ -310,6 +394,407 @@
       });
   }
 
+  /* ── the act side: requests, and what a refusal is called ── */
+  function api(method, path, body) {
+    var init = { method: method, headers: { "Authorization": "Bearer " + (tok() || "") } };
+    if (body !== undefined) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
+    return fetch(API_URL + path, init).then(function (r) {
+      return r.text().then(function (t) {
+        var parsed = null;
+        try { parsed = t ? JSON.parse(t) : null; } catch (e) { parsed = t; }
+        return { status: r.status, ok: r.ok, body: parsed };
+      });
+    });
+  }
+  function name(type) { return (AGENTS[type] && AGENTS[type].name) || type || "An agent"; }
+  function reasonWords(reason) { return REASON_WORDS[reason] || String(reason || "no reason given").replace(/_/g, " "); }
+  // Every refusal by name, in plain words, with where to go when there is somewhere.
+  function refusalOf(status, body) {
+    var b = body && typeof body === "object" ? body : {};
+    var msg = typeof body === "string" ? body : typeof b.error === "string" ? b.error : typeof b.detail === "string" ? b.detail : "";
+    if (status === 402) {
+      return { kind: "refusal", name: "Subscription required", text: b.message || msg || "This needs an active subscription.", href: b.billing_url || "/billing.html", go: "Open Billing" };
+    }
+    if (status === 429) {
+      if (/^BizForce has reached today's AI usage limit/.test(msg)) return { kind: "refusal", name: "The platform's daily AI limit is reached", text: msg };
+      if (/^Daily model-call limit reached/.test(msg)) return { kind: "refusal", name: "Your daily model-call cap is reached", text: msg, href: "#hqAlerts", go: "See today's count" };
+      return { kind: "refusal", name: "Too many requests", text: "More than 20 AI requests in a minute. Wait a minute, then press it again." };
+    }
+    if (b.refused_reason === "not_entitled" || b.refused_reason === "entitlement_unknown") {
+      return { kind: "refusal", name: "Not entitled", text: "The server says " + reasonWords(b.refused_reason) + ".", href: "/billing.html", go: "Open Billing" };
+    }
+    if (b.refused_reason === "chaining_disabled") return { kind: "refusal", name: "Running plans is switched off on the server", text: "ENABLE_AGENT_CHAINING is not on, so nothing was dispatched." };
+    if (b.refused_reason) return { kind: "refusal", name: "Refused: " + reasonWords(b.refused_reason), text: b.detail || "" };
+    if (status === 401) return { kind: "refusal", name: "Signed out", text: "Sign in again, then press it again.", href: "/app.html", go: "Sign in" };
+    return { kind: "refusal", name: "Not done (" + status + ")", text: msg || "The server gave no reason." };
+  }
+  function failureOf(e) { return { kind: "refusal", name: "The request did not complete", text: (e && e.message) || "Check the connection and press it again." }; }
+  function renderSaid(box, said) {
+    box.textContent = "";
+    box.className = box.className.replace(/\s*is-(ok|refusal|info)\b/g, "");
+    if (!said) return;
+    box.classList.add("is-" + said.kind);
+    if (said.name) box.appendChild(el("strong", "hq-said-name", said.name + (said.text ? ". " : "")));
+    if (said.text) box.appendChild(document.createTextNode(said.text));
+    if (said.href) {
+      box.appendChild(document.createTextNode(" "));
+      var a = el("a", "hq-link", said.go || "Open");
+      a.setAttribute("href", said.href);
+      box.appendChild(a);
+    }
+    if (said.open) {
+      box.appendChild(document.createTextNode(" "));
+      var b = el("button", "hq-btn", said.open.label);
+      b.type = "button";
+      b.setAttribute("data-hq-open", said.open.page);
+      box.appendChild(b);
+    }
+  }
+  function refreshNow() {
+    if (poll.timer) clearTimeout(poll.timer);
+    poll.timer = null;
+    fetchLive();
+  }
+  function reloadCenter() {
+    if (window.BFCommandCenter && typeof window.BFCommandCenter.load === "function") window.BFCommandCenter.load();
+  }
+
+  /* ── the controls beside each tile ── */
+  function controlsFor(a) {
+    var row = el("div", "hq-controls");
+    row.setAttribute("role", "group");
+    row.setAttribute("aria-label", a.name + " controls");
+    var busy = !!act.controls[a.type];
+    if (typeof a.autonomy === "boolean") {
+      var auto = el("button", "hq-ctl" + (a.autonomy ? " is-on" : ""), "Automatic: " + (a.autonomy ? "On" : "Off"));
+      auto.type = "button";
+      auto.setAttribute("data-hq-ctl", "autonomy");
+      auto.setAttribute("data-hq-for", a.type);
+      auto.setAttribute("aria-pressed", a.autonomy ? "true" : "false");
+      auto.setAttribute("aria-describedby", "hqAutoNote");
+      auto.setAttribute("title", AUTO_TEXT);
+      auto.disabled = busy;
+      row.appendChild(auto);
+    }
+    if (a.schedule && !unread(a.schedule)) {
+      var paused = a.schedule.paused === true;
+      var sched = el("button", "hq-ctl", paused ? "Resume schedule" : "Pause schedule");
+      sched.type = "button";
+      sched.setAttribute("data-hq-ctl", paused ? "resume" : "pause");
+      sched.setAttribute("data-hq-for", a.type);
+      sched.setAttribute("aria-label", (paused ? "Resume " : "Pause ") + a.name + "'s schedule");
+      sched.disabled = busy;
+      row.appendChild(sched);
+    }
+    var msg = el("div", "hq-ctl-msg");
+    msg.setAttribute("role", "status");
+    renderSaid(msg, act.said["ctl:" + a.type]);
+    row.appendChild(msg);
+    return row;
+  }
+  function control(button) {
+    var type = button.getAttribute("data-hq-for"), what = button.getAttribute("data-hq-ctl");
+    if (button.disabled || act.controls[type] || !AGENTS[type]) return;
+    var turnOn = button.getAttribute("aria-pressed") !== "true";
+    act.controls[type] = true;
+    button.disabled = true;
+    var req = what === "autonomy"
+      ? api("PUT", "/api/agent-autonomy", { agent_type: type, enabled: turnOn })
+      : (what === "pause" || what === "resume") ? api("PUT", "/api/agent-schedules/" + encodeURIComponent(type) + "/" + what) : null;
+    if (!req) { act.controls[type] = false; button.disabled = false; return; }
+    return req.then(function (res) {
+      act.said["ctl:" + type] = res.ok
+        ? { kind: "ok", text: what === "autonomy" ? "Automatic is now " + (turnOn ? "on" : "off") + "." : what === "pause" ? "Schedule paused." : "Schedule resumed." }
+        : refusalOf(res.status, res.body);
+    }, function (e) { act.said["ctl:" + type] = failureOf(e); })
+      .then(function () { act.controls[type] = false; renderGrid(); refreshNow(); });
+  }
+
+  /* ── the command box ── */
+  function $(id) { return document.getElementById(id); }
+  function buildConsole() {
+    var pick = $("hqAgent"), chips = $("hqChips");
+    if (!pick) return;
+    var keys = Object.keys(AGENTS).sort(function (x, y) { return AGENTS[x].name.localeCompare(AGENTS[y].name); });
+    pick.textContent = "";
+    var first = el("option", null, "Let the Executive decide");
+    first.value = DECIDE;
+    pick.appendChild(first);
+    keys.forEach(function (k) { var o = el("option", null, AGENTS[k].name); o.value = k; pick.appendChild(o); });
+    if (chips) {
+      chips.textContent = "";
+      [DECIDE].concat(keys).forEach(function (k) {
+        var c = el("button", "hq-chip", k === DECIDE ? "Executive decides" : AGENTS[k].name);
+        c.type = "button";
+        c.setAttribute("data-hq-chip", k);
+        c.setAttribute("aria-pressed", k === pick.value ? "true" : "false");
+        if (k !== DECIDE) c.style.setProperty("--hq-accent", AGENTS[k].accent);
+        chips.appendChild(c);
+      });
+    }
+    syncTools();
+  }
+  function choose(value) {
+    var pick = $("hqAgent");
+    if (!pick || (value !== DECIDE && !AGENTS[value])) return;
+    pick.value = value;
+    syncTools();
+  }
+  function syncTools() {
+    var pick = $("hqAgent"), tool = $("hqTool"), wrap = $("hqToolWrap"), extras = $("hqPlanExtras"), label = $("hqCommandLabel");
+    if (!pick || !tool) return;
+    var agent = pick.value;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-hq-chip]"), function (c) {
+      var on = c.getAttribute("data-hq-chip") === agent;
+      c.classList.toggle("is-on", on);
+      c.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    tool.textContent = "";
+    var words = el("option", null, "A task, in words");
+    words.value = "";
+    tool.appendChild(words);
+    (TOOLS[agent] || []).forEach(function (t) { var o = el("option", null, t[1]); o.value = t[0]; tool.appendChild(o); });
+    Object.keys(ACTING).filter(function (k) { return k.split("/")[0] === agent; }).forEach(function (k) {
+      var o = el("option", null, ACTING[k].label + " — goes through approval");
+      o.value = k.split("/")[1];
+      tool.appendChild(o);
+    });
+    if (wrap) wrap.hidden = agent === DECIDE;
+    if (extras) extras.hidden = agent !== DECIDE;
+    if (label) label.textContent = agent === DECIDE ? "The goal" : "What should it do?";
+  }
+  function say(said) { var box = $("hqCommandMsg"); if (box) renderSaid(box, said); }
+  function sent(ok) {
+    var b = $("hqSend");
+    if (!b) return;
+    b.classList.remove("is-sent");
+    // A success only; restarting the pulse needs a reflow between the two class changes.
+    if (ok) { void b.offsetWidth; b.classList.add("is-sent"); }
+  }
+  function send() {
+    var pick = $("hqAgent"), tool = $("hqTool"), box = $("hqCommand"), btn = $("hqSend");
+    if (!pick || !box || !btn || act.sending) return;
+    var agent = pick.value, toolId = tool && agent !== DECIDE ? tool.value : "", text = box.value.trim();
+    sent(false);
+    if (agent !== DECIDE && toolId) {
+      var acting = ACTING[agent + "/" + toolId];
+      if (acting) {
+        // Never from here: the page's own approval flow runs it.
+        say({ kind: "info", name: "This one goes through approval on its own page.", text: "", open: { label: "Open " + acting.label + " on its page", page: acting.page } });
+        return;
+      }
+      say({ kind: "info", text: "Opening it on the " + name(agent) + " page. Nothing runs until you press its own button there." });
+      go(AGENTS[agent].page + "#tool=" + encodeURIComponent(toolId) + (text ? "&prefill=" + encodeURIComponent(text.slice(0, 2000)) : ""));
+      return;
+    }
+    if (!text) { say({ kind: "info", text: agent === DECIDE ? "Write the goal first." : "Write the task first." }); box.focus(); return; }
+    act.sending = true;
+    btn.disabled = true;
+    btn.textContent = agent === DECIDE ? "Planning…" : "Sending…";
+    var req;
+    if (agent === DECIDE) {
+      var body = { goal: text };
+      var horizon = $("hqHorizon"), constraints = $("hqConstraints");
+      if (horizon && horizon.value.trim()) body.horizon = horizon.value.trim();
+      if (constraints && constraints.value.trim()) body.constraints = constraints.value.trim();
+      req = api("POST", "/api/agents/executive/plan", body).then(function (res) {
+        if (!res.ok || !res.body || !Array.isArray(res.body.assignments)) { say(res.ok ? refusalOf(500, { error: "The plan came back without assignments." }) : refusalOf(res.status, res.body)); return; }
+        var list = res.body.assignments;
+        var ready = list.filter(function (x) { return x && x.is_dispatchable === true; }).length;
+        act.lastPlan = { id: res.body.task_id, goal: text, assignments: list.map(function (x) {
+          return { id: x.id, agent: x.agent || null, tool: x.tool || null, task: x.task || null, is_dispatchable: x.is_dispatchable === true, latest_dispatch: "not dispatched" };
+        }) };
+        say({ kind: "ok", name: "Plan ready", text: plural(list.length, "assignment", "assignments") + ", " + ready + " of them can run from here, one at a time, under Plan runner.", href: "#hqPlans", go: "See the plan" });
+        box.value = "";
+        sent(true);
+        renderBoard();
+        reloadCenter();
+      });
+    } else {
+      req = api("POST", "/api/ai/tasks", { agent_type: agent, prompt: text }).then(function (res) {
+        if (res.status !== 202 || !res.body || !res.body.task) { say(refusalOf(res.status, res.body)); return; }
+        say({ kind: "ok", name: "Queued (202)", text: name(agent) + " has the task; it shows on the agent's tile while it runs.", href: "/run.html?id=" + encodeURIComponent(res.body.task.id), go: "Follow the run" });
+        box.value = "";
+        sent(true);
+        refreshNow();
+      });
+    }
+    return req.catch(function (e) { say(failureOf(e)); }).then(function () {
+      act.sending = false;
+      btn.disabled = false;
+      btn.textContent = "Send";
+    });
+  }
+
+  /* ── the plan runner: one assignment per click ── */
+  function stepOf(a) {
+    if (a.is_dispatchable !== true) return { col: "ready", key: "blocked", text: "Not dispatchable" };
+    var d = a.latest_dispatch;
+    if (!d || typeof d !== "object") return { col: "ready", key: "ready", text: "Ready" };
+    if (d.outcome === "refused") return { col: "ready", key: "refused", text: "Refused: " + reasonWords(d.refused_reason) };
+    if (d.outcome === "failed") return { col: "done", key: "failed", text: "Failed" };
+    // ran: the dispatched run's own ai_tasks status.
+    if (d.tool_task_status === "completed") return { col: "done", key: "completed", text: "Completed" };
+    if (d.tool_task_status === "failed") return { col: "done", key: "failed", text: "Failed" };
+    if (d.tool_task_status === null || d.tool_task_status === undefined) return { col: "done", key: "gone", text: "Ran — the run can no longer be read" };
+    return { col: "running", key: "running", text: "Running" };
+  }
+  function nextOf(plan) {
+    return (plan.assignments || []).filter(function (a) { var k = stepOf(a).key; return k === "ready" || k === "refused"; })[0] || null;
+  }
+  function progressOf(plan) {
+    var n = { done: 0, failed: 0, running: 0, waiting: 0 };
+    (plan.assignments || []).forEach(function (a) {
+      var k = stepOf(a).key;
+      if (k === "completed" || k === "gone") n.done += 1;
+      else if (k === "failed") n.failed += 1;
+      else if (k === "running") n.running += 1;
+      else n.waiting += 1;
+    });
+    var total = (plan.assignments || []).length;
+    return n.done + " of " + total + " done · " + n.failed + " failed · " + (n.running ? n.running + " running · " : "") + n.waiting + " waiting";
+  }
+  function plansNow() {
+    var cc = view.cc;
+    var list = cc && cc.plans && cc.plans.ok === true && Array.isArray(cc.plans.data) ? cc.plans.data.slice() : null;
+    if (act.lastPlan && act.lastPlan.id && (!list || !list.some(function (p) { return p.id === act.lastPlan.id; }))) (list = list || []).unshift(act.lastPlan);
+    return list;
+  }
+  function renderBoard() {
+    var box = $("hqPlans");
+    if (!box) return;
+    box.textContent = "";
+    var cc = view.cc;
+    var plans = plansNow();
+    if (!plans) {
+      if (cc && cc.plans && cc.plans.ok === false) box.appendChild(el("p", "hq-error", "Plans could not be read: " + (cc.plans.error || "the server gave no reason")));
+      else box.appendChild(el("p", "hq-muted", "Loading…"));
+      return;
+    }
+    if (!plans.length) { box.appendChild(el("p", "hq-muted", "No plans yet. Choose “Let the Executive decide”, write a goal and press Send.")); return; }
+    var off = cc && cc.chaining_on === false;
+    plans.forEach(function (plan) {
+      var card = el("article", "hq-plan");
+      card.setAttribute("data-hq-plan", plan.id);
+      var head = el("div", "hq-plan-head");
+      head.appendChild(el("h4", "hq-plan-goal", plan.goal || "A plan with no goal written"));
+      head.appendChild(el("p", "hq-progress", progressOf(plan)));
+      card.appendChild(head);
+      var next = nextOf(plan);
+      var bar = el("div", "hq-plan-bar");
+      var run = el("button", "hq-btn hq-btn-go", act.dispatching[plan.id] ? "Running…" : "Run next");
+      run.type = "button";
+      run.setAttribute("data-hq-run-next", plan.id);
+      run.disabled = off || !next || !!act.dispatching[plan.id];
+      run.setAttribute("aria-label", next ? "Run next: assignment " + next.id + ", " + name(next.agent) + " · " + next.tool : "Run next: nothing is ready to run");
+      bar.appendChild(run);
+      if (off) bar.appendChild(el("span", "hq-muted", "Running plans is switched off on the server"));
+      else if (!next) bar.appendChild(el("span", "hq-muted", "Nothing is ready to run"));
+      else bar.appendChild(el("span", "hq-muted", "Next: " + name(next.agent) + " · " + next.tool));
+      card.appendChild(bar);
+      var msg = el("div", "hq-plan-msg");
+      msg.setAttribute("role", "status");
+      renderSaid(msg, act.said["plan:" + plan.id]);
+      card.appendChild(msg);
+      var cols = el("div", "hq-cols");
+      [["ready", "Ready"], ["running", "Running"], ["done", "Done"]].forEach(function (c) {
+        var col = el("div", "hq-col");
+        col.setAttribute("data-col", c[0]);
+        col.appendChild(el("h5", "hq-col-h", c[1]));
+        var ul = el("ul", "hq-acards");
+        ul.setAttribute("aria-label", c[1]);
+        (plan.assignments || []).forEach(function (a) {
+          var st = stepOf(a);
+          if (st.col !== c[0]) return;
+          var li = el("li", "hq-acard is-" + st.key);
+          li.setAttribute("data-assignment", a.id);
+          if (a.agent && AGENTS[a.agent]) li.style.setProperty("--hq-accent", AGENTS[a.agent].accent);
+          li.appendChild(el("div", "hq-acard-who", "#" + a.id + " · " + name(a.agent) + (a.tool ? " · " + a.tool : "")));
+          if (a.task) li.appendChild(el("div", "hq-acard-task", String(a.task).slice(0, 160)));
+          li.appendChild(el("div", "hq-astatus", st.text));
+          var d = a.latest_dispatch;
+          if (d && typeof d === "object" && d.tool_task_id) {
+            var r = el("a", "hq-link", "Open the run");
+            r.setAttribute("href", "/run.html?id=" + encodeURIComponent(d.tool_task_id));
+            li.appendChild(r);
+          }
+          if (st.key === "blocked" && a.agent && AGENTS[a.agent]) {
+            var p = el("a", "hq-link", "Open the " + name(a.agent) + " page");
+            p.setAttribute("href", AGENTS[a.agent].page + (a.tool && (TOOLS[a.agent] || []).some(function (t) { return t[0] === a.tool; }) ? "#tool=" + encodeURIComponent(a.tool) : ""));
+            li.appendChild(p);
+          }
+          ul.appendChild(li);
+        });
+        col.appendChild(ul);
+        cols.appendChild(col);
+      });
+      card.appendChild(cols);
+      box.appendChild(card);
+    });
+  }
+  // One click, one dispatch: the server mints a new chain at depth 0 and applies every guard.
+  function runNext(button) {
+    var planId = button.getAttribute("data-hq-run-next");
+    if (button.disabled || act.dispatching[planId]) return;
+    var plan = (plansNow() || []).filter(function (p) { return p.id === planId; })[0];
+    var next = plan && nextOf(plan);
+    if (!next) return;
+    act.dispatching[planId] = true;
+    button.disabled = true;
+    button.textContent = "Running…";
+    return api("POST", "/api/assignments/dispatch", { executive_task_id: planId, assignment_id: Number(next.id) })
+      .then(function (res) {
+        var b = res.body && typeof res.body === "object" ? res.body : {};
+        if (res.ok && b.ok === true) {
+          var taskId = b.result && b.result.task_id;
+          act.said["plan:" + planId] = { kind: "ok", name: "Started", text: name(next.agent) + " · " + next.tool + " (assignment " + next.id + ").", href: taskId ? "/run.html?id=" + encodeURIComponent(taskId) : null, go: "Follow the run" };
+          sent(false);
+        } else if (res.ok && !b.refused_reason && typeof b.status === "number") {
+          // The tool was reached and answered with an error: named by its own status and words.
+          act.said["plan:" + planId] = refusalOf(b.status, { error: b.detail || (b.result && b.result.error) || "" });
+        } else act.said["plan:" + planId] = refusalOf(res.ok ? 200 : res.status, b && Object.keys(b).length ? b : res.body);
+      }, function (e) { act.said["plan:" + planId] = failureOf(e); })
+      .then(function () { act.dispatching[planId] = false; renderBoard(); reloadCenter(); refreshNow(); });
+  }
+
+  /* ── voice: the browser's own speech service fills the box, and nothing else ── */
+  function voice() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var mic = $("hqMic"), note = $("hqMicNote");
+    if (!SR || !mic) return;
+    mic.hidden = false;
+    if (note) note.hidden = false;
+    mic.addEventListener("click", function () {
+      if (act.listening && act.recognition) { act.recognition.stop(); return; }
+      var r;
+      try { r = new SR(); } catch (e) { return; }
+      r.lang = document.documentElement.lang || "en-US";
+      r.interimResults = false;
+      r.continuous = false;
+      r.maxAlternatives = 1;
+      r.onresult = function (e) {
+        var words = "";
+        for (var i = e.resultIndex || 0; i < e.results.length; i++) words += e.results[i][0].transcript;
+        words = words.trim();
+        var box = $("hqCommand");
+        if (!words || !box) return;
+        box.value = box.value.trim() ? box.value.replace(/\s*$/, " ") + words : words;
+        box.focus();
+      };
+      r.onerror = function (e) { say({ kind: "info", text: "Voice stopped" + (e && e.error ? " (" + e.error + ")" : "") + "; the box keeps what it heard." }); };
+      r.onend = function () {
+        act.listening = false;
+        mic.setAttribute("aria-pressed", "false");
+        mic.textContent = "Speak";
+      };
+      act.recognition = r;
+      act.listening = true;
+      mic.setAttribute("aria-pressed", "true");
+      mic.textContent = "Listening… press to stop";
+      try { r.start(); } catch (e2) { r.onend(); }
+    });
+  }
+
   /* ── the status line and polling, as the agent panel does it ── */
   function status() {
     var s = document.getElementById("hqStatus");
@@ -407,8 +892,20 @@
     var f = t && t.closest ? t.closest("[data-hq-filter]") : null;
     if (f) { setFilter(f.getAttribute("data-hq-filter")); return; }
     if (t && t.closest && t.closest("#hqSort")) { toggleSort(); return; }
+    var c = t && t.closest ? t.closest("[data-hq-ctl]") : null;
+    if (c) { control(c); return; }
+    var chip = t && t.closest ? t.closest("[data-hq-chip]") : null;
+    if (chip) { choose(chip.getAttribute("data-hq-chip")); return; }
+    if (t && t.closest && t.closest("#hqSend")) { send(); return; }
+    var open = t && t.closest ? t.closest("[data-hq-open]") : null;
+    if (open) { go(open.getAttribute("data-hq-open")); return; }
+    var n = t && t.closest ? t.closest("[data-hq-run-next]") : null;
+    if (n) { runNext(n); return; }
     var d = t && t.closest ? t.closest("[data-hq-decide]") : null;
     if (d) decide(d);
+  });
+  root.addEventListener("change", function (e) {
+    if (e.target && e.target.id === "hqAgent") syncTools();
   });
   // Arrow keys move between tiles; Home and End jump to the first and last.
   root.addEventListener("keydown", function (e) {
@@ -427,6 +924,7 @@
   document.addEventListener("bf:command-center", function (e) {
     view.cc = e && e.detail && !e.detail.error ? e.detail : null;
     renderAlerts();
+    renderBoard();
   });
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) stop("hidden");
@@ -436,7 +934,10 @@
   window.addEventListener("online", function () { fetchLive(); });
 
   if (still()) root.classList.add("hq--still");
-  window.BFHeadquarters = { poll: poll, view: view, refresh: fetchLive };
+  window.BFHeadquarters = { poll: poll, view: view, act: act, refresh: fetchLive, progressOf: progressOf, stepOf: stepOf };
+  buildConsole();
+  voice();
+  renderBoard();
   renderQueue();
   loadQueue();
   fetchLive();

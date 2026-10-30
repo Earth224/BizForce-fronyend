@@ -450,6 +450,57 @@
     .hq-link { color: #67e8f9; font-size: .8rem; }
     .hq-proposal-msg { margin-top: 6px; font-size: .8rem; color: #fca5a5; }
     .hq-error { color: #fca5a5; font-size: .85rem; }
+    .hq-console { position: relative; margin-bottom: 18px; padding: 16px; border-radius: 18px; border: 1px solid rgba(0, 229, 255, 0.45);
+      background: radial-gradient(circle at 50% 0, rgba(0, 229, 255, 0.10), transparent 70%), rgba(3, 8, 20, 0.94);
+      box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.08) inset, 0 0 32px rgba(0, 229, 255, 0.16); }
+    .hq-console-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .hq-console-title { margin: 0; font-size: .82rem; font-weight: 900; letter-spacing: .22em; text-transform: uppercase; color: #67e8f9; }
+    .hq-prompt { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .78rem; color: #5eead4; }
+    .hq-caret { display: inline-block; width: 8px; height: 1em; margin-left: 3px; vertical-align: -2px; background: #5eead4; animation: hq-blink 1.1s steps(1) infinite; }
+    @keyframes hq-blink { 50% { opacity: 0; } }
+    .hq-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .hq-chip { --hq-accent: #67e8f9; font: inherit; font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; cursor: pointer; color: #cbd5ff;
+      background: rgba(12, 16, 36, 0.9); border: 1px solid color-mix(in srgb, var(--hq-accent) 40%, transparent); }
+    .hq-chip.is-on { color: #041018; background: var(--hq-accent); border-color: transparent; }
+    .hq-console-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .hq-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .hq-field-label { font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #8fa2d8; }
+    .hq-select, .hq-command { font: inherit; font-size: .88rem; color: #e8f4ff; background: rgba(2, 6, 16, 0.92); border: 1px solid rgba(0, 229, 255, 0.28); border-radius: 10px; padding: 8px 10px; }
+    .hq-command { min-height: 76px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; caret-color: #5eead4; }
+    .hq-select:focus-visible, .hq-command:focus-visible, .hq-chip:focus-visible, .hq-ctl:focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+    .hq-console-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .hq-send { min-width: 96px; }
+    .hq-send.is-sent { animation: hq-sent .9s ease-out 1; }
+    @keyframes hq-sent { from { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6); } to { box-shadow: 0 0 0 14px rgba(0, 229, 255, 0); } }
+    .hq-mic-note { margin: 8px 0 0; font-size: .74rem; color: #8892b8; }
+    .hq-said, .hq-plan-msg, .hq-ctl-msg { font-size: .82rem; color: #cbd5ff; }
+    .hq-said:not(:empty) { margin-top: 10px; }
+    .hq-said.is-refusal, .hq-plan-msg.is-refusal, .hq-ctl-msg.is-refusal { color: #fca5a5; }
+    .hq-said.is-ok, .hq-plan-msg.is-ok, .hq-ctl-msg.is-ok { color: #86efac; }
+    .hq-said-name { font-weight: 800; }
+    .hq-plan { margin-bottom: 14px; padding: 14px; border-radius: 14px; border: 1px solid rgba(123, 47, 247, 0.3); background: rgba(8, 8, 22, 0.8); }
+    .hq-plan-goal { margin: 0 0 4px; font-size: .95rem; color: #f1f5ff; }
+    .hq-progress { margin: 0 0 8px; font-size: .78rem; color: #a5b4fc; font-variant-numeric: tabular-nums; }
+    .hq-plan-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .hq-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+    .hq-col-h { margin: 0 0 6px; font-size: .68rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #8fa2d8; }
+    .hq-acards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .hq-acard { --hq-accent: #94a3b8; padding: 8px 10px; border-radius: 10px; font-size: .78rem; color: #dfe6ff; background: rgba(4, 8, 20, 0.9);
+      border: 1px solid color-mix(in srgb, var(--hq-accent) 35%, transparent); border-left: 3px solid var(--hq-accent); }
+    .hq-acard-who { font-weight: 800; color: var(--hq-accent); }
+    .hq-acard-task { margin: 3px 0; color: #b6c2ee; }
+    .hq-astatus { font-weight: 700; }
+    .hq-acard.is-failed .hq-astatus, .hq-acard.is-refused .hq-astatus { color: #fca5a5; }
+    .hq-acard.is-completed .hq-astatus { color: #86efac; }
+    .hq-acard.is-blocked { opacity: .8; }
+    .hq-card { display: flex; flex-direction: column; gap: 6px; }
+    .hq-card .hq-tile { flex: 1; }
+    .hq-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .hq-ctl { font: inherit; font-size: .72rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; cursor: pointer; color: #b6c2ee; background: rgba(8, 11, 28, 0.9); border: 1px solid rgba(148, 163, 255, 0.22); }
+    .hq-ctl.is-on { color: #041018; background: #5eead4; border-color: transparent; }
+    .hq-ctl:disabled { opacity: .55; cursor: default; }
+    .hq-ctl-msg { flex-basis: 100%; font-size: .72rem; }
+    .hq-auto-note { margin: 0 0 10px; font-size: .76rem; }
     .hq .bf-section-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
     .hq .bf-section-title { margin: 0; font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #9fb3ff; }
     .hq .bf-card { padding: 14px; border-radius: 14px; border: 1px solid rgba(0, 229, 255, 0.14); background: rgba(8, 10, 24, 0.85); }
@@ -464,6 +515,9 @@
       .hq-ring { left: 10px; }
       .hq-row { flex-direction: column; gap: 0; }
       .hq-v { text-align: left; }
+      .hq-console { padding: 12px; }
+      .hq-console-row { grid-template-columns: 1fr; gap: 0; }
+      .hq-cols { grid-template-columns: 1fr; }
     }
     @media (max-width: 380px) { .hq-grid { grid-template-columns: 1fr; } }
     @media (prefers-reduced-motion: reduce) {
@@ -497,6 +551,35 @@
         <div class="hq-status" id="hqStatus" role="status" aria-live="polite">Loading…</div>
       </div>
       <div class="hq-alerts" id="hqAlerts" role="region" aria-label="Alerts"></div>
+      <div class="hq-console" id="hqConsole" role="region" aria-labelledby="hqConsoleTitle">
+        <div class="hq-console-head">
+          <h3 class="hq-console-title" id="hqConsoleTitle">Command</h3>
+          <span class="hq-prompt" aria-hidden="true">hq://order<span class="hq-caret"></span></span>
+        </div>
+        <div class="hq-chips" id="hqChips" role="group" aria-label="Pick an agent"></div>
+        <div class="hq-console-row">
+          <label class="hq-field"><span class="hq-field-label">Agent</span>
+            <select class="hq-select" id="hqAgent"></select></label>
+          <label class="hq-field" id="hqToolWrap"><span class="hq-field-label">Tool</span>
+            <select class="hq-select" id="hqTool"></select></label>
+        </div>
+        <label class="hq-field"><span class="hq-field-label" id="hqCommandLabel">The goal</span>
+          <textarea class="hq-command" id="hqCommand" rows="3" maxlength="2000" placeholder="Type it, or press Speak where your browser offers it."></textarea></label>
+        <div class="hq-console-row" id="hqPlanExtras">
+          <label class="hq-field"><span class="hq-field-label">Horizon (optional)</span>
+            <input class="hq-select" id="hqHorizon" type="text" maxlength="200" placeholder="e.g. the next 30 days"></label>
+          <label class="hq-field"><span class="hq-field-label">Constraints (optional)</span>
+            <input class="hq-select" id="hqConstraints" type="text" maxlength="1000" placeholder="e.g. no paid ads"></label>
+        </div>
+        <div class="hq-console-actions">
+          <button type="button" class="hq-btn" id="hqMic" aria-pressed="false" hidden>Speak</button>
+          <button type="button" class="hq-btn hq-btn-go hq-send" id="hqSend">Send</button>
+        </div>
+        <p class="hq-mic-note" id="hqMicNote" hidden>Voice only fills the box, through your browser's own speech service; BizForce records and stores nothing, and nothing is sent until you press Send.</p>
+        <div class="hq-said" id="hqCommandMsg" role="status" aria-live="polite"></div>
+      </div>
+      <h3 class="hq-h" id="hqPlansTitle">Plan runner</h3>
+      <div id="hqPlans" role="region" aria-labelledby="hqPlansTitle"></div>
       <div class="hq-tools">
         <div class="hq-filters" role="group" aria-label="Show agents">
           <button type="button" class="hq-filter is-on" data-hq-filter="all" aria-pressed="true">All</button>
@@ -507,6 +590,7 @@
         </div>
         <button type="button" class="hq-sort" id="hqSort" aria-label="Sorted by attention; press to sort A to Z">Sort: attention</button>
       </div>
+      <p class="hq-muted hq-auto-note" id="hqAutoNote">Automatic: lets background passes act for this agent (schedules, store proposals, self-review). Pause and Resume change only its schedule.</p>
       <div class="hq-grid" id="hqGrid" role="group" aria-label="The 18 agents"></div>
       <p class="hq-empty" id="hqGridEmpty" hidden></p>
       <h3 class="hq-h" id="hqQueueTitle">Approval queue</h3>

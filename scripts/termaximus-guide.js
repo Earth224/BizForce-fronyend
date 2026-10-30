@@ -230,11 +230,11 @@
       "Use \"Ad Campaign\" for a whole plan — audience, offer, hooks, budget guidance and a testing plan — then write each ad in \"Ad Copy\"."
     ],
     "executive-agent.html": [
-      "Open \"Executive Plan\", give it the goal, and if you like a horizon and constraints, then press \"Build the plan\".",
-      "Begin with the \"Start here\" list and press \"Run this assignment\" on each; the plan runs none of them itself.",
-      "Each assignment is checked against the tools that really exist; one naming a missing tool is marked \"Not runnable\".",
-      "In \"Headquarters\", each tile shows an agent's Now, Last, Next, Approvals and Score; \"Sort: attention\" puts stalled and failed agents first.",
-      "\"Approval queue\" lists what waits for you; nothing is approved until you press \"Approve\", and the server checks it again before it acts."
+      "In \"Command\", pick an agent or \"Let the Executive decide\", type the task or goal, and press \"Send\"; nothing goes before you press it.",
+      "A goal becomes a plan in \"Plan runner\"; press \"Run next\" for one assignment at a time, and each next one waits for another press.",
+      "A tool that acts, such as publishing or a proposal set, never runs from here; it opens its own page and goes through approval there.",
+      "\"Run next\" greyed out? Running plans is switched off on the server; any refusal is named where you pressed, with where to go.",
+      "On a tile, \"Pause schedule\" or \"Resume schedule\" changes only that agent's schedule; \"Approval queue\" still holds what needs you."
     ],
     "vertical-marketing-agent.html": [
       "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",

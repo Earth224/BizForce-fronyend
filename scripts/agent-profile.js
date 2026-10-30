@@ -3307,6 +3307,32 @@
       if (!tool.adminOnly) bindTool(tool);
     });
     drawAdminTools();
+    openToolFromHash();
+    if (typeof window.addEventListener === "function") window.addEventListener("hashchange", openToolFromHash);
+  }
+
+  /* A link from Executive Headquarters: #tool=<id>, optionally &prefill=<text>.
+     Read on arrival and nothing more: it opens that tool's section and, when the
+     field is empty, puts the text in the tool's first text field. It runs
+     nothing; the member still presses the tool's own button. */
+  function openToolFromHash() {
+    var hash = "";
+    try { hash = String((window.location && window.location.hash) || ""); } catch (e) { hash = ""; }
+    var m = /^#tool=([a-z0-9-]+)(?:&prefill=([^&]*))?$/.exec(hash);
+    if (!m) return;
+    var tool = TOOLS.filter(function (t) { return t.id === m[1] && !t.adminOnly; })[0];
+    var body = tool && document.getElementById(toolDomId(tool.id, "body"));
+    if (!body) return;
+    body.hidden = false;
+    var caret = document.getElementById(toolDomId(tool.id, "caret"));
+    if (caret) caret.textContent = "Hide";
+    if (m[2]) {
+      var field = (tool.fields || []).filter(function (f) { return f.type === "textarea" || f.type === "text" || !f.type; })[0];
+      var input = field && document.getElementById(toolDomId(tool.id, "f_" + field.name));
+      if (input && !input.value) { try { input.value = decodeURIComponent(m[2]).slice(0, 2000); } catch (e) {} }
+    }
+    var head = document.querySelector('[data-tool-toggle="' + tool.id + '"]');
+    if (head && typeof head.scrollIntoView === "function") head.scrollIntoView({ block: "start" });
   }
 
   /* OWNER-ONLY TOOLS. A tool with adminOnly: true is drawn and bound only when
