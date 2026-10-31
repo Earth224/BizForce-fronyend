@@ -94,6 +94,16 @@
    No emoji anywhere: every icon is drawn SVG. */
 (function () {
   "use strict";
+  /* WHEN IT STARTS. Everything below runs once the page has been parsed
+     (main, at DOMContentLoaded, or at once when that has passed), never
+     while it is still being parsed. Whether this page has the player is
+     decided from the whole page (modeOf: the mist's script tag, the theme
+     engine's public-view rule), and a page may list this script BEFORE the
+     mist's tag: the dashboard does (bf-music.js, then
+     termaximus-presence.js). Decided at parse time, the mist's tag was not
+     in the document yet, the mode came out null, and the player stepped
+     aside silently: no boombox on the dashboard, and no error. */
+  function main() {
   if (window.BFMusic) return;
 
   var doc = document;
@@ -1451,14 +1461,26 @@
   /* ── boot ───────────────────────────────────────────────────────────────── */
   /* The boombox's drawing is scripts/bf-boombox.js: loaded here when the page
      did not load it first. */
-  function withBoombox(then) {
+  var BOOMBOX_WAIT_MS = 15000;
+  function withBoombox(then, failed) {
     if (window.BFBoombox) return then();
+    var done = false;
+    function go() { if (done) return; if (window.BFBoombox) { done = true; then(); } }
+    function fail(why) { if (done) return; done = true; failed(new Error(why)); }
+    /* A tag already on the page that has run without defining it will fire
+       no load event again: then the wait below ends it, loudly. */
     var existing = doc.querySelector("script[src$='/scripts/bf-boombox.js']");
     var s = existing || doc.createElement("script");
-    s.addEventListener("load", function () { if (window.BFBoombox) then(); });
+    s.addEventListener("load", function () { if (window.BFBoombox) go(); else fail("scripts/bf-boombox.js loaded but did not define BFBoombox"); });
+    s.addEventListener("error", function () { fail("scripts/bf-boombox.js could not be loaded"); });
     if (!existing) { s.src = "/scripts/bf-boombox.js"; (doc.head || doc.documentElement).appendChild(s); }
+    setTimeout(function () { go(); fail("scripts/bf-boombox.js did not arrive within " + (BOOMBOX_WAIT_MS / 1000) + " s"); }, BOOMBOX_WAIT_MS);
   }
-  function boot() { withBoombox(start); }
+  function boot() {
+    withBoombox(function () {
+      try { start(); } catch (err) { window.__bfMusicStartFailed(err); }
+    }, function (err) { window.__bfMusicStartFailed(err); });
+  }
   function start() {
     injectStyle();
     buildPlayer();
@@ -1520,6 +1542,31 @@
     _urls: urls
   };
 
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
-  else boot();
+  boot();
+  }
+
+  /* A boombox that could not start says so: a warning in the console, and a
+     small tag on the page in place of the boombox, never nothing at all. */
+  var FAIL_TEXT = "Music couldn't start \u2014 reload";
+  function startFailed(err) {
+    try { console.warn("[boombox] " + FAIL_TEXT + ": " + (err && err.message ? err.message : String(err))); } catch (e) { /* no console */ }
+    var doc = document;
+    if (!doc.body || doc.getElementById("bfmFail")) return;
+    var b = doc.createElement("button");
+    b.type = "button";
+    b.id = "bfmFail";
+    b.className = "bfm-fail";
+    b.setAttribute("role", "status");
+    b.textContent = FAIL_TEXT;
+    b.setAttribute("style", "position:fixed;left:12px;bottom:12px;z-index:2147483000;padding:6px 12px;border-radius:999px;" +
+      "border:1px solid rgba(255,255,255,.25);background:rgba(8,11,28,.92);color:#e8e8ff;font:600 12px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;cursor:pointer");
+    b.addEventListener("click", function () { window.location.reload(); });
+    doc.body.appendChild(b);
+  }
+  window.__bfMusicStartFailed = startFailed;
+  function run() {
+    try { main(); } catch (err) { startFailed(err); }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+  else run();
 })();
