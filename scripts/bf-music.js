@@ -1,15 +1,35 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   BF MUSIC — the BizForce music player: a member's own music, in a studio
-   console on the dashboard, a mini-bar on every other signed-in page, and a
-   pop-out window that keeps playing while they move around the app.
+   BF MUSIC — the BizForce music player: a member's own music, in a chrome
+   boombox (scripts/bf-boombox.js draws it) on every app page, and a pop-out
+   window that keeps playing while they move around the app.
 
    WHERE IT RUNS. scripts/bf-session.js loads this file on every page it
-   guards. It becomes:
-     panel   on the dashboard (#bfMusicPanel): the whole console;
-     popout  in music-popout.html (#bfMusicPopout): the console, alone;
-     mini    on any other page that wears the member's theme: a small bar,
-             shown once the member has played something.
-   A public page (scripts/bf-theme.js publicView) never gets the player.
+   guards; this file loads scripts/bf-boombox.js. It becomes:
+     float   on every app page, the pages that load the mist
+             (scripts/termaximus-presence.js): the boombox, fixed on screen,
+             draggable, minimised to a "now playing" tag; on the dashboard it
+             starts beside the logo in the top bar ([data-bf-boombox-anchor]);
+     popout  in music-popout.html (#bfMusicPopout): the boombox, alone.
+   A public page or a card (scripts/bf-theme.js publicView), and a page with
+   no mist, never get the player.
+
+   THE EXPANDED VIEW. The boombox's own keys: previous, play/pause, next,
+   shuffle, repeat, the volume dial and mute, the display's seek bar; its
+   top keys: Library, Pop out, reset position, minimise. The library panel
+   beneath it: the playlist picker with New playlist, Rename and Delete
+   playlist, the queue (play, drag or Alt+arrow to reorder, rename, delete,
+   add to a playlist), Mix, Spectrum or Waveform, the upload drop zone,
+   "Play when I open BizForce", Pop out, and the messages.
+
+   CONTINUITY ACROSS PAGES, honestly: a page's audio stops when the page
+   goes. The next page restores the track, the position, the queue and the
+   volume (bf_music), and if the music was playing it resumes by itself
+   (after RESUME_WAIT_MS, long enough to hear a pop-out that is playing). A
+   continuation is tried without waiting for a click; if the browser refuses
+   sound before an interaction, the tag says RESUME_TAP and the first click,
+   tap or key press resumes it. CONTINUITY_NOTE says so. With the pop-out
+   playing, every page's boombox is its remote, and its speakers move with
+   the pop-out's levels ("levels" on the channel).
 
    THE LIBRARY is the server's (lib/music.js, GET /api/music): the member's
    own uploads, private to them, played through signed URLs that expire. A
@@ -98,21 +118,26 @@
   var POPUP_BLOCKED = "Your browser blocked the pop-out window. Allow pop-ups for BizForce, then press Pop out again.";
   var PRESS_PLAY = "Press play to start the music here.";
   var YIELDED = "Paused: music started elsewhere in BizForce.";
+  var RESUME_TAP = "Tap to resume";
+  var CONTINUITY_NOTE = "Moving between pages pauses for a moment. For unbroken music, use Pop out.";
+  var RESUME_WAIT_MS = 400;
+  var LEVELS_MS = 33;
+  var LEVELS_STALE_MS = 400;
   var REPEATS = ["off", "all", "one"];
   var VIEWS = ["spectrum", "wave"];
   var ACCEPT = "audio/*,.mp3,.m4a,.aac,.ogg,.opus,.flac,.wav";
   var DEFAULTS = { v: 1, uid: null, track_id: null, position: 0, volume: 0.8, muted: false, queue: [], shuffle: false,
-    repeat: "off", crossfade: 0, autoplay: false, view: "spectrum", playlist_id: "" };
+    repeat: "off", crossfade: 0, autoplay: false, view: "spectrum", playlist_id: "", was_playing: false };
 
   var ID = "m" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
   function themeEngine() { return typeof window.BFTheme !== "undefined" ? window.BFTheme : null; }
   function modeOf() {
     if (doc.getElementById("bfMusicPopout")) return "popout";
-    if (doc.getElementById("bfMusicPanel")) return "panel";
     var T = themeEngine();
     if (!T || T.publicView(T.pageKey())) return null;
-    return "mini";
+    if (!doc.querySelector("script[src$='/scripts/termaximus-presence.js']")) return null;
+    return "float";
   }
   var MODE = modeOf();
 
@@ -196,11 +221,12 @@
     if (!UID) return;
     S.uid = UID;
     S.position = currentPosition();
+    S.was_playing = !!(R.playing || R.resuming);
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: the player still plays */ }
   }
 
   /* ── the library (the server's) ─────────────────────────────────────────── */
-  var LIB = { tracks: [], playlists: [], used_bytes: 0, cap_bytes: 0, file_max_bytes: 0, loaded: false };
+  var LIB = { tracks: [], playlists: [], used_bytes: 0, cap_bytes: 0, file_max_bytes: 0, loaded: false, error: "" };
   var urls = {};
   function api(path, opts) {
     opts = opts || {};
@@ -230,8 +256,14 @@
   function loadLibrary(force) {
     if (libraryLoad && !force) return libraryLoad;
     libraryLoad = api("/api/music").then(function (r) {
-      if (r.ok) takeLibrary(r.body);
-      else say(r.body.error || "Your music could not be loaded. Reload the page to try again.", "error");
+      /* The server's own sentence, shown as it is: a 503 before migration 155
+         says the music isn't set up yet, never "Internal server error". */
+      if (r.ok) { LIB.error = ""; takeLibrary(r.body); }
+      else {
+        LIB.error = r.body.error || "Your music could not be loaded. Reload the page to try again.";
+        say(LIB.error, "error");
+        libraryLoad = null;
+      }
       render();
       return LIB;
     });
@@ -378,17 +410,41 @@
     var p;
     try { p = deck.el.play(); } catch (e) { p = Promise.reject(e); }
     return Promise.resolve(p).then(function () {
-      startLoops();
-      render();
-      return true;
-    }, function () {
+      return soundAllowed().then(function (ok) {
+        if (!ok) throw new Error("suspended");
+        R.resuming = false;
+        startLoops();
+        render();
+        return true;
+      });
+    }).catch(function () {
       R.playing = false;
       R.blocked = true;
+      try { deck.el.pause(); } catch (e) { /* not started */ }
       setDeckGain(deck, 0);
-      say(PRESS_PLAY, "info");
+      if (R.resuming) { R.armed = true; say(RESUME_TAP, "info"); }
+      else say(PRESS_PLAY, "info");
       render();
       return false;
     });
+  }
+  /* Whether the sound can be heard: a page's AudioContext stays "suspended"
+     until the browser allows sound, even when the <audio> element plays. */
+  function soundAllowed() {
+    if (!ctx || ctx.state !== "suspended") return Promise.resolve(true);
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish() { if (!done) { done = true; resolve(ctx.state !== "suspended"); } }
+      try { Promise.resolve(ctx.resume()).then(finish, finish); } catch (e) { finish(); }
+      setTimeout(finish, 300);
+    });
+  }
+  /* After a page change: carry on from where the last page stopped. */
+  function resumeAfterNavigation() {
+    if (popoutAlive() || R.playing || !S.was_playing || !S.track_id || !trackById(S.track_id)) return Promise.resolve(false);
+    R.resuming = true;
+    R.armed = false;
+    return startTrack(S.track_id, S.position);
   }
   /* A failed load, most often an expired link: a fresh one, from the same place. */
   function recover(deck) {
@@ -425,6 +481,7 @@
     return R.starting;
   }
   function pauseLocal() {
+    R.resuming = false;
     cancelFade();
     if (R.awaitRelease) { clearTimeout(R.awaitRelease); R.awaitRelease = null; }
     S.position = currentPosition();
@@ -625,7 +682,11 @@
     }
     if (m.type === "status") {
       R.others[m.from] = { at: Date.now(), playing: !!m.playing, role: m.role };
-      if (m.role === "popout" && MODE !== "popout") { R.popoutAt = Date.now(); R.remote = m; R.armed = false; render(); }
+      if (m.role === "popout" && MODE !== "popout") { R.popoutAt = Date.now(); R.remote = m; R.armed = false; render(); if (m.playing) startViz(); }
+      return;
+    }
+    if (m.type === "levels") {
+      if (MODE !== "popout") remoteLevels = { bass: clamp01(m.bass), highs: clamp01(m.highs), level: clamp01(m.level), at: Date.now() };
       return;
     }
     if (MODE !== "popout") {
@@ -692,6 +753,7 @@
   function startLoops() {
     if (!ticker) ticker = setInterval(tick, TICK_MS);
     startEnergy();
+    startLevels();
     startViz();
   }
 
@@ -719,23 +781,56 @@
     if (!R.playing && E.e <= 0) stopEnergy();
   }
 
-  var vizRaf = 0, bars = [], peaks = [], wave = null;
+  /* What the boombox moves with: this page's analyser, or, while the pop-out
+     plays, the levels it posts on the channel. */
+  var lvBins = null, remoteLevels = null;
+  function localLevels() {
+    if (!analyser || !ctx) return { bass: 0, highs: 0, level: 0 };
+    if (!lvBins) lvBins = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(lvBins);
+    var sr = ctx.sampleRate, fft = analyser.fftSize;
+    return { bass: clamp01(bandMean(lvBins, sr, fft, 20, 150)), highs: clamp01(bandMean(lvBins, sr, fft, 4000, 12000)),
+      level: clamp01(bandMean(lvBins, sr, fft, 20, 16000) * 1.6) };
+  }
+  function remoteHeard() { return !!(remoteLevels && Date.now() - remoteLevels.at < LEVELS_STALE_MS); }
+  function levels() {
+    if (popoutAlive()) return remoteHeard() ? remoteLevels : { bass: 0, highs: 0, level: 0 };
+    return localLevels();
+  }
+  function heardPlaying() { return popoutAlive() ? !!(R.remote && R.remote.playing) : R.playing; }
+  /* The pop-out posts its levels for the pages' boomboxes while it plays. */
+  var levelsTimer = null;
+  function startLevels() {
+    if (MODE !== "popout" || levelsTimer || reducedMotion()) return;
+    levelsTimer = setInterval(function () {
+      if (!R.playing) { post({ type: "levels", from: ID, bass: 0, highs: 0, level: 0 }); clearInterval(levelsTimer); levelsTimer = null; return; }
+      var l = localLevels();
+      post({ type: "levels", from: ID, bass: Math.round(l.bass * 1000) / 1000, highs: Math.round(l.highs * 1000) / 1000, level: Math.round(l.level * 1000) / 1000 });
+    }, LEVELS_MS);
+  }
+
+  var vizRaf = 0, bars = [], peaks = [], wave = null, lastFrame = 0, moving = false;
   function vizCanvas() { return root ? root.querySelector(".bfm-viz") : null; }
   function startViz() {
     var c = vizCanvas();
     if (!c) return;
-    if (reducedMotion()) { c.setAttribute("data-viz", "static"); drawStatic(c); return; }
+    if (reducedMotion()) { c.setAttribute("data-viz", "static"); drawStatic(c); if (BOX) BOX.still(); return; }
     c.setAttribute("data-viz", S.view);
     if (vizRaf || !window.requestAnimationFrame) return;
+    lastFrame = 0;
     vizRaf = window.requestAnimationFrame(frame);
   }
-  function frame() {
+  function frame(ts) {
     vizRaf = 0;
     if (doc.hidden || reducedMotion()) return;
     var c = vizCanvas();
     if (!c) return;
     draw(c);
-    if (R.playing || bars.some(function (b) { return b > 0.01; })) vizRaf = window.requestAnimationFrame(frame);
+    var t = Number(ts) || Date.now(), dt = lastFrame ? (t - lastFrame) / 1000 : 1 / 60;
+    lastFrame = t;
+    var playing = heardPlaying();
+    moving = BOX ? BOX.animate(levels(), playing, dt) : false;
+    if (playing || moving || bars.some(function (b) { return b > 0.01; })) vizRaf = window.requestAnimationFrame(frame);
   }
   doc.addEventListener("visibilitychange", function () { if (!doc.hidden) startViz(); });
   function tone(which) {
@@ -813,31 +908,15 @@
     return '<svg viewBox="0 0 24 24" width="' + (size || 18) + '" height="' + (size || 18) + '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + ICON[name] + "</svg>";
   }
   var CSS = [
-    ".bfm{--bfm-a:var(--bf-accent-a, #22d3ee);--bfm-b:var(--bf-accent-b, #a855f7);color:#e8e8ff;font-family:inherit}",
+    ".bfm{--bfm-a:var(--bf-accent-a, #22d3ee);--bfm-b:var(--bf-accent-b, #a855f7);font-family:inherit}",
     ".bfm *{box-sizing:border-box}",
-    ".bfm-console{border-radius:18px;padding:18px;background:linear-gradient(160deg,rgba(14,18,40,.92),rgba(8,10,24,.95));border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.18);box-shadow:0 12px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04)}",
-    ".bfm-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}",
-    ".bfm-badge{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;color:var(--bfm-a);border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);background:rgba(var(--bf-accent-a-rgb, 34, 211, 238),.08)}",
-    ".bfm-title{margin:0;font-size:1.15rem;font-weight:800;letter-spacing:.02em}",
-    ".bfm-sub{margin:2px 0 0;font-size:.82rem;color:#8892b8}",
-    ".bfm-head .bfm-pop{margin-left:auto}",
-    ".bfm-now{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:4px 0 10px;min-height:2.4em}",
-    ".bfm-np-title{font-weight:700;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    ".bfm-np-artist{font-size:.82rem;color:#8892b8}",
-    ".bfm-time{font-variant-numeric:tabular-nums;font-size:.82rem;color:#8892b8;white-space:nowrap}",
-    ".bfm-viz{display:block;width:100%;height:120px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.06)}",
+    ".bfm-panel h3{margin:0 0 8px;font-size:.95rem;font-weight:800;letter-spacing:.02em}",
     ".bfm-vizbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0 2px}",
     ".bfm-seg{display:inline-flex;border:1px solid rgba(255,255,255,.12);border-radius:999px;overflow:hidden}",
     ".bfm-seg button{background:transparent;border:0;color:#8892b8;padding:5px 12px;font:inherit;font-size:.78rem;cursor:pointer}",
     ".bfm-seg button[aria-pressed=true]{color:#fff;background:linear-gradient(90deg,var(--bf-btn-a, #06b6d4)var(--bf-btn-mid, ),var(--bf-btn-b, #8b5cf6))}",
     ".bfm-note{font-size:.78rem;color:#8892b8;margin:4px 0}",
-    ".bfm-seek{width:100%;margin:10px 0 4px;accent-color:var(--bfm-a)}",
-    ".bfm-transport{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 0 12px}",
-    ".bfm-btn{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#e8e8ff;cursor:pointer}",
-    ".bfm-btn:hover,.bfm-btn:focus-visible{border-color:var(--bfm-a);outline:none;box-shadow:0 0 0 2px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.25)}",
-    ".bfm-btn[aria-pressed=true]{color:var(--bfm-a);border-color:var(--bfm-a)}",
-    ".bfm-btn.bfm-main{width:54px;height:54px;color:var(--bf-btn-text, #ffffff);border:0;background:linear-gradient(135deg,var(--bf-btn-a, #06b6d4)var(--bf-btn-mid, ),var(--bf-btn-b, #8b5cf6));box-shadow:0 6px 22px rgba(var(--bf-accent-b-rgb, 168, 85, 247),.35)}",
-    ".bfm-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:8px 0}",
+    ".bfm-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:8px 0}",
     ".bfm-row label{font-size:.82rem;color:#c8cce8}",
     ".bfm-row input[type=range]{accent-color:var(--bfm-a);width:130px}",
     ".bfm-out{font-variant-numeric:tabular-nums;font-size:.8rem;color:#8892b8;min-width:2.6em}",
@@ -845,20 +924,20 @@
     ".bfm-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);color:#e8e8ff;border-radius:999px;padding:5px 12px;font:inherit;font-size:.8rem;cursor:pointer}",
     ".bfm-chip:hover,.bfm-chip:focus-visible{border-color:var(--bfm-a);outline:none}",
     ".bfm-chip[data-danger]{border-color:rgba(255,120,120,.35);color:#ffb4b4}",
-    ".bfm-queue{list-style:none;margin:8px 0;padding:0;max-height:300px;overflow:auto;border-top:1px solid rgba(255,255,255,.06)}",
-    ".bfm-item{display:flex;align-items:center;gap:8px;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06);border-radius:8px}",
+    ".bfm-queue{list-style:none;margin:8px 0;padding:0;max-height:260px;overflow:auto;border-top:1px solid rgba(255,255,255,.06)}",
+    ".bfm-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.06);border-radius:8px}",
     ".bfm-item:focus-visible{outline:2px solid var(--bfm-a);outline-offset:-2px}",
     ".bfm-item[aria-current=true]{background:rgba(var(--bf-accent-a-rgb, 34, 211, 238),.08)}",
     ".bfm-item[data-drop=true]{box-shadow:inset 0 2px 0 var(--bfm-a)}",
     ".bfm-grip{color:#5d668f;cursor:grab;display:grid;place-items:center}",
     ".bfm-item-main{flex:1;min-width:0;cursor:pointer;background:none;border:0;color:inherit;text-align:left;font:inherit;padding:0}",
-    ".bfm-item-title{display:block;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".bfm-item-title{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
     ".bfm-item-meta{display:block;font-size:.74rem;color:#8892b8}",
-    ".bfm-mini-btn{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid transparent;background:transparent;color:#8892b8;cursor:pointer}",
+    ".bfm-mini-btn{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;border:1px solid transparent;background:transparent;color:#8892b8;cursor:pointer}",
     ".bfm-mini-btn:hover,.bfm-mini-btn:focus-visible{color:#e8e8ff;border-color:rgba(255,255,255,.18);outline:none}",
-    ".bfm-drop{margin-top:12px;border:1.5px dashed rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);border-radius:14px;padding:14px;text-align:center;color:#c8cce8}",
+    ".bfm-drop{margin-top:10px;border:1.5px dashed rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);border-radius:14px;padding:12px;text-align:center;color:#c8cce8}",
     ".bfm-drop[data-over=true]{border-color:var(--bfm-a);background:rgba(var(--bf-accent-a-rgb, 34, 211, 238),.06)}",
-    ".bfm-drop p{margin:4px 0;font-size:.82rem}",
+    ".bfm-drop p{margin:4px 0;font-size:.8rem}",
     ".bfm-uploads{list-style:none;margin:8px 0 0;padding:0;text-align:left}",
     ".bfm-uploads li{font-size:.8rem;margin:4px 0}",
     ".bfm-uploads progress{width:100%;height:6px;accent-color:var(--bfm-a)}",
@@ -871,16 +950,12 @@
     ".bfm[data-remote=true] .bfm-remote{display:block}",
     ".bfm-toggle{display:flex;align-items:flex-start;gap:10px;margin-top:10px}",
     ".bfm-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}",
-    ".bfm-minibar{position:fixed;left:16px;bottom:16px;z-index:9000;display:flex;align-items:center;gap:6px;max-width:min(380px,calc(100vw - 32px));padding:6px 8px 6px 10px;border-radius:14px;background:rgba(10,12,28,.94);border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.22);box-shadow:0 8px 28px rgba(0,0,0,.5)}",
-    ".bfm-minibar[hidden]{display:none}",
-    ".bfm-minibar .bfm-btn{width:32px;height:32px}",
-    ".bfm-minibar .bfm-mini-title{flex:1;min-width:0;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    ".bfm-minibar a{color:var(--bfm-a);font-size:.76rem;text-decoration:none;white-space:nowrap}",
-    "@media (prefers-reduced-motion: reduce){.bfm *{transition:none!important;animation:none!important}}"
+    "@media (prefers-reduced-motion: reduce){.bfm-panel *{transition:none!important;animation:none!important}}"
   ].join("\n");
 
-  var root = null;
+  var root = null, BOX = null;
   function q(sel) { return root ? root.querySelector(sel) : null; }
+  function qa(sel) { return root ? Array.prototype.slice.call(root.querySelectorAll(sel)) : []; }
   function injectStyle() {
     if (doc.getElementById("bf-music-style")) return;
     var st = doc.createElement("style");
@@ -888,75 +963,54 @@
     st.textContent = CSS;
     (doc.head || doc.documentElement).appendChild(st);
   }
-  function transportHtml(big) {
-    return '<div class="bfm-transport" role="group" aria-label="Playback">' +
-      (big ? '<button type="button" class="bfm-btn" data-act="shuffle" aria-pressed="false" aria-label="Shuffle">' + svg("shuffle") + "</button>" : "") +
-      '<button type="button" class="bfm-btn" data-act="prev" aria-label="Previous">' + svg("prev") + "</button>" +
-      '<button type="button" class="bfm-btn bfm-main" data-act="toggle" aria-label="Play">' + svg("play", big ? 24 : 18) + "</button>" +
-      '<button type="button" class="bfm-btn" data-act="next" aria-label="Next">' + svg("next") + "</button>" +
-      (big ? '<button type="button" class="bfm-btn" data-act="repeat" aria-pressed="false" aria-label="Repeat: off">' + svg("repeat") + "</button>" : "") +
-      "</div>";
+  /* The library panel beneath the boombox: everything the boombox's own keys
+     do not do. */
+  function panelHtml() {
+    return '<h3 id="bfmTitle">Music library</h3>' +
+      '<p class="bfm-remote" role="status"></p>' +
+      '<p class="bfm-armed" role="status">' + AUTOPLAY_NOTE + "</p>" +
+      '<div class="bfm-msg" role="status" aria-live="polite"></div>' +
+      '<div class="bfm-vizbar"><div class="bfm-seg" role="group" aria-label="Visualiser">' +
+        '<button type="button" data-view="spectrum" aria-pressed="true">Spectrum</button><button type="button" data-view="wave" aria-pressed="false">Waveform</button></div>' +
+        '<span class="bfm-note bfm-viz-note"></span></div>' +
+      '<div class="bfm-row">' +
+        '<label for="bfmMix">Mix</label><input id="bfmMix" class="bfm-mix" type="range" min="0" max="' + CROSSFADE_MAX + '" step="1" value="0" aria-describedby="bfmMixNote" />' +
+        '<span class="bfm-out bfm-mix-out">Off</span>' +
+      "</div>" +
+      '<p class="bfm-note" id="bfmMixNote">Mix blends the end of each track into the next, like a DJ, over the seconds you set (up to ' + CROSSFADE_MAX + ").</p>" +
+      '<div class="bfm-row"><label for="bfmPlaylist">Playlist</label><select id="bfmPlaylist" class="bfm-select bfm-playlist"></select>' +
+        '<button type="button" class="bfm-chip" data-act="pl-new">New playlist</button>' +
+        '<button type="button" class="bfm-chip" data-act="pl-rename">Rename</button>' +
+        '<button type="button" class="bfm-chip" data-act="pl-delete" data-danger="1">Delete playlist</button></div>' +
+      '<div class="bfm-row bfm-plname" hidden><label for="bfmPlName" class="bfm-plname-label">Playlist name</label><input id="bfmPlName" class="bfm-text" maxlength="80" />' +
+        '<button type="button" class="bfm-chip" data-act="pl-save">Save</button><button type="button" class="bfm-chip" data-act="pl-cancel">Cancel</button></div>' +
+      '<p class="bfm-note">Queue: drag a track, or focus it and press Alt with the up or down arrow, to change the order.</p>' +
+      '<ul class="bfm-queue" aria-label="Queue"></ul>' +
+      '<p class="bfm-sr" aria-live="polite" id="bfmAnnounce"></p>' +
+      '<div class="bfm-drop" data-over="false">' + svg("upload", 20) +
+        '<p><strong>Drop music here</strong>, or <button type="button" class="bfm-chip" data-act="choose">Choose files</button></p>' +
+        '<p class="bfm-limits">MP3, M4A, AAC, Ogg, Opus, FLAC or WAV.</p>' +
+        '<p>Upload only music you have the right to use. See the <a href="/terms#music">Terms</a>.</p>' +
+        '<input type="file" class="bfm-file" accept="' + ACCEPT + '" multiple hidden />' +
+        '<ul class="bfm-uploads"></ul></div>' +
+      '<div class="bfm-toggle"><input type="checkbox" id="bfmAutoplay" class="bfm-autoplay" aria-describedby="bfmAutoplayNote" />' +
+        '<div><label for="bfmAutoplay">' + AUTOPLAY_LABEL + '</label><p class="bfm-note" id="bfmAutoplayNote">' + AUTOPLAY_NOTE + "</p></div></div>" +
+      (MODE === "popout" ? "" : '<div class="bfm-row"><button type="button" class="bfm-chip" data-act="popout">' + svg("popout", 14) + " Pop out</button></div>" +
+        '<p class="bfm-note bfm-continuity">' + CONTINUITY_NOTE + "</p>");
   }
-  function buildConsole(host) {
-    host.innerHTML =
-      '<div class="bfm bfm-console" data-mode="' + MODE + '">' +
-        '<div class="bfm-head"><div class="bfm-badge">' + svg("music", 22) + '</div><div><h2 class="bfm-title" id="bfmTitle">Music</h2>' +
-          '<p class="bfm-sub">Your own music, private to you. Set the mood and get in the zone.</p></div>' +
-          (MODE === "popout" ? "" : '<button type="button" class="bfm-chip bfm-pop" data-act="popout" aria-label="Pop out">' + svg("popout", 14) + " Pop out</button>") + "</div>" +
-        '<p class="bfm-remote" role="status"></p>' +
-        '<p class="bfm-armed" role="status">' + AUTOPLAY_NOTE + "</p>" +
-        '<div class="bfm-now"><div style="min-width:0"><div class="bfm-np-title">Nothing playing</div><div class="bfm-np-artist"></div></div>' +
-          '<div class="bfm-time" aria-live="off"><span class="bfm-cur">0:00</span> / <span class="bfm-dur">0:00</span></div></div>' +
-        '<canvas class="bfm-viz" width="640" height="120" role="img" aria-label="Live sound visualiser"></canvas>' +
-        '<div class="bfm-vizbar"><div class="bfm-seg" role="group" aria-label="Visualiser">' +
-          '<button type="button" data-view="spectrum" aria-pressed="true">Spectrum</button><button type="button" data-view="wave" aria-pressed="false">Waveform</button></div>' +
-          '<span class="bfm-note bfm-viz-note"></span></div>' +
-        '<input class="bfm-seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="Seek" />' +
-        transportHtml(true) +
-        '<div class="bfm-row">' +
-          '<button type="button" class="bfm-btn" data-act="mute" aria-pressed="false" aria-label="Mute">' + svg("volume") + "</button>" +
-          '<label for="bfmVolume" class="bfm-sr">Volume</label><input id="bfmVolume" class="bfm-volume" type="range" min="0" max="100" step="1" value="80" aria-label="Volume" />' +
-          '<span class="bfm-out bfm-vol-out">80%</span>' +
-          '<label for="bfmMix">Mix</label><input id="bfmMix" class="bfm-mix" type="range" min="0" max="' + CROSSFADE_MAX + '" step="1" value="0" aria-describedby="bfmMixNote" />' +
-          '<span class="bfm-out bfm-mix-out">Off</span>' +
-        "</div>" +
-        '<p class="bfm-note" id="bfmMixNote">Mix blends the end of each track into the next, like a DJ, over the seconds you set (up to ' + CROSSFADE_MAX + ").</p>" +
-        '<div class="bfm-row"><label for="bfmPlaylist">Playlist</label><select id="bfmPlaylist" class="bfm-select bfm-playlist"></select>' +
-          '<button type="button" class="bfm-chip" data-act="pl-new">New playlist</button>' +
-          '<button type="button" class="bfm-chip" data-act="pl-rename">Rename</button>' +
-          '<button type="button" class="bfm-chip" data-act="pl-delete" data-danger="1">Delete playlist</button></div>' +
-        '<div class="bfm-row bfm-plname" hidden><label for="bfmPlName" class="bfm-plname-label">Playlist name</label><input id="bfmPlName" class="bfm-text" maxlength="80" />' +
-          '<button type="button" class="bfm-chip" data-act="pl-save">Save</button><button type="button" class="bfm-chip" data-act="pl-cancel">Cancel</button></div>' +
-        '<p class="bfm-note">Queue: drag a track, or focus it and press Alt with the up or down arrow, to change the order.</p>' +
-        '<ul class="bfm-queue" aria-label="Queue"></ul>' +
-        '<p class="bfm-sr" aria-live="polite" id="bfmAnnounce"></p>' +
-        '<div class="bfm-msg" role="status" aria-live="polite"></div>' +
-        '<div class="bfm-drop" data-over="false">' + svg("upload", 22) +
-          '<p><strong>Drop music here</strong>, or <button type="button" class="bfm-chip" data-act="choose">Choose files</button></p>' +
-          '<p class="bfm-limits">MP3, M4A, AAC, Ogg, Opus, FLAC or WAV.</p>' +
-          '<p>Upload only music you have the right to use. See the <a href="/terms#music">Terms</a>.</p>' +
-          '<input type="file" class="bfm-file" accept="' + ACCEPT + '" multiple hidden />' +
-          '<ul class="bfm-uploads"></ul></div>' +
-        '<div class="bfm-toggle"><input type="checkbox" id="bfmAutoplay" class="bfm-autoplay" aria-describedby="bfmAutoplayNote" />' +
-          '<div><label for="bfmAutoplay">' + AUTOPLAY_LABEL + '</label><p class="bfm-note" id="bfmAutoplayNote">' + AUTOPLAY_NOTE + "</p></div></div>" +
-      "</div>";
-    root = host.firstChild;
+  function buildPlayer() {
+    var host = MODE === "popout" ? doc.getElementById("bfMusicPopout") : null;
+    BOX = window.BFBoombox.mount({
+      mode: MODE, host: host,
+      anchor: MODE === "float" ? doc.querySelector("[data-bf-boombox-anchor]") : null,
+      onVolume: function (v) { setVolume(v); },
+      onSeekBy: function (s) { seek(currentPosition() + s); },
+      onToggle: function () { toggle(); }
+    });
+    root = BOX.root;
+    root.setAttribute("data-mode", MODE);
+    BOX.panel.innerHTML = panelHtml();
     wireConsole();
-  }
-  function buildMini() {
-    var bar = doc.createElement("div");
-    bar.className = "bfm bfm-minibar";
-    bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", "Music");
-    bar.hidden = true;
-    bar.innerHTML = '<span class="bfm-badge" style="width:28px;height:28px;border-radius:8px">' + svg("music", 16) + "</span>" +
-      '<span class="bfm-mini-title">Nothing playing</span>' + transportHtml(false) +
-      '<button type="button" class="bfm-mini-btn" data-act="popout" aria-label="Pop out">' + svg("popout", 15) + "</button>" +
-      '<a href="/dashboard.html#musicSection">Open player</a>' +
-      '<p class="bfm-armed bfm-sr" role="status">' + AUTOPLAY_NOTE + "</p><p class=\"bfm-remote bfm-sr\" role=\"status\"></p><div class=\"bfm-msg bfm-sr\" role=\"status\"></div>";
-    (doc.body || doc.documentElement).appendChild(bar);
-    root = bar;
-    root.addEventListener("click", onClick);
   }
 
   function onClick(e) {
@@ -987,7 +1041,6 @@
   function wireConsole() {
     root.addEventListener("click", onClick);
     q(".bfm-seek").addEventListener("input", function () { seek(Number(this.value)); });
-    q(".bfm-volume").addEventListener("input", function () { setVolume(Number(this.value) / 100); });
     q(".bfm-mix").addEventListener("input", function () { setCrossfade(Number(this.value)); });
     q(".bfm-autoplay").addEventListener("change", function () { setAutoplay(this.checked); });
     q(".bfm-playlist").addEventListener("change", function () { choosePlaylist(this.value); });
@@ -1267,12 +1320,13 @@
     var m = q(".bfm-msg");
     if (m) { m.textContent = R.msg; m.setAttribute("data-kind", R.msgKind); }
   }
+  /* Every copy of a control: the tag and the boombox both have play/pause and next. */
   function setBtn(sel, icon, label, pressed) {
-    var b = q(sel);
-    if (!b) return;
-    if (icon && b.getAttribute("data-icon") !== icon) { b.innerHTML = svg(icon, b.classList.contains("bfm-main") && MODE !== "mini" ? 24 : 18); b.setAttribute("data-icon", icon); }
-    if (label) b.setAttribute("aria-label", label);
-    if (pressed !== undefined) b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    qa(sel).forEach(function (b) {
+      if (icon && b.getAttribute("data-icon") !== icon) { b.innerHTML = svg(icon, 12); b.setAttribute("data-icon", icon); }
+      if (label) b.setAttribute("aria-label", label);
+      if (pressed !== undefined) b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    });
   }
   function renderClock() {
     if (!root) return;
@@ -1294,17 +1348,16 @@
     root.setAttribute("data-playing", playing ? "true" : "false");
     var rem = q(".bfm-remote");
     if (rem) rem.textContent = remote ? (playing ? REMOTE_PLAYING : REMOTE_OPEN) : "";
-    var np = q(".bfm-np-title"), na = q(".bfm-np-artist"), mt = q(".bfm-mini-title");
     var title = t && t.title ? t.title : "Nothing playing";
-    if (np) np.textContent = title;
+    var resume = !remote && !playing && R.resuming && R.blocked;
+    BOX.render({ title: t && t.title ? t.title : "", artist: t && t.artist ? t.artist : "", volume: S.volume, muted: S.muted, resume: resume,
+      tagText: resume ? RESUME_TAP + ": " + title : remote ? (playing ? REMOTE_PLAYING + ": " + title : REMOTE_OPEN) : title });
+    var na = q(".bfm-np-artist");
     if (na) na.textContent = t && t.artist ? t.artist : "";
-    if (mt) mt.textContent = remote ? (playing ? REMOTE_PLAYING + ": " + title : REMOTE_OPEN) : title;
     setBtn("[data-act=toggle]", playing ? "pause" : "play", playing ? "Pause" : "Play");
     setBtn("[data-act=shuffle]", null, null, S.shuffle);
     setBtn("[data-act=repeat]", S.repeat === "one" ? "one" : "repeat", "Repeat: " + S.repeat, S.repeat !== "off");
     setBtn("[data-act=mute]", S.muted ? "mute" : "volume", S.muted ? "Unmute" : "Mute", S.muted);
-    var vol = q(".bfm-volume"); if (vol && doc.activeElement !== vol) vol.value = String(Math.round(S.volume * 100));
-    var vo = q(".bfm-vol-out"); if (vo) vo.textContent = S.muted ? "Muted" : Math.round(S.volume * 100) + "%";
     var mix = q(".bfm-mix"); if (mix && doc.activeElement !== mix) mix.value = String(S.crossfade);
     var mo = q(".bfm-mix-out"); if (mo) mo.textContent = S.crossfade ? S.crossfade + " s" : "Off";
     var ap = q(".bfm-autoplay"); if (ap) ap.checked = S.autoplay === true;
@@ -1315,7 +1368,6 @@
     renderPlaylists();
     renderQueue();
     var m = q(".bfm-msg"); if (m) { m.textContent = R.msg; m.setAttribute("data-kind", R.msgKind); }
-    if (MODE === "mini") root.hidden = !(remote || S.track_id || R.playing);
     renderClock();
   }
   function renderPlaylists() {
@@ -1339,7 +1391,7 @@
     if (!S.queue.length) {
       var empty = doc.createElement("li");
       empty.className = "bfm-note";
-      empty.textContent = LIB.loaded ? (inPlaylist ? "This playlist is empty. Pick “All tracks” and add tracks to it." : "No music yet. Drop your files below to start your library.") : "Loading your music…";
+      empty.textContent = LIB.loaded ? (inPlaylist ? "This playlist is empty. Pick “All tracks” and add tracks to it." : "No music yet. Drop your files below to start your library.") : (LIB.error || "Loading your music…");
       list.appendChild(empty);
       return;
     }
@@ -1378,10 +1430,19 @@
   }
 
   /* ── boot ───────────────────────────────────────────────────────────────── */
-  function boot() {
+  /* The boombox's drawing is scripts/bf-boombox.js: loaded here when the page
+     did not load it first. */
+  function withBoombox(then) {
+    if (window.BFBoombox) return then();
+    var existing = doc.querySelector("script[src$='/scripts/bf-boombox.js']");
+    var s = existing || doc.createElement("script");
+    s.addEventListener("load", function () { if (window.BFBoombox) then(); });
+    if (!existing) { s.src = "/scripts/bf-boombox.js"; (doc.head || doc.documentElement).appendChild(s); }
+  }
+  function boot() { withBoombox(start); }
+  function start() {
     injectStyle();
-    if (MODE === "mini") buildMini();
-    else buildConsole(doc.getElementById(MODE === "popout" ? "bfMusicPopout" : "bfMusicPanel"));
+    buildPlayer();
     render();
     startViz();
     if (MODE === "popout") {
@@ -1397,8 +1458,13 @@
     }
     window.addEventListener("pagehide", function () { if (R.playing) save(); });
     ticker = setInterval(tick, TICK_MS);
-    var needLibrary = MODE === "panel" || S.autoplay || !!S.track_id;
-    (needLibrary ? loadLibrary() : Promise.resolve(LIB)).then(function () {
+    loadLibrary().then(function () {
+      if (S.was_playing && S.track_id && trackById(S.track_id)) {
+        /* Music was playing when the last page went: carry on, once a
+           pop-out that is playing has had time to say so. */
+        setTimeout(resumeAfterNavigation, RESUME_WAIT_MS);
+        return;
+      }
       /* "Play when I open BizForce": play() refuses until the first
          interaction, and arms the player for it. */
       if (S.autoplay && LIB.tracks.length) play({ auto: true });
@@ -1408,7 +1474,7 @@
   window.BFMusic = {
     mode: MODE, id: ID,
     AUTOPLAY_LABEL: AUTOPLAY_LABEL, AUTOPLAY_NOTE: AUTOPLAY_NOTE, REMOTE_PLAYING: REMOTE_PLAYING, REMOTE_OPEN: REMOTE_OPEN,
-    POPUP_BLOCKED: POPUP_BLOCKED, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
+    POPUP_BLOCKED: POPUP_BLOCKED, RESUME_TAP: RESUME_TAP, CONTINUITY_NOTE: CONTINUITY_NOTE, RESUME_WAIT_MS: RESUME_WAIT_MS, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
     fadeGains: fadeGains, energyStep: energyStep, easeOut: easeOut, clamp01: clamp01,
     play: play, pause: pause, toggle: toggle, next: next, prev: prev, seek: seek, setVolume: setVolume, toggleMute: toggleMute,
     setShuffle: setShuffle, cycleRepeat: cycleRepeat, setRepeat: setRepeat, setCrossfade: setCrossfade, setView: setView,
@@ -1428,6 +1494,9 @@
     _decks: function () { return decks; },
     _context: function () { return ctx; },
     _master: function () { return master; },
+    _box: function () { return BOX; },
+    _levels: levels,
+    resuming: function () { return !!R.resuming; },
     _fade: function () { return R.fade; },
     _urls: urls
   };

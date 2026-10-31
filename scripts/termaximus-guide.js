@@ -27,7 +27,7 @@
     "dashboard.html": [
       "Start in \"Command Center\": \"Needs you\" lists the proposals waiting for your approval and the runs that failed.",
       "Under \"Executive plans\", press \"Dispatch\" to run an assignment; that run then joins the count in \"Agent activity\".",
-      "Under \"Music\", drop your own files and press \"Play\"; \"Pop out\" keeps it playing while you move around BizForce.",
+      "Beside the logo, the boombox plays your own music; \"Library\" holds your tracks and uploads, and \"Pop out\" keeps it playing between pages.",
       "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
       "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
     ],
