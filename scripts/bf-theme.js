@@ -52,9 +52,20 @@
    Speed divides each style's own cycle (--bf-motion-speed, 0.25 … 3) and
    Intensity scales every amplitude: --bf-motion-k is intensity / 0.6, so the
    default 0.6 is exactly today's breathe. setLiveEnergy(0 … 1) adds to it
-   (--bf-live-energy, k × (1 + energy)); nothing calls it yet. Motion pauses
-   while the tab is hidden (data-bf-motion-paused) and is off entirely under
-   prefers-reduced-motion, in this script and in the rule's own media query.
+   (--bf-live-energy, k × (1 + energy)); the music player feeds it (MOVE WITH
+   THE MUSIC, below). Motion pauses while the tab is hidden
+   (data-bf-motion-paused) and is off entirely under prefers-reduced-motion,
+   in this script and in the rule's own media query.
+
+   MOVE WITH THE MUSIC. A theme's "Move with the music" (music_move, with
+   music_intensity) lets BizForce's own player (scripts/bf-music.js) drive
+   the live energy: the player posts its energy on the BroadcastChannel
+   "bf-music" about 30 times a second while it plays, from this page,
+   another BizForce page or its pop-out window, and this script alone hands
+   it to setLiveEnergy, times the intensity, when the theme this page wears
+   has it on and its corners alive, and never under reduced motion. When the
+   player stops it eases the energy to 0 over about a second; if it goes
+   quiet instead (a closed pop-out), this script eases it the same way.
 
    PUBLIC PAGES never load this file: seller, support, card-view, the blog, a
    listing and the legal pages keep their OWNER's look, never the visitor's.
@@ -196,7 +207,9 @@
     photo_feather: 0,
     motion: "breathe",
     motion_speed: 1,
-    motion_intensity: 0.6
+    motion_intensity: 0.6,
+    music_move: false,
+    music_intensity: 0.6
   };
   var KEYS = Object.keys(DEFAULT_THEME);
 
@@ -217,7 +230,7 @@
   var RANGES = { glow_a_alpha: [0, 1], glow_b_alpha: [0, 1], dim: [0, 0.85], photo_luma: [0, 1],
     glow_mid_alpha: [0, 1], glow_a_size: [10, 100], glow_b_size: [10, 100], glow_mid_size: [10, 100],
     photo_zoom: [50, 300], photo_x: [0, 100], photo_y: [0, 100], photo_blur: [0, 20], photo_feather: [0, 50],
-    motion_speed: [0.25, 3], motion_intensity: [0, 1] };
+    motion_speed: [0.25, 3], motion_intensity: [0, 1], music_intensity: [0, 1] };
 
   /* Every colour the mist draws (scripts/termaximus-presence.js), as today's
      channels, stop by stop. Stop n of a part is the token --tmx-<part>-<n>;
@@ -875,15 +888,17 @@
   function applyState(state, win, doc) {
     win = win || window; doc = doc || document;
     var key = pageKey(doc, win.location);
+    var worn = publicView(key, win) ? null : resolve(state, key);
+    wornTheme = worn ? normalTheme(worn.theme) : null;
     var tokens = publicView(key, win) ? null : tokensForPage(state, key, win);
     if ((tokens ? JSON.stringify(tokens) : null) === applied) return false;
     setTokens(doc, tokens);
     return true;
   }
 
-  /* The live energy, 0 … 1, that will one day follow what the agents are
-     doing: it strengthens whichever motion is running. Clamped; anything
-     that is not a number is 0. Nothing calls it yet. */
+  /* The live energy, 0 … 1: it strengthens whichever motion is running.
+     Clamped; anything that is not a number is 0. The music player feeds it,
+     through musicEnergy below and nothing else. */
   var liveEnergy = 0;
   function setLiveEnergy(value, doc) {
     doc = doc || document;
@@ -892,6 +907,49 @@
     if (liveEnergy > 0) doc.documentElement.style.setProperty("--bf-live-energy", String(liveEnergy));
     else doc.documentElement.style.removeProperty("--bf-live-energy");
     return liveEnergy;
+  }
+
+  /* MOVE WITH THE MUSIC (above). The theme this page wears, as normalTheme
+     leaves it, is kept by applyState. */
+  var MUSIC_CHANNEL = "bf-music";
+  var MUSIC_STALE_MS = 250, MUSIC_EASE_MS = 33, MUSIC_EASE_STEP = MUSIC_EASE_MS / 1000;
+  var wornTheme = null, musicHeard = 0, musicTimer = null;
+  /* How much of the player's energy this page passes on: 0 unless its theme
+     has "Move with the music" on and its corners alive, and never under
+     reduced motion. */
+  function musicScale(win) {
+    var t = wornTheme;
+    if (!t || t.alive !== true || t.music_move !== true || reducedMotion(win)) return 0;
+    return t.music_intensity;
+  }
+  function musicEnergy(value, win, doc) {
+    var n = typeof value === "number" && isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+    musicHeard = Date.now();
+    setLiveEnergy(n * musicScale(win), doc);
+    if (liveEnergy > 0 && !musicTimer && win.setInterval) musicTimer = win.setInterval(function () { musicQuiet(win, doc); }, MUSIC_EASE_MS);
+    return liveEnergy;
+  }
+  /* The player went quiet without easing out: ease to 0 here, over a second. */
+  function musicQuiet(win, doc) {
+    if (Date.now() - musicHeard < MUSIC_STALE_MS && liveEnergy > 0) return;
+    setLiveEnergy(Math.max(0, liveEnergy - MUSIC_EASE_STEP), doc);
+    if (liveEnergy <= 0 && musicTimer) { win.clearInterval(musicTimer); musicTimer = null; }
+  }
+  function listenForMusic(win, doc) {
+    if (typeof win.BroadcastChannel !== "function") return null;
+    try {
+      var channel = new win.BroadcastChannel(MUSIC_CHANNEL);
+      channel.onmessage = function (e) { var m = e && e.data; if (m && m.type === "energy") musicEnergy(m.value, win, doc); };
+      return channel;
+    } catch (e) { return null; }
+  }
+  /* Whether any of the member's themes moves with the music, so the player
+     measures energy only when something will use it. */
+  function musicWanted(win) {
+    if (reducedMotion(win)) return false;
+    var c = readCache(win), uid = signedInId(win);
+    if (!c || !uid || c.uid !== uid || !c.state || !Array.isArray(c.state.themes)) return false;
+    return c.state.themes.some(function (row) { var t = row && normalTheme(row.theme); return !!t && t.alive === true && t.music_move === true; });
   }
 
   /* Motion rests while the tab is out of sight. */
@@ -943,6 +1001,7 @@
     if (cache && uid && cache.uid === uid) applyState(cache.state, win, doc);
     syncPaused(doc);
     if (doc.addEventListener) doc.addEventListener("visibilitychange", function () { syncPaused(doc); });
+    listenForMusic(win, doc);
     /* Reduced motion switched on while the page is open stops the motion. */
     try {
       var mq = win.matchMedia && win.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1017,6 +1076,9 @@
     color: function (name, fallback) { return color(name, fallback, document); },
     setLiveEnergy: function (value) { return setLiveEnergy(value, document); },
     liveEnergy: function () { return liveEnergy; },
+    MUSIC_CHANNEL: MUSIC_CHANNEL,
+    musicScale: function () { return musicScale(window); },
+    musicWanted: function () { return musicWanted(window); },
     pageKey: function () { return pageKey(document, window.location); },
     publicView: function (key) { return publicView(key, window); },
     resolve: resolve,

@@ -245,7 +245,8 @@
     $("tsGlowMidColor").value = editing.glow_mid; $("tsGlowMidHex").value = editing.glow_mid;
     $("tsMidAuto").checked = editing.mid_auto === true;
     $("tsBgColor").value = editing.bg; $("tsBgHex").value = editing.bg;
-    [["tsGlowAAlpha", "glow_a_alpha"], ["tsGlowBAlpha", "glow_b_alpha"], ["tsGlowMidAlpha", "glow_mid_alpha"], ["tsDim", "dim"], ["tsMotionIntensity", "motion_intensity"]].forEach(function (x) {
+    [["tsGlowAAlpha", "glow_a_alpha"], ["tsGlowBAlpha", "glow_b_alpha"], ["tsGlowMidAlpha", "glow_mid_alpha"], ["tsDim", "dim"], ["tsMotionIntensity", "motion_intensity"],
+     ["tsMusicIntensity", "music_intensity"]].forEach(function (x) {
       $(x[0]).value = Math.round(editing[x[1]] * 100); $(x[0] + "Out").textContent = pct(editing[x[1]]);
     });
     [["tsGlowASize", "glow_a_size", "%"], ["tsGlowBSize", "glow_b_size", "%"], ["tsGlowMidSize", "glow_mid_size", "%"], ["tsZoom", "photo_zoom", "%"],
@@ -258,6 +259,11 @@
       ? "Your device asks for reduced motion, so the corners stay still here and on every page."
       : "The corner glows move in the style you pick below.";
     $("tsMotionNote").textContent = MOTION_NOTES[editing.motion] || "";
+    $("tsMusicMove").checked = editing.music_move === true;
+    $("tsMusicMoveNote").textContent = T.reducedMotion()
+      ? "Your device asks for reduced motion, so the corners stay still, music or not."
+      : "The corners pulse with the music while BizForce's own player plays, on any BizForce page or in the pop-out player. It can only react to music in BizForce's player, never to other tabs or apps." +
+        (editing.alive === true ? "" : " Turn on \"Alive corners\" for it to show.");
     Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMotion]"), function (r2) { r2.checked = r2.value === editing.motion; });
     Array.prototype.forEach.call(root.querySelectorAll("input[name=tsFit]"), function (r2) { r2.checked = r2.value === editing.photo_fit; });
     Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMiddle]"), function (r2) { r2.checked = r2.value === editing.middle; });
@@ -561,6 +567,8 @@
   wireRange("tsFeather", "photo_feather", 1);
   wireRange("tsMotionSpeed", "motion_speed", 100);
   wireRange("tsMotionIntensity", "motion_intensity", 100);
+  wireRange("tsMusicIntensity", "music_intensity", 100);
+  $("tsMusicMove").addEventListener("change", function () { set("music_move", this.checked); });
   $("tsZoom").addEventListener("input", function () { editing.photo_fit = "custom"; set("photo_zoom", clampTo("photo_zoom", Number(this.value))); });
   Array.prototype.forEach.call(root.querySelectorAll("input[name=tsFit]"), function (r) {
     r.addEventListener("change", function () { set("photo_fit", this.value); });

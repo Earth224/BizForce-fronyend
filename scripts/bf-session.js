@@ -42,7 +42,9 @@
      name and date, the sales page's daily goal, the Termaximus insights
      cached for this tab, and bf_theme, the member's themes as scripts/bf-theme.js
      caches them (their look, and their backdrop photo's address), so the next
-     person at this browser, and the sign-in page, see the original look.
+     person at this browser, and the sign-in page, see the original look, and
+     bf_music, the music player's memory (scripts/bf-music.js: the track, the
+     position, the volume, the queue and the player's settings).
      Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
      app.html whenever it opens with no session.
 
@@ -67,7 +69,8 @@
     "bizforce_ai_mailbox", "bf_agent_memories",
     "bf_oracle_name", "bf_oracle_date",
     "mcTargetGoalConversions",
-    "bf_theme"
+    "bf_theme",
+    "bf_music"
   ];
   var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail"];
   var OFFLINE_DB = "bf-offline";
@@ -133,6 +136,21 @@
   if (!read(TOKEN_KEY)) {
     window.location.replace(LOGIN_PAGE);
     return;
+  }
+
+  /* THE MUSIC PLAYER rides on every signed-in page this guard protects: the
+     dashboard's console, the pop-out window, and a mini-bar everywhere else.
+     A page that already loads scripts/bf-music.js itself is left alone. */
+  function loadMusicPlayer() {
+    if (window.BFMusic || document.querySelector("script[src$='/scripts/bf-music.js']")) return;
+    var tag = document.createElement("script");
+    tag.src = "/scripts/bf-music.js";
+    tag.defer = true;
+    (document.body || document.head || document.documentElement).appendChild(tag);
+  }
+  if (typeof document !== "undefined" && document.addEventListener) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", loadMusicPlayer);
+    else loadMusicPlayer();
   }
 
   var nativeFetch = window.fetch;

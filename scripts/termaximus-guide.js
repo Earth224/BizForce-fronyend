@@ -27,7 +27,7 @@
     "dashboard.html": [
       "Start in \"Command Center\": \"Needs you\" lists the proposals waiting for your approval and the runs that failed.",
       "Under \"Executive plans\", press \"Dispatch\" to run an assignment; that run then joins the count in \"Agent activity\".",
-      "\"Agent activity\" counts the runs your agents actually made in the last 30 days, by agent; nothing in it is estimated.",
+      "Under \"Music\", drop your own files and press \"Play\"; \"Pop out\" keeps it playing while you move around BizForce.",
       "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
       "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
     ],
@@ -329,7 +329,7 @@
     "settings.html": [
       "Pick a panel — \"Profile\", \"API Key\", \"Billing\", \"Preferences\", \"Theme\" or \"Account\" — change what you need, and press its save button.",
       "Under \"Theme\", pick a preset such as \"Solar Flare\", or set each corner's \"Opacity\" and \"Size\" and the \"Middle tone\", then press \"Save as…\".",
-      "Turn on \"Alive corners\" for \"Drift\", \"Aurora\" or \"Nebula\"; \"Apply to\" puts a theme on \"All pages\", \"This page\" or \"Selected pages\".",
+      "Turn on \"Alive corners\", then \"Move with the music\" to pulse them with BizForce's player; \"Apply to\" puts a theme on \"All pages\" or \"This page\".",
       "Turn on \"Keep a copy on this device for offline use\" under \"Account\" to open recent tasks, profile and wallet with no connection.",
       "Offline, a page shows when its copy was saved, and nothing can be sent or changed until you're back online."
     ],
