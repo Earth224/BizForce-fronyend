@@ -626,6 +626,14 @@
     if (!editingId) return say("tsApplyMsg", "Save this theme first, then apply it.", "err");
     if (JSON.stringify(editing) !== JSON.stringify(savedSnapshot)) return say("tsApplyMsg", "Save your changes first, then apply.", "err");
     var s = scope(), body = { theme_id: editingId, scope: s };
+    /* "My public profile": the look visitors see on your profile, its
+       support page and your storefront, kept in your profile design
+       (scripts/bf-profile-design.js). Your own pages keep theirs. */
+    if (s === "profile") {
+      return call("PUT", "/api/bfp/profile/design", { theme_id: editingId }, "apply")
+        .then(function () { say("tsApplyMsg", "Applied to your public profile. Visitors see it there; your own pages keep their theme.", "ok"); })
+        .catch(function (err) { say("tsApplyMsg", err.message, "err"); });
+    }
     if (s === "page") body.pages = [thisPageKey()];
     if (s === "pages") {
       body.pages = Array.prototype.map.call(root.querySelectorAll("#tsPageGroups input:checked"), function (cb) { return cb.value; });

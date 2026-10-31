@@ -416,7 +416,14 @@ function renderStorefront(data) {
     document.getElementById("productsGrid").innerHTML = products.map(renderListingCard).join("");
   }
 
+  /* The seller's profile design (scripts/bf-profile-design.js), as the server
+     checked it: their banner, photo, grid and videos, and their theme, worn
+     here whatever the visitor's own theme is. The layout stays the
+     storefront's. */
+  var design = seller.profile_design && typeof seller.profile_design === "object" ? seller.profile_design : null;
+  var PD = window.BFProfileDesign;
   var portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+  if (PD) portfolio = PD.ordered(portfolio, "grid", design);
   if (portfolio.length) {
     document.getElementById("sec-portfolio").style.display = "block";
     document.getElementById("portfolioGrid").innerHTML = portfolio.map(renderPortfolioCard).join("");
@@ -429,6 +436,7 @@ function renderStorefront(data) {
   }
 
   var videos = Array.isArray(data.videos) ? data.videos : [];
+  if (PD) videos = PD.ordered(videos, "videos", design);
   if (videos.length) {
     document.getElementById("sec-videos").style.display = "block";
     document.getElementById("videosGrid").innerHTML = videos.map(renderVideoCard).join("");
@@ -436,6 +444,7 @@ function renderStorefront(data) {
 
   document.getElementById("loadingState").style.display = "none";
   document.getElementById("pageRoot").style.display = "block";
+  if (PD) PD.apply(design, { page: "seller", photoUrl: typeof data.design_photo_url === "string" ? data.design_photo_url : null, name: seller.display_name || seller.username || "" });
 }
 
 // Delegated listeners, bound once to the two containers renderListingCard
@@ -461,6 +470,7 @@ function renderStorefront(data) {
 loadSeller();
 </script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

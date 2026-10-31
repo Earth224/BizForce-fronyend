@@ -99,6 +99,10 @@
   var doc = document;
   var STORE_KEY = "bf_music";
   var CHANNEL_NAME = "bf-music";
+  /* What the display says with nothing loaded, and the ticker's name for
+     the whole library when no playlist is chosen (scripts/bf-boombox.js). */
+  var NO_TRACK = "No track loaded";
+  var ALL_TRACKS = "All tracks";
   var API_ORIGIN_FALLBACK = "https://dynamic-prosperity-production-5382.up.railway.app";
   var CROSSFADE_MAX = 12;
   var ENERGY_HZ = 30;
@@ -290,7 +294,16 @@
   /* ── the sound ──────────────────────────────────────────────────────────── */
   var ctx = null, master = null, analyser = null, decks = [], active = 0;
   var R = { playing: false, activated: MODE === "popout", armed: false, blocked: false, fade: null, awaitRelease: null,
-    popoutAt: 0, remote: null, handing: false, msg: "", msgKind: "", history: [], bag: null, lastSave: 0, yielded: false };
+    popoutAt: 0, remote: null, handing: false, msg: "", msgKind: "", history: [], bag: null, lastSave: 0, yielded: false,
+    /* starts counts the tracks that began here: the boombox's "Now playing"
+       sweep runs once for each. The track this page was restored on, picked
+       up again after a page change or played on from where it paused, is not
+       a new one. */
+    starts: 0, lastBegun: S.track_id || null };
+  function noteBegin(id) {
+    if (id && id !== R.lastBegun && !R.resuming) R.starts++;
+    R.lastBegun = id;
+  }
   function makeDeck(i) {
     var el = new window.Audio();
     el.preload = "auto";
@@ -384,6 +397,7 @@
     decks[1 - active].track = null;
     if (S.track_id && S.track_id !== id) { R.history.push(S.track_id); if (R.history.length > 200) R.history.shift(); }
     S.track_id = id;
+    noteBegin(id);
     S.position = position || 0;
     if (R.bag) R.bag = R.bag.filter(function (x) { return x !== id; });
     render();
@@ -619,6 +633,7 @@
       if (p && p.catch) p.catch(function () {});
       if (S.track_id) { R.history.push(S.track_id); if (R.history.length > 200) R.history.shift(); }
       S.track_id = nextId;
+      noteBegin(nextId);
       if (R.bag) R.bag = R.bag.filter(function (x) { return x !== nextId; });
       active = to.i;
       render();
@@ -1348,9 +1363,13 @@
     root.setAttribute("data-playing", playing ? "true" : "false");
     var rem = q(".bfm-remote");
     if (rem) rem.textContent = remote ? (playing ? REMOTE_PLAYING : REMOTE_OPEN) : "";
-    var title = t && t.title ? t.title : "Nothing playing";
+    var title = t && t.title ? t.title : NO_TRACK;
     var resume = !remote && !playing && R.resuming && R.blocked;
+    /* The queue position and the playlist, for the boombox's LED ticker. */
+    var line = order(), at = !remote && t ? line.indexOf(S.track_id) : -1, pl = S.playlist_id && playlistById(S.playlist_id);
     BOX.render({ title: t && t.title ? t.title : "", artist: t && t.artist ? t.artist : "", volume: S.volume, muted: S.muted, resume: resume,
+      track_id: remote ? (R.remote && R.remote.track_id) || null : S.track_id, playing: playing, starts: remote ? null : R.starts,
+      index: at === -1 ? null : at + 1, total: at === -1 ? null : line.length, playlist: pl ? pl.name : ALL_TRACKS,
       tagText: resume ? RESUME_TAP + ": " + title : remote ? (playing ? REMOTE_PLAYING + ": " + title : REMOTE_OPEN) : title });
     var na = q(".bfm-np-artist");
     if (na) na.textContent = t && t.artist ? t.artist : "";

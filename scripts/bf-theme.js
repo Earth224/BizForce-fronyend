@@ -72,6 +72,15 @@
    UNTHEMED below repeats that list in case one ever does, and profile.html
    wears no theme while it shows somebody else's profile.
 
+   A MEMBER'S PROFILE DESIGN (scripts/bf-profile-design.js) can give their
+   public profile its own theme ("My public profile"). Wherever that profile
+   is shown, the profile, its support page and its storefront, the design
+   calls wear(theme, photoUrl): the OWNER's profile theme is pinned on the
+   page, through tokensFor, so with the same readability protection as any
+   page, and the visitor's own theme is never applied over it. wear(null)
+   lets go. profile.html?id=<own id>&bf_preview=1, the editor's live preview
+   of the public view, is a public view too.
+
    READABILITY. Any colour may be chosen; none is refused. The text colours
    are measured against the brightest point of the backdrop (each glow at its
    centre over the middle, and the middle itself; a photo counts as the
@@ -828,9 +837,9 @@
   function publicView(key, win) {
     if (UNTHEMED.indexOf(key) !== -1) return true;
     if (key === "profile.html") {
-      var id = null;
-      try { id = new URLSearchParams(win.location.search).get("id"); } catch (e) { id = null; }
-      return !!id && id !== signedInId(win);
+      var id = null, preview = false;
+      try { var qs = new URLSearchParams(win.location.search); id = qs.get("id"); preview = qs.get("bf_preview") === "1"; } catch (e) { id = null; }
+      return !!id && (id !== signedInId(win) || preview);
     }
     return false;
   }
@@ -887,6 +896,7 @@
   /* Sets this page's tokens from a state, only when they differ. */
   function applyState(state, win, doc) {
     win = win || window; doc = doc || document;
+    if (pinned) return false;   // a profile design's theme is worn here (wear)
     var key = pageKey(doc, win.location);
     var worn = publicView(key, win) ? null : resolve(state, key);
     wornTheme = worn ? normalTheme(worn.theme) : null;
@@ -914,6 +924,27 @@
   var MUSIC_CHANNEL = "bf-music";
   var MUSIC_STALE_MS = 250, MUSIC_EASE_MS = 33, MUSIC_EASE_STEP = MUSIC_EASE_MS / 1000;
   var wornTheme = null, musicHeard = 0, musicTimer = null;
+
+  /* A profile design's theme, pinned on this page: the owner's look, with
+     readability protection, whatever the visitor's own theme is. wear(null)
+     lets go and the page goes back to what it wore. */
+  var pinned = null;
+  function wear(theme, photoUrl, win, doc) {
+    win = win || window; doc = doc || document;
+    if (theme && typeof theme === "object") {
+      pinned = tokensFor(theme, photoUrl, win);
+      wornTheme = normalTheme(theme);
+      setTokens(doc, pinned);
+      return true;
+    }
+    if (!pinned) return false;
+    pinned = null;
+    wornTheme = null;
+    setTokens(doc, null);
+    var c = readCache(win);
+    if (c && signedInId(win) === c.uid) applyState(c.state, win, doc);
+    return true;
+  }
   /* How much of the player's energy this page passes on: 0 unless its theme
      has "Move with the music" on and its corners alive, and never under
      reduced motion. */
@@ -1081,6 +1112,8 @@
     musicWanted: function () { return musicWanted(window); },
     pageKey: function () { return pageKey(document, window.location); },
     publicView: function (key) { return publicView(key, window); },
+    wear: function (theme, photoUrl) { return wear(theme, photoUrl, window, document); },
+    worn: function () { return pinned ? JSON.parse(JSON.stringify(pinned)) : null; },
     resolve: resolve,
     readCache: function () { return readCache(window); },
     applyState: function (state) { return applyState(state, window, document); },

@@ -9,8 +9,12 @@
        a little by the theme's accent) and a carry handle across the top;
      two main speakers, each a rubber surround, a cone and a dust cap;
      two small tweeters above them;
-     a backlit dot-matrix display: the track title (scrolling when it is long),
-       the time, a live spectrum or waveform strip, and the seek bar;
+     a glowing VFD display (the luminous digital look of a classic stereo
+       deck, in the theme's accent): "Title — Artist", the time, a live
+       spectrum or waveform strip, and the seek bar;
+     a slim dot-matrix LED ticker along the top, under the handle:
+       "NN / TT · Title · Artist · Playlist name", the track's place in the
+       queue and the queue's length;
      a cassette window with two reels;
      five piano keys: previous, play/pause, next, shuffle, repeat, which
        depress when pressed;
@@ -25,7 +29,22 @@
      the reels turn at a steady speed while playing, and slow to a stop over
        about a second on pause (rotate).
    Only transform and opacity ever change, so it stays on the GPU. Nothing
-   moves while paused. bf-music.js runs it from its one requestAnimationFrame
+   moves while paused.
+
+   NOW PLAYING. While a track is loaded the VFD scrolls "Title — Artist" and
+   the ticker scrolls its line, both continuously at a readable pace (about
+   five characters a second), each loop holding still for a moment at its
+   start. When a new track starts (bf-music.js counts them: a track picked up
+   again after a page change, or played on after a pause, is not a new one),
+   a neon "Now playing" banner sweeps once across the face, about 1.2 s, and
+   the ticker's new line settles in behind it. The minimised tag's title
+   scrolls as a marquee only when it is longer than the tag. Screen readers
+   hear "Now playing: <title> by <artist>" once per track, from one
+   aria-live line; the scrolling copies are hidden from them. With nothing
+   loaded the display says "No track loaded" and nothing scrolls. All of it
+   is transform and opacity, pauses while the tab is hidden, and is fully
+   still under prefers-reduced-motion: the text simply shows, cut short with
+   an ellipsis, and its whole line is the tooltip. bf-music.js runs it from its one requestAnimationFrame
    loop, which stops while the page is hidden and never starts under
    prefers-reduced-motion: then the speakers and reels hold still and the
    display shows a still level.
@@ -69,6 +88,14 @@
   var WAVE_BARS = 5;
   var REEL_DEG_PER_S = 200;
   var CONE_PULSE = 0.09, CAP_PULSE = 0.14, TWEETER_PULSE = 0.06;
+  var NO_TRACK = "No track loaded";
+  var ALL_TRACKS = "All tracks";
+  var SEP = " — ", DOT = " · ";
+  var SWEEP_MS = 1200;           // the "Now playing" banner, once per new track
+  var SCROLL_S_PER_CHAR = 0.2;   // about five characters a second
+  var SCROLL_HOLD = 0.12;        // each loop holds still for its first 12%
+  var TAG_FIT_CHARS = 26;        // what the tag holds when it cannot be measured
+  var TAG_GAP = 28;              // the space between the marquee's two copies
 
   function clamp01(n) { return n > 0 ? (n < 1 ? n : 1) : 0; }
   function reducedMotion() {
@@ -176,7 +203,11 @@
     ".bfm-float[data-state=tag] .bfm-tag{display:flex}",
     ".bfm-tag-wave{display:flex;align-items:flex-end;gap:2px;height:16px;width:18px;flex:none}",
     ".bfm-tag-wave span{display:block;width:2px;height:16px;border-radius:1px;background:var(--bf-accent-a, #22d3ee);transform-origin:bottom;transform:scaleY(.2)}",
-    ".bfm-tag-title{flex:1;min-width:0;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".bfm-tag-clip{flex:1;min-width:0;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".bfm-tag-scroll{display:inline}",
+    ".bfm-tag-clip[data-overflow=true]{text-overflow:clip}",
+    ".bfm-tag-clip[data-overflow=true] .bfm-tag-scroll{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 10s) linear infinite}",
+    ".bfm-tag-clip[data-overflow=true] .bfm-tag-title,.bfm-tag-ghost{padding-right:" + TAG_GAP + "px}",
     ".bfm-tag button{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:linear-gradient(180deg,#fff,#cfd3dc);color:#1c2030;cursor:pointer;flex:none}",
     ".bfm-tag button:focus-visible,.bbx button:focus-visible,.bbx-dial:focus-visible,.bbx-display:focus-visible,.bbx-body-grip:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
     ".bfm-tag[data-resume=true] .bfm-tag-title{color:#7a3f00}",
@@ -191,14 +222,33 @@
     ".bbx-top-l{left:8px}.bbx-top-r{right:8px}",
     ".bbx-top button{display:inline-grid;place-items:center;width:22px;height:18px;border-radius:6px;border:1px solid rgba(0,0,0,.25);background:linear-gradient(180deg,#fff,#c8cdd7);color:#1c2030;cursor:pointer;padding:0}",
     ".bbx-top button[aria-pressed=true]{color:var(--bf-accent-b, #a855f7)}",
-    ".bbx-display{position:absolute;left:108px;top:30px;width:104px;height:50px;padding:3px 5px;border-radius:6px;background:radial-gradient(120% 140% at 50% 0%,rgba(var(--bf-accent-a-rgb, 34, 211, 238),.30),rgba(4,14,18,.96) 70%);border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);overflow:hidden;color:var(--bf-accent-a, #22d3ee);font-family:\"Courier New\",ui-monospace,monospace}",
-    ".bbx-marquee{height:12px;overflow:hidden;white-space:nowrap;font-size:10px;line-height:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-shadow:0 0 4px currentColor}",
-    ".bbx-marquee span{display:inline-block;padding-right:24px}",
-    ".bbx-marquee[data-long=true] .bbx-scroll{animation:bbx-marquee var(--bbx-scroll-s, 10s) linear infinite}",
-    ".bfm[data-hidden=true] .bbx-marquee .bbx-scroll{animation-play-state:paused}",
-    "@keyframes bbx-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}",
+    ".bbx-display{position:absolute;left:108px;top:35px;width:104px;height:42px;padding:3px 5px;border-radius:6px;background:radial-gradient(120% 140% at 50% 0%,rgba(var(--bf-accent-a-rgb, 34, 211, 238),.30),rgba(4,14,18,.96) 70%);border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);overflow:hidden;color:var(--bf-accent-a, #22d3ee);font-family:\"Courier New\",ui-monospace,monospace}",
+    /* the VFD: phosphor glow in the accent, fine scan lines over it */
+    ".bbx-marquee{position:relative;height:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;line-height:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--bf-accent-a, #22d3ee);text-shadow:0 0 2px currentColor,0 0 6px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.85)}",
+    ".bbx-marquee::after{content:\"\";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(4,14,18,.38) 1px,transparent 1px);background-size:100% 2px}",
+    ".bbx-scroll{display:inline}",
+    ".bbx-marquee[data-scroll=true]{text-overflow:clip}",
+    ".bbx-marquee[data-scroll=true] .bbx-scroll{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 10s) linear infinite}",
+    ".bbx-marquee[data-scroll=true] .bbx-vfd-copy{padding-right:24px}",
+    ".bbx-vfd-artist{opacity:.82}",
+    /* the LED ticker: a dot-matrix strip under the handle */
+    ".bbx-ticker{position:absolute;left:36px;top:26px;width:242px;height:9px;padding:0 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:2px;background:#04070b;border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 4px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);color:var(--bf-accent-a, #22d3ee);font:700 7px/9px \"Courier New\",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 0 3px currentColor}",
+    ".bbx-ticker::after{content:\"\";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(90deg,rgba(4,7,11,.62) 1px,transparent 1px),linear-gradient(rgba(4,7,11,.62) 1px,transparent 1px);background-size:2px 2px}",
+    ".bbx-ticker-track{display:inline}",
+    ".bbx-ticker[data-scroll=true]{text-overflow:clip}",
+    ".bbx-ticker[data-scroll=true] .bbx-ticker-track{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 14s) linear infinite}",
+    ".bbx-ticker[data-scroll=true] .bbx-ticker-text{padding-right:40px}",
+    /* the "Now playing" sweep, once per new track */
+    ".bbx-sweep{position:absolute;left:60px;top:70px;width:200px;height:26px;display:grid;place-items:center;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:translateX(-150%)}",
+    ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1) 1 both}",
+    ".bbx[data-sweep=on] .bbx-ticker{opacity:0}",
+    ".bbx[data-sweep=done] .bbx-ticker{animation:bbx-settle .45s ease-out 1 both}",
+    ".bfm[data-hidden=true] .bbx-scroll,.bfm[data-hidden=true] .bbx-ticker-track,.bfm[data-hidden=true] .bfm-tag-scroll,.bfm[data-hidden=true] .bbx-sweep{animation-play-state:paused}",
+    "@keyframes bbx-loop{0%," + (SCROLL_HOLD * 100) + "%{transform:translateX(0)}100%{transform:translateX(-50%)}}",
+    "@keyframes bbx-sweep{0%{transform:translateX(-150%);opacity:0}18%{opacity:1}82%{opacity:1}100%{transform:translateX(150%);opacity:0}}",
+    "@keyframes bbx-settle{from{opacity:0}to{opacity:1}}",
     ".bbx-row{display:flex;justify-content:space-between;align-items:center;font-size:9px;line-height:11px;font-variant-numeric:tabular-nums}",
-    ".bbx-display .bfm-viz{display:block;width:94px;height:16px;margin:1px 0}",
+    ".bbx-display .bfm-viz{display:block;width:94px;height:11px;margin:1px 0}",
     ".bbx-display .bfm-seek{display:block;width:94px;height:6px;margin:0;accent-color:var(--bf-accent-a, #22d3ee)}",
     ".bbx-keys{position:absolute;left:110px;top:112px;width:100px;display:flex;gap:2px}",
     ".bbx-keys button{flex:1;height:22px;padding:0;display:grid;place-items:center;border-radius:2px 2px 5px 5px;border:1px solid rgba(0,0,0,.45);background:linear-gradient(180deg,#fdfdfd,#d6d9e0 70%,#a6abb7);color:#1c2030;box-shadow:0 3px 0 #6d7384,0 4px 4px rgba(0,0,0,.25);cursor:pointer;transition:transform .06s}",
@@ -222,7 +272,7 @@
     ".bfm-float[data-dock=phone][data-state=box]{max-height:88vh;overflow:auto;padding:12px 8px 8px;border-radius:16px 16px 0 0;background:rgba(8,10,24,.97);box-shadow:0 -10px 30px rgba(0,0,0,.55);align-items:center}",
     ".bfm-float[data-dock=phone] .bfm-panel{width:100%;max-height:none;margin-top:8px}",
     ".bfm-float[data-dock=phone] .bbx-body-grip{cursor:default}",
-    "@media (prefers-reduced-motion: reduce){.bbx-marquee .bbx-scroll{animation:none!important}.bbx-keys button{transition:none}.bfm-panel{animation:none}.bbx-marquee{text-overflow:ellipsis}}"
+    "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-sweep,.bbx-ticker{animation:none!important}.bbx-sweep{display:none}.bbx-keys button{transition:none}.bfm-panel{animation:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
   ].join("\n");
   function injectStyle() {
     if (doc.getElementById("bf-boombox-style")) return;
@@ -240,11 +290,12 @@
         '<button type="button" data-act="popout" aria-label="Pop out" title="Pop out">' + svg("popout", 12) + "</button></div>" +
       '<div class="bbx-top bbx-top-r"><button type="button" data-act="bbx-reset" aria-label="Reset the boombox position" title="Reset position">' + svg("reset", 12) + "</button>" +
         '<button type="button" data-act="bbx-minimise" aria-label="Minimise the boombox" title="Minimise">' + svg("minimise", 12) + "</button></div>";
-    return '<div class="bbx" role="group" aria-label="BizForce boombox" aria-roledescription="music player">' + DRAWING +
+    return '<div class="bbx" role="group" aria-label="BizForce boombox" aria-roledescription="music player" data-sweep="off">' + DRAWING +
       (opts.mode === "popout" ? "" : '<div class="bbx-body-grip" tabindex="0" role="button" aria-label="Move the boombox. Drag, or use the arrow keys; Home resets it."></div>') +
       top +
+      '<div class="bbx-ticker" aria-hidden="true" data-scroll="false" title="' + NO_TRACK + '"><span class="bbx-ticker-track"><span class="bbx-ticker-text">' + NO_TRACK + "</span></span></div>" +
       '<div class="bbx-display" tabindex="0" role="group" aria-label="Display. Space plays or pauses; the left and right arrows seek.">' +
-        '<div class="bbx-marquee"><span class="bbx-scroll"><span class="bfm-np-title">Nothing playing</span></span></div>' +
+        '<div class="bbx-marquee" data-scroll="false" title="' + NO_TRACK + '"><span class="bbx-scroll"><span class="bbx-vfd-copy"><span class="bfm-np-title">' + NO_TRACK + '</span><span class="bbx-vfd-artist"></span></span></span></div>' +
         '<div class="bbx-row"><span class="bfm-np-artist"></span><span><span class="bfm-cur">0:00</span>/<span class="bfm-dur">0:00</span></span></div>' +
         '<canvas class="bfm-viz" width="188" height="32" role="img" aria-label="Live sound visualiser"></canvas>' +
         '<input class="bfm-seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="Seek" />' +
@@ -261,6 +312,7 @@
         '<div class="bbx-dial" tabindex="0" role="slider" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80" aria-valuetext="80%"><span class="bbx-dial-mark"></span></div>' +
         '<span class="bbx-dial-out">80%</span>' +
         '<div class="bbx-leds" data-side="right" aria-hidden="true">' + leds + "</div></div>" +
+      '<div class="bbx-sweep" aria-hidden="true"><span>Now playing</span></div>' +
     "</div>";
   }
   function tagHtml() {
@@ -268,7 +320,7 @@
     for (var i = 0; i < WAVE_BARS; i++) bars += "<span></span>";
     return '<div class="bfm-tag" role="group" aria-label="Now playing. Drag, or use the arrow keys, to move it; Home resets it." tabindex="0">' +
       '<span class="bfm-tag-wave" aria-hidden="true">' + bars + "</span>" +
-      '<span class="bfm-tag-title">Nothing playing</span>' +
+      '<span class="bfm-tag-clip" title="' + NO_TRACK + '"><span class="bfm-tag-scroll"><span class="bfm-tag-title">' + NO_TRACK + "</span></span></span>" +
       '<button type="button" class="bfm-main" data-act="toggle" aria-label="Play">' + svg("play", 12) + "</button>" +
       '<button type="button" data-act="next" aria-label="Next">' + svg("next", 12) + "</button>" +
       '<button type="button" data-act="bbx-expand" aria-label="Open the boombox" aria-expanded="false">' + svg("expand", 12) + "</button>" +
@@ -307,6 +359,7 @@
       var ex = $("[data-act=bbx-expand]"); if (ex) ex.setAttribute("aria-expanded", state === "box" ? "true" : "false");
       prefs.state = state; prefs.library = library; savePrefs(prefs);
       place();
+      if (state === "tag" && typeof fitTag === "function") fitTag();
       if (focus) {
         var to = state === "box" ? $(".bbx-keys .bfm-main") : $("[data-act=bbx-expand]");
         if (to) to.focus();
@@ -547,28 +600,124 @@
     function still() { rest(); root.setAttribute("data-still", "true"); }
 
     /* ── what it shows ───────────────────────────────────────────────────── */
-    var lastTitle = null;
+    var lastKey = null, seenStarts, sweepTimer = null, sweepCount = 0;
+    var vfdShown = null, tickerShown = null, tagText = NO_TRACK, tagShown = null;
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    /* A loop's length: the line at about five characters a second, plus the hold at its start. */
+    function scrollSeconds(text) { return Math.max(6, Math.round(String(text).length * SCROLL_S_PER_CHAR / (1 - SCROLL_HOLD))); }
+    function span(cls, text, ghost) {
+      var s = doc.createElement("span");
+      s.className = cls;
+      s.textContent = text;
+      if (ghost) s.setAttribute("aria-hidden", "true");
+      return s;
+    }
+    /* One "Title — Artist" for the VFD; the second copy (the loop's seam) is hidden from screen readers. */
+    function vfdCopy(title, artist, ghost) {
+      var c = span("bbx-vfd-copy", "", ghost);
+      c.appendChild(span(ghost ? "bbx-vfd-title" : "bfm-np-title", title, false));
+      c.appendChild(span("bbx-vfd-artist", artist ? SEP + artist : "", false));
+      return c;
+    }
+    /* Whether the tag's title is longer than the tag: measured where the tag
+       is laid out, else counted in characters. */
+    function tagOverflows() {
+      var clip = $(".bfm-tag-clip"), tt = $(".bfm-tag-title");
+      var room = clip ? clip.clientWidth : 0;
+      if (room > 0) {
+        var need = tt.getBoundingClientRect().width - (clip.getAttribute("data-overflow") === "true" ? TAG_GAP : 0);
+        return need > room + 1;
+      }
+      return tagText.length > TAG_FIT_CHARS;
+    }
+    function fitTag() {
+      var clip = $(".bfm-tag-clip"), sc = $(".bfm-tag-scroll");
+      if (!clip || !sc) return;
+      var over = !reducedMotion() && tagOverflows();
+      var key = (over ? "1" : "0") + tagText;
+      if (key === tagShown) return;
+      tagShown = key;
+      var ghost = $(".bfm-tag-ghost");
+      if (ghost) ghost.parentNode.removeChild(ghost);
+      if (over) { sc.appendChild(span("bfm-tag-ghost", tagText, true)); sc.style.setProperty("--bbx-scroll-s", scrollSeconds(tagText) + "s"); }
+      clip.setAttribute("data-overflow", over ? "true" : "false");
+    }
+    /* The neon "Now playing" banner, once, then the ticker settles in. */
+    function sweep() {
+      if (reducedMotion() || !box) return;
+      sweepCount++;
+      if (sweepTimer) clearTimeout(sweepTimer);
+      box.setAttribute("data-sweep", "off");
+      void box.offsetWidth;   // so the banner starts again from the left
+      box.setAttribute("data-sweep", "on");
+      sweepTimer = setTimeout(function () { sweepTimer = null; box.setAttribute("data-sweep", "done"); }, SWEEP_MS);
+    }
+    /* v: { title, artist, track_id, playing, starts, index, total, playlist,
+       tagText, resume, volume, muted } from bf-music.js. */
     function render(v) {
       v = v || {};
-      var title = v.title || "Nothing playing";
+      var loaded = !!v.title, still = reducedMotion();
+      var title = v.title || NO_TRACK;
+      var artist = loaded && v.artist ? v.artist : "";
+      /* the tag */
+      tagText = v.tagText || title;
       var tt = $(".bfm-tag-title");
-      if (tt) tt.textContent = v.tagText || title;
+      if (tt && tt.textContent !== tagText) tt.textContent = tagText;
+      var clip = $(".bfm-tag-clip");
+      if (clip) clip.setAttribute("title", tagText);
       if (tag) tag.setAttribute("data-resume", v.resume ? "true" : "false");
+      fitTag();
+      /* the VFD: "Title — Artist", scrolling while a track is loaded */
       var mq = $(".bbx-marquee");
-      if (mq) {
-        var long = title.length > 16 && !reducedMotion();
+      var line = loaded ? title + (artist ? SEP + artist : "") : NO_TRACK;
+      var vfdKey = (loaded && !still ? "1" : "0") + title + "\n" + artist;
+      if (mq && vfdKey !== vfdShown) {
+        vfdShown = vfdKey;
         var sc = $(".bbx-scroll");
         sc.innerHTML = "";
-        var a = doc.createElement("span"); a.className = "bfm-np-title"; a.textContent = title; sc.appendChild(a);
-        if (long) { var b2 = doc.createElement("span"); b2.setAttribute("aria-hidden", "true"); b2.textContent = title; sc.appendChild(b2); }
-        mq.setAttribute("data-long", long ? "true" : "false");
-        sc.style.setProperty("--bbx-scroll-s", Math.max(6, Math.round(title.length / 3)) + "s");
+        sc.appendChild(vfdCopy(title, artist, false));
+        if (loaded && !still) sc.appendChild(vfdCopy(title, artist, true));
+        mq.setAttribute("data-scroll", loaded && !still ? "true" : "false");
+        mq.setAttribute("title", line);
+        sc.style.setProperty("--bbx-scroll-s", scrollSeconds(line) + "s");
       }
-      if (title !== lastTitle) { lastTitle = title; var live = $(".bfm-live"); if (live) live.textContent = v.title ? "Now playing: " + title + (v.artist ? " by " + v.artist : "") : ""; }
+      /* the LED ticker: "NN / TT · Title · Artist · Playlist name" */
+      var tk = $(".bbx-ticker");
+      var parts = [];
+      if (loaded) {
+        if (v.index && v.total) parts.push(two(v.index) + " / " + two(v.total));
+        parts.push(title);
+        if (artist) parts.push(artist);
+        parts.push(v.playlist || ALL_TRACKS);
+      }
+      var text = loaded ? parts.join(DOT) : NO_TRACK;
+      var tickKey = (loaded && !still ? "1" : "0") + text;
+      if (tk && tickKey !== tickerShown) {
+        tickerShown = tickKey;
+        var tr = $(".bbx-ticker-track");
+        tr.innerHTML = "";
+        tr.appendChild(span("bbx-ticker-text", text, false));
+        if (loaded && !still) tr.appendChild(span("bbx-ticker-text", text, true));
+        tk.setAttribute("data-scroll", loaded && !still ? "true" : "false");
+        tk.setAttribute("title", text);
+        tr.style.setProperty("--bbx-scroll-s", scrollSeconds(text) + "s");
+      }
+      /* once per track: the announcement */
+      var key = loaded ? (v.track_id || title + "\n" + artist) : null;
+      if (key !== lastKey) {
+        lastKey = key;
+        var live = $(".bfm-live");
+        if (live) live.textContent = loaded ? "Now playing: " + title + (artist ? " by " + artist : "") : "";
+      }
+      /* once per new track: the sweep (a pause and a resume start nothing new) */
+      if (typeof v.starts === "number") {
+        if (seenStarts !== undefined && v.starts !== seenStarts && loaded) sweep();
+        seenStarts = v.starts;
+      }
       if (typeof v.volume === "number" && doc.activeElement !== dial && !dialDrag) setDial(v.muted ? 0 : v.volume, false);
     }
 
-    function onResize() { place(); }
+    function onResize() { place(); fitTag(); }
     window.addEventListener("resize", onResize);
     doc.addEventListener("visibilitychange", function () { root.setAttribute("data-hidden", doc.hidden ? "true" : "false"); });
     var nudger = popout ? null : setInterval(function () { if (state && !drag.on) nudge(); }, 1500);
@@ -584,6 +733,7 @@
       setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset,
       animate: animate, still: still, rest: rest, render: render,
       motion: function () { return { speed: M.speed, angle: M.angle, cone: M.cone, highs: M.highs, level: M.level }; },
+      sweeps: function () { return sweepCount; },
       destroy: function () { if (nudger) clearInterval(nudger); window.removeEventListener("resize", onResize); }
     };
   }
@@ -591,6 +741,7 @@
   window.BFBoombox = {
     mount: mount, clampPosition: clampPosition,
     STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z,
-    CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE
+    CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
+    NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
   };
 })();

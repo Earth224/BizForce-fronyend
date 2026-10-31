@@ -95,6 +95,13 @@
     PER_USER_SESSION_PREFIXES: PER_USER_SESSION_PREFIXES.slice()
   };
   var thisScript = typeof document !== "undefined" ? document.currentScript : null;
+  /* settings.html runs no session guard (data-clear-only) but is a signed-in
+     page all the same: its tag's data-music asks for the music player, and the
+     mist's boombox with it, whenever a member is signed in. */
+  if (thisScript && thisScript.hasAttribute && thisScript.hasAttribute("data-music") && read(TOKEN_KEY)) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", loadMusicPlayer);
+    else loadMusicPlayer();
+  }
   if (thisScript && thisScript.hasAttribute && thisScript.hasAttribute("data-clear-only")) return;
 
   /* Last-resort default only. The live value is read from window.API_URL at

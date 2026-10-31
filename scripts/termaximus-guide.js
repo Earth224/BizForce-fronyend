@@ -59,7 +59,7 @@
       "Press \"Edit Profile\", fill in your bio and press \"Save About\"; then add work with \"Add Product\", \"Add Work\", \"Add Video\" or \"Upload Track\".",
       "Each item shows on this page once saved; press \"Copy Profile Link\" or \"Share\" to send the page to people.",
       "Others see this page only while your subscription is active; it returns when you resubscribe, and nothing is deleted.",
-      "A section you hide in the customize panel is only hidden; its items are kept, and showing it again brings them back.",
+      "Press \"Customise profile\" to set the banner, photo shape, layout and section order, previewed as visitors see it; press \"Save\" to show them your look.",
       "Under \"Support links\" add up to five payment pages and press \"Save support links\"; visitors also get \"Support with BizCash\"."
     ],
     "integrations.html": [
