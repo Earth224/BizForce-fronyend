@@ -32,7 +32,7 @@
     :root {
       --pa: #22d3ee;
       --pa-rgb: 34,211,238;
-      --pa2: #a855f7;
+      --pa2: var(--bf-accent-b, #a855f7);
       --pf: system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
       --bg: #070b18;
       --glass: rgba(12,16,38,.72);
@@ -92,8 +92,8 @@
     }
     .pf-nav-btn-edit:hover { filter: brightness(1.1); }
     .pf-nav-btn-edit.active {
-      background: linear-gradient(90deg, var(--bf-btn-a, #a855f7), var(--bf-btn-b, #7c3aed));
-      border-color: #a855f7; color: var(--bf-btn-text, #fff);
+      background: linear-gradient(90deg, var(--bf-btn-a, #a855f7)var(--bf-btn-mid, ), var(--bf-btn-b, #7c3aed));
+      border-color: var(--bf-accent-b, #a855f7); color: var(--bf-btn-text, #fff);
     }
 
     /* ── Banner ───────────────────────────────────────────────────────── */
@@ -114,7 +114,7 @@
       position: absolute; inset: 0; opacity: .75;
       background-image:
         radial-gradient(circle at 18% 55%, rgba(var(--pa-rgb),.38) 0%, transparent 48%),
-        radial-gradient(circle at 78% 28%, rgba(168,85,247,.3) 0%, transparent 44%),
+        radial-gradient(circle at 78% 28%, rgba(var(--bf-accent-b-rgb, 168,85,247),.3) 0%, transparent 44%),
         radial-gradient(circle at 50% 90%, rgba(0,100,160,.18) 0%, transparent 40%);
     }
     .pf-banner-upload-zone {
@@ -474,9 +474,9 @@
     }
     .pf-act-btn svg { width: 12px; height: 12px; }
     .pf-act-edit {
-      background: rgba(34,211,238,.15); border-color: rgba(34,211,238,.4); color: #22d3ee;
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),.15); border-color: rgba(var(--bf-accent-a-rgb, 34,211,238),.4); color: var(--bf-accent-a, #22d3ee);
     }
-    .pf-act-edit:hover { background: rgba(34,211,238,.3); }
+    .pf-act-edit:hover { background: rgba(var(--bf-accent-a-rgb, 34,211,238),.3); }
     .pf-act-del {
       background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.35); color: #f87171;
     }
@@ -603,7 +603,7 @@
     /* ── VIDEO TOGGLE + PLAYER ─────────────────────────────────────────── */
     .pf-vid-toggle { display: flex; gap: 0; background: rgba(255,255,255,.05); border-radius: 10px; padding: 3px; margin-bottom: 4px; }
     .pf-vid-toggle-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s; background: transparent; color: rgba(255,255,255,.45); }
-    .pf-vid-toggle-btn.active { background: linear-gradient(90deg,var(--bf-btn-a, #22d3ee),var(--bf-btn-b, #a855f7)); color: var(--bf-btn-text, #050c1a); }
+    .pf-vid-toggle-btn.active { background: linear-gradient(90deg,var(--bf-btn-a, #22d3ee)var(--bf-btn-mid, ),var(--bf-btn-b, #a855f7)); color: var(--bf-btn-text, #050c1a); }
     .pf-vid-player-overlay {
       position: fixed; inset: 0; z-index: 160;
       background: rgba(0,0,0,.94); backdrop-filter: blur(18px);
@@ -614,7 +614,7 @@
     .pf-vid-player-inner {
       max-width: 860px; width: 100%;
       background: rgba(8,12,32,.98);
-      border: 1px solid rgba(34,211,238,.2); border-radius: 20px; overflow: hidden;
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.2); border-radius: 20px; overflow: hidden;
     }
     .pf-vid-player-head {
       display: flex; align-items: center; justify-content: space-between;
@@ -684,11 +684,11 @@
     .pf-track-play-btn {
       width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
       border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, rgba(var(--pa-rgb),.15), rgba(168,85,247,.1));
+      background: linear-gradient(135deg, rgba(var(--pa-rgb),.15), rgba(var(--bf-accent-b-rgb, 168,85,247),.1));
       border: 1px solid rgba(var(--pa-rgb),.3);
       color: var(--pa); transition: all .2s;
     }
-    .pf-track-play-btn:hover { background: linear-gradient(135deg, rgba(var(--pa-rgb),.28), rgba(168,85,247,.2)); transform: scale(1.06); }
+    .pf-track-play-btn:hover { background: linear-gradient(135deg, rgba(var(--pa-rgb),.28), rgba(var(--bf-accent-b-rgb, 168,85,247),.2)); transform: scale(1.06); }
     .pf-track-card.playing .pf-track-play-btn {
       background: linear-gradient(135deg, var(--pa), var(--pa2));
       border-color: transparent; color: #050c1a;
@@ -951,24 +951,24 @@
       padding: 64px 24px; text-align: center;
       background: rgba(12,16,38,.72);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 1px dashed rgba(34,211,238,.3);
+      border: 1px dashed rgba(var(--bf-accent-a-rgb, 34,211,238),.3);
       border-radius: 18px;
       box-sizing: border-box;
     }
     .pf-empty-icon {
       width: 88px; height: 88px; border-radius: 50%; margin-bottom: 20px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      background: rgba(34,211,238,.08);
-      border: 1px solid rgba(34,211,238,.3);
-      box-shadow: 0 0 28px rgba(34,211,238,.12);
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),.08);
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.3);
+      box-shadow: 0 0 28px rgba(var(--bf-accent-a-rgb, 34,211,238),.12);
     }
-    .pf-empty-icon svg { width: 48px; height: 48px; color: #22d3ee; flex-shrink: 0; }
+    .pf-empty-icon svg { width: 48px; height: 48px; color: var(--bf-accent-a, #22d3ee); flex-shrink: 0; }
     .pf-empty-title { font-size: 18px; font-weight: 600; color: #ffffff; margin-bottom: 8px; }
     .pf-empty-sub { font-size: 14px; color: rgba(255,255,255,.5); line-height: 1.65; margin-bottom: 24px; max-width: 300px; }
     .pf-empty-btn {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 10px 24px; border-radius: 10px;
-      background: linear-gradient(90deg, var(--bf-btn-a, #22d3ee), var(--bf-btn-b, #a855f7));
+      background: linear-gradient(90deg, var(--bf-btn-a, #22d3ee)var(--bf-btn-mid, ), var(--bf-btn-b, #a855f7));
       border: none; color: var(--bf-btn-text, #050c1a); font-size: .85rem; font-weight: 900;
       cursor: pointer; font-family: var(--pf); transition: filter .2s;
     }
@@ -992,19 +992,19 @@
     .pf-lightbox-inner {
       max-width: 760px; width: 100%; position: relative;
       background: rgba(10,14,36,.97);
-      border: 1px solid rgba(34,211,238,.22); border-radius: 20px; overflow: hidden;
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22); border-radius: 20px; overflow: hidden;
       box-shadow: 0 32px 80px rgba(0,0,0,.7);
     }
     .pf-lightbox-img { width: 100%; max-height: 440px; object-fit: cover; display: block; }
     .pf-lightbox-no-img {
       width: 100%; height: 200px; display: flex; align-items: center; justify-content: center;
-      background: rgba(34,211,238,.04); border-bottom: 1px solid rgba(34,211,238,.1);
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),.04); border-bottom: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.1);
     }
-    .pf-lightbox-no-img svg { width: 48px; height: 48px; opacity: .15; color: #22d3ee; }
+    .pf-lightbox-no-img svg { width: 48px; height: 48px; opacity: .15; color: var(--bf-accent-a, #22d3ee); }
     .pf-lightbox-body { padding: 22px 26px 26px; }
     .pf-lightbox-cat {
       font-size: .66rem; font-weight: 800; letter-spacing: .12em;
-      text-transform: uppercase; color: #22d3ee; margin-bottom: 6px;
+      text-transform: uppercase; color: var(--bf-accent-a, #22d3ee); margin-bottom: 6px;
     }
     .pf-lightbox-title { font-size: 1.25rem; font-weight: 800; color: #fff; margin-bottom: 10px; line-height: 1.3; }
     .pf-lightbox-desc  { font-size: .88rem; color: rgba(255,255,255,.55); line-height: 1.7; margin-bottom: 20px; }
@@ -1020,7 +1020,7 @@
     .pf-lightbox-visit {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 9px 22px; border-radius: 10px;
-      background: linear-gradient(90deg, #22d3ee, #a855f7);
+      background: linear-gradient(90deg, var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7));
       color: #050c1a; font-size: .82rem; font-weight: 900;
       text-decoration: none; transition: filter .2s;
     }
@@ -1030,7 +1030,7 @@
     .pf-product-buy-btn {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 7px 16px; border-radius: 9px;
-      background: linear-gradient(90deg, var(--bf-btn-a, #22d3ee), var(--bf-btn-b, #a855f7));
+      background: linear-gradient(90deg, var(--bf-btn-a, #22d3ee)var(--bf-btn-mid, ), var(--bf-btn-b, #a855f7));
       color: var(--bf-btn-text, #050c1a); font-size: .76rem; font-weight: 900;
       text-decoration: none; transition: filter .2s; white-space: nowrap;
     }
@@ -1431,8 +1431,8 @@
     <div class="pf-custom-group">
       <div class="pf-custom-label">Accent Color</div>
       <div class="pf-color-row">
-        <div class="pf-color-dot active" data-color="#22d3ee" style="background:#22d3ee" onclick="setAccent('#22d3ee',this)"></div>
-        <div class="pf-color-dot" data-color="#a855f7" style="background:#a855f7" onclick="setAccent('#a855f7',this)"></div>
+        <div class="pf-color-dot active" data-color="#22d3ee" style="background:var(--bf-accent-a, #22d3ee)" onclick="setAccent('#22d3ee',this)"></div>
+        <div class="pf-color-dot" data-color="#a855f7" style="background:var(--bf-accent-b, #a855f7)" onclick="setAccent('#a855f7',this)"></div>
         <div class="pf-color-dot" data-color="#34d399" style="background:#34d399" onclick="setAccent('#34d399',this)"></div>
         <div class="pf-color-dot" data-color="#fbbf24" style="background:#fbbf24" onclick="setAccent('#fbbf24',this)"></div>
         <div class="pf-color-dot" data-color="#f43f5e" style="background:#f43f5e" onclick="setAccent('#f43f5e',this)"></div>
@@ -2480,7 +2480,7 @@ function renderVideos() {
     var platSvg   = v.video_type==="youtube" ? YT_SVG : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
     var thumbArea = thumb
       ? '<img class="pf-video-thumb" src="'+esc(thumb)+'" alt="'+esc(v.title)+'" loading="lazy">'
-      : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,16,38,.9)"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(34,211,238,.4)" stroke-width="1.5" width="48" height="48"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>';
+      : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,16,38,.9)"><svg viewBox="0 0 24 24" fill="none" stroke="' + (typeof BFTheme !== "undefined" ? BFTheme.color('--bf-accent-a', 'rgba(34,211,238,.4)') : 'rgba(34,211,238,.4)') + '" stroke-width="1.5" width="48" height="48"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>';
     var acts = (isOwner && editMode)
       ? '<div style="position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:5px;opacity:0" class="pf-vid-acts">'
           +'<button class="pf-act-btn pf-act-edit" onclick="event.stopPropagation();openVideoModal(\''+v.id+'\')" title="Edit">'+EDIT_SVG+'</button>'

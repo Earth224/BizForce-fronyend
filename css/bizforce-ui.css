@@ -49,17 +49,17 @@
   /* The primary accent: links, focus rings, active borders, icon strokes.
      The most repeated colour in the repo at 65 files, and already this file's
      own --bf-icon-stroke default. */
-  --bf-accent: #22d3ee;
+  --bf-accent: var(--bf-accent-a, #22d3ee);
 
   /* The brighter cyan the accent is paired with in gradients and glows. 51
      files. Kept distinct from --bf-accent rather than merged: the two appear
      together in the same gradient often enough that one token could not
      express it. */
-  --bf-accent-bright: #00e5ff;
+  --bf-accent-bright: var(--bf-accent-a3, #00e5ff);
 
   /* The second stop in nearly every brand gradient, opposite the cyan. 60
      files. */
-  --bf-accent-alt: #a855f7;
+  --bf-accent-alt: var(--bf-accent-b, #a855f7);
 
   /* Success and confirmation — a resolved place, a known birth time, a saved
      record. 30 files. */
@@ -139,7 +139,7 @@
   margin: 12px auto 0;
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 229, 255, 0.18);
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18);
   background: rgba(8, 12, 28, 0.72);
   color: #8892b8;
   font-size: 0.78rem;
@@ -155,7 +155,7 @@
   gap: 16px;
   padding: 14px 24px;
   margin-bottom: 0;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+  border-bottom: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.12);
   background: rgba(8, 8, 18, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -171,7 +171,7 @@
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, var(--bf-mark-a, #00e5ff), var(--bf-mark-b, #9f6bff));
+  background: linear-gradient(135deg, var(--bf-mark-a, #00e5ff)var(--bf-mark-mid, ), var(--bf-mark-b, #9f6bff));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -189,7 +189,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 229, 255, 0.32);
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.32);
   background: rgba(8, 12, 28, 0.85);
   color: #5ee8ff;
   display: inline-flex;
@@ -218,7 +218,7 @@
   gap: 10px;
   padding: 4px 10px 4px 4px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.15);
   background: rgba(8, 12, 28, 0.6);
 }
 
@@ -233,8 +233,8 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   color: #fff;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.35), rgba(168, 85, 247, 0.45));
-  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: linear-gradient(135deg, rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.35), rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.45));
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.35);
 }
 
 .topbar-user-meta {
@@ -280,9 +280,9 @@
   display: inline-block;
   padding: 6px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 229, 255, 0.3);
-  background: rgba(0, 229, 255, 0.08);
-  color: #22d3ee;
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
+  background: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.08);
+  color: var(--bf-accent-a, #22d3ee);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -296,7 +296,7 @@
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #00e5ff, #7b2ff7 60%, #a855f7);
+  background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff), var(--bf-accent-b3, #7b2ff7) 60%, var(--bf-accent-b, #a855f7));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -616,7 +616,7 @@
   padding: 10px 14px;
   font-size: 0.82rem;
   border-radius: 10px;
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
   background: rgba(8, 12, 28, 0.85);
   color: #f4f7ff;
   font-weight: 600;
@@ -648,7 +648,7 @@ button.bf-btn,
   min-height: 44px;
   padding: 0 22px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--bf-btn-a, #00d9ff), var(--bf-btn-b, #7d5cff));
+  background: linear-gradient(90deg, var(--bf-btn-a, #00d9ff)var(--bf-btn-mid, ), var(--bf-btn-b, #7d5cff));
   font-weight: 700;
   border: none;
   color: var(--bf-btn-text, #fff);
@@ -679,8 +679,8 @@ button.bf-btn:hover,
 #clearAssignmentQueue.bf-btn-ghost,
 button.logout.bf-btn-ghost {
   background: rgba(8, 8, 18, 0.85);
-  border: 1px solid rgba(0, 229, 255, 0.3);
-  color: #00e5ff;
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
+  color: var(--bf-accent-a3, #00e5ff);
   box-shadow: none;
 }
 
@@ -721,7 +721,7 @@ button.logout.bf-btn-ghost:hover {
 /* Executive HQ icon system — mirrors Agent Directory .agent-avatar */
 .bf-neon-icon,
 .bf-hq-icon {
-  --bf-icon-stroke: #22d3ee;
+  --bf-icon-stroke: var(--bf-accent-a, #22d3ee);
   color: var(--bf-icon-stroke);
   width: 56px;
   height: 56px;
@@ -729,9 +729,9 @@ button.logout.bf-btn-ghost:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(168, 85, 247, 0.2));
-  border: 2px solid rgba(0, 229, 255, 0.3);
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.15);
+  background: linear-gradient(135deg, rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.15), rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.2));
+  border: 2px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.15);
   flex-shrink: 0;
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
 }
@@ -753,7 +753,7 @@ button.logout.bf-btn-ghost:hover {
 .bf-hq-icon.integrations {
   --bf-icon-stroke: #c084fc;
   border-color: rgba(192, 132, 252, 0.45);
-  box-shadow: 0 0 24px rgba(168, 85, 247, 0.18);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.18);
 }
 
 .bf-hq-icon.chat {
@@ -766,25 +766,25 @@ button.logout.bf-btn-ghost:hover {
 .bf-hq-icon.work-queue {
   --bf-icon-stroke: #a78bfa;
   border-color: rgba(167, 139, 250, 0.45);
-  box-shadow: 0 0 24px rgba(139, 92, 246, 0.18);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-b2-rgb, 139, 92, 246), 0.18);
 }
 
 .bf-hq-icon.directory {
-  --bf-icon-stroke: #22d3ee;
-  border-color: rgba(34, 211, 238, 0.45);
-  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+  --bf-icon-stroke: var(--bf-accent-a, #22d3ee);
+  border-color: rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.45);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.18);
 }
 
 .bf-hq-icon.seo {
-  --bf-icon-stroke: #22d3ee;
-  border-color: rgba(34, 211, 238, 0.45);
-  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+  --bf-icon-stroke: var(--bf-accent-a, #22d3ee);
+  border-color: rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.45);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.18);
 }
 
 .bf-hq-icon.sales {
-  --bf-icon-stroke: #a855f7;
-  border-color: rgba(168, 85, 247, 0.45);
-  box-shadow: 0 0 24px rgba(168, 85, 247, 0.18);
+  --bf-icon-stroke: var(--bf-accent-b, #a855f7);
+  border-color: rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.45);
+  box-shadow: 0 0 24px rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.18);
 }
 
 .bf-hq-icon.content {
@@ -802,25 +802,25 @@ button.logout.bf-btn-ghost:hover {
 .bf-hq-icon.profile {
   --bf-icon-stroke: #fbbf24;
   border-color: rgba(251, 191, 36, 0.45);
-  box-shadow: 0 0 24px rgba(251, 191, 36, 0.16), 0 0 18px rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.16), 0 0 18px rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.1);
 }
 
 .bf-hq-icon.command {
   --bf-icon-stroke: #38bdf8;
   border-color: rgba(56, 189, 248, 0.45);
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.2), 0 0 18px rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.2), 0 0 18px rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.12);
 }
 
 .bf-hq-icon.memory {
   --bf-icon-stroke: #2dd4bf;
   border-color: rgba(45, 212, 191, 0.45);
-  box-shadow: 0 0 24px rgba(45, 212, 191, 0.18), 0 0 16px rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 24px rgba(45, 212, 191, 0.18), 0 0 16px rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.1);
 }
 
 .bf-hq-icon.activity {
   --bf-icon-stroke: #60a5fa;
   border-color: rgba(96, 165, 250, 0.45);
-  box-shadow: 0 0 24px rgba(96, 165, 250, 0.18), 0 0 16px rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 24px rgba(96, 165, 250, 0.18), 0 0 16px rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.1);
 }
 
 .bf-hq-icon.bf-card-icon,
@@ -904,7 +904,7 @@ button.logout.bf-btn-ghost:hover {
 }
 
 .bf-profile-panel {
-  border-color: rgba(0, 229, 255, 0.22) !important;
+  border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.22) !important;
   box-shadow:
     0 0 20px rgba(0, 255, 255, 0.1),
     0 0 40px rgba(125, 92, 255, 0.08) !important;
@@ -937,8 +937,8 @@ button.logout.bf-btn-ghost:hover {
   align-items: center;
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(0, 229, 255, 0.22);
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(168, 85, 247, 0.12));
+  border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.22);
+  background: linear-gradient(135deg, rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.1), rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.12));
   color: #c4d0e8;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1069,7 +1069,7 @@ button.logout.bf-btn-ghost:hover {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #00e5ff;
+  color: var(--bf-accent-a3, #00e5ff);
   margin-bottom: 8px;
 }
 
@@ -1119,7 +1119,7 @@ button.logout.bf-btn-ghost:hover {
 }
 
 .bf-stat-value.accent {
-  color: #00e5ff;
+  color: var(--bf-accent-a3, #00e5ff);
 }
 
 .bf-stat-value.warn {
@@ -1131,7 +1131,7 @@ button.logout.bf-btn-ghost:hover {
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #00e5ff;
+  color: var(--bf-accent-a3, #00e5ff);
   margin-bottom: 12px;
 }
 
@@ -1158,7 +1158,7 @@ button.logout.bf-btn-ghost:hover {
   margin-top: 14px;
   border-radius: 999px;
   border: 1px solid rgba(0, 255, 255, 0.25);
-  background: rgba(0, 229, 255, 0.08);
+  background: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.08);
   color: #67ecff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -1181,7 +1181,7 @@ button.logout.bf-btn-ghost:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00e5ff, #9f6bff);
+  background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff), #9f6bff);
   flex-shrink: 0;
 }
 

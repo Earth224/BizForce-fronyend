@@ -1,10 +1,12 @@
 /* scripts/bf-theme-studio.js — Settings → Theme.
 
-   The member builds a look from three parts (the top-left glow, the
-   bottom-right glow and the middle backdrop: black, a colour, or their own
-   photo with a dim), turns "Alive corners" on or off, saves it under a name,
-   and applies it to all pages, this page, or the pages they tick. Every
-   change shows at once in the preview, with the readability meter beside it.
+   The member builds a look from a spectrum (the top-left glow, the middle
+   tone and the bottom-right glow, each with its opacity and size) and the
+   middle backdrop (black, a colour, or their own photo, placed and softened
+   in the photo editor), turns "Alive corners" on or off and picks how they
+   move, saves it under a name, and applies it to all pages, this page, or
+   the pages they tick. Every change shows at once in the preview, motion and
+   photo included, with the readability meter beside it.
 
    NOTHING IS DECIDED HERE that the server does not check again: the theme is
    validated by lib/themes.js before it is stored, the photo is checked by its
@@ -12,21 +14,40 @@
    map (lib/appMap.json), so a page added to the app appears in the checklist
    without a change here.
 
-   The arithmetic (tokens, readability) is scripts/bf-theme.js's, loaded first
-   on this page, so the preview and the meter use exactly what every page uses.
+   The arithmetic (tokens, readability, the middle tone, the presets) is
+   scripts/bf-theme.js's, loaded first on this page, so the preview and the
+   meter use exactly what every page uses.
 
-   EVERY COLOUR (Block 4b). Below the corners, five more parts: "Buttons",
-   "Termaximus mist", "Chat glow", "Guide text" and "BizForceAI wordmark".
-   Each has six presets (Original, and the corner presets' families, made by
-   the Match everything rule from that family's two glows), its own colours
-   (a picker and a hex field each), "Match my theme" (that part from the
-   member's own corners) and a reset ("Reset this element"; for the mist,
-   "Reset mist to original"). "Match everything" derives every part from the
-   corners at once (bf-theme.js matchAll, the same rule as lib/themes.js);
-   while it is on, the parts follow the corners and their controls rest;
-   turning it off keeps the derived colours to tune by hand. They are keys of
-   the same saved theme, so every part goes where the theme goes: all pages,
-   this page, or the pages ticked. */
+   THE PRESETS are BFTheme.PRESETS: Original and ten three-colour spectrums,
+   each a whole palette. A card paints its own spectrum from its colours.
+
+   THE MIDDLE TONE. With "Auto" ticked it is BFTheme.midTone of the two
+   corners (the OKLCH midpoint, lib/themes.js's header gives the rule) and
+   follows them; choosing a colour by hand unticks it. Its "Centre glow" is a
+   soft glow of that tone in the middle of the page, 0% by default.
+
+   THE PHOTO EDITOR. Fill, Fit whole or Custom; Zoom 50 … 300% (moving it
+   makes the fit Custom); the focal point, dragged on the pad or moved with
+   the arrow keys (Shift for bigger steps), + and - to zoom; Blur 0 … 20 px;
+   Feathered edges 0 … 50%; Dim. All are numbers in the theme, turned into
+   CSS by BFTheme.tokensFor, so the preview is the page.
+
+   EVERY COLOUR (Block 4b, three colours each since 4d). Below the corners,
+   six parts: "Buttons", "Termaximus mist", "Chat glow", "Guide text",
+   "BizForceAI wordmark" and "Headings and accents". Each has eleven presets
+   (Original, and each preset's own colours for that part), its own colours
+   (a picker and a hex field each, a middle among them), "Match my theme"
+   (that part from the member's own spectrum) and a reset ("Reset this
+   element"; for the mist, "Reset mist to original"). "Match everything"
+   derives every part from the spectrum at once (bf-theme.js matchAll, the
+   same rule as lib/themes.js); while it is on, the parts follow the corners
+   and their controls rest; turning it off keeps the derived colours to tune
+   by hand. They are keys of the same saved theme, so every part goes where
+   the theme goes: all pages, this page, or the pages ticked.
+
+   "Reset everything to the original" puts every page back on the original
+   look, and the editor back on DEFAULT_THEME: every field, the 4d ones
+   included. */
 (function () {
   "use strict";
 
@@ -34,14 +55,7 @@
   var root = document.getElementById("panel-theme");
   if (!T || !root) return;
 
-  var PRESETS = [
-    { id: "default", name: "Default", theme: { glow_a: "#00e5ff", glow_a_alpha: 0.14, glow_b: "#a855f7", glow_b_alpha: 0.18, middle: "black", bg: "#070b18" } },
-    { id: "ember", name: "Ember", theme: { glow_a: "#ff7a18", glow_a_alpha: 0.18, glow_b: "#ff2e63", glow_b_alpha: 0.16, middle: "black", bg: "#070b18" } },
-    { id: "verdant", name: "Verdant", theme: { glow_a: "#34d399", glow_a_alpha: 0.16, glow_b: "#22c55e", glow_b_alpha: 0.14, middle: "colour", bg: "#05140e" } },
-    { id: "royal", name: "Royal", theme: { glow_a: "#6366f1", glow_a_alpha: 0.2, glow_b: "#f5c542", glow_b_alpha: 0.12, middle: "colour", bg: "#0a0a24" } },
-    { id: "rose", name: "Rosé", theme: { glow_a: "#fb7185", glow_a_alpha: 0.16, glow_b: "#f0abfc", glow_b_alpha: 0.14, middle: "colour", bg: "#160a14" } },
-    { id: "mono", name: "Mono", theme: { glow_a: "#e5e7eb", glow_a_alpha: 0.08, glow_b: "#9ca3af", glow_b_alpha: 0.1, middle: "colour", bg: "#0b0b0d" } }
-  ];
+  var PRESETS = T.PRESETS;
   var GROUP_LABELS = {
     hq: "Dashboard & HQ",
     agents: "Agent pages",
@@ -52,29 +66,33 @@
   /* The element parts: each colour key with the id of its picker and hex
      field (<id>Color, <id>Hex) in settings.html. */
   var PARTS = {
-    buttons: [["btn_a", "tsBtnA"], ["btn_b", "tsBtnB"], ["btn_text", "tsBtnText"]],
+    buttons: [["btn_a", "tsBtnA"], ["btn_mid", "tsBtnMid"], ["btn_b", "tsBtnB"], ["btn_text", "tsBtnText"]],
     mist: [["mist_core", "tsMistCore"], ["mist_haze", "tsMistHaze"], ["mist_pulse", "tsMistPulse"], ["mist_spark", "tsMistSpark"],
       ["mist_star", "tsMistStar"], ["mist_dust", "tsMistDust"], ["mist_trail", "tsMistTrail"], ["mist_whisper", "tsMistWhisper"]],
-    chat: [["chat_glow_a", "tsChatA"], ["chat_glow_b", "tsChatB"]],
-    guide: [["guide_a", "tsGuideA"], ["guide_b", "tsGuideB"]],
-    mark: [["mark_a", "tsMarkA"], ["mark_b", "tsMarkB"]]
+    chat: [["chat_glow_a", "tsChatA"], ["chat_glow_mid", "tsChatMid"], ["chat_glow_b", "tsChatB"]],
+    guide: [["guide_a", "tsGuideA"], ["guide_mid", "tsGuideMid"], ["guide_b", "tsGuideB"]],
+    mark: [["mark_a", "tsMarkA"], ["mark_mid", "tsMarkMid"], ["mark_b", "tsMarkB"]],
+    accent: [["accent_a", "tsAccentA"], ["accent_mid", "tsAccentMid"], ["accent_b", "tsAccentB"]]
   };
-  var PART_NAMES = { buttons: "Buttons", mist: "Termaximus mist", chat: "Chat glow", guide: "Guide text", mark: "BizForceAI wordmark" };
-  /* A part's preset: "original" is today's colours; any other is that corner
-     family's two glows through the Match everything rule. */
+  var PART_NAMES = { buttons: "Buttons", mist: "Termaximus mist", chat: "Chat glow", guide: "Guide text", mark: "BizForceAI wordmark", accent: "Headings and accents" };
+  var MOTION_NOTES = {
+    breathe: "Breathe: a slow pulse, about once every half minute.",
+    drift: "Drift: the glows travel a slow orbit around their corners.",
+    aurora: "Aurora: soft ribbons of your three colours sway through the glows.",
+    nebula: "Nebula: a swirl of your three colours turns slowly around the middle."
+  };
+  function presetById(id) { return PRESETS.filter(function (p) { return p.id === id; })[0] || null; }
+  /* A part's preset: "original" is today's colours; any other is that
+     preset's own colours for the part. */
   function partPreset(part, id) {
-    var from = id === "original" ? T.DEFAULT_THEME : null;
-    if (!from) {
-      var fam = PRESETS.filter(function (p) { return p.id === id; })[0];
-      if (!fam) return null;
-      from = T.matchAll(fam.theme.glow_a, fam.theme.glow_b);
-    }
+    var from = id === "original" ? T.DEFAULT_THEME : (presetById(id) || {}).theme;
+    if (!from) return null;
     var out = {};
     PARTS[part].forEach(function (p) { out[p[0]] = from[p[0]]; });
     return out;
   }
   function partFromCorners(part) {
-    var d = T.matchAll(editing.glow_a, editing.glow_b), out = {};
+    var d = T.matchAll(editing.glow_a, editing.glow_b, editing.glow_mid), out = {};
     PARTS[part].forEach(function (p) { out[p[0]] = d[p[0]]; });
     return out;
   }
@@ -120,6 +138,9 @@
   var photoUrl = null;         // the editing theme's photo, for the preview
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  /* A saved theme as the editor holds it: every key, read as the pages read
+     it (a theme saved before Block 4d keeps its look). */
+  function full(theme) { return Object.assign(clone(T.DEFAULT_THEME), T.normalTheme(theme), { photo: theme && theme.photo !== undefined ? theme.photo : null }); }
   function hexOk(v) { return /^#[0-9a-f]{6}$/.test(v); }
   function say(id, text, kind) {
     var el = $(id);
@@ -156,6 +177,14 @@
     return "settings.html";
   }
 
+  /* A spectrum as a picture: its three colours as a band, over its corner
+     glows on the black middle. */
+  function spectrum(t) {
+    var a = T.rgbOf(t.glow_a).join(", "), b = T.rgbOf(t.glow_b).join(", ");
+    return "linear-gradient(90deg, " + t.glow_a + ", " + t.glow_mid + ", " + t.glow_b + ") center 78% / 100% 30% no-repeat, " +
+      "radial-gradient(circle at 15% 10%, rgba(" + a + ", 0.6), transparent 60%), radial-gradient(circle at 85% 90%, rgba(" + b + ", 0.6), transparent 60%), #070b18";
+  }
+
   /* ── preview and meter ──────────────────────────────────────────────── */
   /* What the meter says about each part. */
   function elementLines(r) {
@@ -164,20 +193,24 @@
     lines.push(b.original ? "Buttons: the original look."
       : "Button text " + b.ratio.toFixed(1) + ":1" + (b.fix === "text" ? ", set to " + (b.text === T.WHITE ? "white" : "near-black") + " so it stays clear."
         : b.fix === "shade" ? ", white on a gradient shaded a little so it stays clear." : "."));
-    [["guide", "Guide text"], ["mark", "Wordmark"]].forEach(function (x) {
+    [["guide", "Guide text"], ["mark", "Wordmark"], ["accent", "Headings and accents"]].forEach(function (x) {
       var g = e[x[0]];
       lines.push(x[1] + " " + g.ratio.toFixed(1) + ":1" + (g.original ? " (the original)." : g.fix ? ", lightened so it stays clear." : "."));
     });
     return lines;
   }
+  function pct(n) { return Math.round(n * 100) + "%"; }
 
   function render() {
     var preview = $("tsPreview");
     /* The preview starts from every token at the original, so it never shows
-       the theme this page itself is wearing. */
+       the theme this page itself is wearing, and it moves only by its own
+       Alive switch (the page's motion follows the page's theme). */
     var tokens = Object.assign(T.originalTokens(), T.tokensFor(editing, photoUrl, window));
+    T.BACKDROP_4D_TOKENS.forEach(function (k) { if (tokens[k] === undefined) preview.style.removeProperty(k); });
     Object.keys(tokens).forEach(function (k) { preview.style.setProperty(k, tokens[k]); });
     preview.setAttribute("data-alive", tokens["--bf-alive"]);
+    preview.setAttribute("data-motion", editing.motion);
 
     var r = T.readability(editing);
     var stateEl = $("tsMeterState");
@@ -189,7 +222,7 @@
     $("tsMeterNote").textContent = (r.protected
       ? "This backdrop is bright, so it is shaded just enough for text to stay clear (at least 7:1, and 4.5:1 for muted text). Your colours are kept."
       : "Text stays clear on this backdrop: at least 7:1, and 4.5:1 for muted text.") +
-      (r.elementsFixed ? " Some parts were adjusted to stay readable (button text and guide text 4.5:1, the wordmark 3:1); each is listed here." : "");
+      (r.elementsFixed ? " Some parts were adjusted to stay readable (button text and guide text 4.5:1, the wordmark and accents 3:1); each is listed here." : "");
     var list = $("tsMeterElements");
     list.innerHTML = "";
     elementLines(r).forEach(function (line) { var li = document.createElement("li"); li.textContent = line; list.appendChild(li); });
@@ -209,24 +242,35 @@
 
     $("tsGlowAColor").value = editing.glow_a; $("tsGlowAHex").value = editing.glow_a;
     $("tsGlowBColor").value = editing.glow_b; $("tsGlowBHex").value = editing.glow_b;
+    $("tsGlowMidColor").value = editing.glow_mid; $("tsGlowMidHex").value = editing.glow_mid;
+    $("tsMidAuto").checked = editing.mid_auto === true;
     $("tsBgColor").value = editing.bg; $("tsBgHex").value = editing.bg;
-    $("tsGlowAAlpha").value = Math.round(editing.glow_a_alpha * 100);
-    $("tsGlowBAlpha").value = Math.round(editing.glow_b_alpha * 100);
-    $("tsGlowAAlphaOut").textContent = Math.round(editing.glow_a_alpha * 100) + "%";
-    $("tsGlowBAlphaOut").textContent = Math.round(editing.glow_b_alpha * 100) + "%";
-    $("tsDim").value = Math.round(editing.dim * 100);
-    $("tsDimOut").textContent = Math.round(editing.dim * 100) + "%";
+    [["tsGlowAAlpha", "glow_a_alpha"], ["tsGlowBAlpha", "glow_b_alpha"], ["tsGlowMidAlpha", "glow_mid_alpha"], ["tsDim", "dim"], ["tsMotionIntensity", "motion_intensity"]].forEach(function (x) {
+      $(x[0]).value = Math.round(editing[x[1]] * 100); $(x[0] + "Out").textContent = pct(editing[x[1]]);
+    });
+    [["tsGlowASize", "glow_a_size", "%"], ["tsGlowBSize", "glow_b_size", "%"], ["tsGlowMidSize", "glow_mid_size", "%"], ["tsZoom", "photo_zoom", "%"],
+     ["tsBlur", "photo_blur", " px"], ["tsFeather", "photo_feather", "%"]].forEach(function (x) {
+      $(x[0]).value = editing[x[1]]; $(x[0] + "Out").textContent = editing[x[1]] + x[2];
+    });
+    $("tsMotionSpeed").value = Math.round(editing.motion_speed * 100); $("tsMotionSpeedOut").textContent = pct(editing.motion_speed);
     $("tsAlive").checked = editing.alive === true;
     $("tsAliveNote").textContent = T.reducedMotion()
       ? "Your device asks for reduced motion, so the corners stay still here and on every page."
-      : "The two corner glows drift and breathe slowly, about once every half minute.";
+      : "The corner glows move in the style you pick below.";
+    $("tsMotionNote").textContent = MOTION_NOTES[editing.motion] || "";
+    Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMotion]"), function (r2) { r2.checked = r2.value === editing.motion; });
+    Array.prototype.forEach.call(root.querySelectorAll("input[name=tsFit]"), function (r2) { r2.checked = r2.value === editing.photo_fit; });
     Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMiddle]"), function (r2) { r2.checked = r2.value === editing.middle; });
     $("tsColourRow").hidden = editing.middle !== "colour";
     $("tsPhotoRow").hidden = editing.middle !== "photo";
     $("tsPhotoStatus").textContent = editing.photo ? "Your photo is set." : "No photo yet.";
+    var dot = $("tsFocusDot");
+    dot.style.left = editing.photo_x + "%"; dot.style.top = editing.photo_y + "%";
+    $("tsFocus").style.setProperty("--ts-focus-image", tokens["--bf-bg-image"] || "none");
+    $("tsFocusOut").textContent = "Focal point " + editing.photo_x + "% across, " + editing.photo_y + "% down.";
     Array.prototype.forEach.call(root.querySelectorAll(".ts-preset"), function (b) {
-      var p = PRESETS.filter(function (x) { return x.id === b.getAttribute("data-preset"); })[0];
-      var same = p && Object.keys(p.theme).every(function (k) { return editing[k] === p.theme[k]; }) && editing.middle !== "photo";
+      var p = presetById(b.getAttribute("data-preset"));
+      var same = p && T.PRESET_KEYS.every(function (k) { return editing[k] === p.theme[k]; });
       b.setAttribute("aria-pressed", same ? "true" : "false");
     });
     var dirty = editingId && JSON.stringify(editing) !== JSON.stringify(savedSnapshot);
@@ -237,23 +281,30 @@
       : "Not saved yet.";
   }
 
-  /* With "Match everything" on, every part follows the corners. */
+  /* The middle tone follows the corners while "Auto" is ticked, and with
+     "Match everything" on, every part follows the spectrum. */
   function followCorners() {
+    if (editing.mid_auto === true) editing.glow_mid = T.midTone(editing.glow_a, editing.glow_b);
     if (editing.match_all !== true) return;
-    var d = T.matchAll(editing.glow_a, editing.glow_b);
+    var d = T.matchAll(editing.glow_a, editing.glow_b, editing.glow_mid);
     Object.keys(d).forEach(function (k) { editing[k] = d[k]; });
   }
   function set(key, value) { editing[key] = value; followCorners(); render(); }
   function setPart(values) { Object.keys(values).forEach(function (k) { editing[k] = values[k]; }); render(); }
+  function clampTo(key, n) { var r = T.RANGES[key]; return Math.min(r[1], Math.max(r[0], Math.round(n * 1000) / 1000)); }
 
   function wireColour(pickerId, hexId, key) {
-    $(pickerId).addEventListener("input", function () { set(key, this.value.toLowerCase()); });
+    $(pickerId).addEventListener("input", function () { if (key === "glow_mid") editing.mid_auto = false; set(key, this.value.toLowerCase()); });
     $(hexId).addEventListener("change", function () {
       var v = this.value.trim().toLowerCase();
       if (v && v[0] !== "#") v = "#" + v;
-      if (hexOk(v)) { set(key, v); say("tsMsg", ""); }
-      else { this.value = editing[key]; say("tsMsg", "A colour is # and six hex digits, like #22d3ee.", "err"); }
+      if (hexOk(v)) { if (key === "glow_mid") editing.mid_auto = false; set(key, v); say("tsMsg", ""); }
+      else { this.value = editing[key]; say("tsMsg", "A colour is # and six hex digits, like #1a2b3c.", "err"); }
     });
+  }
+  /* A range input onto a theme number, divided by `scale` (100 for a percentage). */
+  function wireRange(id, key, scale) {
+    $(id).addEventListener("input", function () { set(key, clampTo(key, Number(this.value) / scale)); });
   }
 
   /* ── the photo: checked here, sampled for its brightest point, uploaded ─ */
@@ -295,10 +346,23 @@
         });
     }).catch(function (err) { say("tsPhotoMsg", err.message, "err"); });
   }
+  /* The focal point: where on the pad the pointer is, in whole percent. */
+  function focusAt(e) {
+    var box = $("tsFocus").getBoundingClientRect();
+    if (!box.width || !box.height) return;
+    editing.photo_x = clampTo("photo_x", Math.round((e.clientX - box.left) / box.width * 100));
+    editing.photo_y = clampTo("photo_y", Math.round((e.clientY - box.top) / box.height * 100));
+    render();
+  }
+  function zoomBy(step) {
+    editing.photo_fit = "custom";
+    editing.photo_zoom = clampTo("photo_zoom", editing.photo_zoom + step);
+    render();
+  }
 
   /* ── saved themes ───────────────────────────────────────────────────── */
   function loadTheme(row) {
-    editing = Object.assign(clone(T.DEFAULT_THEME), clone(row.theme));
+    editing = full(row.theme);
     editingId = row.id;
     savedSnapshot = clone(editing);
     photoUrl = row.photo_url || null;
@@ -311,7 +375,7 @@
     drawSaved(); drawPages(); drawAssignments();
     if (editingId) {
       var row = next.themes.filter(function (t) { return t.id === editingId; })[0];
-      if (row) { savedSnapshot = clone(Object.assign(clone(T.DEFAULT_THEME), row.theme)); photoUrl = row.photo_url || photoUrl; }
+      if (row) { savedSnapshot = full(row.theme); photoUrl = row.photo_url || photoUrl; }
       else { editingId = null; savedSnapshot = null; }
     }
     render();
@@ -331,7 +395,8 @@
       var swatch = document.createElement("span");
       swatch.className = "ts-swatch";
       swatch.setAttribute("aria-hidden", "true");
-      swatch.style.background = "linear-gradient(135deg," + row.theme.glow_a + "," + (row.theme.middle === "colour" ? row.theme.bg : "#070b18") + "," + row.theme.glow_b + ")";
+      var t = full(row.theme);
+      swatch.style.background = "linear-gradient(135deg," + t.glow_a + "," + t.glow_mid + "," + t.glow_b + ")";
       var edit = button("Edit", "Edit " + row.name, function () { loadTheme(row); say("tsMsg", "Editing \"" + row.name + "\"."); $("tsGlowAColor").focus(); });
       var rename = button("Rename", "Rename " + row.name, function () { startRename(li, row); });
       var del = button("Delete", "Delete " + row.name, function () {
@@ -426,9 +491,10 @@
   PRESETS.forEach(function (p) {
     var b = document.querySelector(".ts-preset[data-preset=\"" + p.id + "\"]");
     if (!b) return;
+    var sw = b.querySelector(".ts-preset-swatch");
+    if (sw) sw.style.background = spectrum(p.theme);
     b.addEventListener("click", function () {
-      Object.keys(p.theme).forEach(function (k) { editing[k] = p.theme[k]; });
-      editing.photo = null; editing.photo_luma = 0; photoUrl = null;
+      T.PRESET_KEYS.forEach(function (k) { editing[k] = p.theme[k]; });
       if (!editingId) $("tsName").value = p.name;
       followCorners();
       render();
@@ -436,26 +502,36 @@
   });
   wireColour("tsGlowAColor", "tsGlowAHex", "glow_a");
   wireColour("tsGlowBColor", "tsGlowBHex", "glow_b");
+  wireColour("tsGlowMidColor", "tsGlowMidHex", "glow_mid");
   wireColour("tsBgColor", "tsBgHex", "bg");
+  $("tsMidAuto").addEventListener("change", function () { set("mid_auto", this.checked); });
 
   /* ── every colour: the parts ────────────────────────────────────────── */
   Object.keys(PARTS).forEach(function (part) {
     PARTS[part].forEach(function (p) { wireColour(p[1] + "Color", p[1] + "Hex", p[0]); });
-  });
-  Array.prototype.forEach.call(root.querySelectorAll(".ts-el-preset"), function (btn) {
-    var part = btn.getAttribute("data-el"), want = partPreset(part, btn.getAttribute("data-preset"));
-    var sw = btn.querySelector(".ts-el-swatch");
-    if (sw && want) {
-      var cols = Object.keys(want).map(function (k) { return want[k]; }).slice(0, 2);
-      sw.style.background = "linear-gradient(135deg," + cols[0] + "," + (cols[1] || cols[0]) + ")";
-    }
-    btn.addEventListener("click", function () { if (want) setPart(want); });
+    /* Eleven presets: Original, then each preset's own colours for this part. */
+    var box = root.querySelector("[data-el-presets=\"" + part + "\"]");
+    if (!box) return;
+    PRESETS.forEach(function (p) {
+      var want = partPreset(part, p.id);
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "ts-el-preset";
+      btn.setAttribute("data-el", part); btn.setAttribute("data-preset", p.id); btn.setAttribute("aria-pressed", "false");
+      var sw = document.createElement("span");
+      sw.className = "ts-el-swatch"; sw.setAttribute("aria-hidden", "true");
+      var cols = Object.keys(want).filter(function (k) { return k !== "btn_text"; }).map(function (k) { return want[k]; }).slice(0, 3);
+      sw.style.background = "linear-gradient(135deg," + cols.join(",") + ")";
+      btn.appendChild(sw);
+      btn.appendChild(document.createTextNode(p.name));
+      btn.addEventListener("click", function () { setPart(want); });
+      box.appendChild(btn);
+    });
   });
   Array.prototype.forEach.call(root.querySelectorAll("[data-el-match]"), function (btn) {
     btn.addEventListener("click", function () {
       var part = btn.getAttribute("data-el-match");
       setPart(partFromCorners(part));
-      say("tsMsg", "“" + PART_NAMES[part] + "” now matches your corner glows.", "ok");
+      say("tsMsg", "“" + PART_NAMES[part] + "” now matches your spectrum.", "ok");
     });
   });
   Array.prototype.forEach.call(root.querySelectorAll("[data-el-reset]"), function (btn) {
@@ -472,11 +548,43 @@
     editing.match_all = this.checked;
     followCorners();
     render();
-    say("tsMsg", this.checked ? "Every part now takes its colours from your corner glows." : "\"Match everything\" is off. The colours stay as they are, for you to fine-tune.", "ok");
+    say("tsMsg", this.checked ? "Every part now takes its colours from your spectrum." : "\"Match everything\" is off. The colours stay as they are, for you to fine-tune.", "ok");
   });
-  $("tsGlowAAlpha").addEventListener("input", function () { set("glow_a_alpha", Number(this.value) / 100); });
-  $("tsGlowBAlpha").addEventListener("input", function () { set("glow_b_alpha", Number(this.value) / 100); });
-  $("tsDim").addEventListener("input", function () { set("dim", Number(this.value) / 100); });
+  wireRange("tsGlowAAlpha", "glow_a_alpha", 100);
+  wireRange("tsGlowBAlpha", "glow_b_alpha", 100);
+  wireRange("tsGlowMidAlpha", "glow_mid_alpha", 100);
+  wireRange("tsGlowASize", "glow_a_size", 1);
+  wireRange("tsGlowBSize", "glow_b_size", 1);
+  wireRange("tsGlowMidSize", "glow_mid_size", 1);
+  wireRange("tsDim", "dim", 100);
+  wireRange("tsBlur", "photo_blur", 1);
+  wireRange("tsFeather", "photo_feather", 1);
+  wireRange("tsMotionSpeed", "motion_speed", 100);
+  wireRange("tsMotionIntensity", "motion_intensity", 100);
+  $("tsZoom").addEventListener("input", function () { editing.photo_fit = "custom"; set("photo_zoom", clampTo("photo_zoom", Number(this.value))); });
+  Array.prototype.forEach.call(root.querySelectorAll("input[name=tsFit]"), function (r) {
+    r.addEventListener("change", function () { set("photo_fit", this.value); });
+  });
+  Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMotion]"), function (r) {
+    r.addEventListener("change", function () { set("motion", this.value); });
+  });
+  var pad = $("tsFocus"), dragging = false;
+  pad.addEventListener("pointerdown", function (e) { dragging = true; if (pad.setPointerCapture) pad.setPointerCapture(e.pointerId); focusAt(e); });
+  pad.addEventListener("pointermove", function (e) { if (dragging) focusAt(e); });
+  pad.addEventListener("pointerup", function () { dragging = false; });
+  pad.addEventListener("pointercancel", function () { dragging = false; });
+  pad.addEventListener("keydown", function (e) {
+    var step = e.shiftKey ? 10 : 2;
+    if (e.key === "ArrowLeft") editing.photo_x = clampTo("photo_x", editing.photo_x - step);
+    else if (e.key === "ArrowRight") editing.photo_x = clampTo("photo_x", editing.photo_x + step);
+    else if (e.key === "ArrowUp") editing.photo_y = clampTo("photo_y", editing.photo_y - step);
+    else if (e.key === "ArrowDown") editing.photo_y = clampTo("photo_y", editing.photo_y + step);
+    else if (e.key === "+" || e.key === "=") return (e.preventDefault(), zoomBy(10));
+    else if (e.key === "-" || e.key === "_") return (e.preventDefault(), zoomBy(-10));
+    else return;
+    e.preventDefault();
+    render();
+  });
   $("tsAlive").addEventListener("change", function () { set("alive", this.checked); });
   Array.prototype.forEach.call(root.querySelectorAll("input[name=tsMiddle]"), function (r) {
     r.addEventListener("change", function () {
@@ -535,7 +643,8 @@
     b.textContent = "Reset everything to the original";
     call("POST", "/api/themes/reset", { scope: "all" }, "reset")
       .then(function (next) {
-        /* The editor goes back to the original too: every part, every colour. */
+        /* The editor goes back to the original too: every part, every colour,
+           the middle tone, the photo editor and the motion. */
         editing = clone(T.DEFAULT_THEME); editingId = null; savedSnapshot = null; photoUrl = null;
         $("tsName").value = "";
         took(next, "Every page is back to the original look, every part included. Your saved themes are kept.");
@@ -553,6 +662,6 @@
     }).catch(function (err) { say("tsMsg", err.message, "err"); });
   }
 
-  window.BFThemeStudio = { PRESETS: PRESETS, GROUP_LABELS: GROUP_LABELS, PARTS: PARTS, partPreset: partPreset, start: start, thisPageKey: thisPageKey };
+  window.BFThemeStudio = { PRESETS: PRESETS, GROUP_LABELS: GROUP_LABELS, PARTS: PARTS, partPreset: partPreset, spectrum: spectrum, start: start, thisPageKey: thisPageKey };
   if (localStorage.getItem("bf_token")) start();
 })();

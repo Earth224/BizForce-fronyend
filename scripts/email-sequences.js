@@ -435,7 +435,7 @@
     ".es-label-sm{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:#8892b8;margin:12px 0 6px}",
     ".es-quiet{color:#8892b8;font-size:.82rem;margin:4px 0}",
     ".es-filed{display:grid;gap:6px}",
-    ".es-link{color:#22d3ee}",
+    ".es-link{color:var(--bf-accent-a, #22d3ee)}",
     ".es-sender{margin-bottom:14px}",
     ".es-sender-head{font-weight:700;margin-bottom:4px}",
     ".es-on{color:#34d399}.es-off{color:#fbbf24}",

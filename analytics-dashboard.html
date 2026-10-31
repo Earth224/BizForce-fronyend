@@ -50,9 +50,9 @@
       gap: 8px;
       padding: 10px 18px;
       border-radius: 12px;
-      border: 1px solid rgba(0, 229, 255, 0.25);
+      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.25);
       background: rgba(12, 18, 38, 0.6);
-      color: #22d3ee;
+      color: var(--bf-accent-a, #22d3ee);
       text-decoration: none;
       font-size: 0.875rem;
       font-weight: 600;
@@ -62,8 +62,8 @@
     }
 
     .back-link:hover {
-      border-color: rgba(0, 229, 255, 0.55);
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.55);
+      box-shadow: 0 0 20px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.2);
       transform: translateY(-1px);
     }
 
@@ -72,7 +72,7 @@
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee), var(--bf-mark-b, #a855f7));
+      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -90,12 +90,12 @@
       width: 72px;
       height: 72px;
       border-radius: 50%;
-      background: linear-gradient(135deg, rgba(0, 229, 255, 0.18), rgba(168, 85, 247, 0.22));
-      border: 2px solid rgba(0, 229, 255, 0.45);
+      background: linear-gradient(135deg, rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18), rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.22));
+      border: 2px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.45);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 24px rgba(0, 229, 255, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+      box-shadow: 0 0 24px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18), 0 0 32px rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.12);
       flex-shrink: 0;
     }
 
@@ -113,7 +113,7 @@
       font-weight: 800;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      background: linear-gradient(135deg, #00e5ff 0%, #7b2ff7 60%, #a855f7 100%);
+      background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff) 0%, var(--bf-accent-b3, #7b2ff7) 60%, var(--bf-accent-b, #a855f7) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -160,7 +160,7 @@
       font-size: 2rem;
       font-weight: 800;
       letter-spacing: 0.02em;
-      background: linear-gradient(135deg, #00e5ff 0%, #a855f7 100%);
+      background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff) 0%var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -216,7 +216,7 @@
 
     <header class="agent-header">
       <div class="agent-avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--bf-accent-a3, #00e5ff)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
           <line x1="12" y1="20" x2="12" y2="4"/>
           <line x1="6"  y1="20" x2="6"  y2="14"/>
@@ -320,8 +320,8 @@
             labels: ["Blog", "SMS"],
             datasets: [{
               data: [s.blogItems || 0, s.smsItems || 0],
-              backgroundColor: ["rgba(0,229,255,0.75)", "rgba(168,85,247,0.75)"],
-              borderColor:     ["rgba(0,229,255,0.4)",  "rgba(168,85,247,0.4)"],
+              backgroundColor: [(typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.75)") : "rgba(0,229,255,0.75)"), (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "rgba(168,85,247,0.75)") : "rgba(168,85,247,0.75)")],
+              borderColor:     [(typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.4)") : "rgba(0,229,255,0.4)"),  (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "rgba(168,85,247,0.4)") : "rgba(168,85,247,0.4)")],
               borderWidth: 2
             }]
           },
@@ -345,8 +345,8 @@
         var agentLabels = Object.keys(byAgent);
         var agentCounts = agentLabels.map(function(k) { return byAgent[k]; });
         var palette = [
-          "rgba(0,229,255,0.75)",
-          "rgba(168,85,247,0.75)",
+          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.75)") : "rgba(0,229,255,0.75)"),
+          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "rgba(168,85,247,0.75)") : "rgba(168,85,247,0.75)"),
           "rgba(52,211,153,0.75)",
           "rgba(251,191,36,0.75)",
           "rgba(96,165,250,0.75)",
@@ -448,9 +448,9 @@
     function activityLineDataset(counts, pointRadius) {
       return {
         data:                 counts,
-        borderColor:          "rgba(0,229,255,0.85)",
-        backgroundColor:      "rgba(0,229,255,0.08)",
-        pointBackgroundColor: "rgba(0,229,255,0.9)",
+        borderColor:          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.85)") : "rgba(0,229,255,0.85)"),
+        backgroundColor:      (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.08)") : "rgba(0,229,255,0.08)"),
+        pointBackgroundColor: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.9)") : "rgba(0,229,255,0.9)"),
         pointRadius:          pointRadius,
         tension:              0.35,
         fill:                 true
@@ -524,7 +524,7 @@
             labels: activityLabels(weeks, activityDayLabel),
             datasets: [{
               data:            activityCounts(weeks),
-              backgroundColor: "rgba(0,229,255,0.75)",
+              backgroundColor: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.75)") : "rgba(0,229,255,0.75)"),
               borderRadius:    6,
               borderSkipped:   false
             }]

@@ -69,10 +69,10 @@
     influencer:         { page: "/influencer-agent.html",         accent: "#e879f9", name: "Influencer Agent" },
     operations:         { page: "/operations-agent.html",         accent: "#94a3b8", name: "Operations Agent" },
     publicist:          { page: "/publicist-agent.html",          accent: "#fcd34d", name: "Publicist Agent" },
-    rd:                 { page: "/rd-agent.html",                 accent: "#22d3ee", name: "R&D Agent" },
+    rd:                 { page: "/rd-agent.html",                 accent: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a", "#22d3ee") : "#22d3ee"), name: "R&D Agent" },
     reputation:         { page: "/reputation-agent.html",         accent: "#f87171", name: "Reputation Agent" },
-    sales:              { page: "/agents/sales.html",             accent: "#a855f7", name: "Sales Agent" },
-    seo:                { page: "/agents/seo.html",               accent: "#22d3ee", name: "SEO Agent" },
+    sales:              { page: "/agents/sales.html",             accent: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "#a855f7") : "#a855f7"), name: "Sales Agent" },
+    seo:                { page: "/agents/seo.html",               accent: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a", "#22d3ee") : "#22d3ee"), name: "SEO Agent" },
     social:             { page: "/agents/social.html",            accent: "#f472b6", name: "Social Agent" },
     store:              { page: "/store-agent.html",              accent: "#38bdf8", name: "Store Agent" },
     vertical_marketing: { page: "/vertical-marketing-agent.html", accent: "#a3e635", name: "Vertical Marketing Agent" }

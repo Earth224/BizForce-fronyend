@@ -23,11 +23,11 @@
     /* The backdrop is the token rule in scripts/bf-theme.js. */
 
     /* dark scrollbars, site-wide + any scrollable panel */
-    * { scrollbar-width: thin; scrollbar-color: rgba(34,211,238,0.3) #070b18; }
+    * { scrollbar-width: thin; scrollbar-color: rgba(var(--bf-accent-a-rgb, 34,211,238),0.3) #070b18; }
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: #070b18; }
-    ::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.3); border-radius: 8px; border: 2px solid #070b18; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(34,211,238,0.55); }
+    ::-webkit-scrollbar-thumb { background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.3); border-radius: 8px; border: 2px solid #070b18; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.55); }
 
     .page {
       position: relative;
@@ -49,7 +49,7 @@
       font-weight: 700;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee), var(--bf-mark-b, #a855f7));
+      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -60,9 +60,9 @@
       gap: 8px;
       padding: 10px 18px;
       border-radius: 12px;
-      border: 1px solid rgba(0,229,255,0.25);
+      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),0.25);
       background: rgba(12,18,38,0.6);
-      color: #22d3ee;
+      color: var(--bf-accent-a, #22d3ee);
       text-decoration: none;
       font-size: 0.85rem;
       font-weight: 600;
@@ -70,8 +70,8 @@
       backdrop-filter: blur(12px);
     }
     .back-link:hover {
-      border-color: rgba(0,229,255,0.55);
-      box-shadow: 0 0 20px rgba(0,229,255,0.18);
+      border-color: rgba(var(--bf-accent-a3-rgb, 0,229,255),0.55);
+      box-shadow: 0 0 20px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18);
     }
 
     .card {
@@ -106,8 +106,8 @@
     .status-line {
       padding: 12px 16px;
       border-radius: 12px;
-      background: rgba(34,211,238,0.08);
-      border: 1px solid rgba(34,211,238,0.25);
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.08);
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),0.25);
       color: #e6edf3;
       font-size: 0.88rem;
       margin-bottom: 22px;
@@ -138,8 +138,8 @@
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     input:focus {
-      border-color: rgba(34,211,238,0.55);
-      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+      border-color: rgba(var(--bf-accent-a-rgb, 34,211,238),0.55);
+      box-shadow: 0 0 0 3px rgba(var(--bf-accent-a-rgb, 34,211,238),0.12);
     }
     input::placeholder { color: #566082; }
 
@@ -148,7 +148,7 @@
       width: 100%;
       padding: 12px 14px;
       border-radius: 12px;
-      border: 1px solid rgba(34,211,238,0.4);
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),0.4);
       background: rgba(8,12,28,0.85);
       color: #e6edf3;
       font-size: 0.9rem;
@@ -156,8 +156,8 @@
       outline: none;
     }
     select:focus {
-      border-color: rgba(34,211,238,0.7);
-      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+      border-color: rgba(var(--bf-accent-a-rgb, 34,211,238),0.7);
+      box-shadow: 0 0 0 3px rgba(var(--bf-accent-a-rgb, 34,211,238),0.12);
     }
     select option {
       background: #0b1020;
@@ -183,14 +183,14 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--bf-btn-text, #ffffff);
-      background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff), var(--bf-btn-b, #7b2ff7));
+      background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff)var(--bf-btn-mid, ), var(--bf-btn-b, #7b2ff7));
       cursor: pointer;
       transition: all 0.25s ease;
-      box-shadow: 0 4px 20px rgba(0,229,255,0.25);
+      box-shadow: 0 4px 20px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.25);
       font-family: inherit;
       text-decoration: none;
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,229,255,0.35), 0 0 20px rgba(123,47,247,0.25); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.35), 0 0 20px rgba(var(--bf-accent-b3-rgb, 123,47,247),0.25); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none; }
     .btn-danger {
       background: rgba(248,113,113,0.1);
@@ -259,13 +259,13 @@
       transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
     }
     .toggle-switch input:checked + .toggle-slider {
-      background: linear-gradient(90deg, #00e5ff, #a855f7);
-      border-color: rgba(168,85,247,0.5);
+      background: linear-gradient(90deg, var(--bf-accent-a3, #00e5ff)var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7));
+      border-color: rgba(var(--bf-accent-b-rgb, 168,85,247),0.5);
     }
     .toggle-switch input:checked + .toggle-slider::before {
       transform: translateX(18px);
       background: #fff;
-      box-shadow: 0 0 8px rgba(168,85,247,0.6);
+      box-shadow: 0 0 8px rgba(var(--bf-accent-b-rgb, 168,85,247),0.6);
     }
 
     .pref-note {
@@ -323,8 +323,8 @@
        through a 26-row list is no path at all. */
     .bf-arrange-row:focus,
     .bf-arrange-row:focus-within {
-      border-color: rgba(34,211,238,0.55);
-      box-shadow: 0 0 0 3px rgba(34,211,238,0.12);
+      border-color: rgba(var(--bf-accent-a-rgb, 34,211,238),0.55);
+      box-shadow: 0 0 0 3px rgba(var(--bf-accent-a-rgb, 34,211,238),0.12);
       outline: none;
     }
     .bf-arrange-row.is-dragging { opacity: 0.5; cursor: grabbing; }
@@ -340,14 +340,14 @@
       font-family: inherit;
       cursor: pointer;
     }
-    .bf-arrange-move:hover:not(:disabled) { color: #22d3ee; border-color: rgba(34,211,238,0.5); }
+    .bf-arrange-move:hover:not(:disabled) { color: var(--bf-accent-a, #22d3ee); border-color: rgba(var(--bf-accent-a-rgb, 34,211,238),0.5); }
     .bf-arrange-move:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .identity-line {
       padding: 12px 16px;
       border-radius: 12px;
-      background: rgba(34,211,238,0.08);
-      border: 1px solid rgba(34,211,238,0.25);
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.08);
+      border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),0.25);
       color: #e6edf3;
       font-size: 0.92rem;
       margin-bottom: 20px;
@@ -395,11 +395,11 @@
       transition: background 0.2s ease, border-color 0.2s ease;
     }
     .sidebar-item.active {
-      border-left-color: #22d3ee;
-      background: rgba(34,211,238,0.06);
+      border-left-color: var(--bf-accent-a, #22d3ee);
+      background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.06);
     }
     .sidebar-chevron { color: #8892b8; transition: transform 0.25s ease, color 0.25s ease; }
-    .sidebar-item.active .sidebar-chevron { transform: rotate(90deg); color: #22d3ee; }
+    .sidebar-item.active .sidebar-chevron { transform: rotate(90deg); color: var(--bf-accent-a, #22d3ee); }
 
     .settings-content { min-width: 0; }
     .settings-panel { display: none; padding: 4px 20px 22px; }
@@ -431,10 +431,10 @@
         padding: 13px 16px;
         margin-bottom: 6px;
       }
-      .settings-nav .sidebar-item:hover { background: rgba(34,211,238,0.08); }
+      .settings-nav .sidebar-item:hover { background: rgba(var(--bf-accent-a-rgb, 34,211,238),0.08); }
       .settings-nav .sidebar-item.active {
-        background: linear-gradient(135deg, rgba(0,229,255,0.14), rgba(123,47,247,0.14));
-        border: 1px solid rgba(34,211,238,0.3);
+        background: linear-gradient(135deg, rgba(var(--bf-accent-a3-rgb, 0,229,255),0.14), rgba(var(--bf-accent-b3-rgb, 123,47,247),0.14));
+        border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),0.3);
       }
       .sidebar-chevron { display: none; }
       .settings-panel {
@@ -449,21 +449,18 @@
       .settings-panel.active { display: block; }
     }
     /* ── Theme studio (scripts/bf-theme-studio.js) ─────────────────────── */
-    .ts-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+    .ts-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 14px 0 18px; }
     .ts-preset {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px;
-      border-radius: 12px; border: 1px solid rgba(148,163,184,0.22); background: rgba(15,23,42,0.6);
-      color: #e8e8ff; font: inherit; font-size: 0.9rem; cursor: pointer;
+      display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px;
+      border-radius: 14px; border: 1px solid rgba(148,163,184,0.22); background: rgba(15,23,42,0.6);
+      color: #e8e8ff; font: inherit; font-size: 0.9rem; text-align: left; cursor: pointer;
     }
-    .ts-preset[aria-pressed="true"] { border-color: #22d3ee; box-shadow: 0 0 0 1px #22d3ee inset; }
-    .ts-preset:focus-visible, .ts-small:focus-visible, #tsApply:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
-    .ts-preset-swatch { display: block; width: 100%; height: 34px; border-radius: 8px; }
-    .ts-sw-default { background: radial-gradient(circle at 15% 10%, rgba(0,229,255,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(168,85,247,.6), transparent 60%), #070b18; }
-    .ts-sw-ember { background: radial-gradient(circle at 15% 10%, rgba(255,122,24,.6), transparent 60%), radial-gradient(circle at 85% 90%, rgba(255,46,99,.55), transparent 60%), #070b18; }
-    .ts-sw-verdant { background: radial-gradient(circle at 15% 10%, rgba(52,211,153,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(34,197,94,.5), transparent 60%), #05140e; }
-    .ts-sw-royal { background: radial-gradient(circle at 15% 10%, rgba(99,102,241,.65), transparent 60%), radial-gradient(circle at 85% 90%, rgba(245,197,66,.45), transparent 60%), #0a0a24; }
-    .ts-sw-rose { background: radial-gradient(circle at 15% 10%, rgba(251,113,133,.55), transparent 60%), radial-gradient(circle at 85% 90%, rgba(240,171,252,.5), transparent 60%), #160a14; }
-    .ts-sw-mono { background: radial-gradient(circle at 15% 10%, rgba(229,231,235,.35), transparent 60%), radial-gradient(circle at 85% 90%, rgba(156,163,175,.35), transparent 60%), #0b0b0d; }
+    .ts-preset[aria-pressed="true"] { border-color: var(--bf-accent-a, #22d3ee); box-shadow: 0 0 0 1px var(--bf-accent-a, #22d3ee) inset; }
+    .ts-preset:focus-visible, .ts-small:focus-visible, #tsApply:focus-visible, .ts-focus:focus-visible { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
+    /* Each card shows its spectrum: the three colours as a band over the corners' glows on the
+       backdrop (painted by scripts/bf-theme-studio.js from BFTheme.PRESETS). */
+    .ts-preset-swatch { display: block; width: 100%; height: 64px; border-radius: 10px; }
+    .ts-preset-name { font-weight: 600; }
     .ts-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
     @media (max-width: 760px) { .ts-grid { grid-template-columns: 1fr; } }
     .ts-part { border: 1px solid rgba(148,163,184,0.18); border-radius: 12px; padding: 10px 14px 14px; margin: 0 0 12px; }
@@ -472,35 +469,67 @@
     .ts-colour input[type="color"] { width: 48px; height: 36px; padding: 0; border: 1px solid rgba(148,163,184,0.3); border-radius: 8px; background: transparent; cursor: pointer; }
     .ts-colour input[type="text"] { width: 110px; font-family: ui-monospace, Consolas, monospace; }
     .ts-range { display: flex; justify-content: space-between; color: #8892b8; font-size: 0.85rem; }
-    .ts-part input[type="range"] { width: 100%; accent-color: #22d3ee; }
+    .ts-part input[type="range"] { width: 100%; accent-color: var(--bf-accent-a, #22d3ee); }
     .ts-choices, .ts-scope { display: flex; flex-wrap: wrap; gap: 14px; }
     .ts-choices label, .ts-scope label, .ts-check { color: #e8e8ff; font-size: 0.9rem; cursor: pointer; }
     .ts-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
-    .ts-file:focus-visible + label { outline: 2px solid #22d3ee; outline-offset: 2px; }
+    .ts-file:focus-visible + label { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
     .ts-small { padding: 7px 12px; font-size: 0.82rem; }
     .ts-preview { position: relative; overflow: hidden; isolation: isolate; border-radius: 16px; min-height: 280px; border: 1px solid rgba(148,163,184,0.2); }
     .ts-pv-middle, .ts-pv-glows { position: absolute; inset: 0; pointer-events: none; }
+    /* The same layers as the rule in scripts/bf-theme.js: the photo placed, sized, blurred and
+       feathered by the same tokens, and the glows with the centre glow and the motion styles. */
     .ts-pv-middle {
+      inset: var(--bf-bg-inset, 0);
       background:
         linear-gradient(rgba(0, 0, 0, var(--bf-bg-dim)), rgba(0, 0, 0, var(--bf-bg-dim))),
-        var(--bf-bg-image) center / cover no-repeat,
+        var(--bf-bg-feather, linear-gradient(transparent, transparent)),
+        var(--bf-bg-image) var(--bf-bg-pos, center) / var(--bf-bg-size, cover) no-repeat,
         var(--bf-bg);
+      filter: var(--bf-bg-blur, none);
     }
     .ts-pv-glows {
       background:
         linear-gradient(rgba(0, 0, 0, var(--bf-scrim)), rgba(0, 0, 0, var(--bf-scrim))),
-        radial-gradient(circle at 15% 10%, rgba(var(--bf-glow-a-rgb), var(--bf-glow-a-alpha)), transparent 38%),
-        radial-gradient(circle at 85% 90%, rgba(var(--bf-glow-b-rgb), var(--bf-glow-b-alpha)), transparent 40%);
+        radial-gradient(circle at 15% 10%, rgba(var(--bf-glow-a-rgb), var(--bf-glow-a-alpha)), transparent var(--bf-glow-a-reach, 38%)),
+        radial-gradient(circle at 85% 90%, rgba(var(--bf-glow-b-rgb), var(--bf-glow-b-alpha)), transparent var(--bf-glow-b-reach, 40%)),
+        radial-gradient(circle at 50% 50%, rgba(var(--bf-glow-m-rgb, 110, 171, 255), var(--bf-glow-m-alpha, 0)), transparent var(--bf-glow-m-reach, 45%));
     }
-    .ts-preview[data-alive="1"] .ts-pv-glows { inset: -8%; animation: bf-glow-drift 32s ease-in-out infinite alternate; }
-    @media (prefers-reduced-motion: reduce) { .ts-preview[data-alive="1"] .ts-pv-glows { inset: 0; animation: none; } }
+    .ts-preview[data-alive="1"] .ts-pv-glows { inset: -8%; animation: bf-glow-drift 32s ease-in-out infinite alternate; animation-duration: calc(32s / var(--bf-motion-speed, 1)); }
+    .ts-preview[data-alive="1"][data-motion="drift"] .ts-pv-glows { animation: bf-glow-orbit 24s linear infinite; animation-duration: calc(24s / var(--bf-motion-speed, 1)); }
+    .ts-preview[data-alive="1"][data-motion="aurora"] .ts-pv-glows {
+      inset: -12%; animation: bf-glow-aurora 18s ease-in-out infinite alternate; animation-duration: calc(18s / var(--bf-motion-speed, 1));
+      background:
+        linear-gradient(rgba(0, 0, 0, var(--bf-scrim)), rgba(0, 0, 0, var(--bf-scrim))),
+        linear-gradient(115deg, transparent 6%, rgba(var(--bf-glow-a-rgb), calc(var(--bf-glow-a-alpha) * 0.55)) 17%, transparent 29%),
+        linear-gradient(115deg, transparent 38%, rgba(var(--bf-glow-m-rgb, 110, 171, 255), calc((var(--bf-glow-a-alpha) + var(--bf-glow-b-alpha)) * 0.3)) 50%, transparent 62%),
+        linear-gradient(115deg, transparent 71%, rgba(var(--bf-glow-b-rgb), calc(var(--bf-glow-b-alpha) * 0.55)) 83%, transparent 95%),
+        radial-gradient(circle at 15% 10%, rgba(var(--bf-glow-a-rgb), var(--bf-glow-a-alpha)), transparent var(--bf-glow-a-reach, 38%)),
+        radial-gradient(circle at 85% 90%, rgba(var(--bf-glow-b-rgb), var(--bf-glow-b-alpha)), transparent var(--bf-glow-b-reach, 40%)),
+        radial-gradient(circle at 50% 50%, rgba(var(--bf-glow-m-rgb, 110, 171, 255), var(--bf-glow-m-alpha, 0)), transparent var(--bf-glow-m-reach, 45%));
+    }
+    .ts-preview[data-alive="1"][data-motion="nebula"] .ts-pv-glows {
+      inset: -12%; animation: bf-glow-nebula 40s ease-in-out infinite alternate; animation-duration: calc(40s / var(--bf-motion-speed, 1));
+      background:
+        linear-gradient(rgba(0, 0, 0, var(--bf-scrim)), rgba(0, 0, 0, var(--bf-scrim))),
+        conic-gradient(from 20deg at 50% 50%, rgba(var(--bf-glow-a-rgb), calc(var(--bf-glow-a-alpha) * 0.5)), rgba(var(--bf-glow-m-rgb, 110, 171, 255), calc((var(--bf-glow-a-alpha) + var(--bf-glow-b-alpha)) * 0.25)), rgba(var(--bf-glow-b-rgb), calc(var(--bf-glow-b-alpha) * 0.5)), rgba(var(--bf-glow-m-rgb, 110, 171, 255), calc((var(--bf-glow-a-alpha) + var(--bf-glow-b-alpha)) * 0.25)), rgba(var(--bf-glow-a-rgb), calc(var(--bf-glow-a-alpha) * 0.5))),
+        radial-gradient(circle at 15% 10%, rgba(var(--bf-glow-a-rgb), var(--bf-glow-a-alpha)), transparent var(--bf-glow-a-reach, 38%)),
+        radial-gradient(circle at 85% 90%, rgba(var(--bf-glow-b-rgb), var(--bf-glow-b-alpha)), transparent var(--bf-glow-b-reach, 40%)),
+        radial-gradient(circle at 50% 50%, rgba(var(--bf-glow-m-rgb, 110, 171, 255), var(--bf-glow-m-alpha, 0)), transparent var(--bf-glow-m-reach, 45%));
+    }
+    @media (prefers-reduced-motion: reduce) { .ts-preview[data-alive="1"] .ts-pv-glows, .ts-preview[data-alive="1"][data-motion] .ts-pv-glows { inset: 0; animation: none; } }
+    .ts-pv-heading { margin: 0 0 6px; font-weight: 800; font-size: 1.05rem; background: linear-gradient(90deg, var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ts-pv-bar { height: 6px; margin: 10px 0 0; border-radius: 999px; background: rgba(148,163,184,0.18); overflow: hidden; }
+    .ts-pv-bar span { display: block; width: 64%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7)); }
+    .ts-focus { position: relative; height: 120px; margin: 8px 0 4px; border-radius: 10px; border: 1px solid rgba(148,163,184,0.3); background: rgba(15,23,42,0.6) var(--ts-focus-image, none) center / cover no-repeat; cursor: crosshair; touch-action: none; }
+    .ts-focus-dot { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 0 2px rgba(0,0,0,0.6); left: 50%; top: 50%; pointer-events: none; }
     .ts-pv-card { position: relative; margin: 34px 28px; padding: 16px 18px; border-radius: 14px; background: rgba(15,23,42,0.55); border: 1px solid rgba(148,163,184,0.2); }
     .ts-pv-title { color: #e8e8ff; font-weight: 700; margin-bottom: 6px; }
     .ts-pv-text { color: #e8e8ff; margin: 0 0 4px; font-size: 0.9rem; }
     .ts-pv-muted { color: #8892b8; margin: 0 0 8px; font-size: 0.85rem; }
-    .ts-pv-link { color: #22d3ee; font-size: 0.88rem; text-decoration: underline; }
+    .ts-pv-link { color: var(--bf-accent-a, #22d3ee); font-size: 0.88rem; text-decoration: underline; }
     .ts-pv-buttons { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
-    .ts-pv-ghost { padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(34,211,238,0.5); color: #22d3ee; font-size: 0.82rem; }
+    .ts-pv-ghost { padding: 7px 12px; border-radius: 999px; border: 1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),0.5); color: var(--bf-accent-a, #22d3ee); font-size: 0.82rem; }
     .ts-meter { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(74,222,128,0.4); background: rgba(74,222,128,0.06); }
     .ts-meter[data-state="protected"] { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.06); }
     .ts-meter strong { color: #4ade80; margin-right: 8px; }
@@ -520,15 +549,15 @@
        read the same tokens as the pages, the original as each fallback. */
     .ts-preview { min-height: 360px; }
     .ts-pv-card { margin-top: 44px; margin-bottom: 92px; }
-    .ts-pv-btn { display: inline-block; padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, var(--bf-btn-a, #06b6d4), var(--bf-btn-b, #8b5cf6)); color: var(--bf-btn-text, #ffffff); }
+    .ts-pv-btn { display: inline-block; padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, var(--bf-btn-a, #06b6d4)var(--bf-btn-mid, ), var(--bf-btn-b, #8b5cf6)); color: var(--bf-btn-text, #ffffff); }
     .ts-pv-head { position: absolute; top: 12px; right: 16px; }
-    .ts-pv-mark { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee), var(--bf-mark-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .ts-pv-guide { position: absolute; left: 0; bottom: 16px; max-width: 52%; padding: 8px 12px; border-radius: 0 12px 12px 0; border: 1px solid rgba(168,85,247,0.28); border-left: none; background: rgba(12,18,38,0.9); color: #8888aa; font-size: 0.78rem; line-height: 1.45; }
-    .ts-pv-guide-title { display: block; margin-bottom: 4px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-guide-a, #22d3ee), var(--bf-guide-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ts-pv-mark { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .ts-pv-guide { position: absolute; left: 0; bottom: 16px; max-width: 52%; padding: 8px 12px; border-radius: 0 12px 12px 0; border: 1px solid rgba(var(--bf-accent-b-rgb, 168,85,247),0.28); border-left: none; background: rgba(12,18,38,0.9); color: #8888aa; font-size: 0.78rem; line-height: 1.45; }
+    .ts-pv-guide-title { display: block; margin-bottom: 4px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-guide-a, #22d3ee)var(--bf-guide-mid, ), var(--bf-guide-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; }
     .ts-pv-guide-label { color: var(--bf-guide-a, #22d3ee); font-weight: 700; }
     .ts-pv-mist { position: absolute; right: 22px; bottom: 22px; width: 76px; height: 76px; }
     .ts-pv-mist span { position: absolute; pointer-events: none; }
-    .ts-pv-chatglow { left: -78px; top: 4px; width: 58px; height: 68px; border-radius: 14px; filter: blur(8px); background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0, 229, 255), 0.80) 0%, rgba(var(--tmx-chat-glow-b, 123, 47, 247), 0.48) 45%, rgba(var(--tmx-chat-glow-c, 168, 85, 247), 0.24) 75%, transparent 100%); animation: ts-pv-breathe 5s ease-in-out infinite; }
+    .ts-pv-chatglow { left: -78px; top: 4px; width: 58px; height: 68px; border-radius: 14px; filter: blur(8px); background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0, 229, 255), 0.80) 0%var(--tmx-chat-glow-mid, ), rgba(var(--tmx-chat-glow-b, 123, 47, 247), 0.48) 45%, rgba(var(--tmx-chat-glow-c, 168, 85, 247), 0.24) 75%, transparent 100%); animation: ts-pv-breathe 5s ease-in-out infinite; }
     .ts-pv-chat { left: -70px; top: 12px; width: 42px; height: 52px; border-radius: 9px; background: rgba(2,1,10,0.98); }
     .ts-pv-haze { inset: 6px; border-radius: 50%; filter: blur(10px); background: radial-gradient(ellipse at 45% 42%, rgba(var(--tmx-haze-1, 48,12,150), 0.88) 0%, rgba(var(--tmx-haze-2, 16,4,68), 0.74) 45%, rgba(var(--tmx-haze-3, 4,0,24), 0) 100%); }
     .ts-pv-pulse { inset: 10px; filter: blur(10px); background: radial-gradient(circle at 50% 50%, rgba(var(--tmx-pulse-1, 80,15,110), 0.62) 0%, rgba(var(--tmx-pulse-1, 80,15,110), 0) 55%); }
@@ -548,8 +577,8 @@
     .ts-el .pref-note { margin: 2px 0 6px; }
     .ts-el-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
     .ts-el-preset { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.22); background: rgba(15,23,42,0.6); color: #e8e8ff; font: inherit; font-size: 0.8rem; cursor: pointer; }
-    .ts-el-preset[aria-pressed="true"] { border-color: #22d3ee; box-shadow: 0 0 0 1px #22d3ee inset; }
-    .ts-el-preset:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+    .ts-el-preset[aria-pressed="true"] { border-color: var(--bf-accent-a, #22d3ee); box-shadow: 0 0 0 1px var(--bf-accent-a, #22d3ee) inset; }
+    .ts-el-preset:focus-visible { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
     .ts-el-preset:disabled, .ts-el input:disabled { opacity: 0.55; cursor: not-allowed; }
     .ts-el-swatch { width: 16px; height: 16px; border-radius: 50%; flex: 0 0 auto; }
     .ts-el-name { color: #8892b8; font-size: 0.85rem; }
@@ -795,15 +824,20 @@
                it comes from GET /api/themes, which reads it from the app map. -->
           <section class="settings-panel" id="panel-theme" data-panel="theme" aria-labelledby="themeHeading">
             <h2 id="themeHeading">Theme</h2>
-            <p class="pref-note">Choose the glow in two corners and what sits in the middle. Any colour is allowed: if a choice makes text hard to read, the backdrop is shaded just enough to keep it clear.</p>
+            <p class="pref-note">Choose a spectrum: a glow in two corners, a middle tone between them, and what sits in the middle. Any colour is allowed: if a choice makes text hard to read, the backdrop is shaded just enough to keep it clear.</p>
 
             <div class="ts-presets" role="group" aria-label="Presets">
-              <button type="button" class="ts-preset" data-preset="default" aria-pressed="true"><span class="ts-preset-swatch ts-sw-default" aria-hidden="true"></span>Default</button>
-              <button type="button" class="ts-preset" data-preset="ember" aria-pressed="false"><span class="ts-preset-swatch ts-sw-ember" aria-hidden="true"></span>Ember</button>
-              <button type="button" class="ts-preset" data-preset="verdant" aria-pressed="false"><span class="ts-preset-swatch ts-sw-verdant" aria-hidden="true"></span>Verdant</button>
-              <button type="button" class="ts-preset" data-preset="royal" aria-pressed="false"><span class="ts-preset-swatch ts-sw-royal" aria-hidden="true"></span>Royal</button>
-              <button type="button" class="ts-preset" data-preset="rose" aria-pressed="false"><span class="ts-preset-swatch ts-sw-rose" aria-hidden="true"></span>Rosé</button>
-              <button type="button" class="ts-preset" data-preset="mono" aria-pressed="false"><span class="ts-preset-swatch ts-sw-mono" aria-hidden="true"></span>Mono</button>
+              <button type="button" class="ts-preset" data-preset="original" aria-pressed="true"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Original</span></button>
+              <button type="button" class="ts-preset" data-preset="solar-flare" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Solar Flare</span></button>
+              <button type="button" class="ts-preset" data-preset="deep-reef" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Deep Reef</span></button>
+              <button type="button" class="ts-preset" data-preset="nebula" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Nebula</span></button>
+              <button type="button" class="ts-preset" data-preset="emerald-throne" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Emerald Throne</span></button>
+              <button type="button" class="ts-preset" data-preset="obsidian-rose" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Obsidian Rose</span></button>
+              <button type="button" class="ts-preset" data-preset="arctic" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Arctic</span></button>
+              <button type="button" class="ts-preset" data-preset="phoenix" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Phoenix</span></button>
+              <button type="button" class="ts-preset" data-preset="amethyst" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Amethyst</span></button>
+              <button type="button" class="ts-preset" data-preset="black-sun" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Black Sun</span></button>
+              <button type="button" class="ts-preset" data-preset="mono-silver" aria-pressed="false"><span class="ts-preset-swatch" aria-hidden="true"></span><span class="ts-preset-name">Mono Silver</span></button>
             </div>
 
             <div class="ts-grid">
@@ -811,21 +845,39 @@
                 <fieldset class="ts-part">
                   <legend>Top-left glow</legend>
                   <div class="ts-colour">
-                    <input type="color" id="tsGlowAColor" aria-label="Top-left glow colour" value="#00e5ff" />
-                    <input type="text" id="tsGlowAHex" aria-label="Top-left glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#00e5ff" />
+                    <input type="color" id="tsGlowAColor" aria-label="Top-left glow colour" value="#000000" />
+                    <input type="text" id="tsGlowAHex" aria-label="Top-left glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   </div>
-                  <label class="ts-range" for="tsGlowAAlpha">Strength <output id="tsGlowAAlphaOut" for="tsGlowAAlpha">14%</output></label>
-                  <input type="range" id="tsGlowAAlpha" min="0" max="50" step="1" value="14" />
+                  <label class="ts-range" for="tsGlowAAlpha">Opacity <output id="tsGlowAAlphaOut" for="tsGlowAAlpha">14%</output></label>
+                  <input type="range" id="tsGlowAAlpha" min="0" max="100" step="1" value="14" />
+                  <label class="ts-range" for="tsGlowASize">Size <output id="tsGlowASizeOut" for="tsGlowASize">38%</output></label>
+                  <input type="range" id="tsGlowASize" min="10" max="100" step="1" value="38" />
+                </fieldset>
+
+                <fieldset class="ts-part">
+                  <legend>Middle tone</legend>
+                  <p class="pref-note">The colour between your two corners. Every gradient passes through it.</p>
+                  <div class="ts-colour">
+                    <input type="color" id="tsGlowMidColor" aria-label="Middle tone colour" value="#000000" />
+                    <input type="text" id="tsGlowMidHex" aria-label="Middle tone colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                    <label class="ts-check"><input type="checkbox" id="tsMidAuto" checked /> Auto</label>
+                  </div>
+                  <label class="ts-range" for="tsGlowMidAlpha">Centre glow <output id="tsGlowMidAlphaOut" for="tsGlowMidAlpha">0%</output></label>
+                  <input type="range" id="tsGlowMidAlpha" min="0" max="100" step="1" value="0" />
+                  <label class="ts-range" for="tsGlowMidSize">Size <output id="tsGlowMidSizeOut" for="tsGlowMidSize">45%</output></label>
+                  <input type="range" id="tsGlowMidSize" min="10" max="100" step="1" value="45" />
                 </fieldset>
 
                 <fieldset class="ts-part">
                   <legend>Bottom-right glow</legend>
                   <div class="ts-colour">
-                    <input type="color" id="tsGlowBColor" aria-label="Bottom-right glow colour" value="#a855f7" />
-                    <input type="text" id="tsGlowBHex" aria-label="Bottom-right glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                    <input type="color" id="tsGlowBColor" aria-label="Bottom-right glow colour" value="#000000" />
+                    <input type="text" id="tsGlowBHex" aria-label="Bottom-right glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   </div>
-                  <label class="ts-range" for="tsGlowBAlpha">Strength <output id="tsGlowBAlphaOut" for="tsGlowBAlpha">18%</output></label>
-                  <input type="range" id="tsGlowBAlpha" min="0" max="50" step="1" value="18" />
+                  <label class="ts-range" for="tsGlowBAlpha">Opacity <output id="tsGlowBAlphaOut" for="tsGlowBAlpha">18%</output></label>
+                  <input type="range" id="tsGlowBAlpha" min="0" max="100" step="1" value="18" />
+                  <label class="ts-range" for="tsGlowBSize">Size <output id="tsGlowBSizeOut" for="tsGlowBSize">40%</output></label>
+                  <input type="range" id="tsGlowBSize" min="10" max="100" step="1" value="40" />
                 </fieldset>
 
                 <fieldset class="ts-part">
@@ -844,6 +896,21 @@
                     <label for="tsPhotoFile" class="btn ts-small" id="tsPhotoPick">Choose a photo</label>
                     <span class="pref-note" id="tsPhotoStatus">No photo yet.</span>
                     <p class="pref-note">JPEG, PNG or WebP, up to 5 MB. It fills the middle and stays still while you scroll.</p>
+                    <div class="ts-choices" role="group" aria-label="Photo fit">
+                      <label><input type="radio" name="tsFit" value="fill" checked /> Fill</label>
+                      <label><input type="radio" name="tsFit" value="fit" /> Fit whole</label>
+                      <label><input type="radio" name="tsFit" value="custom" /> Custom</label>
+                    </div>
+                    <label class="ts-range" for="tsZoom">Zoom <output id="tsZoomOut" for="tsZoom">100%</output></label>
+                    <input type="range" id="tsZoom" min="50" max="300" step="5" value="100" />
+                    <div class="ts-focus" id="tsFocus" tabindex="0" role="application" aria-roledescription="focal point" aria-label="Focal point: drag, or use the arrow keys to move it and plus or minus to zoom" aria-describedby="tsFocusOut">
+                      <span class="ts-focus-dot" id="tsFocusDot" aria-hidden="true"></span>
+                    </div>
+                    <p class="pref-note" id="tsFocusOut" aria-live="polite">Focal point 50% across, 50% down.</p>
+                    <label class="ts-range" for="tsBlur">Blur <output id="tsBlurOut" for="tsBlur">0 px</output></label>
+                    <input type="range" id="tsBlur" min="0" max="20" step="1" value="0" />
+                    <label class="ts-range" for="tsFeather">Feathered edges <output id="tsFeatherOut" for="tsFeather">0%</output></label>
+                    <input type="range" id="tsFeather" min="0" max="50" step="1" value="0" />
                     <label class="ts-range" for="tsDim">Dim <output id="tsDimOut" for="tsDim">55%</output></label>
                     <input type="range" id="tsDim" min="0" max="85" step="1" value="55" />
                     <div class="msg" id="tsPhotoMsg" role="status" aria-live="polite"></div>
@@ -853,17 +920,31 @@
                 <div class="toggle-row">
                   <div class="toggle-copy">
                     <div class="toggle-title" id="tsAliveLabel">Alive corners</div>
-                    <div class="toggle-desc" id="tsAliveNote">The two corner glows drift and breathe slowly, about once every half minute.</div>
+                    <div class="toggle-desc" id="tsAliveNote">The corner glows move in the style you pick below.</div>
                   </div>
                   <label class="toggle-switch">
                     <input type="checkbox" id="tsAlive" aria-labelledby="tsAliveLabel" aria-describedby="tsAliveNote" />
                     <span class="toggle-slider"></span>
                   </label>
                 </div>
+                <fieldset class="ts-part" id="tsMotionPart">
+                  <legend>Motion</legend>
+                  <div class="ts-choices" role="group" aria-label="Motion style">
+                    <label><input type="radio" name="tsMotion" value="breathe" checked /> Breathe</label>
+                    <label><input type="radio" name="tsMotion" value="drift" /> Drift</label>
+                    <label><input type="radio" name="tsMotion" value="aurora" /> Aurora</label>
+                    <label><input type="radio" name="tsMotion" value="nebula" /> Nebula</label>
+                  </div>
+                  <p class="pref-note" id="tsMotionNote">Breathe: a slow pulse, about once every half minute.</p>
+                  <label class="ts-range" for="tsMotionSpeed">Speed <output id="tsMotionSpeedOut" for="tsMotionSpeed">100%</output></label>
+                  <input type="range" id="tsMotionSpeed" min="25" max="300" step="5" value="100" />
+                  <label class="ts-range" for="tsMotionIntensity">Intensity <output id="tsMotionIntensityOut" for="tsMotionIntensity">60%</output></label>
+                  <input type="range" id="tsMotionIntensity" min="0" max="100" step="1" value="60" />
+                </fieldset>
               </div>
 
               <div class="ts-side">
-                <div class="ts-preview" id="tsPreview" role="img" aria-label="Preview of your theme: the backdrop with a sample card, a button, the wordmark, a guide tip, the mist and its chat glow">
+                <div class="ts-preview" id="tsPreview" role="img" aria-label="Preview of your theme: the backdrop and its motion with a sample card, a heading, a button, the wordmark, a guide tip, the mist and its chat glow">
                   <div class="ts-pv-middle"></div>
                   <div class="ts-pv-glows"></div>
                   <div class="ts-pv-head" aria-hidden="true"><span class="ts-pv-mark">BizForce AI</span></div>
@@ -871,9 +952,11 @@
                   <div class="ts-pv-mist" aria-hidden="true"><span class="ts-pv-chatglow"></span><span class="ts-pv-chat"></span><span class="ts-pv-haze"></span><span class="ts-pv-pulse"></span><span class="ts-pv-core"></span><span class="ts-pv-dust"></span><span class="ts-pv-trail"></span><span class="ts-pv-spark"></span><span class="ts-pv-star"></span><span class="ts-pv-whisper">Ask Termaximus</span></div>
                   <div class="ts-pv-card" aria-hidden="true">
                     <div class="ts-pv-title">Sample card</div>
+                    <div class="ts-pv-heading">A heading</div>
                     <p class="ts-pv-text">Body text reads like this.</p>
                     <p class="ts-pv-muted">Muted text, for labels and captions.</p>
                     <span class="ts-pv-link">An accent link</span>
+                    <div class="ts-pv-bar"><span></span></div>
                     <div class="ts-pv-buttons"><span class="ts-pv-btn">Button</span><span class="ts-pv-ghost">Secondary</span></div>
                   </div>
                 </div>
@@ -887,42 +970,41 @@
             </div>
 
             <h3 class="ts-h" id="tsElementsHeading">Every colour</h3>
-            <p class="pref-note">Each part below has presets and its own colours. "Match my theme" takes a part's colours from your two corner glows; "Match everything" does it for every part at once.</p>
+            <p class="pref-note">Each part below has presets and its own three colours: a start, a middle and an end. "Match my theme" takes a part's colours from your corners and middle tone; "Match everything" does it for every part at once.</p>
             <div class="toggle-row">
               <div class="toggle-copy">
                 <div class="toggle-title" id="tsMatchAllLabel">Match everything</div>
-                <div class="toggle-desc" id="tsMatchAllNote">Every part takes its colours from your two corner glows. Turn it off to fine-tune them by hand: the colours stay where they are.</div>
+                <div class="toggle-desc" id="tsMatchAllNote">Every part takes its colours from your corners and middle tone. Turn it off to fine-tune them by hand: the colours stay where they are.</div>
               </div>
               <label class="toggle-switch">
                 <input type="checkbox" id="tsMatchAll" aria-labelledby="tsMatchAllLabel" aria-describedby="tsMatchAllNote" />
                 <span class="toggle-slider"></span>
               </label>
             </div>
+
             <div class="ts-elements" id="tsElements" aria-labelledby="tsElementsHeading">
               <fieldset class="ts-part ts-el" data-el="buttons">
                 <legend>Buttons</legend>
                 <p class="pref-note">Every main button: its gradient and its lettering.</p>
-                <div class="ts-el-presets" role="group" aria-label="Buttons presets">
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
-                  <button type="button" class="ts-el-preset" data-el="buttons" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
-                </div>
+                <div class="ts-el-presets" role="group" aria-label="Buttons presets" data-el-presets="buttons"></div>
                 <div class="ts-colour">
-                  <input type="color" id="tsBtnAColor" aria-label="Buttons: gradient start colour" value="#06b6d4" />
-                  <input type="text" id="tsBtnAHex" aria-label="Buttons: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#06b6d4" />
+                  <input type="color" id="tsBtnAColor" aria-label="Buttons: gradient start colour" value="#000000" />
+                  <input type="text" id="tsBtnAHex" aria-label="Buttons: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsBtnAColor">Gradient start</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsBtnBColor" aria-label="Buttons: gradient end colour" value="#8b5cf6" />
-                  <input type="text" id="tsBtnBHex" aria-label="Buttons: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#8b5cf6" />
+                  <input type="color" id="tsBtnMidColor" aria-label="Buttons: middle colour" value="#000000" />
+                  <input type="text" id="tsBtnMidHex" aria-label="Buttons: middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsBtnMidColor">Middle</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsBtnBColor" aria-label="Buttons: gradient end colour" value="#000000" />
+                  <input type="text" id="tsBtnBHex" aria-label="Buttons: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsBtnBColor">Gradient end</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsBtnTextColor" aria-label="Buttons: lettering colour" value="#ffffff" />
-                  <input type="text" id="tsBtnTextHex" aria-label="Buttons: lettering colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffffff" />
+                  <input type="color" id="tsBtnTextColor" aria-label="Buttons: lettering colour" value="#000000" />
+                  <input type="text" id="tsBtnTextHex" aria-label="Buttons: lettering colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsBtnTextColor">Lettering</label>
                 </div>
                 <div class="ts-el-actions">
@@ -932,53 +1014,46 @@
               </fieldset>
               <fieldset class="ts-part ts-el" data-el="mist">
                 <legend>Termaximus mist</legend>
-                <p class="pref-note">Six palettes, or set each colour of the mist yourself.</p>
-                <div class="ts-el-presets" role="group" aria-label="Termaximus mist presets">
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
-                  <button type="button" class="ts-el-preset" data-el="mist" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
-                </div>
+                <p class="pref-note">Eleven palettes, or set each colour of the mist yourself.</p>
+                <div class="ts-el-presets" role="group" aria-label="Termaximus mist presets" data-el-presets="mist"></div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistCoreColor" aria-label="Termaximus mist: core colour" value="#3c78ff" />
-                  <input type="text" id="tsMistCoreHex" aria-label="Termaximus mist: core colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#3c78ff" />
+                  <input type="color" id="tsMistCoreColor" aria-label="Termaximus mist: core colour" value="#000000" />
+                  <input type="text" id="tsMistCoreHex" aria-label="Termaximus mist: core colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistCoreColor">Core</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistHazeColor" aria-label="Termaximus mist: haze colour" value="#300c96" />
-                  <input type="text" id="tsMistHazeHex" aria-label="Termaximus mist: haze colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#300c96" />
+                  <input type="color" id="tsMistHazeColor" aria-label="Termaximus mist: haze colour" value="#000000" />
+                  <input type="text" id="tsMistHazeHex" aria-label="Termaximus mist: haze colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistHazeColor">Haze</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistPulseColor" aria-label="Termaximus mist: pulse colour" value="#500f6e" />
-                  <input type="text" id="tsMistPulseHex" aria-label="Termaximus mist: pulse colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#500f6e" />
+                  <input type="color" id="tsMistPulseColor" aria-label="Termaximus mist: pulse colour" value="#000000" />
+                  <input type="text" id="tsMistPulseHex" aria-label="Termaximus mist: pulse colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistPulseColor">Pulse</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistSparkColor" aria-label="Termaximus mist: gold sparks colour" value="#ffe896" />
-                  <input type="text" id="tsMistSparkHex" aria-label="Termaximus mist: gold sparks colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffe896" />
+                  <input type="color" id="tsMistSparkColor" aria-label="Termaximus mist: gold sparks colour" value="#000000" />
+                  <input type="text" id="tsMistSparkHex" aria-label="Termaximus mist: gold sparks colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistSparkColor">Gold sparks</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistStarColor" aria-label="Termaximus mist: white stars colour" value="#ffffff" />
-                  <input type="text" id="tsMistStarHex" aria-label="Termaximus mist: white stars colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#ffffff" />
+                  <input type="color" id="tsMistStarColor" aria-label="Termaximus mist: white stars colour" value="#000000" />
+                  <input type="text" id="tsMistStarHex" aria-label="Termaximus mist: white stars colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistStarColor">White stars</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistDustColor" aria-label="Termaximus mist: gold dust colour" value="#f0c850" />
-                  <input type="text" id="tsMistDustHex" aria-label="Termaximus mist: gold dust colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#f0c850" />
+                  <input type="color" id="tsMistDustColor" aria-label="Termaximus mist: gold dust colour" value="#000000" />
+                  <input type="text" id="tsMistDustHex" aria-label="Termaximus mist: gold dust colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistDustColor">Gold dust</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistTrailColor" aria-label="Termaximus mist: shooting star colour" value="#cddaff" />
-                  <input type="text" id="tsMistTrailHex" aria-label="Termaximus mist: shooting star colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#cddaff" />
+                  <input type="color" id="tsMistTrailColor" aria-label="Termaximus mist: shooting star colour" value="#000000" />
+                  <input type="text" id="tsMistTrailHex" aria-label="Termaximus mist: shooting star colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistTrailColor">Shooting star</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMistWhisperColor" aria-label="Termaximus mist: whisper colour" value="#d7cdf5" />
-                  <input type="text" id="tsMistWhisperHex" aria-label="Termaximus mist: whisper colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#d7cdf5" />
+                  <input type="color" id="tsMistWhisperColor" aria-label="Termaximus mist: whisper colour" value="#000000" />
+                  <input type="text" id="tsMistWhisperHex" aria-label="Termaximus mist: whisper colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMistWhisperColor">Whisper</label>
                 </div>
                 <div class="ts-el-actions">
@@ -989,22 +1064,20 @@
               <fieldset class="ts-part ts-el" data-el="chat">
                 <legend>Chat glow</legend>
                 <p class="pref-note">The pulsing glow around Termaximus's chat box.</p>
-                <div class="ts-el-presets" role="group" aria-label="Chat glow presets">
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
-                  <button type="button" class="ts-el-preset" data-el="chat" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
-                </div>
+                <div class="ts-el-presets" role="group" aria-label="Chat glow presets" data-el-presets="chat"></div>
                 <div class="ts-colour">
-                  <input type="color" id="tsChatAColor" aria-label="Chat glow: inner glow colour" value="#00e5ff" />
-                  <input type="text" id="tsChatAHex" aria-label="Chat glow: inner glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#00e5ff" />
+                  <input type="color" id="tsChatAColor" aria-label="Chat glow: inner glow colour" value="#000000" />
+                  <input type="text" id="tsChatAHex" aria-label="Chat glow: inner glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsChatAColor">Inner glow</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsChatBColor" aria-label="Chat glow: outer glow colour" value="#7b2ff7" />
-                  <input type="text" id="tsChatBHex" aria-label="Chat glow: outer glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#7b2ff7" />
+                  <input type="color" id="tsChatMidColor" aria-label="Chat glow: middle colour" value="#000000" />
+                  <input type="text" id="tsChatMidHex" aria-label="Chat glow: middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsChatMidColor">Middle</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsChatBColor" aria-label="Chat glow: outer glow colour" value="#000000" />
+                  <input type="text" id="tsChatBHex" aria-label="Chat glow: outer glow colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsChatBColor">Outer glow</label>
                 </div>
                 <div class="ts-el-actions">
@@ -1015,22 +1088,20 @@
               <fieldset class="ts-part ts-el" data-el="guide">
                 <legend>Guide text</legend>
                 <p class="pref-note">The gradient lettering in the guide panel and on the phone guide sheet.</p>
-                <div class="ts-el-presets" role="group" aria-label="Guide text presets">
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
-                  <button type="button" class="ts-el-preset" data-el="guide" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
-                </div>
+                <div class="ts-el-presets" role="group" aria-label="Guide text presets" data-el-presets="guide"></div>
                 <div class="ts-colour">
-                  <input type="color" id="tsGuideAColor" aria-label="Guide text: gradient start colour" value="#22d3ee" />
-                  <input type="text" id="tsGuideAHex" aria-label="Guide text: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#22d3ee" />
+                  <input type="color" id="tsGuideAColor" aria-label="Guide text: gradient start colour" value="#000000" />
+                  <input type="text" id="tsGuideAHex" aria-label="Guide text: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsGuideAColor">Gradient start</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsGuideBColor" aria-label="Guide text: gradient end colour" value="#a855f7" />
-                  <input type="text" id="tsGuideBHex" aria-label="Guide text: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                  <input type="color" id="tsGuideMidColor" aria-label="Guide text: middle colour" value="#000000" />
+                  <input type="text" id="tsGuideMidHex" aria-label="Guide text: middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsGuideMidColor">Middle</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsGuideBColor" aria-label="Guide text: gradient end colour" value="#000000" />
+                  <input type="text" id="tsGuideBHex" aria-label="Guide text: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsGuideBColor">Gradient end</label>
                 </div>
                 <div class="ts-el-actions">
@@ -1041,27 +1112,49 @@
               <fieldset class="ts-part ts-el" data-el="mark">
                 <legend>BizForceAI wordmark</legend>
                 <p class="pref-note">The "BizForce AI" wordmark at the top of each page.</p>
-                <div class="ts-el-presets" role="group" aria-label="BizForceAI wordmark presets">
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="original" aria-pressed="true"><span class="ts-el-swatch" aria-hidden="true"></span>Original</button>
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="ember" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Ember</button>
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="verdant" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Verdant</button>
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="royal" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Royal</button>
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="rose" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Rosé</button>
-                  <button type="button" class="ts-el-preset" data-el="mark" data-preset="mono" aria-pressed="false"><span class="ts-el-swatch" aria-hidden="true"></span>Mono</button>
-                </div>
+                <div class="ts-el-presets" role="group" aria-label="BizForceAI wordmark presets" data-el-presets="mark"></div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMarkAColor" aria-label="BizForceAI wordmark: gradient start colour" value="#22d3ee" />
-                  <input type="text" id="tsMarkAHex" aria-label="BizForceAI wordmark: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#22d3ee" />
+                  <input type="color" id="tsMarkAColor" aria-label="BizForceAI wordmark: gradient start colour" value="#000000" />
+                  <input type="text" id="tsMarkAHex" aria-label="BizForceAI wordmark: gradient start colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMarkAColor">Gradient start</label>
                 </div>
                 <div class="ts-colour">
-                  <input type="color" id="tsMarkBColor" aria-label="BizForceAI wordmark: gradient end colour" value="#a855f7" />
-                  <input type="text" id="tsMarkBHex" aria-label="BizForceAI wordmark: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="#a855f7" />
+                  <input type="color" id="tsMarkMidColor" aria-label="BizForceAI wordmark: middle colour" value="#000000" />
+                  <input type="text" id="tsMarkMidHex" aria-label="BizForceAI wordmark: middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsMarkMidColor">Middle</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsMarkBColor" aria-label="BizForceAI wordmark: gradient end colour" value="#000000" />
+                  <input type="text" id="tsMarkBHex" aria-label="BizForceAI wordmark: gradient end colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
                   <label class="ts-el-name" for="tsMarkBColor">Gradient end</label>
                 </div>
                 <div class="ts-el-actions">
                   <button type="button" class="btn ts-small" data-el-match="mark" aria-label="BizForceAI wordmark: match my theme">Match my theme</button>
                   <button type="button" class="btn ts-small" data-el-reset="mark" aria-label="BizForceAI wordmark: reset this element">Reset this element</button>
+                </div>
+              </fieldset>
+              <fieldset class="ts-part ts-el" data-el="accent">
+                <legend>Headings and accents</legend>
+                <p class="pref-note">Titles, icon rings, badges, chips, borders, focus rings, links, toggles, progress bars, tab underlines and charts.</p>
+                <div class="ts-el-presets" role="group" aria-label="Headings and accents presets" data-el-presets="accent"></div>
+                <div class="ts-colour">
+                  <input type="color" id="tsAccentAColor" aria-label="Headings and accents: first colour colour" value="#000000" />
+                  <input type="text" id="tsAccentAHex" aria-label="Headings and accents: first colour colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsAccentAColor">First colour</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsAccentMidColor" aria-label="Headings and accents: middle colour" value="#000000" />
+                  <input type="text" id="tsAccentMidHex" aria-label="Headings and accents: middle colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsAccentMidColor">Middle</label>
+                </div>
+                <div class="ts-colour">
+                  <input type="color" id="tsAccentBColor" aria-label="Headings and accents: second colour colour" value="#000000" />
+                  <input type="text" id="tsAccentBHex" aria-label="Headings and accents: second colour colour, as hex" maxlength="7" spellcheck="false" autocomplete="off" value="" />
+                  <label class="ts-el-name" for="tsAccentBColor">Second colour</label>
+                </div>
+                <div class="ts-el-actions">
+                  <button type="button" class="btn ts-small" data-el-match="accent" aria-label="Headings and accents: match my theme">Match my theme</button>
+                  <button type="button" class="btn ts-small" data-el-reset="accent" aria-label="Headings and accents: reset this element">Reset this element</button>
                 </div>
               </fieldset>
             </div>

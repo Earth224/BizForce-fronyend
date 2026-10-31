@@ -493,7 +493,7 @@
     "  border-radius: 30px;",
     "  filter: blur(15px);",
     "  transform-origin: 50% 50%;",
-    "  background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0,229,255),0.80) 0%, rgba(var(--tmx-chat-glow-b, 123,47,247),0.48) 45%, rgba(var(--tmx-chat-glow-c, 168,85,247),0.24) 75%, transparent 100%);",
+    "  background: radial-gradient(ellipse at 50% 50%, rgba(var(--tmx-chat-glow-a, 0,229,255),0.80) 0%var(--tmx-chat-glow-mid, ), rgba(var(--tmx-chat-glow-b, 123,47,247),0.48) 45%, rgba(var(--tmx-chat-glow-c, 168,85,247),0.24) 75%, transparent 100%);",
     "  box-shadow: 0 0 30px 7px rgba(var(--tmx-chat-glow-a, 0,229,255),0.45), 0 0 60px 13px rgba(var(--tmx-chat-glow-b, 123,47,247),0.32), 0 0 100px 18px rgba(var(--tmx-chat-glow-c, 168,85,247),0.18);",
     "  animation: tmx-chat-glow-breathe 5s ease-in-out infinite;",
     "}",
@@ -1526,8 +1526,8 @@
     var btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "Try again";
-    btn.style.cssText = "margin-top:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(0,229,255,.35);" +
-      "background:rgba(0,229,255,.08);color:#22d3ee;font:inherit;font-size:.75rem;cursor:pointer";
+    btn.style.cssText = "margin-top:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.35);" +
+      "background:rgba(var(--bf-accent-a3-rgb, 0,229,255),.08);color:var(--bf-accent-a, #22d3ee);font:inherit;font-size:.75rem;cursor:pointer";
     btn.addEventListener("click", function () {
       if (!localStorage.getItem("bf_token")) {
         text.textContent = "Your session has ended — sign in again to see your earlier conversation.";

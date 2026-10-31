@@ -209,7 +209,7 @@
     ".sp-filed{display:grid;gap:6px}",
     ".sp-label{font-weight:700;color:#e6edf3;margin-bottom:6px}",
     ".sp-quiet{color:#8892b8;font-size:.82rem;margin:4px 0}",
-    ".sp-link{color:#22d3ee}"
+    ".sp-link{color:var(--bf-accent-a, #22d3ee)}"
   ].join("\n");
 
   function mount() {
