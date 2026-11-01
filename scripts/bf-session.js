@@ -44,7 +44,9 @@
      caches them (their look, and their backdrop photo's address), so the next
      person at this browser, and the sign-in page, see the original look, and
      bf_music, the music player's memory (scripts/bf-music.js: the track, the
-     position, the volume, the queue and the player's settings).
+     position, the volume, the queue and the player's settings) and, in this
+     tab, bf_music_live (that music has played in this session and was not
+     stopped, so the other pages show the player).
      Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
      app.html whenever it opens with no session.
 
@@ -73,7 +75,7 @@
     "bf_theme",
     "bf_music"
   ];
-  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail"];
+  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail", "bf_music_live"];
   var OFFLINE_DB = "bf-offline";
 
   function clearDevice() {

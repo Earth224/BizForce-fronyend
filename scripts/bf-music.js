@@ -7,21 +7,30 @@
    WHERE IT RUNS. scripts/bf-session.js loads this file on every page it
    guards; this file loads scripts/bf-boombox.js. It becomes:
      float   on every app page, the pages that load the mist
-             (scripts/termaximus-presence.js): fixed on screen, draggable,
-             always starting as the slim bar beside the BizForce AI logo
-             ([data-bf-boombox-anchor]), or in the top-left corner;
+             (scripts/termaximus-presence.js), in three stages
+             (scripts/bf-boombox.js): on the dashboard (HOME_PAGE) the
+             small boombox ICON beside the BizForce AI logo
+             ([data-bf-boombox-anchor]) the first time, then the bar, then
+             the boombox; on every other page NOTHING unless music is on
+             (musicOn: playing, resuming after a page change, or paused
+             mid-track in this tab's session, LIVE_KEY), when the bar or the
+             boombox follows at its last stage. Stop ("Stop music") ends it
+             and takes it off those pages. Follow me (fixed, draggable) or
+             Pinned (in its home spot, scrolling with the page): the
+             member's "Position" (S.placement; "position" on the account);
      popout  in music-popout.html (#bfMusicPopout): the boombox, alone.
    A public page or a card (scripts/bf-theme.js publicView), and a page with
    no mist, never get the player.
 
-   THE EXPANDED VIEW. The boombox's own keys: previous, play/pause, next,
-   shuffle, repeat, the display's seek bar; its mixer: the BASS, MID and
+   THE EXPANDED VIEW. The boombox's own keys: previous, play/pause, stop,
+   next, shuffle, repeat, the display's seek bar; its mixer: the BASS, MID and
    TREBLE knobs, the crossfader (the Mix), the level meters, the volume
-   fader; its body keys: Mute, Library, Reset position, Minimise. The
+   fader; its body keys: Mute, Library, Reset position, Minimise, Close to
+   icon. The
    library SLIDES OUT from behind it: the playlist picker with New playlist,
    Rename and Delete playlist, the queue (play, drag or Alt+arrow to reorder,
    rename, delete, add to a playlist), Mix, Spectrum or Waveform, the
-   finish (Chrome or Black), the upload drop zone, "Play when I open
+   finish (Chrome or Black), the position (Follow me or Pinned), the upload drop zone, "Play when I open
    BizForce", "Keep playing between pages (opens a small window)", and the
    messages.
 
@@ -30,7 +39,7 @@
    EQ_HZ.treble, each -12 … +12 dB (clampDb), into the analyser and the
    speakers; a channel splitter after the EQ feeds the two meters their own
    channel (left and right), and where the browser has no splitter they show
-   the level and its peak. The finish and the EQ are the member's
+   the level and its peak. The finish, the EQ, the position and the last stage are the member's
    (GET and PUT /api/music/player, lib/music.js playerSettings), kept on the
    device too (bf_music) so they apply at once and survive a server that
    cannot save them yet.
@@ -153,6 +162,10 @@
   var RESUME_TAP = "Tap to resume";
   var CONTINUITY_NOTE = "Moving between pages pauses for a moment. For unbroken music, choose Keep playing between pages.";
   var FINISHES = ["chrome", "black"];
+  var POSITIONS = ["follow", "pinned"];
+  var STAGES = ["icon", "tag", "box"];
+  var HOME_PAGE = "dashboard.html";        // the only page with the icon
+  var LIVE_KEY = "bf_music_live";          // sessionStorage: music has played in this tab and was not stopped
   var EQ_BANDS = ["bass", "mid", "treble"];
   var EQ_MAX = 12;
   var EQ_HZ = { bass: 120, mid: 1000, treble: 6000 };
@@ -168,7 +181,7 @@
   var ACCEPT = "audio/*,.mp3,.m4a,.aac,.ogg,.opus,.flac,.wav";
   var DEFAULTS = { v: 1, uid: null, track_id: null, position: 0, volume: 0.8, muted: false, queue: [], shuffle: false,
     repeat: "off", crossfade: 0, autoplay: false, view: "spectrum", playlist_id: "", was_playing: false,
-    finish: "chrome", eq: { bass: 0, mid: 0, treble: 0 } };
+    finish: "chrome", eq: { bass: 0, mid: 0, treble: 0 }, placement: "follow" };
 
   var ID = "m" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -263,6 +276,7 @@
     if (!Array.isArray(out.queue)) out.queue = [];
     out.position = Math.max(0, Number(out.position) || 0);
     if (FINISHES.indexOf(out.finish) === -1) out.finish = "chrome";
+    if (POSITIONS.indexOf(out.placement) === -1) out.placement = "follow";
     out.eq = cleanEq(out.eq);
     return out;
   }
@@ -271,7 +285,8 @@
     if (!UID) return;
     S.uid = UID;
     S.position = currentPosition();
-    S.was_playing = !!(R.playing || R.resuming);
+    /* until this page has settled whether to carry on, a save (the account's settings arriving) keeps "it was playing" */
+    S.was_playing = !!(R.playing || R.resuming || (!R.settled && S.was_playing));
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* storage unavailable: the player still plays */ }
   }
 
@@ -416,6 +431,13 @@
     S.eq[band] = clampDb(db);
     applyEq(); save(); pushPlayer(); render();
   }
+  /* Follow me (fixed, draggable) or Pinned (in its home spot, scrolling with the page). */
+  function setPosition(p) {
+    if (POSITIONS.indexOf(p) === -1) return;
+    S.placement = p;
+    if (BOX && BOX.setPosition) BOX.setPosition(p);
+    save(); pushPlayer(); render();
+  }
   function setFinish(f) {
     if (FINISHES.indexOf(f) === -1) return;
     S.finish = f;
@@ -540,7 +562,8 @@
   }
   /* After a page change: carry on from where the last page stopped. */
   function resumeAfterNavigation() {
-    if (popoutAlive() || R.playing || !S.was_playing || !S.track_id || !trackById(S.track_id)) return Promise.resolve(false);
+    R.settled = true;
+    if (popoutAlive() || R.playing || !S.was_playing || !S.track_id || !trackById(S.track_id)) { render(); return Promise.resolve(false); }
     R.resuming = true;
     R.armed = false;
     return startTrack(S.track_id, S.position);
@@ -581,6 +604,7 @@
   }
   function pauseLocal() {
     R.resuming = false;
+    R.settled = true;   // a pause before the carry-on cancels it
     cancelFade();
     if (R.awaitRelease) { clearTimeout(R.awaitRelease); R.awaitRelease = null; }
     S.position = currentPosition();
@@ -639,6 +663,25 @@
     if (d && d.track) { try { d.el.currentTime = 0; } catch (e) { /* not loaded */ } }
     save();
     render();
+  }
+  /* STOP: the music ends here (the track goes back to its start), and the
+     player leaves every page but the dashboard until music plays again. */
+  function markLive(on) {
+    try { if (on && UID) sessionStorage.setItem(LIVE_KEY, UID); else sessionStorage.removeItem(LIVE_KEY); } catch (e) { /* storage unavailable */ }
+  }
+  function sessionLive() { try { return !!UID && sessionStorage.getItem(LIVE_KEY) === UID; } catch (e) { return false; } }
+  function stop() {
+    markLive(false);
+    if (popoutAlive()) { relay("stop"); render(); return; }
+    stopAtEnd();
+  }
+  /* Music is ON: playing (here or in the pop-out), resuming after a page
+     change, or paused mid-track in this session. Off the dashboard, the
+     player shows only then. */
+  function musicOn() {
+    if (heardPlaying() || R.resuming) return true;
+    if (!R.settled && S.was_playing && S.track_id) return true;   // a page change, before the resume
+    return sessionLive() && !!S.track_id && (Number(S.position) || currentPosition()) > 0;
   }
   function trackEnded() {
     var id = upcoming(false);
@@ -824,22 +867,27 @@
       else if (m.cmd === "next") next(); else if (m.cmd === "prev") prev(); else if (m.cmd === "seek") seek(a);
       else if (m.cmd === "volume") setVolume(a); else if (m.cmd === "mute") toggleMute(); else if (m.cmd === "shuffle") setShuffle(a);
       else if (m.cmd === "repeat") cycleRepeat(); else if (m.cmd === "repeat-set") setRepeat(a); else if (m.cmd === "crossfade") setCrossfade(a);
-      else if (m.cmd === "track") playTrack(a);
+      else if (m.cmd === "track") playTrack(a); else if (m.cmd === "stop") stop();
       else if (m.cmd === "eq" && a && typeof a === "object") setEq(a.band, a.db);
     }
   }
   if (channel) channel.onmessage = function (e) { onMessage(e && e.data); };
 
-  /* The member's finish and EQ on their account: read once at the start, written a
-     moment after the last change. A server that cannot save them yet (503, before
-     migration 157) leaves them on this device and says so, once, quietly. */
-  var PLAYER_LOCAL = "Your finish and EQ are kept on this device for now.";
+  /* The member's finish, EQ, position and last stage on their account: read once at
+     the start, written a moment after the last change. A server that cannot save them
+     yet (503, before migration 157) leaves them on this device and says so, once,
+     quietly. The stage is the page's (the pop-out is always the boombox, and says
+     nothing of it); this device's own remembered stage wins over the account's, which
+     a new device adopts. */
+  var PLAYER_LOCAL = "Your finish, EQ and position are kept on this device for now.";
   function pushPlayer() {
     if (!UID) return;
     if (R.pushTimer) clearTimeout(R.pushTimer);
     R.pushTimer = setTimeout(function () {
       R.pushTimer = null;
-      api(PLAYER_PATH, { method: "PUT", json: { finish: S.finish, eq: cleanEq(S.eq) } }).then(function (r) {
+      var body = { finish: S.finish, eq: cleanEq(S.eq), position: S.placement };
+      if (MODE === "float" && BOX && BOX.remembered && BOX.remembered()) body.stage = BOX.state();
+      api(PLAYER_PATH, { method: "PUT", json: body }).then(function (r) {
         R.playerNote = r.ok ? "" : (r.status === 503 ? PLAYER_LOCAL : (r.body && r.body.error) || PLAYER_LOCAL);
         render();
       });
@@ -851,6 +899,8 @@
         var p = r.body.player;
         if (FINISHES.indexOf(p.finish) !== -1) S.finish = p.finish;
         if (p.eq) S.eq = cleanEq(p.eq);
+        if (POSITIONS.indexOf(p.position) !== -1) { S.placement = p.position; if (BOX && BOX.setPosition) BOX.setPosition(p.position); }
+        if (MODE === "float" && BOX && STAGES.indexOf(p.stage) !== -1 && !BOX.remembered()) BOX.setState(p.stage, false, true);
         applyEq(); save(); render();
       } else if (!r.ok && r.status === 503) { R.playerNote = PLAYER_LOCAL; render(); }
       return r.ok;
@@ -1144,16 +1194,23 @@
         '<span class="bfm-finish-label" aria-hidden="true">Finish</span>' +
         '<label><input type="radio" name="bfmFinishPanel" value="chrome" class="bfm-finish-pick" aria-label="Chrome" /> Chrome</label>' +
         '<label><input type="radio" name="bfmFinishPanel" value="black" class="bfm-finish-pick" aria-label="Black" /> Black</label></div>' +
+      (MODE === "popout" ? "" : '<div class="bfm-row bfm-finish bfm-position" role="radiogroup" aria-label="Position">' +
+        '<span class="bfm-finish-label" aria-hidden="true">Position</span>' +
+        '<label><input type="radio" name="bfmPositionPanel" value="follow" class="bfm-position-pick" aria-label="Follow me" /> Follow me</label>' +
+        '<label><input type="radio" name="bfmPositionPanel" value="pinned" class="bfm-position-pick" aria-label="Pinned" /> Pinned</label></div>') +
       '<p class="bfm-note bfm-player-note" role="status"></p>' +
       (MODE === "popout" ? "" : '<div class="bfm-row"><button type="button" class="bfm-chip" data-act="keep-playing" aria-describedby="bfmKeepHelp">' + svg("popout", 14) + " " + KEEP_PLAYING + "</button></div>" +
         '<p class="bfm-note" id="bfmKeepHelp">' + KEEP_PLAYING_HELP + "</p>" +
         '<p class="bfm-note bfm-continuity">' + CONTINUITY_NOTE + "</p>");
   }
+  function isHome() { var T = themeEngine(); return !!T && T.pageKey() === HOME_PAGE; }
   function buildPlayer() {
     var host = MODE === "popout" ? doc.getElementById("bfMusicPopout") : null;
     BOX = window.BFBoombox.mount({
-      mode: MODE, host: host, finish: S.finish,
+      mode: MODE, host: host, finish: S.finish, position: S.placement,
       anchor: MODE === "float" ? doc.querySelector("[data-bf-boombox-anchor]") : null,
+      home: MODE === "float" && isHome(),
+      onStage: function () { pushPlayer(); },
       onVolume: function (v) { setVolume(v); },
       onMix: function (s) { setCrossfade(s); },
       onEq: function (band, db) { setEq(band, db); },
@@ -1177,6 +1234,7 @@
     else if (act === "shuffle") setShuffle();
     else if (act === "repeat") cycleRepeat();
     else if (act === "mute") toggleMute();
+    else if (act === "stop") stop();
     else if (act === "keep-playing") popOut();
     else if (act === "choose") { var f = q(".bfm-file"); if (f) f.click(); }
     else if (act === "pl-new") askName("new");
@@ -1197,6 +1255,8 @@
     q(".bfm-mix").addEventListener("input", function () { setCrossfade(Number(this.value)); });
     /* The finish: in the library, and in Settings, Theme, Music (#bfmFinishSetting) where the page has it. */
     finishPicks().forEach(function (r) { r.addEventListener("change", function () { if (this.checked) setFinish(this.value); }); });
+    /* The position: in the library, and in Settings, Theme, Music (#bfmPositionSetting). */
+    positionPicks().forEach(function (r) { r.addEventListener("change", function () { if (this.checked) setPosition(this.value); }); });
     q(".bfm-autoplay").addEventListener("change", function () { setAutoplay(this.checked); });
     q(".bfm-playlist").addEventListener("change", function () { choosePlaylist(this.value); });
     q(".bfm-file").addEventListener("change", function () { uploadFiles(this.files); this.value = ""; });
@@ -1245,6 +1305,9 @@
   }
   function finishPicks() {
     return qa(".bfm-finish-pick").concat(Array.prototype.slice.call(doc.querySelectorAll("#bfmFinishSetting input[type=radio]")));
+  }
+  function positionPicks() {
+    return qa(".bfm-position-pick").concat(Array.prototype.slice.call(doc.querySelectorAll("#bfmPositionSetting input[type=radio]")));
   }
   function isFileDrag(e) {
     var t = e.dataTransfer && e.dataTransfer.types;
@@ -1504,6 +1567,8 @@
     root.setAttribute("data-armed", R.armed && !remote ? "true" : "false");
     root.setAttribute("data-remote", remote ? "true" : "false");
     root.setAttribute("data-playing", playing ? "true" : "false");
+    if (playing) markLive(true);
+    if (BOX.setLive) BOX.setLive(musicOn());
     var rem = q(".bfm-remote");
     if (rem) rem.textContent = remote ? (playing ? REMOTE_PLAYING : REMOTE_OPEN) : "";
     var title = t && t.title ? t.title : NO_TRACK;
@@ -1525,6 +1590,7 @@
     var mo = q(".bfm-mix-out"); if (mo) mo.textContent = S.crossfade ? S.crossfade + " s" : "Off";
     var ap = q(".bfm-autoplay"); if (ap) ap.checked = S.autoplay === true;
     finishPicks().forEach(function (r) { r.checked = r.value === S.finish; });
+    positionPicks().forEach(function (r) { r.checked = r.value === S.placement; });
     var pn = q(".bfm-player-note"); if (pn) pn.textContent = R.playerNote || "";
     Array.prototype.forEach.call(root.querySelectorAll("[data-view]"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === S.view ? "true" : "false"); });
     var vn = q(".bfm-viz-note"); if (vn) vn.textContent = reducedMotion() ? "Reduced motion is on, so the visualiser stays still." : "";
@@ -1624,6 +1690,7 @@
     startViz();
     pullPlayer();
     if (MODE === "popout") {
+      R.settled = true;   // the pop-out never carries on after a page change: it is handed the music
       ticker = setInterval(tick, TICK_MS);
       post({ type: "popout-hello", from: ID });
       window.addEventListener("pagehide", function () {
@@ -1643,9 +1710,12 @@
         setTimeout(resumeAfterNavigation, RESUME_WAIT_MS);
         return;
       }
+      R.settled = true;
+      render();
       /* "Play when I open BizForce": play() refuses until the first
-         interaction, and arms the player for it. */
-      if (S.autoplay && LIB.tracks.length) play({ auto: true });
+         interaction, and arms the player for it. Never from the icon: in
+         the icon stage no audio starts. */
+      if (S.autoplay && LIB.tracks.length && !(BOX && BOX.state() === "icon")) play({ auto: true });
     });
   }
 
@@ -1658,7 +1728,7 @@
     fadeGains: fadeGains, energyStep: energyStep, easeOut: easeOut, clamp01: clamp01,
     play: play, pause: pause, toggle: toggle, next: next, prev: prev, seek: seek, setVolume: setVolume, toggleMute: toggleMute,
     setShuffle: setShuffle, cycleRepeat: cycleRepeat, setRepeat: setRepeat, setCrossfade: setCrossfade, setView: setView,
-    setAutoplay: setAutoplay, playTrack: playTrack, popOut: popOut, choosePlaylist: choosePlaylist, moveTrack: moveTrack, uploadFiles: uploadFiles,
+    setAutoplay: setAutoplay, playTrack: playTrack, stop: stop, setPosition: setPosition, musicOn: musicOn, LIVE_KEY: LIVE_KEY, HOME_PAGE: HOME_PAGE, POSITIONS: POSITIONS, STAGES: STAGES, popOut: popOut, choosePlaylist: choosePlaylist, moveTrack: moveTrack, uploadFiles: uploadFiles,
     loadLibrary: loadLibrary,
     state: function () { return JSON.parse(JSON.stringify(S)); },
     library: function () { return LIB; },

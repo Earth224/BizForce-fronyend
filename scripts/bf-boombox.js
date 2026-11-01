@@ -27,16 +27,18 @@
      a dot-matrix LED ticker under the handle: "NN / TT · Title · Artist ·
        Playlist name";
      a cassette window with two reels;
-     five piano keys: previous, play/pause, next, shuffle, repeat;
-     THE MIXER DECK, a recessed panel along the bottom:
+     six piano keys: previous, play/pause, stop, next, shuffle, repeat;
+     THE MIXER DECK, a recessed panel along the bottom, each part in its own
+     lane so nothing overlaps at any position (EQ, Mix, meters, volume, keys):
        three EQ knobs, BASS, MID and TREBLE (-12 … +12 dB, a centre detent,
          double-click resets; bf-music.js feeds them to its filters);
        a horizontal CROSSFADER that sets the Mix (0 … 12 s), showing it;
        two LED level meters (left and right when the sound is stereo, else
-         the level and its peak);
-       a vertical VOLUME FADER;
-       four body keys, styled like the piano keys: Mute, Library (opens the
-         slide-out library), Reset position, Minimise.
+         the level and its peak), centred in their own slot;
+       a vertical VOLUME FADER in its own lane, its VOL label beneath, clear
+         of the meters;
+       five body keys, styled like the piano keys: Mute, Library (opens the
+         slide-out library), Reset position, Minimise, Close to icon.
    Every knob and fader is a slider for the keyboard (the arrows, Page Up and
    Down, Home and End) with its label and value spoken.
 
@@ -56,9 +58,31 @@
    playing: <title> by <artist>" once per track. With nothing loaded the
    display says "No track loaded" and nothing scrolls.
 
+   THREE STAGES: THE ICON -> THE BAR -> THE BOOMBOX.
+     the ICON is a small drawn boombox (40 x 36, the finish's own chrome or
+       black, a sheen crossing it now and then), shown ONLY on the dashboard
+       (opts.home), beside the logo; it is the dashboard's first-time stage,
+       nothing else shows and no audio starts. While music plays it wears a
+       tiny animated equaliser. "Open music" opens the bar;
+     the BAR: a press on it, or "Open the boombox", opens the boombox;
+     stepping back: Minimise, or Escape (one stage at a time: the library
+       first, then the boombox to the bar, then the bar to the icon); "Close
+       to icon" on the bar and on the boombox's body goes straight to the
+       icon, and the music keeps playing; "Stop music" on both stops it;
+     on every other signed-in page (the member's own profile among them)
+       NOTHING shows unless music is on (playing, or paused mid-track in this
+       session; bf-music.js says so, setLive): then the bar or the boombox
+       follows at its last stage. Stopping the music, or closing to the icon,
+       takes it off those pages (data-away);
+     the stage is remembered on this device (bf_boombox) and on the account
+       (bf-music.js sends onStage to PUT /api/music/player).
+   POSITION, the member's setting (bf-music.js holds it): FOLLOW ME is fixed
+     on screen and draggable; PINNED stays in its home spot (absolute, beside
+     the logo, or the top-left corner without one) and scrolls with the page,
+     no dragging, no Reset position. The icon is always in place (pinned).
+
    WHERE IT SITS ("float", every signed-in page that loads the mist):
-     fixed on screen; it ALWAYS starts as the slim BAR (minimised) the first
-       time, and remembers after that whether it was left open;
+     fixed on screen (FOLLOW ME); it remembers the stage it was left in;
      by default the bar docks beside the BizForce AI logo in the page header
        ([data-bf-boombox-anchor] on the logo), vertically centred on the
        header: to the logo's right, or to its left where the logo sits at the
@@ -107,7 +131,13 @@
   var EQ_MAX = 12, EQ_DETENT = 0.75, MIX_MAX = 12;
   var EQ_BANDS = [["bass", "Bass", "BASS"], ["mid", "Mid", "MID"], ["treble", "Treble", "TREBLE"]];
   var FINISHES = ["chrome", "black"];
-  var XF_TRAVEL = 82, VOL_TRAVEL = 31;
+  var STAGES = ["icon", "tag", "box"];          // the icon, the bar, the boombox
+  var POSITIONS = ["follow", "pinned"];
+  var ICON_W = 40, ICON_H = 36;
+  /* The deck's lanes (px inside its border): every part has its own slot, so
+     nothing overlaps at any fader or crossfader position. */
+  var XF_W = 88, XF_CAP = 14, XF_TRAVEL = XF_W - XF_CAP;
+  var FADER_H = 30, FADER_CAP = 9, VOL_TRAVEL = FADER_H - FADER_CAP;
   var NO_TRACK = "No track loaded";
   var ALL_TRACKS = "All tracks";
   var SEP = " — ", DOT = " · ";
@@ -156,7 +186,9 @@
     expand: '<path d="M4 14v6h6"/><path d="M20 10V4h-6"/><path d="M4 20l7-7"/><path d="M20 4l-7 7"/>',
     minimise: '<path d="M5 12h14"/>',
     library: '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><circle cx="18" cy="17" r="2.5"/><path d="M20.5 17V10"/>',
-    reset: '<path d="M4 4v6h6"/><path d="M5.5 15a7 7 0 1 0 1.6-7.4L4 10"/>'
+    reset: '<path d="M4 4v6h6"/><path d="M5.5 15a7 7 0 1 0 1.6-7.4L4 10"/>',
+    stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="1.5" fill="currentColor" stroke="none"/>',
+    shrink: '<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>'
   };
   function svg(name, size) {
     return '<svg viewBox="0 0 24 24" width="' + (size || 14) + '" height="' + (size || 14) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + ICON[name] + "</svg>";
@@ -221,6 +253,22 @@
       reel(198, 117) + reel(242, 117) +
       '<rect x="172" y="104" width="96" height="5" rx="2.5" fill="rgba(255,255,255,.14)"/>' +
     "</svg>";
+  /* The icon: a small boombox, 40 x 36, drawn in the same finish tokens (chrome
+     or black), its handle, two speakers and a little display where the
+     equaliser dances while the music plays. */
+  var ICON_ART =
+    '<svg class="bfm-icon-art" viewBox="0 0 ' + ICON_W + " " + ICON_H + '" width="' + ICON_W + '" height="' + ICON_H + '" aria-hidden="true" focusable="false">' +
+      "<defs>" +
+        '<linearGradient id="bbxIconBody" x1="0" y1="0" x2="0" y2="1">' + stop(0, "--bbx-m1") + stop(0.3, "--bbx-m3") + stop(0.62, "--bbx-m4") + stop(1, "--bbx-m6") + "</linearGradient>" +
+        '<linearGradient id="bbxIconChrome" x1="0" y1="0" x2="0" y2="1">' + stop(0, "--bbx-h1") + stop(0.5, "--bbx-h3") + stop(1, "--bbx-h2") + "</linearGradient>" +
+      "</defs>" +
+      '<path d="M12 9V5.5Q12 3 14.5 3h11Q28 3 28 5.5V9h-2.4V6.2q0-.9-.9-.9H15.3q-.9 0-.9.9V9Z" fill="url(#bbxIconChrome)" stroke="rgba(0,0,0,.45)" stroke-width=".6"/>' +
+      '<rect x="2" y="9" width="36" height="24" rx="5" fill="url(#bbxIconBody)" stroke="rgba(0,0,0,.55)" stroke-width=".8"/>' +
+      '<circle cx="10" cy="23" r="6.4" fill="#0b0c11" stroke="url(#bbxIconChrome)" stroke-width="1.4"/><circle cx="10" cy="23" r="2.3" fill="url(#bbxIconChrome)"/>' +
+      '<circle cx="30" cy="23" r="6.4" fill="#0b0c11" stroke="url(#bbxIconChrome)" stroke-width="1.4"/><circle cx="30" cy="23" r="2.3" fill="url(#bbxIconChrome)"/>' +
+      '<rect x="14" y="11" width="12" height="7" rx="1.2" fill="#04101a" stroke="rgba(0,0,0,.6)" stroke-width=".5"/>' +
+      '<path d="M5 11.2H35" stroke="rgba(255,255,255,.7)" stroke-width=".8" stroke-linecap="round"/>' +
+    "</svg>";
 
   /* The finishes: one construction, two sets of tokens. */
   var CHROME = "--bbx-m1:#ffffff;--bbx-m2:#d3d8e1;--bbx-m3:#f7f9fc;--bbx-m4:#98a0b0;--bbx-m5:#e6e9ef;--bbx-m6:#767e90;" +
@@ -240,7 +288,26 @@
     ".bfm{" + CHROME + "}",
     ".bfm[data-finish=black]{" + BLACK + "}",
     ".bfm-float{position:fixed;z-index:" + Z + ";left:" + EDGE + "px;top:" + EDGE + "px;display:flex;flex-direction:column;align-items:flex-start;max-width:calc(100vw - 16px)}",
+    /* away: a page other than the dashboard while no music is on, or the icon stage there */
+    ".bfm-float[data-away=true]{display:none}",
+    /* PINNED (and the icon, always in place): in its home spot, scrolling with the page */
+    ".bfm-float[data-pinned=true]:not([data-dock=phone]){position:absolute}",
+    ".bfm-float[data-pinned=true] .bfm-tag,.bfm-float[data-pinned=true] .bbx-body-grip{cursor:default}",
     ".bfm-pop{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px}",
+    /* the icon: the first stage, on the dashboard only */
+    ".bfm-icon{display:none;position:relative;width:" + ICON_W + "px;height:" + ICON_H + "px;padding:0;margin:0;border:0;border-radius:9px;background:transparent;cursor:pointer;overflow:hidden;color:var(--bbx-ink);filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}",
+    ".bfm-float[data-state=icon] .bfm-icon{display:block}",
+    ".bfm-icon-art{display:block}",
+    ".bfm-icon-sheen{position:absolute;top:-6px;bottom:-6px;left:0;width:14px;pointer-events:none;background:linear-gradient(100deg,transparent,var(--bbx-sheen),transparent);transform:translateX(-20px) skewX(-14deg);animation:bbx-icon-sheen 7s ease-in-out infinite}",
+    ".bfm-icon-eq{position:absolute;left:14.5px;top:11.5px;width:11px;height:6px;display:none;align-items:flex-end;gap:1px;pointer-events:none}",
+    ".bfm-float[data-playing=true] .bfm-icon-eq{display:flex}",
+    ".bfm-icon-eq span{display:block;width:2px;height:6px;border-radius:.5px;background:var(--bf-accent-a, #22d3ee);transform-origin:bottom;transform:scaleY(.4);animation:bbx-icon-eq .8s ease-in-out infinite alternate}",
+    ".bfm-icon-eq span:nth-child(2){animation-delay:-.3s}.bfm-icon-eq span:nth-child(3){animation-delay:-.55s}.bfm-icon-eq span:nth-child(4){animation-delay:-.15s}",
+    ".bfm-icon:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
+    "@keyframes bbx-icon-sheen{0%,70%{transform:translateX(-20px) skewX(-14deg)}100%{transform:translateX(56px) skewX(-14deg)}}",
+    "@keyframes bbx-icon-eq{from{transform:scaleY(.25)}to{transform:scaleY(1)}}",
+    ".bfm[data-hidden=true] .bfm-icon-sheen,.bfm[data-hidden=true] .bfm-icon-eq span{animation-play-state:paused}",
+    "@media (prefers-reduced-motion: reduce){.bfm-icon-sheen,.bfm-icon-eq span{animation:none!important}.bfm-icon-sheen{display:none}}",
     /* the bar: a bevelled pill in the finish, its own sheen crossing it */
     ".bfm-tag{display:none;position:relative;overflow:hidden;align-items:center;gap:6px;height:" + BAR_H + "px;width:min(" + BAR_W + "px,calc(100vw - 32px));padding:4px 6px 4px 12px;border-radius:999px;color:var(--bbx-ink);background:" + BRUSH + "," + METAL + ";border:1px solid rgba(0,0,0,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -2px 3px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.45);cursor:grab;touch-action:none}",
     ".bfm-float[data-state=tag] .bfm-tag{display:flex}",
@@ -312,36 +379,43 @@
     ".bbx-deck{position:absolute;left:30px;top:184px;width:380px;height:46px;box-sizing:border-box;border-radius:10px;background:linear-gradient(180deg,#0b0d13,#1c2029);border:1px solid rgba(0,0,0,.75);box-shadow:inset 0 3px 8px rgba(0,0,0,.75),inset 0 -1px 0 rgba(255,255,255,.08),0 1px 0 rgba(255,255,255,.55);color:#cfd5e2;font:700 7px/1 system-ui,-apple-system,\"Segoe UI\",sans-serif;letter-spacing:.12em;text-transform:uppercase}",
     ".bbx-deck > *{position:absolute;top:4px}",
     ".bbx-lbl{display:block;margin-top:3px;text-align:center;color:#aeb6c6}",
-    ".bbx-eq{left:8px;display:flex;gap:10px}",
+    /* the lanes, left to right: EQ 6-112, Mix 118-210, meters 216-260, volume 268-298, keys 304-374 */
+    ".bbx-eq{left:6px;display:flex;gap:8px}",
     ".bbx-eq-band{width:30px;display:flex;flex-direction:column;align-items:center}",
     ".bbx-knob{position:relative;width:26px;height:26px;border-radius:50%;cursor:ns-resize;touch-action:none;background:radial-gradient(circle at 35% 30%,#ffffff,#c6cbd5 42%,#666d7f 100%);border:1px solid rgba(0,0,0,.7);box-shadow:0 2px 3px rgba(0,0,0,.6),inset 0 -2px 3px rgba(0,0,0,.35)}",
     ".bbx-knob::before{content:\"\";position:absolute;left:50%;top:-4px;width:2px;height:3px;margin-left:-1px;border-radius:1px;background:#8e97a8}",
     ".bbx-knob-mark{position:absolute;left:50%;top:2px;width:2px;height:9px;margin-left:-1px;border-radius:1px;background:var(--bf-accent-a, #22d3ee);box-shadow:0 0 3px var(--bf-accent-a, #22d3ee);transform-origin:1px 11px}",
-    ".bbx-xfade{left:124px;width:100px}",
+    ".bbx-xfade{left:118px;width:92px}",
     ".bbx-xf-head{display:flex;justify-content:space-between;color:#aeb6c6;margin-bottom:5px}",
     ".bbx-xf-out{color:var(--bf-accent-a, #22d3ee);font-variant-numeric:tabular-nums}",
-    ".bbx-xf{position:relative;width:96px;height:16px;cursor:ew-resize;touch-action:none}",
+    ".bbx-xf{position:relative;width:" + XF_W + "px;height:16px;cursor:ew-resize;touch-action:none}",
     ".bbx-xf::before{content:\"\";position:absolute;left:4px;right:4px;top:7px;height:3px;border-radius:2px;background:#000;box-shadow:inset 0 1px 1px rgba(255,255,255,.12),0 1px 0 rgba(255,255,255,.1)}",
-    ".bbx-xf-cap{position:absolute;left:0;top:0;width:14px;height:16px;border-radius:3px;background:linear-gradient(90deg,#8d95a6,#ffffff 45%,#c6cbd5 55%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
-    ".bbx-meters{left:236px;display:flex;gap:3px;align-items:flex-start}",
+    ".bbx-xf-cap{position:absolute;left:0;top:0;width:" + XF_CAP + "px;height:16px;border-radius:3px;background:linear-gradient(90deg,#8d95a6,#ffffff 45%,#c6cbd5 55%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
+    /* the meters: their own slot, the two columns centred in it */
+    ".bbx-meters{left:216px;top:2px;width:44px;height:40px;display:flex;justify-content:center;gap:4px;align-items:flex-start}",
+    ".bbx-meters > div{width:18px;display:flex;flex-direction:column;align-items:center}",
     ".bbx-leds{display:flex;flex-direction:column-reverse;gap:1px}",
     ".bbx-leds span{display:block;width:9px;height:3px;border-radius:1px;background:#3dff9a;opacity:.18}",
     ".bbx-leds span:nth-child(n+6){background:#ffcc33}.bbx-leds span:nth-child(8){background:#ff4d4d}",
-    ".bbx-meter-lbl{display:block;margin-top:3px;width:21px;text-align:center;color:#aeb6c6}",
-    ".bbx-vol{left:266px;display:flex;flex-direction:column;align-items:center}",
-    ".bbx-fader{position:relative;width:16px;height:40px;cursor:ns-resize;touch-action:none}",
+    ".bbx-meter-lbl{display:block;margin-top:2px;width:18px;text-align:center;color:#aeb6c6}",
+    /* the volume: its own lane, the fader in it and its VOL label beneath, clear of the meters */
+    ".bbx-vol{left:268px;top:2px;width:30px;height:40px}",
+    ".bbx-fader{position:absolute;left:7px;top:0;width:16px;height:" + FADER_H + "px;cursor:ns-resize;touch-action:none}",
+    ".bbx-vol .bbx-lbl{position:absolute;left:0;top:" + (FADER_H + 3) + "px;width:30px;margin:0}",
     ".bbx-fader::before{content:\"\";position:absolute;left:6.5px;top:2px;bottom:2px;width:3px;border-radius:2px;background:#000;box-shadow:inset 0 1px 1px rgba(255,255,255,.12),1px 0 0 rgba(255,255,255,.1)}",
-    ".bbx-fader-cap{position:absolute;left:-2px;top:0;width:20px;height:9px;border-radius:2px;background:linear-gradient(180deg,#ffffff,#c6cbd5 50%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
+    ".bbx-fader-cap{position:absolute;left:-2px;top:0;width:20px;height:" + FADER_CAP + "px;border-radius:2px;background:linear-gradient(180deg,#ffffff,#c6cbd5 50%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
     ".bbx-fader-cap::after{content:\"\";position:absolute;left:3px;right:3px;top:3.5px;height:1px;background:rgba(0,0,0,.55)}",
     ".bbx-vol-out{position:absolute;left:20px;top:2px;color:var(--bf-accent-a, #22d3ee);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:0}",
-    ".bbx-fkeys{left:296px;width:78px;display:flex;gap:2px;top:6px}",
-    ".bbx-fkeys button{height:32px}",
+    /* the body keys: two rows of three in their own slot */
+    ".bbx-fkeys{left:304px;top:3px;width:70px;height:38px;display:grid;grid-template-columns:repeat(3,22px);grid-auto-rows:17px;gap:2px}",
+    ".bbx-fkeys button{height:17px}",
+    ".bbx-fkeys button[hidden]{display:none}",
     /* the slide-out library: from behind the boombox, below or beside it */
     ".bfm-drawer{position:absolute;left:0;top:100%;margin-top:8px;width:" + DRAWER_W + "px;max-width:calc(100vw - 16px);overflow:hidden;pointer-events:none}",
     ".bfm-drawer[data-side=right]{left:100%;top:0;margin:0 0 0 10px}",
     ".bfm-drawer[data-side=left]{left:auto;right:100%;top:0;margin:0 10px 0 0}",
     ".bfm-float[data-state=box][data-library=true] .bfm-drawer{pointer-events:auto}",
-    ".bfm-float[data-state=tag] .bfm-drawer{display:none}",
+    ".bfm-float[data-state=tag] .bfm-drawer,.bfm-float[data-state=icon] .bfm-drawer{display:none}",
     ".bfm-panel{display:block;box-sizing:border-box;width:100%;max-height:var(--bfm-drawer-h, " + DRAWER_MAX_H + "px);overflow:auto;padding:12px 14px;border-radius:14px;color:#e8e8ff;background:linear-gradient(160deg,rgba(14,18,40,.97),rgba(8,10,24,.98));border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.25);box-shadow:0 12px 34px rgba(0,0,0,.5);transform:translateY(-104%);transition:transform .26s ease-out}",
     ".bfm-drawer[data-side=right] .bfm-panel{transform:translateX(-104%)}",
     ".bfm-drawer[data-side=left] .bfm-panel{transform:translateX(104%)}",
@@ -378,7 +452,8 @@
       (popout ? "" :
         '<button type="button" data-act="bbx-library" aria-pressed="false" aria-expanded="false" aria-label="Library" title="Library">' + svg("library", 12) + "</button>" +
         '<button type="button" data-act="bbx-reset" aria-label="Reset position" title="Reset position">' + svg("reset", 12) + "</button>" +
-        '<button type="button" data-act="bbx-minimise" aria-label="Minimise" title="Minimise">' + svg("minimise", 12) + "</button>");
+        '<button type="button" data-act="bbx-minimise" aria-label="Minimise" title="Minimise">' + svg("minimise", 12) + "</button>" +
+        '<button type="button" data-act="bbx-close" aria-label="Close to icon" title="Close to icon">' + svg("shrink", 12) + "</button>");
     return '<div class="bbx" role="group" aria-label="BizForce boombox" aria-roledescription="music player" data-sweep="off">' +
       '<div class="bbx-face" aria-hidden="true"><span class="bbx-sheen"></span></div>' + DRAWING +
       '<div class="bbx-rim" aria-hidden="true"><span class="bbx-rim-shine"></span></div>' +
@@ -393,6 +468,7 @@
       '<div class="bbx-keys" role="group" aria-label="Playback">' +
         '<button type="button" data-act="prev" aria-label="Previous">' + svg("prev", 12) + "</button>" +
         '<button type="button" class="bfm-main" data-act="toggle" aria-label="Play">' + svg("play", 12) + "</button>" +
+        '<button type="button" data-act="stop" aria-label="Stop music" title="Stop music">' + svg("stop", 12) + "</button>" +
         '<button type="button" data-act="next" aria-label="Next">' + svg("next", 12) + "</button>" +
         '<button type="button" data-act="shuffle" aria-pressed="false" aria-label="Shuffle">' + svg("shuffle", 12) + "</button>" +
         '<button type="button" data-act="repeat" aria-pressed="false" aria-label="Repeat: off">' + svg("repeat", 12) + "</button>" +
@@ -419,33 +495,52 @@
       '<span class="bfm-tag-clip" title="' + NO_TRACK + '"><span class="bfm-tag-scroll"><span class="bfm-tag-title">' + NO_TRACK + "</span></span></span>" +
       '<button type="button" class="bfm-main" data-act="toggle" aria-label="Play">' + svg("play", 12) + "</button>" +
       '<button type="button" data-act="next" aria-label="Next">' + svg("next", 12) + "</button>" +
+      '<button type="button" data-act="stop" aria-label="Stop music" title="Stop music">' + svg("stop", 12) + "</button>" +
       '<button type="button" data-act="bbx-expand" aria-label="Open the boombox" aria-expanded="false">' + svg("expand", 12) + "</button>" +
+      '<button type="button" data-act="bbx-close" aria-label="Close to icon" title="Close to icon">' + svg("shrink", 12) + "</button>" +
     "</div>";
   }
+  function iconHtml() {
+    return '<button type="button" class="bfm-icon" data-act="bbx-open" aria-label="Open music" title="Open music">' + ICON_ART +
+      '<span class="bfm-icon-sheen" aria-hidden="true"></span>' +
+      '<span class="bfm-icon-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></span>' +
+    "</button>";
+  }
 
-  /* mount({ mode: "float" | "popout", host, anchor, finish, onVolume(v), onMix(s), onEq(band, db), onSeekBy(s), onToggle() }) */
+  /* The stage a page opens in: what the member left it as, else the icon on
+     the dashboard (home) and the bar elsewhere (shown there only while music is on). */
+  function stageOf(s, home) { return STAGES.indexOf(s) !== -1 ? s : (home ? "icon" : "tag"); }
+
+  /* mount({ mode: "float" | "popout", host, anchor, home, finish, position, onVolume(v), onMix(s), onEq(band, db),
+     onSeekBy(s), onToggle(), onStage(stage) }) */
   function mount(opts) {
     injectStyle();
     opts = opts || {};
     var popout = opts.mode === "popout";
+    var home = !popout && opts.home === true;
     var root = doc.createElement("div");
     root.className = "bfm " + (popout ? "bfm-pop" : "bfm-float");
     root.setAttribute("role", "region");
     root.setAttribute("aria-label", "Music");
     root.setAttribute("data-finish", FINISHES.indexOf(opts.finish) !== -1 ? opts.finish : "chrome");
-    root.innerHTML = (popout ? "" : tagHtml()) + boxHtml(opts) +
+    root.setAttribute("data-home", home ? "true" : "false");
+    root.innerHTML = (popout ? "" : iconHtml() + tagHtml()) + boxHtml(opts) +
       '<div class="bfm-drawer" data-side="below"><div class="bfm-panel" role="region" aria-label="Music library"></div></div>' +
       '<p class="bfm-sr bfm-live" aria-live="polite"></p>';
     (opts.host || doc.body || doc.documentElement).appendChild(root);
     var $ = function (sel) { return root.querySelector(sel); };
     var $$ = function (sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); };
-    var box = $(".bbx"), tag = $(".bfm-tag"), drawer = $(".bfm-drawer"), panel = $(".bfm-panel");
+    var box = $(".bbx"), tag = $(".bfm-tag"), icon = $(".bfm-icon"), drawer = $(".bfm-drawer"), panel = $(".bfm-panel");
     var cones = $$(".bbx-cone"), caps = $$(".bbx-cap"), domes = $$(".bbx-tweeter-dome"), reels = $$(".bbx-reel");
     var ledsL = $$(".bbx-leds[data-side=left] span"), ledsR = $$(".bbx-leds[data-side=right] span"), wave = $$(".bfm-tag-wave span");
     var prefs = loadPrefs();
-    /* The FIRST time it is always the bar; after that, what the member left it as. */
-    var state = popout ? "box" : (prefs.state === "box" ? "box" : "tag");
+    /* THREE STAGES: the icon, the bar, the boombox. The FIRST time on the dashboard it is the
+       icon; after that, what the member left it as (this device's bf_boombox, else their account's). */
+    var remembered = STAGES.indexOf(prefs.state) !== -1;
+    var state = popout ? "box" : stageOf(prefs.state, home);
     var library = popout ? true : prefs.library === true;
+    var position = POSITIONS.indexOf(opts.position) !== -1 ? opts.position : "follow";
+    var live = false;   // music playing, or paused mid-track this session (bf-music.js says)
     var M = { speed: 0, angle: 0, cone: 0, highs: 0, level: 0, left: 0, right: 0, t: 0 };
 
     function shutDrawer(shut) {
@@ -453,22 +548,60 @@
       if (shut) { panel.setAttribute("inert", ""); panel.setAttribute("aria-hidden", "true"); }
       else { panel.removeAttribute("inert"); panel.removeAttribute("aria-hidden"); }
     }
-    function setState(s, focus) {
+    /* The icon is always in place; the bar and the boombox are pinned when the member says so. */
+    function pinned() { return !popout && (state === "icon" || position === "pinned"); }
+    /* Shown on the dashboard always (its stage); elsewhere only the bar or the boombox, and only while music is on. */
+    function away() { return !popout && !home && (state === "icon" || !live); }
+    function showWhere() {
       if (popout) return;
-      state = s === "box" ? "box" : "tag";
+      root.setAttribute("data-away", away() ? "true" : "false");
+      root.setAttribute("data-pinned", pinned() ? "true" : "false");
+      root.setAttribute("data-position", position);
+      var rs = $("[data-act=bbx-reset]");
+      if (rs) rs.hidden = pinned();
+    }
+    /* s: "icon" | "tag" | "box"; focus: move the focus to the new stage's key;
+       quiet: not the member's own step (nothing is told to bf-music.js). */
+    function setState(s, focus, quiet) {
+      if (popout) return;
+      var was = state;
+      state = STAGES.indexOf(s) !== -1 ? s : "tag";
       root.setAttribute("data-state", state);
       root.setAttribute("data-library", library ? "true" : "false");
       var lib = $("[data-act=bbx-library]");
       if (lib) { lib.setAttribute("aria-pressed", library ? "true" : "false"); lib.setAttribute("aria-expanded", library && state === "box" ? "true" : "false"); }
       var ex = $("[data-act=bbx-expand]"); if (ex) ex.setAttribute("aria-expanded", state === "box" ? "true" : "false");
+      if (icon) icon.setAttribute("aria-expanded", state === "icon" ? "false" : "true");
       shutDrawer(!(state === "box" && library));
-      prefs.state = state; prefs.library = library; savePrefs(prefs);
+      if (!quiet) remembered = true;
+      if (remembered) prefs.state = state;
+      prefs.library = library; savePrefs(prefs);
+      showWhere();
       place();
       if (state === "tag" && typeof fitTag === "function") fitTag();
       if (focus) {
-        var to = state === "box" ? $(".bbx-keys .bfm-main") : $("[data-act=bbx-expand]");
-        if (to) to.focus();
+        var to = state === "box" ? $(".bbx-keys .bfm-main") : state === "tag" ? $("[data-act=bbx-expand]") : icon;
+        if (to && !away()) to.focus();
       }
+      if (!quiet && was !== state && opts.onStage) opts.onStage(state);
+    }
+    /* Escape and Minimise step back one stage: the boombox to the bar, the bar to the icon. */
+    function stepBack(focus) {
+      if (popout) return;
+      if (state === "box") setState("tag", focus);
+      else if (state === "tag") setState("icon", focus);
+    }
+    function setLive(on) {
+      if (popout || live === !!on) return;
+      live = !!on;
+      showWhere();
+      if (!away()) place();
+    }
+    function setPosition(p) {
+      if (popout || POSITIONS.indexOf(p) === -1) return;
+      position = p;
+      showWhere();
+      place();
     }
     function setLibrary(on, focus) {
       if (popout) return;
@@ -501,15 +634,27 @@
         var hr = head && head.getBoundingClientRect ? head.getBoundingClientRect() : null;
         var mid = hr && hr.height > 0 ? hr.top + hr.height / 2 : r.top + (r.height || 0) / 2;
         var right = Math.min(window.innerWidth, hr && hr.width > 0 ? hr.right : window.innerWidth) - EDGE;
+        var w = state === "icon" ? ICON_W : BAR_W, h = state === "icon" ? ICON_H : BAR_H;
         var left = r.right + GAP;
-        if (left + BAR_W > right && r.left - GAP - BAR_W >= EDGE) left = r.left - GAP - BAR_W;
-        return { left: Math.round(left), top: Math.round(mid - BAR_H / 2) };
+        if (left + w > right && r.left - GAP - w >= EDGE) left = r.left - GAP - w;
+        return { left: Math.round(left), top: Math.round(mid - h / 2) };
       }
       return { left: EDGE, top: EDGE };
     }
+    /* PINNED: the home spot in the page's own coordinates (position: absolute), so it scrolls away with the page. */
+    function pinTo() {
+      var p = defaultSpot();
+      var sx = window.scrollX || window.pageXOffset || 0, sy = window.scrollY || window.pageYOffset || 0;
+      var w = root.offsetWidth || 0;
+      root.style.left = Math.round(Math.min(Math.max(p.left, 0), Math.max(window.innerWidth - w, 0)) + sx) + "px";
+      root.style.top = Math.round(Math.max(p.top, 0) + sy) + "px";
+      root.style.right = "auto";
+      root.style.bottom = "auto";
+      root.setAttribute("data-placed", "true");
+    }
     function place() {
       if (popout) return;
-      if (phone()) {
+      if (phone() && state !== "icon") {
         root.setAttribute("data-dock", "phone");
         root.removeAttribute("data-placed");
         root.style.left = ""; root.style.top = ""; root.style.right = ""; root.style.bottom = "";
@@ -517,6 +662,7 @@
         return;
       }
       root.setAttribute("data-dock", "desktop");
+      if (pinned()) { pinTo(); side(); return; }
       var p = stored() || defaultSpot();
       put(p.left, p.top);
       nudge();
@@ -550,7 +696,7 @@
     function hits(a, b) { return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }
     /* Off the mist and the open chat box by the smallest move that stays on screen. */
     function nudge() {
-      if (popout || phone()) return false;
+      if (popout || phone() || pinned()) return false;
       var moved = false;
       for (var round = 0; round < 3; round++) {
         var me = rectOf(root), w = me.right - me.left, h = me.bottom - me.top;
@@ -585,7 +731,7 @@
     /* The mist's drag: press, a 6 px threshold, clamped, saved on release. */
     var drag = { on: false, moved: false, x: 0, y: 0, left: 0, top: 0 };
     function grabbable(t) {
-      if (!t || !t.closest || popout || phone()) return false;
+      if (!t || !t.closest || popout || phone() || pinned()) return false;
       if (t.closest(".bbx-body-grip")) return true;
       if (t.closest("button, input, textarea, select, a, label, .bbx-knob, .bbx-xf, .bbx-fader, .bbx-display, .bfm-panel")) return false;
       return !!t.closest(".bfm-tag, .bbx");
@@ -613,15 +759,17 @@
     root.addEventListener("pointerup", endDrag);
     root.addEventListener("pointercancel", endDrag);
     /* The bar's own body, or the grip on the handle: the arrows nudge it, Home resets it.
-       Escape slides the library back first, then minimises. */
+       Escape steps back ONE stage: it slides the library back first, then the
+       boombox becomes the bar, then the bar the icon. Enter on the bar opens the boombox. */
     root.addEventListener("keydown", function (e) {
       var t = e.target;
-      if (e.key === "Escape" && state === "box" && !popout) {
+      if (e.key === "Escape" && !popout && state !== "icon") {
         e.preventDefault();
-        if (library) setLibrary(false, true); else setState("tag", true);
+        if (state === "box" && library) setLibrary(false, true); else stepBack(true);
         return;
       }
-      var movable = !popout && !phone() && (t === tag || (t && t.classList && t.classList.contains("bbx-body-grip")));
+      if (e.key === "Enter" && t === tag && !popout) { e.preventDefault(); setState("box", true); return; }
+      var movable = !popout && !phone() && !pinned() && (t === tag || (t && t.classList && t.classList.contains("bbx-body-grip")));
       if (movable) {
         if (e.key === "Home") { e.preventDefault(); reset(); return; }
         var step = e.shiftKey ? NUDGE * 4 : NUDGE;
@@ -644,10 +792,13 @@
     root.addEventListener("click", function (e) {
       var b = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
       if (drag.moved) { drag.moved = false; if (!b || b.closest(".bfm-tag")) { e.stopPropagation(); return; } }
-      if (!b) return;
+      /* a press on the bar itself (not one of its keys) opens the boombox */
+      if (!b) { if (!popout && state === "tag" && e.target && e.target.closest && e.target.closest(".bfm-tag")) setState("box", true); return; }
       var act = b.getAttribute("data-act");
-      if (act === "bbx-expand") setState("box", true);
-      else if (act === "bbx-minimise") setState("tag", true);
+      if (act === "bbx-open") setState("tag", true);
+      else if (act === "bbx-expand") setState("box", true);
+      else if (act === "bbx-minimise") stepBack(true);
+      else if (act === "bbx-close") setState("icon", true);
       else if (act === "bbx-library") setLibrary(!library);
       else if (act === "bbx-reset") { reset(); var g = $(".bbx-body-grip"); if (g) g.focus(); }
     });
@@ -915,17 +1066,20 @@
     function onResize() { place(); fitTag(); }
     window.addEventListener("resize", onResize);
     doc.addEventListener("visibilitychange", function () { root.setAttribute("data-hidden", doc.hidden ? "true" : "false"); });
-    var nudger = popout ? null : setInterval(function () { if (state && !drag.on) nudge(); }, 1500);
+    var nudger = popout ? null : setInterval(function () { if (state && !drag.on && !away()) nudge(); }, 1500);
 
     root.setAttribute("data-state", state);
     root.setAttribute("data-library", library ? "true" : "false");
-    setState(state);
+    setState(state, false, true);
     setVol(0.8, false);
     setMix(0, false);
     rest();
     return {
       root: root, panel: panel, drawer: drawer, box: box, tag: tag,
       state: function () { return state; }, library: function () { return library; },
+      remembered: function () { return remembered; }, home: home,
+      position: function () { return position; }, setPosition: setPosition, pinned: pinned,
+      live: function () { return live; }, setLive: setLive, away: away, stepBack: stepBack,
       setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset, defaultSpot: defaultSpot,
       setEq: setEq, setMix: setMix, setVolume: setVol, setFinish: setFinish,
       eq: function () { return { bass: eq.bass, mid: eq.mid, treble: eq.treble }; },
@@ -940,7 +1094,8 @@
   window.BFBoombox = {
     mount: mount, clampPosition: clampPosition, clampDb: clampDb, clampMix: clampMix,
     STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z, EDGE: EDGE, GAP: GAP,
-    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
+    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, STAGES: STAGES, POSITIONS: POSITIONS,
+    XF_TRAVEL: XF_TRAVEL, VOL_TRAVEL: VOL_TRAVEL, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
     NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
   };
