@@ -1339,6 +1339,18 @@
         text += (row.last_error || "skipped.");
       }
       lastEl.appendChild(document.createTextNode(text));
+      /* A run that did not go ahead: "Why?" opens the decisions the runner
+         recorded for this schedule (scripts/bf-why.js). */
+      if (row.last_run_status !== "succeeded" && row.id) {
+        lastEl.appendChild(document.createTextNode(" "));
+        var why = document.createElement("button");
+        why.type = "button";
+        why.className = "bf-why-link";
+        why.setAttribute("data-bf-why", "schedule:" + row.id);
+        why.setAttribute("aria-label", "Why did this run, or not run?");
+        why.textContent = "Why?";
+        lastEl.appendChild(why);
+      }
       if (row.last_run_status === "succeeded" && row.last_task_id) {
         lastEl.appendChild(document.createTextNode(" "));
         var link = document.createElement("a");
@@ -3833,6 +3845,7 @@
             '<span class="ap-queue-platform">' + esc(platform) + '</span>' +
             '<span class="ap-queue-status">'   + esc(status)   + '</span>' +
             '<span class="ap-queue-time">'     + esc(fmt(d.created_at)) + '</span>' +
+            (d.proposal_id ? whyLinkHtml("proposal:" + d.proposal_id) : '') +
           '</div>' +
           '<div class="ap-queue-preview">' + esc(preview) + '</div>' +
         '</div>';
@@ -4414,6 +4427,7 @@
           '<div class="ap-hist-preview">' + esc(preview) + '</div>' +
           (hasResult ? '<div class="ap-hist-full">' + renderMarkdown(t.result) + '</div>' : '') +
           '<span class="ap-hist-tag ' + statusCls + '">' + esc(t.status || "unknown") + '</span>' +
+          (t.id ? whyLinkHtml("ai_task:" + t.id) : '') +
           (hasResult ? '<button class="ap-hist-expand" type="button">Show full response ▾</button>' : '') +
         '</div>';
     });
@@ -5934,6 +5948,22 @@
       slot.appendChild(sigEl("p", "ap-sig-empty", "This agent's live summary could not be shown."));
     }
   }
+
+  /* ── "Why?" (scripts/bf-why.js) ──────────────────────────────────────────
+     A "Why?" button beside each run and each queued proposal opens the
+     decisions the server recorded for it. bf-why.js answers the button; it is
+     loaded once here unless the page already carries it (the Executive HQ). */
+  function whyLinkHtml(target) {
+    return '<button type="button" class="bf-why-link" data-bf-why="' + esc(target) + '" aria-label="Why did this run, or not run?">Why?</button>';
+  }
+  function loadWhy() {
+    if (window.BFWhy || document.querySelector('script[src="/scripts/bf-why.js"]')) return;
+    var s = document.createElement("script");
+    s.src = "/scripts/bf-why.js";
+    document.body.appendChild(s);
+  }
+
+  document.addEventListener("DOMContentLoaded", loadWhy);
 
   /* ── boot ── */
   document.addEventListener("DOMContentLoaded", inject);

@@ -63,7 +63,9 @@
        black, a sheen crossing it now and then), shown ONLY on the dashboard
        (opts.home), beside the logo; it is the dashboard's first-time stage,
        nothing else shows and no audio starts. While music plays it wears a
-       tiny animated equaliser. "Open music" opens the bar;
+       tiny animated equaliser. "Open music" opens the bar. On any other page
+       it shows only while music is on, as a small floating icon, so a stop is
+       always within reach;
      the BAR: a press on it, or "Open the boombox", opens the boombox;
      stepping back: Minimise, or Escape (one stage at a time: the library
        first, then the boombox to the bar, then the bar to the icon); "Close
@@ -72,14 +74,17 @@
      on every other signed-in page (the member's own profile among them)
        NOTHING shows unless music is on (playing, or paused mid-track in this
        session; bf-music.js says so, setLive): then the bar or the boombox
-       follows at its last stage. Stopping the music, or closing to the icon,
-       takes it off those pages (data-away);
+       follows at its last stage. "Close to icon" there leaves the floating
+       icon (with its equaliser) where the player was, by the position rule:
+       pressed, it opens the bar, which has Stop. Stopping the music takes the
+       player off those pages (data-away);
      the stage is remembered on this device (bf_boombox) and on the account
        (bf-music.js sends onStage to PUT /api/music/player).
    POSITION, the member's setting (bf-music.js holds it): FOLLOW ME is fixed
      on screen and draggable; PINNED stays in its home spot (absolute, beside
      the logo, or the top-left corner without one) and scrolls with the page,
-     no dragging, no Reset position. The icon is always in place (pinned).
+     no dragging, no Reset position. On the dashboard the icon is always in
+     place (pinned); elsewhere the floating icon follows the setting too.
 
    WHERE IT SITS ("float", every signed-in page that loads the mist):
      fixed on screen (FOLLOW ME); it remembers the stage it was left in;
@@ -288,7 +293,7 @@
     ".bfm{" + CHROME + "}",
     ".bfm[data-finish=black]{" + BLACK + "}",
     ".bfm-float{position:fixed;z-index:" + Z + ";left:" + EDGE + "px;top:" + EDGE + "px;display:flex;flex-direction:column;align-items:flex-start;max-width:calc(100vw - 16px)}",
-    /* away: a page other than the dashboard while no music is on, or the icon stage there */
+    /* away: a page other than the dashboard while no music is on */
     ".bfm-float[data-away=true]{display:none}",
     /* PINNED (and the icon, always in place): in its home spot, scrolling with the page */
     ".bfm-float[data-pinned=true]:not([data-dock=phone]){position:absolute}",
@@ -548,10 +553,10 @@
       if (shut) { panel.setAttribute("inert", ""); panel.setAttribute("aria-hidden", "true"); }
       else { panel.removeAttribute("inert"); panel.removeAttribute("aria-hidden"); }
     }
-    /* The icon is always in place; the bar and the boombox are pinned when the member says so. */
-    function pinned() { return !popout && (state === "icon" || position === "pinned"); }
-    /* Shown on the dashboard always (its stage); elsewhere only the bar or the boombox, and only while music is on. */
-    function away() { return !popout && !home && (state === "icon" || !live); }
+    /* The dashboard's icon is always in place; elsewhere, and for the bar and the boombox, pinned when the member says so. */
+    function pinned() { return !popout && ((state === "icon" && home) || position === "pinned"); }
+    /* Shown on the dashboard always (its stage); elsewhere at any stage, the floating icon included, only while music is on. */
+    function away() { return !popout && !home && !live; }
     function showWhere() {
       if (popout) return;
       root.setAttribute("data-away", away() ? "true" : "false");

@@ -348,7 +348,11 @@
       reject.setAttribute("data-hq-decide", "reject");
       var full = el("a", "hq-link", "Full view");
       full.setAttribute("href", "/proposals.html");
-      actions.appendChild(approve); actions.appendChild(reject); actions.appendChild(full);
+      var why = el("button", "bf-why-link", "Why?");
+      why.type = "button";
+      why.setAttribute("data-bf-why", "proposal:" + p.id);
+      why.setAttribute("aria-label", "Why did this run, or not run?");
+      actions.appendChild(approve); actions.appendChild(reject); actions.appendChild(full); actions.appendChild(why);
       li.appendChild(actions);
       var said = view.decided[p.id];
       var msg = el("div", "hq-proposal-msg", typeof said === "string" ? said : "");

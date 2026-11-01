@@ -198,6 +198,11 @@
       b.appendChild(el("span", "deck-run-date", when(task.created_at)));
       b.appendChild(el("span", "deck-pill is-" + String(task.status || "unknown").replace(/[^a-z_]/g, ""), statusOf(task)));
       li.appendChild(b);
+      var why = el("button", "bf-why-link", "Why?");
+      why.type = "button";
+      why.setAttribute("data-bf-why", "ai_task:" + task.id);
+      why.setAttribute("aria-label", "Why did this run, or not run?");
+      li.appendChild(why);
       list.appendChild(li);
     });
     if (pager) {
