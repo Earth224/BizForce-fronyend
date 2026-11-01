@@ -1,25 +1,39 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   BF MUSIC — the BizForce music player: a member's own music, in a chrome
-   boombox (scripts/bf-boombox.js draws it) on every app page, and a pop-out
-   window that keeps playing while they move around the app.
+   BF MUSIC — the BizForce music player: a member's own music, in a chrome or
+   black boombox-mixer (scripts/bf-boombox.js draws it) on every app page,
+   and, only when the member chooses it, a small window that keeps playing
+   while they move around the app.
 
    WHERE IT RUNS. scripts/bf-session.js loads this file on every page it
    guards; this file loads scripts/bf-boombox.js. It becomes:
      float   on every app page, the pages that load the mist
-             (scripts/termaximus-presence.js): the boombox, fixed on screen,
-             draggable, minimised to a "now playing" tag; on the dashboard it
-             starts beside the logo in the top bar ([data-bf-boombox-anchor]);
+             (scripts/termaximus-presence.js): fixed on screen, draggable,
+             always starting as the slim bar beside the BizForce AI logo
+             ([data-bf-boombox-anchor]), or in the top-left corner;
      popout  in music-popout.html (#bfMusicPopout): the boombox, alone.
    A public page or a card (scripts/bf-theme.js publicView), and a page with
    no mist, never get the player.
 
    THE EXPANDED VIEW. The boombox's own keys: previous, play/pause, next,
-   shuffle, repeat, the volume dial and mute, the display's seek bar; its
-   top keys: Library, Pop out, reset position, minimise. The library panel
-   beneath it: the playlist picker with New playlist, Rename and Delete
-   playlist, the queue (play, drag or Alt+arrow to reorder, rename, delete,
-   add to a playlist), Mix, Spectrum or Waveform, the upload drop zone,
-   "Play when I open BizForce", Pop out, and the messages.
+   shuffle, repeat, the display's seek bar; its mixer: the BASS, MID and
+   TREBLE knobs, the crossfader (the Mix), the level meters, the volume
+   fader; its body keys: Mute, Library, Reset position, Minimise. The
+   library SLIDES OUT from behind it: the playlist picker with New playlist,
+   Rename and Delete playlist, the queue (play, drag or Alt+arrow to reorder,
+   rename, delete, add to a playlist), Mix, Spectrum or Waveform, the
+   finish (Chrome or Black), the upload drop zone, "Play when I open
+   BizForce", "Keep playing between pages (opens a small window)", and the
+   messages.
+
+   THE MIXER, in the sound itself: master gain (the volume fader) into a
+   low shelf at EQ_HZ.bass, a peaking band at EQ_HZ.mid and a high shelf at
+   EQ_HZ.treble, each -12 … +12 dB (clampDb), into the analyser and the
+   speakers; a channel splitter after the EQ feeds the two meters their own
+   channel (left and right), and where the browser has no splitter they show
+   the level and its peak. The finish and the EQ are the member's
+   (GET and PUT /api/music/player, lib/music.js playerSettings), kept on the
+   device too (bf_music) so they apply at once and survive a server that
+   cannot save them yet.
 
    CONTINUITY ACROSS PAGES, honestly: a page's audio stops when the page
    goes. The next page restores the track, the position, the queue and the
@@ -65,7 +79,9 @@
    other that is playing pauses at once and answers "released". If another
    was heard playing in the last 1.5 s, the claimer starts at gain 0 and
    rises only after "released" (or 0.5 s), so two are never heard together.
-   THE POP-OUT: "Pop out" opens music-popout.html; when it says "popout-hello"
+   THE POP-OUT, the small window, opened ONLY by the member's choice in the
+   library ("Keep playing between pages"; nothing else opens a window): it
+   opens music-popout.html; when it says "popout-hello"
    the page pauses FIRST and then hands it the track, position, queue and
    settings ("handoff"); the pop-out starts from there. While the pop-out is
    open (its "status" heard in the last 2 s) a page plays nothing itself: its
@@ -129,11 +145,21 @@
   var AUTOPLAY_NOTE = "Starts on your first click — browsers don't allow sound before that.";
   var REMOTE_PLAYING = "Playing in the pop-out player";
   var REMOTE_OPEN = "The pop-out player is open";
-  var POPUP_BLOCKED = "Your browser blocked the pop-out window. Allow pop-ups for BizForce, then press Pop out again.";
+  var KEEP_PLAYING = "Keep playing between pages (opens a small window)";
+  var KEEP_PLAYING_HELP = "The small window keeps the music going while you move around BizForce; close it to stop.";
+  var POPUP_BLOCKED = "Your browser blocked the small window. Allow pop-ups for BizForce, then choose Keep playing between pages again.";
   var PRESS_PLAY = "Press play to start the music here.";
   var YIELDED = "Paused: music started elsewhere in BizForce.";
   var RESUME_TAP = "Tap to resume";
-  var CONTINUITY_NOTE = "Moving between pages pauses for a moment. For unbroken music, use Pop out.";
+  var CONTINUITY_NOTE = "Moving between pages pauses for a moment. For unbroken music, choose Keep playing between pages.";
+  var FINISHES = ["chrome", "black"];
+  var EQ_BANDS = ["bass", "mid", "treble"];
+  var EQ_MAX = 12;
+  var EQ_HZ = { bass: 120, mid: 1000, treble: 6000 };
+  var EQ_TYPE = { bass: "lowshelf", mid: "peaking", treble: "highshelf" };
+  var PLAYER_PATH = "/api/music/player";
+  var PLAYER_SAVE_MS = 600;
+  var PEAK_FALL = 0.012;
   var RESUME_WAIT_MS = 400;
   var LEVELS_MS = 33;
   var LEVELS_STALE_MS = 400;
@@ -141,7 +167,8 @@
   var VIEWS = ["spectrum", "wave"];
   var ACCEPT = "audio/*,.mp3,.m4a,.aac,.ogg,.opus,.flac,.wav";
   var DEFAULTS = { v: 1, uid: null, track_id: null, position: 0, volume: 0.8, muted: false, queue: [], shuffle: false,
-    repeat: "off", crossfade: 0, autoplay: false, view: "spectrum", playlist_id: "", was_playing: false };
+    repeat: "off", crossfade: 0, autoplay: false, view: "spectrum", playlist_id: "", was_playing: false,
+    finish: "chrome", eq: { bass: 0, mid: 0, treble: 0 } };
 
   var ID = "m" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
@@ -157,6 +184,13 @@
 
   /* ── pure parts: the mix, the energy, the clock ────────────────────────── */
   function clamp01(n) { return n > 0 ? (n < 1 ? n : 1) : 0; }
+  /* An EQ gain: -12 … +12 dB, to the nearest half dB; anything else is 0. */
+  function clampDb(v) { var n = Math.round(Number(v) * 2) / 2; if (!isFinite(n)) n = 0; return Math.max(-EQ_MAX, Math.min(EQ_MAX, n)); }
+  function cleanEq(e) {
+    var out = { bass: 0, mid: 0, treble: 0 };
+    if (e && typeof e === "object") EQ_BANDS.forEach(function (b) { out[b] = clampDb(e[b]); });
+    return out;
+  }
   /* The two gains of a mix of length d, t seconds in. */
   function fadeGains(t, d) {
     if (!(d > 0) || t >= d) return { out: 0, in: 1 };
@@ -228,6 +262,8 @@
     if (VIEWS.indexOf(out.view) === -1) out.view = "spectrum";
     if (!Array.isArray(out.queue)) out.queue = [];
     out.position = Math.max(0, Number(out.position) || 0);
+    if (FINISHES.indexOf(out.finish) === -1) out.finish = "chrome";
+    out.eq = cleanEq(out.eq);
     return out;
   }
   var S = load();
@@ -303,6 +339,7 @@
 
   /* ── the sound ──────────────────────────────────────────────────────────── */
   var ctx = null, master = null, analyser = null, decks = [], active = 0;
+  var filters = {}, meterL = null, meterR = null;
   var R = { playing: false, activated: MODE === "popout", armed: false, blocked: false, fade: null, awaitRelease: null,
     popoutAt: 0, remote: null, handing: false, msg: "", msgKind: "", history: [], bag: null, lastSave: 0, yielded: false,
     /* starts counts the tracks that began here: the boombox's "Now playing"
@@ -341,10 +378,48 @@
         d.source.connect(d.gain);
         d.gain.connect(master);
       });
-      master.connect(analyser);
+      /* the EQ: master -> low shelf -> peaking -> high shelf -> the analyser and the speakers */
+      var last = master;
+      if (typeof ctx.createBiquadFilter === "function") {
+        EQ_BANDS.forEach(function (b) {
+          var f = ctx.createBiquadFilter();
+          f.type = EQ_TYPE[b];
+          f.frequency.value = EQ_HZ[b];
+          if (b === "mid") f.Q.value = 0.9;
+          f.gain.value = clampDb(S.eq[b]);
+          last.connect(f);
+          last = f;
+          filters[b] = f;
+        });
+      }
+      last.connect(analyser);
       analyser.connect(ctx.destination);
+      /* the meters: each channel its own analyser, where the browser can split them */
+      if (typeof ctx.createChannelSplitter === "function") {
+        try {
+          var split = ctx.createChannelSplitter(2);
+          meterL = ctx.createAnalyser(); meterR = ctx.createAnalyser();
+          meterL.fftSize = 512; meterR.fftSize = 512;
+          last.connect(split);
+          split.connect(meterL, 0);
+          split.connect(meterR, 1);
+        } catch (e) { meterL = null; meterR = null; }
+      }
       applyVolume();
-    } catch (e) { ctx = null; master = null; analyser = null; }
+    } catch (e) { ctx = null; master = null; analyser = null; filters = {}; meterL = null; meterR = null; }
+  }
+  /* An EQ band's gain, in the filter and in memory (and on the member's account). */
+  function applyEq() { EQ_BANDS.forEach(function (b) { if (filters[b]) filters[b].gain.value = clampDb(S.eq[b]); }); }
+  function setEq(band, db) {
+    if (EQ_BANDS.indexOf(band) === -1) return;
+    if (popoutAlive()) relay("eq", { band: band, db: db });
+    S.eq[band] = clampDb(db);
+    applyEq(); save(); pushPlayer(); render();
+  }
+  function setFinish(f) {
+    if (FINISHES.indexOf(f) === -1) return;
+    S.finish = f;
+    save(); pushPlayer(); render();
   }
   function now() { return ctx ? ctx.currentTime : Date.now() / 1000; }
   function applyVolume() {
@@ -693,7 +768,7 @@
   R.others = {};
   function snapshot() {
     return { track_id: S.track_id, position: currentPosition(), volume: S.volume, muted: S.muted, queue: S.queue.slice(), shuffle: S.shuffle,
-      repeat: S.repeat, crossfade: S.crossfade, view: S.view, playlist_id: S.playlist_id };
+      repeat: S.repeat, crossfade: S.crossfade, view: S.view, playlist_id: S.playlist_id, eq: cleanEq(S.eq), finish: S.finish };
   }
   function onMessage(m) {
     if (!m || typeof m !== "object" || m.from === ID) return;
@@ -737,9 +812,11 @@
       R.took = m.playing ? "playing" : "quiet";
       var st = m.state || {};
       ["volume", "muted", "shuffle", "repeat", "crossfade", "view", "playlist_id"].forEach(function (k) { if (st[k] !== undefined) S[k] = st[k]; });
+      if (st.eq) S.eq = cleanEq(st.eq);
+      if (FINISHES.indexOf(st.finish) !== -1) S.finish = st.finish;
       if (Array.isArray(st.queue)) S.queue = st.queue.slice();
       if (st.track_id) { S.track_id = st.track_id; S.position = Number(st.position) || 0; }
-      applyVolume(); save();
+      applyVolume(); applyEq(); save();
       loadLibrary().then(function () { if (m.playing && S.track_id) startTrack(S.track_id, S.position); else render(); });
     } else if (m.type === "cmd") {
       var a = m.arg;
@@ -748,15 +825,43 @@
       else if (m.cmd === "volume") setVolume(a); else if (m.cmd === "mute") toggleMute(); else if (m.cmd === "shuffle") setShuffle(a);
       else if (m.cmd === "repeat") cycleRepeat(); else if (m.cmd === "repeat-set") setRepeat(a); else if (m.cmd === "crossfade") setCrossfade(a);
       else if (m.cmd === "track") playTrack(a);
+      else if (m.cmd === "eq" && a && typeof a === "object") setEq(a.band, a.db);
     }
   }
   if (channel) channel.onmessage = function (e) { onMessage(e && e.data); };
+
+  /* The member's finish and EQ on their account: read once at the start, written a
+     moment after the last change. A server that cannot save them yet (503, before
+     migration 157) leaves them on this device and says so, once, quietly. */
+  var PLAYER_LOCAL = "Your finish and EQ are kept on this device for now.";
+  function pushPlayer() {
+    if (!UID) return;
+    if (R.pushTimer) clearTimeout(R.pushTimer);
+    R.pushTimer = setTimeout(function () {
+      R.pushTimer = null;
+      api(PLAYER_PATH, { method: "PUT", json: { finish: S.finish, eq: cleanEq(S.eq) } }).then(function (r) {
+        R.playerNote = r.ok ? "" : (r.status === 503 ? PLAYER_LOCAL : (r.body && r.body.error) || PLAYER_LOCAL);
+        render();
+      });
+    }, PLAYER_SAVE_MS);
+  }
+  function pullPlayer() {
+    return api(PLAYER_PATH).then(function (r) {
+      if (r.ok && r.body && r.body.saved && r.body.player && !R.pushTimer) {
+        var p = r.body.player;
+        if (FINISHES.indexOf(p.finish) !== -1) S.finish = p.finish;
+        if (p.eq) S.eq = cleanEq(p.eq);
+        applyEq(); save(); render();
+      } else if (!r.ok && r.status === 503) { R.playerNote = PLAYER_LOCAL; render(); }
+      return r.ok;
+    });
+  }
 
   function popOut() {
     if (MODE === "popout") return;
     save();
     var w = null;
-    try { w = window.open("/music-popout.html", "bf-music-popout", "popup,width=440,height=680"); } catch (e) { w = null; }
+    try { w = window.open("/music-popout.html", "bf-music-popout", "popup,width=480,height=780"); } catch (e) { w = null; }
     if (!w) { say(POPUP_BLOCKED, "error"); return; }
     R.handing = R.playing;
     say("", "");
@@ -808,14 +913,26 @@
 
   /* What the boombox moves with: this page's analyser, or, while the pop-out
      plays, the levels it posts on the channel. */
-  var lvBins = null, remoteLevels = null;
+  var lvBins = null, remoteLevels = null, chBins = null, peak = 0;
+  /* One channel's loudness, 0 … 1: the RMS of its waveform (bytes around 128), scaled so music reads high on the meter. */
+  function channelLevel(a) {
+    if (!chBins || chBins.length !== a.fftSize) chBins = new Uint8Array(a.fftSize);
+    a.getByteTimeDomainData(chBins);
+    var sum = 0;
+    for (var i = 0; i < chBins.length; i++) { var x = (chBins[i] - 128) / 128; sum += x * x; }
+    return clamp01(Math.sqrt(sum / chBins.length) * 2.2);
+  }
   function localLevels() {
-    if (!analyser || !ctx) return { bass: 0, highs: 0, level: 0 };
+    if (!analyser || !ctx) return { bass: 0, highs: 0, level: 0, left: 0, right: 0, stereo: false };
     if (!lvBins) lvBins = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(lvBins);
     var sr = ctx.sampleRate, fft = analyser.fftSize;
-    return { bass: clamp01(bandMean(lvBins, sr, fft, 20, 150)), highs: clamp01(bandMean(lvBins, sr, fft, 4000, 12000)),
-      level: clamp01(bandMean(lvBins, sr, fft, 20, 16000) * 1.6) };
+    var level = clamp01(bandMean(lvBins, sr, fft, 20, 16000) * 1.6);
+    var out = { bass: clamp01(bandMean(lvBins, sr, fft, 20, 150)), highs: clamp01(bandMean(lvBins, sr, fft, 4000, 12000)), level: level };
+    /* Left and right where the sound is split; else the level and its peak, which falls back slowly. */
+    if (meterL && meterR) { out.left = channelLevel(meterL); out.right = channelLevel(meterR); out.stereo = true; }
+    else { peak = Math.max(level, peak - PEAK_FALL); out.left = level; out.right = peak; out.stereo = false; }
+    return out;
   }
   function remoteHeard() { return !!(remoteLevels && Date.now() - remoteLevels.at < LEVELS_STALE_MS); }
   function levels() {
@@ -974,6 +1091,9 @@
     ".bfm-remote{display:none;font-size:.85rem;font-weight:600;color:var(--bfm-a);margin:4px 0}",
     ".bfm[data-remote=true] .bfm-remote{display:block}",
     ".bfm-toggle{display:flex;align-items:flex-start;gap:10px;margin-top:10px}",
+    ".bfm-finish label{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;color:#c8cce8}",
+    ".bfm-finish-label{font-size:.82rem;color:#c8cce8;font-weight:700}",
+    ".bfm-finish input{accent-color:var(--bfm-a)}",
     ".bfm-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}",
     "@media (prefers-reduced-motion: reduce){.bfm-panel *{transition:none!important;animation:none!important}}"
   ].join("\n");
@@ -1020,15 +1140,23 @@
         '<ul class="bfm-uploads"></ul></div>' +
       '<div class="bfm-toggle"><input type="checkbox" id="bfmAutoplay" class="bfm-autoplay" aria-describedby="bfmAutoplayNote" />' +
         '<div><label for="bfmAutoplay">' + AUTOPLAY_LABEL + '</label><p class="bfm-note" id="bfmAutoplayNote">' + AUTOPLAY_NOTE + "</p></div></div>" +
-      (MODE === "popout" ? "" : '<div class="bfm-row"><button type="button" class="bfm-chip" data-act="popout">' + svg("popout", 14) + " Pop out</button></div>" +
+      '<div class="bfm-row bfm-finish" role="radiogroup" aria-label="Finish">' +
+        '<span class="bfm-finish-label" aria-hidden="true">Finish</span>' +
+        '<label><input type="radio" name="bfmFinishPanel" value="chrome" class="bfm-finish-pick" aria-label="Chrome" /> Chrome</label>' +
+        '<label><input type="radio" name="bfmFinishPanel" value="black" class="bfm-finish-pick" aria-label="Black" /> Black</label></div>' +
+      '<p class="bfm-note bfm-player-note" role="status"></p>' +
+      (MODE === "popout" ? "" : '<div class="bfm-row"><button type="button" class="bfm-chip" data-act="keep-playing" aria-describedby="bfmKeepHelp">' + svg("popout", 14) + " " + KEEP_PLAYING + "</button></div>" +
+        '<p class="bfm-note" id="bfmKeepHelp">' + KEEP_PLAYING_HELP + "</p>" +
         '<p class="bfm-note bfm-continuity">' + CONTINUITY_NOTE + "</p>");
   }
   function buildPlayer() {
     var host = MODE === "popout" ? doc.getElementById("bfMusicPopout") : null;
     BOX = window.BFBoombox.mount({
-      mode: MODE, host: host,
+      mode: MODE, host: host, finish: S.finish,
       anchor: MODE === "float" ? doc.querySelector("[data-bf-boombox-anchor]") : null,
       onVolume: function (v) { setVolume(v); },
+      onMix: function (s) { setCrossfade(s); },
+      onEq: function (band, db) { setEq(band, db); },
       onSeekBy: function (s) { seek(currentPosition() + s); },
       onToggle: function () { toggle(); }
     });
@@ -1049,7 +1177,7 @@
     else if (act === "shuffle") setShuffle();
     else if (act === "repeat") cycleRepeat();
     else if (act === "mute") toggleMute();
-    else if (act === "popout") popOut();
+    else if (act === "keep-playing") popOut();
     else if (act === "choose") { var f = q(".bfm-file"); if (f) f.click(); }
     else if (act === "pl-new") askName("new");
     else if (act === "pl-rename") { if (S.playlist_id) askName("rename"); else say("Pick a playlist to rename.", "info"); }
@@ -1067,6 +1195,8 @@
     root.addEventListener("click", onClick);
     q(".bfm-seek").addEventListener("input", function () { seek(Number(this.value)); });
     q(".bfm-mix").addEventListener("input", function () { setCrossfade(Number(this.value)); });
+    /* The finish: in the library, and in Settings, Theme, Music (#bfmFinishSetting) where the page has it. */
+    finishPicks().forEach(function (r) { r.addEventListener("change", function () { if (this.checked) setFinish(this.value); }); });
     q(".bfm-autoplay").addEventListener("change", function () { setAutoplay(this.checked); });
     q(".bfm-playlist").addEventListener("change", function () { choosePlaylist(this.value); });
     q(".bfm-file").addEventListener("change", function () { uploadFiles(this.files); this.value = ""; });
@@ -1112,6 +1242,9 @@
       dragId = null;
     });
     list.addEventListener("dragend", function () { dragId = null; });
+  }
+  function finishPicks() {
+    return qa(".bfm-finish-pick").concat(Array.prototype.slice.call(doc.querySelectorAll("#bfmFinishSetting input[type=radio]")));
   }
   function isFileDrag(e) {
     var t = e.dataTransfer && e.dataTransfer.types;
@@ -1380,6 +1513,7 @@
     BOX.render({ title: t && t.title ? t.title : "", artist: t && t.artist ? t.artist : "", volume: S.volume, muted: S.muted, resume: resume,
       track_id: remote ? (R.remote && R.remote.track_id) || null : S.track_id, playing: playing, starts: remote ? null : R.starts,
       index: at === -1 ? null : at + 1, total: at === -1 ? null : line.length, playlist: pl ? pl.name : ALL_TRACKS,
+      mix: S.crossfade, eq: cleanEq(S.eq), finish: S.finish, stereo: !!(meterL && meterR),
       tagText: resume ? RESUME_TAP + ": " + title : remote ? (playing ? REMOTE_PLAYING + ": " + title : REMOTE_OPEN) : title });
     var na = q(".bfm-np-artist");
     if (na) na.textContent = t && t.artist ? t.artist : "";
@@ -1390,6 +1524,8 @@
     var mix = q(".bfm-mix"); if (mix && doc.activeElement !== mix) mix.value = String(S.crossfade);
     var mo = q(".bfm-mix-out"); if (mo) mo.textContent = S.crossfade ? S.crossfade + " s" : "Off";
     var ap = q(".bfm-autoplay"); if (ap) ap.checked = S.autoplay === true;
+    finishPicks().forEach(function (r) { r.checked = r.value === S.finish; });
+    var pn = q(".bfm-player-note"); if (pn) pn.textContent = R.playerNote || "";
     Array.prototype.forEach.call(root.querySelectorAll("[data-view]"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === S.view ? "true" : "false"); });
     var vn = q(".bfm-viz-note"); if (vn) vn.textContent = reducedMotion() ? "Reduced motion is on, so the visualiser stays still." : "";
     var lim = q(".bfm-limits");
@@ -1486,6 +1622,7 @@
     buildPlayer();
     render();
     startViz();
+    pullPlayer();
     if (MODE === "popout") {
       ticker = setInterval(tick, TICK_MS);
       post({ type: "popout-hello", from: ID });
@@ -1515,7 +1652,9 @@
   window.BFMusic = {
     mode: MODE, id: ID,
     AUTOPLAY_LABEL: AUTOPLAY_LABEL, AUTOPLAY_NOTE: AUTOPLAY_NOTE, REMOTE_PLAYING: REMOTE_PLAYING, REMOTE_OPEN: REMOTE_OPEN,
-    POPUP_BLOCKED: POPUP_BLOCKED, RESUME_TAP: RESUME_TAP, CONTINUITY_NOTE: CONTINUITY_NOTE, RESUME_WAIT_MS: RESUME_WAIT_MS, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
+    POPUP_BLOCKED: POPUP_BLOCKED, RESUME_TAP: RESUME_TAP, CONTINUITY_NOTE: CONTINUITY_NOTE, KEEP_PLAYING: KEEP_PLAYING, KEEP_PLAYING_HELP: KEEP_PLAYING_HELP,
+    EQ_HZ: EQ_HZ, EQ_TYPE: EQ_TYPE, EQ_MAX: EQ_MAX, PLAYER_LOCAL: PLAYER_LOCAL, clampDb: clampDb, setEq: setEq, setFinish: setFinish,
+    _filters: function () { return filters; }, _meters: function () { return { left: meterL, right: meterR }; }, RESUME_WAIT_MS: RESUME_WAIT_MS, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
     fadeGains: fadeGains, energyStep: energyStep, easeOut: easeOut, clamp01: clamp01,
     play: play, pause: pause, toggle: toggle, next: next, prev: prev, seek: seek, setVolume: setVolume, toggleMute: toggleMute,
     setShuffle: setShuffle, cycleRepeat: cycleRepeat, setRepeat: setRepeat, setCrossfade: setCrossfade, setView: setView,

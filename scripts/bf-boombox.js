@@ -1,74 +1,87 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   BF BOOMBOX — the BizForce music player's body: a compact chrome boombox,
-   drawn in SVG and CSS, themed by the tokens, with no emoji anywhere.
+   BF BOOMBOX — the BizForce music player's body: a hyper-real boombox-mixer,
+   drawn in SVG and CSS (no raster image anywhere), in polished CHROME or
+   glossy piano BLACK, themed by the tokens, with no emoji anywhere.
    scripts/bf-music.js mounts it and owns the sound; this file owns the look,
    the place on screen and the motion.
 
-   THE PARTS.
-     a polished chrome body (layered metallic gradients and highlights, tinted
-       a little by the theme's accent) and a carry handle across the top;
-     two main speakers, each a rubber surround, a cone and a dust cap;
-     two small tweeters above them;
-     a glowing VFD display (the luminous digital look of a classic stereo
-       deck, in the theme's accent): "Title — Artist", the time, a live
-       spectrum or waveform strip, and the seek bar;
-     a slim dot-matrix LED ticker along the top, under the handle:
-       "NN / TT · Title · Artist · Playlist name", the track's place in the
-       queue and the queue's length;
-     a cassette window with two reels;
-     five piano keys: previous, play/pause, next, shuffle, repeat, which
-       depress when pressed;
-     a rotary volume dial (drag it, scroll it, or use the arrow keys; it shows
-       the level), with a mute key;
-     two small LED level meters.
+   THE FINISH (data-finish on the root, the member's choice; bf-music.js holds
+   it): CHROME is multi-stop specular gradients over a brushed-metal grain (a
+   fine repeating gradient), bevelled edges (a highlight above and to the
+   left, a shadow below and to the right), inner shadows for depth, an
+   ambient reflection across the top, and a silver rim whose shine wanders
+   round the body (the Termaximus chat box's gold rim, the same masked ring,
+   in silver), with a light sweep crossing the face now and then. BLACK is
+   the same construction in glossy piano black with chrome accents (the rim,
+   the handle, the speaker bezels, the screws) and a softer sheen. The bar
+   (minimised) wears the same finish.
 
-   THE MOTION, from the analyser bf-music.js reads (bass, highs, level):
-     the woofer cones and dust caps pulse outward with the bass (scale);
-     the tweeters shimmer with the highs (opacity and a slight scale);
-     the LEDs light with the level (opacity);
-     the reels turn at a steady speed while playing, and slow to a stop over
-       about a second on pause (rotate).
-   Only transform and opacity ever change, so it stays on the GPU. Nothing
-   moves while paused.
+   THE PARTS.
+     a chrome carry handle with its highlight; four screws; rubber feet;
+     two pumping woofers in chrome bezels behind a perforated grille (a dot
+       pattern), each a rubber surround, a cone and a dust cap, and a small
+       tweeter above each;
+     a glowing VFD display (the luminous look of a classic deck, in the
+       theme's accent): "Title — Artist", the time, a live spectrum or
+       waveform strip, and the seek bar;
+     a dot-matrix LED ticker under the handle: "NN / TT · Title · Artist ·
+       Playlist name";
+     a cassette window with two reels;
+     five piano keys: previous, play/pause, next, shuffle, repeat;
+     THE MIXER DECK, a recessed panel along the bottom:
+       three EQ knobs, BASS, MID and TREBLE (-12 … +12 dB, a centre detent,
+         double-click resets; bf-music.js feeds them to its filters);
+       a horizontal CROSSFADER that sets the Mix (0 … 12 s), showing it;
+       two LED level meters (left and right when the sound is stereo, else
+         the level and its peak);
+       a vertical VOLUME FADER;
+       four body keys, styled like the piano keys: Mute, Library (opens the
+         slide-out library), Reset position, Minimise.
+   Every knob and fader is a slider for the keyboard (the arrows, Page Up and
+   Down, Home and End) with its label and value spoken.
+
+   THE MOTION, from the analyser bf-music.js reads (bass, highs, level, and
+   the two channels): the woofer cones and dust caps pulse outward with the
+   bass (scale); the tweeters shimmer with the highs; the meters light with
+   each channel; the reels turn at a steady speed while playing and slow to a
+   stop over about a second on pause. Only transform and opacity ever change,
+   so it stays on the GPU. Nothing moves while paused; the sheen, the rim's
+   shine and the scrolling text pause while the tab is hidden; under
+   prefers-reduced-motion everything is still: no sweep, a still meter.
 
    NOW PLAYING. While a track is loaded the VFD scrolls "Title — Artist" and
-   the ticker scrolls its line, both continuously at a readable pace (about
-   five characters a second), each loop holding still for a moment at its
-   start. When a new track starts (bf-music.js counts them: a track picked up
-   again after a page change, or played on after a pause, is not a new one),
-   a neon "Now playing" banner sweeps once across the face, about 1.2 s, and
-   the ticker's new line settles in behind it. The minimised tag's title
-   scrolls as a marquee only when it is longer than the tag. Screen readers
-   hear "Now playing: <title> by <artist>" once per track, from one
-   aria-live line; the scrolling copies are hidden from them. With nothing
-   loaded the display says "No track loaded" and nothing scrolls. All of it
-   is transform and opacity, pauses while the tab is hidden, and is fully
-   still under prefers-reduced-motion: the text simply shows, cut short with
-   an ellipsis, and its whole line is the tooltip. bf-music.js runs it from its one requestAnimationFrame
-   loop, which stops while the page is hidden and never starts under
-   prefers-reduced-motion: then the speakers and reels hold still and the
-   display shows a still level.
+   the ticker scrolls its line (about five characters a second, each loop
+   holding still at its start). When a new track starts, a neon "Now playing"
+   banner sweeps once across the face (about 1.2 s). Screen readers hear "Now
+   playing: <title> by <artist>" once per track. With nothing loaded the
+   display says "No track loaded" and nothing scrolls.
 
-   WHERE IT SITS ("float", every app page that loads the mist):
-     fixed on screen, so it stays put while the page scrolls;
-     MINIMISED it is a slim "now playing" tag (the title, a tiny live wave,
-       play/pause, next, expand); EXPANDED it is the boombox, with the library
-       panel (bf-music.js fills it) sliding out beneath;
+   WHERE IT SITS ("float", every signed-in page that loads the mist):
+     fixed on screen; it ALWAYS starts as the slim BAR (minimised) the first
+       time, and remembers after that whether it was left open;
+     by default the bar docks beside the BizForce AI logo in the page header
+       ([data-bf-boombox-anchor] on the logo), vertically centred on the
+       header: to the logo's right, or to its left where the logo sits at the
+       header's right end and the bar would not fit; a page without that
+       header puts it in the top-left corner, 16 px in;
+     opening it expands the boombox in place, down and right from the bar,
+       kept on screen; minimising returns the bar to the same spot;
      draggable by the mist's own rule (scripts/termaximus-presence.js): a 6 px
-       threshold before a press becomes a drag, clamped fully on screen
-       (clampPosition is the mist's _tmxClampPosition), saved on release, the
-       arrow keys nudge it 10 px (40 with Shift), Home or the reset key puts it
-       back, and a resize re-clamps it;
-     its place and whether it is minimised are this device's (bf_boombox, a
-       display choice kept at sign-out like the mist's);
-     by default the tag sits at the bottom left; on the dashboard the boombox
-       sits beside the BizForce AI logo in the top bar ([data-bf-boombox-anchor]);
+       threshold, clamped fully on screen, saved on release; the arrow keys
+       nudge it 10 px (40 with Shift); Home or the Reset key returns it to the
+       default spot beside the logo; a resize re-clamps it;
+     its place and whether it is open are this device's (bf_boombox);
      it never covers the mist or the open chat box: when they meet it is
-       nudged aside, by the smallest move that keeps it on screen;
-     at 860 px and narrower (the mist's phone width) the tag docks to the
-       bottom edge, with no dragging, and expanding opens a bottom sheet.
-   In the pop-out (music-popout.html, "popout") it is the whole window's
-   player: expanded, in the page, with the library open, and never minimised.
+       nudged aside by the smallest move that keeps it on screen;
+     THE LIBRARY is a panel that SLIDES OUT from behind the boombox: below it
+       when there is room, else to its right or left, whichever fits; it
+       slides back on Library, or Escape (a second Escape minimises);
+     at 860 px and narrower (the mist's phone width) the bar docks to the
+       bottom edge and opening it is a bottom sheet with the boombox scaled
+       to fit.
+   In the small window (music-popout.html, "popout", only when the member
+   chooses "Keep playing between pages") it is that window's whole player:
+   open, with the library beneath it, never minimised.
 
    Z-ORDER, low to high: the page; the boombox (2147483000); the chat box's
    glow (2147483646); the chat box and the mist (2147483647). The mist and the
@@ -83,21 +96,31 @@
   var NUDGE = 10;                // the mist's TMX_CHAT_NUDGE
   var PHONE_MAX = 860;           // the mist's TMX_CHAT_DRAG_MIN_W
   var GAP = 12;
+  var EDGE = 16;                 // the top-left corner's margin where there is no header
   var Z = 2147483000;
-  var LEDS = 6;
+  var BOX_W = 440, BOX_H = 250, BAR_W = 300, BAR_H = 40;
+  var DRAWER_W = 360, DRAWER_MAX_H = 460, DRAWER_MIN_H = 220;
+  var LEDS = 8;
   var WAVE_BARS = 5;
   var REEL_DEG_PER_S = 200;
   var CONE_PULSE = 0.09, CAP_PULSE = 0.14, TWEETER_PULSE = 0.06;
+  var EQ_MAX = 12, EQ_DETENT = 0.75, MIX_MAX = 12;
+  var EQ_BANDS = [["bass", "Bass", "BASS"], ["mid", "Mid", "MID"], ["treble", "Treble", "TREBLE"]];
+  var FINISHES = ["chrome", "black"];
+  var XF_TRAVEL = 82, VOL_TRAVEL = 31;
   var NO_TRACK = "No track loaded";
   var ALL_TRACKS = "All tracks";
   var SEP = " — ", DOT = " · ";
   var SWEEP_MS = 1200;           // the "Now playing" banner, once per new track
   var SCROLL_S_PER_CHAR = 0.2;   // about five characters a second
   var SCROLL_HOLD = 0.12;        // each loop holds still for its first 12%
-  var TAG_FIT_CHARS = 26;        // what the tag holds when it cannot be measured
+  var TAG_FIT_CHARS = 26;        // what the bar holds when it cannot be measured
   var TAG_GAP = 28;              // the space between the marquee's two copies
 
   function clamp01(n) { return n > 0 ? (n < 1 ? n : 1) : 0; }
+  function clampDb(v) { var n = Math.round(Number(v) * 2) / 2; if (!isFinite(n)) n = 0; return Math.max(-EQ_MAX, Math.min(EQ_MAX, n)); }
+  function clampMix(v) { var n = Math.round(Number(v)); if (!isFinite(n)) n = 0; return Math.max(0, Math.min(MIX_MAX, n)); }
+  function dbText(db) { return (db > 0 ? "+" : "") + db + " dB"; }
   function reducedMotion() {
     try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; }
   }
@@ -130,7 +153,6 @@
     one: '<path d="M4 11V9a3 3 0 0 1 3-3h12"/><path d="m16 3 3 3-3 3"/><path d="M20 13v2a3 3 0 0 1-3 3H5"/><path d="m8 21-3-3 3-3"/><path d="M11 10.5 12.5 9.5v5"/>',
     volume: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     mute: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="m16 9.5 5 5"/><path d="m21 9.5-5 5"/>',
-    popout: '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
     expand: '<path d="M4 14v6h6"/><path d="M20 10V4h-6"/><path d="M4 20l7-7"/><path d="M20 4l-7 7"/>',
     minimise: '<path d="M5 12h14"/>',
     library: '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><circle cx="18" cy="17" r="2.5"/><path d="M20.5 17V10"/>',
@@ -140,89 +162,117 @@
     return '<svg viewBox="0 0 24 24" width="' + (size || 14) + '" height="' + (size || 14) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + ICON[name] + "</svg>";
   }
 
-  /* The body, the handle, the speakers, the tweeters and the cassette: one
-     drawing, 320 x 176, behind the display, the keys and the dial. */
-  function speaker(cx, side) {
+  /* ── the drawing: 440 x 250, over the face and under the controls ─────── */
+  function stop(o, v) { return '<stop offset="' + o + '" style="stop-color:var(' + v + ')"/>'; }
+  function speaker(cx, cy, side) {
     return '<g class="bbx-speaker" data-side="' + side + '">' +
-      '<circle cx="' + cx + '" cy="112" r="44" fill="url(#bbxGrille)" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/>' +
-      '<circle cx="' + cx + '" cy="112" r="38" fill="url(#bbxSurround)"/>' +
-      '<g class="bbx-cone"><circle cx="' + cx + '" cy="112" r="30" fill="url(#bbxCone)"/>' +
-        '<circle cx="' + cx + '" cy="112" r="22" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>' +
-        '<circle cx="' + cx + '" cy="112" r="14" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/></g>' +
-      '<g class="bbx-cap"><circle cx="' + cx + '" cy="112" r="9" fill="url(#bbxCap)"/>' +
-        '<circle cx="' + (cx - 3) + '" cy="109" r="2.6" fill="rgba(255,255,255,.55)"/></g>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="58" fill="url(#bbxBezel)" stroke="rgba(0,0,0,.55)" stroke-width="1.2"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="53" fill="#07080b"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="51" fill="url(#bbxSurround)"/>' +
+      '<g class="bbx-cone"><circle cx="' + cx + '" cy="' + cy + '" r="41" fill="url(#bbxCone)"/>' +
+        '<circle cx="' + cx + '" cy="' + cy + '" r="31" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>' +
+        '<circle cx="' + cx + '" cy="' + cy + '" r="21" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/></g>' +
+      '<g class="bbx-cap"><circle cx="' + cx + '" cy="' + cy + '" r="13" fill="url(#bbxCap)"/>' +
+        '<circle cx="' + (cx - 4) + '" cy="' + (cy - 4) + '" r="3.4" fill="rgba(255,255,255,.6)"/></g>' +
+      '<circle class="bbx-grille" cx="' + cx + '" cy="' + cy + '" r="51" fill="url(#bbxGrille)"/>' +
+      '<path d="M' + (cx - 44) + " " + (cy - 30) + " A54 54 0 0 1 " + (cx + 30) + " " + (cy - 46) + '" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6" stroke-linecap="round"/>' +
       "</g>";
   }
-  function tweeter(cx) {
-    return '<g class="bbx-tweeter"><circle cx="' + cx + '" cy="48" r="9" fill="url(#bbxSurround)" stroke="rgba(0,0,0,.4)" stroke-width="1"/>' +
-      '<circle class="bbx-tweeter-dome" cx="' + cx + '" cy="48" r="5" fill="url(#bbxCap)"/></g>';
+  function tweeter(cx, cy) {
+    return '<g class="bbx-tweeter"><circle cx="' + cx + '" cy="' + cy + '" r="10" fill="url(#bbxBezel)" stroke="rgba(0,0,0,.5)" stroke-width="1"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="7" fill="url(#bbxSurround)"/>' +
+      '<circle class="bbx-tweeter-dome" cx="' + cx + '" cy="' + cy + '" r="4.5" fill="url(#bbxCap)"/></g>';
   }
-  function reel(cx) {
+  function screw(cx, cy, deg) {
+    return '<g class="bbx-screw"><circle cx="' + cx + '" cy="' + cy + '" r="4.2" fill="url(#bbxScrew)" stroke="rgba(0,0,0,.55)" stroke-width=".8"/>' +
+      '<path d="M' + (cx - 2.6) + " " + cy + " H" + (cx + 2.6) + '" stroke="rgba(0,0,0,.65)" stroke-width="1.1" transform="rotate(' + deg + " " + cx + " " + cy + ')"/></g>';
+  }
+  function reel(cx, cy) {
     var spokes = "";
     for (var i = 0; i < 6; i++) {
-      var a = i * Math.PI / 3, x = cx + Math.cos(a) * 7.5, y = 96 + Math.sin(a) * 7.5;
-      spokes += '<line x1="' + cx + '" y1="96" x2="' + x.toFixed(2) + '" y2="' + y.toFixed(2) + '"/>';
+      var a = i * Math.PI / 3, x = cx + Math.cos(a) * 7.5, y = cy + Math.sin(a) * 7.5;
+      spokes += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(2) + '" y2="' + y.toFixed(2) + '"/>';
     }
-    return '<g class="bbx-reel"><circle cx="' + cx + '" cy="96" r="10" fill="#ece6d8" stroke="#6b6458" stroke-width="1"/>' +
+    return '<g class="bbx-reel"><circle cx="' + cx + '" cy="' + cy + '" r="10" fill="#ece6d8" stroke="#6b6458" stroke-width="1"/>' +
       '<g stroke="#6b6458" stroke-width="1.6" stroke-linecap="round">' + spokes + "</g>" +
-      '<circle cx="' + cx + '" cy="96" r="3" fill="#2a2620"/></g>';
+      '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#2a2620"/></g>';
   }
   var DRAWING =
-    '<svg class="bbx-art" viewBox="0 0 320 176" aria-hidden="true" focusable="false">' +
+    '<svg class="bbx-art" viewBox="0 0 ' + BOX_W + " " + BOX_H + '" aria-hidden="true" focusable="false">' +
       "<defs>" +
-        '<linearGradient id="bbxChrome" x1="0" y1="0" x2="0" y2="1">' +
-          '<stop offset="0" stop-color="#fbfcff"/><stop offset=".18" stop-color="#c9ced9"/><stop offset=".42" stop-color="#eef1f7"/>' +
-          '<stop offset=".58" stop-color="#9aa1b1"/><stop offset=".8" stop-color="#d9dde6"/><stop offset="1" stop-color="#7d8496"/></linearGradient>' +
-        '<linearGradient id="bbxSheen" x1="0" y1="0" x2="1" y2="0">' +
-          '<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/>' +
-          '<stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
-        '<linearGradient id="bbxHandle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f8fc"/><stop offset=".5" stop-color="#8e95a6"/><stop offset="1" stop-color="#d4d8e2"/></linearGradient>' +
-        '<radialGradient id="bbxGrille" cx=".5" cy=".5" r=".5"><stop offset=".8" stop-color="#2b2f3a"/><stop offset=".92" stop-color="#c9ced9"/><stop offset="1" stop-color="#6d7486"/></radialGradient>' +
+        '<linearGradient id="bbxHandle" x1="0" y1="0" x2="0" y2="1">' + stop(0, "--bbx-h1") + stop(0.45, "--bbx-h2") + stop(1, "--bbx-h3") + "</linearGradient>" +
+        '<radialGradient id="bbxBezel" cx=".38" cy=".3" r=".75">' + stop(0, "--bbx-h1") + stop(0.55, "--bbx-h3") + stop(0.85, "--bbx-h2") + stop(1, "--bbx-h1") + "</radialGradient>" +
         '<radialGradient id="bbxSurround" cx=".45" cy=".4" r=".6"><stop offset="0" stop-color="#3a3f4c"/><stop offset=".85" stop-color="#14161c"/><stop offset="1" stop-color="#05060a"/></radialGradient>' +
         '<radialGradient id="bbxCone" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="#4a5062"/><stop offset=".6" stop-color="#1d2029"/><stop offset="1" stop-color="#0b0c11"/></radialGradient>' +
-        '<radialGradient id="bbxCap" cx=".38" cy=".34" r=".7"><stop offset="0" stop-color="#f4f6fb"/><stop offset=".5" stop-color="#a3aaba"/><stop offset="1" stop-color="#4b5161"/></radialGradient>' +
+        '<radialGradient id="bbxCap" cx=".38" cy=".34" r=".7">' + stop(0, "--bbx-h1") + stop(0.5, "--bbx-h3") + stop(1, "--bbx-h2") + "</radialGradient>" +
+        '<radialGradient id="bbxScrew" cx=".35" cy=".3" r=".8">' + stop(0, "--bbx-h1") + stop(0.6, "--bbx-h3") + stop(1, "--bbx-h2") + "</radialGradient>" +
         '<linearGradient id="bbxWindow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1f2a"/><stop offset="1" stop-color="#0a0c12"/></linearGradient>' +
+        '<linearGradient id="bbxFoot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d2f35"/><stop offset="1" stop-color="#050506"/></linearGradient>' +
+        /* the perforated grille: a metal sheet's dots, over the cones (they move behind it) */
+        '<pattern id="bbxGrille" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" style="fill:var(--bbx-grille)"/><circle cx="2.5" cy="2.5" r="1.45" fill="rgba(0,0,0,.6)"/></pattern>' +
       "</defs>" +
-      '<path class="bbx-handle" d="M86 26 V14 Q86 4 98 4 H222 Q234 4 234 14 V26 H222 V16 Q222 13 219 13 H101 Q98 13 98 16 V26 Z" fill="url(#bbxHandle)" stroke="rgba(0,0,0,.35)" stroke-width="1"/>' +
-      '<rect class="bbx-body" x="3" y="24" width="314" height="149" rx="18" fill="url(#bbxChrome)" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>' +
-      '<rect class="bbx-tint" x="3" y="24" width="314" height="149" rx="18"/>' +
-      '<rect x="9" y="28" width="302" height="10" rx="5" fill="url(#bbxSheen)" opacity=".8"/>' +
-      '<rect x="9" y="160" width="302" height="6" rx="3" fill="rgba(0,0,0,.12)"/>' +
-      speaker(56, "left") + speaker(264, "right") + tweeter(22) + tweeter(298) +
-      '<rect x="112" y="84" width="96" height="24" rx="5" fill="url(#bbxWindow)" stroke="rgba(255,255,255,.35)" stroke-width="1"/>' +
-      '<rect x="130" y="88" width="60" height="16" rx="3" fill="rgba(236,230,216,.12)"/>' +
-      reel(140) + reel(180) +
-      '<rect x="114" y="85" width="92" height="5" rx="2.5" fill="rgba(255,255,255,.12)"/>' +
+      '<rect x="40" y="232" width="66" height="15" rx="7" fill="url(#bbxFoot)"/><rect x="334" y="232" width="66" height="15" rx="7" fill="url(#bbxFoot)"/>' +
+      '<path class="bbx-handle" d="M128 30 V16 Q128 3 142 3 H298 Q312 3 312 16 V30 H300 V18 Q300 14 296 14 H144 Q140 14 140 18 V30 Z" fill="url(#bbxHandle)" stroke="rgba(0,0,0,.45)" stroke-width="1"/>' +
+      '<path d="M146 6.5 H294" stroke="rgba(255,255,255,.9)" stroke-width="1.4" stroke-linecap="round"/>' +
+      speaker(78, 126, "left") + speaker(362, 126, "right") + tweeter(44, 46) + tweeter(396, 46) +
+      screw(17, 44, 30) + screw(423, 44, -20) + screw(17, 214, 75) + screw(423, 214, 10) +
+      '<rect x="170" y="103" width="100" height="28" rx="5" fill="url(#bbxWindow)" stroke="rgba(255,255,255,.4)" stroke-width="1"/>' +
+      '<rect x="188" y="108" width="64" height="18" rx="3" fill="rgba(236,230,216,.12)"/>' +
+      reel(198, 117) + reel(242, 117) +
+      '<rect x="172" y="104" width="96" height="5" rx="2.5" fill="rgba(255,255,255,.14)"/>' +
     "</svg>";
 
+  /* The finishes: one construction, two sets of tokens. */
+  var CHROME = "--bbx-m1:#ffffff;--bbx-m2:#d3d8e1;--bbx-m3:#f7f9fc;--bbx-m4:#98a0b0;--bbx-m5:#e6e9ef;--bbx-m6:#767e90;" +
+    "--bbx-brush:rgba(255,255,255,.22);--bbx-brush2:rgba(70,80,100,.06);--bbx-sheen:rgba(255,255,255,.7);--bbx-reflect:.6;" +
+    "--bbx-h1:#ffffff;--bbx-h2:#858da0;--bbx-h3:#dfe3ea;--bbx-grille:rgba(214,219,228,.22);" +
+    "--bbx-key-a:#ffffff;--bbx-key-b:#dde1e7;--bbx-key-c:#a7adb9;--bbx-key-edge:#6d7384;--bbx-key-ink:#1b2030;--bbx-ink:#1b2030";
+  var BLACK = "--bbx-m1:#555963;--bbx-m2:#17181d;--bbx-m3:#2c2e35;--bbx-m4:#060709;--bbx-m5:#1e1f25;--bbx-m6:#000000;" +
+    "--bbx-brush:rgba(255,255,255,.035);--bbx-brush2:rgba(0,0,0,.18);--bbx-sheen:rgba(255,255,255,.3);--bbx-reflect:.38;" +
+    "--bbx-h1:#ffffff;--bbx-h2:#7d8598;--bbx-h3:#d6dbe3;--bbx-grille:rgba(120,126,138,.2);" +
+    "--bbx-key-a:#4a4d56;--bbx-key-b:#1b1c21;--bbx-key-c:#060607;--bbx-key-edge:#000000;--bbx-key-ink:#eef1f7;--bbx-ink:#eef1f7";
+  var KEY_FACE = "background:linear-gradient(180deg,var(--bbx-key-a),var(--bbx-key-b) 68%,var(--bbx-key-c));color:var(--bbx-key-ink);border:1px solid rgba(0,0,0,.5);" +
+    "box-shadow:0 3px 0 var(--bbx-key-edge),0 4px 4px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.65)";
+  var METAL = "linear-gradient(180deg,var(--bbx-m1) 0%,var(--bbx-m2) 18%,var(--bbx-m3) 42%,var(--bbx-m4) 60%,var(--bbx-m5) 82%,var(--bbx-m6) 100%)";
+  var BRUSH = "repeating-linear-gradient(90deg,var(--bbx-brush) 0 1px,var(--bbx-brush2) 1px 2px,transparent 2px 4px)";
+
   var CSS = [
-    ".bfm-float{position:fixed;z-index:" + Z + ";left:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:calc(100vw - 16px)}",
-    ".bfm-float[data-placed=true]{bottom:auto}",
+    ".bfm{" + CHROME + "}",
+    ".bfm[data-finish=black]{" + BLACK + "}",
+    ".bfm-float{position:fixed;z-index:" + Z + ";left:" + EDGE + "px;top:" + EDGE + "px;display:flex;flex-direction:column;align-items:flex-start;max-width:calc(100vw - 16px)}",
     ".bfm-pop{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px}",
-    ".bfm-tag{display:none;align-items:center;gap:6px;height:40px;width:min(290px,calc(100vw - 32px));padding:4px 6px 4px 10px;border-radius:12px;color:#1c2030;background:linear-gradient(180deg,#f7f9fd,#c4c9d4 55%,#e6e9f0);border:1px solid rgba(0,0,0,.25);box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px 0 #fff;cursor:grab;touch-action:none}",
+    /* the bar: a bevelled pill in the finish, its own sheen crossing it */
+    ".bfm-tag{display:none;position:relative;overflow:hidden;align-items:center;gap:6px;height:" + BAR_H + "px;width:min(" + BAR_W + "px,calc(100vw - 32px));padding:4px 6px 4px 12px;border-radius:999px;color:var(--bbx-ink);background:" + BRUSH + "," + METAL + ";border:1px solid rgba(0,0,0,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -2px 3px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.45);cursor:grab;touch-action:none}",
     ".bfm-float[data-state=tag] .bfm-tag{display:flex}",
+    ".bfm-tag > *{position:relative}",
+    ".bfm-tag .bfm-tag-sheen{position:absolute;top:-8px;bottom:-8px;left:0;width:64px;pointer-events:none;background:linear-gradient(100deg,transparent,var(--bbx-sheen),transparent);transform:translateX(-90px) skewX(-14deg);animation:bbx-bar-sheen 6s ease-in-out infinite}",
     ".bfm-tag-wave{display:flex;align-items:flex-end;gap:2px;height:16px;width:18px;flex:none}",
     ".bfm-tag-wave span{display:block;width:2px;height:16px;border-radius:1px;background:var(--bf-accent-a, #22d3ee);transform-origin:bottom;transform:scaleY(.2)}",
-    ".bfm-tag-clip{flex:1;min-width:0;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".bfm-tag-clip{flex:1;min-width:0;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 rgba(255,255,255,.35)}",
+    ".bfm[data-finish=black] .bfm-tag-clip{text-shadow:0 1px 0 rgba(0,0,0,.6)}",
     ".bfm-tag-scroll{display:inline}",
     ".bfm-tag-clip[data-overflow=true]{text-overflow:clip}",
     ".bfm-tag-clip[data-overflow=true] .bfm-tag-scroll{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 10s) linear infinite}",
     ".bfm-tag-clip[data-overflow=true] .bfm-tag-title,.bfm-tag-ghost{padding-right:" + TAG_GAP + "px}",
-    ".bfm-tag button{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;border:1px solid rgba(0,0,0,.2);background:linear-gradient(180deg,#fff,#cfd3dc);color:#1c2030;cursor:pointer;flex:none}",
-    ".bfm-tag button:focus-visible,.bbx button:focus-visible,.bbx-dial:focus-visible,.bbx-display:focus-visible,.bbx-body-grip:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
-    ".bfm-tag[data-resume=true] .bfm-tag-title{color:#7a3f00}",
-    ".bbx{position:relative;width:320px;height:176px;flex:none;display:none;color:#1c2030;filter:drop-shadow(0 10px 22px rgba(0,0,0,.5));touch-action:none}",
+    ".bfm-tag button{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;padding:0;cursor:pointer;flex:none;" + KEY_FACE + "}",
+    ".bfm-tag[data-resume=true] .bfm-tag-title{color:var(--bf-accent-b, #a855f7)}",
+    ".bfm-tag button:focus-visible,.bbx button:focus-visible,.bbx-knob:focus-visible,.bbx-xf:focus-visible,.bbx-fader:focus-visible,.bbx-display:focus-visible,.bbx-body-grip:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
+    /* the boombox */
+    ".bbx{position:relative;width:" + BOX_W + "px;height:" + BOX_H + "px;flex:none;display:none;color:var(--bbx-ink);filter:drop-shadow(0 14px 24px rgba(0,0,0,.55));touch-action:none}",
     ".bfm-float[data-state=box] .bbx,.bfm-pop .bbx{display:block}",
+    ".bbx-face{position:absolute;left:4px;top:26px;width:432px;height:210px;border-radius:26px;overflow:hidden;background:" + BRUSH + "," + METAL + ";box-shadow:inset 0 2px 1px rgba(255,255,255,.85),inset 0 -4px 6px rgba(0,0,0,.42),inset 3px 0 4px rgba(255,255,255,.35),inset -3px 0 4px rgba(0,0,0,.28),inset 0 0 22px rgba(0,0,0,.22),0 2px 0 rgba(0,0,0,.4)}",
+    /* the ambient reflection across the top of the body */
+    ".bbx-face::before{content:\"\";position:absolute;left:7%;right:7%;top:3px;height:44%;border-radius:0 0 50% 50%;background:radial-gradient(120% 100% at 50% 0%,rgba(255,255,255,.6),rgba(255,255,255,0) 72%);opacity:var(--bbx-reflect);pointer-events:none}",
+    /* the light sweep: a band of light crossing the face now and then */
+    ".bbx-sheen{position:absolute;top:-40px;bottom:-40px;left:0;width:110px;pointer-events:none;background:linear-gradient(105deg,transparent 0%,var(--bbx-sheen) 50%,transparent 100%);transform:translateX(-170px) skewX(-14deg);animation:bbx-sheen 7s ease-in-out infinite}",
+    /* the silver rim: the chat box's masked ring, its shine wandering (moved, never repainted) */
+    ".bbx-rim{position:absolute;left:4px;top:26px;width:432px;height:210px;box-sizing:border-box;border-radius:26px;padding:3px;overflow:hidden;pointer-events:none;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}",
+    ".bbx-rim-shine{position:absolute;left:-100%;top:-100%;width:300%;height:300%;background:linear-gradient(135deg,#5d6372 0%,#c9ced8 12%,#ffffff 22%,#a7aebb 32%,#eef1f6 44%,#6f7688 56%,#ffffff 68%,#b9bfca 80%,#5d6372 100%);animation:bbx-rim 9s ease-in-out infinite}",
     ".bbx-art{position:absolute;inset:0;width:100%;height:100%}",
-    ".bbx-tint{fill:rgba(var(--bf-accent-a-rgb, 34, 211, 238),.08);mix-blend-mode:overlay}",
     ".bbx-cone,.bbx-cap,.bbx-tweeter-dome,.bbx-reel{transform-box:fill-box;transform-origin:center;will-change:transform}",
     ".bbx-tweeter-dome{opacity:.55}",
-    ".bbx-body-grip{position:absolute;left:86px;top:0;width:148px;height:24px;cursor:grab;border-radius:10px}",
-    ".bbx-top{position:absolute;top:4px;display:flex;gap:4px}",
-    ".bbx-top-l{left:8px}.bbx-top-r{right:8px}",
-    ".bbx-top button{display:inline-grid;place-items:center;width:22px;height:18px;border-radius:6px;border:1px solid rgba(0,0,0,.25);background:linear-gradient(180deg,#fff,#c8cdd7);color:#1c2030;cursor:pointer;padding:0}",
-    ".bbx-top button[aria-pressed=true]{color:var(--bf-accent-b, #a855f7)}",
-    ".bbx-display{position:absolute;left:108px;top:35px;width:104px;height:42px;padding:3px 5px;border-radius:6px;background:radial-gradient(120% 140% at 50% 0%,rgba(var(--bf-accent-a-rgb, 34, 211, 238),.30),rgba(4,14,18,.96) 70%);border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);overflow:hidden;color:var(--bf-accent-a, #22d3ee);font-family:\"Courier New\",ui-monospace,monospace}",
+    ".bbx-body-grip{position:absolute;left:128px;top:0;width:184px;height:28px;cursor:grab;border-radius:12px}",
+    ".bbx-display{position:absolute;left:148px;top:46px;width:144px;height:52px;box-sizing:border-box;padding:4px 6px;border-radius:7px;background:radial-gradient(120% 140% at 50% 0%,rgba(var(--bf-accent-a-rgb, 34, 211, 238),.30),rgba(4,14,18,.96) 70%);border:1px solid rgba(0,0,0,.7);box-shadow:inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35),0 1px 0 rgba(255,255,255,.5);overflow:hidden;color:var(--bf-accent-a, #22d3ee);font-family:\"Courier New\",ui-monospace,monospace}",
     /* the VFD: phosphor glow in the accent, fine scan lines over it */
     ".bbx-marquee{position:relative;height:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;line-height:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--bf-accent-a, #22d3ee);text-shadow:0 0 2px currentColor,0 0 6px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.85)}",
     ".bbx-marquee::after{content:\"\";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(4,14,18,.38) 1px,transparent 1px);background-size:100% 2px}",
@@ -232,47 +282,81 @@
     ".bbx-marquee[data-scroll=true] .bbx-vfd-copy{padding-right:24px}",
     ".bbx-vfd-artist{opacity:.82}",
     /* the LED ticker: a dot-matrix strip under the handle */
-    ".bbx-ticker{position:absolute;left:36px;top:26px;width:242px;height:9px;padding:0 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:2px;background:#04070b;border:1px solid rgba(0,0,0,.6);box-shadow:inset 0 0 4px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);color:var(--bf-accent-a, #22d3ee);font:700 7px/9px \"Courier New\",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 0 3px currentColor}",
+    ".bbx-ticker{position:absolute;left:146px;top:32px;width:148px;height:10px;box-sizing:border-box;padding:0 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:2px;background:#04070b;border:1px solid rgba(0,0,0,.7);box-shadow:inset 0 0 4px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.35);color:var(--bf-accent-a, #22d3ee);font:700 7px/9px \"Courier New\",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 0 3px currentColor}",
     ".bbx-ticker::after{content:\"\";position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(90deg,rgba(4,7,11,.62) 1px,transparent 1px),linear-gradient(rgba(4,7,11,.62) 1px,transparent 1px);background-size:2px 2px}",
     ".bbx-ticker-track{display:inline}",
     ".bbx-ticker[data-scroll=true]{text-overflow:clip}",
     ".bbx-ticker[data-scroll=true] .bbx-ticker-track{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 14s) linear infinite}",
     ".bbx-ticker[data-scroll=true] .bbx-ticker-text{padding-right:40px}",
     /* the "Now playing" sweep, once per new track */
-    ".bbx-sweep{position:absolute;left:60px;top:70px;width:200px;height:26px;display:grid;place-items:center;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:translateX(-150%)}",
+    ".bbx-sweep{position:absolute;left:100px;top:72px;width:240px;height:26px;display:grid;place-items:center;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:translateX(-150%)}",
     ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1) 1 both}",
     ".bbx[data-sweep=on] .bbx-ticker{opacity:0}",
     ".bbx[data-sweep=done] .bbx-ticker{animation:bbx-settle .45s ease-out 1 both}",
-    ".bfm[data-hidden=true] .bbx-scroll,.bfm[data-hidden=true] .bbx-ticker-track,.bfm[data-hidden=true] .bfm-tag-scroll,.bfm[data-hidden=true] .bbx-sweep{animation-play-state:paused}",
+    ".bfm[data-hidden=true] .bbx-scroll,.bfm[data-hidden=true] .bbx-ticker-track,.bfm[data-hidden=true] .bfm-tag-scroll,.bfm[data-hidden=true] .bbx-sweep,.bfm[data-hidden=true] .bbx-sheen,.bfm[data-hidden=true] .bbx-rim-shine,.bfm[data-hidden=true] .bfm-tag-sheen{animation-play-state:paused}",
     "@keyframes bbx-loop{0%," + (SCROLL_HOLD * 100) + "%{transform:translateX(0)}100%{transform:translateX(-50%)}}",
     "@keyframes bbx-sweep{0%{transform:translateX(-150%);opacity:0}18%{opacity:1}82%{opacity:1}100%{transform:translateX(150%);opacity:0}}",
     "@keyframes bbx-settle{from{opacity:0}to{opacity:1}}",
+    "@keyframes bbx-sheen{0%,58%{transform:translateX(-170px) skewX(-14deg)}100%{transform:translateX(620px) skewX(-14deg)}}",
+    "@keyframes bbx-rim{0%,100%{transform:translate(-8%,-6%)}25%{transform:translate(14%,4%)}50%{transform:translate(20%,18%)}75%{transform:translate(2%,12%)}}",
+    "@keyframes bbx-bar-sheen{0%,62%{transform:translateX(-90px) skewX(-14deg)}100%{transform:translateX(360px) skewX(-14deg)}}",
     ".bbx-row{display:flex;justify-content:space-between;align-items:center;font-size:9px;line-height:11px;font-variant-numeric:tabular-nums}",
-    ".bbx-display .bfm-viz{display:block;width:94px;height:11px;margin:1px 0}",
-    ".bbx-display .bfm-seek{display:block;width:94px;height:6px;margin:0;accent-color:var(--bf-accent-a, #22d3ee)}",
-    ".bbx-keys{position:absolute;left:110px;top:112px;width:100px;display:flex;gap:2px}",
-    ".bbx-keys button{flex:1;height:22px;padding:0;display:grid;place-items:center;border-radius:2px 2px 5px 5px;border:1px solid rgba(0,0,0,.45);background:linear-gradient(180deg,#fdfdfd,#d6d9e0 70%,#a6abb7);color:#1c2030;box-shadow:0 3px 0 #6d7384,0 4px 4px rgba(0,0,0,.25);cursor:pointer;transition:transform .06s}",
-    ".bbx-keys button[data-down=true],.bbx-keys button:active{transform:translateY(3px);box-shadow:0 0 0 #6d7384,0 1px 2px rgba(0,0,0,.25)}",
-    ".bbx-keys button[aria-pressed=true]{color:var(--bf-accent-b, #a855f7)}",
-    ".bbx-keys .bfm-main{color:#0b1020}",
-    ".bbx-low{position:absolute;left:108px;top:140px;width:104px;height:28px;display:flex;align-items:center;justify-content:space-between}",
+    ".bbx-display .bfm-viz{display:block;width:132px;height:11px;margin:1px 0}",
+    ".bbx-display .bfm-seek{display:block;width:132px;height:6px;margin:0;accent-color:var(--bf-accent-a, #22d3ee)}",
+    /* the piano keys */
+    ".bbx-keys{position:absolute;left:150px;top:138px;width:140px;display:flex;gap:2px}",
+    ".bbx-keys button,.bbx-fkeys button{flex:1;height:24px;padding:0;display:grid;place-items:center;border-radius:2px 2px 5px 5px;cursor:pointer;transition:transform .06s;" + KEY_FACE + "}",
+    ".bbx-keys button[data-down=true],.bbx-keys button:active,.bbx-fkeys button[data-down=true],.bbx-fkeys button:active{transform:translateY(3px);box-shadow:0 0 0 var(--bbx-key-edge),0 1px 2px rgba(0,0,0,.3)}",
+    ".bbx-keys button[aria-pressed=true],.bbx-fkeys button[aria-pressed=true]{color:var(--bf-accent-b, #a855f7)}",
+    /* the mixer deck: recessed, dark in both finishes */
+    ".bbx-deck{position:absolute;left:30px;top:184px;width:380px;height:46px;box-sizing:border-box;border-radius:10px;background:linear-gradient(180deg,#0b0d13,#1c2029);border:1px solid rgba(0,0,0,.75);box-shadow:inset 0 3px 8px rgba(0,0,0,.75),inset 0 -1px 0 rgba(255,255,255,.08),0 1px 0 rgba(255,255,255,.55);color:#cfd5e2;font:700 7px/1 system-ui,-apple-system,\"Segoe UI\",sans-serif;letter-spacing:.12em;text-transform:uppercase}",
+    ".bbx-deck > *{position:absolute;top:4px}",
+    ".bbx-lbl{display:block;margin-top:3px;text-align:center;color:#aeb6c6}",
+    ".bbx-eq{left:8px;display:flex;gap:10px}",
+    ".bbx-eq-band{width:30px;display:flex;flex-direction:column;align-items:center}",
+    ".bbx-knob{position:relative;width:26px;height:26px;border-radius:50%;cursor:ns-resize;touch-action:none;background:radial-gradient(circle at 35% 30%,#ffffff,#c6cbd5 42%,#666d7f 100%);border:1px solid rgba(0,0,0,.7);box-shadow:0 2px 3px rgba(0,0,0,.6),inset 0 -2px 3px rgba(0,0,0,.35)}",
+    ".bbx-knob::before{content:\"\";position:absolute;left:50%;top:-4px;width:2px;height:3px;margin-left:-1px;border-radius:1px;background:#8e97a8}",
+    ".bbx-knob-mark{position:absolute;left:50%;top:2px;width:2px;height:9px;margin-left:-1px;border-radius:1px;background:var(--bf-accent-a, #22d3ee);box-shadow:0 0 3px var(--bf-accent-a, #22d3ee);transform-origin:1px 11px}",
+    ".bbx-xfade{left:124px;width:100px}",
+    ".bbx-xf-head{display:flex;justify-content:space-between;color:#aeb6c6;margin-bottom:5px}",
+    ".bbx-xf-out{color:var(--bf-accent-a, #22d3ee);font-variant-numeric:tabular-nums}",
+    ".bbx-xf{position:relative;width:96px;height:16px;cursor:ew-resize;touch-action:none}",
+    ".bbx-xf::before{content:\"\";position:absolute;left:4px;right:4px;top:7px;height:3px;border-radius:2px;background:#000;box-shadow:inset 0 1px 1px rgba(255,255,255,.12),0 1px 0 rgba(255,255,255,.1)}",
+    ".bbx-xf-cap{position:absolute;left:0;top:0;width:14px;height:16px;border-radius:3px;background:linear-gradient(90deg,#8d95a6,#ffffff 45%,#c6cbd5 55%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
+    ".bbx-meters{left:236px;display:flex;gap:3px;align-items:flex-start}",
     ".bbx-leds{display:flex;flex-direction:column-reverse;gap:1px}",
-    ".bbx-leds span{display:block;width:12px;height:2.5px;border-radius:1px;background:#3dff9a;opacity:.18}",
-    ".bbx-leds span:nth-child(n+5){background:#ffcc33}.bbx-leds span:nth-child(6){background:#ff4d4d}",
-    ".bbx-dial{position:relative;width:26px;height:26px;border-radius:50%;cursor:ns-resize;background:radial-gradient(circle at 35% 30%,#fff,#b7bcc8 55%,#6f7687);border:1px solid rgba(0,0,0,.45);box-shadow:0 2px 4px rgba(0,0,0,.35)}",
-    ".bbx-dial-mark{position:absolute;left:50%;top:2px;width:2px;height:8px;margin-left:-1px;border-radius:1px;background:#1c2030;transform-origin:1px 11px}",
-    ".bbx-dial-out{font-size:9px;font-weight:700;min-width:26px;text-align:center;color:#1c2030}",
-    ".bbx-low .bfm-btn{width:20px;height:20px;padding:0;display:grid;place-items:center;border-radius:5px;border:1px solid rgba(0,0,0,.3);background:linear-gradient(180deg,#fff,#c8cdd7);color:#1c2030;cursor:pointer}",
-    ".bfm-panel{display:none;width:320px;max-width:calc(100vw - 16px);max-height:min(58vh,520px);overflow:auto;padding:12px 14px;border-radius:14px;color:#e8e8ff;background:linear-gradient(160deg,rgba(14,18,40,.96),rgba(8,10,24,.97));border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.22);box-shadow:0 12px 34px rgba(0,0,0,.5);transform-origin:top center;animation:bbx-slide .18s ease-out}",
-    ".bfm-float[data-state=box][data-library=true] .bfm-panel,.bfm-pop .bfm-panel{display:block}",
-    ".bfm-pop .bfm-panel{width:min(560px,100%);max-height:none}",
-    "@keyframes bbx-slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}",
+    ".bbx-leds span{display:block;width:9px;height:3px;border-radius:1px;background:#3dff9a;opacity:.18}",
+    ".bbx-leds span:nth-child(n+6){background:#ffcc33}.bbx-leds span:nth-child(8){background:#ff4d4d}",
+    ".bbx-meter-lbl{display:block;margin-top:3px;width:21px;text-align:center;color:#aeb6c6}",
+    ".bbx-vol{left:266px;display:flex;flex-direction:column;align-items:center}",
+    ".bbx-fader{position:relative;width:16px;height:40px;cursor:ns-resize;touch-action:none}",
+    ".bbx-fader::before{content:\"\";position:absolute;left:6.5px;top:2px;bottom:2px;width:3px;border-radius:2px;background:#000;box-shadow:inset 0 1px 1px rgba(255,255,255,.12),1px 0 0 rgba(255,255,255,.1)}",
+    ".bbx-fader-cap{position:absolute;left:-2px;top:0;width:20px;height:9px;border-radius:2px;background:linear-gradient(180deg,#ffffff,#c6cbd5 50%,#737a8c);border:1px solid rgba(0,0,0,.65);box-shadow:0 2px 3px rgba(0,0,0,.55)}",
+    ".bbx-fader-cap::after{content:\"\";position:absolute;left:3px;right:3px;top:3.5px;height:1px;background:rgba(0,0,0,.55)}",
+    ".bbx-vol-out{position:absolute;left:20px;top:2px;color:var(--bf-accent-a, #22d3ee);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:0}",
+    ".bbx-fkeys{left:296px;width:78px;display:flex;gap:2px;top:6px}",
+    ".bbx-fkeys button{height:32px}",
+    /* the slide-out library: from behind the boombox, below or beside it */
+    ".bfm-drawer{position:absolute;left:0;top:100%;margin-top:8px;width:" + DRAWER_W + "px;max-width:calc(100vw - 16px);overflow:hidden;pointer-events:none}",
+    ".bfm-drawer[data-side=right]{left:100%;top:0;margin:0 0 0 10px}",
+    ".bfm-drawer[data-side=left]{left:auto;right:100%;top:0;margin:0 10px 0 0}",
+    ".bfm-float[data-state=box][data-library=true] .bfm-drawer{pointer-events:auto}",
+    ".bfm-float[data-state=tag] .bfm-drawer{display:none}",
+    ".bfm-panel{display:block;box-sizing:border-box;width:100%;max-height:var(--bfm-drawer-h, " + DRAWER_MAX_H + "px);overflow:auto;padding:12px 14px;border-radius:14px;color:#e8e8ff;background:linear-gradient(160deg,rgba(14,18,40,.97),rgba(8,10,24,.98));border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.25);box-shadow:0 12px 34px rgba(0,0,0,.5);transform:translateY(-104%);transition:transform .26s ease-out}",
+    ".bfm-drawer[data-side=right] .bfm-panel{transform:translateX(-104%)}",
+    ".bfm-drawer[data-side=left] .bfm-panel{transform:translateX(104%)}",
+    ".bfm-float[data-state=box][data-library=true] .bfm-panel{transform:none}",
+    ".bfm-pop .bfm-drawer{position:static;width:min(560px,100%);margin:0;pointer-events:auto;overflow:visible}",
+    ".bfm-pop .bfm-panel{transform:none;max-height:none}",
     ".bfm-float[data-dock=phone]{left:0!important;right:0;top:auto!important;bottom:0!important;max-width:100vw;align-items:stretch;gap:0}",
-    ".bfm-float[data-dock=phone] .bfm-tag{width:100%;border-radius:12px 12px 0 0;cursor:default}",
+    ".bfm-float[data-dock=phone] .bfm-tag{width:100%;border-radius:14px 14px 0 0;cursor:default}",
     ".bfm-float[data-dock=phone][data-state=box]{max-height:88vh;overflow:auto;padding:12px 8px 8px;border-radius:16px 16px 0 0;background:rgba(8,10,24,.97);box-shadow:0 -10px 30px rgba(0,0,0,.55);align-items:center}",
-    ".bfm-float[data-dock=phone] .bfm-panel{width:100%;max-height:none;margin-top:8px}",
+    ".bfm-float[data-dock=phone] .bbx{transform:scale(var(--bbx-fit, 1));transform-origin:top center;margin-bottom:calc((var(--bbx-fit, 1) - 1) * " + BOX_H + "px)}",
+    ".bfm-float[data-dock=phone] .bfm-drawer{position:static;width:100%;margin-top:8px;display:none}",
+    ".bfm-float[data-dock=phone][data-library=true] .bfm-drawer{display:block}",
+    ".bfm-float[data-dock=phone] .bfm-panel{transform:none;max-height:none}",
     ".bfm-float[data-dock=phone] .bbx-body-grip{cursor:default}",
-    "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-sweep,.bbx-ticker{animation:none!important}.bbx-sweep{display:none}.bbx-keys button{transition:none}.bfm-panel{animation:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
+    "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-sweep,.bbx-ticker,.bbx-sheen,.bbx-rim-shine,.bfm-tag-sheen{animation:none!important}.bbx-sweep,.bbx-sheen,.bfm-tag .bfm-tag-sheen{display:none}.bbx-keys button,.bbx-fkeys button,.bfm-panel{transition:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
   ].join("\n");
   function injectStyle() {
     if (doc.getElementById("bf-boombox-style")) return;
@@ -283,21 +367,27 @@
   }
 
   function boxHtml(opts) {
+    var popout = opts.mode === "popout";
     var leds = "";
     for (var i = 0; i < LEDS; i++) leds += "<span></span>";
-    var top = opts.mode === "popout" ? "" :
-      '<div class="bbx-top bbx-top-l"><button type="button" data-act="bbx-library" aria-pressed="false" aria-label="Library" title="Library">' + svg("library", 12) + "</button>" +
-        '<button type="button" data-act="popout" aria-label="Pop out" title="Pop out">' + svg("popout", 12) + "</button></div>" +
-      '<div class="bbx-top bbx-top-r"><button type="button" data-act="bbx-reset" aria-label="Reset the boombox position" title="Reset position">' + svg("reset", 12) + "</button>" +
-        '<button type="button" data-act="bbx-minimise" aria-label="Minimise the boombox" title="Minimise">' + svg("minimise", 12) + "</button></div>";
-    return '<div class="bbx" role="group" aria-label="BizForce boombox" aria-roledescription="music player" data-sweep="off">' + DRAWING +
-      (opts.mode === "popout" ? "" : '<div class="bbx-body-grip" tabindex="0" role="button" aria-label="Move the boombox. Drag, or use the arrow keys; Home resets it."></div>') +
-      top +
+    var knobs = EQ_BANDS.map(function (b) {
+      return '<div class="bbx-eq-band"><div class="bbx-knob" data-band="' + b[0] + '" tabindex="0" role="slider" aria-label="' + b[1] + '" aria-valuemin="-' + EQ_MAX + '" aria-valuemax="' + EQ_MAX +
+        '" aria-valuenow="0" aria-valuetext="0 dB" title="' + b[1] + ': drag, scroll or use the arrow keys; double-click resets"><span class="bbx-knob-mark"></span></div><span class="bbx-lbl" aria-hidden="true">' + b[2] + "</span></div>";
+    }).join("");
+    var fkeys = '<button type="button" class="bfm-btn" data-act="mute" aria-pressed="false" aria-label="Mute" title="Mute">' + svg("volume", 12) + "</button>" +
+      (popout ? "" :
+        '<button type="button" data-act="bbx-library" aria-pressed="false" aria-expanded="false" aria-label="Library" title="Library">' + svg("library", 12) + "</button>" +
+        '<button type="button" data-act="bbx-reset" aria-label="Reset position" title="Reset position">' + svg("reset", 12) + "</button>" +
+        '<button type="button" data-act="bbx-minimise" aria-label="Minimise" title="Minimise">' + svg("minimise", 12) + "</button>");
+    return '<div class="bbx" role="group" aria-label="BizForce boombox" aria-roledescription="music player" data-sweep="off">' +
+      '<div class="bbx-face" aria-hidden="true"><span class="bbx-sheen"></span></div>' + DRAWING +
+      '<div class="bbx-rim" aria-hidden="true"><span class="bbx-rim-shine"></span></div>' +
+      (popout ? "" : '<div class="bbx-body-grip" tabindex="0" role="button" aria-label="Move the boombox. Drag, or use the arrow keys; Home resets it."></div>') +
       '<div class="bbx-ticker" aria-hidden="true" data-scroll="false" title="' + NO_TRACK + '"><span class="bbx-ticker-track"><span class="bbx-ticker-text">' + NO_TRACK + "</span></span></div>" +
       '<div class="bbx-display" tabindex="0" role="group" aria-label="Display. Space plays or pauses; the left and right arrows seek.">' +
         '<div class="bbx-marquee" data-scroll="false" title="' + NO_TRACK + '"><span class="bbx-scroll"><span class="bbx-vfd-copy"><span class="bfm-np-title">' + NO_TRACK + '</span><span class="bbx-vfd-artist"></span></span></span></div>' +
         '<div class="bbx-row"><span class="bfm-np-artist"></span><span><span class="bfm-cur">0:00</span>/<span class="bfm-dur">0:00</span></span></div>' +
-        '<canvas class="bfm-viz" width="188" height="32" role="img" aria-label="Live sound visualiser"></canvas>' +
+        '<canvas class="bfm-viz" width="264" height="32" role="img" aria-label="Live sound visualiser"></canvas>' +
         '<input class="bfm-seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="Seek" />' +
       "</div>" +
       '<div class="bbx-keys" role="group" aria-label="Playback">' +
@@ -307,11 +397,16 @@
         '<button type="button" data-act="shuffle" aria-pressed="false" aria-label="Shuffle">' + svg("shuffle", 12) + "</button>" +
         '<button type="button" data-act="repeat" aria-pressed="false" aria-label="Repeat: off">' + svg("repeat", 12) + "</button>" +
       "</div>" +
-      '<div class="bbx-low"><div class="bbx-leds" data-side="left" aria-hidden="true">' + leds + "</div>" +
-        '<button type="button" class="bfm-btn" data-act="mute" aria-pressed="false" aria-label="Mute">' + svg("volume", 12) + "</button>" +
-        '<div class="bbx-dial" tabindex="0" role="slider" aria-label="Volume" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80" aria-valuetext="80%"><span class="bbx-dial-mark"></span></div>' +
-        '<span class="bbx-dial-out">80%</span>' +
-        '<div class="bbx-leds" data-side="right" aria-hidden="true">' + leds + "</div></div>" +
+      '<div class="bbx-deck" role="group" aria-label="Mixer">' +
+        '<div class="bbx-eq" role="group" aria-label="EQ">' + knobs + "</div>" +
+        '<div class="bbx-xfade"><div class="bbx-xf-head" aria-hidden="true"><span>Mix</span><span class="bbx-xf-out">Off</span></div>' +
+          '<div class="bbx-xf" tabindex="0" role="slider" aria-label="Mix (crossfade)" aria-valuemin="0" aria-valuemax="' + MIX_MAX + '" aria-valuenow="0" aria-valuetext="Off"><span class="bbx-xf-cap"></span></div></div>' +
+        '<div class="bbx-meters" aria-hidden="true"><div><div class="bbx-leds" data-side="left">' + leds + '</div><span class="bbx-meter-lbl" data-side="left">L</span></div>' +
+          '<div><div class="bbx-leds" data-side="right">' + leds + '</div><span class="bbx-meter-lbl" data-side="right">R</span></div></div>' +
+        '<div class="bbx-vol"><div class="bbx-fader" tabindex="0" role="slider" aria-label="Volume" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80" aria-valuetext="80%"><span class="bbx-fader-cap"></span></div>' +
+          '<span class="bbx-lbl" aria-hidden="true">Vol</span></div>' +
+        '<div class="bbx-fkeys" role="group" aria-label="Boombox">' + fkeys + "</div>" +
+      "</div>" +
       '<div class="bbx-sweep" aria-hidden="true"><span>Now playing</span></div>' +
     "</div>";
   }
@@ -319,6 +414,7 @@
     var bars = "";
     for (var i = 0; i < WAVE_BARS; i++) bars += "<span></span>";
     return '<div class="bfm-tag" role="group" aria-label="Now playing. Drag, or use the arrow keys, to move it; Home resets it." tabindex="0">' +
+      '<span class="bfm-tag-sheen" aria-hidden="true"></span>' +
       '<span class="bfm-tag-wave" aria-hidden="true">' + bars + "</span>" +
       '<span class="bfm-tag-clip" title="' + NO_TRACK + '"><span class="bfm-tag-scroll"><span class="bfm-tag-title">' + NO_TRACK + "</span></span></span>" +
       '<button type="button" class="bfm-main" data-act="toggle" aria-label="Play">' + svg("play", 12) + "</button>" +
@@ -327,7 +423,7 @@
     "</div>";
   }
 
-  /* mount({ mode: "float" | "popout", host, anchor, onVolume(v), onSeekBy(s), onToggle() }) */
+  /* mount({ mode: "float" | "popout", host, anchor, finish, onVolume(v), onMix(s), onEq(band, db), onSeekBy(s), onToggle() }) */
   function mount(opts) {
     injectStyle();
     opts = opts || {};
@@ -336,27 +432,36 @@
     root.className = "bfm " + (popout ? "bfm-pop" : "bfm-float");
     root.setAttribute("role", "region");
     root.setAttribute("aria-label", "Music");
-    root.innerHTML = (popout ? "" : tagHtml()) + boxHtml(opts) + '<div class="bfm-panel" role="region" aria-label="Music library"></div>' +
+    root.setAttribute("data-finish", FINISHES.indexOf(opts.finish) !== -1 ? opts.finish : "chrome");
+    root.innerHTML = (popout ? "" : tagHtml()) + boxHtml(opts) +
+      '<div class="bfm-drawer" data-side="below"><div class="bfm-panel" role="region" aria-label="Music library"></div></div>' +
       '<p class="bfm-sr bfm-live" aria-live="polite"></p>';
     (opts.host || doc.body || doc.documentElement).appendChild(root);
     var $ = function (sel) { return root.querySelector(sel); };
     var $$ = function (sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); };
-    var box = $(".bbx"), tag = $(".bfm-tag");
+    var box = $(".bbx"), tag = $(".bfm-tag"), drawer = $(".bfm-drawer"), panel = $(".bfm-panel");
     var cones = $$(".bbx-cone"), caps = $$(".bbx-cap"), domes = $$(".bbx-tweeter-dome"), reels = $$(".bbx-reel");
-    var leds = $$(".bbx-leds span"), wave = $$(".bfm-tag-wave span");
+    var ledsL = $$(".bbx-leds[data-side=left] span"), ledsR = $$(".bbx-leds[data-side=right] span"), wave = $$(".bfm-tag-wave span");
     var prefs = loadPrefs();
-    var state = popout ? "box" : (prefs.state === "box" || prefs.state === "tag" ? prefs.state : (opts.anchor ? "box" : "tag"));
+    /* The FIRST time it is always the bar; after that, what the member left it as. */
+    var state = popout ? "box" : (prefs.state === "box" ? "box" : "tag");
     var library = popout ? true : prefs.library === true;
-    var M = { speed: 0, angle: 0, cone: 0, highs: 0, level: 0, t: 0 };
+    var M = { speed: 0, angle: 0, cone: 0, highs: 0, level: 0, left: 0, right: 0, t: 0 };
 
+    function shutDrawer(shut) {
+      if (popout) return;
+      if (shut) { panel.setAttribute("inert", ""); panel.setAttribute("aria-hidden", "true"); }
+      else { panel.removeAttribute("inert"); panel.removeAttribute("aria-hidden"); }
+    }
     function setState(s, focus) {
       if (popout) return;
       state = s === "box" ? "box" : "tag";
-      if (state === "tag") library = false;
       root.setAttribute("data-state", state);
       root.setAttribute("data-library", library ? "true" : "false");
-      var lib = $("[data-act=bbx-library]"); if (lib) lib.setAttribute("aria-pressed", library ? "true" : "false");
+      var lib = $("[data-act=bbx-library]");
+      if (lib) { lib.setAttribute("aria-pressed", library ? "true" : "false"); lib.setAttribute("aria-expanded", library && state === "box" ? "true" : "false"); }
       var ex = $("[data-act=bbx-expand]"); if (ex) ex.setAttribute("aria-expanded", state === "box" ? "true" : "false");
+      shutDrawer(!(state === "box" && library));
       prefs.state = state; prefs.library = library; savePrefs(prefs);
       place();
       if (state === "tag" && typeof fitTag === "function") fitTag();
@@ -365,11 +470,12 @@
         if (to) to.focus();
       }
     }
-    function setLibrary(on) {
+    function setLibrary(on, focus) {
       if (popout) return;
       library = !!on;
       if (library) state = "box";
       setState(state);
+      if (focus) { var lib = $("[data-act=bbx-library]"); if (lib) lib.focus(); }
     }
 
     /* ── the place on screen ─────────────────────────────────────────────── */
@@ -383,12 +489,23 @@
       root.setAttribute("data-placed", "true");
       return c;
     }
+    /* Beside the logo, centred on the header's height: to its right, or to
+       its left where the logo ends the header and the bar would not fit. With
+       no logo header, the top-left corner. The boombox opens from the same
+       spot, so it expands down and right from the bar. */
     function defaultSpot() {
-      if (opts.anchor && opts.anchor.getBoundingClientRect) {
-        var r = opts.anchor.getBoundingClientRect();
-        return { left: r.right + GAP, top: r.top };
+      var a = opts.anchor;
+      if (a && a.getBoundingClientRect) {
+        var r = a.getBoundingClientRect();
+        var head = a.closest ? a.closest("header, nav, .topbar, .top-nav") : null;
+        var hr = head && head.getBoundingClientRect ? head.getBoundingClientRect() : null;
+        var mid = hr && hr.height > 0 ? hr.top + hr.height / 2 : r.top + (r.height || 0) / 2;
+        var right = Math.min(window.innerWidth, hr && hr.width > 0 ? hr.right : window.innerWidth) - EDGE;
+        var left = r.right + GAP;
+        if (left + BAR_W > right && r.left - GAP - BAR_W >= EDGE) left = r.left - GAP - BAR_W;
+        return { left: Math.round(left), top: Math.round(mid - BAR_H / 2) };
       }
-      return { left: 16, top: window.innerHeight - root.offsetHeight - 16 };
+      return { left: EDGE, top: EDGE };
     }
     function place() {
       if (popout) return;
@@ -396,12 +513,27 @@
         root.setAttribute("data-dock", "phone");
         root.removeAttribute("data-placed");
         root.style.left = ""; root.style.top = ""; root.style.right = ""; root.style.bottom = "";
+        root.style.setProperty("--bbx-fit", String(Math.min(1, Math.round(((window.innerWidth - 16) / BOX_W) * 1000) / 1000)));
         return;
       }
       root.setAttribute("data-dock", "desktop");
       var p = stored() || defaultSpot();
       put(p.left, p.top);
       nudge();
+      side();
+    }
+    /* The library slides out where it fits: below, else to the right, else to the left. */
+    function side() {
+      if (popout || phone() || !drawer) return;
+      var r = rectOf(root);
+      var below = window.innerHeight - r.bottom - 8, toRight = window.innerWidth - r.right - 10, toLeft = r.left - 10;
+      var s = "below", room = below;
+      if (below < DRAWER_MIN_H + 80) {
+        if (toRight >= DRAWER_W) { s = "right"; room = window.innerHeight - r.top - 8; }
+        else if (toLeft >= DRAWER_W) { s = "left"; room = window.innerHeight - r.top - 8; }
+      }
+      drawer.setAttribute("data-side", s);
+      root.style.setProperty("--bfm-drawer-h", Math.max(DRAWER_MIN_H, Math.min(DRAWER_MAX_H, Math.floor(room))) + "px");
     }
     function rectOf(el) {
       var r = el.getBoundingClientRect();
@@ -455,7 +587,7 @@
     function grabbable(t) {
       if (!t || !t.closest || popout || phone()) return false;
       if (t.closest(".bbx-body-grip")) return true;
-      if (t.closest("button, input, textarea, select, a, label, .bbx-dial, .bbx-display, .bfm-panel")) return false;
+      if (t.closest("button, input, textarea, select, a, label, .bbx-knob, .bbx-xf, .bbx-fader, .bbx-display, .bfm-panel")) return false;
       return !!t.closest(".bfm-tag, .bbx");
     }
     root.addEventListener("pointerdown", function (e) {
@@ -476,14 +608,19 @@
     function endDrag() {
       if (!drag.on) return;
       drag.on = false;
-      if (drag.moved) { nudge(); saveSpot(); }
+      if (drag.moved) { nudge(); saveSpot(); side(); }
     }
     root.addEventListener("pointerup", endDrag);
     root.addEventListener("pointercancel", endDrag);
-    /* The tag's own body, or the grip on the handle: the arrows nudge it, Home resets it. */
+    /* The bar's own body, or the grip on the handle: the arrows nudge it, Home resets it.
+       Escape slides the library back first, then minimises. */
     root.addEventListener("keydown", function (e) {
       var t = e.target;
-      if (e.key === "Escape" && state === "box" && !popout) { e.preventDefault(); setState("tag", true); return; }
+      if (e.key === "Escape" && state === "box" && !popout) {
+        e.preventDefault();
+        if (library) setLibrary(false, true); else setState("tag", true);
+        return;
+      }
       var movable = !popout && !phone() && (t === tag || (t && t.classList && t.classList.contains("bbx-body-grip")));
       if (movable) {
         if (e.key === "Home") { e.preventDefault(); reset(); return; }
@@ -495,6 +632,7 @@
           var r = root.getBoundingClientRect();
           put(r.left + dx, r.top + dy);
           saveSpot();
+          side();
           return;
         }
       }
@@ -508,57 +646,102 @@
       if (drag.moved) { drag.moved = false; if (!b || b.closest(".bfm-tag")) { e.stopPropagation(); return; } }
       if (!b) return;
       var act = b.getAttribute("data-act");
-      if (act === "bbx-expand") { library = true; setState("box", true); }
+      if (act === "bbx-expand") setState("box", true);
       else if (act === "bbx-minimise") setState("tag", true);
       else if (act === "bbx-library") setLibrary(!library);
       else if (act === "bbx-reset") { reset(); var g = $(".bbx-body-grip"); if (g) g.focus(); }
     });
     root.addEventListener("dblclick", function (e) { if (grabbable(e.target)) reset(); });
     /* the keys go down under the finger, and come back up */
-    $$(".bbx-keys button").forEach(function (k) {
+    $$(".bbx-keys button, .bbx-fkeys button").forEach(function (k) {
       k.addEventListener("pointerdown", function () { k.setAttribute("data-down", "true"); });
       ["pointerup", "pointerleave", "pointercancel"].forEach(function (n) { k.addEventListener(n, function () { k.removeAttribute("data-down"); }); });
     });
 
-    /* ── the dial ────────────────────────────────────────────────────────── */
-    var dial = $(".bbx-dial"), volume = 0.8, dialDrag = null;
-    function setDial(v, tell) {
-      volume = clamp01(v);
+    /* ── the mixer: sliders for the pointer, the wheel and the keyboard ─── */
+    function sliderKey(e, cur, o) {
+      var k = e.key, v = null;
+      if (k === "ArrowUp" || k === "ArrowRight") v = cur + o.step;
+      else if (k === "ArrowDown" || k === "ArrowLeft") v = cur - o.step;
+      else if (k === "PageUp") v = cur + o.page;
+      else if (k === "PageDown") v = cur - o.page;
+      else if (k === "Home") v = o.min;
+      else if (k === "End") v = o.max;
+      if (v === null) return null;
+      e.preventDefault();
+      e.stopPropagation();
+      return v;
+    }
+    /* el: the control; o: { get(), set(v, tell), step, page, min, max, axis "x"|"y", per (value per px), detent } */
+    var holding = null;
+    function wire(el, o) {
+      el.addEventListener("keydown", function (e) { var v = sliderKey(e, o.get(), o); if (v !== null) o.set(v, true); });
+      el.addEventListener("wheel", function (e) { e.preventDefault(); o.set(o.get() + (e.deltaY < 0 ? o.step : -o.step), true); }, { passive: false });
+      el.addEventListener("pointerdown", function (e) {
+        holding = { el: el, x: e.clientX, y: e.clientY, v: o.get() };
+        if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ } }
+        e.stopPropagation();
+      });
+      el.addEventListener("pointermove", function (e) {
+        if (!holding || holding.el !== el) return;
+        var d = o.axis === "x" ? e.clientX - holding.x : holding.y - e.clientY;
+        var v = holding.v + d * o.per;
+        if (o.detent && Math.abs(v) < o.detent) v = 0;
+        o.set(v, true);
+      });
+      ["pointerup", "pointercancel"].forEach(function (n) { el.addEventListener(n, function () { if (holding && holding.el === el) holding = null; }); });
+    }
+    function busy(el) { return doc.activeElement === el || (holding && holding.el === el); }
+
+    var eq = { bass: 0, mid: 0, treble: 0 };
+    function setEq(band, db, tell) {
+      if (!(band in eq)) return;
+      var v = clampDb(db);
+      eq[band] = v;
+      var k = $(".bbx-knob[data-band=" + band + "]");
+      k.setAttribute("aria-valuenow", String(v));
+      k.setAttribute("aria-valuetext", dbText(v));
+      k.querySelector(".bbx-knob-mark").style.transform = "rotate(" + (-135 + 270 * (v + EQ_MAX) / (2 * EQ_MAX)).toFixed(1) + "deg)";
+      if (tell && opts.onEq) opts.onEq(band, v);
+    }
+    EQ_BANDS.forEach(function (b) {
+      var k = $(".bbx-knob[data-band=" + b[0] + "]");
+      wire(k, { get: function () { return eq[b[0]]; }, set: function (v, tell) { setEq(b[0], v, tell); }, step: 1, page: 3, min: -EQ_MAX, max: EQ_MAX, axis: "y", per: 0.25, detent: EQ_DETENT });
+      k.addEventListener("dblclick", function (e) { e.stopPropagation(); setEq(b[0], 0, true); });
+    });
+
+    var mix = 0, xf = $(".bbx-xf");
+    function setMix(s, tell) {
+      mix = clampMix(s);
+      xf.setAttribute("aria-valuenow", String(mix));
+      xf.setAttribute("aria-valuetext", mix ? mix + " seconds" : "Off");
+      $(".bbx-xf-cap").style.transform = "translateX(" + (XF_TRAVEL * mix / MIX_MAX).toFixed(1) + "px)";
+      $(".bbx-xf-out").textContent = mix ? mix + " s" : "Off";
+      if (tell && opts.onMix) opts.onMix(mix);
+    }
+    wire(xf, { get: function () { return mix; }, set: setMix, step: 1, page: 3, min: 0, max: MIX_MAX, axis: "x", per: MIX_MAX / XF_TRAVEL });
+
+    var volume = 0.8, fader = $(".bbx-fader");
+    function setVol(v, tell) {
+      volume = Math.round(clamp01(v) * 100) / 100;
       var pct = Math.round(volume * 100);
-      dial.setAttribute("aria-valuenow", String(pct));
-      dial.setAttribute("aria-valuetext", pct + "%");
-      $(".bbx-dial-mark").style.transform = "rotate(" + (-135 + 270 * volume).toFixed(1) + "deg)";
-      $(".bbx-dial-out").textContent = pct + "%";
+      fader.setAttribute("aria-valuenow", String(pct));
+      fader.setAttribute("aria-valuetext", pct + "%");
+      $(".bbx-fader-cap").style.transform = "translateY(" + (VOL_TRAVEL * (1 - volume)).toFixed(1) + "px)";
       if (tell && opts.onVolume) opts.onVolume(volume);
     }
-    dial.addEventListener("keydown", function (e) {
-      var by = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05, PageUp: 0.1, PageDown: -0.1 }[e.key];
-      if (e.key === "Home") { e.preventDefault(); setDial(0, true); return; }
-      if (e.key === "End") { e.preventDefault(); setDial(1, true); return; }
-      if (by === undefined) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setDial(Math.round((volume + by) * 100) / 100, true);
-    });
-    dial.addEventListener("wheel", function (e) {
-      e.preventDefault();
-      setDial(Math.round((volume + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100, true);
-    }, { passive: false });
-    dial.addEventListener("pointerdown", function (e) {
-      dialDrag = { y: e.clientY, x: e.clientX, v: volume };
-      if (dial.setPointerCapture) { try { dial.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ } }
-      e.stopPropagation();
-    });
-    dial.addEventListener("pointermove", function (e) {
-      if (!dialDrag) return;
-      setDial(dialDrag.v + ((dialDrag.y - e.clientY) + (e.clientX - dialDrag.x)) / 100, true);
-    });
-    ["pointerup", "pointercancel"].forEach(function (n) { dial.addEventListener(n, function () { dialDrag = null; }); });
+    wire(fader, { get: function () { return volume; }, set: setVol, step: 0.05, page: 0.1, min: 0, max: 1, axis: "y", per: 1 / VOL_TRAVEL });
+
+    function setFinish(f) { if (FINISHES.indexOf(f) !== -1) root.setAttribute("data-finish", f); }
 
     /* ── the motion ──────────────────────────────────────────────────────── */
     function rest() {
-      M.speed = 0; M.cone = 0; M.highs = 0; M.level = 0;
+      M.speed = 0; M.cone = 0; M.highs = 0; M.level = 0; M.left = 0; M.right = 0;
       paint();
+    }
+    function lightLeds(list, v) {
+      var lit = Math.round(v * LEDS);
+      list.forEach(function (l, i) { l.style.opacity = i < lit ? "1" : "0.18"; });
     }
     function paint() {
       var cs = "scale(" + (1 + CONE_PULSE * M.cone).toFixed(4) + ")";
@@ -568,33 +751,36 @@
       domes.forEach(function (d) { d.style.opacity = (0.55 + 0.45 * M.highs).toFixed(3); d.style.transform = "scale(" + (1 + TWEETER_PULSE * M.highs).toFixed(4) + ")"; });
       var rot = "rotate(" + (M.angle % 360).toFixed(2) + "deg)";
       reels.forEach(function (r) { r.style.transform = rot; });
-      var lit = Math.round(M.level * LEDS);
-      leds.forEach(function (l, i) { l.style.opacity = (i % LEDS) < lit ? "1" : "0.18"; });
+      lightLeds(ledsL, M.left);
+      lightLeds(ledsR, M.right);
       wave.forEach(function (b, i) {
         var s = 0.2 + 0.8 * clamp01(M.level * (0.55 + 0.45 * Math.sin(M.t * 9 + i * 1.7)));
         b.style.transform = "scaleY(" + s.toFixed(3) + ")";
       });
     }
-    /* One frame. lv: { bass, highs, level } (0 … 1); playing: whether it is
-       heard; dt: seconds since the last frame. Nothing moves while paused: the
-       speakers ease back to rest and the reels slow to a stop. */
+    function ease(cur, to, up, down) { var n = cur + (to - cur) * (to > cur ? up : down); return n < 0.001 ? 0 : n; }
+    /* One frame. lv: { bass, highs, level, left, right } (0 … 1); playing:
+       whether it is heard; dt: seconds since the last frame. Nothing moves
+       while paused: the speakers ease back to rest, the meters fall and the
+       reels slow to a stop. */
     function animate(lv, playing, dt) {
       dt = Math.max(0, Math.min(0.1, Number(dt) || 0));
       M.t += dt;
       var bass = playing ? clamp01(lv && lv.bass) : 0;
       var highs = playing ? clamp01(lv && lv.highs) : 0;
       var level = playing ? clamp01(lv && lv.level) : 0;
-      M.cone += (bass - M.cone) * (bass > M.cone ? 0.6 : 0.25);
-      M.highs += (highs - M.highs) * 0.4;
-      M.level += (level - M.level) * (level > M.level ? 0.6 : 0.2);
-      if (M.cone < 0.001) M.cone = 0;
-      if (M.highs < 0.001) M.highs = 0;
-      if (M.level < 0.001) M.level = 0;
+      var left = playing ? clamp01(lv && (lv.left !== undefined ? lv.left : lv.level)) : 0;
+      var right = playing ? clamp01(lv && (lv.right !== undefined ? lv.right : lv.level)) : 0;
+      M.cone = ease(M.cone, bass, 0.6, 0.25);
+      M.highs = ease(M.highs, highs, 0.4, 0.4);
+      M.level = ease(M.level, level, 0.6, 0.2);
+      M.left = ease(M.left, left, 0.6, 0.2);
+      M.right = ease(M.right, right, 0.6, 0.2);
       M.speed += ((playing ? 1 : 0) - M.speed) * Math.min(1, dt * 3);
       if (!playing && M.speed < 0.01) M.speed = 0;
       M.angle += M.speed * REEL_DEG_PER_S * dt;
       paint();
-      return M.speed > 0 || M.cone > 0 || M.highs > 0 || M.level > 0;
+      return M.speed > 0 || M.cone > 0 || M.highs > 0 || M.level > 0 || M.left > 0 || M.right > 0;
     }
     /* Under reduced motion: everything at rest; the display shows a still level. */
     function still() { rest(); root.setAttribute("data-still", "true"); }
@@ -619,7 +805,7 @@
       c.appendChild(span("bbx-vfd-artist", artist ? SEP + artist : "", false));
       return c;
     }
-    /* Whether the tag's title is longer than the tag: measured where the tag
+    /* Whether the bar's title is longer than the bar: measured where the bar
        is laid out, else counted in characters. */
     function tagOverflows() {
       var clip = $(".bfm-tag-clip"), tt = $(".bfm-tag-title");
@@ -653,13 +839,13 @@
       sweepTimer = setTimeout(function () { sweepTimer = null; box.setAttribute("data-sweep", "done"); }, SWEEP_MS);
     }
     /* v: { title, artist, track_id, playing, starts, index, total, playlist,
-       tagText, resume, volume, muted } from bf-music.js. */
+       tagText, resume, volume, muted, mix, eq, finish, stereo } from bf-music.js. */
     function render(v) {
       v = v || {};
       var loaded = !!v.title, still = reducedMotion();
       var title = v.title || NO_TRACK;
       var artist = loaded && v.artist ? v.artist : "";
-      /* the tag */
+      /* the bar */
       tagText = v.tagText || title;
       var tt = $(".bfm-tag-title");
       if (tt && tt.textContent !== tagText) tt.textContent = tagText;
@@ -714,7 +900,16 @@
         if (seenStarts !== undefined && v.starts !== seenStarts && loaded) sweep();
         seenStarts = v.starts;
       }
-      if (typeof v.volume === "number" && doc.activeElement !== dial && !dialDrag) setDial(v.muted ? 0 : v.volume, false);
+      /* the mixer shows the player's own values, except on a control in the member's hand */
+      if (typeof v.volume === "number" && !busy(fader)) setVol(v.muted ? 0 : v.volume, false);
+      if (typeof v.mix === "number" && !busy(xf)) setMix(v.mix, false);
+      if (v.eq) EQ_BANDS.forEach(function (b) { var k = $(".bbx-knob[data-band=" + b[0] + "]"); if (typeof v.eq[b[0]] === "number" && !busy(k)) setEq(b[0], v.eq[b[0]], false); });
+      if (v.finish) setFinish(v.finish);
+      if (typeof v.stereo === "boolean") {
+        var ll = $(".bbx-meter-lbl[data-side=left]"), rl = $(".bbx-meter-lbl[data-side=right]");
+        if (ll) ll.textContent = v.stereo ? "L" : "Lvl";
+        if (rl) rl.textContent = v.stereo ? "R" : "Pk";
+      }
     }
 
     function onResize() { place(); fitTag(); }
@@ -725,22 +920,27 @@
     root.setAttribute("data-state", state);
     root.setAttribute("data-library", library ? "true" : "false");
     setState(state);
-    setDial(0.8, false);
+    setVol(0.8, false);
+    setMix(0, false);
     rest();
     return {
-      root: root, panel: $(".bfm-panel"), box: box, tag: tag,
+      root: root, panel: panel, drawer: drawer, box: box, tag: tag,
       state: function () { return state; }, library: function () { return library; },
-      setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset,
+      setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset, defaultSpot: defaultSpot,
+      setEq: setEq, setMix: setMix, setVolume: setVol, setFinish: setFinish,
+      eq: function () { return { bass: eq.bass, mid: eq.mid, treble: eq.treble }; },
+      finish: function () { return root.getAttribute("data-finish"); },
       animate: animate, still: still, rest: rest, render: render,
-      motion: function () { return { speed: M.speed, angle: M.angle, cone: M.cone, highs: M.highs, level: M.level }; },
+      motion: function () { return { speed: M.speed, angle: M.angle, cone: M.cone, highs: M.highs, level: M.level, left: M.left, right: M.right }; },
       sweeps: function () { return sweepCount; },
       destroy: function () { if (nudger) clearInterval(nudger); window.removeEventListener("resize", onResize); }
     };
   }
 
   window.BFBoombox = {
-    mount: mount, clampPosition: clampPosition,
-    STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z,
+    mount: mount, clampPosition: clampPosition, clampDb: clampDb, clampMix: clampMix,
+    STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z, EDGE: EDGE, GAP: GAP,
+    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
     NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
   };

@@ -147,6 +147,10 @@
   var FETCH_EVERY_MS = 60 * 1000;
   var API_ORIGIN_FALLBACK = "https://dynamic-prosperity-production-5382.up.railway.app";
   var STYLE_ID = "bf-theme-rule";
+  /* THE SCROLLBARS: one rule for every scrollable element, in the theme's gradient (css/bizforce-ui.css holds the
+     same text, and a page that loads this file gets it from here; scripts/checkScrollbars.js keeps them equal). */
+  var SCROLLBAR_ID = "bf-scrollbars";
+  var SCROLLBARS = "/* BF-SCROLLBARS:BEGIN. One scrollbar for every scrollable element in BizForce: a translucent noir track, a thumb in the theme's gradient with a soft glow. This exact text is in css/bizforce-ui.css, scripts/bf-theme.js (which adds it to every page it runs on) and the public pages that load neither; scripts/checkScrollbars.js keeps every copy the same. */\n*{scrollbar-width:thin;scrollbar-color:var(--bf-accent-a, #22d3ee) rgba(8,12,24,.55)}\n::-webkit-scrollbar{width:8px;height:8px}\n::-webkit-scrollbar-track{background:rgba(8,12,24,.55);border-radius:8px}\n::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ),var(--bf-accent-b, #a855f7));background-clip:padding-box;border:2px solid transparent;border-radius:8px;box-shadow:inset 0 0 6px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.55)}\n::-webkit-scrollbar-thumb:horizontal{background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ),var(--bf-accent-b, #a855f7));background-clip:padding-box}\n::-webkit-scrollbar-thumb:hover{border-width:1px;box-shadow:inset 0 0 8px rgba(255,255,255,.4),0 0 8px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.7)}\n::-webkit-scrollbar-corner{background:transparent}\n/* BF-SCROLLBARS:END */";
 
   var TEXT = "#e8e8ff";
   var MUTED = "#8892b8";
@@ -872,6 +876,12 @@
     style.textContent = RULE;
     var head = doc.head || doc.getElementsByTagName("head")[0] || doc.documentElement;
     head.insertBefore(style, head.firstChild);
+    if (!doc.getElementById(SCROLLBAR_ID)) {
+      var bars = doc.createElement("style");
+      bars.id = SCROLLBAR_ID;
+      bars.textContent = SCROLLBARS;
+      head.insertBefore(bars, style.nextSibling);
+    }
   }
   var applied = null;
   function setTokens(doc, tokens) {
@@ -1112,6 +1122,7 @@
     musicWanted: function () { return musicWanted(window); },
     pageKey: function () { return pageKey(document, window.location); },
     publicView: function (key) { return publicView(key, window); },
+    SCROLLBARS: SCROLLBARS,
     wear: function (theme, photoUrl) { return wear(theme, photoUrl, window, document); },
     worn: function () { return pinned ? JSON.parse(JSON.stringify(pinned)) : null; },
     resolve: resolve,
