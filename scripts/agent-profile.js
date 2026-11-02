@@ -4683,6 +4683,7 @@
         '<div id="apLearnExamples"></div>' +
         '<h3 class="ap-learn-h">What this agent knows about your preferences</h3>' +
         '<div id="apLearnSuggest"></div>' +
+        '<div id="apLearnLessons"></div>' +
         '<div id="apLearnPrefs"></div>' +
         '<div class="ap-learn-add">' +
           '<input type="text" id="apLearnPrefInput" maxlength="80" placeholder="Add a preference, e.g. Use short paragraphs" aria-label="New preference">' +
@@ -4748,6 +4749,9 @@
         '<button type="button" class="ap-learn-btn" data-accept="' + esc(s.text) + '">Add it</button></div>';
     }).join("");
 
+    var lessonBox = document.getElementById("apLearnLessons");
+    if (lessonBox) lessonBox.innerHTML = lessonsHtml(data.lessons, data.lessons_from);
+
     var prefs = data.preferences || [];
     var limits = data.limits || {};
     document.getElementById("apLearnPrefs").innerHTML = prefs.length
@@ -4762,6 +4766,23 @@
     document.getElementById("apLearnGuidance").textContent = data.guidance
       ? data.guidance.replace(/^\n+/, "")
       : "Nothing yet: with no examples or preferences, this agent is told nothing about you beyond your business profile.";
+  }
+
+  /* LESSONS, offered and never saved by being shown. The server derives them by
+     rule from the counts in the member's latest weekly self-review (no model
+     call); "Add it" saves one as a preference (source "lesson"), within the
+     same limit as every other preference. */
+  function lessonsHtml(lessons, from) {
+    if (lessons === null || lessons === undefined) return '<p class="ap-learn-note">Lessons from your weekly review could not be read just now.</p>';
+    if (!lessons.length) return "";
+    var period = from && from.period_start ? " of " + fmt(from.period_start) + " to " + fmt(from.period_end) : "";
+    return '<h3 class="ap-learn-h">Lessons from your weekly review</h3>' +
+      '<p class="ap-learn-note">Worked out by fixed rules from the counts in your weekly self-review' + esc(period) +
+      '. Nothing is saved unless you add it; a lesson you add is a preference you can edit or remove.</p>' +
+      lessons.map(function (l) {
+        return '<div class="ap-learn-suggest" data-lesson-rule="' + esc(l.rule) + '">' + esc(l.text) + ' ' +
+          '<button type="button" class="ap-learn-btn" data-accept-lesson="' + esc(l.text) + '">Add it</button></div>';
+      }).join("");
   }
 
   function loadLearning() {
@@ -4809,6 +4830,8 @@
         addPref(text, "member").then(function () { input.value = ""; });
       } else if (t.getAttribute("data-accept")) {
         addPref(t.getAttribute("data-accept"), "suggestion");
+      } else if (t.getAttribute("data-accept-lesson")) {
+        addPref(t.getAttribute("data-accept-lesson"), "lesson");
       } else if ((id = t.getAttribute("data-save-pref"))) {
         var field = box.querySelector('input[data-pref="' + id + '"]');
         learnFetch("PUT", "/api/agents/" + encodeURIComponent(AGENT_TYPE) + "/preferences/" + encodeURIComponent(id), { text: field ? field.value : "" })
