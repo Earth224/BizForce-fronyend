@@ -232,7 +232,7 @@
     "executive-agent.html": [
       "On the \"Command\" tab pick an agent or \"Executive decides\", choose \"Do a task\" or \"Make a plan\", type it and press \"Send\"; nothing goes before that.",
       "On \"Plans\", \"Run next\" sends one assignment per press; if it is greyed out, running plans is switched off on the server.",
-      "\"Your gates\" on \"Settings\" can only stop what the platform's checks let through; \"Test against my last 30 days\" counts what one would have stopped.",
+      "On \"Settings\", \"Your gates\" only stop what checks let through; \"Triggers\" notify you, draft a task or pause a schedule, and never publish.",
       "\"History\" lists this agent's runs, 10 a page; a row, or a Done card's \"View result\", opens its result beside the page.",
       "\"Approvals\" holds what needs you and \"Decisions\", where \"Why?\" shows each check in order; on \"Agents\", \"Pause schedule\" changes only that schedule."
     ],

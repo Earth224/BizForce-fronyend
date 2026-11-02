@@ -148,6 +148,17 @@
     }, function () { show('<p class="bf-why-none">The decisions could not be read. Check the connection and try again.</p>'); });
   }
   function openDecision(d) { lastFocus = document.activeElement; show(decisionsHtml(d ? [d] : [])); }
+  /* One decision by its id (a trigger firing carries the id of the decision
+     that let it through): GET /api/gate-decisions/:id. */
+  function openById(id) {
+    lastFocus = document.activeElement;
+    show('<p class="bf-why-none">Loading...</p>');
+    return api("GET", "/api/gate-decisions/" + encodeURIComponent(id)).then(function (r) {
+      if (r.status === 404) { show(decisionsHtml([])); return; }
+      if (!r.ok) { show('<p class="bf-why-none">The decisions could not be read: ' + esc(r.body.error || ("HTTP " + r.status)) + '</p>'); return; }
+      show(decisionsHtml(r.body.decision ? [r.body.decision] : []));
+    }, function () { show('<p class="bf-why-none">The decisions could not be read. Check the connection and try again.</p>'); });
+  }
 
   function link(target) {
     return '<button type="button" class="bf-why-link" data-bf-why="' + esc(target) + '" aria-label="Why did this run, or not run?">Why?</button>';
@@ -507,6 +518,8 @@
     if (w) { e.preventDefault(); open(w.getAttribute("data-bf-why")); return; }
     var d = t.closest("[data-bf-why-decision]");
     if (d) { e.preventDefault(); openDecision(listView.rows[d.getAttribute("data-bf-why-decision")] || null); return; }
+    var byId = t.closest("[data-bf-why-id]");
+    if (byId) { e.preventDefault(); openById(byId.getAttribute("data-bf-why-id")); return; }
     if (t.closest("[data-bf-why-close]")) close();
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel && !panel.hidden) close(); });
@@ -519,7 +532,7 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 
   window.BFWhy = {
-    open: open, openDecision: openDecision, close: close, link: link, linkEl: linkEl, decisionHtml: decisionHtml,
+    open: open, openDecision: openDecision, openById: openById, close: close, link: link, linkEl: linkEl, decisionHtml: decisionHtml,
     mountDecisions: mountDecisions, mountBuilder: mountBuilder, summarize: summarize, toRule: toRule,
     _builder: function () { return B; }, _list: function () { return listView; }
   };

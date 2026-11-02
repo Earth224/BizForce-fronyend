@@ -1307,7 +1307,8 @@
     pausedFailures: function (n) {
       return "Paused after " + n + " failed runs in a row. It will not run again until you press Resume.";
     },
-    lapsed:         "Paused while your subscription is inactive. Resumes automatically when it's active again."
+    lapsed:         "Paused while your subscription is inactive. Resumes automatically when it's active again.",
+    pausedTrigger:  "Paused by one of your triggers. It will not run until you press Resume."
   };
 
   /* A timestamp in the viewer's own time. last_attempt_at is a full instant,
@@ -1377,7 +1378,7 @@
     if (row.paused === true) {
       lines.push(row.paused_reason === "failures"
         ? SCHED_WORDS.pausedFailures(row.consecutive_failures || 3)
-        : SCHED_WORDS.pausedOwner);
+        : row.paused_reason === "trigger" ? SCHED_WORDS.pausedTrigger : SCHED_WORDS.pausedOwner);
     }
     if (scheduleSubscriptionActive === false) lines.push(SCHED_WORDS.lapsed);
     stateEl.textContent = lines.join(" ");
