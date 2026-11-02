@@ -330,6 +330,7 @@
           '<strong>' + esc(t.name) + '</strong>' +
           '<button type="button" class="hq-btn" data-trg-edit="' + esc(t.id) + '">Edit</button>' +
           '<button type="button" class="hq-btn" data-trg-delete="' + esc(t.id) + '">Delete</button>' +
+          (window.TermaximusRecords ? '<button type="button" class="hq-btn" data-trg-ask="' + esc(t.id) + '" aria-label="Ask Termaximus when ' + esc(t.name) + ' fires next">Ask Termaximus</button>' : "") +
           '<p>' + esc(t.summary) + '</p>' +
           '<p>' + (t.last_checked_at ? "Last value: " + esc(valueWords(m.kind, t.last_value)) + ", read " + esc(when(t.last_checked_at)) + "." : "Not read yet.") +
             " " + (t.last_fired_at ? "Last fired: " + esc(when(t.last_fired_at)) + "." : "Never fired.") + '</p></li>';
@@ -422,6 +423,8 @@
       if (del) { remove(del.getAttribute("data-trg-delete")); return; }
       var run = t.closest("[data-trg-run]");
       if (run) { runDraft(run.getAttribute("data-trg-run")); return; }
+      var ask = t.closest("[data-trg-ask]");
+      if (ask && window.TermaximusRecords) { window.TermaximusRecords.ask("next_fire", "trigger:" + ask.getAttribute("data-trg-ask")); return; }
     });
     box.addEventListener("change", function (e) {
       var sw = e.target && e.target.getAttribute && e.target.getAttribute("data-trg-switch");

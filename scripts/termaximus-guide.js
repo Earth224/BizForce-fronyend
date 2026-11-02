@@ -233,7 +233,7 @@
       "On the \"Command\" tab pick an agent or \"Executive decides\", choose \"Do a task\" or \"Make a plan\", type it and press \"Send\"; nothing goes before that.",
       "On \"Plans\", \"Run next\" sends one assignment per press, unless running plans is switched off on the server; \"Review this plan\" starts nothing until you approve.",
       "On \"Settings\", \"Your gates\" only stop what checks let through; \"Triggers\" notify you, draft a task or pause a schedule, and never publish.",
-      "\"History\" lists this agent's runs, 10 a page; a row, or a Done card's \"View result\", opens its result beside the page.",
+      "\"History\" lists this agent's runs, 10 a page; \"Ask Termaximus\" by a decision, trigger or link answers from its record alone.",
       "\"Approvals\" holds what needs you and \"Decisions\" with \"Why?\"; on \"Agents\", \"Pause schedule\" changes only that schedule and \"Network\" lights only real flow."
     ],
     "vertical-marketing-agent.html": [

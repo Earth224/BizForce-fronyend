@@ -197,7 +197,12 @@
     return '<div class="bfn-detail" role="region" aria-live="polite" aria-label="' + esc(nameOf(e.from) + " to " + nameOf(e.to)) + '">' +
       "<h4>" + esc(nameOf(e.from) + " to " + nameOf(e.to)) + "</h4>" +
       '<p class="bfn-note">' + esc((e.labels || []).join(". ")) + ". " + esc(countWords(e)) + "." + (e.enabled ? "" : " You switched it off.") + "</p>" +
-      toggleHtml(e) + body + "</div>";
+      toggleHtml(e) + askHtml(e) + body + "</div>";
+  }
+  /* "Ask Termaximus" (B10): how work flows along this link, read back in the Guide tab. */
+  function askHtml(e) {
+    if (!window.TermaximusRecords) return "";
+    return ' <button type="button" class="bfn-btn" data-bfn-ask="' + esc(e.id) + '" aria-label="' + esc("Ask Termaximus how work flows from " + nameOf(e.from) + " to " + nameOf(e.to)) + '">Ask Termaximus</button>';
   }
 
   function edgeById(id) { return S.data ? S.data.edges.filter(function (e) { return e.id === id; })[0] || null : null; }
@@ -273,6 +278,8 @@
     if (cf) { setSwitch(cf.getAttribute("data-bfn-confirm")); return true; }
     var cn = t.closest("[data-bfn-cancel]");
     if (cn) { S.confirming = null; render(); return true; }
+    var ak = t.closest("[data-bfn-ask]");
+    if (ak && window.TermaximusRecords) { window.TermaximusRecords.ask("flow", "edge:" + ak.getAttribute("data-bfn-ask"), S.window); return true; }
     var mo = t.closest("[data-bfn-more]");
     if (mo) { S.runsPage += 1; loadRuns(mo.getAttribute("data-bfn-more"), S.runsPage); return true; }
     var ed = t.closest("[data-bfn-edge]");

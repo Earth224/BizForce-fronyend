@@ -1424,6 +1424,268 @@
   guideForm.addEventListener("click", function (e) { e.stopPropagation(); });
   guideAnswer.addEventListener("click", function (e) { e.stopPropagation(); });
 
+  /* ── Ask about your records (intelligence layer B10) ───────────────────────
+     Termaximus answers three questions FROM THE RECORDS ONLY: why something
+     ran or did not (the recorded gate decision), when a trigger fires next
+     (the trigger's own row and whether triggers are on), and how work flows
+     along a link of the agent network (the runs counted from the member's own
+     rows). Every sentence shown is the server's fixed template; nothing is
+     written here but the layout.
+
+       A button elsewhere ("Ask Termaximus" by a decision, a trigger or a map
+       link) calls window.TermaximusRecords.ask(intent, subject): GET
+       /api/guide/records/answer, no model call.
+       The box below the Guide input sends a typed question to POST
+       /api/guide/records, which costs one of Guide mode's daily answers and
+       shows only what a record says, or "There is no record of that."
+       "Suggestions" lists ready-made triggers offered by rule from the
+       member's own numbers (GET /api/guide/suggestions). Nothing is saved
+       until "Add it" (POST /api/triggers). "Not now" hides one for 30 days on
+       this device (bf_tmx_not_now, a display choice kept at sign-out). */
+  var TMX_API = "https://dynamic-prosperity-production-5382.up.railway.app";
+  var TMX_NOT_NOW_KEY = "bf_tmx_not_now";
+  var TMX_NOT_NOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+  var recordsStyle = document.createElement("style");
+  recordsStyle.id = "tmx-records-style";
+  recordsStyle.textContent =
+    "#tmx-records-foot { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 12px; flex-shrink: 0; }" +
+    "#tmx-records-hint { flex-basis: 100%; margin: 0; font-size: 11px; font-style: italic; }" +
+    "#tmx-records-input { flex: 1; min-width: 0; background: transparent; border: 1px solid var(--bf-line, rgba(100,70,200,0.28)); border-radius: 8px; padding: 6px 10px; color: inherit; font: inherit; font-size: 12px; }" +
+    "#tmx-records-foot button:focus-visible, #tmx-guide-answer button:focus-visible, .tmx-suggest button:focus-visible { outline: 2px solid var(--bf-accent-a, #f7dd8a); outline-offset: 2px; }" +
+    ".tmx-suggest { list-style: none; margin: 0; padding: 0; }" +
+    ".tmx-suggest li { margin: 0 0 10px; }" +
+    ".tmx-suggest p { margin: 2px 0; }";
+  document.head.appendChild(recordsStyle);
+
+  var recordsFoot = document.createElement("form");
+  recordsFoot.id = "tmx-records-foot";
+  recordsFoot.innerHTML =
+    '<p id="tmx-records-hint" class="tmx-guide-note">Ask about your records: why something ran or did not, when a trigger fires next, how work flows between agents.</p>' +
+    '<label for="tmx-records-input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Ask about your records</label>' +
+    '<input id="tmx-records-input" type="text" maxlength="500" placeholder="Why did my SEO run not run?" autocomplete="off" />' +
+    '<button id="tmx-records-send" type="submit" class="tmx-guide-show">Ask</button>' +
+    '<button id="tmx-suggest-btn" type="button" class="tmx-guide-show">Suggestions</button>';
+  guide.appendChild(recordsFoot);
+  var recordsInput = document.getElementById("tmx-records-input");
+  var recordsSend = document.getElementById("tmx-records-send");
+  var _recordsAsking = false;
+
+  function tmxToken() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
+  function tmxApi(method, path, body) {
+    var init = { method: method, headers: { "Authorization": "Bearer " + tmxToken() } };
+    if (body !== undefined) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
+    return fetch(TMX_API + path, init).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) { return { ok: r.ok, status: r.status, data: data || {} }; });
+    });
+  }
+
+  /* One answer from the records: its title, its lines (a numbered line is a
+     gate, shown in order), and its links. Text only, never markup. */
+  function tmxRenderRecord(data, into) {
+    var box = into || guideAnswer;
+    box.textContent = "";
+    if (data.title) {
+      var h = document.createElement("p");
+      var strong = document.createElement("strong");
+      strong.textContent = data.title;
+      h.appendChild(strong);
+      box.appendChild(h);
+    }
+    var ol = null;
+    (Array.isArray(data.lines) ? data.lines : []).forEach(function (line) {
+      var m = /^(\d+)\. ([\s\S]*)$/.exec(String(line));
+      if (m) {
+        if (!ol) { ol = document.createElement("ol"); box.appendChild(ol); }
+        var li = document.createElement("li");
+        li.textContent = m[2];
+        ol.appendChild(li);
+        return;
+      }
+      ol = null;
+      box.appendChild(tmxGuideMessage(data.known === false ? "tmx-guide-note" : "tmx-records-line", String(line)));
+    });
+    (Array.isArray(data.links) ? data.links : []).forEach(function (l) {
+      var p = document.createElement("p");
+      if (l.why_decision && window.BFWhy && typeof window.BFWhy.openById === "function") {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "tmx-guide-show";
+        b.textContent = l.label;
+        b.addEventListener("click", function (e) { e.stopPropagation(); window.BFWhy.openById(l.why_decision); });
+        p.appendChild(b);
+      } else if (l.href) {
+        var a = document.createElement("a");
+        a.href = l.href;
+        a.textContent = l.label;
+        p.appendChild(a);
+      } else if (l.why_decision) {
+        var a2 = document.createElement("a");
+        a2.href = "/executive-agent.html#approvals";
+        a2.textContent = l.label;
+        p.appendChild(a2);
+      } else return;
+      box.appendChild(p);
+    });
+  }
+  function tmxRecordError(res) {
+    guideAnswer.textContent = "";
+    guideAnswer.appendChild(tmxGuideMessage("tmx-guide-error", (res && res.data && res.data.error) ||
+      (res && res.status ? "Termaximus could not read that record (error " + res.status + "). Try again in a moment." : "Termaximus could not reach BizForce just now. Check your connection and ask again.")));
+  }
+  function tmxBusy(on, text) {
+    if (on) {
+      guideAnswer.setAttribute("aria-busy", "true");
+      guideAnswer.textContent = "";
+      guideAnswer.appendChild(tmxGuideMessage("tmx-guide-note", text));
+      chatTitleName.classList.add("tmx-thinking");
+    } else {
+      guideAnswer.removeAttribute("aria-busy");
+      chatTitleName.classList.remove("tmx-thinking");
+    }
+  }
+  function tmxOpenGuide() {
+    if (!_chatOpen) openChat();
+    tmxSelectTab("guide");
+  }
+
+  /* A button's question: the intent and the subject it names. No model call. */
+  function tmxAskRecord(intent, subject, windowLabel) {
+    tmxOpenGuide();
+    tmxBusy(true, "Termaximus is reading the record...");
+    var q = "intent=" + encodeURIComponent(intent) + "&subject=" + encodeURIComponent(subject) + (windowLabel ? "&window=" + encodeURIComponent(windowLabel) : "");
+    return tmxApi("GET", "/api/guide/records/answer?" + q).then(function (res) {
+      if (!res.ok) { tmxRecordError(res); return; }
+      tmxRenderRecord(res.data);
+    }, function () { tmxRecordError(null); }).then(function () { tmxBusy(false); });
+  }
+
+  /* A typed question: the server picks a record or none; the words are the template's. */
+  function tmxAskRecordsText() {
+    var q = recordsInput.value.replace(/\s+/g, " ").trim();
+    if (!q || _recordsAsking) return;
+    _recordsAsking = true;
+    recordsSend.disabled = true;
+    tmxBusy(true, "Termaximus is searching your records...");
+    tmxApi("POST", "/api/guide/records", { question: q }).then(function (res) {
+      if (!res.ok) {
+        tmxRecordError(res);
+        if (res.data && res.data.link && res.data.link.href) tmxRenderGuide({ link: res.data.link, known: true });
+        return;
+      }
+      recordsInput.value = "";
+      tmxRenderRecord(res.data);
+    }, function () { tmxRecordError(null); }).then(function () {
+      _recordsAsking = false;
+      recordsSend.disabled = false;
+      tmxBusy(false);
+      recordsInput.focus();
+    });
+  }
+
+  /* ── suggestions by rule ── */
+  function tmxNotNowRead() {
+    try {
+      var v = JSON.parse(localStorage.getItem(TMX_NOT_NOW_KEY) || "{}");
+      return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+    } catch (e) { return {}; }
+  }
+  function tmxNotNowSave(key, nowMs) {
+    var v = tmxNotNowRead();
+    v[key] = nowMs + TMX_NOT_NOW_MS;
+    try { localStorage.setItem(TMX_NOT_NOW_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable: it shows again next time */ }
+  }
+  function tmxHidden(key, nowMs) {
+    var until = tmxNotNowRead()[key];
+    return typeof until === "number" && until > nowMs;
+  }
+  function tmxSuggestionsInto(box) {
+    box.textContent = "";
+    box.appendChild(tmxGuideMessage("tmx-guide-note", "Termaximus is reading your numbers..."));
+    return tmxApi("GET", "/api/guide/suggestions").then(function (res) {
+      box.textContent = "";
+      if (!res.ok) {
+        box.appendChild(tmxGuideMessage("tmx-guide-error", (res.data && res.data.error) || ("Your suggestions could not be read (error " + res.status + ").")));
+        return;
+      }
+      var now = Date.now();
+      var list = (Array.isArray(res.data.suggestions) ? res.data.suggestions : []).filter(function (s) { return s && s.key && !tmxHidden(s.key, now); });
+      box.appendChild(tmxGuideMessage("tmx-guide-note", "Suggestions come from your own numbers, by fixed rules. Nothing is saved unless you press Add it."));
+      if (!list.length) box.appendChild(tmxGuideMessage("tmx-guide-note", "No suggestions right now."));
+      var ul = document.createElement("ul");
+      ul.className = "tmx-suggest";
+      list.forEach(function (s) {
+        var li = document.createElement("li");
+        li.setAttribute("data-tmx-suggest", s.key);
+        var t = document.createElement("p");
+        var st = document.createElement("strong");
+        st.textContent = s.title;
+        t.appendChild(st);
+        li.appendChild(t);
+        li.appendChild(tmxGuideMessage("tmx-records-why", "Why: " + s.why));
+        li.appendChild(tmxGuideMessage("tmx-records-line", s.summary));
+        var add = document.createElement("button");
+        add.type = "button";
+        add.className = "tmx-guide-show";
+        add.textContent = "Add it";
+        add.setAttribute("aria-label", "Add it: " + s.title);
+        var later = document.createElement("button");
+        later.type = "button";
+        later.className = "tmx-guide-show";
+        later.textContent = "Not now";
+        later.setAttribute("aria-label", "Not now: " + s.title);
+        var said = tmxGuideMessage("tmx-records-line", "");
+        said.setAttribute("role", "status");
+        add.addEventListener("click", function (e) {
+          e.stopPropagation();
+          add.disabled = true;
+          tmxApi("POST", "/api/triggers", s.body).then(function (r) {
+            if (r.ok) { said.textContent = "Added to your triggers."; later.disabled = true; return; }
+            add.disabled = false;
+            said.textContent = (r.data && r.data.error) || ("Not added (error " + r.status + ").");
+          }, function () { add.disabled = false; said.textContent = "Not added. Check the connection and try again."; });
+        });
+        later.addEventListener("click", function (e) {
+          e.stopPropagation();
+          tmxNotNowSave(s.key, Date.now());
+          li.parentNode.removeChild(li);
+        });
+        li.appendChild(add);
+        li.appendChild(document.createTextNode(" "));
+        li.appendChild(later);
+        li.appendChild(said);
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+      (Array.isArray(res.data.unreadable) ? res.data.unreadable : []).forEach(function (u) {
+        if (u && u.reason) box.appendChild(tmxGuideMessage("tmx-guide-error", u.reason));
+      });
+    }, function () {
+      box.textContent = "";
+      box.appendChild(tmxGuideMessage("tmx-guide-error", "Your suggestions could not be read. Check the connection and try again."));
+    });
+  }
+
+  recordsFoot.addEventListener("submit", function (e) { e.preventDefault(); e.stopPropagation(); tmxAskRecordsText(); });
+  recordsFoot.addEventListener("click", function (e) { e.stopPropagation(); });
+  document.getElementById("tmx-suggest-btn").addEventListener("click", function (e) { e.stopPropagation(); tmxSuggestionsInto(guideAnswer); });
+
+  window.TermaximusRecords = { ask: tmxAskRecord, suggestionsInto: tmxSuggestionsInto, render: tmxRenderRecord };
+  /* HQ shows the suggestions in its own region, when signed in. */
+  (function tmxMountHqSuggestions() {
+    var hq = document.getElementById("deckSuggestions");
+    if (!hq || !tmxToken()) return;
+    var head = document.createElement("h3");
+    head.className = "hq-h";
+    head.textContent = "Suggestions from Termaximus";
+    hq.appendChild(head);
+    var list = document.createElement("div");
+    list.id = "deckSuggestionsList";
+    list.setAttribute("aria-live", "polite");
+    hq.appendChild(list);
+    tmxSuggestionsInto(list);
+  })();
+
   /* 10 open/close transition styles — one picked at random each open */
   var TMX_STYLES = [
     /* 0 — scale bloom */

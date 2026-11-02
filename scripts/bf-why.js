@@ -103,7 +103,15 @@
       }).join("") + '</ol>' +
       (d.member ? '<p class="bf-why-member" data-result="fail">Stopped by your gate <strong class="bf-why-member-name">' + esc(d.member.name) +
         '</strong>: <span class="bf-why-reason">' + esc(d.member.reason) + '</span></p>' : "") +
+      askHtml(d) +
       '</div>';
+  }
+  /* "Ask Termaximus" (B10): the same record, read back by Termaximus in the
+     Guide tab. Shown only where Termaximus is on the page. */
+  function askHtml(d) {
+    if (!d.id || !window.TermaximusRecords) return "";
+    return '<p><button type="button" class="bf-why-link" data-bf-why-ask="' + esc(d.id) + '" data-bf-why-intent="' + (d.outcome === "ran" ? "why_ran" : "why_not") +
+      '" aria-label="Ask Termaximus about this decision">Ask Termaximus</button></p>';
   }
 
   /* ── the panel ──────────────────────────────────────────────────────────── */
@@ -520,6 +528,8 @@
     if (d) { e.preventDefault(); openDecision(listView.rows[d.getAttribute("data-bf-why-decision")] || null); return; }
     var byId = t.closest("[data-bf-why-id]");
     if (byId) { e.preventDefault(); openById(byId.getAttribute("data-bf-why-id")); return; }
+    var ask = t.closest("[data-bf-why-ask]");
+    if (ask && window.TermaximusRecords) { e.preventDefault(); window.TermaximusRecords.ask(ask.getAttribute("data-bf-why-intent"), "decision:" + ask.getAttribute("data-bf-why-ask")); return; }
     if (t.closest("[data-bf-why-close]")) close();
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel && !panel.hidden) close(); });

@@ -58,6 +58,8 @@
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_exec_tab (the Executive command deck's last tab on this device),
      bf_boombox (where the music boombox sits and whether it is minimised),
+     bf_tmx_not_now (which of Termaximus's suggestions were set aside with
+     "Not now" on this device, and until when: fixed rule names, no data),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
      and bf_return_to (the public page to return to after signing in, which
      app.html must still find). The backend's scripts/checkOfflineMode.js
