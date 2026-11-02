@@ -119,6 +119,7 @@
     tool_not_in_router: "the plan names a tool that does not exist",
     tool_has_no_spec: "the tool's inputs cannot be checked",
     body_missing_required_fields: "the plan left a required input empty",
+    link_disabled_by_member: "you switched off this link on the Network map (Agents tab)",
     entitlement_unknown: "your subscription could not be checked",
     not_entitled: "this account is not entitled to run it",
     plan_not_found: "no such plan belongs to this account",

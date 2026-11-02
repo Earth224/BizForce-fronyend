@@ -234,7 +234,7 @@
       "On \"Plans\", \"Run next\" sends one assignment per press; if it is greyed out, running plans is switched off on the server.",
       "On \"Settings\", \"Your gates\" only stop what checks let through; \"Triggers\" notify you, draft a task or pause a schedule, and never publish.",
       "\"History\" lists this agent's runs, 10 a page; a row, or a Done card's \"View result\", opens its result beside the page.",
-      "\"Approvals\" holds what needs you and \"Decisions\", where \"Why?\" shows each check in order; on \"Agents\", \"Pause schedule\" changes only that schedule."
+      "\"Approvals\" holds what needs you and \"Decisions\" with \"Why?\"; on \"Agents\", \"Pause schedule\" changes only that schedule and \"Network\" lights only real flow."
     ],
     "vertical-marketing-agent.html": [
       "Open \"Vertical Positioning\", enter the industry and what you sell, and press \"Write the positioning\".",

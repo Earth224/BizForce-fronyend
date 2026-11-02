@@ -54,8 +54,9 @@
     { path: /^\/api\/ai\/tasks\/[A-Za-z0-9-]+$/, what: "your recent tasks and their results" },
     { path: /^\/api\/business-profile$/, what: "your business profile" },
     { path: /^\/api\/agents$/, what: "your agents and their last runs" },
-    // not /api/agents/live: live activity is never answered from an old copy
-    { path: /^\/api\/agents\/(?!live$)[a-z_]+$/, what: "your agents and their last runs" },
+    // not /api/agents/live or /api/agents/network: live activity and the flow
+    // counts are never answered from an old copy
+    { path: /^\/api\/agents\/(?!live$|network$)[a-z_]+$/, what: "your agents and their last runs" },
     { path: /^\/api\/wallet$/, what: "your wallet balance and history" },
     { path: /^\/api\/auth\/me$/, what: "your account details (email address, profile, and whether your plan is active)", drop: ["subscription"] },
     { path: /^\/api\/your-data$/, what: "the description on the Your data page" }
