@@ -72,6 +72,8 @@
     show("bskyDisconnectBtn", connected || reconnect);
     show("bskyAutomation", connected);
     show("bskyProfile", connected);
+    // The Mentions card (scripts/bluesky-mentions.js) shows by the same status.
+    if (window.bfBlueskyMentions && typeof window.bfBlueskyMentions.statusChanged === "function") window.bfBlueskyMentions.statusChanged(st);
     if (connected) {
       byId("bskyConnectedAs").textContent = "Connected as " + st.handle;
       byId("bskySince").textContent = "since " + dateText(st.since);

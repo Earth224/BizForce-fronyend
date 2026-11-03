@@ -394,6 +394,10 @@
     .bsky-warn { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #fecaca; font-size: .84rem; }
     .bsky-switch { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: #e6edf3; }
     .bsky-sub { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(244,114,182,.18); }
+    .bsky-mentions-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+    .bsky-mention { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(244,114,182,.22); background: rgba(10,14,30,.45); }
+    .bsky-mention-text { white-space: pre-wrap; color: #e6edf3; font-size: .88rem; line-height: 1.6; margin: 6px 0; }
+    .bsky-reply-text { white-space: pre-wrap; color: #e6edf3; font-size: .86rem; line-height: 1.6; margin: 6px 0; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(244,114,182,.3); background: rgba(10,14,30,.6); }
 
     .agent-avatar{border-color:rgba(244,114,182,0.5);background:linear-gradient(135deg,rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),rgba(var(--bf-accent-b-rgb, 168,85,247),0.22));box-shadow:0 0 24px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),0 0 32px rgba(var(--bf-accent-b-rgb, 168,85,247),0.12);}
   </style>
@@ -459,6 +463,17 @@
         <div class="bsky-msg" id="bskyProfileMsg"></div>
       </div>
       <p class="bsky-quiet" id="bskyOtherPlatforms">X, Instagram, LinkedIn, TikTok and Facebook are coming, through each platform's own sign-in.</p>
+    </section>
+    <section class="context-card bsky-card" id="bskyMentions" aria-label="Mentions" hidden>
+      <h2 class="section-label">Mentions</h2>
+      <p class="bsky-quiet">Posts on Bluesky that mention you, reply to you or quote you. BizForce reads them when you ask and does not store them. A reply is posted only after you approve it.</p>
+      <div id="bskyMentionsReconnect" hidden><p class="bsky-warn" id="bskyMentionsReconnectText"></p></div>
+      <div id="bskyMentionsBody">
+        <div class="bsky-row"><button type="button" class="action-btn" id="bskyMentionsBtn">Show my mentions</button></div>
+        <div class="bsky-msg" id="bskyMentionsMsg"></div>
+        <ul class="bsky-mentions-list" id="bskyMentionsList"></ul>
+        <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="bskyMentionsOlder" hidden>Show older</button></div>
+      </div>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
@@ -716,6 +731,7 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/social-publish.js"></script>
 <script src="/scripts/bluesky-connect.js"></script>
+<script src="/scripts/bluesky-mentions.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

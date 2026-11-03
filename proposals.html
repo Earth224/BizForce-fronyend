@@ -276,6 +276,23 @@ function bskyPostUrl(uri) {
   return m ? "https://bsky.app/profile/" + m[1] + "/post/" + m[2] : null;
 }
 
+// A reply_bluesky_mention proposal: the exact reply, the post it answers (linked), and the account.
+function blueskyReplyPayloadFields(payload) {
+  var text = typeof payload.text === "string" ? payload.text : "";
+  var parent = payload.reply && payload.reply.parent && typeof payload.reply.parent.uri === "string" ? payload.reply.parent.uri : null;
+  var url = bskyPostUrl(parent);
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">posts to</span><span class="pf-value social-posts-as">' + escapeHtml(postsAsText(payload)) + ', as a reply</span></div>' +
+      '<div><span class="pf-label">in reply to</span>' + (url
+        ? '<a class="pf-value social-post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+        : '<span class="pf-value">no post address recorded</span>') + '</div>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">a reply always waits for your approval</span></div>' +
+      '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(graphemeCountText(text)) + '</span></div>' +
+      '<div><span class="pf-label">reply to be posted</span></div>' +
+      '<pre class="exec-block social-reply-text">' + escapeHtml(text) + '</pre>' +
+    '</div>';
+}
+
 // What approving a publish_social_post did: the post, linked, and when.
 function socialPostResultHtml(result) {
   var url = bskyPostUrl(result.uri);
@@ -359,7 +376,7 @@ function renderProposals() {
       execHtml = '<pre class="exec-block exec-error">' + escapeHtml(p.execution_error) + '</pre>';
     } else if (p.action_type === "send_email_sequence" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = sequenceResultHtml(p.execution_result);
-    } else if (p.action_type === "publish_social_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+    } else if ((p.action_type === "publish_social_post" || p.action_type === "reply_bluesky_mention") && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = socialPostResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
@@ -469,6 +486,9 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "publish_social_post") {
         fieldsHtml = socialPostPayloadFields(p.payload);
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "reply_bluesky_mention") {
+        fieldsHtml = blueskyReplyPayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "update_bluesky_profile") {
         fieldsHtml = blueskyProfilePayloadFields(p.payload || {});

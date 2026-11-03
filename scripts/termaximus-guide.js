@@ -138,7 +138,7 @@
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
       "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
-      "Under \"Connect Bluesky\", make an app password in Bluesky, enter it with your handle and press \"Connect\"; never your main password.",
+      "Under \"Connect Bluesky\", connect with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for your approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
       "Only Bluesky connects so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
     ],
