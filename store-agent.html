@@ -380,6 +380,23 @@
       .report-items { grid-template-columns: 1fr; }
     }
   
+    .store-card { margin-top: 24px; }
+    .store-card ol { margin: 8px 0 14px; padding-left: 20px; color: #c4cbe6; font-size: .86rem; line-height: 1.7; }
+    .store-card code { color: #e6edf3; }
+    .store-pick { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+    .store-pick button[aria-pressed="true"] { border-color: #38bdf8; color: #e6edf3; }
+    .store-fields { display: grid; gap: 10px; max-width: 420px; }
+    .store-fields label { display: grid; gap: 4px; font-size: .8rem; color: #8892b8; }
+    .store-fields input { padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(56,189,248,.3); background: rgba(10,14,30,.6); color: #e6edf3; font: inherit; }
+    .store-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .store-quiet { color: #8892b8; font-size: .82rem; margin: 6px 0; line-height: 1.6; }
+    .store-readonly { color: #e6edf3; font-size: .88rem; font-weight: 600; margin: 6px 0 10px; }
+    .store-msg { font-size: .82rem; color: #8892b8; margin-top: 8px; }
+    .store-msg.err { color: #f87171; }
+    .store-connected-as { font-weight: 700; color: #e6edf3; }
+    .store-warn { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #fecaca; font-size: .84rem; }
+    .store-conn { padding: 12px 0; border-bottom: 1px solid rgba(56,189,248,.15); }
+    .store-sub { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(56,189,248,.18); }
     .agent-avatar{border-color:rgba(56,189,248,0.55);background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(var(--bf-accent-b-rgb, 168,85,247),0.12));box-shadow:0 0 24px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),0 0 32px rgba(var(--bf-accent-b-rgb, 168,85,247),0.12);}
   </style>
 </head>
@@ -401,6 +418,38 @@
       <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
       
       <div class="research-goals"><div class="context-grid" id="liveAgentStats"></div></div>
+    </section>
+    <section class="context-card store-card" id="storeConnect" aria-label="Connect your store">
+      <h2 class="section-label">Connect your store</h2>
+      <p class="store-readonly">BizForce only reads your store. It never changes your products, prices or orders.</p>
+      <p class="store-quiet">Connect your own Shopify or WooCommerce store and Stock &amp; Margin, your low-stock triggers and the Store panel read your products, stock and order totals from it. Order summaries hold the date, the total and the items as SKU and quantity, never a customer's name, email, address or phone.</p>
+      <div class="store-msg" id="storeStatusMsg"></div>
+      <div id="storeConnections"></div>
+      <div class="store-sub">
+        <div class="store-pick" role="group" aria-label="Store platform">
+          <button type="button" class="action-btn action-btn--ghost" id="storePickShopify" aria-pressed="true">Shopify</button>
+          <button type="button" class="action-btn action-btn--ghost" id="storePickWoo" aria-pressed="false">WooCommerce</button>
+        </div>
+        <ol id="storeShopifySteps">
+          <li>In your Shopify admin, open Settings, then Apps and sales channels, then Develop apps. If Shopify asks, allow custom app development.</li>
+          <li>Press Create an app and name it BizForce.</li>
+          <li>Under Configuration, Admin API integration, tick only <code>read_products</code>, <code>read_inventory</code> and <code>read_orders</code>. Do not tick any <code>write_</code> permission: BizForce refuses a token that has one.</li>
+          <li>Press Install app. Under API credentials, reveal the Admin API access token (it starts with <code>shpat_</code>) and copy it. Shopify shows it only once.</li>
+          <li>Enter your shop's myshopify.com address and the token here, and press Connect.</li>
+        </ol>
+        <ol id="storeWooSteps" hidden>
+          <li>Enter your store's address, starting with https://, and press Connect.</li>
+          <li>Your store opens its own page asking you to approve Read access for BizForce AI. Sign in to your WordPress admin if asked, and press Approve.</li>
+          <li>WooCommerce makes a REST API key with Read permission and hands it to BizForce, then brings you back here. BizForce refuses a key that is not read-only.</li>
+          <li>To see or revoke the key later, open WooCommerce, then Settings, Advanced, REST API.</li>
+        </ol>
+        <div class="store-fields">
+          <label>Store address<input type="text" id="storeUrl" placeholder="your-shop.myshopify.com" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+          <label id="storeTokenField">Admin API access token<input type="password" id="storeToken" placeholder="shpat_..." autocomplete="off" /></label>
+        </div>
+        <div class="store-row"><button type="button" class="action-btn" id="storeConnectBtn">Connect</button></div>
+        <div class="store-msg" id="storeConnectMsg"></div>
+      </div>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
@@ -563,6 +612,7 @@ window.AGENT_PROFILE_CONFIG = {
 };
 </script>
 <script src="/scripts/bf-paywall.js"></script>
+<script src="/scripts/store-connect.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

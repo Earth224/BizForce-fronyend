@@ -5604,6 +5604,13 @@
       m.appendChild(sigEmpty("No inventory yet.", "Add inventory", "/inventory.html"));
     } else {
       tiles.appendChild(sigTile("Inventory", sigPlural(st.items, "item", "items"), sigLink("Open Inventory", "/inventory.html")));
+      // Where the stock comes from: what the member entered, or a store they connected (read-only).
+      var src = st.sources || { manual: st.items, shopify: 0, woocommerce: 0 };
+      var srcParts = [];
+      if (src.manual) srcParts.push("Manual " + src.manual);
+      if (src.shopify) srcParts.push("Shopify " + src.shopify);
+      if (src.woocommerce) srcParts.push("WooCommerce " + src.woocommerce);
+      tiles.appendChild(sigTile("Stock source", srcParts.join(", ") || "Manual", (src.shopify || src.woocommerce) ? "Read from your store; it is never changed" : "Entered on your Inventory page"));
       var low = !st.with_reorder_point
         ? sigTile("Low stock", "No reorder points", "Set one on an item to be told when it runs low")
         : st.low.count

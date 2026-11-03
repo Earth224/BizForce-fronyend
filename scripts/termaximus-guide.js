@@ -165,8 +165,8 @@
     ],
     "store-agent.html": [
       "Pick \"Store Audit\" or \"Product Launch Plan\", describe the store and the product, and press \"Launch Task\".",
-      "\"Stock & Margin\" with \"Measure my stock\" counts what you entered on your inventory page, in code, with no model call.",
-      "It connects to no store or channel; audits are written from your Business Profile and what you tell it, not your store's own data.",
+      "\"Stock & Margin\" with \"Measure my stock\" counts your inventory, entered by you or read from a store you connect, in code, with no model call.",
+      "\"Connect your store\" reads Shopify or WooCommerce read-only; audits are written from your Business Profile and what you tell it, not your store's own data.",
       "A cost, price or reorder point you never entered is left out and counted, not taken as 0; fill it in on the inventory page.",
       "Under the page header, \"Low stock\" names items at or below your own reorder point; with no items yet, \"Add inventory\" opens that page."
     ],
