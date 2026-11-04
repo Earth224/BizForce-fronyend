@@ -80,6 +80,21 @@
     .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
     .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
     @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}}
+    /* Your campaigns: status, owner controls and the Share panel (campaign sharing). */
+    .section-title{font-size:1.05rem;font-weight:800;color:#f4f7ff;margin:8px 0 14px}
+    .my-campaigns{display:grid;gap:14px;margin-bottom:36px}
+    .my-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px;display:grid;gap:10px}
+    .my-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .my-status{font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#e8e8ff}
+    .my-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn-plain{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16);color:#e8e8ff}
+    .btn-plain:hover{background:rgba(255,255,255,.1)}
+    .share-panel{border-top:1px solid rgba(255,255,255,.08);padding-top:12px;display:grid;gap:8px}
+    .share-toggle{display:flex;gap:8px;align-items:center;font-size:.86rem;color:#e8e8ff}
+    .share-link{font-size:.84rem;word-break:break-all;color:#9ec5ff}
+    .share-note{font-size:.8rem;color:#8892b8;margin:0}
+    .share-qr{background:#fff;border-radius:8px;padding:6px;width:148px;height:148px}
+    .form-note{font-size:.78rem;color:#8892b8;margin:6px 0 0}
   </style>
 </head>
 <body>
@@ -111,6 +126,12 @@
     </button>
   </div>
 
+  <section id="mySection" aria-labelledby="myTitle" hidden>
+    <h2 class="section-title" id="myTitle">Your campaigns</h2>
+    <div class="my-campaigns" id="myCampaigns"></div>
+  </section>
+
+  <h2 class="section-title">All campaigns</h2>
   <div class="campaigns-grid" id="campaignsGrid"><div class="loading">Loading campaigns...</div></div>
 </div>
 
@@ -133,6 +154,7 @@
       <div class="form-group">
         <label class="form-label">Goal (BFC) *</label>
         <input class="form-input" id="fGoal" type="number" min="1" placeholder="1000">
+        <p class="form-note" id="fGoalNote" hidden>The goal is set when a campaign starts and cannot be changed.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Category <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
@@ -157,30 +179,42 @@
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var token = localStorage.getItem("bf_token");
-var currentUserId = (function() {
-  try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
-})();
 
+/* Every campaign and its owner's controls are drawn with textContent: nothing
+   a member typed, and nothing the server sent, is ever parsed as HTML. Whether
+   a campaign is the viewer's own comes from the server's is_own; no account id
+   is read or compared on this page. */
+var SHARE_ID = /^[a-z2-7]{16}$/;
 var allCampaigns = [];
+var myCampaigns = [];
 var searchTimer = null;
 var campaignMedia = [];
 var campaignMediaUploading = 0;
+var editingId = null;
 
-function escapeHtml(str) {
-  return String(str == null ? "" : str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function el(tag, attrs, text) {
+  var n = document.createElement(tag);
+  Object.keys(attrs || {}).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+  if (text !== undefined && text !== null) n.textContent = text;
+  return n;
 }
+function httpsUrl(u) { return typeof u === "string" && u.indexOf("https://") === 0 ? u : null; }
+function authHeaders(json) {
+  var h = { "Authorization": "Bearer " + token };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
+}
+async function readJson(res) { try { return await res.json(); } catch (e) { return {}; } }
 
 async function loadCampaigns() {
+  var grid = document.getElementById("campaignsGrid");
   try {
-    var res = await fetch(API_URL + "/api/crowdfunding/campaigns", { headers: { "Authorization": "Bearer " + token } });
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns", { headers: authHeaders() });
     if (res.ok) { var d = await res.json(); allCampaigns = d.campaigns || []; }
     renderGrid();
   } catch (e) {
-    document.getElementById("campaignsGrid").innerHTML = '<div class="empty-msg">Unable to load campaigns. Please try again.</div>';
+    grid.textContent = "";
+    grid.appendChild(el("div", { "class": "empty-msg" }, "Unable to load campaigns. Please try again."));
   }
 }
 
@@ -193,58 +227,244 @@ function renderGrid() {
     });
   }
   var grid = document.getElementById("campaignsGrid");
+  grid.textContent = "";
   if (!items.length) {
-    grid.innerHTML = '<div class="empty-msg">No campaigns found. Be the first to start one!</div>';
+    grid.appendChild(el("div", { "class": "empty-msg" }, "No campaigns found. Be the first to start one!"));
     return;
   }
-  grid.innerHTML = items.map(function(c) { return renderCard(c); }).join("");
+  items.forEach(function(c) { grid.appendChild(renderCard(c)); });
 }
 
-function renderCard(c) {
-  var isOwn = c.owner_id === currentUserId;
-  var catHtml = c.category ? '<span class="campaign-cat">' + escapeHtml(c.category) + '</span>' : "";
-  var desc = c.description ? c.description.slice(0, 180) + (c.description.length > 180 ? "…" : "") : "";
-  var date = new Date(c.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
-  var mediaArr = Array.isArray(c.media) ? c.media : [];
-  var mediaHtml = "";
-  if (mediaArr.length > 0) {
-    var m0 = mediaArr[0];
-    var inner = (typeof m0.type === "string" && m0.type.indexOf("video") === 0)
-      ? '<video src="' + m0.url + '" muted playsinline></video>'
-      : '<img src="' + m0.url + '" alt="" loading="lazy">';
-    var countBadge = mediaArr.length > 1 ? '<span class="campaign-media-count">+' + (mediaArr.length - 1) + '</span>' : "";
-    mediaHtml = '<div class="campaign-media">' + inner + countBadge + '</div>';
-  }
+function mediaBlock(media) {
+  var mediaArr = (Array.isArray(media) ? media : []).filter(function (m) { return m && httpsUrl(m.url); });
+  if (!mediaArr.length) return null;
+  var box = el("div", { "class": "campaign-media" });
+  var m0 = mediaArr[0];
+  var isVideo = typeof m0.type === "string" && m0.type.indexOf("video") === 0;
+  var inner = isVideo ? el("video", { muted: "", playsinline: "" }) : el("img", { alt: "", loading: "lazy" });
+  inner.src = m0.url;
+  box.appendChild(inner);
+  if (mediaArr.length > 1) box.appendChild(el("span", { "class": "campaign-media-count" }, "+" + (mediaArr.length - 1)));
+  return box;
+}
+
+function progressBlock(c) {
   var goal = c.goal_bfc || 0;
   var raised = c.raised_bfc || 0;
   var percent = goal > 0 ? Math.min(100, Math.round(raised / goal * 100)) : 0;
-  var progressHtml =
-    '<div class="campaign-progress-track"><div class="campaign-progress-fill" style="width:' + percent + '%"></div></div>' +
-    '<div class="campaign-progress-text">' + raised.toLocaleString() + ' / ' + goal.toLocaleString() + ' BFC (' + percent + '%)</div>';
-  var actionHtml = isOwn
-    ? '<span class="campaign-owner-label">Your campaign</span>'
-    : '<button class="btn-sm btn-donate" onclick="donateToCampaign(\'' + c.id + '\')">Donate BFC</button>';
-  return '<div class="campaign-card">' +
-    '<div class="campaign-header">' + catHtml + '</div>' +
-    mediaHtml +
-    '<h3 class="campaign-title">' + escapeHtml(c.title) + '</h3>' +
-    (desc ? '<p class="campaign-desc">' + escapeHtml(desc) + '</p>' : '') +
-    progressHtml +
-    '<div class="campaign-footer">' +
-      '<span class="campaign-date">' + date + '</span>' +
-      actionHtml +
-    '</div>' +
-  '</div>';
+  var wrap = document.createDocumentFragment();
+  var track = el("div", { "class": "campaign-progress-track" });
+  var fill = el("div", { "class": "campaign-progress-fill" });
+  fill.style.width = percent + "%";
+  track.appendChild(fill);
+  wrap.appendChild(track);
+  wrap.appendChild(el("div", { "class": "campaign-progress-text" }, raised.toLocaleString() + " / " + goal.toLocaleString() + " BFC (" + percent + "%)"));
+  return wrap;
+}
+
+function renderCard(c) {
+  var card = el("div", { "class": "campaign-card" });
+  var header = el("div", { "class": "campaign-header" });
+  if (c.category) header.appendChild(el("span", { "class": "campaign-cat" }, c.category));
+  card.appendChild(header);
+  var media = mediaBlock(c.media);
+  if (media) card.appendChild(media);
+  card.appendChild(el("h3", { "class": "campaign-title" }, c.title));
+  var desc = c.description ? c.description.slice(0, 180) + (c.description.length > 180 ? "…" : "") : "";
+  if (desc) card.appendChild(el("p", { "class": "campaign-desc" }, desc));
+  card.appendChild(progressBlock(c));
+  var footer = el("div", { "class": "campaign-footer" });
+  footer.appendChild(el("span", { "class": "campaign-date" }, new Date(c.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"})));
+  if (c.is_own === true) {
+    footer.appendChild(el("span", { "class": "campaign-owner-label" }, "Your campaign"));
+  } else {
+    var btn = el("button", { "class": "btn-sm btn-donate", type: "button" }, "Donate BFC");
+    btn.addEventListener("click", function () { donateToCampaign(c.id, c.title); });
+    footer.appendChild(btn);
+  }
+  card.appendChild(footer);
+  return card;
+}
+
+/* ── Your campaigns: status, Edit, Pause/Resume, Mark complete, Cancel, Share ── */
+var STATUS_LABELS = { active: "Active", paused: "Paused", completed: "Completed", cancelled: "Cancelled" };
+
+async function loadMyCampaigns() {
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/my-campaigns", { headers: authHeaders() });
+    if (!res.ok) return;
+    var d = await res.json();
+    myCampaigns = d.campaigns || [];
+    renderMyCampaigns();
+  } catch (e) { /* the list of everyone's campaigns still shows */ }
+}
+
+function renderMyCampaigns() {
+  var section = document.getElementById("mySection");
+  var list = document.getElementById("myCampaigns");
+  list.textContent = "";
+  section.hidden = myCampaigns.length === 0;
+  myCampaigns.forEach(function (c) { list.appendChild(renderMyCard(c)); });
+}
+
+function actionButton(label, onClick) {
+  var b = el("button", { "class": "btn-sm btn-plain", type: "button" }, label);
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function renderMyCard(c) {
+  var card = el("div", { "class": "my-card" });
+  var head = el("div", { "class": "my-head" });
+  head.appendChild(el("h3", { "class": "campaign-title" }, c.title));
+  head.appendChild(el("span", { "class": "my-status" }, STATUS_LABELS[c.status] || c.status));
+  card.appendChild(head);
+  card.appendChild(progressBlock(c));
+
+  var actions = el("div", { "class": "my-actions" });
+  var open = c.status === "active" || c.status === "paused";
+  if (open) actions.appendChild(actionButton("Edit", function () { openEditModal(c); }));
+  if (c.status === "active") actions.appendChild(actionButton("Pause", function () { setStatus(c, "paused", null); }));
+  if (c.status === "paused") actions.appendChild(actionButton("Resume", function () { setStatus(c, "active", null); }));
+  if (open) {
+    actions.appendChild(actionButton("Mark complete", function () {
+      setStatus(c, "completed", "Mark this campaign complete? It takes no more donations, and this cannot be undone.");
+    }));
+    actions.appendChild(actionButton("Cancel", function () {
+      setStatus(c, "cancelled", "Cancel this campaign? It takes no more donations, and this cannot be undone.");
+    }));
+  }
+  if (!open) card.appendChild(el("p", { "class": "share-note" }, "This campaign is " + (STATUS_LABELS[c.status] || c.status).toLowerCase() + ", which is final."));
+  if (actions.childNodes.length) card.appendChild(actions);
+  card.appendChild(sharePanel(c));
+  return card;
+}
+
+function sharePanel(c) {
+  var panel = el("div", { "class": "share-panel" });
+  var status = el("p", { "class": "share-note", role: "status", "aria-live": "polite" });
+  function toggle(id, label, on, onChange) {
+    var lab = el("label", { "class": "share-toggle" });
+    var box = el("input", { type: "checkbox", id: id });
+    box.checked = !!on;
+    box.addEventListener("change", function () { onChange(box); });
+    lab.appendChild(box);
+    lab.appendChild(document.createTextNode(label));
+    panel.appendChild(lab);
+    return box;
+  }
+  toggle("share-on-" + c.id, "Share this campaign", c.share_on, function (box) { saveShare(c, { share_on: box.checked }, box, status); });
+  toggle("share-find-" + c.id, "Let search engines find it", c.discoverable, function (box) { saveShare(c, { discoverable: box.checked }, box, status); });
+  if (c.share_on && c.share_url) {
+    var link = el("a", { "class": "share-link", href: c.share_url, target: "_blank", rel: "noopener" }, c.share_url);
+    panel.appendChild(link);
+    if (c.status === "paused" || c.status === "cancelled") panel.appendChild(el("p", { "class": "share-note" }, "While it is " + c.status + ", the link says this campaign isn't being shared right now."));
+    if (c.status === "completed") panel.appendChild(el("p", { "class": "share-note" }, "The link shows the final totals and says this campaign has ended."));
+    var row = el("div", { "class": "my-actions" });
+    row.appendChild(actionButton("Copy link", function () {
+      copyLink(c.share_url).then(function () { status.textContent = "Link copied"; }, function () { status.textContent = "Copy this link: " + c.share_url; });
+    }));
+    row.appendChild(actionButton("Make a new link", function () { newLink(c, status); }));
+    panel.appendChild(row);
+    var canvas = el("canvas", { "class": "share-qr", width: "148", height: "148", role: "img", "aria-label": "QR code of this campaign's link" });
+    panel.appendChild(canvas);
+    if (window.QRCode) window.QRCode.toCanvas(canvas, c.share_url, { width: 148, margin: 1 }, function () {});
+  } else {
+    panel.appendChild(el("p", { "class": "share-note" }, "Sharing is off. Turn it on for a link anyone can open, even without an account."));
+  }
+  panel.appendChild(status);
+  return panel;
+}
+
+function copyLink(url) {
+  if (window.BFSupport && window.BFSupport.copyText) return window.BFSupport.copyText(url);
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(url);
+  return Promise.reject(new Error("copy refused"));
+}
+
+async function saveShare(c, change, box, status) {
+  box.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns/" + encodeURIComponent(c.id) + "/share", {
+      method: "PUT", headers: authHeaders(true), body: JSON.stringify(change)
+    });
+    var d = await readJson(res);
+    if (!res.ok) {
+      var paywall = window.bfPaywall && window.bfPaywall.from(res.status, d);
+      if (paywall) { window.bfPaywall.show(box, paywall); status.textContent = ""; }
+      else status.textContent = d.error || "Sharing could not be changed.";
+      box.checked = !box.checked;
+      box.disabled = false;
+      return;
+    }
+    await loadMyCampaigns();
+  } catch (e) {
+    status.textContent = "BizForce could not be reached just now. Nothing was changed.";
+    box.checked = !box.checked;
+    box.disabled = false;
+  }
+}
+
+async function newLink(c, status) {
+  if (!window.confirm("Your old link will stop working.")) return;
+  status.textContent = "Making a new link…";
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns/" + encodeURIComponent(c.id) + "/share/new-link", { method: "POST", headers: authHeaders(true), body: "{}" });
+    var d = await readJson(res);
+    if (!res.ok) { status.textContent = d.error || "A new link could not be made. The old one still works."; return; }
+    await loadMyCampaigns();
+  } catch (e) {
+    status.textContent = "BizForce could not be reached just now. The old link still works.";
+  }
+}
+
+async function setStatus(c, to, question) {
+  if (question && !window.confirm(question)) return;
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns/" + encodeURIComponent(c.id), {
+      method: "PUT", headers: authHeaders(true), body: JSON.stringify({ status: to })
+    });
+    var d = await readJson(res);
+    if (!res.ok) {
+      var paywall = window.bfPaywall && window.bfPaywall.from(res.status, d);
+      showToast((paywall && paywall.message) || d.error || "The campaign could not be changed.", "error");
+      return;
+    }
+    showToast("Campaign " + (STATUS_LABELS[to] || to).toLowerCase() + ".", "success");
+    await Promise.all([loadMyCampaigns(), loadCampaigns()]);
+  } catch (e) {
+    showToast("BizForce could not be reached just now. Nothing was changed.", "error");
+  }
 }
 
 function openCreateModal() {
+  editingId = null;
   document.getElementById("modalTitle").textContent = "Start a Campaign";
   document.getElementById("submitBtn").textContent = "Start Campaign";
   document.getElementById("fTitle").value = "";
   document.getElementById("fDesc").value = "";
   document.getElementById("fGoal").value = "";
+  document.getElementById("fGoal").disabled = false;
+  document.getElementById("fGoalNote").hidden = true;
   document.getElementById("fCategory").value = "";
   campaignMedia = [];
+  renderMediaPreview();
+  document.getElementById("campaignModal").classList.add("open");
+}
+
+function openEditModal(c) {
+  editingId = c.id;
+  document.getElementById("modalTitle").textContent = "Edit Campaign";
+  document.getElementById("submitBtn").textContent = "Save Changes";
+  document.getElementById("fTitle").value = c.title || "";
+  document.getElementById("fDesc").value = c.description || "";
+  document.getElementById("fGoal").value = c.goal_bfc || "";
+  document.getElementById("fGoal").disabled = true;
+  document.getElementById("fGoalNote").hidden = false;
+  document.getElementById("fCategory").value = c.category || "";
+  campaignMedia = (Array.isArray(c.media) ? c.media : []).filter(function (m) { return m && httpsUrl(m.url); })
+    .map(function (m) { return { url: m.url, type: String(m.type || ""), name: String(m.name || "") }; });
   renderMediaPreview();
   document.getElementById("campaignModal").classList.add("open");
 }
@@ -252,24 +472,31 @@ function openCreateModal() {
 function closeModal() {
   document.getElementById("campaignModal").classList.remove("open");
   campaignMedia = [];
+  editingId = null;
   renderMediaPreview();
 }
 
 function renderMediaPreview() {
   var container = document.getElementById("mediaPreview");
-  var html = campaignMedia.map(function(item, index) {
-    var thumb = item.type.indexOf("image") === 0
-      ? '<img src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px">'
-      : '<video src="' + item.url + '" style="width:64px;height:64px;object-fit:cover;border-radius:8px" muted></video>';
-    return '<div style="position:relative">' +
-      thumb +
-      '<button type="button" onclick="removeMediaItem(' + index + ')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0">×</button>' +
-    '</div>';
-  }).join("");
+  container.textContent = "";
+  campaignMedia.forEach(function(item, index) {
+    var cell = el("div");
+    cell.style.position = "relative";
+    var thumb = item.type.indexOf("image") === 0 ? el("img") : el("video", { muted: "" });
+    thumb.src = item.url;
+    thumb.style.cssText = "width:64px;height:64px;object-fit:cover;border-radius:8px";
+    var remove = el("button", { type: "button", "aria-label": "Remove" }, "×");
+    remove.style.cssText = "position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(248,113,113,.9);color:#fff;font-size:11px;line-height:18px;cursor:pointer;padding:0";
+    remove.addEventListener("click", function () { removeMediaItem(index); });
+    cell.appendChild(thumb);
+    cell.appendChild(remove);
+    container.appendChild(cell);
+  });
   if (campaignMediaUploading > 0) {
-    html += '<div style="width:64px;height:64px;border-radius:8px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#8892b8;text-align:center">Uploading…</div>';
+    var up = el("div", null, "Uploading…");
+    up.style.cssText = "width:64px;height:64px;border-radius:8px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#8892b8;text-align:center";
+    container.appendChild(up);
   }
-  container.innerHTML = html;
 }
 
 function removeMediaItem(index) {
@@ -309,34 +536,41 @@ async function submitCampaign() {
   var goal = parseInt(document.getElementById("fGoal").value, 10);
   var category = document.getElementById("fCategory").value.trim();
   if (!title) { showToast("Title is required", "error"); return; }
-  if (!Number.isInteger(goal) || goal <= 0) { showToast("Goal must be a positive integer", "error"); return; }
+  if (!editingId && (!Number.isInteger(goal) || goal <= 0)) { showToast("Goal must be a positive integer", "error"); return; }
   var btn = document.getElementById("submitBtn");
   btn.disabled = true;
   if (window.bfPaywall) window.bfPaywall.clear(btn);
   try {
-    var res = await fetch(API_URL + "/api/crowdfunding/campaigns", {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description: desc, goal_bfc: goal, category, media: campaignMedia })
-    });
+    var res = editingId
+      ? await fetch(API_URL + "/api/crowdfunding/campaigns/" + encodeURIComponent(editingId), {
+          method: "PUT",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description: desc, category, media: campaignMedia })
+        })
+      : await fetch(API_URL + "/api/crowdfunding/campaigns", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ title, description: desc, goal_bfc: goal, category, media: campaignMedia })
+        });
     if (!res.ok) {
       var e = await res.json().catch(function () { return {}; });
-      /* 402: nothing created, form kept (scripts/bf-paywall.js). */
+      /* 402: nothing created or changed, form kept (scripts/bf-paywall.js). */
       var paywall = window.bfPaywall && window.bfPaywall.from(res.status, e);
       if (paywall) { window.bfPaywall.show(btn, paywall); btn.disabled = false; return; }
       throw new Error(e.error || "Failed");
     }
+    var edited = !!editingId;
     closeModal();
-    showToast("Campaign started!", "success");
-    await loadCampaigns();
+    showToast(edited ? "Campaign saved." : "Campaign started!", "success");
+    await Promise.all([loadCampaigns(), loadMyCampaigns()]);
   } catch (e) {
     showToast(e.message, "error");
   }
   btn.disabled = false;
 }
 
-async function donateToCampaign(id) {
-  var raw = window.prompt("How much BFC would you like to donate?");
+async function donateToCampaign(id, title) {
+  var raw = window.prompt("How much BFC would you like to donate" + (title ? " to " + title : "") + "?");
   if (raw === null) return;
   var amount = parseInt(raw, 10);
   if (!Number.isInteger(amount) || amount <= 0) {
@@ -358,6 +592,28 @@ async function donateToCampaign(id) {
     }
   } catch (e) {
     alert("Something went wrong. Please try again.");
+  }
+}
+
+/* A shared campaign's link sent the visitor here as campaigns.html?campaign=<share id>
+   (signed out, bf-session.js kept that address for after sign-in). The id is
+   resolved by the server, which answers only for a campaign that is shared
+   and active, and the donate flow opens for it. */
+async function openSharedCampaign() {
+  var params = new URLSearchParams(window.location.search);
+  if (!params.has("campaign")) return;
+  var shareId = params.get("campaign") || "";
+  try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  if (!SHARE_ID.test(shareId)) { showToast("This campaign isn't available.", "error"); return; }
+  try {
+    var res = await fetch(API_URL + "/api/crowdfunding/campaigns/by-share/" + encodeURIComponent(shareId), { headers: authHeaders() });
+    if (!res.ok) { showToast("This campaign isn't available.", "error"); return; }
+    var c = (await res.json()).campaign;
+    if (!c || !c.id) { showToast("This campaign isn't available.", "error"); return; }
+    if (c.is_own === true) { showToast("This is your own campaign.", "success"); return; }
+    await donateToCampaign(c.id, c.title);
+  } catch (e) {
+    showToast("This campaign isn't available.", "error");
   }
 }
 
@@ -386,7 +642,11 @@ document.getElementById("fMedia").addEventListener("change", function() {
 });
 
 loadCampaigns();
+loadMyCampaigns();
+openSharedCampaign();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
+<script src="/scripts/bf-support.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

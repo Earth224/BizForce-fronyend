@@ -272,7 +272,7 @@
     ],
     "campaigns.html": [
       "Press \"Donate BFC\" on a campaign and enter an amount; it moves from your balance to the campaign's owner.",
-      "Each donation counts toward the campaign's goal and is listed on your Receipts page.",
+      "Under \"Your campaigns\", turn on \"Share this campaign\" for a link anyone can open; \"Make a new link\" stops the old one.",
       "Donations have limits: a cap per donation, a daily total, a wait for new accounts, and none to your own campaign.",
       "To raise funds, press \"Start a Campaign\" and set \"Goal (BFC) *\"; members give in BizCash, never in dollars."
     ],

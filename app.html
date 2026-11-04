@@ -560,8 +560,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   /* A public page that sent the visitor here to sign in (the support page,
      a storefront, a profile or a card) set bf_return_to; they go back to it.
-     Only this site's own public pages are accepted, so the key can never
-     send anyone elsewhere. It is read once and removed. */
+     A shared campaign's page (bizforceai.net/campaign/<id>) sends them on to
+     the donate flow, campaigns.html?campaign=<id>, which is accepted too.
+     Only this site's own pages are accepted, so the key can never send
+     anyone elsewhere. It is read once and removed. */
   function signInReturnTo() {
     var raw = null;
     try { raw = localStorage.getItem("bf_return_to"); localStorage.removeItem("bf_return_to"); } catch (e) { return null; }
@@ -569,7 +571,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var u;
     try { u = new URL(raw, window.location.origin); } catch (e) { return null; }
     if (u.origin !== window.location.origin) return null;
-    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80})$/i.test(u.pathname)) return null;
+    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80}|campaigns\.html)$/i.test(u.pathname)) return null;
     return u.pathname + u.search;
   }
 

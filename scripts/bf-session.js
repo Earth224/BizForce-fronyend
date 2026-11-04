@@ -146,6 +146,12 @@
      an authority decision into the client, and the client's clock is not
      evidence. The server answers; this listens. */
   if (!read(TOKEN_KEY)) {
+    /* A shared campaign's donate link (campaigns.html?campaign=<share id>),
+       opened signed out, is the page to come back to after sign-in: app.html's
+       signInReturnTo reads bf_return_to once and accepts only this site. */
+    if (window.location.pathname === "/campaigns.html" && /^\?campaign=[a-z2-7]{16}$/.test(window.location.search)) {
+      write("bf_return_to", window.location.pathname + window.location.search);
+    }
     window.location.replace(LOGIN_PAGE);
     return;
   }
