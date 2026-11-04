@@ -162,6 +162,7 @@
       <label class="form-label">Photos &amp; Video <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
       <input type="file" id="fMedia" accept="image/*,video/*" multiple style="display:none">
       <button type="button" class="btn-cancel" onclick="document.getElementById('fMedia').click()">Add Photos / Video</button>
+      <button type="button" class="btn-cancel" id="fMediaLibrary">Choose from my library</button>
       <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
     </div>
     <div class="modal-footer">
@@ -548,6 +549,14 @@ document.getElementById("mediaPreview").addEventListener("click", function(e) {
 });
 
 loadListings();
+</script>
+<script src="/scripts/media-picker.js"></script>
+<script>
+/* "Choose from my library" (scripts/media-picker.js): a file from the member's
+   Media Library joins this listing's media, in the shape an upload stores. */
+document.getElementById("fMediaLibrary").addEventListener("click", function () {
+  BFMediaPicker.open({}).then(function (m) { if (m) { listingMedia.push(m); renderMediaPreview(); } });
+});
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

@@ -276,6 +276,12 @@
       "Donations have limits: a cap per donation, a daily total, a wait for new accounts, and none to your own campaign.",
       "To raise funds, press \"Start a Campaign\" and set \"Goal (BFC) *\"; members give in BizCash, never in dollars."
     ],
+    "media.html": [
+      "Press \"Upload\" to add a JPEG, PNG, WebP or GIF photo, or an MP4 or WebM video: 10 MB a file, 250 MB in all.",
+      "Location and camera details are removed from JPEG, PNG and WebP photos before they are saved; videos and GIFs are saved as they are.",
+      "Your crowdfunding campaigns, listings, garage sales and cards have a library button beside their upload button, so a file is reused, not uploaded again.",
+      "\"Where used\" lists where a file appears, and \"Delete\" is refused while it is used; \"Copy link\" gives a link anyone can open."
+    ],
     "garage-sale.html": [
       "Press \"Buy\" on an item and confirm; its price comes out of your BizCash balance.",
       "Press \"Message\" to agree pickup or shipping with the seller; the conversation opens on your Messages page.",

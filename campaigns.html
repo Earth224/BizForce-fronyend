@@ -165,6 +165,7 @@
       <label class="form-label">Photos &amp; Video <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
       <input type="file" id="fMedia" accept="image/*,video/*" multiple style="display:none">
       <button type="button" class="btn-cancel" onclick="document.getElementById('fMedia').click()">Add Photos / Video</button>
+      <button type="button" class="btn-cancel" id="fMediaLibrary">Choose from my library</button>
       <div id="mediaPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
     </div>
     <div class="modal-footer">
@@ -647,6 +648,14 @@ openSharedCampaign();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/media-picker.js"></script>
+<script>
+/* "Choose from my library" (scripts/media-picker.js): a file from the member's
+   Media Library joins this campaign's media, in the shape an upload stores. */
+document.getElementById("fMediaLibrary").addEventListener("click", function () {
+  BFMediaPicker.open({}).then(function (m) { if (m) { campaignMedia.push(m); renderMediaPreview(); } });
+});
+</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

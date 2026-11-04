@@ -491,6 +491,7 @@
         <label class="form-label">Background Image — JPG / PNG / WebP</label>
         <div class="vid-upload-row">
           <button class="vid-upload-btn" onclick="document.getElementById('fi-bg-img').click()">Choose Image</button>
+          <button type="button" class="vid-upload-btn" id="bgImgLibraryBtn">Choose from my library</button>
           <span class="vid-upload-name" id="bgImgName">No file chosen</span>
           <button class="remove-btn" id="bgRemoveBtn" onclick="removeBgImage()" style="display:none">Remove</button>
         </div>
@@ -3218,6 +3219,18 @@ loadCard();
 </script>
 <script src="/scripts/bf-support.js"></script>
 <script>if (window.BFSupport) window.BFSupport.mountOwnLink(document.getElementById("supportOwnLink"));</script>
+<script src="/scripts/media-picker.js"></script>
+<script>
+/* "Choose from my library" (scripts/media-picker.js): a photo from the
+   member's Media Library becomes the card's background, as an upload does. */
+document.getElementById("bgImgLibraryBtn").addEventListener("click", function () {
+  BFMediaPicker.open({ kind: "image" }).then(function (m) {
+    if (!m) return;
+    setBgImage(m.url);
+    document.getElementById("bgImgName").textContent = m.name;
+  });
+});
+</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
