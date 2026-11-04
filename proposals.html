@@ -293,6 +293,44 @@ function blueskyReplyPayloadFields(payload) {
     '</div>';
 }
 
+// A publish_mastodon_post proposal: the member's own account, the length out of
+// their server's limit as counted at filing (the executor counts it again), and
+// the exact text.
+function mastodonPostPayloadFields(payload) {
+  var text = typeof payload.text === "string" ? payload.text : "";
+  var pa = payload.posts_as && typeof payload.posts_as === "object" ? payload.posts_as : {};
+  var who = typeof pa.acct === "string" && typeof pa.host === "string" ? "Posts as @" + pa.acct + "@" + pa.host : "No Mastodon account recorded";
+  var m = payload.measured && typeof payload.measured === "object" ? payload.measured : {};
+  var lengthText = typeof m.length === "number" && typeof m.limit === "number"
+    ? m.length + " of " + m.limit + " characters (each link counted as at least " + (typeof m.reserved_per_url === "number" ? m.reserved_per_url : 23) + ")"
+    : "not recorded";
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">posts to</span><span class="pf-value masto-posts-as">' + escapeHtml(who) + ', publicly, as a new post</span></div>' +
+      (pa.automatic === true
+        ? '<div><span class="pf-label">approval</span><span class="pf-value">posted automatically: "Post approved drafts automatically" was on for Mastodon</span></div>'
+        : '') +
+      '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(lengthText) + '</span></div>' +
+      '<div><span class="pf-label">text to be posted</span></div>' +
+      '<pre class="exec-block masto-post-text">' + escapeHtml(text) + '</pre>' +
+    '</div>';
+}
+
+// What approving a publish_mastodon_post did: the post on the member's server, linked.
+// Only an https address is drawn as a link.
+function mastodonResultHtml(result) {
+  var url = typeof result.url === "string" && /^https:\/\/[^\s"'<>]+$/.test(result.url) ? result.url : null;
+  if (result.already_published === true) {
+    return '<div class="payload-fields"><div><span class="pf-label">post</span><span class="pf-value">already published' +
+      (url ? '</span> <a class="pf-value masto-post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>' : '</span>') +
+      '</div></div>';
+  }
+  return '<div class="payload-fields"><div><span class="pf-label">published</span>' + (url
+      ? '<a class="pf-value masto-post-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+      : '<span class="pf-value">no post address recorded</span>') + '</div>' +
+    (typeof result.published_at === "string" ? '<div><span class="pf-label">at</span><span class="pf-value">' + escapeHtml(result.published_at) + '</span></div>' : '') +
+    '</div>';
+}
+
 // What approving a publish_social_post did: the post, linked, and when.
 function socialPostResultHtml(result) {
   var url = bskyPostUrl(result.uri);
@@ -378,6 +416,8 @@ function renderProposals() {
       execHtml = sequenceResultHtml(p.execution_result);
     } else if ((p.action_type === "publish_social_post" || p.action_type === "reply_bluesky_mention") && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = socialPostResultHtml(p.execution_result);
+    } else if (p.action_type === "publish_mastodon_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = mastodonResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -492,6 +532,9 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "update_bluesky_profile") {
         fieldsHtml = blueskyProfilePayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_mastodon_post") {
+        fieldsHtml = mastodonPostPayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);

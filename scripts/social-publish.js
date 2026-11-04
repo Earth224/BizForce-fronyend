@@ -19,6 +19,9 @@
    hook email-sequences.js uses too. This wraps whatever hook is already there
    rather than replacing it. Every server message is shown as the server wrote
    it, escaped.
+
+   A Mastodon result gets the same kind of button, from the member's own
+   Mastodon connection only (the MASTODON block below).
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -204,6 +207,116 @@
     filePost(form.getAttribute("data-sp-task"), form.querySelector(".sp-file-msg"), form, b);
   }
 
+  /* ── MASTODON (scripts/mastodon-connect.js) ────────────────────────────────
+     Under a completed Mastodon social/post result, the same kind of button,
+     filing to POST /api/social/mastodon/propose-post with the task_id only.
+     A post goes out only from the member's own connected account: there is no
+     platform account for Mastodon, so anyone without a connection, the owner
+     included, gets one quiet line. GET /api/social/mastodon/status (then its
+     automation) is the source; one that cannot be read is an error. */
+  var MASTO_CONNECT_LINE = "Connect your Mastodon account above to file posts from it. Mastodon posts go out only from your own connected account.";
+  var MASTO_RECONNECT_LINE = "Your Mastodon connection needs reconnecting before posts can be filed: connect again above.";
+
+  // { kind: "member", account, automatic, max } | { kind: "needs_reconnect", account } | { kind: "none" }, or a rejection.
+  var mastoAccountPromise = null;
+  function mastodonAccount() {
+    if (!mastoAccountPromise) {
+      mastoAccountPromise = api("GET", "/api/social/mastodon/status").then(function (res) {
+        if (!res.ok || !res.parsed || !isPlainObject(res.data)) throw new Error(serverMessage(res));
+        var ms = res.data;
+        if (ms.connected === true && ms.status === "connected") {
+          return api("GET", "/api/social/mastodon/automation").then(function (auto) {
+            if (!auto.ok || !auto.parsed || !isPlainObject(auto.data)) throw new Error(serverMessage(auto));
+            return { kind: "member", account: String(ms.account || ""), automatic: auto.data.auto_post === true, max: ms.max_characters };
+          });
+        }
+        if (ms.status === "needs_reconnect") return { kind: "needs_reconnect", account: String(ms.account || "") };
+        return { kind: "none" };
+      });
+      mastoAccountPromise.catch(function () { mastoAccountPromise = null; });
+    }
+    return mastoAccountPromise;
+  }
+  // The Mastodon card calls this after connecting, disconnecting or a setting change.
+  function forgetMastodonAccount() { mastoAccountPromise = null; }
+
+  function mastodonFormMarkup(taskId, macct) {
+    var auto = macct.automatic === true;
+    return '<div class="sp-file sp-masto" data-sp-masto-task="' + esc(taskId) + '">' +
+        '<div class="sp-label">' + (auto ? "Post this to Mastodon now" : "File this Mastodon post for approval") + '</div>' +
+        '<p class="sp-quiet sp-posts-as">' + esc("Posts as " + macct.account) + '</p>' +
+        (auto
+          ? '<p class="sp-quiet">"Post approved drafts automatically" is on for Mastodon: filing posts exactly this text at once, after your server\'s length limit and the claims screen.</p>'
+          : '<p class="sp-quiet">Nothing is posted by filing. Approving it on the proposals page posts exactly this text to Mastodon, publicly.</p>') +
+        '<button type="button" class="ap-btn" data-sp-masto-file>File for approval</button>' +
+        '<div class="ap-msg sp-masto-msg"></div>' +
+      '</div>';
+  }
+
+  function drawMastodonFiling(slot, data) {
+    if (!slot) return Promise.resolve();
+    if (!data || typeof data.task_id !== "string" || !data.task_id || data.persisted === false) {
+      slot.innerHTML = '<div class="sp-file"><p class="sp-quiet">This run was not saved with a task id, so it cannot be filed. Run it again to file it.</p></div>';
+      return Promise.resolve();
+    }
+    slot.innerHTML = '<div class="sp-file"><p class="sp-quiet">Checking your Mastodon connection…</p></div>';
+    return mastodonAccount().then(function (macct) {
+      slot.innerHTML = macct.kind === "member"
+        ? mastodonFormMarkup(data.task_id, macct)
+        : '<div class="sp-file"><p class="sp-quiet">' + esc(macct.kind === "needs_reconnect" ? MASTO_RECONNECT_LINE : MASTO_CONNECT_LINE) + '</p></div>';
+    }, function (err) {
+      slot.innerHTML = '<div class="sp-file"><div class="ap-msg err">Your Mastodon connection could not be checked, so this cannot be filed yet. Reload to try again. (' +
+        esc((err && err.message) || "unknown error") + ')</div></div>';
+    });
+  }
+
+  // Files it. Only the task_id is sent.
+  function fileMastodonPost(taskId, note, box, btn) {
+    if (btn) btn.disabled = true;
+    note.textContent = "Filing…";
+    note.className = "ap-msg sp-masto-msg";
+    return api("POST", "/api/social/mastodon/propose-post", { task_id: taskId }).then(function (answer) {
+      if (!answer.ok) {
+        note.textContent = serverMessage(answer);
+        note.className = "ap-msg sp-masto-msg err";
+        if (btn) btn.disabled = false;
+        return false;
+      }
+      if (!answer.parsed || !isPlainObject(answer.data)) {
+        note.textContent = "The answer could not be read, so whether it was filed is unknown. Check the proposals page before filing again.";
+        note.className = "ap-msg sp-masto-msg err";
+        return false;
+      }
+      if (box) box.innerHTML = filedMarkup(answer.data);
+      return true;
+    }, function (err) {
+      note.textContent = (err && err.message) || "That could not be filed.";
+      note.className = "ap-msg sp-masto-msg err";
+      if (btn) btn.disabled = false;
+      return false;
+    });
+  }
+
+  var hookBeforeMastodon = window.bfAfterToolResult;
+  window.bfAfterToolResult = function (agentType, toolId, data, resultEl) {
+    if (typeof hookBeforeMastodon === "function") hookBeforeMastodon.apply(this, arguments);
+    if (agentType !== "social" || toolId !== "post" || !resultEl || !data || data.success !== true || data.platform !== "mastodon") return;
+    var mslot = document.createElement("div");
+    mslot.className = "sp-masto-slot";
+    resultEl.appendChild(mslot);
+    drawMastodonFiling(mslot, data);
+  };
+
+  function onMastodonClick(e) {
+    var target = e.target;
+    if (!target || typeof target.closest !== "function") return;
+    var mb = target.closest("[data-sp-masto-file]");
+    if (!mb) return;
+    var box = mb.closest(".sp-masto");
+    if (!box) return;
+    fileMastodonPost(box.getAttribute("data-sp-masto-task"), box.querySelector(".sp-masto-msg"), box, mb);
+  }
+
   var STYLE = [
     ".sp-file,.sp-filed{margin-top:14px;padding:14px;border:1px solid rgba(244,114,182,.25);border-radius:12px;background:rgba(244,114,182,.04)}",
     ".sp-filed{display:grid;gap:6px}",
@@ -217,13 +330,16 @@
     style.textContent = STYLE;
     document.head.appendChild(style);
     document.addEventListener("click", onClick);
+    document.addEventListener("click", onMastodonClick);
   }
 
   // For scripts/checkSocialPublishPage.js in the backend repo, which runs this
   // file in a stubbed page. Nothing on the page reads it.
   window.bfSocialPublish = {
     drawFiling: drawFiling, filePost: filePost, filingFormMarkup: filingFormMarkup, onClick: onClick, forgetAccount: forgetAccount,
-    NOT_OWNER_LINE: NOT_OWNER_LINE, RECONNECT_LINE: RECONNECT_LINE
+    NOT_OWNER_LINE: NOT_OWNER_LINE, RECONNECT_LINE: RECONNECT_LINE,
+    drawMastodonFiling: drawMastodonFiling, fileMastodonPost: fileMastodonPost, forgetMastodonAccount: forgetMastodonAccount,
+    MASTO_CONNECT_LINE: MASTO_CONNECT_LINE, MASTO_RECONNECT_LINE: MASTO_RECONNECT_LINE
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);

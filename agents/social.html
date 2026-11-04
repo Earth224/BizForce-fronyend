@@ -475,6 +475,38 @@
         <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="bskyMentionsOlder" hidden>Show older</button></div>
       </div>
     </section>
+    <section class="context-card bsky-card" id="mastoConnect" aria-label="Connect Mastodon">
+      <h2 class="section-label">Connect Mastodon</h2>
+      <p class="bsky-quiet">Connect your own Mastodon account and the Mastodon posts you file here go out from it, on the server you chose: after you approve them on the proposals page, or at once if you turn on automatic posting for Mastodon.</p>
+      <div class="bsky-msg" id="mastoStatusMsg"></div>
+      <div id="mastoConnected" hidden>
+        <p><span class="bsky-connected-as" id="mastoConnectedAs"></span> <span class="bsky-quiet" id="mastoSince"></span></p>
+        <p class="bsky-quiet" id="mastoLimit"></p>
+      </div>
+      <div id="mastoReconnect" hidden>
+        <p class="bsky-warn" id="mastoReconnectText"></p>
+      </div>
+      <div id="mastoForm">
+        <ol>
+          <li>In Mastodon, open Preferences, then Development, then New application.</li>
+          <li>Name it BizForce, tick only write:statuses and read:accounts, and press Submit.</li>
+          <li>Open the application, copy "Your access token", enter it here with your server's address, and press Connect. Never enter your Mastodon password.</li>
+        </ol>
+        <div class="bsky-fields">
+          <label>Your server<input type="text" id="mastoInstance" placeholder="mastodon.social" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+          <label>Access token<input type="password" id="mastoToken" autocomplete="off" /></label>
+        </div>
+        <div class="bsky-row"><button type="button" class="action-btn" id="mastoConnectBtn">Connect</button></div>
+        <div class="bsky-msg" id="mastoConnectMsg"></div>
+      </div>
+      <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="mastoDisconnectBtn" hidden>Disconnect</button></div>
+      <div class="bsky-sub" id="mastoAutomation" hidden>
+        <label class="bsky-switch"><input type="checkbox" id="mastoAutoPost" /> <span>Post approved drafts automatically</span></label>
+        <p class="bsky-quiet">Off unless you turn it on. When on, a Mastodon post you file goes out at once, without the approve step. Your server's length limit and the claims screen still run first, and a post they refuse is not posted.</p>
+        <p class="bsky-quiet" id="mastoAutoLog"></p>
+        <div class="bsky-msg" id="mastoAutoMsg"></div>
+      </div>
+    </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -667,6 +699,10 @@ window.AGENT_PROFILE_CONFIG = {
             {
               "value": "bluesky",
               "label": "Bluesky — 300 graphemes (an emoji counts once)"
+            },
+            {
+              "value": "mastodon",
+              "label": "Mastodon - 500 characters by default (your server may allow more)"
             }
           ]
         }
@@ -732,6 +768,7 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/social-publish.js"></script>
 <script src="/scripts/bluesky-connect.js"></script>
 <script src="/scripts/bluesky-mentions.js"></script>
+<script src="/scripts/mastodon-connect.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
