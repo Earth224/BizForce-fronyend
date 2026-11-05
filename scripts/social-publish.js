@@ -22,6 +22,13 @@
 
    A Mastodon result gets the same kind of button, from the member's own
    Mastodon connection only (the MASTODON block below).
+
+   IMAGES. Both filing boxes offer "Add images (up to 4)", which opens the
+   Media Library picker (scripts/media-picker.js) for images. Each picked
+   image shows as a thumbnail with its alt text, or "No alt text yet", and a
+   Remove button, all set with textContent. Filing sends media_ids only when
+   images are attached; the server checks each one and its refusal is shown
+   as it comes. A post with images always waits for approval.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -105,6 +112,107 @@
   // The connect card calls this after connecting, disconnecting or a setting change.
   function forgetAccount() { accountPromise = null; }
 
+  /* ── images from the Media Library ─────────────────────────────────────── */
+  var IMAGES_MAX = 4;
+  var IMAGES_WAIT_LINE = "Images always wait for your approval.";
+  var BLUESKY_SIZE_LINE = "Bluesky accepts images up to 2 MB.";
+  var NO_ALT_LINE = "No alt text yet";
+  var NO_PICKER_LINE = "The Media Library picker could not be loaded. Reload the page to try again.";
+  // The images picked for each filing box, in order: [{ id, url, alt_text }].
+  var picked = typeof WeakMap === "function" ? new WeakMap() : null;
+
+  function imagesMarkup(service) {
+    return '<div class="sp-images">' +
+        '<button type="button" class="ap-btn sp-add-images" data-sp-add-images>Add images (up to 4)</button>' +
+        '<p class="sp-quiet sp-images-wait">' + esc(IMAGES_WAIT_LINE) + '</p>' +
+        (service === "bluesky" ? '<p class="sp-quiet sp-images-size">' + esc(BLUESKY_SIZE_LINE) + '</p>' : '') +
+        '<div class="ap-msg sp-images-msg"></div>' +
+        '<div class="sp-image-list"></div>' +
+      '</div>';
+  }
+
+  function attachedImages(box) {
+    return (picked && box && picked.get(box)) || [];
+  }
+
+  // { task_id } with no images, exactly as before; { task_id, media_ids } with them.
+  function filingBody(taskId, box) {
+    var ids = attachedImages(box).map(function (m) { return m.id; });
+    return ids.length ? { task_id: taskId, media_ids: ids } : { task_id: taskId };
+  }
+
+  function safeImageUrl(u) {
+    return typeof u === "string" && /^https:\/\//.test(u) ? u : "";
+  }
+
+  function drawImages(box) {
+    var list = box.querySelector(".sp-image-list");
+    if (!list) return;
+    while (list.firstChild) list.removeChild(list.firstChild);
+    var items = attachedImages(box);
+    items.forEach(function (m) {
+      var row = document.createElement("div");
+      row.className = "sp-image";
+      row.setAttribute("data-sp-image-id", m.id);
+      var img = document.createElement("img");
+      img.setAttribute("alt", m.alt_text || "");
+      var src = safeImageUrl(m.url);
+      if (src) img.setAttribute("src", src);
+      row.appendChild(img);
+      var alt = document.createElement("span");
+      alt.className = m.alt_text ? "sp-image-alt" : "sp-image-alt sp-warn";
+      alt.textContent = m.alt_text || NO_ALT_LINE;
+      row.appendChild(alt);
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "ap-btn sp-image-remove";
+      remove.setAttribute("data-sp-remove-image", m.id);
+      remove.textContent = "Remove";
+      row.appendChild(remove);
+      list.appendChild(row);
+    });
+    var add = box.querySelector("[data-sp-add-images]");
+    if (add) add.disabled = items.length >= IMAGES_MAX;
+  }
+
+  function addImages(box, msg) {
+    if (!picked) return Promise.resolve(false);
+    if (!window.BFMediaPicker || typeof window.BFMediaPicker.open !== "function") {
+      if (msg) { msg.textContent = NO_PICKER_LINE; msg.className = "ap-msg sp-images-msg err"; }
+      return Promise.resolve(false);
+    }
+    if (attachedImages(box).length >= IMAGES_MAX) return Promise.resolve(false);
+    if (msg) { msg.textContent = ""; msg.className = "ap-msg sp-images-msg"; }
+    return window.BFMediaPicker.open({ kind: "image", withItem: true }).then(function (choice) {
+      var item = choice && choice.item;
+      if (!item || typeof item.id !== "string" || item.kind !== "image") return false;
+      var now = attachedImages(box).slice();
+      if (now.length >= IMAGES_MAX || now.some(function (m) { return m.id === item.id; })) return false;
+      now.push({ id: item.id, url: item.url, alt_text: typeof item.alt_text === "string" ? item.alt_text.trim() : "" });
+      picked.set(box, now);
+      drawImages(box);
+      return true;
+    });
+  }
+
+  function removeImage(box, id) {
+    if (!picked) return;
+    picked.set(box, attachedImages(box).filter(function (m) { return m.id !== id; }));
+    drawImages(box);
+  }
+
+  function onImagesClick(e) {
+    var t = e.target;
+    if (!t || typeof t.closest !== "function") return;
+    var add = t.closest("[data-sp-add-images]");
+    var rm = add ? null : t.closest("[data-sp-remove-image]");
+    if (!add && !rm) return;
+    var box = (add || rm).closest(".sp-file");
+    if (!box) return;
+    if (add) addImages(box, box.querySelector(".sp-images-msg"));
+    else removeImage(box, rm.getAttribute("data-sp-remove-image"));
+  }
+
   /* ── filing ────────────────────────────────────────────────────────────── */
   var NOT_OWNER_LINE = "Connect your Bluesky account above to file posts from it. Without a connection, only the owner can file, from the platform's own account.";
   var RECONNECT_LINE = "Your Bluesky connection needs reconnecting before posts can be filed: connect again above.";
@@ -121,6 +229,7 @@
         (automatic
           ? '<p class="sp-quiet">"Post approved drafts automatically" is on: filing posts exactly this text at once, after the grapheme limit and the claims screen.</p>'
           : '<p class="sp-quiet">Nothing is posted by filing. Approving it on the proposals page posts exactly this text to Bluesky.</p>') +
+        imagesMarkup("bluesky") +
         '<button type="button" class="ap-btn" data-sp-file>File for approval</button>' +
         '<div class="ap-msg sp-file-msg"></div>' +
       '</div>';
@@ -160,12 +269,12 @@
     });
   }
 
-  // Files it. Only the task_id is sent.
+  // Files it: the task_id, plus media_ids only when images are attached.
   function filePost(taskId, msgEl, formEl, button) {
     if (button) button.disabled = true;
     msgEl.textContent = "Filing…";
     msgEl.className = "ap-msg sp-file-msg";
-    return api("POST", "/api/agents/social/propose-post", { task_id: taskId }).then(function (res) {
+    return api("POST", "/api/agents/social/propose-post", filingBody(taskId, formEl)).then(function (res) {
       if (!res.ok) {
         msgEl.textContent = serverMessage(res);
         msgEl.className = "ap-msg sp-file-msg err";
@@ -248,6 +357,7 @@
         (auto
           ? '<p class="sp-quiet">"Post approved drafts automatically" is on for Mastodon: filing posts exactly this text at once, after your server\'s length limit and the claims screen.</p>'
           : '<p class="sp-quiet">Nothing is posted by filing. Approving it on the proposals page posts exactly this text to Mastodon, publicly.</p>') +
+        imagesMarkup("mastodon") +
         '<button type="button" class="ap-btn" data-sp-masto-file>File for approval</button>' +
         '<div class="ap-msg sp-masto-msg"></div>' +
       '</div>';
@@ -270,12 +380,12 @@
     });
   }
 
-  // Files it. Only the task_id is sent.
+  // Files it: the task_id, plus media_ids only when images are attached.
   function fileMastodonPost(taskId, note, box, btn) {
     if (btn) btn.disabled = true;
     note.textContent = "Filing…";
     note.className = "ap-msg sp-masto-msg";
-    return api("POST", "/api/social/mastodon/propose-post", { task_id: taskId }).then(function (answer) {
+    return api("POST", "/api/social/mastodon/propose-post", filingBody(taskId, box)).then(function (answer) {
       if (!answer.ok) {
         note.textContent = serverMessage(answer);
         note.className = "ap-msg sp-masto-msg err";
@@ -322,7 +432,13 @@
     ".sp-filed{display:grid;gap:6px}",
     ".sp-label{font-weight:700;color:#e6edf3;margin-bottom:6px}",
     ".sp-quiet{color:#8892b8;font-size:.82rem;margin:4px 0}",
-    ".sp-link{color:var(--bf-accent-a, #22d3ee)}"
+    ".sp-link{color:var(--bf-accent-a, #22d3ee)}",
+    ".sp-images{margin:8px 0 10px}",
+    ".sp-image-list{display:grid;gap:8px;margin-top:8px}",
+    ".sp-image{display:flex;align-items:center;gap:10px}",
+    ".sp-image img{width:64px;height:64px;object-fit:cover;border-radius:8px;background:#000}",
+    ".sp-image-alt{flex:1;font-size:.8rem;color:#c8cff0;overflow-wrap:anywhere}",
+    ".sp-image-alt.sp-warn{color:#fbbf24}"
   ].join("\n");
 
   function mount() {
@@ -331,6 +447,7 @@
     document.head.appendChild(style);
     document.addEventListener("click", onClick);
     document.addEventListener("click", onMastodonClick);
+    document.addEventListener("click", onImagesClick);
   }
 
   // For scripts/checkSocialPublishPage.js in the backend repo, which runs this
@@ -339,7 +456,9 @@
     drawFiling: drawFiling, filePost: filePost, filingFormMarkup: filingFormMarkup, onClick: onClick, forgetAccount: forgetAccount,
     NOT_OWNER_LINE: NOT_OWNER_LINE, RECONNECT_LINE: RECONNECT_LINE,
     drawMastodonFiling: drawMastodonFiling, fileMastodonPost: fileMastodonPost, forgetMastodonAccount: forgetMastodonAccount,
-    MASTO_CONNECT_LINE: MASTO_CONNECT_LINE, MASTO_RECONNECT_LINE: MASTO_RECONNECT_LINE
+    MASTO_CONNECT_LINE: MASTO_CONNECT_LINE, MASTO_RECONNECT_LINE: MASTO_RECONNECT_LINE,
+    imagesMarkup: imagesMarkup, filingBody: filingBody, attachedImages: attachedImages, onImagesClick: onImagesClick,
+    IMAGES_WAIT_LINE: IMAGES_WAIT_LINE, BLUESKY_SIZE_LINE: BLUESKY_SIZE_LINE, IMAGES_MAX: IMAGES_MAX
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);

@@ -59,6 +59,8 @@
     .payload-fields{margin:0 0 12px;font-size:.78rem;line-height:1.8;color:#8892b8}
     .payload-fields>div{margin-bottom:4px}
     .pf-label{display:inline-block;min-width:150px;color:#4a5280;text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:700}
+    .pf-image{display:flex;align-items:center;gap:10px;margin:6px 0}
+    .pf-image img{width:72px;height:72px;object-fit:cover;border-radius:8px}
     .pf-value{color:#e6edf3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;word-break:break-word}
     .pf-count{color:#4a5280;font-size:.72rem}
     .payload-fields ul{margin:4px 0 0 150px;padding-left:18px}
@@ -254,6 +256,62 @@ function postsAsText(payload) {
   return "Posts as the platform's Bluesky account";
 }
 
+// The images a Bluesky or Mastodon post carries (payload.media, frozen at
+// filing: { id, sha256, mime, bytes, alt }): an "Images" row, each with its
+// alt text, escaped. Nothing at all when there are none. The payload holds no
+// address, so each thumbnail is found by id in the member's own library
+// (GET /api/media?kind=image, showPostImages) and only an https address is used.
+function postImagesFields(payload) {
+  var media = payload && Array.isArray(payload.media) ? payload.media : [];
+  if (!media.length) return "";
+  return '<div class="pf-images"><span class="pf-label">Images</span>' +
+    media.map(function (m) {
+      var alt = m && typeof m.alt === "string" ? m.alt : "";
+      return '<div class="pf-image" data-pf-media-id="' + escapeHtml(m && m.id) + '">' +
+          '<img alt="' + escapeHtml(alt) + '">' +
+          '<span class="pf-value pf-image-alt">' + escapeHtml(alt) + '</span>' +
+        '</div>';
+    }).join("") +
+    '</div>';
+}
+
+// id -> https url of the member's own library images, read once per load.
+var libraryUrls = null;
+var LIBRARY_PAGES = 5;
+function readLibraryUrls() {
+  if (libraryUrls) return libraryUrls;
+  libraryUrls = (async function () {
+    var found = {};
+    var before = null;
+    for (var page = 0; page < LIBRARY_PAGES; page++) {
+      var res = await fetch(API_URL + "/api/media?kind=image" + (before ? "&before=" + encodeURIComponent(before) : ""), {
+        headers: { "Authorization": "Bearer " + token }
+      });
+      if (!res.ok) break;
+      var d = await res.json();
+      (d && Array.isArray(d.items) ? d.items : []).forEach(function (item) {
+        if (item && typeof item.id === "string" && typeof item.url === "string" && item.url.indexOf("https://") === 0) found[item.id] = item.url;
+      });
+      before = d && typeof d.next_before === "string" ? d.next_before : null;
+      if (!before) break;
+    }
+    return found;
+  })();
+  libraryUrls.catch(function () { libraryUrls = null; });
+  return libraryUrls;
+}
+function showPostImages(container) {
+  var spots = container.querySelectorAll("[data-pf-media-id]");
+  if (!spots.length) return;
+  readLibraryUrls().then(function (urls) {
+    Array.prototype.forEach.call(spots, function (spot) {
+      var url = urls[spot.getAttribute("data-pf-media-id")];
+      var img = spot.querySelector("img");
+      if (url && img) img.setAttribute("src", url);
+    });
+  }, function () {});
+}
+
 function socialPostPayloadFields(payload) {
   var text = typeof payload.text === "string" ? payload.text : "";
   return '<div class="payload-fields">' +
@@ -264,6 +322,7 @@ function socialPostPayloadFields(payload) {
       '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(graphemeCountText(text)) + '</span></div>' +
       '<div><span class="pf-label">text to be posted</span></div>' +
       '<pre class="exec-block social-post-text">' + escapeHtml(text) + '</pre>' +
+      postImagesFields(payload) +
     '</div>';
 }
 
@@ -312,6 +371,7 @@ function mastodonPostPayloadFields(payload) {
       '<div><span class="pf-label">length</span><span class="pf-value">' + escapeHtml(lengthText) + '</span></div>' +
       '<div><span class="pf-label">text to be posted</span></div>' +
       '<pre class="exec-block masto-post-text">' + escapeHtml(text) + '</pre>' +
+      postImagesFields(payload) +
     '</div>';
 }
 
@@ -362,6 +422,7 @@ async function loadProposals() {
   container.innerHTML = '<div class="empty-state">Loading proposals...</div>';
 
   loadError = null;
+  libraryUrls = null;
   try {
     var url = API_URL + "/api/proposals";
     if (currentFilter) {
@@ -586,6 +647,7 @@ function renderProposals() {
     else el.textContent = text;
     el.className = "card-message show";
   });
+  showPostImages(container);
 }
 
 async function decideProposal(btn, action) {

@@ -5,6 +5,9 @@
 
      BFMediaPicker.open({ kind: "image" | "video" | null }) -> Promise of
      { url, type, name }, or null when the member closes it.
+     With withItem: true it also carries item, the library item itself
+     ({ id, url, kind, mime, bytes, label, alt_text, ... }), for a page that
+     refers to it by id (scripts/social-publish.js, images in posts).
 
    Every word from the server is set with textContent, never innerHTML. The
    upload goes through POST /api/media, which checks the file by its bytes and
@@ -62,6 +65,7 @@
   function open(opts) {
     opts = opts || {};
     var kind = opts.kind === "image" || opts.kind === "video" ? opts.kind : null;
+    var chosen = function (item) { return opts.withItem === true ? Object.assign(shapeOf(item), { item: item }) : shapeOf(item); };
     addStyle();
     return new Promise(function (resolve) {
       var done = false;
@@ -104,7 +108,7 @@
           var b = el("button", { type: "button", "class": "bf-mp-item", "data-media-id": item.id });
           b.appendChild(thumb(item));
           b.appendChild(el("span", { "class": "bf-mp-label" }, item.label || (item.kind === "video" ? "Video" : "Image")));
-          b.addEventListener("click", function () { finish(shapeOf(item)); });
+          b.addEventListener("click", function () { finish(chosen(item)); });
           grid.appendChild(b);
         });
       }
@@ -134,7 +138,7 @@
             uploadBtn.disabled = false;
             if (!r.ok || !r.body || !r.body.item) { status.textContent = (r.body && r.body.error) || "The upload did not work. Try again."; return; }
             if (kind && r.body.item.kind !== kind) { status.textContent = "Saved to your library, but it isn't " + (kind === "image" ? "an image" : "a video") + "."; return; }
-            finish(shapeOf(r.body.item));
+            finish(chosen(r.body.item));
           })
           .catch(function () { uploadBtn.disabled = false; status.textContent = "The upload did not work. Try again."; });
       });
