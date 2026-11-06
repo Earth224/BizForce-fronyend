@@ -352,6 +352,51 @@ function blueskyReplyPayloadFields(payload) {
     '</div>';
 }
 
+// A send_mailbox_reply proposal: who it goes to, the subject, and the reply
+// itself. The payload names the drafted run (task_id) rather than carrying the
+// text; the text is read from that run (GET /api/ai/tasks/:id) and set with
+// textContent by fillMailboxReplies, never as markup. The executor sends only
+// a reply equal to that run's text.
+var UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var mailboxReplyTexts = {};
+function mailboxReplyPayloadFields(payload) {
+  var taskId = typeof payload.task_id === "string" && UUID_SHAPE.test(payload.task_id) ? payload.task_id : "";
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">to</span><span class="pf-value mailbox-reply-to">' + escapeHtml("Reply to " + String(payload.to_address == null ? "" : payload.to_address)) + '</span></div>' +
+      '<div><span class="pf-label">from</span><span class="pf-value">' + escapeHtml(String(payload.from_address == null ? "" : payload.from_address)) + '</span></div>' +
+      '<div><span class="pf-label">subject</span><span class="pf-value mailbox-reply-subject">' + escapeHtml(String(payload.subject == null ? "" : payload.subject)) + '</span></div>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">a reply is sent only after you approve it</span></div>' +
+      '<div><span class="pf-label">reply to be sent</span></div>' +
+      '<pre class="exec-block mailbox-reply-text" data-reply-task="' + escapeHtml(taskId) + '">' + escapeHtml(taskId ? "Loading the reply..." : "This proposal names no drafted reply.") + '</pre>' +
+    '</div>';
+}
+function mailboxReplyResultHtml(result) {
+  var when = result.already_sent === true ? "already sent" : (result.sent_at ? formatTime(result.sent_at) : "time not reported");
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">status</span><span class="pf-value mailbox-reply-sent">Sent</span></div>' +
+      '<div><span class="pf-label">sent</span><span class="pf-value">' + escapeHtml(when) + '</span></div>' +
+    '</div>';
+}
+function fillMailboxReplies(container) {
+  Array.prototype.forEach.call(container.querySelectorAll("pre[data-reply-task]"), function (pre) {
+    var taskId = pre.getAttribute("data-reply-task");
+    if (!taskId || !UUID_SHAPE.test(taskId)) return;
+    var show = function (text) {
+      Array.prototype.forEach.call(document.querySelectorAll("pre[data-reply-task=\"" + taskId + "\"]"), function (p) { p.textContent = text; });
+    };
+    if (Object.prototype.hasOwnProperty.call(mailboxReplyTexts, taskId)) { show(mailboxReplyTexts[taskId]); return; }
+    mailboxReplyTexts[taskId] = "Loading the reply...";
+    fetch(API_URL + "/api/ai/tasks/" + encodeURIComponent(taskId), { headers: { "Authorization": "Bearer " + token } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        var reply = d && d.task && d.task.output && typeof d.task.output.reply === "string" ? d.task.output.reply : null;
+        mailboxReplyTexts[taskId] = reply === null ? "The reply could not be loaded." : reply;
+        show(mailboxReplyTexts[taskId]);
+      })
+      .catch(function () { delete mailboxReplyTexts[taskId]; show("The reply could not be loaded."); });
+  });
+}
+
 // A publish_mastodon_post proposal: the member's own account, the length out of
 // their server's limit as counted at filing (the executor counts it again), and
 // the exact text.
@@ -479,6 +524,8 @@ function renderProposals() {
       execHtml = socialPostResultHtml(p.execution_result);
     } else if (p.action_type === "publish_mastodon_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = mastodonResultHtml(p.execution_result);
+    } else if (p.action_type === "send_mailbox_reply" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = mailboxReplyResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -597,6 +644,9 @@ function renderProposals() {
       } else if (p.action_type === "publish_mastodon_post") {
         fieldsHtml = mastodonPostPayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "send_mailbox_reply") {
+        fieldsHtml = mailboxReplyPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);
       }
@@ -648,6 +698,7 @@ function renderProposals() {
     el.className = "card-message show";
   });
   showPostImages(container);
+  fillMailboxReplies(container);
 }
 
 async function decideProposal(btn, action) {

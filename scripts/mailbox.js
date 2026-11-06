@@ -6,7 +6,10 @@
    when the page opens; "Show my inbox" lists the newest 30
    (GET /api/mailbox/inbox), "Show older" the 30 before them, and a row opens
    one message as plain text (GET /api/mailbox/inbox/:uid). The server opens
-   the mailbox read-only and stores no message. The app password field is
+   the mailbox read-only and stores no message. On an open message, "Draft a
+   reply" asks for one (POST /api/mailbox/inbox/:uid/draft-reply) and shows it
+   as text; "File for approval" files it (POST /api/mailbox/propose-reply), and
+   it is sent only after it is approved on the Proposals page. The app password field is
    cleared after every answer. Every word from the server or a message is set
    with textContent, never innerHTML. */
 (function () {
@@ -22,7 +25,7 @@
   };
   var HELP_SUFFIX = " Your provider may name these steps slightly differently.";
   var LABELS = { gmail: "Gmail", yahoo: "Yahoo Mail", icloud: "iCloud Mail", fastmail: "Fastmail", other: "Other" };
-  var state = { status: null, nextBefore: null, busy: false };
+  var state = { status: null, nextBefore: null, busy: false, openUid: null, taskId: null };
 
   function token() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function headers(json) {
@@ -248,6 +251,8 @@
       (m.attachments || []).forEach(function (a) {
         att.appendChild(el("li", null, (a.name || "(unnamed)") + ", " + (a.type || "unknown type") + ", " + sizeText(a.size)));
       });
+      state.openUid = uid;
+      resetReply();
       $("mbInbox").hidden = true;
       $("mbMessage").hidden = false;
       say("");
@@ -255,6 +260,76 @@
       say(online() ? "The message could not be opened." : OFFLINE, true);
     }).then(function () {
       state.busy = false;
+    });
+  }
+
+  /* ── a reply to the open message ── */
+  function replySay(text, isError) {
+    var s = $("mbReplyStatus");
+    s.textContent = text || "";
+    s.className = "mb-status" + (isError ? " err" : "");
+  }
+  function resetReply() {
+    state.taskId = null;
+    $("mbDraft").hidden = true;
+    $("mbDraftText").textContent = "";
+    $("mbDraftCount").textContent = "";
+    $("mbFiled").hidden = true;
+    $("mbDraftBtn").hidden = false;
+    $("mbDraftBtn").disabled = false;
+    replySay("");
+  }
+  function countText(n) { return n + (n === 1 ? " character" : " characters"); }
+
+  function draftReply() {
+    if (state.busy || !state.openUid) return;
+    if (!online()) { replySay(OFFLINE); return; }
+    state.busy = true;
+    state.taskId = null;
+    $("mbDraftBtn").disabled = true;
+    $("mbRedraftBtn").disabled = true;
+    $("mbFileBtn").disabled = true;
+    $("mbFiled").hidden = true;
+    replySay("Drafting a reply…");
+    call("POST", "/api/mailbox/inbox/" + encodeURIComponent(String(state.openUid)) + "/draft-reply", {}).then(function (r) {
+      if (!r.ok) { replySay((r.body && r.body.error) || "The reply could not be drafted.", true); return; }
+      var reply = typeof r.body.reply === "string" ? r.body.reply : "";
+      state.taskId = typeof r.body.task_id === "string" ? r.body.task_id : null;
+      $("mbDraftText").textContent = reply;
+      $("mbDraftCount").textContent = countText(reply.length);
+      $("mbDraft").hidden = false;
+      $("mbDraftBtn").hidden = true;
+      replySay("");
+    }).catch(function () {
+      replySay(online() ? "The reply could not be drafted." : OFFLINE, true);
+    }).then(function () {
+      state.busy = false;
+      $("mbDraftBtn").disabled = false;
+      $("mbRedraftBtn").disabled = false;
+      $("mbFileBtn").disabled = !state.taskId;
+    });
+  }
+
+  function fileReply() {
+    if (state.busy || !state.taskId) return;
+    if (!online()) { replySay(OFFLINE); return; }
+    state.busy = true;
+    $("mbRedraftBtn").disabled = true;
+    $("mbFileBtn").disabled = true;
+    replySay("Filing the reply…");
+    var filed = false;
+    call("POST", "/api/mailbox/propose-reply", { task_id: state.taskId }).then(function (r) {
+      if (!r.ok) { replySay((r.body && r.body.error) || "The reply could not be filed.", true); return; }
+      filed = true;
+      state.taskId = null;
+      replySay("");
+      $("mbFiled").hidden = false;
+    }).catch(function () {
+      replySay(online() ? "The reply could not be filed." : OFFLINE, true);
+    }).then(function () {
+      state.busy = false;
+      $("mbRedraftBtn").disabled = false;
+      $("mbFileBtn").disabled = filed || !state.taskId;
     });
   }
 
@@ -270,6 +345,9 @@
     $("mbShowBtn").addEventListener("click", function () { showInbox(false); });
     $("mbOlderBtn").addEventListener("click", function () { showInbox(true); });
     $("mbBackBtn").addEventListener("click", back);
+    $("mbDraftBtn").addEventListener("click", draftReply);
+    $("mbRedraftBtn").addEventListener("click", draftReply);
+    $("mbFileBtn").addEventListener("click", fileReply);
     window.addEventListener("offline", function () { say(OFFLINE); });
     window.addEventListener("online", function () { if ($("mbStatus").textContent === OFFLINE) { say(""); loadStatus(); } });
     showProvider();

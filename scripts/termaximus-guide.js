@@ -285,7 +285,7 @@
     "mailbox.html": [
       "Pick your provider, enter your address and an app password made for BizForce, and press \"Connect\"; your normal password is never asked for.",
       "Press \"Show my inbox\" to list your newest 30 messages, and \"Show older\" for the 30 before them; nothing loads until you ask.",
-      "Opening a message here leaves it unread in your mailbox, and BizForce keeps no copy; attachments are named, not downloaded.",
+      "Opening a message leaves it unread and BizForce keeps no copy; \"Draft a reply\" writes one, sent only after you approve it on Proposals.",
       "\"Disconnect\" deletes the saved app password; to cancel the app password itself, remove it with your email provider."
     ],
     "garage-sale.html": [
