@@ -404,6 +404,16 @@
 </div>
 
 <script>
+/* The old link, card-view.html?token=<token>, now lives at /card/<token>,
+   where the card's own preview tags are served. ?via= comes along. */
+(function () {
+  if (!/\/card-view(\.html)?$/.test(window.location.pathname)) return;
+  var q = new URLSearchParams(window.location.search);
+  var t = q.get("token");
+  if (!t || !/^[0-9a-f]{32}$/.test(t)) return;
+  var via = q.get("via");
+  window.location.replace("/card/" + t + (via ? "?via=" + encodeURIComponent(via) : ""));
+})();
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
 var cardData = null;
 var _cvHasPoster = false;
@@ -492,9 +502,9 @@ function renderCard(c) {
   } else {
     card.classList.add("border-glow");
   }
-  if (c.bg_image_url) {
+  if (c.bg_image_url && window.bfCard.isSafeMediaUrl(c.bg_image_url)) {
     var bgLayer = document.getElementById("cvBgLayer");
-    bgLayer.style.backgroundImage = "url(" + c.bg_image_url + ")";
+    bgLayer.style.backgroundImage = 'url("' + c.bg_image_url + '")';
     bgLayer.style.display = "block";
   }
   if (c.still_image_url) {
@@ -541,13 +551,14 @@ function renderCard(c) {
   if (c.full_name) document.title = c.full_name + (c.company ? " — " + c.company : "") + " — BizForce AI Card";
   var cardUrl = window.bfCard.publicUrl(c) || window.location.href;
   setCanonical(cardUrl);
+  var qrUrl = window.bfCard.qrUrl(cardUrl);
   var colors = THEME_QR[theme] || THEME_QR.dark;
   try {
-    QRCode.toCanvas(document.getElementById("qrCanvas"), cardUrl, {
+    QRCode.toCanvas(document.getElementById("qrCanvas"), qrUrl, {
       width: 80, margin: 1, errorCorrectionLevel: "M",
       color: { dark: colors.dark, light: colors.light }
     }, function() {});
-    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), cardUrl, {
+    QRCode.toCanvas(document.getElementById("qrVideoCanvas"), qrUrl, {
       width: 52, margin: 1, errorCorrectionLevel: "M",
       color: { dark: "#ffffff", light: "rgba(0,0,0,0)" }
     }, function() {});
@@ -758,6 +769,7 @@ function exitVideoMode() {
 
 async function saveContact() {
   if (!cardData) return;
+  sendTap("save");
   var photo = await window.bfCard.photoFor(cardData.photo_url);
   var blob = new Blob([window.bfCard.buildVCard(cardData, photo)], { type: "text/vcard" });
   var a = document.createElement("a");
@@ -767,13 +779,40 @@ async function saveContact() {
   setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
 }
 
-/* Which card: the short link /c/<slug> (Netlify serves this page there), or ?token=. */
+/* Which card: the short link /c/<slug> or /card/<token> (the backend serves this page at both), or ?token=. */
 function cardSource() {
   var m = /^\/c\/([a-z0-9-]{3,40})\/?$/.exec(window.location.pathname);
   if (m) return API_URL + "/api/cards/slug/" + encodeURIComponent(m[1]);
+  var k = /^\/card\/([0-9a-f]{32})\/?$/.exec(window.location.pathname);
+  if (k) return API_URL + "/api/cards/share/" + k[1];
   var token = new URLSearchParams(window.location.search).get("token");
   return token ? API_URL + "/api/cards/share/" + encodeURIComponent(token) : null;
 }
+
+/* The slug or token this page was opened by, which is all a tap report names. */
+function cardRef() {
+  var m = /^\/c\/([a-z0-9-]{3,40})\/?$/.exec(window.location.pathname) || /^\/card\/([0-9a-f]{32})\/?$/.exec(window.location.pathname);
+  if (m) return m[1];
+  var token = new URLSearchParams(window.location.search).get("token");
+  return token && /^[0-9a-f]{32}$/.test(token) ? token : null;
+}
+
+/* Adds one to the card's daily count of this kind of tap (tel, email, save
+   or support). Fire and forget: it never waits, never throws and never
+   changes what the tap itself does. Nothing about the visitor is sent. */
+function sendTap(kind) {
+  try {
+    var ref = cardRef();
+    if (!ref) return;
+    var url = API_URL + "/api/cards/tap", body = JSON.stringify({ ref: ref, kind: kind });
+    if (navigator.sendBeacon && navigator.sendBeacon(url, body)) return;
+    var p = fetch(url, { method: "POST", body: body, keepalive: true, mode: "no-cors", credentials: "omit", headers: { "Content-Type": "text/plain" } });
+    if (p && p.catch) p.catch(function () {});
+  } catch (e) {}
+}
+
+document.getElementById("pPhone").addEventListener("click", function () { if (this.getAttribute("href")) sendTap("tel"); });
+document.getElementById("pEmail").addEventListener("click", function () { if (this.getAttribute("href")) sendTap("email"); });
 
 /* The owner's support links: a Support button opens them over the card.
    Links only; the in-app support is on their profile and support page. */
@@ -787,6 +826,7 @@ function renderCardSupport(links) {
     var open = panel.hidden;
     panel.hidden = !open;
     btn.setAttribute("aria-expanded", String(open));
+    if (open) sendTap("support");
   });
 }
 

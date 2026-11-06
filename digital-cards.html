@@ -531,6 +531,7 @@
         <label class="form-label">Elevator Pitch Video — 60 sec max</label>
         <div class="vid-upload-row">
           <button class="vid-upload-btn" onclick="document.getElementById('fi-pitch-vid').click()">Choose MP4</button>
+          <button type="button" class="vid-upload-btn" id="pitchVidLibraryBtn">Choose from my library</button>
           <span class="vid-upload-name" id="pitchVidName">No file chosen</span>
         </div>
         <div class="vid-upload-st" id="pitchVidStatus"></div>
@@ -906,6 +907,7 @@
           <input type="file" id="fi-still-img" accept="image/jpeg,image/png,image/*" style="display:none">
           <div class="vid-upload-row">
             <button class="vid-upload-btn" onclick="document.getElementById('fi-still-img').click()">Choose Image</button>
+            <button type="button" class="vid-upload-btn" id="stillImgLibraryBtn">Choose from my library</button>
             <span class="vid-upload-name" id="stillImgName">No file chosen</span>
             <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
           </div>
@@ -990,6 +992,14 @@
         </label>
       </div>
       <div class="save-status info" id="saveStatus"></div>
+      <section id="cardStats" aria-labelledby="cardStatsTitle" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px">
+        <h2 id="cardStatsTitle" style="font-size:.85rem;font-weight:800;margin:0 0 6px;color:#e8e8ff">Visits to your card</h2>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fDiscoverable"> Let search engines find this card</label>
+        <p style="font-size:.72rem;color:#8892b8;margin:0 0 8px">Off unless you turn it on, and saved when you press "Save Card". Only a card with a short link goes in BizForce's list for search engines.</p>
+        <p id="cardStatsTotals" style="font-size:.8rem;color:#c8cce8;margin:0 0 6px">Save your card to see its visits.</p>
+        <ol id="cardStatsDays" style="list-style:none;padding:0;margin:0;max-height:220px;overflow:auto;font-size:.72rem;color:#8892b8"></ol>
+        <p id="cardStatsNote" style="font-size:.72rem;color:#8892b8;margin:8px 0 0">These are visits, not people: the same person opening your card twice counts twice, and BizForce keeps nothing about who they are.</p>
+      </section>
     </div>
   </div>
 </div>
@@ -1138,7 +1148,7 @@ function cardQrUrl() {
 }
 
 async function generateQR() {
-  var url = cardQrUrl();
+  var url = window.bfCard.qrUrl(cardQrUrl());
   var colors = THEME_QR[activeTheme];
   var qr = document.getElementById("qrCanvas"), qrVideo = document.getElementById("qrVideoCanvas");
   if (!url) {
@@ -1400,7 +1410,9 @@ async function loadCard() {
       if (data.cards[0].share_token) activeShareToken = data.cards[0].share_token;
       fillPrivacy(data.cards[0]);
       fillForm(data.cards[0]);
+      document.getElementById("fDiscoverable").checked = data.cards[0].discoverable === true;
       generateQR();
+      loadCardStats();
       setStatus("Card loaded.", "info");
     } else {
       generateQR();
@@ -1409,6 +1421,37 @@ async function loadCard() {
   } catch(e) {
     generateQR();
     markCardLoadFailed("could not reach the server");
+  }
+}
+
+/* "Visits to your card": GET /api/digital-cards/:id/stats, the owner's own
+   daily counts for the last 30 days. Written with textContent only. */
+function cardCountLine(c) {
+  var n = function (k) { var v = Number(c && c[k]); return isFinite(v) && v > 0 ? Math.floor(v) : 0; };
+  return n("views") + " opened (" + n("qr_views") + " by QR code), " + n("tel_taps") + " calls, " + n("email_taps") + " emails, " +
+    n("save_taps") + " contacts saved, " + n("support_taps") + " support opened";
+}
+
+async function loadCardStats() {
+  var totals = document.getElementById("cardStatsTotals"), list = document.getElementById("cardStatsDays");
+  if (!totals || !list) return;
+  if (!activeCardId) { totals.textContent = "Save your card to see its visits."; return; }
+  try {
+    var res = await fetch(API_URL + "/api/digital-cards/" + encodeURIComponent(activeCardId) + "/stats", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var s = await res.json();
+    if (!s || !Array.isArray(s.days) || !s.totals) throw new Error("unreadable");
+    totals.textContent = "Last 7 days: " + cardCountLine(s.totals.last_7_days) + ". Last 30 days: " + cardCountLine(s.totals.last_30_days) + ".";
+    while (list.firstChild) list.removeChild(list.firstChild);
+    s.days.slice().reverse().forEach(function (d) {
+      var li = document.createElement("li");
+      li.textContent = String(d.day || "") + ": " + cardCountLine(d);
+      list.appendChild(li);
+    });
+  } catch (e) {
+    totals.textContent = "Visits could not be loaded just now. Reload the page to try again.";
   }
 }
 
@@ -1439,6 +1482,7 @@ async function saveCard() {
   setStatus("Saving...", "info");
   var body = getFields();
   if (cardPrivacyReady) Object.assign(body, privacyFields());
+  body.discoverable = document.getElementById("fDiscoverable").checked;
   try {
     var url, method;
     if (activeCardId) {
@@ -1460,7 +1504,9 @@ async function saveCard() {
       activeCardId = saved.id;
       if (saved.share_token) activeShareToken = saved.share_token;
       if (Object.prototype.hasOwnProperty.call(saved, "show_email")) fillPrivacy(saved);
+      document.getElementById("fDiscoverable").checked = saved.discoverable === true;
       generateQR();
+      loadCardStats();
     }
     setStatus("", "info");
     showToast("Card saved!");
@@ -3228,6 +3274,46 @@ document.getElementById("bgImgLibraryBtn").addEventListener("click", function ()
     if (!m) return;
     setBgImage(m.url);
     document.getElementById("bgImgName").textContent = m.name;
+  });
+});
+/* The still image and the pitch video, from the library, used as an upload
+   is. A library file stays the library's: saving or deleting the card never
+   removes it (server.js removeDisplacedCardMedia skips the media/ folder). */
+document.getElementById("stillImgLibraryBtn").addEventListener("click", function () {
+  BFMediaPicker.open({ kind: "image" }).then(function (m) {
+    if (!m) return;
+    if (_stillBlobUrl) URL.revokeObjectURL(_stillBlobUrl);
+    _stillBlobUrl = null;
+    stillImageUrl = m.url;
+    stillImgPosX = 50; stillImgPosY = 50; stillImgZoom = 100; stillImgMode = 'fill';
+    document.getElementById("stillImgName").textContent = m.name;
+    document.getElementById("stillImgRemoveBtn").style.display = "inline-block";
+    document.getElementById("stillImgCropControls").style.display = "block";
+    updatePosterDisplay();
+    if (videoMode) {
+      var pImg = document.getElementById("cardPoster");
+      _posterVisible(pImg);
+      pImg.style.display = 'block';
+      _syncOverlay(true);
+    }
+  });
+});
+document.getElementById("pitchVidLibraryBtn").addEventListener("click", function () {
+  BFMediaPicker.open({ kind: "video" }).then(function (m) {
+    if (!m) return;
+    if (_videoBlobUrl) URL.revokeObjectURL(_videoBlobUrl);
+    _videoBlobUrl = null;
+    videoUrl = m.url;
+    vidTrimStart = 0; vidTrimEnd = null;
+    var vid = document.getElementById("cardVideoPitch");
+    vid.controls = false;
+    vid.setAttribute("playsinline", "");
+    vid.src = m.url;
+    vid.load();
+    document.getElementById("pitchVidName").textContent = m.name;
+    syncVidSliders();
+    document.getElementById("vidPosControls").style.display = "block";
+    applyVideoStyles();
   });
 });
 </script>

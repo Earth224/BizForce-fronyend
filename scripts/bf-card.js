@@ -8,8 +8,15 @@
    card, which always says what the card says now; a vCard baked into a
    printed QR went stale the day a phone number changed, and could not carry
    a photo. The URL is the short link bizforceai.net/c/<slug> when the card
-   has one, else card-view.html?token=<share token> (server.js cardPublicUrl
-   builds the same).
+   has one, else bizforceai.net/card/<share token> (server.js cardPublicUrl
+   builds the same; the old card-view.html?token= link sends the visitor
+   there). The QR adds "?via=qr" (qrUrl), so the card's daily counts can tell
+   a scan from a shared link; the vCard and the Share link carry the plain URL.
+
+   isSafeMediaUrl is server.js's rule for the card's media links
+   (lib/cardPage.js isSafeMediaUrl): an https URL of at most 500 characters
+   with no whitespace, quotes, parentheses, backslashes or angle brackets.
+   The card page applies a background image only when it passes.
 
    THE vCARD is version 3.0 with N, FN, ORG, TITLE, TEL, EMAIL, URL and PHOTO.
    Text values are escaped (backslash, comma, semicolon, newline), lines end
@@ -30,8 +37,25 @@
   function publicUrl(card) {
     if (card && card.public_url) return String(card.public_url);
     if (card && card.slug) return SITE + "/c/" + card.slug;
-    if (card && card.share_token) return SITE + "/card-view.html?token=" + encodeURIComponent(card.share_token);
+    if (card && card.share_token) return SITE + "/card/" + encodeURIComponent(card.share_token);
     return null;
+  }
+
+  /* What the card's QR codes encode: its public URL with via=qr. */
+  function qrUrl(url) {
+    if (!url) return null;
+    var u = String(url);
+    return u + (u.indexOf("?") === -1 ? "?" : "&") + "via=qr";
+  }
+
+  function isSafeMediaUrl(value) {
+    if (typeof value !== "string" || value.length > 500 || value.indexOf("https://") !== 0 || /[\s"'()\\<>]/.test(value)) return false;
+    try {
+      var u = new URL(value);
+      return u.protocol === "https:" && !!u.hostname;
+    } catch (e) {
+      return false;
+    }
   }
 
   /* tel: keeps a leading + and the digits; anything shorter than 3 digits is no number. */
@@ -122,7 +146,7 @@
 
   root.bfCard = {
     SITE: SITE, PHOTO_EMBED_MAX_BYTES: PHOTO_EMBED_MAX_BYTES,
-    publicUrl: publicUrl, telHref: telHref, mailtoHref: mailtoHref,
+    publicUrl: publicUrl, qrUrl: qrUrl, isSafeMediaUrl: isSafeMediaUrl, telHref: telHref, mailtoHref: mailtoHref,
     vcardEscape: esc, fold: fold, buildVCard: buildVCard, photoFor: photoFor
   };
 })(typeof window !== "undefined" ? window : this);
