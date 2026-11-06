@@ -144,9 +144,28 @@
     }).catch(function () { return linked; });
   }
 
+  /* C2 (Nov 6 2026): the card's public name and the consent sentence, built
+     exactly as the server builds them (lib/cardLeads.js publicName and
+     consentSentence; checkCardLeads holds the two equal). The server builds
+     its own copy for what it stores, and never takes this one from the page. */
+  function leadName(fullName) {
+    var n = String(fullName == null ? "" : fullName).replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").replace(/\s+/g, " ").trim();
+    return n || "the owner of this card";
+  }
+  function consentSentence(fullName) {
+    var head = "I agree that ", tail = " may contact me about this message.";
+    var chars = Array.from(leadName(fullName)), room = 300 - head.length - tail.length, name = "";
+    for (var i = 0; i < chars.length; i++) {
+      if ((name + chars[i]).length > room) break;
+      name += chars[i];
+    }
+    return head + name.trim() + tail;
+  }
+
   root.bfCard = {
     SITE: SITE, PHOTO_EMBED_MAX_BYTES: PHOTO_EMBED_MAX_BYTES,
     publicUrl: publicUrl, qrUrl: qrUrl, isSafeMediaUrl: isSafeMediaUrl, telHref: telHref, mailtoHref: mailtoHref,
-    vcardEscape: esc, fold: fold, buildVCard: buildVCard, photoFor: photoFor
+    vcardEscape: esc, fold: fold, buildVCard: buildVCard, photoFor: photoFor,
+    leadName: leadName, consentSentence: consentSentence
   };
 })(typeof window !== "undefined" ? window : this);

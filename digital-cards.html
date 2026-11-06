@@ -1000,6 +1000,15 @@
         <ol id="cardStatsDays" style="list-style:none;padding:0;margin:0;max-height:220px;overflow:auto;font-size:.72rem;color:#8892b8"></ol>
         <p id="cardStatsNote" style="font-size:.72rem;color:#8892b8;margin:8px 0 0">These are visits, not people: the same person opening your card twice counts twice, and BizForce keeps nothing about who they are.</p>
       </section>
+      <section id="cardLeads" aria-labelledby="cardLeadsTitle" style="margin-top:14px;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:12px">
+        <h2 id="cardLeadsTitle" style="font-size:.85rem;font-weight:800;margin:0 0 6px;color:#e8e8ff">Leads</h2>
+        <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fLeadForm"> Let visitors leave their details</label>
+        <p style="font-size:.72rem;color:#8892b8;margin:0 0 8px">Off unless you turn it on, and saved when you press "Save Card". Your card then shows a "Leave your details" form; visitors tick a box agreeing that you may contact them.</p>
+        <p id="cardLeadsNote" style="font-size:.72rem;color:#8892b8;margin:0 0 8px">Leads are kept for 12 months, then deleted. Contact people only about what they asked.</p>
+        <p id="cardLeadsStatus" style="font-size:.8rem;color:#c8cce8;margin:0 0 6px">Save your card to see its leads.</p>
+        <ol id="cardLeadsList" style="list-style:none;padding:0;margin:0;max-height:420px;overflow:auto;font-size:.76rem;color:#c8cce8"></ol>
+        <button type="button" class="vid-upload-btn" id="cardLeadsMore" hidden>Show older leads</button>
+      </section>
     </div>
   </div>
 </div>
@@ -1411,8 +1420,10 @@ async function loadCard() {
       fillPrivacy(data.cards[0]);
       fillForm(data.cards[0]);
       document.getElementById("fDiscoverable").checked = data.cards[0].discoverable === true;
+      document.getElementById("fLeadForm").checked = data.cards[0].lead_form_on === true;
       generateQR();
       loadCardStats();
+      loadCardLeads();
       setStatus("Card loaded.", "info");
     } else {
       generateQR();
@@ -1455,6 +1466,119 @@ async function loadCardStats() {
   }
 }
 
+/* "Leads" (C2): GET /api/digital-cards/:id/leads, newest first, 50 a page.
+   Written with textContent and createElement only; the email and phone links
+   come from bf-card.js mailtoHref and telHref, and are plain text when those
+   refuse them. */
+var cardLeadsBefore = null;
+
+function cardLeadButton(label, onClick) {
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "vid-upload-btn";
+  b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function cardLeadLink(text, href) {
+  var el = document.createElement(href ? "a" : "span");
+  if (href) el.setAttribute("href", href);
+  el.textContent = text;
+  return el;
+}
+
+function renderCardLead(lead) {
+  var li = document.createElement("li");
+  li.style.cssText = "padding:8px 0;border-top:1px solid rgba(255,255,255,.08)";
+  var head = document.createElement("div");
+  var who = document.createElement("strong");
+  who.textContent = String(lead.name || "");
+  head.appendChild(who);
+  var when = document.createElement("span");
+  var at = new Date(lead.created_at);
+  when.textContent = " " + (isNaN(at.getTime()) ? "" : at.toLocaleString()) + (lead.status === "new" ? " (new)" : lead.status === "archived" ? " (archived)" : "");
+  when.style.color = "#8892b8";
+  head.appendChild(when);
+  li.appendChild(head);
+  if (lead.email) {
+    var e = document.createElement("div");
+    e.appendChild(cardLeadLink(String(lead.email), window.bfCard.mailtoHref(lead.email)));
+    li.appendChild(e);
+  }
+  if (lead.phone) {
+    var p = document.createElement("div");
+    p.appendChild(cardLeadLink(String(lead.phone), window.bfCard.telHref(lead.phone)));
+    li.appendChild(p);
+  }
+  if (lead.message) {
+    var m = document.createElement("p");
+    m.style.cssText = "margin:4px 0;white-space:pre-wrap";
+    m.textContent = String(lead.message);
+    li.appendChild(m);
+  }
+  var c = document.createElement("p");
+  c.style.cssText = "margin:4px 0;color:#8892b8;font-size:.7rem";
+  c.textContent = "They agreed: " + String(lead.consent_text || "");
+  li.appendChild(c);
+  var actions = document.createElement("div");
+  actions.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
+  if (lead.status === "new") actions.appendChild(cardLeadButton("Mark read", function () { setCardLeadStatus(lead.id, "read"); }));
+  if (lead.status !== "archived") actions.appendChild(cardLeadButton("Archive", function () { setCardLeadStatus(lead.id, "archived"); }));
+  actions.appendChild(cardLeadButton("Delete", function () { deleteCardLead(lead.id); }));
+  li.appendChild(actions);
+  return li;
+}
+
+async function loadCardLeads(more) {
+  var status = document.getElementById("cardLeadsStatus"), list = document.getElementById("cardLeadsList"), moreBtn = document.getElementById("cardLeadsMore");
+  if (!status || !list) return;
+  if (!activeCardId) { status.textContent = "Save your card to see its leads."; return; }
+  if (!more) cardLeadsBefore = null;
+  try {
+    var url = API_URL + "/api/digital-cards/" + encodeURIComponent(activeCardId) + "/leads" + (more && cardLeadsBefore ? "?before=" + encodeURIComponent(cardLeadsBefore) : "");
+    var res = await fetch(url, { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var d = await res.json();
+    if (!d || !Array.isArray(d.leads)) throw new Error("unreadable");
+    if (!more) while (list.firstChild) list.removeChild(list.firstChild);
+    d.leads.forEach(function (lead) { list.appendChild(renderCardLead(lead)); });
+    cardLeadsBefore = d.next_before || null;
+    if (moreBtn) moreBtn.hidden = !cardLeadsBefore;
+    status.textContent = list.children.length ? "" : "No leads yet.";
+  } catch (e) {
+    status.textContent = "Leads could not be loaded just now. Reload the page to try again.";
+  }
+}
+
+async function setCardLeadStatus(id, status) {
+  try {
+    var res = await fetch(API_URL + "/api/card-leads/" + encodeURIComponent(id), {
+      method: "PATCH", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ status: status })
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    loadCardLeads();
+  } catch (e) {
+    showToast("That lead could not be changed just now.", true);
+  }
+}
+
+async function deleteCardLead(id) {
+  if (!window.confirm("Delete this lead? This cannot be undone.")) return;
+  try {
+    var res = await fetch(API_URL + "/api/card-leads/" + encodeURIComponent(id), { method: "DELETE", headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    loadCardLeads();
+  } catch (e) {
+    showToast("That lead could not be deleted just now.", true);
+  }
+}
+
+(function () {
+  var moreBtn = document.getElementById("cardLeadsMore");
+  if (moreBtn) moreBtn.addEventListener("click", function () { loadCardLeads(true); });
+})();
+
 // Written directly rather than through setStatus, which clears error text
 // after a few seconds: this has to stay until the page is reloaded.
 function markCardLoadFailed(detail) {
@@ -1483,6 +1607,7 @@ async function saveCard() {
   var body = getFields();
   if (cardPrivacyReady) Object.assign(body, privacyFields());
   body.discoverable = document.getElementById("fDiscoverable").checked;
+  body.lead_form_on = document.getElementById("fLeadForm").checked;
   try {
     var url, method;
     if (activeCardId) {
@@ -1505,8 +1630,10 @@ async function saveCard() {
       if (saved.share_token) activeShareToken = saved.share_token;
       if (Object.prototype.hasOwnProperty.call(saved, "show_email")) fillPrivacy(saved);
       document.getElementById("fDiscoverable").checked = saved.discoverable === true;
+      document.getElementById("fLeadForm").checked = saved.lead_form_on === true;
       generateQR();
       loadCardStats();
+      loadCardLeads();
     }
     setStatus("", "info");
     showToast("Card saved!");

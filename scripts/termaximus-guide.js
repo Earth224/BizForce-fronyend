@@ -93,7 +93,7 @@
       "Press \"Share\" for the card's public link, where people save your contact; \"Your support link\" below has its own Copy and Share.",
       "\"Copy vCard\" copies the contact file itself; \"Download PNG\" is for screens and \"Export Print File\" for printing.",
       "Shared card not showing your change? Press \"Save Card\" again; the public page shows only what was last saved.",
-      "\"Visits to your card\" under the card counts 30 days of opens and taps; \"Let search engines find this card\" stays off unless you turn it on."
+      "Under the card, \"Visits to your card\" counts 30 days of opens and taps; \"Leads\" lists what visitors leave once \"Let visitors leave their details\" is on."
     ],
     "business-id.html": [
       "Fill in \"Business Name\", \"Industry\", \"Tagline / Bio\" and your contact fields, then press \"Save Profile\".",
@@ -110,7 +110,7 @@
     "card-view.html": [
       "Press \"Save Contact\" to add this card's details to your phone's contacts.",
       "The card's short link and its QR codes open this same page, so anyone you share it with sees what you see.",
-      "Nothing here can be edited; the owner changes it on the Digital Cards page, and sees only daily counts of opens and taps, never who you are.",
+      "Nothing here can be edited; the owner sees daily counts of opens and taps, and your name and contact only if you send them with \"Leave your details\".",
       "Card not showing? The link may be mistyped or the card removed; ask its owner to send the link again.",
       "\"Support\" lists the owner's payment links; each opens the provider in a new tab, and BizForce never handles that money."
     ],

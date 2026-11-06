@@ -25,6 +25,22 @@
     #cvSupport{position:absolute;left:12px;right:12px;bottom:92px;max-height:45%;overflow:auto;z-index:25;background:rgba(10,15,35,.95);
       border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px}
     #cvSupport[hidden],#cvSupportBtn[hidden]{display:none}
+    /* The lead form (C2): opened from "Leave your details" when the owner turned it on. */
+    #cvLead{position:absolute;left:12px;right:12px;bottom:92px;max-height:70%;overflow:auto;z-index:26;background:rgba(10,15,35,.97);
+      border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-size:.8rem}
+    #cvLead[hidden],#cvLeadBtn[hidden]{display:none}
+    #cvLead h2{font-size:.9rem;margin:0 0 8px;color:#e8e8ff}
+    #cvLead label{display:block;margin:6px 0 2px;color:#c8cce8}
+    #cvLead input[type=text],#cvLead input[type=email],#cvLead input[type=tel],#cvLead textarea{width:100%;box-sizing:border-box;padding:8px;border-radius:8px;
+      border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e8e8ff;font:inherit}
+    #cvLead textarea{min-height:70px;resize:vertical}
+    #cvLead .cv-lead-consent{display:flex;gap:8px;align-items:flex-start;margin:10px 0}
+    #cvLead .cv-lead-consent input{margin-top:2px;flex-shrink:0}
+    #cvLead .cv-lead-note{font-size:.7rem;color:#8892b8;margin:8px 0 0}
+    #cvLead .cv-lead-note a{color:#22d3ee}
+    #cvLeadStatus{margin:8px 0 0;color:#c8cce8}
+    /* The honeypot: off-screen, out of the tab order and hidden from screen readers. */
+    .cv-lead-hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
 
     /* ── Viewport container: phone-width centered on desktop ── */
     #cardViewport{
@@ -387,9 +403,33 @@
   <!-- The card owner's support links, drawn by scripts/bf-support.js; shown from the Support button. -->
   <div id="cvSupport" hidden></div>
 
+  <!-- The lead form (C2), shown from "Leave your details" only when the owner turned it on. -->
+  <div id="cvLead" hidden>
+    <form id="cvLeadForm" novalidate>
+      <h2>Leave your details</h2>
+      <label for="cvLeadName">Name</label>
+      <input type="text" id="cvLeadName" name="name" maxlength="120" autocomplete="name" required>
+      <label for="cvLeadEmail">Email</label>
+      <input type="email" id="cvLeadEmail" name="email" maxlength="254" autocomplete="email">
+      <label for="cvLeadPhone">Phone</label>
+      <input type="tel" id="cvLeadPhone" name="phone" maxlength="40" autocomplete="tel">
+      <label for="cvLeadMessage">Message</label>
+      <textarea id="cvLeadMessage" name="message" maxlength="1000"></textarea>
+      <div class="cv-lead-hp" aria-hidden="true">
+        <label for="cvLeadWebsite">Website</label>
+        <input type="text" id="cvLeadWebsite" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <label class="cv-lead-consent"><input type="checkbox" id="cvLeadConsent" name="consent"> <span id="cvLeadConsentText"></span></label>
+      <button class="cv-btn" id="cvLeadSend" type="submit">Send</button>
+      <p id="cvLeadStatus" role="status" aria-live="polite"></p>
+      <p class="cv-lead-note"><span id="cvLeadPrivacy"></span> <a href="/privacy.html">Privacy Policy</a></p>
+    </form>
+  </div>
+
   <!-- Action buttons pinned to bottom -->
   <div class="card-actions" id="cardActions">
     <button class="cv-btn" id="cvSupportBtn" type="button" aria-controls="cvSupport" aria-expanded="false" hidden>Support</button>
+    <button class="cv-btn" id="cvLeadBtn" type="button" aria-controls="cvLead" aria-expanded="false" hidden>Leave your details</button>
     <button class="cv-btn cv-btn-vcf" onclick="saveContact()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Save Contact
@@ -830,6 +870,57 @@ function renderCardSupport(links) {
   });
 }
 
+/* The lead form (C2): only when the card's answer says lead_form is true.
+   The consent sentence is the server's rule (bf-card.js consentSentence);
+   what is stored is the server's own copy. Server messages are shown as they
+   come, with textContent only. */
+function renderCardLead(c) {
+  var panel = document.getElementById("cvLead"), btn = document.getElementById("cvLeadBtn");
+  if (!c || c.lead_form !== true || !c.form_token || !c.form_issued_at) return;
+  var owner = window.bfCard.leadName(c.full_name);
+  document.getElementById("cvLeadConsentText").textContent = window.bfCard.consentSentence(c.full_name);
+  document.getElementById("cvLeadPrivacy").textContent = "Your details go only to " + owner +
+    ". BizForce keeps them for up to 12 months and records nothing about your device.";
+  btn.hidden = false;
+  btn.addEventListener("click", function () {
+    var open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  });
+  var form = document.getElementById("cvLeadForm"), status = document.getElementById("cvLeadStatus"), send = document.getElementById("cvLeadSend");
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    send.disabled = true;
+    status.textContent = "Sending...";
+    var body = {
+      ref: cardRef(),
+      name: document.getElementById("cvLeadName").value,
+      email: document.getElementById("cvLeadEmail").value,
+      phone: document.getElementById("cvLeadPhone").value,
+      message: document.getElementById("cvLeadMessage").value,
+      consent: document.getElementById("cvLeadConsent").checked === true,
+      form_token: c.form_token,
+      form_issued_at: c.form_issued_at,
+      website: document.getElementById("cvLeadWebsite").value
+    };
+    try {
+      var res = await fetch(API_URL + "/api/cards/lead", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "omit", body: JSON.stringify(body) });
+      var d = null;
+      try { d = await res.json(); } catch (readErr) { d = null; }
+      if (res.ok && d && d.ok === true) {
+        status.textContent = String(d.message || "Sent.");
+        form.reset();
+        Array.prototype.forEach.call(form.querySelectorAll("input, textarea, button"), function (el) { el.disabled = true; });
+        return;
+      }
+      status.textContent = d && typeof d.error === "string" ? d.error : "Your details could not be sent just now. Try again later.";
+    } catch (sendErr) {
+      status.textContent = "Your details could not be sent just now. Try again later.";
+    }
+    send.disabled = false;
+  });
+}
+
 (async function() {
   var source = cardSource();
   if (!source) {
@@ -844,6 +935,7 @@ function renderCardSupport(links) {
     cardData = d.card;
     renderCard(cardData);
     renderCardSupport(d.support_links || []);
+    renderCardLead(cardData);
   } catch(e) {
     document.getElementById("stateLoading").style.display = "none";
     document.getElementById("stateError").style.display   = "block";
