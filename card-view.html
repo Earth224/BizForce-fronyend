@@ -29,6 +29,8 @@
     #cvLead{position:absolute;left:12px;right:12px;bottom:92px;max-height:70%;overflow:auto;z-index:26;background:rgba(10,15,35,.97);
       border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-size:.8rem}
     #cvLead[hidden],#cvLeadBtn[hidden]{display:none}
+    /* Add to Google Wallet: Android only, while the server says Wallet is set up. */
+    #cvWalletBtn[hidden]{display:none}
     #cvLead h2{font-size:.9rem;margin:0 0 8px;color:#e8e8ff}
     #cvLead label{display:block;margin:6px 0 2px;color:#c8cce8}
     #cvLead input[type=text],#cvLead input[type=email],#cvLead input[type=tel],#cvLead textarea{width:100%;box-sizing:border-box;padding:8px;border-radius:8px;
@@ -275,6 +277,7 @@
     .cv-btn svg{width:15px;height:15px;flex-shrink:0}
     .cv-btn-vcf{background:rgba(34,211,238,.12);border-color:rgba(34,211,238,.35);color:#22d3ee}
     .cv-btn-vcf:hover{background:rgba(34,211,238,.22);border-color:rgba(34,211,238,.55)}
+    .cv-btn-wallet{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.22);color:#e8e8ff}
     .cv-btn-create{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#8892b8}
     .cv-btn-create:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.25);color:#e8e8ff}
 
@@ -434,6 +437,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Save Contact
     </button>
+    <button class="cv-btn cv-btn-wallet" id="cvWalletBtn" type="button" hidden>Add to Google Wallet</button>
     <a class="cv-btn cv-btn-create" href="https://bizforceai.net/digital-cards.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
       Create Your Own
@@ -837,8 +841,8 @@ function cardRef() {
   return token && /^[0-9a-f]{32}$/.test(token) ? token : null;
 }
 
-/* Adds one to the card's daily count of this kind of tap (tel, email, save
-   or support). Fire and forget: it never waits, never throws and never
+/* Adds one to the card's daily count of this kind of tap (tel, email, save,
+   support or wallet). Fire and forget: it never waits, never throws and never
    changes what the tap itself does. Nothing about the visitor is sent. */
 function sendTap(kind) {
   try {
@@ -867,6 +871,20 @@ function renderCardSupport(links) {
     panel.hidden = !open;
     btn.setAttribute("aria-expanded", String(open));
     if (open) sendTap("support");
+  });
+}
+
+/* "Add to Google Wallet": shown only when the card's answer says google_wallet
+   is true AND the visitor is on Android. A tap counts itself (kind wallet,
+   not awaited) and goes to the server's link, which answers with Google's
+   save page. Everyone else sees no change. */
+function renderCardWallet(c) {
+  var btn = document.getElementById("cvWalletBtn");
+  if (!btn || !c || c.google_wallet !== true || !/Android/i.test(navigator.userAgent || "") || !cardRef()) return;
+  btn.hidden = false;
+  btn.addEventListener("click", function () {
+    sendTap("wallet");
+    window.location.assign(API_URL + "/api/cards/google-wallet?ref=" + encodeURIComponent(cardRef()));
   });
 }
 
@@ -936,6 +954,7 @@ function renderCardLead(c) {
     renderCard(cardData);
     renderCardSupport(d.support_links || []);
     renderCardLead(cardData);
+    renderCardWallet(cardData);
   } catch(e) {
     document.getElementById("stateLoading").style.display = "none";
     document.getElementById("stateError").style.display   = "block";
