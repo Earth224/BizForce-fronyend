@@ -140,7 +140,7 @@
       "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
       "Under \"Connect Bluesky\", connect with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for your approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
-      "Bluesky and Mastodon connect so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
+      "Bluesky, Mastodon and YouTube connect so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
     ],
     "analytics.html": [
       "Open \"KPI Review\", enter each metric's Now and Before figures, and press \"Review the metrics\"; it works out each change.",

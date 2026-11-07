@@ -507,6 +507,33 @@
         <div class="bsky-msg" id="mastoAutoMsg"></div>
       </div>
     </section>
+    <section class="context-card bsky-card" id="ytConnect" aria-label="YouTube">
+      <h2 class="section-label">YouTube</h2>
+      <p class="bsky-quiet">Connect your own YouTube channel, add a video, and file the upload. Nothing goes to YouTube until you approve it on the proposals page.</p>
+      <div class="bsky-msg" id="ytStatusMsg"></div>
+      <p class="bsky-warn" id="ytUnavailable" hidden>YouTube connection isn't set up yet.</p>
+      <div id="ytConnected" hidden>
+        <p><span class="bsky-connected-as" id="ytChannel"></span> <span class="bsky-quiet" id="ytSince"></span></p>
+      </div>
+      <div id="ytReconnect" hidden><p class="bsky-warn" id="ytReconnectText"></p></div>
+      <div class="bsky-row">
+        <button type="button" class="action-btn" id="ytConnectBtn">Connect YouTube</button>
+        <button type="button" class="action-btn action-btn--ghost" id="ytDisconnectBtn" hidden>Disconnect</button>
+      </div>
+      <div class="bsky-msg" id="ytConnectMsg"></div>
+      <div class="bsky-sub" id="ytVideos">
+        <h3 class="section-label">Your videos</h3>
+        <p class="bsky-quiet">Videos up to 50 MB (MP4, WebM or MOV).</p>
+        <p class="bsky-quiet">BizForce deletes the file as soon as YouTube has it, or after 14 days if it's never uploaded.</p>
+        <p class="bsky-quiet">Until Google approves BizForce, YouTube keeps uploads from BizForce private.</p>
+        <div class="bsky-fields">
+          <label>Label (optional)<input type="text" id="ytLabel" maxlength="120" autocomplete="off" /></label>
+          <label>Add video<input type="file" id="ytFile" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" /></label>
+        </div>
+        <div class="bsky-msg" id="ytUploadMsg"></div>
+        <ul class="bsky-mentions-list" id="ytVideoList"></ul>
+      </div>
+    </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -770,6 +797,7 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/bluesky-connect.js"></script>
 <script src="/scripts/bluesky-mentions.js"></script>
 <script src="/scripts/mastodon-connect.js"></script>
+<script src="/scripts/youtube.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

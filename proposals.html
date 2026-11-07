@@ -426,6 +426,53 @@ function storeChangeResultHtml(result) {
     '</div>';
 }
 
+// A publish_youtube_video proposal (migration 177): the member's own channel,
+// the title, privacy, "Made for kids?" and the file's size. Every value is
+// escaped. Approving it sends the file once, only if it still matches the
+// fingerprint it was filed with.
+function youtubeSize(bytes) {
+  var n = Number(bytes);
+  if (!isFinite(n) || n <= 0) return "not recorded";
+  return n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+}
+function youtubeUploadPayloadFields(payload) {
+  var privacy = payload.privacy === "public" || payload.privacy === "unlisted" ? payload.privacy : "private";
+  var kids = payload.made_for_kids === true ? "Yes" : (payload.made_for_kids === false ? "No" : "not answered");
+  var tags = Array.isArray(payload.tags) ? payload.tags.map(String).join(", ") : "";
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">channel</span><span class="pf-value yt-channel">your connected YouTube channel (' + escapeHtml(String(payload.channel_id == null ? "" : payload.channel_id)) + ')</span></div>' +
+      '<div><span class="pf-label">title</span><span class="pf-value yt-title">' + escapeHtml(String(payload.title == null ? "" : payload.title)) + '</span></div>' +
+      '<div><span class="pf-label">privacy</span><span class="pf-value yt-privacy">' + escapeHtml(privacy) + '</span></div>' +
+      '<div><span class="pf-label">made for kids</span><span class="pf-value yt-kids">' + escapeHtml(kids) + '</span></div>' +
+      '<div><span class="pf-label">size</span><span class="pf-value yt-size">' + escapeHtml(youtubeSize(payload.bytes)) + '</span></div>' +
+      (tags ? '<div><span class="pf-label">tags</span><span class="pf-value">' + escapeHtml(tags) + '</span></div>' : '') +
+      '<div><span class="pf-label">description</span></div>' +
+      '<pre class="exec-block yt-description">' + escapeHtml(String(payload.description == null ? "" : payload.description)) + '</pre>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">uploaded only when you approve, and only if the file still matches the one you filed</span></div>' +
+    '</div>';
+}
+// A delete_youtube_video proposal: the video BizForce uploaded, by its YouTube id.
+function youtubeDeletePayloadFields(payload) {
+  var id = typeof payload.youtube_video_id === "string" && /^[A-Za-z0-9_-]{11}$/.test(payload.youtube_video_id) ? payload.youtube_video_id : "";
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">remove</span><span class="pf-value yt-remove">' + escapeHtml(id ? "https://www.youtube.com/watch?v=" + id : "no video recorded") + '</span></div>' +
+      '<div><span class="pf-label">channel</span><span class="pf-value">your connected YouTube channel (' + escapeHtml(String(payload.channel_id == null ? "" : payload.channel_id)) + ')</span></div>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">removed from YouTube only when you approve</span></div>' +
+    '</div>';
+}
+// What approving a YouTube proposal did. Only a youtube.com watch address is drawn as a link.
+function youtubeResultHtml(result) {
+  var url = typeof result.url === "string" && /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/.test(result.url) ? result.url : null;
+  if (result.removed === true || result.already_removed === true) {
+    return '<div class="payload-fields"><div><span class="pf-label">status</span><span class="pf-value">Removed from YouTube</span></div></div>';
+  }
+  return '<div class="payload-fields"><div><span class="pf-label">' + (result.already_uploaded === true ? 'already uploaded' : 'uploaded') + '</span>' + (url
+      ? '<a class="pf-value yt-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+      : '<span class="pf-value">no video address recorded</span>') + '</div>' +
+    (typeof result.privacy === "string" ? '<div><span class="pf-label">privacy</span><span class="pf-value">' + escapeHtml(result.privacy) + '</span></div>' : '') +
+    '</div>';
+}
+
 // A publish_mastodon_post proposal: the member's own account, the length out of
 // their server's limit as counted at filing (the executor counts it again), and
 // the exact text.
@@ -557,6 +604,8 @@ function renderProposals() {
       execHtml = mailboxReplyResultHtml(p.execution_result);
     } else if (p.action_type === "update_store_item" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = storeChangeResultHtml(p.execution_result);
+    } else if ((p.action_type === "publish_youtube_video" || p.action_type === "delete_youtube_video") && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = youtubeResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -680,6 +729,12 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "update_store_item") {
         fieldsHtml = storeChangePayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_youtube_video") {
+        fieldsHtml = youtubeUploadPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "delete_youtube_video") {
+        fieldsHtml = youtubeDeletePayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);
