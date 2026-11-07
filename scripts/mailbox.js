@@ -11,7 +11,14 @@
    as text; "File for approval" files it (POST /api/mailbox/propose-reply), and
    it is sent only after it is approved on the Proposals page. The app password field is
    cleared after every answer. Every word from the server or a message is set
-   with textContent, never innerHTML. */
+   with textContent, never innerHTML.
+   SIGN IN WITH MICROSOFT (Outlook, Hotmail or Microsoft 365): choosing it hides
+   the address and password fields; the button asks the server to start
+   (POST /api/mailbox/microsoft/start) and goes to the Microsoft page it names.
+   Microsoft sends the browser back here with ?code and ?state (or ?error);
+   the page POSTs both to /api/mailbox/microsoft/finish as the signed-in
+   member, then strips the query with history.replaceState whatever the
+   answer, so the code never stays in the address bar or the history. */
 (function () {
   "use strict";
   var API = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -24,7 +31,10 @@
     other: "Your provider's help pages explain how to make an app password."
   };
   var HELP_SUFFIX = " Your provider may name these steps slightly differently.";
-  var LABELS = { gmail: "Gmail", yahoo: "Yahoo Mail", icloud: "iCloud Mail", fastmail: "Fastmail", other: "Other" };
+  var LABELS = { gmail: "Gmail", yahoo: "Yahoo Mail", icloud: "iCloud Mail", fastmail: "Fastmail", outlook: "Outlook", other: "Other" };
+  var MS_CANCELLED = "You cancelled the Microsoft sign-in.";
+  var MS_NOT_FINISHED = "Microsoft sign-in didn't finish. Try again.";
+  var MS_HOST = "https://login.microsoftonline.com/";
   var state = { status: null, nextBefore: null, busy: false, openUid: null, taskId: null };
 
   function token() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
@@ -54,7 +64,10 @@
     s.textContent = text || "";
     s.className = "mb-status" + (isError ? " err" : "");
   }
-  function reconnectText(address) {
+  function reconnectText(address, provider) {
+    if (provider === "outlook") {
+      return "Microsoft stopped accepting BizForce's access to " + address + ", so BizForce can't read it. Sign in with Microsoft again.";
+    }
     return "Your mailbox stopped accepting the app password saved for " + address + ", so BizForce can't read it. Make a new app password and connect again.";
   }
   function dateText(iso) {
@@ -79,8 +92,76 @@
   /* ── connect ───────────────────────────────────────────────────────── */
   function showProvider() {
     var p = $("mbProvider").value;
-    $("mbHelp").textContent = (HELP[p] || HELP.other) + HELP_SUFFIX;
+    var ms = p === "outlook";
+    $("mbPasswordFields").hidden = ms;
     $("mbOtherFields").hidden = p !== "other";
+    $("mbHelp").hidden = ms;
+    $("mbHelp").textContent = ms ? "" : (HELP[p] || HELP.other) + HELP_SUFFIX;
+    $("mbConnectActions").hidden = ms;
+    $("mbMicrosoft").hidden = !ms;
+    showMicrosoftAvailability();
+  }
+
+  /* The button works only when the server says Outlook sign-in is set up. */
+  function showMicrosoftAvailability() {
+    var available = !!(state.status && state.status.outlook_available === true);
+    $("mbMsBtn").disabled = !available || state.busy;
+    $("mbMsUnavailable").hidden = available;
+  }
+
+  function signInWithMicrosoft() {
+    if (state.busy) return;
+    if (!online()) { say(OFFLINE, true); return; }
+    state.busy = true;
+    $("mbMsBtn").disabled = true;
+    say("Opening Microsoft's sign-in page…");
+    var leaving = false;
+    call("POST", "/api/mailbox/microsoft/start", {}).then(function (r) {
+      var url = r.body && typeof r.body.authorize_url === "string" ? r.body.authorize_url : "";
+      if (!r.ok || url.indexOf(MS_HOST) !== 0) { say((r.body && r.body.error) || MS_NOT_FINISHED, true); return; }
+      leaving = true;
+      window.location.assign(url);
+    }).catch(function () {
+      say(online() ? MS_NOT_FINISHED : OFFLINE, true);
+    }).then(function () {
+      if (leaving) return;
+      state.busy = false;
+      showMicrosoftAvailability();
+    });
+  }
+
+  /* Back from Microsoft: ?code and ?state, or ?error. The query is stripped
+     with replaceState whatever the answer, before anything is shown. */
+  function stripQuery() {
+    try { window.history.replaceState(null, "", "/mailbox.html"); } catch (e) { /* nothing to strip */ }
+  }
+  function handleReturn() {
+    var q;
+    try { q = new URLSearchParams(window.location.search || ""); } catch (e) { return false; }
+    var code = q.get("code"), returned = q.get("state"), error = q.get("error");
+    if (!code && !returned && !error) return false;
+    if (error || !code || !returned) {
+      stripQuery();
+      say(error === "access_denied" ? MS_CANCELLED : MS_NOT_FINISHED, true);
+      return false;
+    }
+    if (!online()) { stripQuery(); say(OFFLINE, true); return false; }
+    state.busy = true;
+    say("Finishing the Microsoft sign-in…");
+    call("POST", "/api/mailbox/microsoft/finish", { code: code, state: returned }).then(function (r) {
+      return r;
+    }, function () {
+      return null;
+    }).then(function (r) {
+      stripQuery();
+      state.busy = false;
+      if (r && r.ok) { say("Connected."); render(r.body); return; }
+      say(r ? ((r.body && r.body.error) || MS_NOT_FINISHED) : (online() ? MS_NOT_FINISHED : OFFLINE), true);
+      loadStatus();
+    });
+    code = null;
+    returned = null;
+    return true;
   }
 
   function connect() {
@@ -144,6 +225,7 @@
     state.status = status || {};
     var s = state.status;
     hideReading();
+    showMicrosoftAvailability();
     if (!s.provider) {
       $("mbConnected").hidden = true;
       $("mbConnect").hidden = false;
@@ -156,7 +238,7 @@
       $("mbShowBtn").hidden = false;
       $("mbConnect").hidden = true;
     } else {
-      $("mbConnectedNote").textContent = reconnectText(s.email_address || "your mailbox");
+      $("mbConnectedNote").textContent = reconnectText(s.email_address || "your mailbox", s.provider);
       $("mbShowBtn").hidden = true;
       $("mbConnect").hidden = false;
       if (LABELS[s.provider]) $("mbProvider").value = s.provider;
@@ -341,6 +423,7 @@
   function start() {
     $("mbProvider").addEventListener("change", showProvider);
     $("mbConnectBtn").addEventListener("click", connect);
+    $("mbMsBtn").addEventListener("click", signInWithMicrosoft);
     $("mbDisconnectBtn").addEventListener("click", disconnect);
     $("mbShowBtn").addEventListener("click", function () { showInbox(false); });
     $("mbOlderBtn").addEventListener("click", function () { showInbox(true); });
@@ -351,7 +434,7 @@
     window.addEventListener("offline", function () { say(OFFLINE); });
     window.addEventListener("online", function () { if ($("mbStatus").textContent === OFFLINE) { say(""); loadStatus(); } });
     showProvider();
-    loadStatus();
+    if (!handleReturn()) loadStatus();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

@@ -283,10 +283,10 @@
       "\"Where used\" lists where a file appears, and \"Delete\" is refused while it is used; \"Copy link\" gives a link anyone can open."
     ],
     "mailbox.html": [
-      "Pick your provider, enter your address and an app password made for BizForce, and press \"Connect\"; your normal password is never asked for.",
+      "Pick your provider, enter your address and an app password made for BizForce, and press \"Connect\"; for Outlook, press \"Sign in with Microsoft\" instead.",
       "Press \"Show my inbox\" to list your newest 30 messages, and \"Show older\" for the 30 before them; nothing loads until you ask.",
       "Opening a message leaves it unread and BizForce keeps no copy; \"Draft a reply\" writes one, sent only after you approve it on Proposals.",
-      "\"Disconnect\" deletes the saved app password; to cancel the app password itself, remove it with your email provider."
+      "\"Disconnect\" deletes what BizForce saved; also cancel the app password with your provider, or remove BizForce from your Microsoft account."
     ],
     "garage-sale.html": [
       "Press \"Buy\" on an item and confirm; its price comes out of your BizCash balance.",
