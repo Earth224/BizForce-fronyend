@@ -51,6 +51,14 @@
        says which rule fired; the edge is what makes the row findable while
        scrolling a page of thirty. */
     .iv-row.low{border-color:rgba(251,146,60,.32);box-shadow:inset 3px 0 0 #fb923c}
+    .iv-store-slot{grid-column:1/-1}
+    .iv-store-slot:empty{display:none}
+    .iv-store-slot .store-quiet{color:var(--muted,#8892b8);font-size:.8rem;margin:0}
+    .iv-store-slot .store-change-form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+    .iv-store-slot .store-change-form[hidden]{display:none}
+    .iv-store-slot select,.iv-store-slot input{padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(10,14,30,.6);color:#e6edf3;font:inherit}
+    .iv-store-slot .store-msg{font-size:.8rem;color:#8892b8;margin-top:6px}
+    .iv-store-slot .store-msg.err{color:#f87171}
     .iv-cell{min-width:0}
     .iv-name{font-size:.94rem;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .iv-sub{font-size:.76rem;color:var(--sub);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -931,8 +939,14 @@ function renderItems() {
         '<button class="iv-act" onclick="openItemModal(\'' + id + '\')">Edit</button>' +
         '<button class="iv-act danger" onclick="deleteItem(\'' + id + '\')">Delete</button>' +
       '</div>' +
+      // A synced item: an empty slot that scripts/store-changes.js fills with textContent (migration 175).
+      (it.source
+        ? '<div class="iv-store-slot" data-store-item="' + id + '" data-store-conn="' + escapeHtml(it.store_connection_id || "") +
+          '" data-store-price="' + escapeHtml(it.unit_price == null ? "" : String(it.unit_price)) + '"></div>'
+        : '') +
     '</div>';
   }).join("");
+  if (window.bfStoreChanges) window.bfStoreChanges.decorateInventory(list);
 
   renderPager("item", itemPage, items.length, true);
   syncNegativeNote();
@@ -955,6 +969,17 @@ function syncNegativeNote() {
 var ITEM_TEXT_FIELDS = ["itm-name", "itm-sku", "itm-description", "itm-category", "itm-unit",
   "itm-reorder_point", "itm-reorder_quantity", "itm-unit_cost", "itm-unit_price",
   "itm-location", "itm-supplier", "itm-notes", "itm-product_id"];
+
+/* A synced item's name, SKU, cost and price come from its store (the server
+   refuses a change to them, migration 175), so the form shows them read-only. */
+var STORE_FIELDS = ["itm-name", "itm-sku", "itm-unit_cost", "itm-unit_price"];
+function setStoreFieldsReadOnly(on) {
+  STORE_FIELDS.forEach(function (f) {
+    var input = document.getElementById(f);
+    input.readOnly = on;
+    input.title = on ? "This comes from your store. Change it in your store, or propose a change." : "";
+  });
+}
 
 function openItemModal(id) {
   editingItemId = id;
@@ -995,8 +1020,10 @@ function openItemModal(id) {
       roQty.className = "iv-ro-value" + (onHand !== null && onHand < 0 ? " negative" : "");
       document.getElementById("itm-ro-counted").textContent = formatWhen(it.last_counted_at);
       readonly.style.display = "";
+      setStoreFieldsReadOnly(!!it.source);
     }
   } else {
+    setStoreFieldsReadOnly(false);
     ITEM_TEXT_FIELDS.forEach(function (f) { document.getElementById(f).value = ""; });
     document.getElementById("itm-status").value = "active";
     readonly.style.display = "none";
@@ -1523,6 +1550,7 @@ document.getElementById("itemPageSize").addEventListener("change", function () {
 
 loadItems();
 </script>
+<script src="/scripts/store-changes.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

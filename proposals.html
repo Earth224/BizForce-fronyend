@@ -397,6 +397,29 @@ function fillMailboxReplies(container) {
   });
 }
 
+// An update_store_item proposal (migration 175): one price or stock change in
+// the member's own WooCommerce store. Every value is escaped. Approving it
+// makes the change only if the store still holds the "from" value.
+function storeChangeText(payload) {
+  var field = payload.field === "stock" ? "stock" : "price";
+  return "Change " + String(payload.item_name == null ? "" : payload.item_name) + " " + field + " in your store from " +
+    String(payload.from == null ? "" : payload.from) + " to " + String(payload.to == null ? "" : payload.to);
+}
+function storeChangePayloadFields(payload) {
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">change</span><span class="pf-value store-change-text">' + escapeHtml(storeChangeText(payload)) + '</span></div>' +
+      '<div><span class="pf-label">store</span><span class="pf-value">your WooCommerce store, connected with changes allowed</span></div>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">changed only when you approve, and only if the store still shows the "from" value</span></div>' +
+    '</div>';
+}
+function storeChangeResultHtml(result) {
+  var when = result.already_applied === true ? "already applied" : (result.executed_at ? formatTime(result.executed_at) : "time not reported");
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">status</span><span class="pf-value store-change-done">Changed in your store</span></div>' +
+      '<div><span class="pf-label">when</span><span class="pf-value">' + escapeHtml(when) + '</span></div>' +
+    '</div>';
+}
+
 // A publish_mastodon_post proposal: the member's own account, the length out of
 // their server's limit as counted at filing (the executor counts it again), and
 // the exact text.
@@ -526,6 +549,8 @@ function renderProposals() {
       execHtml = mastodonResultHtml(p.execution_result);
     } else if (p.action_type === "send_mailbox_reply" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = mailboxReplyResultHtml(p.execution_result);
+    } else if (p.action_type === "update_store_item" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = storeChangeResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -646,6 +671,9 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "send_mailbox_reply") {
         fieldsHtml = mailboxReplyPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "update_store_item") {
+        fieldsHtml = storeChangePayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);

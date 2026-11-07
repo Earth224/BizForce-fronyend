@@ -1,18 +1,22 @@
 /* ══════════════════════════════════════════════════════════════════════════
    Connect your store, on the Store agent's page (store-agent.html, #storeConnect).
 
-   A member connects their OWN Shopify or WooCommerce store, read-only.
-   BizForce reads products, stock and order summaries; it never changes the
-   store. The server is the only source of truth: GET /api/store/connections
-   (platform, store, status, since, last synced; never the key).
+   A member connects their OWN Shopify or WooCommerce store. BizForce reads
+   products, stock and order summaries. It changes a price or stock level only
+   when the member approves that change, and only on a WooCommerce store
+   connected with "Let BizForce make changes I approve (prices and stock)"
+   ticked (migration 175; scripts/store-changes.js). Shopify is read-only. The
+   server is the only source of truth: GET /api/store/connections (platform,
+   store, status, permission, since, last synced; never the key).
 
    Shopify: the shop's myshopify.com address and the Admin API access token
    from a custom app the member made with read scopes only. The token is sent
    once, to POST /api/store/connections, and the field is cleared whatever the
    answer; it is never stored here, never read back and never shown.
 
-   WooCommerce: the store's https address. The server answers the store's own
-   authorization link (Read access only), and the page goes there; the store
+   WooCommerce: the store's https address, and allow_changes from the box. The
+   server answers the store's own authorization link (Read access, or
+   Read/Write when the box is ticked), and the page goes there; the store
    comes back to ?store=woocommerce when the member has approved or declined.
 
    Every server message is shown as the server wrote it, with textContent.
@@ -22,6 +26,7 @@
 
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
   var LABEL = { shopify: "Shopify", woocommerce: "WooCommerce" };
+  var PERMISSION_LABEL = { read: "Read only", read_write: "Changes allowed with your approval" };
 
   function tok() { return localStorage.getItem("bf_token") || ""; }
 
@@ -71,6 +76,8 @@
     byId("storeShopifySteps").hidden = p !== "shopify";
     byId("storeWooSteps").hidden = p !== "woocommerce";
     byId("storeTokenField").hidden = p !== "shopify";
+    byId("storeAllowField").hidden = p !== "woocommerce";
+    if (p !== "woocommerce") byId("storeAllowChanges").checked = false;
     byId("storeUrl").placeholder = p === "shopify" ? "your-shop.myshopify.com" : "https://shop.example.com";
     say("storeConnectMsg", "");
   }
@@ -89,10 +96,11 @@
       head.appendChild(document.createTextNode(" "));
       head.appendChild(el("span", "store-quiet", "(" + (LABEL[c.platform] || c.platform) + ", since " + dateText(c.connected_since) + ")"));
       row.appendChild(head);
+      row.appendChild(el("p", "store-permission", PERMISSION_LABEL[c.permission === "read_write" ? "read_write" : "read"]));
       row.appendChild(el("p", "store-quiet", "Last synced: " + timeText(c.last_sync_at)));
       if (c.status === "needs_reconnect") {
         row.appendChild(el("p", "store-warn", (LABEL[c.platform] || c.platform) + " refused the saved key, so this store is not being read. " +
-          "Connect it again below with a new read-only key, or disconnect it."));
+          "Connect it again below with a new key, or disconnect it."));
       }
       var actions = el("div", "store-row");
       var msgId = "storeConnMsg-" + c.id;
@@ -139,6 +147,7 @@
     api("GET", "/api/store/connections").then(function (res) {
       if (!res.ok) { say("storeStatusMsg", "Your store connections could not be loaded: " + serverMessage(res), true); return; }
       say("storeStatusMsg", "");
+      if (window.bfStoreChanges) window.bfStoreChanges.reset();
       renderConnections(Array.isArray(res.data.connections) ? res.data.connections : []);
     }, function () { say("storeStatusMsg", "Your store connections could not be loaded: the request failed.", true); });
   }
@@ -148,6 +157,7 @@
     var tokenEl = byId("storeToken");
     var body = { platform: platform, store_url: url };
     if (platform === "shopify") body.access_token = tokenEl.value;
+    if (platform === "woocommerce") body.allow_changes = byId("storeAllowChanges").checked === true;
     tokenEl.value = "";
     var btn = byId("storeConnectBtn");
     btn.disabled = true;
@@ -172,7 +182,7 @@
     if (q.get("store") === "woocommerce") {
       say("storeConnectMsg", q.get("success") === "0"
         ? "WooCommerce did not hand over a key, so nothing was saved."
-        : "Back from your store. If you approved Read access, it shows below as connected.");
+        : "Back from your store. If you approved the access BizForce asked for, it shows below as connected.");
     }
     load();
   }
