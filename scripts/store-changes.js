@@ -1,14 +1,15 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   Store changes (migration 175): propose, list and undo a price or stock
-   change in a member's own WooCommerce store. Loaded by store-agent.html and
-   inventory.html.
+   Store changes (migrations 175 and 176): propose, list and undo a price or
+   stock change in a member's own WooCommerce or Shopify store. Loaded by
+   store-agent.html and inventory.html.
 
    NOTHING CHANGES IN THE STORE FROM THIS PAGE. "Propose" files a proposal
    (POST /api/store/changes/propose); the change is made only when the member
-   approves it on the Approvals page, and only on a WooCommerce store connected
-   with "Let BizForce make changes I approve (prices and stock)" ticked. Undo
-   files a new proposal back to the old value (POST /api/store/changes/:id/undo),
-   after the member confirms. Shopify stores are read-only.
+   approves it on the Approvals page, and only on a store connected with "Let
+   BizForce make changes I approve (prices and stock)" ticked. Undo files a new
+   proposal back to the old value (POST /api/store/changes/:id/undo), after the
+   member confirms. A Shopify stock change applies at the location chosen on
+   the Store Agent page. Prices are shown with the store's currency.
 
    Every server message is shown as the server wrote it, with textContent.
    Nothing here is set with innerHTML.
@@ -51,7 +52,7 @@
     try { return new Date(iso).toLocaleString(); } catch (e) { return String(iso); }
   }
 
-  /* The member's connections, by id: { platform, permission, status }. */
+  /* The member's connections, by id: { platform, permission, status, currency, location_name }. */
   var connections = null;
   function loadConnections() {
     if (connections) return connections;
@@ -65,18 +66,23 @@
     return connections;
   }
   function writable(c) {
-    return !!c && c.platform === "woocommerce" && c.permission === "read_write" && c.status === "connected";
+    return !!c && (c.platform === "woocommerce" || c.platform === "shopify") && c.permission === "read_write" && c.status === "connected";
+  }
+  /* "19.99 USD", or "19.99" when the store's currency is not known yet. */
+  function priceText(value, currency) {
+    return String(value) + (typeof currency === "string" && /^[A-Z]{3}$/.test(currency) ? " " + currency : "");
   }
 
   /* "Propose a change" for one synced item. prefill: { field, value }. */
-  function proposeControl(itemId, prefill) {
+  function proposeControl(conn, itemId, prefill) {
     var box = el("div", "store-change");
     var open = el("button", "action-btn action-btn--ghost store-change-open", "Propose a change");
     open.type = "button";
     var form = el("div", "store-change-form");
     form.hidden = true;
     var pick = el("select", "store-change-field");
-    [["price", "New price"], ["stock", "New stock level"]].forEach(function (o) {
+    var currency = conn && typeof conn.currency === "string" && /^[A-Z]{3}$/.test(conn.currency) ? conn.currency : "";
+    [["price", currency ? "New price (" + currency + ")" : "New price"], ["stock", "New stock level"]].forEach(function (o) {
       var opt = el("option", null, o[1]);
       opt.value = o[0];
       pick.appendChild(opt);
@@ -105,6 +111,10 @@
     form.appendChild(pick);
     form.appendChild(input);
     form.appendChild(send);
+    if (conn && conn.platform === "shopify") {
+      form.appendChild(el("p", "store-quiet store-change-where", conn.location_name ? "Stock changes apply at " + conn.location_name + "."
+        : "Choose a location for stock changes on the Store Agent page before proposing a stock change."));
+    }
     box.appendChild(open);
     box.appendChild(form);
     box.appendChild(msg);
@@ -114,7 +124,7 @@
   /* The control for an item, or the read-only line, or nothing for a manual item. */
   function controlFor(conn, itemId, prefill) {
     if (!conn) return null;
-    if (writable(conn)) return proposeControl(itemId, prefill);
+    if (writable(conn)) return proposeControl(conn, itemId, prefill);
     return el("p", "store-quiet store-change-readonly", READ_ONLY_TEXT);
   }
 
@@ -126,7 +136,12 @@
     loadConnections().then(function (map) {
       Array.prototype.forEach.call(slots, function (slot) {
         slot.textContent = "";
-        var node = controlFor(map[slot.getAttribute("data-store-conn")], slot.getAttribute("data-store-item"),
+        var conn = map[slot.getAttribute("data-store-conn")];
+        var shownPrice = slot.getAttribute("data-store-price");
+        if (conn && shownPrice && typeof conn.currency === "string" && /^[A-Z]{3}$/.test(conn.currency)) {
+          slot.appendChild(el("p", "store-quiet store-currency", "Store price: " + priceText(shownPrice, conn.currency)));
+        }
+        var node = controlFor(conn, slot.getAttribute("data-store-item"),
           { field: "price", value: slot.getAttribute("data-store-price") });
         if (node) slot.appendChild(node);
       });
@@ -172,8 +187,9 @@
       if (!list.length && !before) { box.appendChild(el("p", "store-quiet", "No changes made in your store yet.")); return; }
       list.forEach(function (c) {
         var row = el("div", "store-conn store-change-entry");
-        row.appendChild(el("p", "store-change-what", String(c.item_name || "Untitled") + ": " + (c.field === "price" ? "price" : "stock") +
-          " " + String(c.old_value) + " to " + String(c.new_value)));
+        row.appendChild(el("p", "store-change-what", String(c.item_name || "Untitled") + ": " + (c.field === "price"
+          ? "price " + priceText(c.old_value, c.currency) + " to " + priceText(c.new_value, c.currency)
+          : "stock " + String(c.old_value) + " to " + String(c.new_value) + (c.location_name ? " at " + String(c.location_name) : ""))));
         row.appendChild(el("p", "store-quiet", timeText(c.executed_at)));
         var actions = el("div", "store-row");
         var undo = el("button", "action-btn action-btn--ghost", "Undo");
@@ -187,7 +203,7 @@
         var msg = el("div", "store-msg");
         undo.addEventListener("click", function () {
           undo.hidden = true; sure.hidden = false; cancel.hidden = false;
-          say(msg, "This files a new proposal to change it back to " + String(c.old_value) + ". Nothing changes until you approve it.");
+          say(msg, "This files a new proposal to change it back to " + (c.field === "price" ? priceText(c.old_value, c.currency) : String(c.old_value)) + ". Nothing changes until you approve it.");
         });
         cancel.addEventListener("click", function () { undo.hidden = false; sure.hidden = true; cancel.hidden = true; say(msg, ""); });
         sure.addEventListener("click", function () {

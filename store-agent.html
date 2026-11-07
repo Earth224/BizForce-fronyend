@@ -441,31 +441,34 @@
           <button type="button" class="action-btn action-btn--ghost" id="storePickShopify" aria-pressed="true">Shopify</button>
           <button type="button" class="action-btn action-btn--ghost" id="storePickWoo" aria-pressed="false">WooCommerce</button>
         </div>
-        <ol id="storeShopifySteps">
-          <li>In your Shopify admin, open Settings, then Apps and sales channels, then Develop apps. If Shopify asks, allow custom app development.</li>
-          <li>Press Create an app and name it BizForce.</li>
-          <li>Under Configuration, Admin API integration, tick only <code>read_products</code>, <code>read_inventory</code> and <code>read_orders</code>. Do not tick any <code>write_</code> permission: BizForce refuses a token that has one.</li>
-          <li>Press Install app. Under API credentials, reveal the Admin API access token (it starts with <code>shpat_</code>) and copy it. Shopify shows it only once.</li>
-          <li>Enter your shop's myshopify.com address and the token here, and press Connect.</li>
-        </ol>
+        <div id="storeShopifySection">
+          <p class="store-quiet">You approve BizForce on Shopify's own page. BizForce never sees your Shopify password.</p>
+          <div class="store-fields">
+            <label>Your Shopify store<input type="text" id="storeShop" placeholder="yourstore.myshopify.com" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+            <label class="store-allow"><input type="checkbox" id="storeShopifyAllow" /> Let BizForce make changes I approve (prices and stock)</label>
+          </div>
+          <div class="store-row"><button type="button" class="action-btn" id="storeShopifyBtn">Connect Shopify</button></div>
+          <p class="store-msg" id="storeShopifyUnset" hidden>Shopify connection isn't set up yet.</p>
+        </div>
         <ol id="storeWooSteps" hidden>
           <li>Enter your store's address, starting with https://. To let BizForce change prices and stock levels you approve, tick the box below; otherwise BizForce only reads. Then press Connect.</li>
           <li>Your store opens its own page asking you to approve Read access for BizForce AI (Read/Write if you ticked the box). Sign in to your WordPress admin if asked, and press Approve.</li>
           <li>WooCommerce makes a REST API key with the permission you approved and hands it to BizForce, then brings you back here. BizForce refuses a key whose permission is not the one it asked for.</li>
           <li>To see or revoke the key later, open WooCommerce, then Settings, Advanced, REST API.</li>
         </ol>
-        <div class="store-fields">
-          <label>Store address<input type="text" id="storeUrl" placeholder="your-shop.myshopify.com" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
-          <label id="storeTokenField">Admin API access token<input type="password" id="storeToken" placeholder="shpat_..." autocomplete="off" /></label>
-          <label id="storeAllowField" class="store-allow" hidden><input type="checkbox" id="storeAllowChanges" /> Let BizForce make changes I approve (prices and stock)</label>
+        <div id="storeWooSection" hidden>
+          <div class="store-fields">
+            <label>Store address<input type="text" id="storeUrl" placeholder="https://shop.example.com" autocomplete="off" autocapitalize="off" spellcheck="false" /></label>
+            <label id="storeAllowField" class="store-allow"><input type="checkbox" id="storeAllowChanges" /> Let BizForce make changes I approve (prices and stock)</label>
+          </div>
+          <div class="store-row"><button type="button" class="action-btn" id="storeConnectBtn">Connect</button></div>
         </div>
-        <div class="store-row"><button type="button" class="action-btn" id="storeConnectBtn">Connect</button></div>
         <div class="store-msg" id="storeConnectMsg"></div>
       </div>
     </section>
     <section class="context-card store-card" id="storeChangesCard" aria-label="Store changes">
       <h2 class="section-label">Store changes</h2>
-      <p class="store-quiet">Price and stock changes BizForce made in your WooCommerce store after you approved them: the item, the field, the old and new value, and when. Undo files a new proposal to change it back; nothing changes until you approve it.</p>
+      <p class="store-quiet">Price and stock changes BizForce made in your store after you approved them: the item, the field, the old and new value with the store's currency, where a Shopify stock change applied, and when. Undo files a new proposal to change it back; nothing changes until you approve it.</p>
       <div id="storeChanges"></div>
     </section>
     <div class="toolbar">

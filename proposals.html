@@ -397,18 +397,24 @@ function fillMailboxReplies(container) {
   });
 }
 
-// An update_store_item proposal (migration 175): one price or stock change in
-// the member's own WooCommerce store. Every value is escaped. Approving it
-// makes the change only if the store still holds the "from" value.
+// An update_store_item proposal (migrations 175 and 176): one price or stock
+// change in the member's own WooCommerce or Shopify store, named with its
+// platform, a price with the store's currency, and a Shopify stock change with
+// its location. Every value is escaped. Approving it makes the change only if
+// the store still holds the "from" value.
 function storeChangeText(payload) {
   var field = payload.field === "stock" ? "stock" : "price";
-  return "Change " + String(payload.item_name == null ? "" : payload.item_name) + " " + field + " in your store from " +
-    String(payload.from == null ? "" : payload.from) + " to " + String(payload.to == null ? "" : payload.to);
+  var platform = payload.platform === "shopify" ? "Shopify " : (payload.platform === "woocommerce" ? "WooCommerce " : "");
+  var currency = field === "price" && typeof payload.currency === "string" && /^[A-Z]{3}$/.test(payload.currency) ? " " + payload.currency : "";
+  var where = field === "stock" && payload.location_name ? " at " + String(payload.location_name) : "";
+  return "Change " + String(payload.item_name == null ? "" : payload.item_name) + " " + field + " in your " + platform + "store from " +
+    String(payload.from == null ? "" : payload.from) + currency + " to " + String(payload.to == null ? "" : payload.to) + currency + where;
 }
 function storeChangePayloadFields(payload) {
+  var storeName = payload.platform === "shopify" ? "Shopify" : "WooCommerce";
   return '<div class="payload-fields">' +
       '<div><span class="pf-label">change</span><span class="pf-value store-change-text">' + escapeHtml(storeChangeText(payload)) + '</span></div>' +
-      '<div><span class="pf-label">store</span><span class="pf-value">your WooCommerce store, connected with changes allowed</span></div>' +
+      '<div><span class="pf-label">store</span><span class="pf-value">your ' + storeName + ' store, connected with changes allowed</span></div>' +
       '<div><span class="pf-label">approval</span><span class="pf-value">changed only when you approve, and only if the store still shows the "from" value</span></div>' +
     '</div>';
 }
