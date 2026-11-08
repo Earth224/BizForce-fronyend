@@ -1,15 +1,15 @@
 /* ══════════════════════════════════════════════════════════════════════════
    The sign-in return, shared, on the Social agent's page (agents/social.html).
-   Loaded BEFORE scripts/youtube.js, scripts/tiktok.js and
-   scripts/instagram.js.
+   Loaded BEFORE scripts/youtube.js, scripts/tiktok.js,
+   scripts/instagram.js and scripts/facebook.js.
 
-   Google, TikTok and Instagram all send the browser back to this same page
+   Google, TikTok, Instagram and Facebook all send the browser back to this same page
    with ?code and ?state (or ?error). Before leaving, the platform's script
    calls BFOAuthReturn.mark(name), which sets sessionStorage
-   "bf_oauth_return" to "youtube", "tiktok" or "instagram". This file reads
+   "bf_oauth_return" to "youtube", "tiktok", "instagram" or "facebook". This file reads
    the query ONCE, as the page loads:
      - no code, state or error: nothing happens;
-     - the marker names one of the three: the marker is cleared, and the
+     - the marker names one of the four: the marker is cleared, and the
        answer is handed to the ONE script that registered under that name
        (BFOAuthReturn.register), which finishes the sign-in and strips the
        query with history.replaceState whatever the answer;
@@ -24,7 +24,7 @@
 
   var RETURN_KEY = "bf_oauth_return";
   var PAGE_PATH = "/agents/social.html";
-  var NAMES = ["youtube", "tiktok", "instagram"];
+  var NAMES = ["youtube", "tiktok", "instagram", "facebook"];
   var pending = null;
   var orphaned = false;
 

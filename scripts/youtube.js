@@ -49,7 +49,7 @@
   var CANCELLED = "You cancelled the Google sign-in.";
   var NOT_FINISHED = "Google sign-in didn't finish. Try again.";
   var START_AGAIN = "Start the connection again.";
-  var state = { available: false, connected: false, busy: false, tiktokAvailable: false, instagramAvailable: false };
+  var state = { available: false, connected: false, busy: false, tiktokAvailable: false, instagramAvailable: false, facebookAvailable: false };
 
   function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function plainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
@@ -122,7 +122,7 @@
   // The file input: on when either platform a video can go to is set up.
   function fileSwitch() {
     var file = el("ytFile");
-    if (file) file.disabled = !(state.available || state.tiktokAvailable || state.instagramAvailable);
+    if (file) file.disabled = !(state.available || state.tiktokAvailable || state.instagramAvailable || state.facebookAvailable);
   }
   function returns() { return window.BFOAuthReturn || null; }
 
@@ -452,7 +452,9 @@
     reload: function () { return loadVideos(); },
     setTiktokAvailable: function (on) { state.tiktokAvailable = on === true; fileSwitch(); },
     // NAMED (Nov 7 2026, Instagram posting): Reels come from these videos too.
-    setInstagramAvailable: function (on) { state.instagramAvailable = on === true; fileSwitch(); }
+    setInstagramAvailable: function (on) { state.instagramAvailable = on === true; fileSwitch(); },
+    // NAMED (Nov 7 2026, Facebook Pages posting): Facebook video posts come from these videos too.
+    setFacebookAvailable: function (on) { state.facebookAvailable = on === true; fileSwitch(); }
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

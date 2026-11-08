@@ -554,6 +554,58 @@ function fillInstagramVideos(container) {
   }, function () {});
 }
 
+// A publish_facebook_post proposal (migration 180): the member's own Facebook
+// Page, the kind, each photo's thumbnail (found by id in the library,
+// showPostImages) or the video with its size (its label read from Your
+// videos by the same filler as Instagram's, fillInstagramVideos, with
+// textContent), and the message. Every value is escaped. Approving it checks
+// every file's fingerprint again and publishes once.
+var FACEBOOK_KIND_WORDS = { text: "text only", photo: "one photo", photos: "several photos", video: "a video" };
+function facebookPostPayloadFields(payload) {
+  var kind = Object.prototype.hasOwnProperty.call(FACEBOOK_KIND_WORDS, payload.kind) ? FACEBOOK_KIND_WORDS[payload.kind] : "unknown";
+  var items = Array.isArray(payload.items) ? payload.items : [];
+  var video = payload.video && typeof payload.video === "object" && !Array.isArray(payload.video) ? payload.video : null;
+  var files = "";
+  if (items.length) {
+    files = '<div class="pf-images"><span class="pf-label">Photos</span>' +
+      items.map(function (m) {
+        return '<div class="pf-image" data-pf-media-id="' + escapeHtml(m && m.id) + '"><img alt=""></div>';
+      }).join("") +
+      '</div>';
+  } else if (video) {
+    files = '<div><span class="pf-label">video</span><span class="pf-value fb-video" data-ig-video-id="' + escapeHtml(video.id) + '">a video from Your videos</span></div>' +
+      '<div><span class="pf-label">size</span><span class="pf-value fb-size">' + escapeHtml(youtubeSize(video.bytes)) + '</span></div>';
+  }
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">Page</span><span class="pf-value fb-page">your connected Facebook Page (' + escapeHtml(String(payload.page_id == null ? "" : payload.page_id)) + ')</span></div>' +
+      '<div><span class="pf-label">kind</span><span class="pf-value fb-kind">' + escapeHtml(kind) + '</span></div>' +
+      files +
+      '<div><span class="pf-label">message</span></div>' +
+      '<pre class="exec-block fb-message">' + escapeHtml(String(payload.message == null ? "" : payload.message)) + '</pre>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">published only when you approve, and only if every file still matches the one you filed</span></div>' +
+      '<div><span class="pf-label">removing it</span><span class="pf-value">Use "Remove from Facebook" on the Social Agent page; the removal waits for your approval too.</span></div>' +
+    '</div>';
+}
+// A delete_facebook_post proposal: which post, on which Page. Every value is escaped.
+function facebookDeletePayloadFields(payload) {
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">Page</span><span class="pf-value fb-page">your connected Facebook Page (' + escapeHtml(String(payload.page_id == null ? "" : payload.page_id)) + ')</span></div>' +
+      '<div><span class="pf-label">post</span><span class="pf-value fb-post-id">' + escapeHtml(String(payload.post_id == null ? "" : payload.post_id)) + '</span></div>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">removed from Facebook only when you approve, once</span></div>' +
+    '</div>';
+}
+// What approving a Facebook post or removal did. Only a www.facebook.com address is drawn as a link.
+function facebookResultHtml(result) {
+  if (result.removed === true) {
+    return '<div class="payload-fields"><div><span class="pf-label">status</span><span class="pf-value">Removed from Facebook</span></div></div>';
+  }
+  var url = typeof result.permalink === "string" && /^https:\/\/www\.facebook\.com\/[A-Za-z0-9_\/.?=&%-]{1,270}$/.test(result.permalink) ? result.permalink : null;
+  var word = result.already_published === true ? "already published" : (result.published === true ? "published" : (result.publishing === true ? "sent; Facebook hasn't confirmed it yet" : "status"));
+  return '<div class="payload-fields"><div><span class="pf-label">' + escapeHtml(word) + '</span>' + (url
+      ? '<a class="pf-value fb-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+      : '<span class="pf-value">no post address yet; check its status on the Social Agent page</span>') + '</div></div>';
+}
+
 // What approving a YouTube proposal did. Only a youtube.com watch address is drawn as a link.
 function youtubeResultHtml(result) {
   var url = typeof result.url === "string" && /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/.test(result.url) ? result.url : null;
@@ -704,6 +756,8 @@ function renderProposals() {
       execHtml = tiktokResultHtml(p.execution_result);
     } else if (p.action_type === "publish_instagram_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = instagramResultHtml(p.execution_result);
+    } else if ((p.action_type === "publish_facebook_post" || p.action_type === "delete_facebook_post") && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = facebookResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -839,6 +893,12 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "publish_instagram_post") {
         fieldsHtml = instagramPostPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_facebook_post") {
+        fieldsHtml = facebookPostPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "delete_facebook_post") {
+        fieldsHtml = facebookDeletePayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);
