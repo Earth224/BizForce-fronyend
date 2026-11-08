@@ -494,6 +494,66 @@ function tiktokResultHtml(result) {
       : '<span class="pf-value">no post address yet; check its status on the Social Agent page</span>') + '</div></div>';
 }
 
+// A publish_instagram_post proposal (migration 179): the member's own Instagram
+// account, the kind, each photo's thumbnail with its alt text (found by id in
+// the library, showPostImages, like a Bluesky post's images) or the Reel's
+// video with its size (its label read from Your videos, fillInstagramVideos,
+// with textContent), and the caption. Every value is escaped. Approving it
+// checks every file's fingerprint again and publishes once.
+var INSTAGRAM_KIND_WORDS = { image: "one photo", carousel: "a carousel of photos", reel: "a Reel" };
+function instagramPostPayloadFields(payload) {
+  var kind = Object.prototype.hasOwnProperty.call(INSTAGRAM_KIND_WORDS, payload.kind) ? INSTAGRAM_KIND_WORDS[payload.kind] : "unknown";
+  var items = Array.isArray(payload.items) ? payload.items : [];
+  var video = payload.video && typeof payload.video === "object" && !Array.isArray(payload.video) ? payload.video : null;
+  var files = "";
+  if (items.length) {
+    files = '<div class="pf-images"><span class="pf-label">Photos</span>' +
+      items.map(function (m) {
+        var alt = m && typeof m.alt === "string" ? m.alt : "";
+        return '<div class="pf-image" data-pf-media-id="' + escapeHtml(m && m.id) + '">' +
+            '<img alt="' + escapeHtml(alt) + '">' +
+            '<span class="pf-value pf-image-alt">' + escapeHtml(alt ? "Alt text: " + alt : "No alt text") + '</span>' +
+          '</div>';
+      }).join("") +
+      '</div>';
+  } else if (video) {
+    files = '<div><span class="pf-label">video</span><span class="pf-value ig-video" data-ig-video-id="' + escapeHtml(video.id) + '">a video from Your videos</span></div>' +
+      '<div><span class="pf-label">size</span><span class="pf-value ig-size">' + escapeHtml(youtubeSize(video.bytes)) + '</span></div>';
+  }
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">account</span><span class="pf-value ig-account">your connected Instagram account (' + escapeHtml(String(payload.ig_user_id == null ? "" : payload.ig_user_id)) + ')</span></div>' +
+      '<div><span class="pf-label">kind</span><span class="pf-value ig-kind">' + escapeHtml(kind) + '</span></div>' +
+      files +
+      '<div><span class="pf-label">caption</span></div>' +
+      '<pre class="exec-block ig-caption">' + escapeHtml(String(payload.caption == null ? "" : payload.caption)) + '</pre>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">published only when you approve, and only if every file still matches the one you filed</span></div>' +
+      '<div><span class="pf-label">removing it</span><span class="pf-value">To remove an Instagram post, delete it in the Instagram app.</span></div>' +
+    '</div>';
+}
+// What approving an Instagram post did. Only an instagram.com address is drawn as a link.
+function instagramResultHtml(result) {
+  var url = typeof result.permalink === "string" && /^https:\/\/www\.instagram\.com\/[A-Za-z0-9_\/.?=&-]{1,280}$/.test(result.permalink) ? result.permalink : null;
+  var word = result.already_published === true ? "already published" : (result.published === true ? "published" : (result.processing === true ? "sent; Instagram is preparing it" : "status"));
+  return '<div class="payload-fields"><div><span class="pf-label">' + escapeHtml(word) + '</span>' + (url
+      ? '<a class="pf-value ig-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+      : '<span class="pf-value">no post address yet; check its status on the Social Agent page</span>') + '</div></div>';
+}
+// The Reel's video label, from GET /api/videos, set with textContent.
+function fillInstagramVideos(container) {
+  var spots = container.querySelectorAll("[data-ig-video-id]");
+  if (!spots.length) return;
+  fetch(API_URL + "/api/videos", { headers: { "Authorization": "Bearer " + token } }).then(function (res) {
+    return res.ok ? res.json() : null;
+  }).then(function (d) {
+    var byId = {};
+    (d && Array.isArray(d.videos) ? d.videos : []).forEach(function (v) { if (v && typeof v.id === "string") byId[v.id] = v; });
+    Array.prototype.forEach.call(spots, function (spot) {
+      var v = byId[spot.getAttribute("data-ig-video-id")];
+      if (v) spot.textContent = (typeof v.label === "string" && v.label ? v.label : "Untitled video") + ", from Your videos";
+    });
+  }, function () {});
+}
+
 // What approving a YouTube proposal did. Only a youtube.com watch address is drawn as a link.
 function youtubeResultHtml(result) {
   var url = typeof result.url === "string" && /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/.test(result.url) ? result.url : null;
@@ -642,6 +702,8 @@ function renderProposals() {
       execHtml = youtubeResultHtml(p.execution_result);
     } else if (p.action_type === "publish_tiktok_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = tiktokResultHtml(p.execution_result);
+    } else if (p.action_type === "publish_instagram_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = instagramResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -775,6 +837,9 @@ function renderProposals() {
       } else if (p.action_type === "publish_tiktok_post") {
         fieldsHtml = tiktokPostPayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_instagram_post") {
+        fieldsHtml = instagramPostPayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);
       }
@@ -827,6 +892,7 @@ function renderProposals() {
   });
   showPostImages(container);
   fillMailboxReplies(container);
+  fillInstagramVideos(container);
 }
 
 async function decideProposal(btn, action) {

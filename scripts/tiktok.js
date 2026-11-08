@@ -9,6 +9,10 @@
    no marker). The page POSTs both to POST /api/tiktok/finish as the
    signed-in member, clears the marker, and strips the query with
    history.replaceState WHATEVER the answer.
+   NAMED (Nov 7 2026, Instagram posting): the return is read in ONE place,
+   scripts/oauth-return.js (loaded first). connect calls
+   BFOAuthReturn.mark("tiktok"), and this script registers finishReturn under
+   "tiktok"; it no longer reads ?code or ?state itself.
 
    Posting: the videos are the ones in "Your videos" (scripts/youtube.js
    draws the list and calls window.BFTikTok.decorate for each). A video whose
@@ -38,7 +42,6 @@
   var AUTH_PREFIX = "https://www.tiktok.com/v2/auth/authorize/";
   var POST_URL_RE = /^https:\/\/www\.tiktok\.com\/player\/v1\/[0-9]{1,64}$/;
   var CAPTION_MAX = 2200;
-  var RETURN_KEY = "bf_oauth_return";
   var NOT_SET_UP = "TikTok connection isn't set up yet.";
   var CANCELLED = "You cancelled the TikTok sign-in.";
   var NOT_FINISHED = "TikTok sign-in didn't finish. Try again.";
@@ -89,6 +92,7 @@
     try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); } catch (e) { return String(iso); }
   }
   function videos() { return window.BFVideos && typeof window.BFVideos.reload === "function" ? window.BFVideos : null; }
+  function returns() { return window.BFOAuthReturn || null; }
 
   /* ── the connection ────────────────────────────────────────────────────── */
   function drawStatus(st) {
@@ -136,7 +140,7 @@
     call("POST", "/api/tiktok/start", {}).then(function (res) {
       var url = res.data && res.data.authorize_url;
       if (res.ok && typeof url === "string" && url.indexOf(AUTH_PREFIX) === 0) {
-        try { sessionStorage.setItem(RETURN_KEY, "tiktok"); } catch (e) { /* the return then asks to start again */ }
+        if (returns()) returns().mark("tiktok");
         window.location.assign(url);
         return;
       }
@@ -162,25 +166,19 @@
     });
   }
 
-  /* Back from TikTok, only when the marker says so. The query is stripped
-     with replaceState whatever the answer. */
+  /* Back from TikTok: { code, state, error }, handed over by
+     scripts/oauth-return.js only when the marker said "tiktok". The query is
+     stripped with replaceState whatever the answer. */
   function stripQuery() {
+    if (returns()) { returns().strip(); return; }
     try { window.history.replaceState(null, "", PAGE_PATH); } catch (e) { /* nothing to strip */ }
   }
-  function handleReturn() {
-    var q;
-    try { q = new URLSearchParams(window.location.search || ""); } catch (e) { return false; }
-    var code = q.get("code"), returned = q.get("state"), error = q.get("error");
-    if (!code && !returned && !error) return false;
-    var which = null;
-    try { which = sessionStorage.getItem(RETURN_KEY); } catch (e) { which = null; }
-    // Not TikTok's return: scripts/youtube.js handles it, and a return with no marker.
-    if (which !== "tiktok") return false;
-    try { sessionStorage.removeItem(RETURN_KEY); } catch (e) { /* nothing stored */ }
+  function finishReturn(answer) {
+    var code = answer.code, returned = answer.state, error = answer.error;
     if (error || !code || !returned) {
       stripQuery();
       tell("ttConnectMsg", error === "access_denied" ? CANCELLED : NOT_FINISHED, true);
-      return false;
+      return;
     }
     tell("ttConnectMsg", "Finishing the TikTok sign-in…");
     call("POST", "/api/tiktok/finish", { code: code, state: returned }).then(function (res) {
@@ -193,7 +191,6 @@
       tell("ttConnectMsg", res ? errorOf(res) : NOT_FINISHED, true);
       loadStatus();
     });
-    return true;
   }
 
   /* ── one video's TikTok side ───────────────────────────────────────────── */
@@ -402,7 +399,7 @@
     btn.addEventListener("click", connect);
     var off = el("ttDisconnectBtn");
     if (off) off.addEventListener("click", disconnect);
-    var returning = handleReturn();
+    var returning = returns() ? returns().register("tiktok", finishReturn) : false;
     if (!returning) loadStatus();
     else call("GET", "/api/tiktok/status").then(function (res) {
       if (res.ok) {

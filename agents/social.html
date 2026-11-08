@@ -462,7 +462,7 @@
           <a href="/proposals.html" id="bskyProfileLink" hidden>Open the proposals page</a></div>
         <div class="bsky-msg" id="bskyProfileMsg"></div>
       </div>
-      <p class="bsky-quiet" id="bskyOtherPlatforms">X, Instagram, LinkedIn and Facebook are coming, through each platform's own sign-in.</p>
+      <p class="bsky-quiet" id="bskyOtherPlatforms">X, LinkedIn and Facebook are coming, through each platform's own sign-in. Instagram can be connected below, and every Instagram post waits for your approval.</p>
     </section>
     <section class="context-card bsky-card" id="bskyMentions" aria-label="Mentions" hidden>
       <h2 class="section-label">Mentions</h2>
@@ -550,6 +550,56 @@
         <button type="button" class="action-btn action-btn--ghost" id="ttDisconnectBtn" hidden>Disconnect</button>
       </div>
       <div class="bsky-msg" id="ttConnectMsg"></div>
+    </section>
+    <section class="context-card bsky-card" id="igConnect" aria-label="Instagram">
+      <h2 class="section-label">Instagram</h2>
+      <p class="bsky-quiet">Connect your own Instagram account and prepare a post: photos from your Media Library, or a Reel from Your videos. Nothing goes to Instagram until you approve it on the proposals page.</p>
+      <p class="bsky-quiet">Instagram posting works with Business and Creator accounts. You can switch to one for free in the Instagram app's settings.</p>
+      <p class="bsky-quiet">Photos must be JPEG. Reels must be MP4 or MOV.</p>
+      <p class="bsky-quiet">To remove an Instagram post, delete it in the Instagram app.</p>
+      <div class="bsky-msg" id="igStatusMsg"></div>
+      <p class="bsky-warn" id="igUnavailable" hidden>Instagram connection isn't set up yet.</p>
+      <div id="igConnected" hidden>
+        <p><span class="bsky-connected-as" id="igName"></span> <span class="bsky-quiet" id="igSince"></span></p>
+      </div>
+      <div id="igReconnect" hidden><p class="bsky-warn" id="igReconnectText"></p></div>
+      <div class="bsky-row">
+        <button type="button" class="action-btn" id="igConnectBtn">Connect Instagram</button>
+        <button type="button" class="action-btn action-btn--ghost" id="igDisconnectBtn" hidden>Disconnect</button>
+      </div>
+      <div class="bsky-msg" id="igConnectMsg"></div>
+      <div class="bsky-sub" id="igPrepare" hidden>
+        <h3 class="section-label">Prepare Instagram post</h3>
+        <div class="bsky-row">
+          <label><input type="radio" name="igKind" id="igKindPhotos" value="photos" checked /> Photos</label>
+          <label><input type="radio" name="igKind" id="igKindReel" value="reel" /> Reel</label>
+        </div>
+        <div id="igPhotos">
+          <p class="bsky-quiet" id="igPhotoCount"></p>
+          <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="igAddPhoto">Add a photo</button></div>
+          <ul class="bsky-mentions-list" id="igPhotoList"></ul>
+        </div>
+        <div id="igReel" hidden>
+          <div class="bsky-fields">
+            <label>Video<select id="igVideo"></select></label>
+          </div>
+        </div>
+        <div class="bsky-fields">
+          <label>Caption<textarea id="igCaption" rows="4"></textarea></label>
+          <span class="bsky-quiet" id="igCount">0 of 2200</span>
+          <label>What it's about, for the AI draft<textarea id="igIdea" rows="2" maxlength="1000"></textarea></label>
+        </div>
+        <div class="bsky-row">
+          <button type="button" class="action-btn action-btn--ghost" id="igDraftBtn">Draft caption with AI</button>
+          <button type="button" class="action-btn" id="igFileBtn">File for approval</button>
+        </div>
+        <div class="bsky-msg" id="igPrepareMsg"></div>
+      </div>
+      <div class="bsky-sub" id="igPosts" hidden>
+        <h3 class="section-label">Recent Instagram posts</h3>
+        <div class="bsky-msg" id="igPostsMsg"></div>
+        <ul class="bsky-mentions-list" id="igPostList"></ul>
+      </div>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
@@ -814,8 +864,10 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/bluesky-connect.js"></script>
 <script src="/scripts/bluesky-mentions.js"></script>
 <script src="/scripts/mastodon-connect.js"></script>
+<script src="/scripts/oauth-return.js"></script>
 <script src="/scripts/youtube.js"></script>
 <script src="/scripts/tiktok.js"></script>
+<script src="/scripts/instagram.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

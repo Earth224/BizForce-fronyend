@@ -10,10 +10,13 @@
 
    NAMED (Nov 7 2026, TikTok posting): TikTok's sign-in comes back to this
    same page, so before leaving, connect sets sessionStorage "bf_oauth_return"
-   to "youtube" (scripts/tiktok.js sets "tiktok"). On the way back only the
-   script the marker names handles ?code and ?state, and clears the marker.
-   With NO marker, this script strips the query with replaceState and says
-   "Start the connection again."; scripts/tiktok.js then does nothing.
+   to "youtube" (scripts/tiktok.js sets "tiktok").
+   NAMED (Nov 7 2026, Instagram posting): the return is now read in ONE place,
+   scripts/oauth-return.js (loaded first): connect calls
+   BFOAuthReturn.mark("youtube"), and this script registers finishReturn
+   under "youtube" instead of reading ?code and ?state itself. With no
+   marker, oauth-return.js strips the query and this script says "Start the
+   connection again.".
 
    Your videos: a file of up to 50 MB (MP4, WebM or MOV) is checked here
    first, then PUT straight to the signed upload URL that
@@ -25,7 +28,8 @@
    and "Remove from YouTube". NAMED (Nov 7 2026): the file status says only
    whether the FILE is here, so YouTube's side is read from youtube_video_id;
    scripts/tiktok.js adds TikTok's side to each video (window.BFTikTok), and
-   the file input is on when YouTube OR TikTok is set up (window.BFVideos).
+   the file input is on when YouTube OR TikTok is set up (window.BFVideos);
+   NAMED (Nov 7 2026): or Instagram, whose Reels come from these videos.
    Nothing reaches YouTube until the member approves the proposal.
 
    The server is the only source of truth, and every server message is shown
@@ -45,8 +49,7 @@
   var CANCELLED = "You cancelled the Google sign-in.";
   var NOT_FINISHED = "Google sign-in didn't finish. Try again.";
   var START_AGAIN = "Start the connection again.";
-  var RETURN_KEY = "bf_oauth_return";
-  var state = { available: false, connected: false, busy: false, tiktokAvailable: false };
+  var state = { available: false, connected: false, busy: false, tiktokAvailable: false, instagramAvailable: false };
 
   function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function plainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
@@ -119,11 +122,9 @@
   // The file input: on when either platform a video can go to is set up.
   function fileSwitch() {
     var file = el("ytFile");
-    if (file) file.disabled = !(state.available || state.tiktokAvailable);
+    if (file) file.disabled = !(state.available || state.tiktokAvailable || state.instagramAvailable);
   }
-  function marker() { try { return sessionStorage.getItem(RETURN_KEY); } catch (e) { return null; } }
-  function setMarker() { try { sessionStorage.setItem(RETURN_KEY, "youtube"); } catch (e) { /* the return then asks to start again */ } }
-  function clearMarker() { try { sessionStorage.removeItem(RETURN_KEY); } catch (e) { /* nothing stored */ } }
+  function returns() { return window.BFOAuthReturn || null; }
 
   function loadStatus() {
     tell("ytStatusMsg", "Checking your YouTube connection…");
@@ -144,7 +145,11 @@
     tell("ytConnectMsg", "Opening Google…");
     call("POST", "/api/youtube/start", {}).then(function (res) {
       var url = res.data && res.data.authorize_url;
-      if (res.ok && typeof url === "string" && url.indexOf(GOOGLE_HOST) === 0) { setMarker(); window.location.assign(url); return; }
+      if (res.ok && typeof url === "string" && url.indexOf(GOOGLE_HOST) === 0) {
+        if (returns()) returns().mark("youtube");
+        window.location.assign(url);
+        return;
+      }
       if (btn) btn.disabled = false;
       tell("ytConnectMsg", res.ok ? NOT_FINISHED : errorOf(res), true);
     }, function () {
@@ -167,29 +172,19 @@
     });
   }
 
-  /* Back from Google: ?code and ?state, or ?error. The query is stripped
-     with replaceState whatever the answer, before anything is shown. */
+  /* Back from Google: { code, state, error }, handed over by
+     scripts/oauth-return.js only when the marker said "youtube". The query is
+     stripped with replaceState whatever the answer. */
   function stripQuery() {
+    if (returns()) { returns().strip(); return; }
     try { window.history.replaceState(null, "", PAGE_PATH); } catch (e) { /* nothing to strip */ }
   }
-  function handleReturn() {
-    var q;
-    try { q = new URLSearchParams(window.location.search || ""); } catch (e) { return false; }
-    var code = q.get("code"), returned = q.get("state"), error = q.get("error");
-    if (!code && !returned && !error) return false;
-    var which = marker();
-    // TikTok's return: scripts/tiktok.js handles it.
-    if (which === "tiktok") return false;
-    if (which !== "youtube") {
-      stripQuery();
-      tell("ytConnectMsg", START_AGAIN, true);
-      return false;
-    }
-    clearMarker();
+  function finishReturn(answer) {
+    var code = answer.code, returned = answer.state, error = answer.error;
     if (error || !code || !returned) {
       stripQuery();
       tell("ytConnectMsg", error === "access_denied" ? CANCELLED : NOT_FINISHED, true);
-      return false;
+      return;
     }
     tell("ytConnectMsg", "Finishing the Google sign-in…");
     call("POST", "/api/youtube/finish", { code: code, state: returned }).then(function (res) {
@@ -202,7 +197,6 @@
       tell("ytConnectMsg", res ? errorOf(res) : NOT_FINISHED, true);
       loadStatus();
     });
-    return true;
   }
 
   /* ── adding a video ────────────────────────────────────────────────────── */
@@ -442,7 +436,13 @@
     if (off) off.addEventListener("click", disconnect);
     var file = el("ytFile");
     if (file) file.addEventListener("change", addVideo);
-    var returning = handleReturn();
+    var returning = false;
+    var rt = returns();
+    if (rt) {
+      returning = rt.register("youtube", finishReturn);
+      // A return no script was waiting for: oauth-return.js stripped it.
+      if (rt.orphaned()) tell("ytConnectMsg", START_AGAIN, true);
+    }
     if (!returning) loadStatus();
     else call("GET", "/api/youtube/status").then(function (res) { if (res.ok) drawStatus(res.data); }, function () {});
   }
@@ -450,7 +450,9 @@
   // For scripts/tiktok.js: the list drawn again, and whether TikTok is set up.
   window.BFVideos = {
     reload: function () { return loadVideos(); },
-    setTiktokAvailable: function (on) { state.tiktokAvailable = on === true; fileSwitch(); }
+    setTiktokAvailable: function (on) { state.tiktokAvailable = on === true; fileSwitch(); },
+    // NAMED (Nov 7 2026, Instagram posting): Reels come from these videos too.
+    setInstagramAvailable: function (on) { state.instagramAvailable = on === true; fileSwitch(); }
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
