@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════════
    Store changes (migrations 175 and 176): propose, list and undo a price or
-   stock change in a member's own WooCommerce or Shopify store. Loaded by
+   stock change in a member's own WooCommerce, Shopify or Etsy store. Loaded by
    store-agent.html and inventory.html.
 
    NOTHING CHANGES IN THE STORE FROM THIS PAGE. "Propose" files a proposal
@@ -66,7 +66,7 @@
     return connections;
   }
   function writable(c) {
-    return !!c && (c.platform === "woocommerce" || c.platform === "shopify") && c.permission === "read_write" && c.status === "connected";
+    return !!c && (c.platform === "woocommerce" || c.platform === "shopify" || c.platform === "etsy") && c.permission === "read_write" && c.status === "connected";
   }
   /* "19.99 USD", or "19.99" when the store's currency is not known yet. */
   function priceText(value, currency) {
@@ -115,6 +115,8 @@
       form.appendChild(el("p", "store-quiet store-change-where", conn.location_name ? "Stock changes apply at " + conn.location_name + "."
         : "Choose a location for stock changes on the Store Agent page before proposing a stock change."));
     }
+    // Etsy (Nov 8 2026, migration 181): an offering's quantity is 0 to 999.
+    if (conn && conn.platform === "etsy") form.appendChild(el("p", "store-quiet store-change-where", "Etsy allows a stock level from 0 to 999."));
     box.appendChild(open);
     box.appendChild(form);
     box.appendChild(msg);

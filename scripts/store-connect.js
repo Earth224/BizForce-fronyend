@@ -23,16 +23,41 @@
    Read/Write when the box is ticked), and the page goes there; the store
    comes back to ?store=woocommerce when the member has approved or declined.
 
+   Etsy (Nov 8 2026, migration 181): the box only. "Connect Etsy" asks POST
+   /api/store/etsy/start for Etsy's own authorization page, notes "etsy" in
+   sessionStorage bf_store_return, and goes there. Etsy brings the member back
+   with ?code and ?state only, so the marker says whose return it is: with it,
+   code and state are POSTed to /api/store/etsy/finish; without it, nothing is
+   sent and the member is asked to start again. A Shopify return is still
+   known by its ?shop and ?hmac (Connect Shopify sets the marker to
+   "shopify"). The address bar is cleared with replaceState on every return,
+   and the marker is removed once read.
+
    Every server message is shown as the server wrote it, with textContent.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
 
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
-  var LABEL = { shopify: "Shopify", woocommerce: "WooCommerce" };
+  var LABEL = { shopify: "Shopify", woocommerce: "WooCommerce", etsy: "Etsy" };
   var PERMISSION_LABEL = { read: "Read only", read_write: "Changes allowed with your approval" };
   var SHOPIFY_UNSET = "Shopify connection isn't set up yet.";
+  var ETSY_UNSET = "Etsy connection isn't set up yet.";
   var FINISH_HINT = "Press Connect Shopify to finish connecting.";
+  var START_AGAIN = "Start the connection again.";
+  // Which store's page the member left for: "etsy" or "shopify" (sessionStorage, this tab only).
+  var RETURN_KEY = "bf_store_return";
+
+  function markReturn(p) {
+    try { window.sessionStorage.setItem(RETURN_KEY, p); } catch (e) { /* the return then asks to start again */ }
+  }
+  /* The marker, read once and removed. No storage reads as no marker. */
+  function takeReturn() {
+    var v = null;
+    try { v = window.sessionStorage.getItem(RETURN_KEY); } catch (e) { v = null; }
+    try { window.sessionStorage.removeItem(RETURN_KEY); } catch (e) { /* nothing to remove */ }
+    return v;
+  }
 
   function tok() { return localStorage.getItem("bf_token") || ""; }
 
@@ -79,11 +104,14 @@
     platform = p;
     byId("storePickShopify").setAttribute("aria-pressed", p === "shopify" ? "true" : "false");
     byId("storePickWoo").setAttribute("aria-pressed", p === "woocommerce" ? "true" : "false");
+    byId("storePickEtsy").setAttribute("aria-pressed", p === "etsy" ? "true" : "false");
     byId("storeShopifySection").hidden = p !== "shopify";
     byId("storeWooSteps").hidden = p !== "woocommerce";
     byId("storeWooSection").hidden = p !== "woocommerce";
+    byId("storeEtsySection").hidden = p !== "etsy";
     if (p !== "woocommerce") byId("storeAllowChanges").checked = false;
     if (p !== "shopify") byId("storeShopifyAllow").checked = false;
+    if (p !== "etsy") byId("storeEtsyAllow").checked = false;
     say("storeConnectMsg", "");
   }
 
@@ -156,6 +184,7 @@
           : "Stock shown is the total across your locations."));
         row.appendChild(locationLine(c, msgId));
       }
+      if (c.platform === "etsy" && c.shop_name) row.appendChild(el("p", "store-quiet", "Etsy shop: " + c.shop_name));
       row.appendChild(el("p", "store-quiet", "Last synced: " + timeText(c.last_sync_at)));
       if (c.status === "needs_reconnect") {
         row.appendChild(el("p", "store-warn", (LABEL[c.platform] || c.platform) + " refused the saved key, so this store is not being read. " +
@@ -175,7 +204,9 @@
             say(msgId, "Read " + (s.items_written || 0) + " item(s) and " + (s.orders || 0) + " order summary(ies)." +
               (s.skipped_sku_manual ? " " + s.skipped_sku_manual + " skipped: an item you entered already has that SKU, and yours was left as it is." : "") +
               (s.skipped_untracked ? " " + s.skipped_untracked + " skipped: the store does not track their stock." : "") +
-              (s.skipped_not_at_location ? " " + s.skipped_not_at_location + " skipped: not stocked at the chosen location." : ""));
+              (s.skipped_not_at_location ? " " + s.skipped_not_at_location + " skipped: not stocked at the chosen location." : "") +
+              (s.skipped_disabled ? " " + s.skipped_disabled + " skipped: turned off in the store." : "") +
+              (s.skipped_id_too_long ? " " + s.skipped_id_too_long + " skipped: too many options to name." : ""));
             load();
           }, function () { sync.disabled = false; say(msgId, "The request failed. Nothing was changed.", true); });
         });
@@ -206,6 +237,11 @@
     byId("storeShopifyUnset").hidden = available;
     byId("storeShopifyUnset").textContent = SHOPIFY_UNSET;
   }
+  function setEtsyAvailable(available) {
+    byId("storeEtsyBtn").disabled = !available;
+    byId("storeEtsyUnset").hidden = available;
+    byId("storeEtsyUnset").textContent = ETSY_UNSET;
+  }
 
   function load() {
     if (!tok()) return;
@@ -214,6 +250,7 @@
       say("storeStatusMsg", "");
       if (window.bfStoreChanges) window.bfStoreChanges.reset();
       setShopifyAvailable(res.data.shopify_available === true);
+      setEtsyAvailable(res.data.etsy_available === true);
       renderConnections(Array.isArray(res.data.connections) ? res.data.connections : []);
     }, function () { say("storeStatusMsg", "Your store connections could not be loaded: the request failed.", true); });
   }
@@ -225,9 +262,21 @@
     api("POST", "/api/store/shopify/start", { shop: byId("storeShop").value, allow_changes: byId("storeShopifyAllow").checked === true }).then(function (res) {
       btn.disabled = false;
       if (!res.ok) { say("storeConnectMsg", serverMessage(res), true); return; }
-      if (res.data.authorize_url) { window.location.assign(res.data.authorize_url); return; }
+      if (res.data.authorize_url) { markReturn("shopify"); window.location.assign(res.data.authorize_url); return; }
       say("storeConnectMsg", "Shopify did not answer with its page. Nothing was saved.", true);
     }, function () { btn.disabled = false; say("storeConnectMsg", "The request failed. Nothing was saved.", true); });
+  }
+
+  function connectEtsy() {
+    var etsyBtn = byId("storeEtsyBtn");
+    etsyBtn.disabled = true;
+    say("storeConnectMsg", "Opening Etsy...");
+    api("POST", "/api/store/etsy/start", { allow_changes: byId("storeEtsyAllow").checked === true }).then(function (res) {
+      etsyBtn.disabled = false;
+      if (!res.ok) { say("storeConnectMsg", serverMessage(res), true); return; }
+      if (res.data.authorize_url) { markReturn("etsy"); window.location.assign(res.data.authorize_url); return; }
+      say("storeConnectMsg", "Etsy did not answer with its page. Nothing was saved.", true);
+    }, function () { etsyBtn.disabled = false; say("storeConnectMsg", "The request failed. Nothing was saved.", true); });
   }
 
   function connect() {
@@ -281,12 +330,52 @@
     params = null;
   }
 
+  /* Back from Etsy, with the "etsy" marker: the code and state are POSTed to
+     /api/store/etsy/finish. The address bar is cleared first. */
+  function handleEtsyReturn(q) {
+    var etsyCode = q.get("code"), etsyState = q.get("state");
+    stripQuery();
+    choose("etsy");
+    say("storeConnectMsg", "Finishing the Etsy connection...");
+    api("POST", "/api/store/etsy/finish", { code: etsyCode, state: etsyState }).then(function (answer) {
+      if (answer.ok) {
+        var made = answer.data.connection || {};
+        say("storeConnectMsg", "Connected to your Etsy shop" + (made.shop_name ? " " + made.shop_name : "") + ". Press \"Sync now\" to read your listings, stock and orders.");
+      } else {
+        say("storeConnectMsg", serverMessage(answer), true);
+      }
+      load();
+    }, function () {
+      say("storeConnectMsg", "The request failed. Nothing was saved.", true);
+      load();
+    });
+    etsyCode = null;
+    etsyState = null;
+  }
+
+  /* A return carrying code, state or error and no Shopify signature: Etsy's
+     when the marker says so, otherwise nobody's, and nothing is sent. */
+  function handleOtherReturn(q) {
+    var marker = takeReturn();
+    if (marker === "etsy" && q.get("code") && q.get("state")) { handleEtsyReturn(q); return; }
+    stripQuery();
+    if (marker === "etsy" && q.get("error")) {
+      choose("etsy");
+      say("storeConnectMsg", "Etsy did not connect your shop, so nothing was saved.", true);
+    } else {
+      say("storeConnectMsg", START_AGAIN, true);
+    }
+    load();
+  }
+
   function init() {
     if (!byId("storeConnect")) return;
     byId("storePickShopify").addEventListener("click", function () { choose("shopify"); });
     byId("storePickWoo").addEventListener("click", function () { choose("woocommerce"); });
     byId("storeConnectBtn").addEventListener("click", connect);
     byId("storeShopifyBtn").addEventListener("click", connectShopify);
+    byId("storePickEtsy").addEventListener("click", function () { choose("etsy"); });
+    byId("storeEtsyBtn").addEventListener("click", connectEtsy);
     choose("shopify");
     var q = new URLSearchParams(window.location.search);
     if (q.get("store") === "woocommerce") {
@@ -294,7 +383,12 @@
         ? "WooCommerce did not hand over a key, so nothing was saved."
         : "Back from your store. If you approved the access BizForce asked for, it shows below as connected.");
     } else if (q.get("shop") && q.get("hmac")) {
+      // Shopify is known by its own signed parameters; the marker is spent either way.
+      takeReturn();
       handleShopifyReturn(q);
+      return;
+    } else if (q.get("code") || q.get("state") || q.get("error")) {
+      handleOtherReturn(q);
       return;
     }
     load();

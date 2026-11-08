@@ -64,7 +64,9 @@
      bf_return_to (the public page to return to after signing in, which
      app.html must still find), and bf_oauth_return (sessionStorage: which
      sign-in, youtube or tiktok, is coming back to the Social page in this
-     tab, cleared when that return is handled). The backend's scripts/checkOfflineMode.js
+     tab, cleared when that return is handled), and bf_store_return
+     (sessionStorage: which store's page, etsy or shopify, the Store page is
+     coming back from in this tab, removed when that return is read). The backend's scripts/checkOfflineMode.js
      fails on any storage key in the frontend that is on neither list.
 
      A page that must not run the session guard (settings.html, app.html,

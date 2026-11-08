@@ -398,23 +398,28 @@ function fillMailboxReplies(container) {
 }
 
 // An update_store_item proposal (migrations 175 and 176): one price or stock
-// change in the member's own WooCommerce or Shopify store, named with its
+// change in the member's own WooCommerce, Shopify or Etsy store, named with its
 // platform, a price with the store's currency, and a Shopify stock change with
 // its location. Every value is escaped. Approving it makes the change only if
-// the store still holds the "from" value.
+// the store still holds the "from" value. An Etsy change (Nov 8 2026, migration
+// 181) also carries the note when its one value applies to more than one
+// variation of the listing.
 function storeChangeText(payload) {
   var field = payload.field === "stock" ? "stock" : "price";
-  var platform = payload.platform === "shopify" ? "Shopify " : (payload.platform === "woocommerce" ? "WooCommerce " : "");
+  var platform = payload.platform === "shopify" ? "Shopify " : payload.platform === "woocommerce" ? "WooCommerce " : payload.platform === "etsy" ? "Etsy " : "";
   var currency = field === "price" && typeof payload.currency === "string" && /^[A-Z]{3}$/.test(payload.currency) ? " " + payload.currency : "";
   var where = field === "stock" && payload.location_name ? " at " + String(payload.location_name) : "";
   return "Change " + String(payload.item_name == null ? "" : payload.item_name) + " " + field + " in your " + platform + "store from " +
     String(payload.from == null ? "" : payload.from) + currency + " to " + String(payload.to == null ? "" : payload.to) + currency + where;
 }
 function storeChangePayloadFields(payload) {
-  var storeName = payload.platform === "shopify" ? "Shopify" : "WooCommerce";
+  var storeName = payload.platform === "shopify" ? "Shopify" : payload.platform === "etsy" ? "Etsy" : "WooCommerce";
+  var variations = payload.platform === "etsy" && typeof payload.variations_note === "string" && payload.variations_note
+    ? '<div><span class="pf-label">variations</span><span class="pf-value store-change-variations">' + escapeHtml(payload.variations_note) + '</span></div>' : "";
   return '<div class="payload-fields">' +
       '<div><span class="pf-label">change</span><span class="pf-value store-change-text">' + escapeHtml(storeChangeText(payload)) + '</span></div>' +
-      '<div><span class="pf-label">store</span><span class="pf-value">your ' + storeName + ' store, connected with changes allowed</span></div>' +
+      variations +
+      '<div><span class="pf-label">store</span><span class="pf-value">your ' + escapeHtml(storeName) + ' store, connected with changes allowed</span></div>' +
       '<div><span class="pf-label">approval</span><span class="pf-value">changed only when you approve, and only if the store still shows the "from" value</span></div>' +
     '</div>';
 }
