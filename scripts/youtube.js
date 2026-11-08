@@ -8,14 +8,25 @@
    with history.replaceState WHATEVER the answer, so the code never stays in
    the address bar or the history.
 
+   NAMED (Nov 7 2026, TikTok posting): TikTok's sign-in comes back to this
+   same page, so before leaving, connect sets sessionStorage "bf_oauth_return"
+   to "youtube" (scripts/tiktok.js sets "tiktok"). On the way back only the
+   script the marker names handles ?code and ?state, and clears the marker.
+   With NO marker, this script strips the query with replaceState and says
+   "Start the connection again."; scripts/tiktok.js then does nothing.
+
    Your videos: a file of up to 50 MB (MP4, WebM or MOV) is checked here
    first, then PUT straight to the signed upload URL that
    POST /api/videos/upload-url makes, then POST /api/videos/finalize checks
-   it on the server. A waiting video gets "Prepare upload" (title,
-   description, tags, privacy with Private first, "Made for kids?" required,
-   "Draft with AI", "File for approval") and Delete; an uploaded one, its
-   YouTube link, "Check status" and "Remove from YouTube". Nothing reaches
-   YouTube until the member approves the proposal.
+   it on the server. A video whose file is here gets Delete, and while
+   YouTube doesn't have it, "Prepare upload" (title, description, tags,
+   privacy with Private first, "Made for kids?" required, "Draft with AI",
+   "File for approval"); a video on YouTube, its YouTube link, "Check status"
+   and "Remove from YouTube". NAMED (Nov 7 2026): the file status says only
+   whether the FILE is here, so YouTube's side is read from youtube_video_id;
+   scripts/tiktok.js adds TikTok's side to each video (window.BFTikTok), and
+   the file input is on when YouTube OR TikTok is set up (window.BFVideos).
+   Nothing reaches YouTube until the member approves the proposal.
 
    The server is the only source of truth, and every server message is shown
    as it wrote it, with textContent. Nothing here uses innerHTML.
@@ -33,7 +44,9 @@
   var NOT_SET_UP = "YouTube connection isn't set up yet.";
   var CANCELLED = "You cancelled the Google sign-in.";
   var NOT_FINISHED = "Google sign-in didn't finish. Try again.";
-  var state = { available: false, connected: false, busy: false };
+  var START_AGAIN = "Start the connection again.";
+  var RETURN_KEY = "bf_oauth_return";
+  var state = { available: false, connected: false, busy: false, tiktokAvailable: false };
 
   function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function plainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
@@ -100,9 +113,17 @@
       el("ytReconnectText").textContent = typeof st.reconnect_message === "string" ? st.reconnect_message :
         "YouTube stopped accepting BizForce's access to your channel, so nothing is being uploaded. Connect again.";
     }
-    var file = el("ytFile");
-    if (file) file.disabled = !state.available;
+    fileSwitch();
   }
+
+  // The file input: on when either platform a video can go to is set up.
+  function fileSwitch() {
+    var file = el("ytFile");
+    if (file) file.disabled = !(state.available || state.tiktokAvailable);
+  }
+  function marker() { try { return sessionStorage.getItem(RETURN_KEY); } catch (e) { return null; } }
+  function setMarker() { try { sessionStorage.setItem(RETURN_KEY, "youtube"); } catch (e) { /* the return then asks to start again */ } }
+  function clearMarker() { try { sessionStorage.removeItem(RETURN_KEY); } catch (e) { /* nothing stored */ } }
 
   function loadStatus() {
     tell("ytStatusMsg", "Checking your YouTube connection…");
@@ -123,7 +144,7 @@
     tell("ytConnectMsg", "Opening Google…");
     call("POST", "/api/youtube/start", {}).then(function (res) {
       var url = res.data && res.data.authorize_url;
-      if (res.ok && typeof url === "string" && url.indexOf(GOOGLE_HOST) === 0) { window.location.assign(url); return; }
+      if (res.ok && typeof url === "string" && url.indexOf(GOOGLE_HOST) === 0) { setMarker(); window.location.assign(url); return; }
       if (btn) btn.disabled = false;
       tell("ytConnectMsg", res.ok ? NOT_FINISHED : errorOf(res), true);
     }, function () {
@@ -156,6 +177,15 @@
     try { q = new URLSearchParams(window.location.search || ""); } catch (e) { return false; }
     var code = q.get("code"), returned = q.get("state"), error = q.get("error");
     if (!code && !returned && !error) return false;
+    var which = marker();
+    // TikTok's return: scripts/tiktok.js handles it.
+    if (which === "tiktok") return false;
+    if (which !== "youtube") {
+      stripQuery();
+      tell("ytConnectMsg", START_AGAIN, true);
+      return false;
+    }
+    clearMarker();
     if (error || !code || !returned) {
       stripQuery();
       tell("ytConnectMsg", error === "access_denied" ? CANCELLED : NOT_FINISHED, true);
@@ -226,7 +256,7 @@
       tell("ytUploadMsg", (err && err.message) || "The upload didn't finish. Try again.", true);
     }).then(function () {
       input.value = "";
-      input.disabled = !state.available;
+      fileSwitch();
     });
   }
 
@@ -249,9 +279,10 @@
   }
 
   function statusWord(v) {
-    if (v.status === "uploaded") return "on YouTube";
-    if (v.upload_unfinished) return "upload unfinished";
-    return "waiting to be uploaded";
+    if (v.youtube_video_id) return "on YouTube";
+    if (v.upload_unfinished) return "YouTube upload unfinished";
+    if (v.status === "ready") return "not on YouTube";
+    return "file deleted";
   }
 
   function videoItem(v) {
@@ -260,17 +291,19 @@
     var msg = make("div", "", "bsky-msg");
     var row = make("div", null, "bsky-row");
     if (v.status === "ready") {
-      var prepare = make("button", "Prepare upload", "action-btn");
-      prepare.type = "button";
+      if (!v.youtube_video_id) {
+        var prepare = make("button", "Prepare upload", "action-btn");
+        prepare.type = "button";
+        row.appendChild(prepare);
+        var form = uploadForm(v, msg);
+        form.hidden = true;
+        prepare.addEventListener("click", function () { form.hidden = !form.hidden; });
+      }
       var del = make("button", "Delete", "action-btn action-btn--ghost");
       del.type = "button";
-      row.appendChild(prepare);
       row.appendChild(del);
       li.appendChild(row);
-      var form = uploadForm(v, msg);
-      form.hidden = true;
-      li.appendChild(form);
-      prepare.addEventListener("click", function () { form.hidden = !form.hidden; });
+      if (form) li.appendChild(form);
       del.addEventListener("click", function () {
         del.disabled = true;
         call("DELETE", "/api/videos/" + encodeURIComponent(v.id)).then(function (res) {
@@ -278,7 +311,9 @@
           loadVideos();
         }, function () { del.disabled = false; msg.textContent = "Deleting didn't finish. Try again."; });
       });
-    } else if (v.status === "uploaded") {
+    }
+    if (v.youtube_video_id) {
+      var ytRow = make("div", null, "bsky-row");
       if (typeof v.youtube_url === "string" && WATCH_RE.test(v.youtube_url)) {
         var link = make("a", v.youtube_url, "masto-post-link");
         link.href = v.youtube_url;
@@ -290,9 +325,9 @@
       check.type = "button";
       var remove = make("button", "Remove from YouTube", "action-btn action-btn--ghost");
       remove.type = "button";
-      row.appendChild(check);
-      row.appendChild(remove);
-      li.appendChild(row);
+      ytRow.appendChild(check);
+      ytRow.appendChild(remove);
+      li.appendChild(ytRow);
       check.addEventListener("click", function () {
         check.disabled = true;
         call("GET", "/api/youtube/videos/" + encodeURIComponent(v.id) + "/status").then(function (res) {
@@ -312,6 +347,8 @@
       });
     }
     li.appendChild(msg);
+    // TikTok's side of the same video, from scripts/tiktok.js.
+    if (window.BFTikTok && typeof window.BFTikTok.decorate === "function") window.BFTikTok.decorate(li, v, msg);
     return li;
   }
 
@@ -409,6 +446,12 @@
     if (!returning) loadStatus();
     else call("GET", "/api/youtube/status").then(function (res) { if (res.ok) drawStatus(res.data); }, function () {});
   }
+
+  // For scripts/tiktok.js: the list drawn again, and whether TikTok is set up.
+  window.BFVideos = {
+    reload: function () { return loadVideos(); },
+    setTiktokAvailable: function (on) { state.tiktokAvailable = on === true; fileSwitch(); }
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();

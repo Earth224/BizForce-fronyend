@@ -460,6 +460,40 @@ function youtubeDeletePayloadFields(payload) {
       '<div><span class="pf-label">approval</span><span class="pf-value">removed from YouTube only when you approve</span></div>' +
     '</div>';
 }
+// A publish_tiktok_post proposal (migration 178): the member's own TikTok
+// account, the caption, who can see it, the interactions, the disclosure and
+// its label line, and the file's size. Every value is escaped. Approving it
+// checks TikTok's settings for the account again and sends the file once,
+// only if it still matches the one filed.
+var TIKTOK_PRIVACY_WORDS = { PUBLIC_TO_EVERYONE: "Everyone", MUTUAL_FOLLOW_FRIENDS: "Friends", FOLLOWER_OF_CREATOR: "Followers", SELF_ONLY: "Only you" };
+function tiktokPostPayloadFields(payload) {
+  var level = typeof payload.privacy_level === "string" ? payload.privacy_level : "";
+  var privacy = Object.prototype.hasOwnProperty.call(TIKTOK_PRIVACY_WORDS, level) ? TIKTOK_PRIVACY_WORDS[level] : (level || "not chosen");
+  function onOff(v) { return v === true ? "on" : "off"; }
+  var label = payload.brand_content === true ? "Your video will be labeled 'Paid partnership'." :
+    (payload.brand_organic === true ? "Your video will be labeled 'Promotional content'." : "no disclosure");
+  return '<div class="payload-fields">' +
+      '<div><span class="pf-label">account</span><span class="pf-value tt-account">your connected TikTok account</span></div>' +
+      '<div><span class="pf-label">who can see it</span><span class="pf-value tt-privacy">' + escapeHtml(privacy) + '</span></div>' +
+      '<div><span class="pf-label">comments, duet, stitch</span><span class="pf-value tt-interactions">' + escapeHtml(onOff(payload.allow_comment) + ", " + onOff(payload.allow_duet) + ", " + onOff(payload.allow_stitch)) + '</span></div>' +
+      '<div><span class="pf-label">disclosure</span><span class="pf-value tt-label">' + escapeHtml(label) + '</span></div>' +
+      '<div><span class="pf-label">size</span><span class="pf-value tt-size">' + escapeHtml(youtubeSize(payload.bytes)) + '</span></div>' +
+      '<div><span class="pf-label">caption</span></div>' +
+      '<pre class="exec-block tt-caption">' + escapeHtml(String(payload.caption == null ? "" : payload.caption)) + '</pre>' +
+      '<div><span class="pf-label">approval</span><span class="pf-value">posted only when you approve, and only if the file still matches the one you filed and TikTok still allows these settings</span></div>' +
+      '<div><span class="pf-label">visibility</span><span class="pf-value">Until TikTok reviews BizForce, TikTok keeps posts from BizForce visible only to you.</span></div>' +
+      '<div><span class="pf-label">removing it</span><span class="pf-value">To remove a TikTok post, delete it in the TikTok app.</span></div>' +
+    '</div>';
+}
+// What approving a TikTok post did. Only a tiktok.com player address is drawn as a link.
+function tiktokResultHtml(result) {
+  var url = typeof result.post_url === "string" && /^https:\/\/www\.tiktok\.com\/player\/v1\/[0-9]{1,64}$/.test(result.post_url) ? result.post_url : null;
+  var word = result.already_posted === true ? "already posted" : (result.posted === true ? "posted" : (result.processing === true ? "sent; TikTok is processing it" : "status"));
+  return '<div class="payload-fields"><div><span class="pf-label">' + escapeHtml(word) + '</span>' + (url
+      ? '<a class="pf-value tt-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">' + escapeHtml(url) + '</a>'
+      : '<span class="pf-value">no post address yet; check its status on the Social Agent page</span>') + '</div></div>';
+}
+
 // What approving a YouTube proposal did. Only a youtube.com watch address is drawn as a link.
 function youtubeResultHtml(result) {
   var url = typeof result.url === "string" && /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/.test(result.url) ? result.url : null;
@@ -606,6 +640,8 @@ function renderProposals() {
       execHtml = storeChangeResultHtml(p.execution_result);
     } else if ((p.action_type === "publish_youtube_video" || p.action_type === "delete_youtube_video") && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
       execHtml = youtubeResultHtml(p.execution_result);
+    } else if (p.action_type === "publish_tiktok_post" && p.execution_result && typeof p.execution_result === "object" && !Array.isArray(p.execution_result)) {
+      execHtml = tiktokResultHtml(p.execution_result);
     } else if (p.execution_result !== null && p.execution_result !== undefined) {
       execHtml = '<pre class="exec-block">' + escapeHtml(formatResult(p.execution_result)) + '</pre>';
     }
@@ -735,6 +771,9 @@ function renderProposals() {
         collapsibleText = formatResult(p.payload);
       } else if (p.action_type === "delete_youtube_video") {
         fieldsHtml = youtubeDeletePayloadFields(p.payload || {});
+        collapsibleText = formatResult(p.payload);
+      } else if (p.action_type === "publish_tiktok_post") {
+        fieldsHtml = tiktokPostPayloadFields(p.payload || {});
         collapsibleText = formatResult(p.payload);
       } else {
         collapsibleText = formatResult(p.payload);

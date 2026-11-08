@@ -63,10 +63,10 @@
       "Under \"Support links\" add up to five payment pages and press \"Save support links\"; visitors also get \"Support with BizCash\"."
     ],
     "integrations.html": [
-      "Read each service's status: \"Runs on BizForce\", \"Removed\" or \"Not built\"; there is nothing here to connect or press.",
-      "\"Removed\" means BizForce had it and took it out: Zernio and the six social platforms it posted to.",
+      "Read each service's status: \"Runs on BizForce\", \"On the Social page\", \"Removed\" or \"Not built\"; there is nothing here to connect or press.",
+      "\"Removed\" means BizForce had it and took it out: Zernio and four of the six social platforms it posted to.",
       "\"Runs on BizForce\" means the app uses the service with its own account, as with Stripe, Twilio and email.",
-      "Hoping to post to your social accounts? Bluesky connects on the Social Agent page; the other platforms are not built."
+      "Hoping to post to your social accounts? Bluesky, Mastodon, YouTube and TikTok connect on the Social Agent page; the other platforms are not built."
     ],
     "marketplace.html": [
       "Find a service by category or search, press \"Buy\" on its card and confirm; the price is paid from your BizCash balance.",
@@ -140,7 +140,7 @@
       "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
       "Under \"Connect Bluesky\", connect with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for your approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
-      "Bluesky, Mastodon and YouTube connect so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
+      "Bluesky, Mastodon, YouTube and TikTok connect so far, and posts cannot be scheduled; plans for the other platforms are yours to carry out."
     ],
     "analytics.html": [
       "Open \"KPI Review\", enter each metric's Now and Before figures, and press \"Review the metrics\"; it works out each change.",

@@ -61,8 +61,10 @@
      bf_tmx_not_now (which of Termaximus's suggestions were set aside with
      "Not now" on this device, and until when: fixed rule names, no data),
      bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
-     and bf_return_to (the public page to return to after signing in, which
-     app.html must still find). The backend's scripts/checkOfflineMode.js
+     bf_return_to (the public page to return to after signing in, which
+     app.html must still find), and bf_oauth_return (sessionStorage: which
+     sign-in, youtube or tiktok, is coming back to the Social page in this
+     tab, cleared when that return is handled). The backend's scripts/checkOfflineMode.js
      fails on any storage key in the frontend that is on neither list.
 
      A page that must not run the session guard (settings.html, app.html,

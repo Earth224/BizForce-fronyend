@@ -462,7 +462,7 @@
           <a href="/proposals.html" id="bskyProfileLink" hidden>Open the proposals page</a></div>
         <div class="bsky-msg" id="bskyProfileMsg"></div>
       </div>
-      <p class="bsky-quiet" id="bskyOtherPlatforms">X, Instagram, LinkedIn, TikTok and Facebook are coming, through each platform's own sign-in.</p>
+      <p class="bsky-quiet" id="bskyOtherPlatforms">X, Instagram, LinkedIn and Facebook are coming, through each platform's own sign-in.</p>
     </section>
     <section class="context-card bsky-card" id="bskyMentions" aria-label="Mentions" hidden>
       <h2 class="section-label">Mentions</h2>
@@ -524,7 +524,7 @@
       <div class="bsky-sub" id="ytVideos">
         <h3 class="section-label">Your videos</h3>
         <p class="bsky-quiet">Videos up to 50 MB (MP4, WebM or MOV).</p>
-        <p class="bsky-quiet">BizForce deletes the file as soon as YouTube has it, or after 14 days if it's never uploaded.</p>
+        <p class="bsky-quiet">BizForce deletes the file once every platform you sent it to has it, or 14 days after you added it.</p>
         <p class="bsky-quiet">Until Google approves BizForce, YouTube keeps uploads from BizForce private.</p>
         <div class="bsky-fields">
           <label>Label (optional)<input type="text" id="ytLabel" maxlength="120" autocomplete="off" /></label>
@@ -533,6 +533,23 @@
         <div class="bsky-msg" id="ytUploadMsg"></div>
         <ul class="bsky-mentions-list" id="ytVideoList"></ul>
       </div>
+    </section>
+    <section class="context-card bsky-card" id="ttConnect" aria-label="TikTok">
+      <h2 class="section-label">TikTok</h2>
+      <p class="bsky-quiet">Connect your own TikTok account and prepare a post from a video in Your videos. Nothing goes to TikTok until you approve it on the proposals page.</p>
+      <p class="bsky-quiet">Until TikTok reviews BizForce, TikTok keeps posts from BizForce visible only to you.</p>
+      <p class="bsky-quiet">To remove a TikTok post, delete it in the TikTok app.</p>
+      <div class="bsky-msg" id="ttStatusMsg"></div>
+      <p class="bsky-warn" id="ttUnavailable" hidden>TikTok connection isn't set up yet.</p>
+      <div id="ttConnected" hidden>
+        <p><span class="bsky-connected-as" id="ttName"></span> <span class="bsky-quiet" id="ttSince"></span></p>
+      </div>
+      <div id="ttReconnect" hidden><p class="bsky-warn" id="ttReconnectText"></p></div>
+      <div class="bsky-row">
+        <button type="button" class="action-btn" id="ttConnectBtn">Connect TikTok</button>
+        <button type="button" class="action-btn action-btn--ghost" id="ttDisconnectBtn" hidden>Disconnect</button>
+      </div>
+      <div class="bsky-msg" id="ttConnectMsg"></div>
     </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
@@ -798,6 +815,7 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/bluesky-mentions.js"></script>
 <script src="/scripts/mastodon-connect.js"></script>
 <script src="/scripts/youtube.js"></script>
+<script src="/scripts/tiktok.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
