@@ -403,30 +403,42 @@ function fillMailboxReplies(container) {
 // its location. Every value is escaped. Approving it makes the change only if
 // the store still holds the "from" value. An Etsy change (Nov 8 2026, migration
 // 181) also carries the note when its one value applies to more than one
-// variation of the listing.
+// variation of the listing. An Amazon change (Nov 8 2026, migration 182) names
+// the marketplace and the currency, and says when Amazon ships the item (FBA).
 function storeChangeText(payload) {
   var field = payload.field === "stock" ? "stock" : "price";
-  var platform = payload.platform === "shopify" ? "Shopify " : payload.platform === "woocommerce" ? "WooCommerce " : payload.platform === "etsy" ? "Etsy " : "";
+  var platform = payload.platform === "shopify" ? "Shopify " : payload.platform === "woocommerce" ? "WooCommerce " : payload.platform === "etsy" ? "Etsy " : payload.platform === "amazon" ? "Amazon " : "";
   var currency = field === "price" && typeof payload.currency === "string" && /^[A-Z]{3}$/.test(payload.currency) ? " " + payload.currency : "";
   var where = field === "stock" && payload.location_name ? " at " + String(payload.location_name) : "";
   return "Change " + String(payload.item_name == null ? "" : payload.item_name) + " " + field + " in your " + platform + "store from " +
     String(payload.from == null ? "" : payload.from) + currency + " to " + String(payload.to == null ? "" : payload.to) + currency + where;
 }
 function storeChangePayloadFields(payload) {
-  var storeName = payload.platform === "shopify" ? "Shopify" : payload.platform === "etsy" ? "Etsy" : "WooCommerce";
+  var storeName = payload.platform === "shopify" ? "Shopify" : payload.platform === "etsy" ? "Etsy" : payload.platform === "amazon" ? "Amazon" : payload.platform === "woocommerce" ? "WooCommerce" : "connected";
   var variations = payload.platform === "etsy" && typeof payload.variations_note === "string" && payload.variations_note
     ? '<div><span class="pf-label">variations</span><span class="pf-value store-change-variations">' + escapeHtml(payload.variations_note) + '</span></div>' : "";
+  var amazon = "";
+  if (payload.platform === "amazon") {
+    amazon = '<div><span class="pf-label">marketplace</span><span class="pf-value store-change-marketplace">' +
+      escapeHtml(String(payload.marketplace || payload.marketplace_id || "not recorded")) +
+      (typeof payload.currency === "string" && payload.currency ? ", " + escapeHtml(payload.currency) : "") + '</span></div>';
+    if (typeof payload.fba_note === "string" && payload.fba_note) {
+      amazon += '<div><span class="pf-label">fulfilment</span><span class="pf-value store-change-fba">' + escapeHtml(payload.fba_note) + '</span></div>';
+    }
+  }
   return '<div class="payload-fields">' +
       '<div><span class="pf-label">change</span><span class="pf-value store-change-text">' + escapeHtml(storeChangeText(payload)) + '</span></div>' +
-      variations +
+      variations + amazon +
       '<div><span class="pf-label">store</span><span class="pf-value">your ' + escapeHtml(storeName) + ' store, connected with changes allowed</span></div>' +
       '<div><span class="pf-label">approval</span><span class="pf-value">changed only when you approve, and only if the store still shows the "from" value</span></div>' +
     '</div>';
 }
 function storeChangeResultHtml(result) {
   var when = result.already_applied === true ? "already applied" : (result.executed_at ? formatTime(result.executed_at) : "time not reported");
+  // Amazon (migration 182): accepted, but not yet shown by Amazon.
+  var status = result.confirmation === "submitted" ? "Submitted to Amazon, not yet confirmed" : "Changed in your store";
   return '<div class="payload-fields">' +
-      '<div><span class="pf-label">status</span><span class="pf-value store-change-done">Changed in your store</span></div>' +
+      '<div><span class="pf-label">status</span><span class="pf-value store-change-done">' + escapeHtml(status) + '</span></div>' +
       '<div><span class="pf-label">when</span><span class="pf-value">' + escapeHtml(when) + '</span></div>' +
     '</div>';
 }

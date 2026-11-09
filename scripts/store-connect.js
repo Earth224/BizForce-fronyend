@@ -33,19 +33,31 @@
    "shopify"). The address bar is cleared with replaceState on every return,
    and the marker is removed once read.
 
+   Amazon (Nov 8 2026, migration 182): the marketplace (no default; the
+   member must choose) and the box. "Connect Amazon" asks POST
+   /api/store/amazon/start { marketplace_id, allow_changes } for Seller
+   Central's own consent page, notes "amazon" in bf_store_return, and goes
+   there. Amazon brings the member back with ?spapi_oauth_code, ?state and
+   ?selling_partner_id: with the marker, all three are POSTed to
+   /api/store/amazon/finish; without it, nothing is sent. While BizForce's
+   Amazon app is a draft (amazon_draft), the page says only the account that
+   registered BizForce can connect.
+
    Every server message is shown as the server wrote it, with textContent.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
 
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
-  var LABEL = { shopify: "Shopify", woocommerce: "WooCommerce", etsy: "Etsy" };
+  var LABEL = { shopify: "Shopify", woocommerce: "WooCommerce", etsy: "Etsy", amazon: "Amazon" };
   var PERMISSION_LABEL = { read: "Read only", read_write: "Changes allowed with your approval" };
   var SHOPIFY_UNSET = "Shopify connection isn't set up yet.";
   var ETSY_UNSET = "Etsy connection isn't set up yet.";
+  var AMAZON_UNSET = "Amazon connection isn't set up yet.";
+  var AMAZON_PICK = "Choose the Amazon marketplace you sell in.";
   var FINISH_HINT = "Press Connect Shopify to finish connecting.";
   var START_AGAIN = "Start the connection again.";
-  // Which store's page the member left for: "etsy" or "shopify" (sessionStorage, this tab only).
+  // Which store's page the member left for: "etsy", "amazon" or "shopify" (sessionStorage, this tab only).
   var RETURN_KEY = "bf_store_return";
 
   function markReturn(p) {
@@ -105,13 +117,16 @@
     byId("storePickShopify").setAttribute("aria-pressed", p === "shopify" ? "true" : "false");
     byId("storePickWoo").setAttribute("aria-pressed", p === "woocommerce" ? "true" : "false");
     byId("storePickEtsy").setAttribute("aria-pressed", p === "etsy" ? "true" : "false");
+    byId("storePickAmazon").setAttribute("aria-pressed", p === "amazon" ? "true" : "false");
     byId("storeShopifySection").hidden = p !== "shopify";
     byId("storeWooSteps").hidden = p !== "woocommerce";
     byId("storeWooSection").hidden = p !== "woocommerce";
     byId("storeEtsySection").hidden = p !== "etsy";
+    byId("storeAmazonSection").hidden = p !== "amazon";
     if (p !== "woocommerce") byId("storeAllowChanges").checked = false;
     if (p !== "shopify") byId("storeShopifyAllow").checked = false;
     if (p !== "etsy") byId("storeEtsyAllow").checked = false;
+    if (p !== "amazon") byId("storeAmazonAllow").checked = false;
     say("storeConnectMsg", "");
   }
 
@@ -185,6 +200,7 @@
         row.appendChild(locationLine(c, msgId));
       }
       if (c.platform === "etsy" && c.shop_name) row.appendChild(el("p", "store-quiet", "Etsy shop: " + c.shop_name));
+      if (c.platform === "amazon" && c.marketplace) row.appendChild(el("p", "store-quiet", "Amazon marketplace: " + c.marketplace));
       row.appendChild(el("p", "store-quiet", "Last synced: " + timeText(c.last_sync_at)));
       if (c.status === "needs_reconnect") {
         row.appendChild(el("p", "store-warn", (LABEL[c.platform] || c.platform) + " refused the saved key, so this store is not being read. " +
@@ -242,6 +258,13 @@
     byId("storeEtsyUnset").hidden = available;
     byId("storeEtsyUnset").textContent = ETSY_UNSET;
   }
+  /* Amazon: the button, the unset line, and the draft line while BizForce's app is a draft. */
+  function setAmazonAvailable(available, draft) {
+    byId("storeAmazonBtn").disabled = !available;
+    byId("storeAmazonUnset").hidden = available;
+    byId("storeAmazonUnset").textContent = AMAZON_UNSET;
+    byId("storeAmazonDraft").hidden = draft === false;
+  }
 
   function load() {
     if (!tok()) return;
@@ -251,6 +274,7 @@
       if (window.bfStoreChanges) window.bfStoreChanges.reset();
       setShopifyAvailable(res.data.shopify_available === true);
       setEtsyAvailable(res.data.etsy_available === true);
+      setAmazonAvailable(res.data.amazon_available === true, res.data.amazon_draft);
       renderConnections(Array.isArray(res.data.connections) ? res.data.connections : []);
     }, function () { say("storeStatusMsg", "Your store connections could not be loaded: the request failed.", true); });
   }
@@ -277,6 +301,20 @@
       if (res.data.authorize_url) { markReturn("etsy"); window.location.assign(res.data.authorize_url); return; }
       say("storeConnectMsg", "Etsy did not answer with its page. Nothing was saved.", true);
     }, function () { etsyBtn.disabled = false; say("storeConnectMsg", "The request failed. Nothing was saved.", true); });
+  }
+
+  function connectAmazon() {
+    var market = byId("storeAmazonMarket").value;
+    if (!market) { say("storeConnectMsg", AMAZON_PICK, true); return; }
+    var amazonBtn = byId("storeAmazonBtn");
+    amazonBtn.disabled = true;
+    say("storeConnectMsg", "Opening Amazon Seller Central...");
+    api("POST", "/api/store/amazon/start", { marketplace_id: market, allow_changes: byId("storeAmazonAllow").checked === true }).then(function (res) {
+      amazonBtn.disabled = false;
+      if (!res.ok) { say("storeConnectMsg", serverMessage(res), true); return; }
+      if (res.data.authorize_url) { markReturn("amazon"); window.location.assign(res.data.authorize_url); return; }
+      say("storeConnectMsg", "Amazon did not answer with its page. Nothing was saved.", true);
+    }, function () { amazonBtn.disabled = false; say("storeConnectMsg", "The request failed. Nothing was saved.", true); });
   }
 
   function connect() {
@@ -353,15 +391,46 @@
     etsyState = null;
   }
 
+  /* Back from Amazon, with the "amazon" marker: spapi_oauth_code, state and
+     selling_partner_id are POSTed to /api/store/amazon/finish. The address
+     bar is cleared first. */
+  function handleAmazonReturn(q) {
+    var amazonCode = q.get("spapi_oauth_code"), amazonState = q.get("state"), amazonSeller = q.get("selling_partner_id");
+    stripQuery();
+    choose("amazon");
+    say("storeConnectMsg", "Finishing the Amazon connection...");
+    api("POST", "/api/store/amazon/finish", { spapi_oauth_code: amazonCode, state: amazonState, selling_partner_id: amazonSeller }).then(function (answer) {
+      if (answer.ok) {
+        var made = answer.data.connection || {};
+        say("storeConnectMsg", "Connected to your Amazon seller account" + (made.marketplace ? " in marketplace " + made.marketplace : "") +
+          ". Press \"Sync now\" to read your listings, stock and orders.");
+      } else {
+        say("storeConnectMsg", serverMessage(answer), true);
+      }
+      load();
+    }, function () {
+      say("storeConnectMsg", "The request failed. Nothing was saved.", true);
+      load();
+    });
+    amazonCode = null;
+    amazonState = null;
+    amazonSeller = null;
+  }
+
   /* A return carrying code, state or error and no Shopify signature: Etsy's
-     when the marker says so, otherwise nobody's, and nothing is sent. */
+     or Amazon's when the marker says so, otherwise nobody's, and nothing is
+     sent. */
   function handleOtherReturn(q) {
     var marker = takeReturn();
     if (marker === "etsy" && q.get("code") && q.get("state")) { handleEtsyReturn(q); return; }
+    if (marker === "amazon" && q.get("spapi_oauth_code") && q.get("state") && q.get("selling_partner_id")) { handleAmazonReturn(q); return; }
     stripQuery();
     if (marker === "etsy" && q.get("error")) {
       choose("etsy");
       say("storeConnectMsg", "Etsy did not connect your shop, so nothing was saved.", true);
+    } else if (marker === "amazon" && q.get("error")) {
+      choose("amazon");
+      say("storeConnectMsg", "Amazon did not connect your seller account, so nothing was saved.", true);
     } else {
       say("storeConnectMsg", START_AGAIN, true);
     }
@@ -376,6 +445,8 @@
     byId("storeShopifyBtn").addEventListener("click", connectShopify);
     byId("storePickEtsy").addEventListener("click", function () { choose("etsy"); });
     byId("storeEtsyBtn").addEventListener("click", connectEtsy);
+    byId("storePickAmazon").addEventListener("click", function () { choose("amazon"); });
+    byId("storeAmazonBtn").addEventListener("click", connectAmazon);
     choose("shopify");
     var q = new URLSearchParams(window.location.search);
     if (q.get("store") === "woocommerce") {
@@ -387,7 +458,7 @@
       takeReturn();
       handleShopifyReturn(q);
       return;
-    } else if (q.get("code") || q.get("state") || q.get("error")) {
+    } else if (q.get("code") || q.get("state") || q.get("error") || q.get("spapi_oauth_code") || q.get("selling_partner_id")) {
       handleOtherReturn(q);
       return;
     }

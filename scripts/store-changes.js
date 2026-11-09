@@ -66,7 +66,7 @@
     return connections;
   }
   function writable(c) {
-    return !!c && (c.platform === "woocommerce" || c.platform === "shopify" || c.platform === "etsy") && c.permission === "read_write" && c.status === "connected";
+    return !!c && (c.platform === "woocommerce" || c.platform === "shopify" || c.platform === "etsy" || c.platform === "amazon") && c.permission === "read_write" && c.status === "connected";
   }
   /* "19.99 USD", or "19.99" when the store's currency is not known yet. */
   function priceText(value, currency) {
@@ -117,6 +117,8 @@
     }
     // Etsy (Nov 8 2026, migration 181): an offering's quantity is 0 to 999.
     if (conn && conn.platform === "etsy") form.appendChild(el("p", "store-quiet store-change-where", "Etsy allows a stock level from 0 to 999."));
+    // Amazon (Nov 8 2026, migration 182): Amazon keeps the stock of the items it ships (FBA).
+    if (conn && conn.platform === "amazon") form.appendChild(el("p", "store-quiet store-change-where", "Stock changes apply to items you ship yourself; Amazon keeps the stock of items it ships for you (FBA)."));
     box.appendChild(open);
     box.appendChild(form);
     box.appendChild(msg);
@@ -193,6 +195,8 @@
           ? "price " + priceText(c.old_value, c.currency) + " to " + priceText(c.new_value, c.currency)
           : "stock " + String(c.old_value) + " to " + String(c.new_value) + (c.location_name ? " at " + String(c.location_name) : ""))));
         row.appendChild(el("p", "store-quiet", timeText(c.executed_at)));
+        // Amazon (migration 182): accepted, but Amazon did not show it yet; the next sync confirms it.
+        if (c.confirmation === "submitted") row.appendChild(el("p", "store-warn store-change-submitted", "Submitted to Amazon, not yet confirmed"));
         var actions = el("div", "store-row");
         var undo = el("button", "action-btn action-btn--ghost", "Undo");
         undo.type = "button";
