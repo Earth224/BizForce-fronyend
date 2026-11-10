@@ -317,20 +317,24 @@
     /* NAMED BEFORE → AFTER (Nov 9 2026, golden note icon). BEFORE: hover and focus switched the border colour and
        box-shadow at once. AFTER: two rings over the border, faded by opacity only (200 ms): ::before brightens on
        hover and focus (the accent at .6 with a soft glow), ::after shows the second accent at .55 while music
-       plays. The second accent is currentColor: the theme's --bf-accent-b is set only when a theme changes it,
-       so it is not there in every theme. */
+       plays.
+       NAMED BEFORE → AFTER (Nov 9 2026, violet spiral per the approved design). BEFORE: the second accent was
+       currentColor. AFTER: the theme violet, written as BizForce writes it everywhere, var(--bf-accent-b, #a855f7),
+       for the spiral, its glow and the playing ring; the stem and the button stay the primary accent. */
     ".bfm-icon::before,.bfm-icon::after{content:\"\";position:absolute;inset:-1px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity 200ms}",
     ".bfm-icon::before{border:1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.6);box-shadow:0 0 16px rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.25)}",
     ".bfm-icon:hover::before,.bfm-icon:focus-visible::before{opacity:1}",
-    ".bfm-icon::after{border:1px solid currentColor}",
+    ".bfm-icon::after{border:1px solid var(--bf-accent-b, #a855f7)}",
     ".bfm-float[data-playing=true] .bfm-icon::after{opacity:.55}",
     ".bfm-icon:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
-    /* the golden note: every line currentColor; the glow off at rest, faded in on hover and focus, pulsing while
-       music plays (the spiral lighter then), steady under reduced motion, paused while the tab is hidden */
-    ".bfm-gn-stem,.bfm-gn-spiral,.bfm-gn-glow{stroke:currentColor}",
+    /* the golden note: the stem currentColor (the primary accent), the spiral and its glow the theme violet; the glow
+       off at rest, faded in on hover and focus, pulsing while music plays (the spiral lighter then), steady under
+       reduced motion, paused while the tab is hidden */
+    ".bfm-gn-stem{stroke:currentColor}",
+    ".bfm-gn-spiral,.bfm-gn-glow{stroke:var(--bf-accent-b, #a855f7)}",
     ".bfm-gn-glow{opacity:0;transition:opacity 200ms}",
     ".bfm-icon:hover .bfm-gn-glow,.bfm-icon:focus-visible .bfm-gn-glow{opacity:.2}",
-    ".bfm-float[data-playing=true] .bfm-gn-spiral{stroke:currentColor;stroke:color-mix(in srgb,currentColor 70%,white)}",
+    ".bfm-float[data-playing=true] .bfm-gn-spiral{stroke:var(--bf-accent-b, #a855f7);stroke:color-mix(in srgb,var(--bf-accent-b, #a855f7) 70%,white)}",
     ".bfm-float[data-playing=true] .bfm-gn-glow{animation:bfm-gn-pulse 2.4s ease-in-out infinite}",
     "@keyframes bfm-gn-pulse{0%,100%{opacity:.22}50%{opacity:.45}}",
     ".bfm[data-hidden=true] .bfm-gn-glow{animation-play-state:paused}",
