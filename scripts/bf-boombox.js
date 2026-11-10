@@ -159,12 +159,16 @@
   var NO_TRACK = "No track loaded";
   var ALL_TRACKS = "All tracks";
   var SEP = " — ", DOT = " · ";
-  var SWEEP_MS = 1200;           // the "Now playing" banner, once per new track
+  /* NAMED BEFORE → AFTER (Nov 10 2026, readable timing and shortened names). BEFORE: 1200 ms, travel 3 widths.
+     AFTER: 4200 ms (about 0.5 s in, 3.2 s held, 0.5 s out), travel 1.5 widths on an ease-out curve. */
+  var SWEEP_MS = 4200;           // the artist pop-up, once per new track
+  var SWEEP_EASE = "cubic-bezier(.16,.84,.3,1)";
+  var NAME_MAX = 24;             // the pop-up's longest name, in user-perceived characters, before "..."
   /* NAMED (Nov 10 2026, artist name, screen-aware motion): the banner shows the artist (else the title, else
      NOW_PLAYING), and travels SWEEP_TRAVEL times its own width toward the side of the screen with more room,
      never closer than SWEEP_EDGE to the viewport's edges. */
   var NOW_PLAYING = "Now Playing";
-  var SWEEP_TRAVEL = 3;          // the old -150% … 150%: three of its widths
+  var SWEEP_TRAVEL = 1.5;        // one and a half of its widths (BEFORE: 3)
   var SWEEP_EDGE = 12;
   var SCROLL_S_PER_CHAR = 0.2;   // about five characters a second
   var SCROLL_HOLD = 0.12;        // each loop holds still for its first 12%
@@ -405,16 +409,19 @@
     ".bbx-ticker[data-scroll=true] .bbx-ticker-track{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 14s) linear infinite}",
     ".bbx-ticker[data-scroll=true] .bbx-ticker-text{padding-right:40px}",
     /* the "Now playing" sweep, once per new track */
-    ".bbx-sweep{position:absolute;left:100px;top:72px;width:max-content;min-width:min(240px,60vw);max-width:60vw;box-sizing:border-box;padding:0 14px;height:26px;display:block;line-height:26px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:none;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:none}",
+    ".bbx-sweep{position:absolute;left:100px;top:72px;width:max-content;min-width:min(240px,60vw);max-width:min(320px,60vw);box-sizing:border-box;padding:0 14px;height:26px;display:block;line-height:26px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:none;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:none}",
     /* NAMED BEFORE → AFTER (Nov 10 2026, artist name, screen-aware motion). BEFORE: the keyframes moved it from
        translateX(-150%) to translateX(150%), always to the right. AFTER: the keyframes fade it (opacity only); the
-       travel is its inline transform, set by sweep() from the screen, carried by a transform transition. */
-    ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1) 1 both;transition:transform " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1)}",
+       travel is its inline transform, set by sweep() from the screen, carried by a transform transition.
+       NAMED BEFORE → AFTER (Nov 10 2026, readable timing and shortened names). BEFORE: 1.2 s on
+       cubic-bezier(.3,.6,.4,1), held from 18% to 82%, max-width 60vw. AFTER: 4.2 s on an ease-out curve, held from
+       12% to 88%, max-width min(320px,60vw). */
+    ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s " + SWEEP_EASE + " 1 both;transition:transform " + (SWEEP_MS / 1000) + "s " + SWEEP_EASE + "}",
     ".bbx[data-sweep=on] .bbx-ticker{opacity:0}",
     ".bbx[data-sweep=done] .bbx-ticker{animation:bbx-settle .45s ease-out 1 both}",
     ".bfm[data-hidden=true] .bbx-scroll,.bfm[data-hidden=true] .bbx-ticker-track,.bfm[data-hidden=true] .bfm-tag-scroll,.bfm[data-hidden=true] .bbx-sweep,.bfm[data-hidden=true] .bbx-sheen,.bfm[data-hidden=true] .bbx-rim-shine,.bfm[data-hidden=true] .bfm-tag-sheen{animation-play-state:paused}",
     "@keyframes bbx-loop{0%," + (SCROLL_HOLD * 100) + "%{transform:translateX(0)}100%{transform:translateX(-50%)}}",
-    "@keyframes bbx-sweep{0%{opacity:0}18%{opacity:1}82%{opacity:1}100%{opacity:0}}",
+    "@keyframes bbx-sweep{0%{opacity:0}12%{opacity:1}88%{opacity:1}100%{opacity:0}}",
     "@keyframes bbx-settle{from{opacity:0}to{opacity:1}}",
     "@keyframes bbx-sheen{0%,58%{transform:translateX(-170px) skewX(-14deg)}100%{transform:translateX(620px) skewX(-14deg)}}",
     "@keyframes bbx-rim{0%,100%{transform:translate(-8%,-6%)}25%{transform:translate(14%,4%)}50%{transform:translate(20%,18%)}75%{transform:translate(2%,12%)}}",
@@ -571,6 +578,48 @@
     var t = typeof v.title === "string" ? v.title.trim() : "";
     if (t) return t;
     return NOW_PLAYING;
+  }
+  /* THE BANNER'S SHORT NAME (Nov 10 2026, readable timing and shortened names). A pure function of the name
+     sweepName chose; the banner shows this with textContent, and its title keeps the full name.
+     1. Trim. 2. Drop a featuring credit and all after it (" feat.", " feat ", " ft.", " ft ", " featuring ",
+     " with ", "(feat", "[feat", "(ft", "[ft", any case). 3. Drop every ( ), [ ], { } part (an unclosed one to
+     the end), collapse spaces, trim separators left at the ends (-  ,  &  x  /). 4. Nothing left: the trimmed
+     original. 5. Over NAME_MAX user-perceived characters: cut at the last space at or before NAME_MAX, else
+     at NAME_MAX - 1, drop separators left at the cut, and add "...". */
+  var FEAT_RE = /\s(?:feat\.|feat\s|ft\.|ft\s|featuring\s|with\s)|[(\[](?:feat|ft)/i;
+  function trimSeps(s) {
+    var prev;
+    do {
+      prev = s;
+      s = s.replace(/^\s+|\s+$/g, "").replace(/\s*[-,&\/]$/, "").replace(/\s+x$/i, "").replace(/^[-,&\/]\s*/, "").replace(/^x\s+/i, "");
+    } while (s !== prev);
+    return s;
+  }
+  function graphemes(s) {
+    try {
+      if (typeof Intl !== "undefined" && Intl.Segmenter) {
+        return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s), function (x) { return x.segment; });
+      }
+    } catch (e) { /* fall through */ }
+    return Array.from(s);
+  }
+  function displayName(raw) {
+    var orig = typeof raw === "string" ? raw.trim() : "";
+    var s = orig;
+    var m = FEAT_RE.exec(s);
+    if (m) s = s.slice(0, m.index);
+    var prev;
+    do { prev = s; s = s.replace(/\([^()]*\)|\[[^\[\]]*\]|\{[^{}]*\}/g, " "); } while (s !== prev);
+    s = s.replace(/[(\[{].*$/, "").replace(/[)\]}]/g, " ");
+    s = trimSeps(s.replace(/\s+/g, " "));
+    if (!s) s = orig;
+    var g = graphemes(s);
+    if (g.length <= NAME_MAX) return s;
+    var cut = -1;
+    for (var i = Math.min(NAME_MAX, g.length - 1); i > 0; i--) if (/^\s+$/.test(g[i])) { cut = i; break; }
+    var head = trimSeps(g.slice(0, cut > 0 ? cut : NAME_MAX - 1).join(""));
+    if (!head) head = g.slice(0, NAME_MAX - 1).join("");
+    return head + "...";
   }
   /* THE BANNER'S PATH (Nov 10 2026, artist name, screen-aware motion). A pure function, window coordinates:
      box (the boombox's box), w (the banner's width), view ({ left, width }: the visual viewport), still
@@ -1196,8 +1245,8 @@
       sweepCount++;
       if (sweepTimer) clearTimeout(sweepTimer);
       box.setAttribute("data-sweep", "off");
-      sp.textContent = nowName;
-      sw.setAttribute("title", nowName);
+      sp.textContent = displayName(nowName);   // the short name shown (Nov 10 2026, readable timing and shortened names)
+      sw.setAttribute("title", nowName);       // the full name kept
       sw.style.transform = "none";
       var plan = measureSweep(sw);
       sw.style.transform = "translateX(" + plan.dx0 + "px)";
@@ -1323,6 +1372,7 @@
     XF_TRAVEL: XF_TRAVEL, VOL_TRAVEL: VOL_TRAVEL, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
     NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS,
-    NOW_PLAYING: NOW_PLAYING, SWEEP_TRAVEL: SWEEP_TRAVEL, SWEEP_EDGE: SWEEP_EDGE, sweepName: sweepName, sweepPlan: sweepPlan
+    NOW_PLAYING: NOW_PLAYING, SWEEP_TRAVEL: SWEEP_TRAVEL, SWEEP_EDGE: SWEEP_EDGE, sweepName: sweepName, sweepPlan: sweepPlan,
+    displayName: displayName, NAME_MAX: NAME_MAX, SWEEP_EASE: SWEEP_EASE
   };
 })();
