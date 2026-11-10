@@ -27,7 +27,7 @@
     "dashboard.html": [
       "Start in \"Command Center\": \"Needs you\" lists the proposals waiting for your approval and the runs that failed.",
       "Under \"Executive plans\", press \"Dispatch\" to run an assignment; that run then joins the count in \"Agent activity\".",
-      "The small boombox icon beside the logo is your music: press it for the bar, then the boombox; \"Library\" slides out your tracks, \"Close to icon\" tucks it away.",
+      "The music button in the top bar is your music: press it for the bar, then the boombox; \"Library\" slides out your tracks, \"Close to icon\" tucks it away.",
       "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
       "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
     ],

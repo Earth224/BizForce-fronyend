@@ -9,8 +9,9 @@
      float   on every app page, the pages that load the mist
              (scripts/termaximus-presence.js), in three stages
              (scripts/bf-boombox.js): on the dashboard (HOME_PAGE) the
-             small boombox ICON beside the BizForce AI logo
-             ([data-bf-boombox-anchor]) the first time, then the bar, then
+             music button (the ICON stage) in the header, between the
+             BizForce AI logo ([data-bf-boombox-anchor]) and the header's
+             centre, the first time, then the bar, then
              the boombox; on every other page NOTHING unless music is on
              (musicOn: playing, resuming after a page change, or paused
              mid-track in this tab's session, LIVE_KEY), when the bar or the
@@ -51,8 +52,9 @@
    continuation is tried without waiting for a click; if the browser refuses
    sound before an interaction, the tag says RESUME_TAP and the first click,
    tap or key press resumes it. CONTINUITY_NOTE says so. With the pop-out
-   playing, every page's boombox is its remote, and its speakers move with
-   the pop-out's levels ("levels" on the channel).
+   playing, every page's boombox is its remote, and its speakers, meters and
+   display move with the pop-out's frames ("levels" on the channel: see KEEP
+   PLAYING BETWEEN PAGES below).
 
    THE LIBRARY is the server's (lib/music.js, GET /api/music): the member's
    own uploads, private to them, played through signed URLs that expire. A
@@ -829,7 +831,7 @@
       return;
     }
     if (m.type === "levels") {
-      if (MODE !== "popout") remoteLevels = { bass: clamp01(m.bass), highs: clamp01(m.highs), level: clamp01(m.level), at: Date.now() };
+      if (MODE !== "popout") remoteLevels = takeFrame(m);
       return;
     }
     if (MODE !== "popout") {
@@ -928,6 +930,7 @@
         position: currentPosition(), duration: currentDuration(), shuffle: S.shuffle, repeat: S.repeat, volume: S.volume, muted: S.muted });
     }
     if (R.playing && !energyTimer) startEnergy();
+    if (R.playing && MODE === "popout" && !levelsTimer) startLevels();
     renderClock();
   }
   function startLoops() {
@@ -990,14 +993,55 @@
     return localLevels();
   }
   function heardPlaying() { return popoutAlive() ? !!(R.remote && R.remote.playing) : R.playing; }
-  /* The pop-out posts its levels for the pages' boomboxes while it plays. */
-  var levelsTimer = null;
+  /* KEEP PLAYING BETWEEN PAGES: the pages' boomboxes move with the music that
+     is actually playing. The pop-out is where it plays, so the pop-out reads
+     its own analyser and posts a frame about 30 times a second while it plays
+     (LEVELS_MS), numbers only: the speakers' bass, highs and level, the two
+     meters' left and right, the display's 48 spectrum bars (the same bands
+     and the same bandMean the display draws) and WAVE_POINTS samples of the
+     waveform. A page keeps only the newest frame (takeFrame) and its own
+     requestAnimationFrame loop draws it exactly as it draws its own sound;
+     a frame older than LEVELS_STALE_MS counts as silence. When the pop-out
+     pauses it posts one silent frame and stops sending.
+     The sender runs on a timer, not on requestAnimationFrame: the pop-out is
+     usually behind the page the member is looking at, and a covered window
+     is given no animation frames, while a window playing sound keeps its
+     timers. The tick restarts the sender if it is ever found stopped while
+     the music plays.
+     NAMED BEFORE → AFTER (Nov 8 2026): BEFORE, the frame carried bass, highs
+     and level only, and the page's display drew this page's own analyser,
+     which is silent while the pop-out plays: the speakers moved, the display
+     froze. AFTER, the bars, the waveform and the meters travel too, and the
+     display draws them. */
+  var levelsTimer = null, WAVE_POINTS = 64;
+  function barLo(k) { return 30 * Math.pow(16000 / 30, k / BARS); }
+  function barHi(k) { return 30 * Math.pow(16000 / 30, (k + 1) / BARS); }
+  function r3(n) { return Math.round(clamp01(n) * 1000) / 1000; }
+  function levelsFrame() {
+    var l = localLevels();
+    var f = { type: "levels", from: ID, bass: r3(l.bass), highs: r3(l.highs), level: r3(l.level), left: r3(l.left), right: r3(l.right), bars: [], wave: [] };
+    if (analyser && ctx && lvBins) {
+      for (var k = 0; k < BARS; k++) f.bars.push(r3(bandMean(lvBins, ctx.sampleRate, analyser.fftSize, barLo(k), barHi(k))));
+      if (!wave || wave.length !== analyser.fftSize) wave = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(wave);
+      for (var i = 0; i < WAVE_POINTS; i++) f.wave.push(wave[Math.round(i * (wave.length - 1) / (WAVE_POINTS - 1))]);
+    }
+    return f;
+  }
+  function takeFrame(m) {
+    var bars = [], line = [];
+    if (Array.isArray(m.bars)) for (var k = 0; k < Math.min(BARS, m.bars.length); k++) bars.push(clamp01(Number(m.bars[k])));
+    if (Array.isArray(m.wave)) for (var i = 0; i < Math.min(WAVE_POINTS, m.wave.length); i++) { var v = Math.round(Number(m.wave[i])); line.push(v >= 0 && v <= 255 ? v : 128); }
+    var out = { bass: clamp01(m.bass), highs: clamp01(m.highs), level: clamp01(m.level), bars: bars, wave: line, at: Date.now() };
+    if (m.left !== undefined) out.left = clamp01(m.left);
+    if (m.right !== undefined) out.right = clamp01(m.right);
+    return out;
+  }
   function startLevels() {
     if (MODE !== "popout" || levelsTimer || reducedMotion()) return;
     levelsTimer = setInterval(function () {
-      if (!R.playing) { post({ type: "levels", from: ID, bass: 0, highs: 0, level: 0 }); clearInterval(levelsTimer); levelsTimer = null; return; }
-      var l = localLevels();
-      post({ type: "levels", from: ID, bass: Math.round(l.bass * 1000) / 1000, highs: Math.round(l.highs * 1000) / 1000, level: Math.round(l.level * 1000) / 1000 });
+      if (!R.playing) { post({ type: "levels", from: ID, bass: 0, highs: 0, level: 0, left: 0, right: 0, bars: [], wave: [] }); clearInterval(levelsTimer); levelsTimer = null; return; }
+      post(levelsFrame());
     }, LEVELS_MS);
   }
 
@@ -1040,17 +1084,24 @@
   function draw(c) {
     var g = c.getContext ? c.getContext("2d") : null;
     var w = c.width, h = c.height;
-    var data = null;
-    if (analyser) {
-      if (S.view === "wave") { if (!wave) wave = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(wave); }
+    /* With the pop-out playing, this page's own audio is paused: the display
+       draws the pop-out's newest frame (the music actually heard), never this
+       page's silent analyser. */
+    var fromPopout = popoutAlive();
+    var heard = fromPopout && remoteHeard() ? remoteLevels : null;
+    var live = fromPopout ? heardPlaying() : R.playing;
+    var data = null, line = null;
+    if (fromPopout) { if (heard && heard.wave && heard.wave.length) line = heard.wave; }
+    else if (analyser) {
+      if (S.view === "wave") { if (!wave) wave = new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(wave); line = wave; }
       else { if (!freq) freq = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(freq); data = freq; }
     }
     if (!g) return;
     g.clearRect(0, 0, w, h);
     if (S.view === "wave") {
       g.lineWidth = 2; g.strokeStyle = paint(g, w); g.beginPath();
-      var n = wave ? wave.length : 0;
-      for (var i = 0; i < n; i += 4) { var x = (i / (n - 1)) * w, y = (wave[i] / 255) * h; if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+      var n = line ? line.length : 0, step = fromPopout ? 1 : 4;
+      for (var i = 0; i < n; i += step) { var x = (i / (n - 1)) * w, y = (line[i] / 255) * h; if (i) g.lineTo(x, y); else g.moveTo(x, y); }
       if (!n) { g.moveTo(0, h / 2); g.lineTo(w, h / 2); }
       g.stroke();
       return;
@@ -1058,8 +1109,7 @@
     var gap = 2, bw = (w - gap * (BARS - 1)) / BARS, sr = ctx ? ctx.sampleRate : 48000, fft = analyser ? analyser.fftSize : 2048;
     g.fillStyle = paint(g, w);
     for (var k = 0; k < BARS; k++) {
-      var lo = 30 * Math.pow(16000 / 30, k / BARS), hi = 30 * Math.pow(16000 / 30, (k + 1) / BARS);
-      var v = data && R.playing ? bandMean(data, sr, fft, lo, hi) : 0;
+      var v = !live ? 0 : fromPopout ? (heard && heard.bars.length > k ? heard.bars[k] : 0) : (data ? bandMean(data, sr, fft, barLo(k), barHi(k)) : 0);
       bars[k] = Math.max(v, (bars[k] || 0) * 0.86);
       peaks[k] = Math.max(bars[k], (peaks[k] || 0) - 0.012);
       var bh = Math.max(2, bars[k] * (h - 6)), x0 = k * (bw + gap);

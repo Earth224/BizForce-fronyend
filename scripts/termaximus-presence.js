@@ -1,11 +1,25 @@
 (function () {
   "use strict";
 
-  /* suppress entirely on the login page or when logged out */
+  /* THE PAGES WITHOUT THE MIST: the one place that decides. The mist shows on
+     every signed-in page that loads this script EXCEPT these: the sign-in
+     pages (the home page, app.html, reset-password.html, verify-email.html)
+     and the Oracle pages (oracle.html, mychart.html, synastry.html,
+     the-third.html), which have their own sky. A page is named by its file,
+     with or without ".html" (the host serves both). The Oracle pages still
+     load this tag on purpose: scripts/bf-music.js gives the music player to
+     the pages that carry it. backend scripts/checkFinishingTouches.js holds
+     this list, word for word.
+     NAMED BEFORE → AFTER (Nov 8 2026): BEFORE, only "/" and app.html were
+     skipped, so when frontend ce8c338 (Oct 31 2026) put this tag on the
+     Oracle pages for the boombox, the mist came back to them. Logged out, it
+     never shows. */
+  var TMX_NO_MIST_PAGES = ["index", "app", "reset-password", "verify-email", "oracle", "mychart", "synastry", "the-third"];
   try {
     var _tmxPath  = (window.location.pathname || "").toLowerCase();
-    var _tmxLogin = _tmxPath === "/" || _tmxPath === "" || /(^|\/)app\.html$/.test(_tmxPath);
-    if (_tmxLogin || !localStorage.getItem("bf_token")) return;
+    var _tmxFile  = _tmxPath.replace(/\/+$/, "").split("/").pop().replace(/\.html$/, "");
+    var _tmxSkip  = _tmxFile === "" || TMX_NO_MIST_PAGES.indexOf(_tmxFile) !== -1;
+    if (_tmxSkip || !localStorage.getItem("bf_token")) return;
   } catch (e) {}
 
   if (document.getElementById("tmx-presence-root")) return;

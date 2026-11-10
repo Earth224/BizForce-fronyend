@@ -59,11 +59,12 @@
    display says "No track loaded" and nothing scrolls.
 
    THREE STAGES: THE ICON -> THE BAR -> THE BOOMBOX.
-     the ICON is a small drawn boombox (40 x 36, the finish's own chrome or
-       black, a sheen crossing it now and then), shown ONLY on the dashboard
-       (opts.home), beside the logo; it is the dashboard's first-time stage,
-       nothing else shows and no audio starts. While music plays it wears a
-       tiny animated equaliser. "Open music" opens the bar. On any other page
+     the ICON is the music button (40 x 40, round, the header's own control
+       style, MUSIC_ICON: a note flowing into a wave, in the theme's accent),
+       shown ONLY on the dashboard (opts.home), on the header's middle line
+       between the logo and the header's centre (iconSpot); it is the
+       dashboard's first-time stage, nothing else shows and no audio starts.
+       While music plays its wave drifts. "Music player" opens the bar. On any other page
        it shows only while music is on, as a small floating icon, so a stop is
        always within reach;
      the BAR: a press on it, or "Open the boombox", opens the boombox;
@@ -75,7 +76,7 @@
        NOTHING shows unless music is on (playing, or paused mid-track in this
        session; bf-music.js says so, setLive): then the bar or the boombox
        follows at its last stage. "Close to icon" there leaves the floating
-       icon (with its equaliser) where the player was, by the position rule:
+       icon (its wave drifting) where the player was, by the position rule:
        pressed, it opens the bar, which has Stop. Stopping the music takes the
        player off those pages (data-away);
      the stage is remembered on this device (bf_boombox) and on the account
@@ -138,7 +139,11 @@
   var FINISHES = ["chrome", "black"];
   var STAGES = ["icon", "tag", "box"];          // the icon, the bar, the boombox
   var POSITIONS = ["follow", "pinned"];
-  var ICON_W = 40, ICON_H = 36;
+  /* NAMED BEFORE → AFTER (Nov 8 2026, the music button). BEFORE: a 40 x 36
+     drawing of a small boombox. AFTER: a 40 x 40 round header button, the
+     same size as the header's other round controls (.topbar-icon-btn). */
+  var ICON_W = 40, ICON_H = 40;
+  var ICON_MIN_GAP = 24;         // the least space between the logo and the music button
   /* The deck's lanes (px inside its border): every part has its own slot, so
      nothing overlaps at any fader or crossfader position. */
   var XF_W = 88, XF_CAP = 14, XF_TRAVEL = XF_W - XF_CAP;
@@ -258,21 +263,22 @@
       reel(198, 117) + reel(242, 117) +
       '<rect x="172" y="104" width="96" height="5" rx="2.5" fill="rgba(255,255,255,.14)"/>' +
     "</svg>";
-  /* The icon: a small boombox, 40 x 36, drawn in the same finish tokens (chrome
-     or black), its handle, two speakers and a little display where the
-     equaliser dances while the music plays. */
-  var ICON_ART =
-    '<svg class="bfm-icon-art" viewBox="0 0 ' + ICON_W + " " + ICON_H + '" width="' + ICON_W + '" height="' + ICON_H + '" aria-hidden="true" focusable="false">' +
-      "<defs>" +
-        '<linearGradient id="bbxIconBody" x1="0" y1="0" x2="0" y2="1">' + stop(0, "--bbx-m1") + stop(0.3, "--bbx-m3") + stop(0.62, "--bbx-m4") + stop(1, "--bbx-m6") + "</linearGradient>" +
-        '<linearGradient id="bbxIconChrome" x1="0" y1="0" x2="0" y2="1">' + stop(0, "--bbx-h1") + stop(0.5, "--bbx-h3") + stop(1, "--bbx-h2") + "</linearGradient>" +
-      "</defs>" +
-      '<path d="M12 9V5.5Q12 3 14.5 3h11Q28 3 28 5.5V9h-2.4V6.2q0-.9-.9-.9H15.3q-.9 0-.9.9V9Z" fill="url(#bbxIconChrome)" stroke="rgba(0,0,0,.45)" stroke-width=".6"/>' +
-      '<rect x="2" y="9" width="36" height="24" rx="5" fill="url(#bbxIconBody)" stroke="rgba(0,0,0,.55)" stroke-width=".8"/>' +
-      '<circle cx="10" cy="23" r="6.4" fill="#0b0c11" stroke="url(#bbxIconChrome)" stroke-width="1.4"/><circle cx="10" cy="23" r="2.3" fill="url(#bbxIconChrome)"/>' +
-      '<circle cx="30" cy="23" r="6.4" fill="#0b0c11" stroke="url(#bbxIconChrome)" stroke-width="1.4"/><circle cx="30" cy="23" r="2.3" fill="url(#bbxIconChrome)"/>' +
-      '<rect x="14" y="11" width="12" height="7" rx="1.2" fill="#04101a" stroke="rgba(0,0,0,.6)" stroke-width=".5"/>' +
-      '<path d="M5 11.2H35" stroke="rgba(255,255,255,.7)" stroke-width=".8" stroke-linecap="round"/>' +
+  /* THE MUSIC BUTTON'S ICON, the one source every page uses (iconHtml below,
+     and BFBoombox.MUSIC_ICON): an eighth note whose stem and flag sweep down
+     into a sine wave running across the base, a note riding its own
+     frequency. One stroke weight (the header icons' 1.8 on a 24 grid), and
+     every line and fill is currentColor, so it wears the theme's accent in
+     every theme. While music plays the wave drifts one period to the left
+     every 3 s (a slow phase shift); paused, it is still; under
+     prefers-reduced-motion it never moves.
+     NAMED BEFORE → AFTER (Nov 8 2026): BEFORE, ICON_ART, a little boombox of
+     two speaker circles in the finish's chrome; AFTER, MUSIC_ICON. */
+  var MUSIC_ICON =
+    '<svg class="bfm-icon-art" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+      '<defs><clipPath id="bfmNoteWaveClip"><rect x="2" y="15" width="20" height="8"/></clipPath></defs>' +
+      '<ellipse class="bfm-note-head" cx="7.6" cy="15" rx="2.6" ry="1.9" transform="rotate(-22 7.6 15)" fill="currentColor" stroke="none"/>' +
+      '<path class="bfm-note-stem" d="M10 14.4V3.6c1.1 2 3.3 2.9 4.7 4.5 1.9 2.2 2.4 5.4 1.9 8.4"/>' +
+      '<g clip-path="url(#bfmNoteWaveClip)"><path class="bfm-note-wave" d="M-4 19c1.5 0 1.5-2 3-2s1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2"/></g>' +
     "</svg>";
 
   /* The finishes: one construction, two sets of tokens. */
@@ -300,19 +306,17 @@
     ".bfm-float[data-pinned=true] .bfm-tag,.bfm-float[data-pinned=true] .bbx-body-grip{cursor:default}",
     ".bfm-pop{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px}",
     /* the icon: the first stage, on the dashboard only */
-    ".bfm-icon{display:none;position:relative;width:" + ICON_W + "px;height:" + ICON_H + "px;padding:0;margin:0;border:0;border-radius:9px;background:transparent;cursor:pointer;overflow:hidden;color:var(--bbx-ink);filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}",
+    /* the music button: the header's round control (css/bizforce-ui.css .topbar-icon-btn: 40 px, round, a
+       one-pixel accent border on the header's dark glass), in the theme's accent, a soft glow on hover and focus */
+    ".bfm-icon{display:none;position:relative;box-sizing:border-box;width:" + ICON_W + "px;height:" + ICON_H + "px;padding:0;margin:0;border:1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.32);border-radius:50%;background:rgba(8,12,28,.85);color:var(--bf-accent-a3, #00e5ff);cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}",
     ".bfm-float[data-state=icon] .bfm-icon{display:block}",
-    ".bfm-icon-art{display:block}",
-    ".bfm-icon-sheen{position:absolute;top:-6px;bottom:-6px;left:0;width:14px;pointer-events:none;background:linear-gradient(100deg,transparent,var(--bbx-sheen),transparent);transform:translateX(-20px) skewX(-14deg);animation:bbx-icon-sheen 7s ease-in-out infinite}",
-    ".bfm-icon-eq{position:absolute;left:14.5px;top:11.5px;width:11px;height:6px;display:none;align-items:flex-end;gap:1px;pointer-events:none}",
-    ".bfm-float[data-playing=true] .bfm-icon-eq{display:flex}",
-    ".bfm-icon-eq span{display:block;width:2px;height:6px;border-radius:.5px;background:var(--bf-accent-a, #22d3ee);transform-origin:bottom;transform:scaleY(.4);animation:bbx-icon-eq .8s ease-in-out infinite alternate}",
-    ".bfm-icon-eq span:nth-child(2){animation-delay:-.3s}.bfm-icon-eq span:nth-child(3){animation-delay:-.55s}.bfm-icon-eq span:nth-child(4){animation-delay:-.15s}",
+    ".bfm-icon-art{display:block;margin:0 auto}",
+    ".bfm-icon:hover,.bfm-icon:focus-visible{border-color:rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.6);box-shadow:0 0 16px rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.25)}",
     ".bfm-icon:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
-    "@keyframes bbx-icon-sheen{0%,70%{transform:translateX(-20px) skewX(-14deg)}100%{transform:translateX(56px) skewX(-14deg)}}",
-    "@keyframes bbx-icon-eq{from{transform:scaleY(.25)}to{transform:scaleY(1)}}",
-    ".bfm[data-hidden=true] .bfm-icon-sheen,.bfm[data-hidden=true] .bfm-icon-eq span{animation-play-state:paused}",
-    "@media (prefers-reduced-motion: reduce){.bfm-icon-sheen,.bfm-icon-eq span{animation:none!important}.bfm-icon-sheen{display:none}}",
+    ".bfm-float[data-playing=true] .bfm-note-wave{animation:bfm-note-wave 3s linear infinite}",
+    "@keyframes bfm-note-wave{from{transform:translateX(0)}to{transform:translateX(-6px)}}",
+    ".bfm[data-hidden=true] .bfm-note-wave{animation-play-state:paused}",
+    "@media (prefers-reduced-motion: reduce){.bfm-note-wave{animation:none!important}}",
     /* the bar: a bevelled pill in the finish, its own sheen crossing it */
     ".bfm-tag{display:none;position:relative;overflow:hidden;align-items:center;gap:6px;height:" + BAR_H + "px;width:min(" + BAR_W + "px,calc(100vw - 32px));padding:4px 6px 4px 12px;border-radius:999px;color:var(--bbx-ink);background:" + BRUSH + "," + METAL + ";border:1px solid rgba(0,0,0,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -2px 3px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.45);cursor:grab;touch-action:none}",
     ".bfm-float[data-state=tag] .bfm-tag{display:flex}",
@@ -506,9 +510,7 @@
     "</div>";
   }
   function iconHtml() {
-    return '<button type="button" class="bfm-icon" data-act="bbx-open" aria-label="Open music" title="Open music">' + ICON_ART +
-      '<span class="bfm-icon-sheen" aria-hidden="true"></span>' +
-      '<span class="bfm-icon-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></span>' +
+    return '<button type="button" class="bfm-icon" data-act="bbx-open" aria-label="Music player" title="Music player">' + MUSIC_ICON +
     "</button>";
   }
 
@@ -638,13 +640,40 @@
         var head = a.closest ? a.closest("header, nav, .topbar, .top-nav") : null;
         var hr = head && head.getBoundingClientRect ? head.getBoundingClientRect() : null;
         var mid = hr && hr.height > 0 ? hr.top + hr.height / 2 : r.top + (r.height || 0) / 2;
+        if (state === "icon") return iconSpot(a, r, head, hr, mid);
         var right = Math.min(window.innerWidth, hr && hr.width > 0 ? hr.right : window.innerWidth) - EDGE;
-        var w = state === "icon" ? ICON_W : BAR_W, h = state === "icon" ? ICON_H : BAR_H;
+        var w = BAR_W, h = BAR_H;
         var left = r.right + GAP;
         if (left + w > right && r.left - GAP - w >= EDGE) left = r.left - GAP - w;
         return { left: Math.round(left), top: Math.round(mid - h / 2) };
       }
       return { left: EDGE, top: EDGE };
+    }
+    /* THE MUSIC BUTTON'S SPOT (Nov 8 2026). Wide enough: centred in the space
+       between the logo's right edge and the header's horizontal centre, on the
+       header's middle line. Narrower: never closer than ICON_MIN_GAP (24 px)
+       to the logo, and never over another header item (it stops GAP short of
+       the next one). With no room for that on the header's row, it sits just
+       below the header, under the logo, where it covers nothing of the header.
+       NAMED BEFORE → AFTER: BEFORE, GAP (12 px) right of the logo. */
+    function headerItems(a, head) {
+      if (!head || !head.querySelectorAll) return [];
+      return Array.prototype.slice.call(head.querySelectorAll("a, button, label, input, select, [role=button], [tabindex], .topbar-user")).filter(function (el) {
+        return el !== a && !(a.contains && a.contains(el)) && !(el.contains && el.contains(a)) && !root.contains(el);
+      }).map(rectOf).filter(function (b) { return b.right > b.left && b.bottom > b.top; });
+    }
+    function iconSpot(a, r, head, hr, mid) {
+      var centre = hr && hr.width > 0 ? hr.left + hr.width / 2 : window.innerWidth / 2;
+      var top = mid - ICON_H / 2;
+      var left = Math.max((r.right + centre) / 2 - ICON_W / 2, r.right + ICON_MIN_GAP);
+      var items = headerItems(a, head);
+      var onRow = items.filter(function (b) { return b.top < top + ICON_H && b.bottom > top && b.left >= r.right; });
+      onRow.forEach(function (b) { if (left + ICON_W > b.left - GAP && left < b.right) left = b.left - GAP - ICON_W; });
+      var spot = { left: left, top: top, right: left + ICON_W, bottom: top + ICON_H };
+      if (left < r.right + ICON_MIN_GAP || items.some(function (b) { return hits(spot, b); })) {
+        return { left: Math.round(r.left), top: Math.round((hr && hr.height > 0 ? hr.bottom : r.bottom) + GAP) };
+      }
+      return { left: Math.round(left), top: Math.round(top) };
     }
     /* PINNED: the home spot in the page's own coordinates (position: absolute), so it scrolls away with the page. */
     function pinTo() {
@@ -1099,7 +1128,7 @@
   window.BFBoombox = {
     mount: mount, clampPosition: clampPosition, clampDb: clampDb, clampMix: clampMix,
     STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z, EDGE: EDGE, GAP: GAP,
-    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, STAGES: STAGES, POSITIONS: POSITIONS,
+    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, ICON_MIN_GAP: ICON_MIN_GAP, MUSIC_ICON: MUSIC_ICON, STAGES: STAGES, POSITIONS: POSITIONS,
     XF_TRAVEL: XF_TRAVEL, VOL_TRAVEL: VOL_TRAVEL, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
     NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
