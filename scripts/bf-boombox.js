@@ -60,7 +60,7 @@
 
    THREE STAGES: THE ICON -> THE BAR -> THE BOOMBOX.
      the ICON is the music button (40 x 40, round, the header's own control
-       style, MUSIC_ICON: a note flowing into a wave, in the theme's accent),
+       style, MUSIC_ICON: the golden note, in the theme's accent),
        shown ONLY on the dashboard (opts.home), on the header's middle line
        between the logo and the header's centre (iconSpot); it is the
        dashboard's first-time stage, nothing else shows and no audio starts.
@@ -264,21 +264,24 @@
       '<rect x="172" y="104" width="96" height="5" rx="2.5" fill="rgba(255,255,255,.14)"/>' +
     "</svg>";
   /* THE MUSIC BUTTON'S ICON, the one source every page uses (iconHtml below,
-     and BFBoombox.MUSIC_ICON): an eighth note whose stem and flag sweep down
-     into a sine wave running across the base, a note riding its own
-     frequency. One stroke weight (the header icons' 1.8 on a 24 grid), and
-     every line and fill is currentColor, so it wears the theme's accent in
-     every theme. While music plays the wave drifts one period to the left
-     every 3 s (a slow phase shift); paused, it is still; under
-     prefers-reduced-motion it never moves.
-     NAMED BEFORE → AFTER (Nov 8 2026): BEFORE, ICON_ART, a little boombox of
-     two speaker circles in the finish's chrome; AFTER, MUSIC_ICON. */
+     and BFBoombox.MUSIC_ICON): "the golden note", a golden-ratio spiral
+     (quarter arcs of radius 55, 34, 21, 13, 8) as the note's head, with a
+     music stem and flag rising from it. The spiral is drawn twice: a wide,
+     soft glow (.bfm-gn-glow) under the line itself (.bfm-gn-spiral). Every
+     colour comes from the CSS below, all currentColor, so it wears the
+     theme's accent in every theme. At rest the glow is off; on hover and
+     focus it fades in; while music plays it pulses and the spiral lightens;
+     under prefers-reduced-motion it holds a steady glow; while the tab is
+     hidden the pulse is paused.
+     NAMED BEFORE → AFTER (Nov 9 2026, golden note icon): BEFORE, an eighth
+     note flowing into a drifting sine wave (bfm-note-head, bfm-note-stem,
+     bfm-note-wave, clipPath bfmNoteWaveClip); AFTER, the golden note.
+     (Nov 8 2026: before that, ICON_ART, a two-circle boombox.) */
   var MUSIC_ICON =
-    '<svg class="bfm-icon-art" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-      '<defs><clipPath id="bfmNoteWaveClip"><rect x="2" y="15" width="20" height="8"/></clipPath></defs>' +
-      '<ellipse class="bfm-note-head" cx="7.6" cy="15" rx="2.6" ry="1.9" transform="rotate(-22 7.6 15)" fill="currentColor" stroke="none"/>' +
-      '<path class="bfm-note-stem" d="M10 14.4V3.6c1.1 2 3.3 2.9 4.7 4.5 1.9 2.2 2.4 5.4 1.9 8.4"/>' +
-      '<g clip-path="url(#bfmNoteWaveClip)"><path class="bfm-note-wave" d="M-4 19c1.5 0 1.5-2 3-2s1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2 1.5-2 3-2 1.5 2 3 2"/></g>' +
+    '<svg class="bfm-icon-art" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+      '<g class="bfm-gn-glow" transform="translate(3 13.3) scale(.16)" stroke-width="26"><path d="M0 55 A55 55 0 0 1 55 0 A34 34 0 0 1 89 34 A21 21 0 0 1 68 55 A13 13 0 0 1 55 42 A8 8 0 0 1 63 34"/></g>' +
+      '<g class="bfm-gn-spiral" transform="translate(3 13.3) scale(.16)" stroke-width="10"><path d="M0 55 A55 55 0 0 1 55 0 A34 34 0 0 1 89 34 A21 21 0 0 1 68 55 A13 13 0 0 1 55 42 A8 8 0 0 1 63 34"/></g>' +
+      '<path class="bfm-gn-stem" d="M17.24 18.74V2.6c1.6 1 3.9 1.9 3.9 4.8c0 1.3-.6 2.1-1.5 2.7" stroke-width="1.7"/>' +
     "</svg>";
 
   /* The finishes: one construction, two sets of tokens. */
@@ -311,12 +314,27 @@
     ".bfm-icon{display:none;position:relative;box-sizing:border-box;width:" + ICON_W + "px;height:" + ICON_H + "px;padding:0;margin:0;border:1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.32);border-radius:50%;background:rgba(8,12,28,.85);color:var(--bf-accent-a3, #00e5ff);cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}",
     ".bfm-float[data-state=icon] .bfm-icon{display:block}",
     ".bfm-icon-art{display:block;margin:0 auto}",
-    ".bfm-icon:hover,.bfm-icon:focus-visible{border-color:rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.6);box-shadow:0 0 16px rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.25)}",
+    /* NAMED BEFORE → AFTER (Nov 9 2026, golden note icon). BEFORE: hover and focus switched the border colour and
+       box-shadow at once. AFTER: two rings over the border, faded by opacity only (200 ms): ::before brightens on
+       hover and focus (the accent at .6 with a soft glow), ::after shows the second accent at .55 while music
+       plays. The second accent is currentColor: the theme's --bf-accent-b is set only when a theme changes it,
+       so it is not there in every theme. */
+    ".bfm-icon::before,.bfm-icon::after{content:\"\";position:absolute;inset:-1px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity 200ms}",
+    ".bfm-icon::before{border:1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.6);box-shadow:0 0 16px rgba(var(--bf-accent-a3-rgb, 0, 229, 255),.25)}",
+    ".bfm-icon:hover::before,.bfm-icon:focus-visible::before{opacity:1}",
+    ".bfm-icon::after{border:1px solid currentColor}",
+    ".bfm-float[data-playing=true] .bfm-icon::after{opacity:.55}",
     ".bfm-icon:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
-    ".bfm-float[data-playing=true] .bfm-note-wave{animation:bfm-note-wave 3s linear infinite}",
-    "@keyframes bfm-note-wave{from{transform:translateX(0)}to{transform:translateX(-6px)}}",
-    ".bfm[data-hidden=true] .bfm-note-wave{animation-play-state:paused}",
-    "@media (prefers-reduced-motion: reduce){.bfm-note-wave{animation:none!important}}",
+    /* the golden note: every line currentColor; the glow off at rest, faded in on hover and focus, pulsing while
+       music plays (the spiral lighter then), steady under reduced motion, paused while the tab is hidden */
+    ".bfm-gn-stem,.bfm-gn-spiral,.bfm-gn-glow{stroke:currentColor}",
+    ".bfm-gn-glow{opacity:0;transition:opacity 200ms}",
+    ".bfm-icon:hover .bfm-gn-glow,.bfm-icon:focus-visible .bfm-gn-glow{opacity:.2}",
+    ".bfm-float[data-playing=true] .bfm-gn-spiral{stroke:currentColor;stroke:color-mix(in srgb,currentColor 70%,white)}",
+    ".bfm-float[data-playing=true] .bfm-gn-glow{animation:bfm-gn-pulse 2.4s ease-in-out infinite}",
+    "@keyframes bfm-gn-pulse{0%,100%{opacity:.22}50%{opacity:.45}}",
+    ".bfm[data-hidden=true] .bfm-gn-glow{animation-play-state:paused}",
+    "@media (prefers-reduced-motion: reduce){.bfm-gn-glow{animation:none!important}.bfm-float[data-playing=true] .bfm-gn-glow{opacity:.3}}",
     /* the bar: a bevelled pill in the finish, its own sheen crossing it */
     ".bfm-tag{display:none;position:relative;overflow:hidden;align-items:center;gap:6px;height:" + BAR_H + "px;width:min(" + BAR_W + "px,calc(100vw - 32px));padding:4px 6px 4px 12px;border-radius:999px;color:var(--bbx-ink);background:" + BRUSH + "," + METAL + ";border:1px solid rgba(0,0,0,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -2px 3px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.45);cursor:grab;touch-action:none}",
     ".bfm-float[data-state=tag] .bfm-tag{display:flex}",
