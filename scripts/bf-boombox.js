@@ -61,8 +61,9 @@
    THREE STAGES: THE ICON -> THE BAR -> THE BOOMBOX.
      the ICON is the music button (40 x 40, round, the header's own control
        style, MUSIC_ICON: the golden note, in the theme's accent),
-       shown ONLY on the dashboard (opts.home), on the header's middle line
-       between the logo and the header's centre (iconSpot); it is the
+       shown ONLY on the dashboard (opts.home), INSIDE the top bar (a child of
+       the bar's own element), level with the logo, halfway between the logo
+       and the bar's centre (iconPlan, placeInBar); it is the
        dashboard's first-time stage, nothing else shows and no audio starts.
        While music plays its wave drifts. "Music player" opens the bar. On any other page
        it shows only while music is on, as a small floating icon, so a stop is
@@ -144,6 +145,10 @@
      same size as the header's other round controls (.topbar-icon-btn). */
   var ICON_W = 40, ICON_H = 40;
   var ICON_MIN_GAP = 24;         // the least space between the logo and the music button
+  /* NAMED (Nov 9 2026, button kept in the top bar): the last-resort size on a crowded bar, and the
+     bars the button lives in (the dashboard's header.topbar, every other page's .top-nav). */
+  var ICON_SMALL = 32;
+  var BAR_SEL = "header, nav, .topbar, .top-nav";
   /* The deck's lanes (px inside its border): every part has its own slot, so
      nothing overlaps at any fader or crossfader position. */
   var XF_W = 88, XF_CAP = 14, XF_TRAVEL = XF_W - XF_CAP;
@@ -306,6 +311,10 @@
     ".bfm-float[data-away=true]{display:none}",
     /* PINNED (and the icon, always in place): in its home spot, scrolling with the page */
     ".bfm-float[data-pinned=true]:not([data-dock=phone]){position:absolute}",
+    /* IN THE TOP BAR (Nov 9 2026): a child of the bar itself, placed in the bar's own coordinates */
+    ".bfm-float[data-inbar=true]{position:absolute!important;right:auto!important;bottom:auto!important;max-width:none}",
+    "[data-bfm-bar=relative]{position:relative}",
+    ".bfm-float[data-icon-size=small] .bfm-icon{width:" + ICON_SMALL + "px;height:" + ICON_SMALL + "px}",
     ".bfm-float[data-pinned=true] .bfm-tag,.bfm-float[data-pinned=true] .bbx-body-grip{cursor:default}",
     ".bfm-pop{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px}",
     /* the icon: the first stage, on the dashboard only */
@@ -540,6 +549,40 @@
      the dashboard (home) and the bar elsewhere (shown there only while music is on). */
   function stageOf(s, home) { return STAGES.indexOf(s) !== -1 ? s : (home ? "icon" : "tag"); }
 
+  /* THE MUSIC BUTTON'S PLAN (Nov 9 2026, button kept in the top bar). A pure function of boxes, in
+     window coordinates: bar (the top bar's own box), logo (the logo block), items (the bar's other
+     items), winW (the window's width, used only when the bar has no width).
+       Vertically: its centre is the logo's centre.
+       Horizontally: on the side of the logo that faces the bar's centre, its centre halfway between
+       that edge of the logo and the bar's horizontal centre.
+       Never closer than ICON_MIN_GAP (24 px) to the logo, and never over another item on the logo's
+       row (it stops GAP short of the next one): where that is short, the gap shrinks toward 24 px,
+       and as the last resort the button is ICON_SMALL (32 px).
+     There is no other outcome: no spot below the bar, none outside it.
+     NAMED BEFORE → AFTER (Nov 9 2026, button kept in the top bar). BEFORE: iconSpot, which with no
+     room on the row put the button just below the header, under the logo. AFTER: this plan. */
+  function iconPlan(bar, logo, items, winW) {
+    var wide = !!bar && bar.right > bar.left;
+    var bl = wide ? bar.left : 0, br = wide ? bar.right : winW;
+    var centre = (bl + br) / 2;
+    var cy = (logo.top + logo.bottom) / 2;
+    var side = (logo.left + logo.right) / 2 <= centre ? "right" : "left";
+    var edge = side === "right" ? logo.right : logo.left;
+    var limit = side === "right" ? br : bl;
+    (items || []).forEach(function (b) {
+      if (!(b.top < cy + ICON_H / 2 && b.bottom > cy - ICON_H / 2)) return;
+      if (side === "right" && b.left >= edge && b.left < limit) limit = b.left;
+      if (side === "left" && b.right <= edge && b.right > limit) limit = b.right;
+    });
+    var room = (side === "right" ? limit - edge : edge - limit) - GAP;
+    var want = (side === "right" ? centre - edge : edge - centre) / 2;
+    var size = ICON_W, gap;
+    if (room - ICON_W >= ICON_MIN_GAP) gap = Math.min(Math.max(want - ICON_W / 2, ICON_MIN_GAP), room - ICON_W);
+    else { size = ICON_SMALL; gap = Math.max(ICON_MIN_GAP, Math.min(want - ICON_SMALL / 2, room - ICON_SMALL)); }
+    var left = side === "right" ? edge + gap : edge - gap - size;
+    return { side: side, size: size, gap: Math.round(gap), left: Math.round(left), top: Math.round(cy - size / 2) };
+  }
+
   /* mount({ mode: "float" | "popout", host, anchor, home, finish, position, onVolume(v), onMix(s), onEq(band, db),
      onSeekBy(s), onToggle(), onStage(stage) }) */
   function mount(opts) {
@@ -659,10 +702,10 @@
       var a = opts.anchor;
       if (a && a.getBoundingClientRect) {
         var r = a.getBoundingClientRect();
-        var head = a.closest ? a.closest("header, nav, .topbar, .top-nav") : null;
+        var head = a.closest ? a.closest(BAR_SEL) : null;
         var hr = head && head.getBoundingClientRect ? head.getBoundingClientRect() : null;
         var mid = hr && hr.height > 0 ? hr.top + hr.height / 2 : r.top + (r.height || 0) / 2;
-        if (state === "icon") return iconSpot(a, r, head, hr, mid);
+        if (state === "icon") { var ip = iconPlan(head ? rectOf(head) : null, rectOf(a), headerItems(a, head), window.innerWidth); return { left: ip.left, top: ip.top }; }
         var right = Math.min(window.innerWidth, hr && hr.width > 0 ? hr.right : window.innerWidth) - EDGE;
         var w = BAR_W, h = BAR_H;
         var left = r.right + GAP;
@@ -671,45 +714,95 @@
       }
       return { left: EDGE, top: EDGE };
     }
-    /* THE MUSIC BUTTON'S SPOT (Nov 8 2026). Wide enough: centred in the space
-       between the logo's right edge and the header's horizontal centre, on the
-       header's middle line. Narrower: never closer than ICON_MIN_GAP (24 px)
-       to the logo, and never over another header item (it stops GAP short of
-       the next one). With no room for that on the header's row, it sits just
-       below the header, under the logo, where it covers nothing of the header.
-       NAMED BEFORE → AFTER: BEFORE, GAP (12 px) right of the logo. */
+    /* The top bar's other items: its controls, and any plain block of its own (a badge) that holds none. */
     function headerItems(a, head) {
       if (!head || !head.querySelectorAll) return [];
-      return Array.prototype.slice.call(head.querySelectorAll("a, button, label, input, select, [role=button], [tabindex], .topbar-user")).filter(function (el) {
-        return el !== a && !(a.contains && a.contains(el)) && !(el.contains && el.contains(a)) && !root.contains(el);
-      }).map(rectOf).filter(function (b) { return b.right > b.left && b.bottom > b.top; });
+      var mine = function (el) { return el === a || (a.contains && a.contains(el)) || (el.contains && el.contains(a)) || root.contains(el); };
+      var els = Array.prototype.slice.call(head.querySelectorAll("a, button, label, input, select, [role=button], [tabindex], .topbar-user")).filter(function (el) { return !mine(el); });
+      Array.prototype.forEach.call(head.children || [], function (el) {
+        if (!mine(el) && !els.some(function (x) { return el.contains(x); })) els.push(el);
+      });
+      return els.map(rectOf).filter(function (b) { return b.right > b.left && b.bottom > b.top; });
     }
-    function iconSpot(a, r, head, hr, mid) {
-      var centre = hr && hr.width > 0 ? hr.left + hr.width / 2 : window.innerWidth / 2;
-      var top = mid - ICON_H / 2;
-      var left = Math.max((r.right + centre) / 2 - ICON_W / 2, r.right + ICON_MIN_GAP);
-      var items = headerItems(a, head);
-      var onRow = items.filter(function (b) { return b.top < top + ICON_H && b.bottom > top && b.left >= r.right; });
-      onRow.forEach(function (b) { if (left + ICON_W > b.left - GAP && left < b.right) left = b.left - GAP - ICON_W; });
-      var spot = { left: left, top: top, right: left + ICON_W, bottom: top + ICON_H };
-      if (left < r.right + ICON_MIN_GAP || items.some(function (b) { return hits(spot, b); })) {
-        return { left: Math.round(r.left), top: Math.round((hr && hr.height > 0 ? hr.bottom : r.bottom) + GAP) };
+    /* IN THE TOP BAR (Nov 9 2026, button kept in the top bar). Wherever the music button is in place (the
+       dashboard always; any other page when the member pins it) and the page has a top bar, the player's
+       root is a CHILD OF THAT BAR, placed in the bar's own coordinates by iconPlan: it can never show
+       outside the bar, and it moves with it. The logo block keeps room on the side facing the bar's centre
+       (a margin of ICON_MIN_GAP + ICON_SMALL + GAP, less the bar's own gap), so the bar's items can never
+       crowd the button past its last resort. Opened to the bar or the boombox, or unpinned, it goes back
+       to the page as before. */
+    function barOf() { var a = opts.anchor; return a && a.closest ? a.closest(BAR_SEL) : null; }
+    var held = null;   // while in a bar: { bar, slot, prop, was, pos }
+    function inBar() { return !popout && state === "icon" && pinned() && !away() && !!barOf(); }
+    function leaveBar() {
+      if (!held) return;
+      if (held.prop) held.slot.style[held.prop] = held.was;
+      if (held.pos) held.bar.removeAttribute("data-bfm-bar");
+      held = null;
+      root.removeAttribute("data-inbar");
+      root.removeAttribute("data-icon-size");
+      (opts.host || doc.body || doc.documentElement).appendChild(root);
+    }
+    function placeInBar() {
+      var a = opts.anchor, bar = barOf(), slot = a;
+      while (slot && slot.parentElement !== bar) slot = slot.parentElement;
+      if (held && held.bar !== bar) leaveBar();
+      if (!held) {
+        held = { bar: bar, slot: slot, prop: "", was: "", pos: false };
+        if (window.getComputedStyle && window.getComputedStyle(bar).position === "static") { bar.setAttribute("data-bfm-bar", "relative"); held.pos = true; }
       }
-      return { left: Math.round(left), top: Math.round(top) };
+      if (root.parentNode !== bar) bar.appendChild(root);
+      root.setAttribute("data-inbar", "true");
+      var b0 = rectOf(bar), l0 = rectOf(a);
+      var prop = iconPlan(b0, l0, [], window.innerWidth).side === "right" ? "marginRight" : "marginLeft";
+      if (held.prop !== prop) { if (held.prop) slot.style[held.prop] = held.was; held.prop = prop; held.was = slot.style[prop]; }
+      var cs = window.getComputedStyle ? window.getComputedStyle(bar) : null;
+      var barGap = cs ? parseFloat(cs.columnGap || cs.gap) || 0 : 0;
+      slot.style[prop] = Math.max(0, ICON_MIN_GAP + ICON_SMALL + GAP - barGap) + "px";
+      var plan = iconPlan(rectOf(bar), rectOf(a), headerItems(a, bar), window.innerWidth);
+      var br = rectOf(bar);
+      root.setAttribute("data-icon-size", plan.size === ICON_SMALL ? "small" : "full");
+      root.style.left = Math.round(plan.left - br.left - (bar.clientLeft || 0)) + "px";
+      root.style.top = Math.round(plan.top - br.top - (bar.clientTop || 0)) + "px";
+      root.style.right = "auto";
+      root.style.bottom = "auto";
+      root.setAttribute("data-placed", "true");
     }
-    /* PINNED: the home spot in the page's own coordinates (position: absolute), so it scrolls away with the page. */
+    /* Measured again whenever the bar can have changed after the first look: a resize (onResize), the
+       fonts arriving, the page's load, and any change to the bar's items (a late badge, a count or a
+       name filled in, a script's own addition), and the bar's own size where the browser reports it. */
+    var soon = null;
+    function later() { if (soon) return; soon = setTimeout(function () { soon = null; if (inBar()) place(); }, 0); }
+    function watchBar() {
+      var bar = barOf();
+      if (doc.fonts && doc.fonts.ready && typeof doc.fonts.ready.then === "function") doc.fonts.ready.then(later);
+      window.addEventListener("load", later);
+      if (!bar) return;
+      if (typeof MutationObserver === "function") {
+        new MutationObserver(function (list) {
+          if (list.some(function (m) { return !root.contains(m.target); })) later();
+        }).observe(bar, { childList: true, subtree: true, characterData: true });
+      }
+      if (typeof ResizeObserver === "function") new ResizeObserver(later).observe(bar);
+    }
+    /* PINNED: the home spot in the page's own coordinates (position: absolute), so it scrolls away with the page.
+       NAMED BEFORE → AFTER (Nov 9 2026, button kept in the top bar). BEFORE: the top was clamped to the window
+       before the scroll was added, so a page loaded part-way down put the home spot below the header.
+       AFTER: clamped in the page's coordinates. */
     function pinTo() {
       var p = defaultSpot();
       var sx = window.scrollX || window.pageXOffset || 0, sy = window.scrollY || window.pageYOffset || 0;
       var w = root.offsetWidth || 0;
       root.style.left = Math.round(Math.min(Math.max(p.left, 0), Math.max(window.innerWidth - w, 0)) + sx) + "px";
-      root.style.top = Math.round(Math.max(p.top, 0) + sy) + "px";
+      root.style.top = Math.round(Math.max(p.top + sy, 0)) + "px";
       root.style.right = "auto";
       root.style.bottom = "auto";
       root.setAttribute("data-placed", "true");
     }
     function place() {
       if (popout) return;
+      if (inBar()) { root.setAttribute("data-dock", "desktop"); placeInBar(); side(); return; }
+      leaveBar();
       if (phone() && state !== "icon") {
         root.setAttribute("data-dock", "phone");
         root.removeAttribute("data-placed");
@@ -1121,6 +1214,7 @@
 
     function onResize() { place(); fitTag(); }
     window.addEventListener("resize", onResize);
+    if (!popout) watchBar();
     doc.addEventListener("visibilitychange", function () { root.setAttribute("data-hidden", doc.hidden ? "true" : "false"); });
     var nudger = popout ? null : setInterval(function () { if (state && !drag.on && !away()) nudge(); }, 1500);
 
@@ -1136,7 +1230,7 @@
       remembered: function () { return remembered; }, home: home,
       position: function () { return position; }, setPosition: setPosition, pinned: pinned,
       live: function () { return live; }, setLive: setLive, away: away, stepBack: stepBack,
-      setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset, defaultSpot: defaultSpot,
+      setState: setState, setLibrary: setLibrary, place: place, nudge: nudge, reset: reset, defaultSpot: defaultSpot, inBar: inBar, bar: barOf,
       setEq: setEq, setMix: setMix, setVolume: setVol, setFinish: setFinish,
       eq: function () { return { bass: eq.bass, mid: eq.mid, treble: eq.treble }; },
       finish: function () { return root.getAttribute("data-finish"); },
@@ -1150,7 +1244,7 @@
   window.BFBoombox = {
     mount: mount, clampPosition: clampPosition, clampDb: clampDb, clampMix: clampMix,
     STORE_KEY: STORE_KEY, DRAG_THRESHOLD: DRAG_THRESHOLD, NUDGE: NUDGE, PHONE_MAX: PHONE_MAX, Z: Z, EDGE: EDGE, GAP: GAP,
-    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, ICON_MIN_GAP: ICON_MIN_GAP, MUSIC_ICON: MUSIC_ICON, STAGES: STAGES, POSITIONS: POSITIONS,
+    BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, ICON_MIN_GAP: ICON_MIN_GAP, ICON_SMALL: ICON_SMALL, BAR_SEL: BAR_SEL, iconPlan: iconPlan, MUSIC_ICON: MUSIC_ICON, STAGES: STAGES, POSITIONS: POSITIONS,
     XF_TRAVEL: XF_TRAVEL, VOL_TRAVEL: VOL_TRAVEL, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
     NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
