@@ -53,8 +53,11 @@
 
    NOW PLAYING. While a track is loaded the VFD scrolls "Title — Artist" and
    the ticker scrolls its line (about five characters a second, each loop
-   holding still at its start). When a new track starts, a neon "Now playing"
-   banner sweeps once across the face (about 1.2 s). Screen readers hear "Now
+   holding still at its start). When a new track starts (here, or in the
+   pop-out while this page is its remote), a neon banner with the ARTIST's
+   name (else the title, else "Now Playing") sweeps once (about 1.2 s), toward
+   the side of the screen with more room, its whole box kept 12 px inside the
+   viewport; under reduced motion it only fades, in place. Screen readers hear "Now
    playing: <title> by <artist>" once per track. With nothing loaded the
    display says "No track loaded" and nothing scrolls.
 
@@ -157,6 +160,12 @@
   var ALL_TRACKS = "All tracks";
   var SEP = " — ", DOT = " · ";
   var SWEEP_MS = 1200;           // the "Now playing" banner, once per new track
+  /* NAMED (Nov 10 2026, artist name, screen-aware motion): the banner shows the artist (else the title, else
+     NOW_PLAYING), and travels SWEEP_TRAVEL times its own width toward the side of the screen with more room,
+     never closer than SWEEP_EDGE to the viewport's edges. */
+  var NOW_PLAYING = "Now Playing";
+  var SWEEP_TRAVEL = 3;          // the old -150% … 150%: three of its widths
+  var SWEEP_EDGE = 12;
   var SCROLL_S_PER_CHAR = 0.2;   // about five characters a second
   var SCROLL_HOLD = 0.12;        // each loop holds still for its first 12%
   var TAG_FIT_CHARS = 26;        // what the bar holds when it cannot be measured
@@ -396,13 +405,16 @@
     ".bbx-ticker[data-scroll=true] .bbx-ticker-track{display:inline-block;animation:bbx-loop var(--bbx-scroll-s, 14s) linear infinite}",
     ".bbx-ticker[data-scroll=true] .bbx-ticker-text{padding-right:40px}",
     /* the "Now playing" sweep, once per new track */
-    ".bbx-sweep{position:absolute;left:100px;top:72px;width:240px;height:26px;display:grid;place-items:center;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:translateX(-150%)}",
-    ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1) 1 both}",
+    ".bbx-sweep{position:absolute;left:100px;top:72px;width:max-content;min-width:min(240px,60vw);max-width:60vw;box-sizing:border-box;padding:0 14px;height:26px;display:block;line-height:26px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:none;border-radius:13px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#fff;background:rgba(6,10,24,.74);border:1px solid var(--bf-accent-b, #a855f7);box-shadow:0 0 12px var(--bf-accent-b, #a855f7),inset 0 0 10px rgba(var(--bf-accent-a-rgb, 34, 211, 238),.45);text-shadow:0 0 6px var(--bf-accent-a, #22d3ee),0 0 14px var(--bf-accent-b, #a855f7);opacity:0;pointer-events:none;transform:none}",
+    /* NAMED BEFORE → AFTER (Nov 10 2026, artist name, screen-aware motion). BEFORE: the keyframes moved it from
+       translateX(-150%) to translateX(150%), always to the right. AFTER: the keyframes fade it (opacity only); the
+       travel is its inline transform, set by sweep() from the screen, carried by a transform transition. */
+    ".bbx[data-sweep=on] .bbx-sweep{animation:bbx-sweep " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1) 1 both;transition:transform " + (SWEEP_MS / 1000) + "s cubic-bezier(.3,.6,.4,1)}",
     ".bbx[data-sweep=on] .bbx-ticker{opacity:0}",
     ".bbx[data-sweep=done] .bbx-ticker{animation:bbx-settle .45s ease-out 1 both}",
     ".bfm[data-hidden=true] .bbx-scroll,.bfm[data-hidden=true] .bbx-ticker-track,.bfm[data-hidden=true] .bfm-tag-scroll,.bfm[data-hidden=true] .bbx-sweep,.bfm[data-hidden=true] .bbx-sheen,.bfm[data-hidden=true] .bbx-rim-shine,.bfm[data-hidden=true] .bfm-tag-sheen{animation-play-state:paused}",
     "@keyframes bbx-loop{0%," + (SCROLL_HOLD * 100) + "%{transform:translateX(0)}100%{transform:translateX(-50%)}}",
-    "@keyframes bbx-sweep{0%{transform:translateX(-150%);opacity:0}18%{opacity:1}82%{opacity:1}100%{transform:translateX(150%);opacity:0}}",
+    "@keyframes bbx-sweep{0%{opacity:0}18%{opacity:1}82%{opacity:1}100%{opacity:0}}",
     "@keyframes bbx-settle{from{opacity:0}to{opacity:1}}",
     "@keyframes bbx-sheen{0%,58%{transform:translateX(-170px) skewX(-14deg)}100%{transform:translateX(620px) skewX(-14deg)}}",
     "@keyframes bbx-rim{0%,100%{transform:translate(-8%,-6%)}25%{transform:translate(14%,4%)}50%{transform:translate(20%,18%)}75%{transform:translate(2%,12%)}}",
@@ -470,7 +482,7 @@
     ".bfm-float[data-dock=phone][data-library=true] .bfm-drawer{display:block}",
     ".bfm-float[data-dock=phone] .bfm-panel{transform:none;max-height:none}",
     ".bfm-float[data-dock=phone] .bbx-body-grip{cursor:default}",
-    "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-sweep,.bbx-ticker,.bbx-sheen,.bbx-rim-shine,.bfm-tag-sheen{animation:none!important}.bbx-sweep,.bbx-sheen,.bfm-tag .bfm-tag-sheen{display:none}.bbx-keys button,.bbx-fkeys button,.bfm-panel{transition:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
+    "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-ticker,.bbx-sheen,.bbx-rim-shine,.bfm-tag-sheen{animation:none!important}.bbx-sweep{transition:none!important}.bbx-sheen,.bfm-tag .bfm-tag-sheen{display:none}.bbx-keys button,.bbx-fkeys button,.bfm-panel{transition:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
   ].join("\n");
   function injectStyle() {
     if (doc.getElementById("bf-boombox-style")) return;
@@ -523,7 +535,7 @@
           '<span class="bbx-lbl" aria-hidden="true">Vol</span></div>' +
         '<div class="bbx-fkeys" role="group" aria-label="Boombox">' + fkeys + "</div>" +
       "</div>" +
-      '<div class="bbx-sweep" aria-hidden="true"><span>Now playing</span></div>' +
+      '<div class="bbx-sweep" aria-hidden="true"><span>' + NOW_PLAYING + '</span></div>' +
     "</div>";
   }
   function tagHtml() {
@@ -548,6 +560,36 @@
   /* The stage a page opens in: what the member left it as, else the icon on
      the dashboard (home) and the bar elsewhere (shown there only while music is on). */
   function stageOf(s, home) { return STAGES.indexOf(s) !== -1 ? s : (home ? "icon" : "tag"); }
+
+  /* THE NOW PLAYING BANNER'S NAME (Nov 10 2026, artist name, screen-aware motion): the track's artist,
+     trimmed; with no artist, its title; with neither, NOW_PLAYING. Shown with textContent only (a member's
+     own upload names it). */
+  function sweepName(v) {
+    v = v || {};
+    var a = typeof v.artist === "string" ? v.artist.trim() : "";
+    if (a) return a;
+    var t = typeof v.title === "string" ? v.title.trim() : "";
+    if (t) return t;
+    return NOW_PLAYING;
+  }
+  /* THE BANNER'S PATH (Nov 10 2026, artist name, screen-aware motion). A pure function, window coordinates:
+     box (the boombox's box), w (the banner's width), view ({ left, width }: the visual viewport), still
+     (reduced motion). Home is the banner centred on the boombox, inside the viewport. It travels toward
+     the side with more room (left when the boombox's centre is right of the viewport's centre, else right),
+     SWEEP_TRAVEL widths, every point of the way clamped so its whole box stays SWEEP_EDGE inside the
+     viewport. Wider than the room on both sides, or under reduced motion: no travel, at home. */
+  function sweepPlan(box, w, view, still) {
+    var lo = view.left + SWEEP_EDGE, hi = Math.max(view.left + view.width - SWEEP_EDGE - w, lo);
+    var clampX = function (x) { return Math.min(Math.max(x, lo), hi); };
+    var c = (box.left + box.right) / 2;
+    var home = clampX(c - w / 2);
+    var dir = c > view.left + view.width / 2 ? -1 : 1;
+    if (still) return { dir: dir, from: home, to: home, travel: 0 };
+    if (w > home - lo && w > hi - home) return { dir: dir, from: home, to: home, travel: 0 };
+    var half = SWEEP_TRAVEL * w / 2;
+    var from = clampX(home - dir * half), to = clampX(home + dir * half);
+    return { dir: dir, from: from, to: to, travel: Math.abs(to - from) };
+  }
 
   /* THE MUSIC BUTTON'S PLAN (Nov 9 2026, button kept in the top bar). A pure function of boxes, in
      window coordinates: bar (the top bar's own box), logo (the logo block), items (the bar's other
@@ -1087,6 +1129,7 @@
 
     /* ── what it shows ───────────────────────────────────────────────────── */
     var lastKey = null, seenStarts, sweepTimer = null, sweepCount = 0;
+    var seenTrack, nowName = NOW_PLAYING;
     var vfdShown = null, tickerShown = null, tagText = NO_TRACK, tagShown = null;
     function two(n) { return (n < 10 ? "0" : "") + n; }
     /* A loop's length: the line at about five characters a second, plus the hold at its start. */
@@ -1128,14 +1171,39 @@
       if (over) { sc.appendChild(span("bfm-tag-ghost", tagText, true)); sc.style.setProperty("--bbx-scroll-s", scrollSeconds(tagText) + "s"); }
       clip.setAttribute("data-overflow", over ? "true" : "false");
     }
-    /* The neon "Now playing" banner, once, then the ticker settles in. */
+    /* The neon banner, once, then the ticker settles in.
+       NAMED BEFORE → AFTER (Nov 10 2026, artist name, screen-aware motion). BEFORE: "Now playing", always moving
+       right, and nothing under reduced motion. AFTER: the artist's name (sweepName), its path measured from the
+       screen EACH time it shows (measureSweep: the boombox wherever it was dragged, the window as it is now),
+       moved by its transform only; under reduced motion it fades in place. */
+    function measureSweep(sw) {
+      var vv = window.visualViewport;
+      var view = vv && vv.width > 0 ? { left: vv.offsetLeft || 0, width: vv.width } : { left: 0, width: window.innerWidth };
+      var b = rectOf(box), s = rectOf(sw);
+      var scale = b.right - b.left > 0 ? (b.right - b.left) / BOX_W : 1;
+      var plan = sweepPlan(b, s.right - s.left, view, reducedMotion());
+      plan.dx0 = Math.round((plan.from - s.left) / scale);
+      plan.dx1 = Math.round((plan.to - s.left) / scale);
+      sw.setAttribute("data-from", String(Math.round(plan.from)));
+      sw.setAttribute("data-to", String(Math.round(plan.to)));
+      sw.setAttribute("data-dir", plan.dir < 0 ? "left" : "right");
+      return plan;
+    }
     function sweep() {
-      if (reducedMotion() || !box) return;
+      if (!box) return;
+      var sw = $(".bbx-sweep"), sp = sw && sw.querySelector("span");
+      if (!sw || !sp) return;
       sweepCount++;
       if (sweepTimer) clearTimeout(sweepTimer);
       box.setAttribute("data-sweep", "off");
-      void box.offsetWidth;   // so the banner starts again from the left
+      sp.textContent = nowName;
+      sw.setAttribute("title", nowName);
+      sw.style.transform = "none";
+      var plan = measureSweep(sw);
+      sw.style.transform = "translateX(" + plan.dx0 + "px)";
+      void box.offsetWidth;   // so the banner starts again from its first spot
       box.setAttribute("data-sweep", "on");
+      sw.style.transform = "translateX(" + plan.dx1 + "px)";
       sweepTimer = setTimeout(function () { sweepTimer = null; box.setAttribute("data-sweep", "done"); }, SWEEP_MS);
     }
     /* v: { title, artist, track_id, playing, starts, index, total, playlist,
@@ -1195,11 +1263,18 @@
         var live = $(".bfm-live");
         if (live) live.textContent = loaded ? "Now playing: " + title + (artist ? " by " + artist : "") : "";
       }
+      /* the banner's name: the artist, else the title, else "Now Playing" */
+      nowName = sweepName(loaded ? v : {});
       /* once per new track: the sweep (a pause and a resume start nothing new) */
       if (typeof v.starts === "number") {
         if (seenStarts !== undefined && v.starts !== seenStarts && loaded) sweep();
         seenStarts = v.starts;
+      } else if (v.track_id) {
+        /* NAMED (Nov 10 2026): keep playing between pages. The pop-out plays and this page is its remote
+           (starts is null): the pop-out's new track is the new track here too. */
+        if (seenTrack !== undefined && v.track_id !== seenTrack && loaded) sweep();
       }
+      if (v.track_id) seenTrack = v.track_id;
       /* the mixer shows the player's own values, except on a control in the member's hand */
       if (typeof v.volume === "number" && !busy(fader)) setVol(v.muted ? 0 : v.volume, false);
       if (typeof v.mix === "number" && !busy(xf)) setMix(v.mix, false);
@@ -1247,6 +1322,7 @@
     BOX_W: BOX_W, BOX_H: BOX_H, BAR_W: BAR_W, BAR_H: BAR_H, ICON_W: ICON_W, ICON_H: ICON_H, ICON_MIN_GAP: ICON_MIN_GAP, ICON_SMALL: ICON_SMALL, BAR_SEL: BAR_SEL, iconPlan: iconPlan, MUSIC_ICON: MUSIC_ICON, STAGES: STAGES, POSITIONS: POSITIONS,
     XF_TRAVEL: XF_TRAVEL, VOL_TRAVEL: VOL_TRAVEL, LEDS: LEDS, EQ_MAX: EQ_MAX, MIX_MAX: MIX_MAX, FINISHES: FINISHES,
     CONE_PULSE: CONE_PULSE, CAP_PULSE: CAP_PULSE,
-    NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS
+    NO_TRACK: NO_TRACK, ALL_TRACKS: ALL_TRACKS, SWEEP_MS: SWEEP_MS, TAG_FIT_CHARS: TAG_FIT_CHARS,
+    NOW_PLAYING: NOW_PLAYING, SWEEP_TRAVEL: SWEEP_TRAVEL, SWEEP_EDGE: SWEEP_EDGE, sweepName: sweepName, sweepPlan: sweepPlan
   };
 })();
