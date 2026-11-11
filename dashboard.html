@@ -1102,7 +1102,24 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
      section, and a section the server could not read shows that error in its
      own panel, never an empty list or a zero. Loaded when the page opens and
      on Refresh; nothing polls. -->
-<section id="commandCenterSection" class="bf-section">
+<!-- DASHBOARD TABS (Nov 10 2026, dashboard tabs). The Command Center is one scripts/bf-tabs.js panel:
+     Command, Plans, Activity, Autopilot, Outbound, System and Memory (the Agent Memory section, moved
+     here unchanged). scripts/bf-command-center.js reads data-cc-mode="tabs" and draws each tab from the
+     one GET /api/command-center read the first time it opens. #cc-command … in the address; the last tab
+     in sessionStorage bf_cc_tab. -->
+<style id="ccTabsStyle">
+.cc-deck .deck-panel{padding:16px}
+.cc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.cc-chip{font-size:.76rem;font-weight:700;padding:5px 10px;border-radius:999px;border:1px solid rgba(110,231,183,.35);background:rgba(110,231,183,.08);color:#c9f7e6}
+.cc-chip.is-alert{border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.1);color:#fca5a5}
+.cc-toggle{margin:6px 0}
+.cc-health,.cc-attn{color:#fca5a5;font-weight:700}
+.cc-steps .cc-plan{border:0;padding:0;margin:0;background:none}
+.cc-steps .cc-plan-head{display:none}
+.cc-deck #agentMemorySection{margin:0}
+</style>
+<script src="/scripts/bf-tabs.js"></script>
+<section id="commandCenterSection" class="bf-section" data-cc-mode="tabs">
   <div class="bf-section-header">
     <div class="bf-section-header-copy">
       <h2 class="bf-section-title">Command Center</h2>
@@ -1112,18 +1129,23 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
       <button type="button" class="bf-btn bf-btn-ghost" id="ccRefresh">Refresh</button>
     </div>
   </div>
-  <div class="cc-grid">
-    <div class="bf-card bf-panel cc-panel"><h3>Needs you</h3><div id="ccNeedsYou">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel"><h3>Executive plans</h3><div id="ccPlans">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel"><h3>Agent activity</h3><div id="ccActivity">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel"><h3>Autopilot</h3><div id="ccAutopilot">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel"><h3>Outbound</h3><div id="ccOutbound">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel"><h3>Spend</h3><div id="ccSpend">Loading…</div></div>
-    <div class="bf-card bf-panel cc-panel" id="ccPlatformPanel" style="display:none"><h3>Platform</h3><div id="ccPlatform"></div></div>
-  </div>
-</section>
-<script src="/scripts/bf-command-center.js"></script>
-
+  <div id="ccDeck" class="cc-deck">
+    <div class="deck-tabs deck-tabs-scroll" role="tablist" aria-label="Command Center">
+      <button type="button" class="deck-tab is-on" role="tab" id="ccTab-command" data-cc-tab="command" aria-controls="ccPanel-command" aria-selected="true" tabindex="0">Command</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-plans" data-cc-tab="plans" aria-controls="ccPanel-plans" aria-selected="false" tabindex="-1">Plans</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-activity" data-cc-tab="activity" aria-controls="ccPanel-activity" aria-selected="false" tabindex="-1">Activity</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-autopilot" data-cc-tab="autopilot" aria-controls="ccPanel-autopilot" aria-selected="false" tabindex="-1">Autopilot</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-outbound" data-cc-tab="outbound" aria-controls="ccPanel-outbound" aria-selected="false" tabindex="-1">Outbound</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-system" data-cc-tab="system" aria-controls="ccPanel-system" aria-selected="false" tabindex="-1">System</button>
+      <button type="button" class="deck-tab" role="tab" id="ccTab-memory" data-cc-tab="memory" aria-controls="ccPanel-memory" aria-selected="false" tabindex="-1">Memory</button>
+    </div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-command" aria-labelledby="ccTab-command" tabindex="0"><div class="cc-chips" id="ccChips"></div><div id="ccCommand">Loading…</div></div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-plans" aria-labelledby="ccTab-plans" tabindex="0" hidden><div id="ccPlansTab">Loading…</div></div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-activity" aria-labelledby="ccTab-activity" tabindex="0" hidden><div id="ccActivityTab">Loading…</div></div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-autopilot" aria-labelledby="ccTab-autopilot" tabindex="0" hidden><div id="ccAutopilotTab">Loading…</div></div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-outbound" aria-labelledby="ccTab-outbound" tabindex="0" hidden><div id="ccOutboundTab">Loading…</div></div>
+    <div class="deck-panel bf-card bf-panel cc-panel" role="tabpanel" id="ccPanel-system" aria-labelledby="ccTab-system" tabindex="0" hidden><div id="ccSystemTab">Loading…</div></div>
+    <div class="deck-panel" role="tabpanel" id="ccPanel-memory" aria-labelledby="ccTab-memory" tabindex="0" hidden>
 <section id="agentMemorySection" class="bf-section bf-section-compact">
   <div class="bf-collapsible bf-summary-card bf-glass-panel bf-card bf-memory-panel">
     <div class="bf-collapsible-header">
@@ -1151,6 +1173,11 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
   <div id="agentMemoryList" class="bf-memory-list"></div>
   </div>
 </section>
+    </div>
+  </div>
+</section>
+<script src="/scripts/bf-command-center.js"></script>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {

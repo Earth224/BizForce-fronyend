@@ -25,8 +25,8 @@
      loads this script and has no entry here shows no guide at all. */
   var PAGE_GUIDANCE = {
     "dashboard.html": [
-      "Start in \"Command Center\": \"Needs you\" lists the proposals waiting for your approval and the runs that failed.",
-      "Under \"Executive plans\", press \"Dispatch\" to run an assignment; that run then joins the count in \"Agent activity\".",
+      "Start in \"Command Center\": its \"Command\" tab lists the proposals waiting for your approval and the runs that failed.",
+      "Under \"Plans\", press \"Show steps\", then \"Dispatch\" to run an assignment; that run then joins the counts under \"Activity\".",
       "The music button in the top bar is your music: press it for the bar, then the boombox; \"Library\" slides out your tracks, \"Close to icon\" tucks it away.",
       "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
       "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
@@ -334,7 +334,7 @@
     ],
     "index.html": [
       "Signed in, this page sends you straight on to your dashboard; if it has not moved, reload it.",
-      "On the dashboard, the Command Center holds the proposals and failed runs waiting for you.",
+      "On the dashboard, the Command Center's Command tab holds the proposals and failed runs waiting for you.",
       "As a member you never need this public introduction, and nothing on it changes your account.",
       "Stuck here after your session ended? Press \"Sign In\" again."
     ],

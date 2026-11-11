@@ -40,8 +40,6 @@
 
   function $(id) { return document.getElementById(id); }
   function tok() { try { return localStorage.getItem("bf_token"); } catch (e) { return null; } }
-  function remembered() { try { return localStorage.getItem(TAB_KEY); } catch (e) { return null; } }
-  function remember(name) { try { localStorage.setItem(TAB_KEY, name); } catch (e) { /* a private window keeps no tab */ } }
   function tabOf(name) { return $("deckTab-" + name); }
   function panelOf(name) { return $("deckPanel-" + name); }
   function el(tag, cls, text) {
@@ -55,89 +53,44 @@
     return isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
 
-  /* ── the tabs ── */
-  var current = null;
-  function select(name, opts) {
-    opts = opts || {};
-    if (TABS.indexOf(name) === -1) name = "command";
-    current = name;
-    TABS.forEach(function (t) {
-      var tab = tabOf(t), panel = panelOf(t), on = t === name;
-      if (tab) {
-        tab.setAttribute("aria-selected", on ? "true" : "false");
-        tab.setAttribute("tabindex", on ? "0" : "-1");
-        tab.classList.toggle("is-on", on);
+  /* ── the tabs: scripts/bf-tabs.js (NAMED Nov 10 2026, dashboard tabs: the same select, route, keys and
+     hashchange, moved there unchanged; this page keeps its six tabs, plain hashes and localStorage bf_exec_tab) ── */
+  var tabs = window.BFTabs.create({
+    root: deck,
+    tabs: TABS,
+    attr: "data-deck-tab",
+    tabId: function (n) { return "deckTab-" + n; },
+    panelId: function (n) { return "deckPanel-" + n; },
+    hash: function (n) { return "#" + n; },
+    nameOf: function (h) { return h; },
+    storage: { kind: "local", key: TAB_KEY },
+    fallback: "command",
+    onSelect: function (name) { if (name === "history") loadHistory(); },
+    // The old #tool=plan link, or an element inside a tab.
+    extraRoute: function (h, api) {
+      if (/^tool=plan(&|$)/.test(h)) {
+        var prefill = "";
+        var m = /(?:^|&)prefill=([^&]*)/.exec(h);
+        if (m) { try { prefill = decodeURIComponent(m[1]); } catch (e) { prefill = ""; } }
+        api.select("command");
+        var plan = document.querySelector('[data-hq-mode="plan"]');
+        if (plan) plan.click();
+        var box = $("hqCommand");
+        if (box && prefill) box.value = prefill.slice(0, 2000);
+        return true;
       }
-      if (panel) panel.hidden = !on;
-    });
-    remember(name);
-    if (opts.hash !== false && window.location.hash !== "#" + name) {
-      try { setHash("#" + name, opts.push === true); } catch (e) { /* file:// and old browsers keep the old hash */ }
+      var target = null;
+      try { target = document.getElementById(decodeURIComponent(h)); } catch (e) { target = null; }
+      var holder = target ? api.tabHolding(target) : null;
+      if (holder) {
+        api.select(holder, { hash: false });
+        if (target.scrollIntoView) target.scrollIntoView({ block: "start" });
+        return true;
+      }
+      return false;
     }
-    if (opts.focus) { var t = tabOf(name); if (t && t.focus) t.focus(); }
-    if (name === "history") loadHistory();
-  }
-  // A tab pressed is a step the back button can undo; a tab the address already chose is not.
-  function setHash(hash, push) {
-    var h = window.history;
-    if (h && push && typeof h.pushState === "function") h.pushState(null, "", hash);
-    else if (h && typeof h.replaceState === "function") h.replaceState(null, "", hash);
-    else window.location.hash = hash;
-  }
-
-  // The tab panel that holds an element, for an in-page link.
-  function tabHolding(node) {
-    while (node && node !== document) {
-      if (node.getAttribute && node.getAttribute("role") === "tabpanel" && node.id.indexOf("deckPanel-") === 0) return node.id.slice("deckPanel-".length);
-      node = node.parentNode;
-    }
-    return null;
-  }
-
-  // What the address asks for: a tab, the old #tool=plan link, or an element inside a tab.
-  function route() {
-    var h = String(window.location.hash || "").replace(/^#/, "");
-    if (!h) { select(TABS.indexOf(remembered()) !== -1 ? remembered() : "command", { hash: false }); return; }
-    if (TABS.indexOf(h) !== -1) { select(h, { hash: false }); return; }
-    if (/^tool=plan(&|$)/.test(h)) {
-      var prefill = "";
-      var m = /(?:^|&)prefill=([^&]*)/.exec(h);
-      if (m) { try { prefill = decodeURIComponent(m[1]); } catch (e) { prefill = ""; } }
-      select("command");
-      var plan = document.querySelector('[data-hq-mode="plan"]');
-      if (plan) plan.click();
-      var box = $("hqCommand");
-      if (box && prefill) box.value = prefill.slice(0, 2000);
-      return;
-    }
-    var target = null;
-    try { target = document.getElementById(decodeURIComponent(h)); } catch (e) { target = null; }
-    var holder = target ? tabHolding(target) : null;
-    if (holder) {
-      select(holder, { hash: false });
-      if (target.scrollIntoView) target.scrollIntoView({ block: "start" });
-      return;
-    }
-    select(TABS.indexOf(remembered()) !== -1 ? remembered() : "command", { hash: false });
-  }
-
-  deck.addEventListener("click", function (e) {
-    var t = e.target && e.target.closest ? e.target.closest("[data-deck-tab]") : null;
-    if (t) { e.preventDefault(); select(t.getAttribute("data-deck-tab"), { push: true }); }
   });
-  deck.addEventListener("keydown", function (e) {
-    var t = e.target && e.target.closest ? e.target.closest("[data-deck-tab]") : null;
-    if (!t) return;
-    var i = TABS.indexOf(t.getAttribute("data-deck-tab")), next = null;
-    if (e.key === "ArrowRight") next = TABS[(i + 1) % TABS.length];
-    else if (e.key === "ArrowLeft") next = TABS[(i - 1 + TABS.length) % TABS.length];
-    else if (e.key === "Home") next = TABS[0];
-    else if (e.key === "End") next = TABS[TABS.length - 1];
-    if (!next) return;
-    e.preventDefault();
-    select(next, { focus: true, push: true });
-  });
-  window.addEventListener("hashchange", route);
+  var select = tabs.select, route = tabs.route, tabHolding = tabs.tabHolding;
 
   /* ── the Approvals badge, from bf-hq.js's queue ── */
   function badge(count) {
@@ -305,6 +258,6 @@
     if (node && node.scrollIntoView) node.scrollIntoView({ block: "start" });
   }
 
-  window.BFExecDeck = { select: select, reveal: reveal, openRun: openRun, closeDrawer: closeDrawer, history: runs, current: function () { return current; } };
+  window.BFExecDeck = { select: select, reveal: reveal, openRun: openRun, closeDrawer: closeDrawer, history: runs, current: tabs.current };
   route();
 })();

@@ -290,6 +290,470 @@
         document.dispatchEvent(new CustomEvent("bf:command-center", { detail: detail }));
     }
 
+    /* ══ CC-TABS: THE DASHBOARD'S TABBED MODE (Nov 10 2026, dashboard tabs) ═══════════════════════════════
+       dashboard.html's <section id="commandCenterSection" data-cc-mode="tabs"> holds one scripts/bf-tabs.js
+       panel: Command, Plans, Activity, Autopilot, Outbound, System, Memory (#cc-command …, sessionStorage
+       bf_cc_tab, Command by default). Every tab draws from the ONE GET /api/command-center read, the first
+       time it is opened (Command at once); Refresh reads it again and redraws the open tab. Everything here
+       builds DOM with textContent; the step detail and the spend sentence are the shared renderers' own
+       escaped HTML (renderPlans, renderSpend), set by setPanel. The Executive page has no data-cc-mode and
+       renders exactly as before.
+       What each tab shows, and its caps (no data is deleted; the caps only limit what is shown):
+         Command    proposals waiting (count, the 3 newest), runs failed in 7 days (count, the 3 newest), the
+                    email sender's reasons only while it is held; chips for model calls today, the
+                    subscription, spend this month and, for an admin, the platform ceiling today.
+         Plans      unfinished plans (at most 10, from plan_lists), then the recent plans of the last 14 days
+                    (at most 5, from plans), each with "Show steps"; "Past plans (N)" folded, the 5 newest when
+                    opened, with a link to the Executive page's Plans tab.
+         Activity   the 7-day count per agent (agents with runs only), the 5 newest runs, "Show more" up to 20,
+                    and "Full history" (the Executive page's History tab).
+         Autopilot  agents with Automatic on, one line each, and their schedules; "N agents manual".
+         Outbound   per type with anything: its total and its 3 newest; empty types left out.
+         System     spend this month; for an admin, one health line, only the jobs that need attention, the
+                    hourly families as "X of 24 on time" rows, the radar in one line, "Show all jobs".
+         Memory     the Agent Memory section, moved here unchanged. */
+    var ccSection = document.getElementById("commandCenterSection");
+    var TABBED = !!(ccSection && typeof ccSection.getAttribute === "function" && ccSection.getAttribute("data-cc-mode") === "tabs");
+    var CC_TABS = ["command", "plans", "activity", "autopilot", "outbound", "system", "memory"];
+    var CC_SHOW = { proposals: 3, failed: 3, runs: 5, runsMore: 20, outbound: 3, recentPlans: 5, recentDays: 14, hours: 24 };
+    var FAMILY_NAMES = { hourly_triggers: "Hourly triggers", hourly_agent_schedules: "Hourly agent schedules", hourly_email_sequences: "Hourly email sequences" };
+    var tabbed = !TABBED ? null : (function ccTabs() {
+        var body = null, failure = null, drawn = {}, openSteps = {}, ctl = null;
+        function $(id) { return document.getElementById(id); }
+        function el(tag, cls, text) {
+            var n = document.createElement(tag);
+            if (cls) { n.className = cls; }
+            if (text !== undefined && text !== null) { n.textContent = text; }
+            return n;
+        }
+        function link(href, text) { var n = el("a", null, text); n.setAttribute("href", href); return n; }
+        function words(node, text) { node.appendChild(document.createTextNode(text)); return node; }
+        function clear(node) { while (node && node.firstChild) { node.removeChild(node.firstChild); } }
+        function failBox(message) { return el("div", "cc-error", "Could not read this section: " + message); }
+        function money(n) { return "$" + Number(n).toFixed(2); }
+        function list(items, make) { var ul = el("ul"); items.forEach(function (x) { ul.appendChild(make(x)); }); return ul; }
+        function toggle(label, target, after) {
+            var b = el("button", "bf-btn bf-btn-ghost cc-toggle", label);
+            b.type = "button";
+            b.setAttribute("aria-expanded", "false");
+            b.setAttribute("aria-controls", target.id);
+            b.addEventListener("click", function () {
+                var open = b.getAttribute("aria-expanded") !== "true";
+                b.setAttribute("aria-expanded", open ? "true" : "false");
+                target.hidden = !open;
+                if (after) { after(open, b); }
+            });
+            return b;
+        }
+        // { data } for a section that answered, { error } otherwise; a failure is never data.
+        function section(name) {
+            if (failure !== null) { return { error: failure }; }
+            var s = body && body[name];
+            if (!s || typeof s !== "object") { return { error: "the answer did not include this section" }; }
+            if (s.ok !== true) { return { error: s.error || "the server gave no reason" }; }
+            return { data: s.data };
+        }
+
+        function drawChips(chips) {
+            var out = [];
+            var u = section("usage"), ud = u.data || {};
+            if (u.error || typeof ud.model_calls_today !== "number" || typeof ud.model_calls_daily_cap !== "number") {
+                out.push([true, "Model calls today could not be counted"]);
+            } else {
+                out.push([ud.model_calls_today >= ud.model_calls_daily_cap, "Model calls today: " + ud.model_calls_today + " of " + ud.model_calls_daily_cap]);
+            }
+            if (!u.error && ud.subscription_active === true) { out.push([false, "Subscription active"]); }
+            else if (!u.error && ud.subscription_active === false) { out.push([true, "Subscription not active — scheduled runs wait until it is"]); }
+            else { out.push([true, "Subscription could not be checked"]); }
+            var sp = section("spend"), sd = sp.data;
+            if (sp.error || !sd || typeof sd.usd !== "number") { out.push([true, "This month's spend could not be read"]); }
+            else if (typeof sd.monthly_cap_usd !== "number") { out.push([true, "Spend this month: " + money(sd.usd) + " — the monthly cap is not a usable number, so model calls are refused"]); }
+            else { out.push([sd.usd >= sd.monthly_cap_usd, "Spend this month: " + money(sd.usd) + " of " + money(sd.monthly_cap_usd)]); }
+            // The platform section is in an admin's answer only; its ceiling only there.
+            if (body && Object.prototype.hasOwnProperty.call(body, "platform")) {
+                var pf = section("platform"), c = pf.data && pf.data.ceiling;
+                if (pf.error || !c) { out.push([true, "Platform ceiling could not be read: " + (pf.error || "the answer carried none")]); }
+                else if (c.unavailable) { out.push([true, "Platform ceiling could not be read: " + c.unavailable]); }
+                else { out.push([c.spent_usd >= c.cap_usd * 0.8, "Platform ceiling today: " + money(c.spent_usd) + " of " + money(c.cap_usd)]); }
+            }
+            out.forEach(function (x) { chips.appendChild(el("span", "cc-chip" + (x[0] ? " is-alert" : ""), x[1])); });
+        }
+
+        function drawCommand() {
+            var out = $("ccCommand"), chips = $("ccChips");
+            clear(out); clear(chips);
+            if (chips) { drawChips(chips); }
+            var s = section("needs_you");
+            if (s.error) { out.appendChild(failBox(s.error)); return; }
+            var d = s.data, p = d && d.pending_proposals, f = d && d.failed_runs_7d, snd = d && d.email_sender;
+            if (!p || typeof p.count !== "number" || !Array.isArray(p.rows) || !f || typeof f.count !== "number" || !Array.isArray(f.rows) ||
+                !snd || !Array.isArray(snd.blocked_by)) {
+                out.appendChild(failBox("the answer did not carry proposals, failed runs and the email sender"));
+                return;
+            }
+            if (p.count === 0 && f.count === 0 && snd.blocked_by.length === 0) {
+                out.appendChild(el("p", "cc-clear", "Nothing needs you right now."));
+                return;
+            }
+            if (p.count > 0) {
+                out.appendChild(el("div", "cc-sub", "Proposals waiting for you (" + p.count + ")"));
+                out.appendChild(list(p.rows.slice(0, CC_SHOW.proposals), function (r) {
+                    var li = el("li");
+                    li.appendChild(link("proposals.html", r.title || "Untitled proposal"));
+                    words(li, " ");
+                    li.appendChild(el("span", "cc-muted", (r.agent_type || "") + " · " + when(r.created_at)));
+                    return li;
+                }));
+                if (p.count > CC_SHOW.proposals) {
+                    var more = el("p", "cc-muted", "and " + (p.count - CC_SHOW.proposals) + " more on ");
+                    more.appendChild(link("proposals.html", "Proposals"));
+                    out.appendChild(words(more, "."));
+                }
+            }
+            if (f.count > 0) {
+                out.appendChild(el("div", "cc-sub", "Runs that failed in the last 7 days (" + f.count + ")"));
+                out.appendChild(list(f.rows.slice(0, CC_SHOW.failed), function (r) {
+                    var li = el("li");
+                    li.appendChild(link("run.html?id=" + encodeURIComponent(r.id), (r.agent_type || "") + " · " + (r.task_type || "")));
+                    words(li, " ");
+                    li.appendChild(el("span", "cc-muted", when(r.created_at)));
+                    return li;
+                }));
+                if (f.count > CC_SHOW.failed) { out.appendChild(el("p", "cc-muted", "and " + (f.count - CC_SHOW.failed) + " more.")); }
+            }
+            if (snd.blocked_by.length) {
+                out.appendChild(el("div", "cc-sub", "Email sender: sequence mail is held"));
+                out.appendChild(list(snd.blocked_by, function (reason) { return el("li", null, SENDER_REASONS[reason] || reason); }));
+            }
+        }
+
+        function planHead(plan) {
+            var head = el("div", "cc-plan-head");
+            head.appendChild(el("strong", null, plan.goal || "No goal recorded"));
+            head.appendChild(el("span", "cc-muted", when(plan.created_at) + " · " + (plan.status || "")));
+            return head;
+        }
+        function planWithSteps(plan) {
+            var card = el("div", "cc-plan");
+            card.appendChild(planHead(plan));
+            var steps = el("div", "cc-steps");
+            steps.id = "ccSteps-" + plan.id;
+            steps.hidden = true;
+            var fill = function (open, b) {
+                if (open) { openSteps[plan.id] = true; setPanel(steps.id, renderPlans([plan])); b.textContent = "Hide steps"; }
+                else { delete openSteps[plan.id]; b.textContent = "Show steps"; }
+            };
+            var b = toggle("Show steps", steps, fill);
+            card.appendChild(b);
+            card.appendChild(steps);
+            if (openSteps[plan.id]) { b.setAttribute("aria-expanded", "true"); steps.hidden = false; fill(true, b); }
+            return card;
+        }
+        function drawPlans() {
+            var out = $("ccPlansTab");
+            clear(out);
+            var s = section("plan_lists"), d = s.data;
+            if (s.error) { out.appendChild(failBox(s.error)); return; }
+            if (!d || !Array.isArray(d.active) || typeof d.past_count !== "number" || !Array.isArray(d.past_latest)) {
+                out.appendChild(failBox("the answer did not carry the active and past plans"));
+                return;
+            }
+            var active = d.active.slice(0, 10);
+            var taken = {};
+            active.forEach(function (p) { taken[p.id] = true; });
+            d.past_latest.forEach(function (p) { taken[p.id] = true; });
+            // The recent plans: the plans section's newest, finished within the last 14 days.
+            var ps = section("plans");
+            var cutoff = Date.now() - CC_SHOW.recentDays * 86400000;
+            var recent = ps.error || !Array.isArray(ps.data) ? [] : ps.data.filter(function (p) {
+                return !taken[p.id] && new Date(p.created_at).getTime() >= cutoff;
+            }).slice(0, CC_SHOW.recentPlans);
+            if (!active.length && !recent.length && d.past_count === 0) {
+                var none = el("p", "cc-muted", "No executive plans yet. Build one on the ");
+                none.appendChild(link("executive-agent.html", "Executive agent"));
+                out.appendChild(words(none, " page."));
+                return;
+            }
+            if (active.length) {
+                out.appendChild(el("div", "cc-sub", "Active plans (" + active.length + ")"));
+                active.forEach(function (p) { out.appendChild(planWithSteps(p)); });
+            }
+            if (ps.error) { out.appendChild(failBox(ps.error)); }
+            if (recent.length) {
+                out.appendChild(el("div", "cc-sub", "Recent plans (last 14 days)"));
+                recent.forEach(function (p) { out.appendChild(planWithSteps(p)); });
+            }
+            if (d.past_count > 0) {
+                var past = el("div", "cc-fold");
+                past.id = "ccPastPlans";
+                past.hidden = true;
+                past.appendChild(list(d.past_latest.slice(0, 5), function (p) {
+                    var li = el("li");
+                    li.appendChild(el("strong", null, p.goal || "No goal recorded"));
+                    words(li, " ");
+                    li.appendChild(el("span", "cc-muted", "finished " + when(p.finished_at) + " · " + (p.status || "")));
+                    return li;
+                }));
+                var all = el("p", "cc-muted", "Every plan is on the ");
+                all.appendChild(link("executive-agent.html#plans", "Executive page's Plans tab"));
+                past.appendChild(words(all, "."));
+                out.appendChild(toggle("Past plans (" + d.past_count + ")", past));
+                out.appendChild(past);
+            }
+        }
+
+        function drawActivity() {
+            var out = $("ccActivityTab");
+            clear(out);
+            var s = section("activity"), d = s.data;
+            if (s.error) { out.appendChild(failBox(s.error)); return; }
+            if (!d || !d.counts_7d || typeof d.counts_7d !== "object" || !Array.isArray(d.newest_runs_20) || typeof d.sales_dry_runs !== "number") {
+                out.appendChild(failBox("the answer did not carry the 7-day counts and the newest runs"));
+                return;
+            }
+            out.appendChild(el("div", "cc-sub", "Last 7 days"));
+            var agents = Object.keys(d.counts_7d).sort().filter(function (a) {
+                return Object.keys(d.counts_7d[a] || {}).some(function (st) { return d.counts_7d[a][st] > 0; });
+            });
+            if (!agents.length) { out.appendChild(el("p", "cc-muted", "No runs in the last 7 days.")); }
+            else {
+                out.appendChild(list(agents, function (a) {
+                    var by = d.counts_7d[a], total = 0;
+                    Object.keys(by).forEach(function (st) { total += by[st]; });
+                    var li = el("li");
+                    li.appendChild(el("strong", null, a));
+                    words(li, " " + plural(total, "run", "runs") + " ");
+                    li.appendChild(el("span", "cc-muted", Object.keys(by).sort().map(function (st) { return st + " " + by[st]; }).join(" · ")));
+                    return li;
+                }));
+            }
+            out.appendChild(el("p", "cc-muted", "Sales dry runs in the last 30 days, counted apart: " + d.sales_dry_runs + " — drafts that were never sent."));
+            out.appendChild(el("div", "cc-sub", "Newest runs"));
+            var runs = d.newest_runs_20.slice(0, CC_SHOW.runsMore);
+            if (!runs.length) { out.appendChild(el("p", "cc-muted", "No runs yet.")); }
+            else {
+                var row = function (r) {
+                    var li = el("li");
+                    li.appendChild(link("run.html?id=" + encodeURIComponent(r.id), (r.agent_type || "") + " · " + (r.task_type || "") + " · " + (r.status || "")));
+                    words(li, " ");
+                    li.appendChild(el("span", "cc-muted", when(r.created_at)));
+                    return li;
+                };
+                out.appendChild(list(runs.slice(0, CC_SHOW.runs), row));
+                if (runs.length > CC_SHOW.runs) {
+                    var rest = list(runs.slice(CC_SHOW.runs), row);
+                    rest.id = "ccMoreRuns";
+                    rest.hidden = true;
+                    out.appendChild(toggle("Show more", rest, function (open, b) { b.textContent = open ? "Show fewer" : "Show more"; }));
+                    out.appendChild(rest);
+                }
+            }
+            var full = el("p");
+            full.appendChild(link("executive-agent.html#history", "Full history"));
+            out.appendChild(full);
+        }
+
+        function drawAutopilot() {
+            var out = $("ccAutopilotTab");
+            clear(out);
+            var s = section("autopilot"), d = s.data;
+            if (s.error) { out.appendChild(failBox(s.error)); return; }
+            if (!d || !Array.isArray(d.autonomy) || !Array.isArray(d.schedules)) { out.appendChild(failBox("the answer did not carry autonomy and schedules")); return; }
+            var on = d.autonomy.filter(function (r) { return r.enabled === true; });
+            var manual = d.autonomy.length - on.length;
+            if (!on.length) { out.appendChild(el("p", "cc-muted", "No agents run automatically.")); }
+            else {
+                out.appendChild(el("div", "cc-sub", "Automatic"));
+                out.appendChild(list(on, function (r) {
+                    var li = el("li");
+                    li.appendChild(el("strong", null, r.agent_type));
+                    words(li, " Automatic on ");
+                    li.appendChild(el("span", "cc-muted", "since " + when(r.updated_at)));
+                    return li;
+                }));
+                var onTypes = on.map(function (r) { return r.agent_type; });
+                var mine = d.schedules.filter(function (r) { return onTypes.indexOf(r.agent_type) !== -1; });
+                out.appendChild(el("div", "cc-sub", "Schedules"));
+                if (!mine.length) { out.appendChild(el("p", "cc-muted", "No schedules for these agents.")); }
+                else {
+                    out.appendChild(list(mine, function (r) {
+                        var li = el("li");
+                        li.appendChild(el("strong", null, r.agent_type));
+                        words(li, " · " + r.task_type + " · " + r.cadence + " at " + r.hour_utc + ":00 UTC · " + (r.enabled === true ? "enabled" : "paused") + " ");
+                        li.appendChild(el("span", "cc-muted", "last ran " + (r.last_run_on || "never")));
+                        return li;
+                    }));
+                }
+            }
+            if (manual > 0) { out.appendChild(el("p", "cc-muted", plural(manual, "agent manual", "agents manual"))); }
+        }
+
+        function drawOutbound() {
+            var out = $("ccOutboundTab");
+            clear(out);
+            var s = section("outbound"), d = s.data;
+            if (s.error) { out.appendChild(failBox(s.error)); return; }
+            if (!d || !Array.isArray(d.email_sequences) || !d.social_drafts_by_status || !d.content_published_30d || typeof d.content_published_30d.count !== "number" ||
+                !Array.isArray(d.social_latest) || !Array.isArray(d.articles_latest)) {
+                out.appendChild(failBox("the answer did not carry sequences, drafts and articles"));
+                return;
+            }
+            var shown = 0;
+            if (d.email_sequences.length) {
+                shown++;
+                out.appendChild(el("div", "cc-sub", "Email sequences (" + d.email_sequences.length + ")"));
+                out.appendChild(list(d.email_sequences.slice(0, CC_SHOW.outbound), function (q) {
+                    var li = el("li");
+                    li.appendChild(el("strong", null, q.name));
+                    words(li, " · " + q.status + " ");
+                    var enrolled = Object.keys(q.enrollments || {}).sort().map(function (k) { return k + " " + q.enrollments[k]; }).join(" · ");
+                    li.appendChild(el("span", "cc-muted", enrolled || "no enrollments"));
+                    return li;
+                }));
+            }
+            var socialTotal = 0;
+            Object.keys(d.social_drafts_by_status).forEach(function (k) { socialTotal += d.social_drafts_by_status[k]; });
+            if (socialTotal > 0) {
+                shown++;
+                out.appendChild(el("div", "cc-sub", "Social posts (" + socialTotal + ")"));
+                out.appendChild(el("p", "cc-muted", Object.keys(d.social_drafts_by_status).sort().map(function (k) { return k + " " + d.social_drafts_by_status[k]; }).join(" · ")));
+                out.appendChild(list(d.social_latest.slice(0, CC_SHOW.outbound), function (x) {
+                    var li = el("li");
+                    li.appendChild(el("strong", null, (x.platform || "no platform") + " · " + x.status));
+                    words(li, " " + (x.preview || ""));
+                    return li;
+                }));
+            }
+            if (d.content_published_30d.count > 0 || d.articles_latest.length) {
+                shown++;
+                out.appendChild(el("div", "cc-sub", "Articles"));
+                out.appendChild(el("p", null, plural(d.content_published_30d.count, "article", "articles") + " published in the last 30 days."));
+                out.appendChild(list(d.articles_latest.slice(0, CC_SHOW.outbound), function (x) {
+                    var li = el("li");
+                    li.appendChild(el("strong", null, x.title || "Untitled article"));
+                    words(li, " ");
+                    li.appendChild(el("span", "cc-muted", when(x.published_at || x.created_at)));
+                    return li;
+                }));
+            }
+            if (!shown) { out.appendChild(el("p", "cc-muted", "Nothing has gone out yet.")); }
+        }
+
+        /* The jobs as units: each hourly family (name_h00 … name_h23) is one unit, on time only with all 24
+           hours on time; every other row is its own unit. */
+        function jobUnits(verdicts) {
+            var families = {}, units = [];
+            verdicts.forEach(function (v) {
+                var m = /^(hourly_[a-z_]+)_h(\d\d)$/.exec(v.job_name || "");
+                if (m && v.cadence === "hourly") {
+                    if (!families[m[1]]) { families[m[1]] = []; units.push({ family: m[1], rows: families[m[1]] }); }
+                    families[m[1]].push(v);
+                } else { units.push({ row: v }); }
+            });
+            units.forEach(function (u) {
+                if (u.family) {
+                    u.onTime = u.rows.filter(function (v) { return v.on_time === true; }).length;
+                    u.ok = u.onTime === CC_SHOW.hours;
+                    u.text = (FAMILY_NAMES[u.family] || u.family) + ": " + u.onTime + " of " + CC_SHOW.hours + " on time";
+                } else {
+                    u.ok = u.row.on_time === true;
+                    u.text = u.row.job_name + " — " + (u.row.on_time === true ? "on time" : (u.row.reason || "needs attention"));
+                }
+            });
+            return units;
+        }
+        function drawSystem() {
+            var out = $("ccSystemTab");
+            clear(out);
+            out.appendChild(el("div", "cc-sub", "Spend"));
+            var spend = el("div");
+            spend.id = "ccSystemSpend";
+            out.appendChild(spend);
+            var sp = section("spend");
+            if (sp.error) { spend.appendChild(failBox(sp.error)); } else { setPanel(spend.id, renderSpend(sp.data)); }
+            if (!body || !Object.prototype.hasOwnProperty.call(body, "platform")) { return; }
+            out.appendChild(el("div", "cc-sub", "Background jobs"));
+            var pf = section("platform"), d = pf.data;
+            if (pf.error) { out.appendChild(failBox(pf.error)); return; }
+            if (!d || !Array.isArray(d.job_runs) || !Array.isArray(d.radar_status) || !Array.isArray(d.jobs_on_time)) {
+                out.appendChild(failBox("the answer did not carry the jobs, their schedules and the radar"));
+                return;
+            }
+            var units = jobUnits(d.jobs_on_time);
+            var bad = units.filter(function (u) { return !u.ok; });
+            if (!units.length) { out.appendChild(el("p", "cc-muted", "No job has recorded a run.")); }
+            else if (!bad.length) { out.appendChild(el("p", "cc-clear", "All " + units.length + " background jobs ran on time")); }
+            else {
+                out.appendChild(el("p", "cc-health", bad.length + " of " + units.length + " background jobs need attention"));
+                var listed = bad.filter(function (u) { return u.family !== "hourly_triggers"; });
+                if (listed.length) { out.appendChild(list(listed, function (u) { return el("li", null, u.text); })); }
+            }
+            var triggers = units.filter(function (u) { return u.family === "hourly_triggers"; })[0];
+            if (triggers) { out.appendChild(el("p", triggers.ok ? null : "cc-attn", triggers.text)); }
+            var radar = d.radar_status.length ? d.radar_status.map(function (r) {
+                return r.source + " last tick " + when(r.last_tick_finished_at) + " · " + (r.last_outcome || "no outcome") + (r.last_error ? " (error: " + r.last_error + ")" : "");
+            }).join("; ") : "the radar has not recorded a tick";
+            out.appendChild(el("p", null, "Radar heartbeat: " + radar));
+            var verdictOf = {};
+            d.jobs_on_time.forEach(function (v) { verdictOf[v.job_name] = v; });
+            var all = list(d.job_runs, function (j) {
+                var v = verdictOf[j.job_name] || {};
+                var li = el("li");
+                li.appendChild(el("strong", null, j.job_name));
+                words(li, " " + (v.cadence || "no schedule") + " · " + (v.on_time === true ? "on time" : "needs attention" + (v.reason ? ": " + v.reason : "")) +
+                    " · last ran " + (j.last_run_on || "never") + " ");
+                li.appendChild(el("span", "cc-muted", "finished " + when(j.finished_at)));
+                if (j.last_error) { li.appendChild(el("div", "cc-error", j.last_error)); }
+                return li;
+            });
+            all.id = "ccAllJobs";
+            all.hidden = true;
+            out.appendChild(toggle("Show all jobs (" + d.job_runs.length + ")", all));
+            out.appendChild(all);
+        }
+
+        var DRAW = { command: drawCommand, plans: drawPlans, activity: drawActivity, autopilot: drawAutopilot, outbound: drawOutbound, system: drawSystem };
+        function draw(name) {
+            if (drawn[name] || !DRAW[name]) { return; }
+            if (body === null && failure === null) { return; }
+            drawn[name] = true;
+            DRAW[name]();
+        }
+        var deck = $("ccDeck");
+        if (deck && window.BFTabs) {
+            ctl = window.BFTabs.create({
+                root: deck,
+                tabs: CC_TABS,
+                attr: "data-cc-tab",
+                tabId: function (n) { return "ccTab-" + n; },
+                panelId: function (n) { return "ccPanel-" + n; },
+                hash: function (n) { return "#cc-" + n; },
+                nameOf: function (h) { var m = /^cc-([a-z]+)$/.exec(h); return m ? m[1] : null; },
+                storage: { kind: "session", key: "bf_cc_tab" },
+                fallback: "command",
+                onSelect: draw,
+                // An in-page link to an element inside a tab opens that tab.
+                extraRoute: function (h, api) {
+                    var target = null;
+                    try { target = document.getElementById(decodeURIComponent(h)); } catch (e) { target = null; }
+                    var holder = target ? api.tabHolding(target) : null;
+                    if (!holder) { return false; }
+                    api.select(holder, { hash: false });
+                    if (target.scrollIntoView) { target.scrollIntoView({ block: "start" }); }
+                    return true;
+                }
+            });
+            ctl.route();
+        }
+        function redraw() { drawn = {}; if (ctl && ctl.current()) { draw(ctl.current()); } }
+        return {
+            got: function (b) { body = b; failure = null; redraw(); },
+            failed: function (message) { body = null; failure = message; redraw(); },
+            tabs: function () { return ctl; }
+        };
+    })();
+    /* ══ end CC-TABS ══ */
+
     var RENDER = { needs_you: renderNeedsYou, plans: renderPlans, activity: renderActivity, autopilot: renderAutopilot, outbound: renderOutbound, spend: renderSpend };
 
     function renderSection(name, section) {
@@ -303,6 +767,14 @@
     }
 
     function renderAll(body, only) {
+        // The dashboard's tabs (CC-TABS above) draw from the whole answer, whatever was asked for.
+        if (tabbed) {
+            tabbed.got(body);
+            var stamp = document.getElementById("ccStatus");
+            if (stamp) { stamp.textContent = "Read " + when(body.generated_at); }
+            announce(body);
+            return;
+        }
         Object.keys(PANELS).forEach(function(name) {
             if (!only || only === name) { renderSection(name, body[name]); }
         });
@@ -321,6 +793,13 @@
     }
 
     function failAll(message, only) {
+        if (tabbed) {
+            tabbed.failed(message);
+            var stamp = document.getElementById("ccStatus");
+            if (stamp) { stamp.textContent = "Not loaded"; }
+            announce({ error: message });
+            return;
+        }
         Object.keys(PANELS).forEach(function(name) {
             if (!only || only === name) { setPanel(PANELS[name], errorBox(message)); }
         });

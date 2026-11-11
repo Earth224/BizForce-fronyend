@@ -57,6 +57,8 @@
      its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_exec_tab (the Executive command deck's last tab on this device),
+     bf_cc_tab (sessionStorage: the dashboard Command Center's last tab in
+     this tab; both kept through scripts/bf-tabs.js),
      bf_boombox (where the music boombox sits and whether it is minimised),
      bf_tmx_not_now (which of Termaximus's suggestions were set aside with
      "Not now" on this device, and until when: fixed rule names, no data),
