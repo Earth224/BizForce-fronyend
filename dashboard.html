@@ -346,7 +346,11 @@
   .orbit-panel{position:relative;background:var(--bf-bg, #060b1e);border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.2);border-radius:18px;padding:14px 16px 16px}
   .orbit-stage{position:relative;width:100%;max-width:980px;margin:0 auto;aspect-ratio:680/330;--os:1}
   .orbit-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-  .orbit-star{fill:#fff}
+  /* NAMED (Nov 11 2026, still stars): the Oracle's stars, drawn by scripts/bf-orbit.js into one layer under the panel's contents,
+     in the panel's pixels, on a wide screen and on the phone row alike. STILL: nothing on them animates or transitions. */
+  .orbit-stars{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:hidden;border-radius:18px}
+  .orbit-panel > :not(.orbit-stars){position:relative}
+  .orbit-star,.orbit-star *{animation:none !important;transition:none !important}
   .orbit-ring{fill:none;stroke:rgba(var(--bf-accent-a-rgb, 34,211,238),.3);stroke-width:1}
   .orbit-ring-inner{fill:none;stroke:rgba(var(--bf-accent-b-rgb, 208,140,255),.25);stroke-width:1;stroke-dasharray:3 6}
   .orbit-link{fill:none;stroke:rgba(124,240,201,.3);stroke-width:1;stroke-dasharray:2 5}
@@ -454,12 +458,9 @@
     .orbit-portal,.orbit-core{transition:none}
   }
   @media (max-width: 640px){
-    /* The starfield stays on a phone, where the ring's drawing is hidden: eight tiny stars as background dots. */
-    .orbit-panel{padding:12px 10px 14px;background-image:radial-gradient(circle at 6% 14%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),
-      radial-gradient(circle at 22% 88%, rgba(255,255,255,.4) 0 1px, transparent 1.5px),radial-gradient(circle at 37% 6%, rgba(255,255,255,.6) 0 1px, transparent 1.5px),
-      radial-gradient(circle at 58% 94%, rgba(255,255,255,.45) 0 1px, transparent 1.5px),radial-gradient(circle at 74% 9%, rgba(255,255,255,.55) 0 1px, transparent 1.5px),
-      radial-gradient(circle at 93% 72%, rgba(255,255,255,.5) 0 1px, transparent 1.5px),radial-gradient(circle at 3% 55%, rgba(255,255,255,.4) 0 1px, transparent 1.5px),
-      radial-gradient(circle at 97% 30%, rgba(255,255,255,.6) 0 1px, transparent 1.5px)}
+    /* The still stars stay on a phone, where the ring's drawing is hidden: the same layer, laid out around the row, with a
+       strip of sky above the core (28 px at the top, was 12). */
+    .orbit-panel{padding:28px 10px 14px}
     .orbit-stage{aspect-ratio:auto;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 6px;min-width:0;max-width:100%}
     .orbit-svg{display:none}
     .orbit-portal,.orbit-core{position:relative;transform:none !important}
@@ -475,6 +476,7 @@
 </style>
 <section id="orbitTop" class="bf-orbit" aria-label="Your tools">
   <div class="orbit-panel" id="orbitPanel">
+    <svg class="orbit-stars" id="orbitStars" aria-hidden="true" focusable="false"></svg>
     <div class="orbit-stage" id="orbitStage">
       <svg class="orbit-svg" id="orbitSvg" viewBox="0 0 680 330" aria-hidden="true" focusable="false"></svg>
     </div>

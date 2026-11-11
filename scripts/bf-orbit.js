@@ -55,7 +55,16 @@
   // A portal at angle a sits at (cx + rx sin a, cy + ry cos a): 0 is the bottom centre, 180 the top centre.
   var FRONT_DEG = -36;    // the lower-left slot, where an opened portal comes to rest
   var REST_BASE = -108;   // Grow -108 (upper left), Sell -36, Connect 36, Agents 108, Oracle 180 (top centre)
-  var STARS = [[38, 28, 0.9, 0.5], [118, 296, 0.7, 0.4], [212, 20, 1, 0.6], [474, 304, 0.8, 0.45], [560, 36, 0.7, 0.55], [646, 248, 1, 0.5], [22, 176, 0.8, 0.4], [662, 112, 0.7, 0.6]];
+  /* THE STARS (Nov 11 2026, still stars). The Oracle's abyss stars, kept STILL. oracle.html draws them on a canvas
+     (makeStar and drawStarAt), inline in each Oracle page and inside its drift and twinkle loop, so they cannot be shared
+     without changing those four pages: this is a faithful static copy in SVG, with drawStarAt's constants (ORACLE_STAR),
+     makeStar's tints, sizes and alphas (STAR_LAYERS, from a seeded generator, not a random one each load), and no animation,
+     no transition and nothing that changes over time. Each star: a soft radial halo, thin cross rays on the bright large
+     ones, and a sharp core, whitened on the brightest. */
+  var STAR_SEED = 36, STAR_LAYOUT_SEED = 1111;
+  var ORACLE_STAR = { haloR: 2.2, haloAlpha: 0.5, spikeLen: 6, spikeAlpha: 0.5, spikeWidth: 0.8, coreR: 0.7, coreEdgeAlpha: 0.15, brightAbove: 0.7, brightMix: 0.6 };
+  var STAR_TINTS = [{ r: 34, g: 211, b: 238 }, { r: 139, g: 92, b: 246 }, { r: 251, g: 191, b: 36 }];
+  var STAR_LAYERS = [{ count: 4, minR: 0.4, maxR: 0.9 }, { count: 6, minR: 0.8, maxR: 1.6 }, { count: 6, minR: 1.4, maxR: 2.6 }];
   var SYNODIC_DAYS = 29.530588853;
   var KNOWN_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14, 0);
   var DAY_MS = 86400000;
@@ -240,6 +249,8 @@
   if (!root) return;
   var stage = document.getElementById("orbitStage");
   var svg = document.getElementById("orbitSvg");
+  var panel = document.getElementById("orbitPanel");
+  var starsSvg = document.getElementById("orbitStars");
   var grid = document.getElementById("orbitGrid");
   var mainWrap = document.getElementById("orbitMain");
   var allTools = document.getElementById("orbitAllTools");
@@ -310,8 +321,119 @@
   }
   // A point on the ring's circle frame (radius rx, before the squash) at angle a, for a turned-with-the-ring drawing.
   function framePoint(a, r) { var rad = a * Math.PI / 180; return (r * Math.sin(rad)).toFixed(1) + " " + (r * Math.cos(rad)).toFixed(1); }
+  /* ── the still stars ── */
+  // A small seeded generator (mulberry32): the same stars, in the same places, on every load of the same panel size.
+  function seeded(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  // makeStar's look: radius in the layer's range, alpha .12 + u^2 * .8, one star in six tinted, rays when large and bright.
+  function starLooks() {
+    var rnd = seeded(STAR_SEED), out = [];
+    STAR_LAYERS.forEach(function (L) {
+      for (var i = 0; i < L.count; i++) {
+        var r = L.minR + rnd() * (L.maxR - L.minR);
+        var alpha = 0.12 + Math.pow(rnd(), 2) * 0.8;
+        var tint = rnd() < 1 / 6 ? STAR_TINTS[Math.floor(rnd() * STAR_TINTS.length)] : { r: 255, g: 255, b: 255 };
+        out.push({ r: r, alpha: alpha, tint: tint, spiked: r > L.minR + (L.maxR - L.minR) * 0.6 && alpha > 0.6 });
+      }
+    });
+    return out;
+  }
+  // How far a star's light reaches: its rays when it has them, else its halo.
+  function starReach(look) { return look.r * (look.spiked ? ORACLE_STAR.spikeLen : ORACLE_STAR.haloR); }
+  // Where a star may not sit, in the panel's pixels: g = { w, h, gap, apart, edge, circles: [{x, y, r}], boxes: [{x, y, w, h}] }.
+  function starClear(x, y, reach, g, placed) {
+    var k, c, b, dx, dy;
+    for (k = 0; k < g.circles.length; k++) { c = g.circles[k]; if ((x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) < (c.r + reach) * (c.r + reach)) return false; }
+    for (k = 0; k < g.boxes.length; k++) {
+      b = g.boxes[k]; dx = Math.max(b.x - x, 0, x - (b.x + b.w)); dy = Math.max(b.y - y, 0, y - (b.y + b.h));
+      if (dx * dx + dy * dy < reach * reach) return false;
+    }
+    for (k = 0; k < placed.length; k++) { c = placed[k]; if ((x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) < (c.reach + reach + g.apart) * (c.reach + reach + g.apart)) return false; }
+    return true;
+  }
+  // The seeded layout: each star tries seeded places until one is clear; a star with no clear place is left out.
+  function starLayout(g) {
+    var rnd = seeded(STAR_LAYOUT_SEED), placed = [], edge = g.edge;
+    starLooks().forEach(function (look, i) {
+      var reach = starReach(look), room = edge + reach;
+      if (g.w <= 2 * room || g.h <= 2 * room) return;
+      for (var tries = 0; tries < 600; tries++) {
+        var x = room + rnd() * (g.w - 2 * room), y = room + rnd() * (g.h - 2 * room);
+        if (starClear(x, y, reach + g.gap, g, placed)) { placed.push({ i: i, x: x, y: y, reach: reach, look: look }); return; }
+      }
+    });
+    return placed;
+  }
+  // The panel as it is drawn now. Wide: the ring's whole band (every place a portal, its open halo or its label can
+  // drift to) and the core. Phone row: each disc, each label and the core. Both: the search and the lines under it.
+  function starGeometry() {
+    var pr = panel.getBoundingClientRect();
+    var box = function (node, grow) { var r = node.getBoundingClientRect(); return { x: r.left - pr.left - grow, y: r.top - pr.top - grow, w: r.width + 2 * grow, h: r.height + 2 * grow }; };
+    // The phone row has little room: stars sit closer to each other and to the edge there.
+    var g = { w: pr.width, h: pr.height, gap: 4, apart: narrow() ? 6 : 14, edge: narrow() ? 3 : 6, circles: [], boxes: [] };
+    var sr = stage.getBoundingClientRect();
+    if (!narrow()) {
+      var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1, ox = sr.left - pr.left, oy = sr.top - pr.top, half = 0;
+      // The title alone, plus room for " (open)", so a portal open at load or later leaves the stars where they are.
+      PORTALS.forEach(function (p) { var t = portalName[p.key].querySelector(".orbit-portal-title") || portalName[p.key]; half = Math.max(half, t.getBoundingClientRect().width / 2); });
+      half += 30;
+      for (var a = 0; a < 360; a += 2) {
+        var rad = a * Math.PI / 180, x = ox + (VIEW.cx + VIEW.rx * Math.sin(rad)) * scale, y = oy + (VIEW.cy + VIEW.ry * Math.cos(rad)) * scale;
+        g.circles.push({ x: x, y: y, r: 43 * scale });
+        g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - 9, w: 2 * half, h: 18 });
+      }
+      g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: (VIEW.coreHaloR + 4) * scale });
+    } else {
+      // A label may grow to its whole cell ("Sell (open)"), so the cell's width is kept clear under it.
+      PORTALS.forEach(function (p) {
+        var cell = box(portalBtn[p.key], 0), name = box(portalName[p.key], 3);
+        g.boxes.push(box(portalBtn[p.key].querySelector(".orbit-disc"), 3));
+        g.boxes.push({ x: cell.x, y: name.y, w: cell.w, h: name.h });
+      });
+      g.boxes.push(box(core, 3));
+    }
+    var sb = box(panel.querySelector(".orbit-search"), 6), top = Math.min(sb.y, sr.bottom - pr.top);
+    g.boxes.push({ x: sb.x, y: top, w: sb.w, h: g.h - top });
+    return g;
+  }
+  function starGradient(defs, kind, id, attrs, stops) {
+    var gr = sv(kind, attrs); gr.setAttribute("id", id);
+    stops.forEach(function (s) { gr.appendChild(sv("stop", { offset: String(s[0]), "stop-color": "rgb(" + s[1].r + "," + s[1].g + "," + s[1].b + ")", "stop-opacity": String(+s[2].toFixed(4)) })); });
+    defs.appendChild(gr);
+  }
+  // drawStarAt, still: (a) the halo, then the rays (bright large stars only, under the core), then (b) the core.
+  function starNode(st, defs) {
+    var L = st.look, t = L.tint, a = L.alpha, O = ORACLE_STAR, id = "orbitStar" + st.i, x = st.x.toFixed(1), y = st.y.toFixed(1);
+    var g = sv("g", { "class": "orbit-star", "data-star": String(st.i), "data-r": L.r.toFixed(3), "data-alpha": a.toFixed(3), "data-spiked": L.spiked ? "1" : "0" });
+    starGradient(defs, "radialGradient", id + "h", {}, [[0, t, a * O.haloAlpha], [1, t, 0]]);
+    g.appendChild(sv("circle", { cx: x, cy: y, r: (L.r * O.haloR).toFixed(3), fill: "url(#" + id + "h)", "class": "orbit-star-halo" }));
+    if (L.spiked) {
+      var len = L.r * O.spikeLen, w = O.spikeWidth, ray = [[0, t, 0], [0.5, t, a * O.spikeAlpha], [1, t, 0]];
+      starGradient(defs, "linearGradient", id + "v", { x1: "0", y1: "0", x2: "0", y2: "1" }, ray);
+      starGradient(defs, "linearGradient", id + "x", { x1: "0", y1: "0", x2: "1", y2: "0" }, ray);
+      g.appendChild(sv("rect", { x: (st.x - w / 2).toFixed(2), y: (st.y - len).toFixed(2), width: String(w), height: (2 * len).toFixed(2), fill: "url(#" + id + "v)", "class": "orbit-star-ray" }));
+      g.appendChild(sv("rect", { x: (st.x - len).toFixed(2), y: (st.y - w / 2).toFixed(2), width: (2 * len).toFixed(2), height: String(w), fill: "url(#" + id + "x)", "class": "orbit-star-ray" }));
+    }
+    var c = a > O.brightAbove ? { r: Math.round(t.r + (255 - t.r) * O.brightMix), g: Math.round(t.g + (255 - t.g) * O.brightMix), b: Math.round(t.b + (255 - t.b) * O.brightMix) } : t;
+    starGradient(defs, "radialGradient", id + "c", {}, [[0, c, a], [1, t, a * O.coreEdgeAlpha]]);
+    g.appendChild(sv("circle", { cx: x, cy: y, r: (L.r * O.coreR).toFixed(3), fill: "url(#" + id + "c)", "class": "orbit-star-core" }));
+    return g;
+  }
+  // Drawn once, and again only when what they must keep clear of has moved (the same boxes give the same places).
+  var starsDrawn = "";
+  function drawStars() {
+    if (!starsSvg || !panel || !panel.getBoundingClientRect) return;
+    var g = starGeometry(), key = JSON.stringify([Math.round(g.w), Math.round(g.h), g.boxes.length > 200 ? g.boxes.slice(-4) : g.boxes].concat(g.circles.slice(-1)), function (k, v) { return typeof v === "number" ? Math.round(v) : v; });
+    if (key === starsDrawn) return;
+    starsDrawn = key;
+    while (starsSvg.firstChild) starsSvg.removeChild(starsSvg.firstChild);
+    var defs = sv("defs", {});
+    starsSvg.appendChild(defs);
+    starLayout(g).forEach(function (st) { starsSvg.appendChild(starNode(st, defs)); });
+  }
   function buildOrbit() {
-    STARS.forEach(function (s) { svg.appendChild(sv("circle", { cx: s[0], cy: s[1], r: s[2], opacity: s[3], "class": "orbit-star" })); });
     svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.rx, ry: VIEW.ry, "class": "orbit-ring" }));
     svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.innerRx, ry: VIEW.innerRy, "class": "orbit-ring-inner" }));
     // The links and beams live in the ring's frame: a circle of radius rx squashed to the ellipse, so turning one is a rotation.
@@ -796,6 +918,7 @@
   var api = {
     PORTALS: PORTALS, UTILITIES: UTILITIES, DRIFT_MS: DRIFT_MS, TURN_MS: TURN_MS, SYNODIC_DAYS: SYNODIC_DAYS,
     VIEW: VIEW, FRONT_DEG: FRONT_DEG, REST_BASE: REST_BASE, frontBase: frontBase,
+    ORACLE_STAR: ORACLE_STAR, STAR_TINTS: STAR_TINTS, STAR_LAYERS: STAR_LAYERS, starLooks: starLooks, starReach: starReach, starLayout: starLayout, starGeometry: starGeometry, drawStars: drawStars,
     moonPhase: moonPhase, moonPath: moonPath, figureFor: figureFor, orderTools: orderTools, attention: attention, firstPortal: firstPortal,
     slashKey: slashKey, state: state, load: load, open: function (k) { openPortal(k, true); }, fold: fold, tools: function () { return TOOL; },
     go: function (url) { window.location.assign(url); }
@@ -811,6 +934,9 @@
   drawMains();
   kick();
   window.addEventListener("resize", function () { size(); place(); });
+  drawStars();
+  window.addEventListener("resize", drawStars);
+  window.addEventListener("load", drawStars);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load);
   else load();
 }());

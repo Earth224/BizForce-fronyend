@@ -20,7 +20,8 @@
      the deck's tabs. Every other page is unchanged. */
   var DECK        = cfg.deck === true;
   var TOOLS       = Array.isArray(cfg.tools) && !DECK ? cfg.tools : [];
-  var LAUNCH_WORDS = DECK ? "send it a task from the Command tab" : "press Launch Task above";
+  // NAMED (Nov 11 2026, agent tabs): Launch Task is on the Run tab now, not above.
+  var LAUNCH_WORDS = DECK ? "send it a task from the Command tab" : "press Launch Task on the Run tab";
   var HAS_SOCIAL_DRAFTS = TASK_TYPES.some(function(t) { return t.value === "social_media_drafts"; });
 
   var pollTimer     = null;
@@ -695,8 +696,12 @@
 
     var html = [
       /* ── 1. Task launcher ── (none on the command deck: the card keeps only
-         Autonomous mode and Scheduled runs, and goes to the Settings tab) */
-      '<div class="ap-section"' + (DECK ? ' id="apSettingsSection"' : '') + '>',
+         Autonomous mode and Scheduled runs, and goes to the Settings tab)
+         NAMED (Nov 11 2026, agent tabs): on every other page the launcher and
+         this agent's tools are one card (#apRunSection, the Run tab) and
+         Autonomous mode with Scheduled runs another (#apScheduleSection, the
+         Schedule tab), by the owner's request. The deck's card is unchanged. */
+      '<div class="ap-section"' + (DECK ? ' id="apSettingsSection"' : ' id="apRunSection"') + '>',
         '<div class="ap-card">',
           DECK ? '' : [
           '<h2 class="ap-section-label">Run ' + esc(AGENT_LABEL) + ' Task</h2>',
@@ -714,10 +719,24 @@
             'Run this often? Keep it in ',
             '<a href="/saved-prompts.html" style="color:var(--bf-accent-a, #22d3ee)">Saved Prompts</a>',
             ' and fill in the parts that change.',
-          '</p>'
+          '</p>',
+          /* NOTHING AT ALL when this agent has no tools. Twelve of the eighteen
+             agents have none, and a "coming soon" panel on twelve pages is worse
+             than an absence: it takes up the same room as a working control,
+             invites a click that does nothing, and has to be maintained. An agent
+             with no tools configured renders no markup here, no heading, and no
+             divider. */
+          TOOLS.length ? toolsMarkup() : "",
+          '</div>',
+          '</div>',
+          '<div class="ap-section" id="apScheduleSection">',
+          '<div class="ap-card">'
           ].join(""),
 
-          /* IN THIS CARD, NOT A PANEL OF ITS OWN. Running the agent by hand
+          /* NAMED (Nov 11 2026, agent tabs): outside the command deck this is the
+             Schedule tab's own card now; the reasoning below still holds for the
+             switch and the schedule, which stay together.
+             IN THIS CARD, NOT A PANEL OF ITS OWN. Running the agent by hand
              and letting it run by itself are the two ways this agent does
              work, and the agent model requires them in one surface. Split
              across two cards, someone can read the manual controls, decide the
@@ -774,7 +793,7 @@
             '</div>',
 
             '<div class="ap-sched-empty" id="apSchedEmpty" hidden>',
-              'No schedule set. This ' + esc(AGENT_LABEL) + ' runs only when you ' + (DECK ? LAUNCH_WORDS : 'launch it above') + '.',
+              'No schedule set. This ' + esc(AGENT_LABEL) + ' runs only when you ' + (DECK ? LAUNCH_WORDS : 'launch it from the Run tab') + '.',
             '</div>',
 
             '<div class="ap-sched-actions" id="apSchedViewActions" hidden>',
@@ -853,30 +872,13 @@
             '<div class="ap-sched-msg" id="apSchedMsg"></div>',
           '</div>',
 
-          /* STILL THE SAME CARD, and NOTHING AT ALL when this agent has no tools.
-             Twelve of the eighteen agents have none, and a "coming soon" panel on
-             twelve pages is worse than an absence: it takes up the same room as a
-             working control, invites a click that does nothing, and has to be
-             maintained. An agent with no tools configured renders no markup here,
-             no heading, and no divider. */
-          TOOLS.length ? toolsMarkup() : "",
+          /* The tools are drawn in the Run card above (none on the command deck). */
         '</div>',
       '</div>',
 
-      /* ── 2. Live status ── (none on the command deck: the panel under the
-         page header already says what the agent is doing, once) */
-      DECK ? '' : [
-      '<div class="ap-section">',
-        '<div class="ap-card">',
-          '<h2 class="ap-section-label">Live Status</h2>',
-          '<div class="ap-live-row">',
-            '<div class="ap-dot idle" id="apDot"></div>',
-            '<span class="ap-live-label" id="apLiveLabel">Idle</span>',
-          '</div>',
-          '<div class="ap-live-meta" id="apLiveMeta">No active task</div>',
-        '</div>',
-      '</div>'
-      ].join(""),
+      /* ── 2. Live status ── REMOVED (Nov 11 2026, agent tabs) on every page:
+         the Live Activity strip's Now card under the page header already says
+         what the agent is doing, once (the command deck never had one). */
 
       /* ── 3. Stats + weekday chart. ONE STATS TRUTH: every figure here is
          this agent's GET /api/agents/<type>/live (renderLiveStats), the same
@@ -965,6 +967,9 @@
     var launchBtn = document.getElementById("apLaunchBtn");
     if (launchBtn && !DECK) launchBtn.addEventListener("click", launchTask);
 
+    // The tab folders (none on the command deck, which has its own); before the tools bind, so #tool=<id> finds its tab.
+    agTabs = buildAgentTabs(page) || agTabs;
+
     /* The deck's tabs hold what is left of this card and the two below it:
        Settings takes Autonomous mode, Scheduled runs and "How this agent
        learns", History takes Agent Stats. Moved, not redrawn, so every
@@ -1001,6 +1006,152 @@
     loadBusinessContext();
     loadLastRun();
     liveMount();
+  }
+
+  /* ══ AGENT TABS (Nov 11 2026, agent tabs) ════════════════════════════════
+     Every agent page but the command deck is one scripts/bf-tabs.js panel, as
+     the dashboard's Command Center is. Above it, unchanged: the back link, the
+     header, the Live Activity strip and the Refresh Data / Open Dashboard row.
+     In it, the sections are MOVED, not redrawn, so every listener holds:
+       Run       the launcher, Saved Prompts and this agent's tools (#apRunSection)
+       Schedule  Autonomous mode and Scheduled runs (#apScheduleSection)
+       Activity  Agent Stats, Task History, and the Approval Queue where drafts are
+       Learning  "How this agent learns from you" (#apLearnSection)
+       Business  the Business Profile Context card
+       and, only where AGENT_PROFILE_CONFIG.specificTab = { name, sectionIds }
+       says so, one tab of the page's own sections, in that order.
+     Hashes #ag-<tab>; the last tab in this browser tab is sessionStorage
+     bf_ag_tab_<agent> (try/catch, in bf-tabs.js); the default is Run. A link to
+     anything inside a tab (#ap-live-schedule, #tool=<id>, Recent runs' "Open
+     ...") opens that tab first. Without bf-tabs.js (an old cached copy, a
+     stubbed page) nothing moves and every section stays where it was drawn. */
+  var AG_TABS = [{ key: "run", name: "Run" }, { key: "schedule", name: "Schedule" }, { key: "activity", name: "Activity" }, { key: "learning", name: "Learning" }, { key: "business", name: "Business" }];
+  var SPECIFIC_TAB = cfg.specificTab && cfg.specificTab.name && Array.isArray(cfg.specificTab.sectionIds) && cfg.specificTab.sectionIds.length ? cfg.specificTab : null;
+  var AG_TAB_KEY = "bf_ag_tab_" + AGENT_TYPE;
+  var agTabs = null;
+
+  function agTabKey(name) { return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function sectionOf(id, cls) { var n = document.getElementById(id); return n && n.closest ? n.closest(cls) : null; }
+
+  // What each tab holds, found now; a page's own section that is drawn later is adopted when it appears.
+  function agTabSections(key) {
+    if (key === "run") return [document.getElementById("apRunSection")];
+    if (key === "schedule") return [document.getElementById("apScheduleSection")];
+    if (key === "activity") return [document.getElementById("apStatsSection"), sectionOf("apHistory", ".ap-section"), sectionOf("apApprovalQueue", ".ap-section")];
+    if (key === "learning") return [document.getElementById("apLearnSection")];
+    if (key === "business") return [sectionOf("businessContextGrid", ".context-card")];
+    return SPECIFIC_TAB.sectionIds.map(function (id) { return document.getElementById(id); });
+  }
+
+  function buildAgentTabs(page) {
+    if (DECK || !window.BFTabs || typeof window.BFTabs.create !== "function" || document.getElementById("agTabs")) return null;
+    var tabs = AG_TABS.slice();
+    if (SPECIFIC_TAB) tabs.push({ key: agTabKey(SPECIFIC_TAB.name), name: String(SPECIFIC_TAB.name), specific: true });
+    var holder = document.createElement("section");
+    holder.id = "agTabs";
+    holder.className = "ag-tabs";
+    holder.setAttribute("aria-label", AGENT_LABEL);
+    // Kept with the markup, like the strip's: the stylesheet in <head> stays as it was. Hidden means hidden.
+    var style = document.createElement("style");
+    style.textContent =
+      "#agTabs{margin-top:28px}" +
+      "#agTabs .ag-panel[hidden],#agTabs .deck-panel[hidden]{display:none !important}" +
+      "#agTabs .ag-panel > :first-child{margin-top:0}" +
+      "#apScheduleSection .ap-auto{margin-top:0;padding-top:0;border-top:0}";
+    holder.appendChild(style);
+    var list = document.createElement("div");
+    list.className = "deck-tabs deck-tabs-scroll";
+    list.setAttribute("role", "tablist");
+    list.setAttribute("aria-label", AGENT_LABEL + " sections");
+    holder.appendChild(list);
+    tabs.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "deck-tab";
+      b.id = "agTab-" + t.key;
+      b.setAttribute("data-ag-tab", t.key);
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-controls", "agPanel-" + t.key);
+      b.setAttribute("aria-selected", "false");
+      b.setAttribute("tabindex", "-1");
+      b.textContent = t.name;
+      list.appendChild(b);
+    });
+    tabs.forEach(function (t) {
+      var p = document.createElement("div");
+      p.className = "deck-panel ag-panel";
+      p.id = "agPanel-" + t.key;
+      p.setAttribute("role", "tabpanel");
+      p.setAttribute("aria-labelledby", "agTab-" + t.key);
+      p.setAttribute("tabindex", "0");
+      p.hidden = true;
+      holder.appendChild(p);
+    });
+    // Under the Refresh Data / Open Dashboard row; else under the strip; else at the page's end.
+    var toolbar = page.querySelector(".toolbar"), strip = document.getElementById("apLive");
+    var after = toolbar || strip;
+    if (after && after.parentNode) after.parentNode.insertBefore(holder, after.nextSibling);
+    else page.appendChild(holder);
+
+    function fill() {
+      tabs.forEach(function (t) {
+        var panel = document.getElementById("agPanel-" + t.key);
+        agTabSections(t.key).forEach(function (n) { if (n && panel) panel.appendChild(n); });
+      });
+    }
+    fill();
+    // A page's own section drawn after this (Email's sequences) joins its tab in its configured place.
+    if (SPECIFIC_TAB && typeof window.MutationObserver === "function") {
+      var waiting = SPECIFIC_TAB.sectionIds.filter(function (id) { return !document.getElementById(id); });
+      if (waiting.length) {
+        var obs = new MutationObserver(function () {
+          if (!waiting.some(function (id) { return document.getElementById(id); })) return;
+          fill();
+          waiting = waiting.filter(function (id) { return !document.getElementById(id); });
+          if (!waiting.length) obs.disconnect();
+        });
+        obs.observe(page, { childList: true, subtree: true });
+      }
+    }
+
+    var api = window.BFTabs.create({
+      root: holder,
+      tabs: tabs.map(function (t) { return t.key; }),
+      attr: "data-ag-tab",
+      tabId: function (n) { return "agTab-" + n; },
+      panelId: function (n) { return "agPanel-" + n; },
+      hash: function (n) { return "#ag-" + n; },
+      nameOf: function (h) { var m = /^ag-([a-z0-9-]+)$/.exec(h); return m ? m[1] : null; },
+      storage: { kind: "session", key: AG_TAB_KEY },
+      fallback: "run",
+      // #tool=<id> opens Run; a hash naming anything inside a tab opens that tab and brings it into view.
+      extraRoute: function (h, tabsApi) {
+        if (/^tool=/.test(h)) { tabsApi.select("run", { hash: false }); return true; }
+        var target = null;
+        try { target = document.getElementById(decodeURIComponent(h)); } catch (e) { target = null; }
+        var k = target ? tabsApi.tabHolding(target) : null;
+        if (!k) return false;
+        tabsApi.select(k, { hash: false });
+        if (target.scrollIntoView) target.scrollIntoView({ block: "center" });
+        return true;
+      }
+    });
+    // An in-page link to something in another tab opens that tab before the browser looks for it.
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest ? e.target.closest("a[href^='#']") : null;
+      if (!a) return;
+      var id = a.getAttribute("href").slice(1), target = null;
+      try { target = id ? document.getElementById(decodeURIComponent(id)) : null; } catch (err) { target = null; }
+      if (target) revealInTab(target);
+    }, true);
+    api.route();
+    return api;
+  }
+
+  // Open the tab that holds a node (a no-op on the command deck, which reveals its own, and without tabs).
+  function revealInTab(node) {
+    var k = agTabs && node ? agTabs.tabHolding(node) : null;
+    if (k && k !== agTabs.current()) agTabs.select(k, { push: true });
   }
 
   /* ══ AUTONOMY ═══════════════════════════════════════════════════════════
@@ -3418,6 +3569,7 @@
       if (input && !input.value) { try { input.value = decodeURIComponent(m[2]).slice(0, 2000); } catch (e) {} }
     }
     var head = document.querySelector('[data-tool-toggle="' + tool.id + '"]');
+    if (head) revealInTab(head);   // the Run tab (Nov 11 2026, agent tabs)
     if (head && typeof head.scrollIntoView === "function") head.scrollIntoView({ block: "start" });
   }
 
@@ -3519,13 +3671,11 @@
     el.className = "ap-msg" + (cls ? " " + cls : "");
   }
 
+  /* NAMED (Nov 11 2026, agent tabs): the Live Status panel is gone, so a task
+     launched here reports on the Live Activity strip's Now card instead, until
+     the strip's next read of /live says what the server knows. */
   function setLive(dotCls, label, meta) {
-    var dot   = document.getElementById("apDot");
-    var lbl   = document.getElementById("apLiveLabel");
-    var meta2 = document.getElementById("apLiveMeta");
-    if (dot)   dot.className   = "ap-dot " + (dotCls || "idle");
-    if (lbl)   lbl.textContent = label || "Idle";
-    if (meta2) meta2.textContent = meta || "";
+    liveSet("now", label || "Idle", meta || "", dotCls === "running" ? "is-running" : null);
   }
 
   /* ── lightweight markdown → HTML renderer ── */
@@ -5384,6 +5534,8 @@
         e.preventDefault();
         // On the command deck the schedule sits in the Settings tab: open it first.
         if (window.BFExecDeck && typeof window.BFExecDeck.reveal === "function") window.BFExecDeck.reveal(card);
+        // On every other agent page it sits in the Schedule tab: open that.
+        revealInTab(card);
         if (!card.hasAttribute("tabindex")) card.setAttribute("tabindex", "-1");
         if (card.scrollIntoView) card.scrollIntoView({ block: "center" });
         card.focus();
@@ -5805,6 +5957,7 @@
     b.addEventListener("click", function () {
       var target = document.querySelector(selector);
       if (!target) return;
+      revealInTab(target);   // in its tab, wherever that is (Nov 11 2026, agent tabs)
       if (target.scrollIntoView) target.scrollIntoView({ block: "center" });
       target.click();
     });

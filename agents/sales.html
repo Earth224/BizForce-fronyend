@@ -1005,7 +1005,7 @@
       </div>
     </header>
 
-    <div class="mc-topstrip">
+    <div class="mc-topstrip" id="salesTopStrip">
       <div class="mc-kpi">
         <div class="mc-kpi-label">Tasks Run</div>
         <div class="mc-kpi-value" id="mcKpiTasks">—</div>
@@ -1025,7 +1025,7 @@
       <span class="mc-badge" id="mcModeBadge">MODE —</span>
     </div>
 
-    <div class="mc-target">
+    <div class="mc-target" id="salesTarget">
       <div class="mc-target-head">
         <span class="mc-target-title">Daily Target</span>
       </div>
@@ -1066,7 +1066,7 @@
       </div>
     </div>
 
-    <div class="mc-secondary">
+    <div class="mc-secondary" id="salesModules">
       <div class="mc-panel" data-module="intelligence">
         <div class="mc-panel-header">
           <h2 class="mc-panel-title">Intelligence</h2>
@@ -1131,30 +1131,13 @@
         </div>
       </div>
 
-      <div class="mc-module" data-module="run-task-status">
-        <div class="mc-module-header">
-          <span class="mc-module-title">Run Task &amp; Live Status</span>
-          <span class="mc-module-toggle">▾</span>
-        </div>
-        <div class="mc-module-body">
-          <div id="mcLiveMount" class="mc-live-strip"></div>
-          <div id="mcLauncherMount"></div>
-        </div>
-      </div>
+      <!-- NAMED (Nov 11 2026, agent tabs): the Business Profile card is the Business tab's; the Run Task & Live Status module is gone (the launcher is on the Run tab, Live Status was removed). -->
+      <section class="context-card" aria-label="Business Profile Context">
+        <h2 class="section-label">Business Profile Context</h2>
+        <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
 
-      <div class="mc-module" data-module="business-profile">
-        <div class="mc-module-header">
-          <span class="mc-module-title">Business Profile</span>
-          <span class="mc-module-toggle">▾</span>
-        </div>
-        <div class="mc-module-body">
-          <section class="context-card" aria-label="Business Profile Context">
-            <h2 class="section-label">Business Profile Context</h2>
-            <div class="context-grid" id="businessContextGrid"><p style="color:#8892b8;font-size:.85rem;margin:0;grid-column:1/-1">Loading…</p></div>
-
-            
-          </section>
-        </div>
+        
+      </section>
       </div>
     </div>
 
@@ -1308,93 +1291,8 @@
   </script>
   <script>
     (function () {
-      /* ── relocation harness: agent-profile.js has no configurable mount
-         point (confirmed read-only) and always injects next to #reportsGrid.
-         This watches for its cards appearing and moves/hides them into the
-         new Mission Control layout without touching that shared file. ── */
-      (function () {
-        var handledLauncher = false;
-        var handledLiveStatus = false;
-        var handledStats = false;
-        var handledHistory = false;
-        var relocationObserver = null;
-        var relocationTimeout = null;
-
-        function allHandled() {
-          return handledLauncher && handledLiveStatus && handledStats && handledHistory;
-        }
-
-        function findSection(childId) {
-          var child = document.getElementById(childId);
-          if (!child) return null;
-          return child.closest(".ap-section");
-        }
-
-        function tryRelocate() {
-          try {
-            if (!handledLauncher) {
-              var launcherSection = findSection("apLaunchBtn");
-              var launcherMount = document.getElementById("mcLauncherMount");
-              if (launcherSection && launcherMount) {
-                launcherMount.appendChild(launcherSection);
-                handledLauncher = true;
-              }
-            }
-
-            if (!handledLiveStatus) {
-              var liveSection = findSection("apDot");
-              var liveMount = document.getElementById("mcLiveMount");
-              if (liveSection && liveMount) {
-                liveMount.appendChild(liveSection);
-                handledLiveStatus = true;
-              }
-            }
-
-            if (!handledStats) {
-              var statsSection = findSection("apStatTotal");
-              if (statsSection) {
-                statsSection.style.display = "none";
-                handledStats = true;
-              }
-            }
-
-            if (!handledHistory) {
-              var historySection = findSection("apHistory");
-              if (historySection) {
-                historySection.style.display = "none";
-                handledHistory = true;
-              }
-            }
-          } catch (relocErr) {
-            console.error("[MissionControl] relocation error:", relocErr.message || relocErr);
-          }
-
-          if (allHandled() && relocationObserver) {
-            relocationObserver.disconnect();
-            relocationObserver = null;
-            if (relocationTimeout) {
-              clearTimeout(relocationTimeout);
-              relocationTimeout = null;
-            }
-          }
-        }
-
-        relocationObserver = new MutationObserver(function () {
-          tryRelocate();
-        });
-        relocationObserver.observe(document.body, { childList: true, subtree: true });
-
-        // Run once immediately too, in case the shared engine already
-        // injected its content before this observer was attached.
-        tryRelocate();
-
-        relocationTimeout = setTimeout(function () {
-          if (relocationObserver) {
-            relocationObserver.disconnect();
-            relocationObserver = null;
-          }
-        }, 10000);
-      })();
+      /* NAMED (Nov 11 2026, agent tabs): the relocation harness that moved the launcher and Live Status into
+         Mission Control and hid Agent Stats and Task History is gone; scripts/agent-profile.js puts them in its tabs. */
 
       var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
       function tok() { return localStorage.getItem("bf_token") || ""; }
@@ -2361,6 +2259,8 @@
   </script>
 <script>
 window.AGENT_PROFILE_CONFIG = {
+  // NAMED (Nov 11 2026, agent tabs): this page's own sections, in one tab after the shared five.
+  specificTab: { name: "Leads", sectionIds: ["salesTopStrip", "salesTarget", "salesModules"] },
   agentType:   "sales",
   agentLabel:  "Sales Agent",
   accentColor: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "#a855f7") : "#a855f7"),
@@ -2374,6 +2274,7 @@ window.AGENT_PROFILE_CONFIG = {
   ]
 };
 </script>
+<script src="/scripts/bf-tabs.js"></script>
 <script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>

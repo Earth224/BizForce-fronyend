@@ -116,7 +116,7 @@
     ],
     "seo.html": [
       "Pick \"Keyword Research\" or \"Local SEO Plan\", describe your market, and press \"Launch Task\".",
-      "To check one page, enter its address under \"Optimize My Website\" and press \"Optimize\"; the report reads that page as served now.",
+      "To check one page, open the \"Audits\" tab, enter its address under \"Optimize My Website\" and press \"Optimize\"; it reads the page as served now.",
       "Keyword research here knows no search volume, competition or ranking; treat its keywords as candidates to test.",
       "Results too generic? Set Website and Competitors in your Business Profile, press \"Refresh Data\", and run again.",
       "\"Social Search\" measures a YouTube, TikTok or Instagram draft against your phrase in code; it searches no platform."
@@ -130,15 +130,15 @@
     ],
     "content.html": [
       "Start with \"Edit Profile\" and press \"Save Profile\"; every agent reads it, and \"Business Profile\" under the page header ticks each field set.",
-      "Pick \"Social Media Drafts\" and press \"Launch Task\"; each draft waits in \"Approval Queue\" for you to approve or reject.",
+      "Pick \"Social Media Drafts\" and press \"Launch Task\"; each draft waits in \"Approval Queue\", on the \"Activity\" tab, for you to approve or reject.",
       "Approved drafts are saved, not published or scheduled; to post on Bluesky from your own account, use the Social Agent page.",
-      "Looking for an article you made? \"Content Library\" keeps saved articles and SMS campaigns; social drafts are not in it.",
+      "Looking for an article you made? On the \"Publishing\" tab, \"Content Library\" keeps saved articles and SMS campaigns; social drafts are not in it.",
       "\"Generate SEO Article\" and \"Generate SMS Campaign\" each write one piece from a single form, with no task to set up."
     ],
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
       "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
-      "Under \"Connect Bluesky\", connect with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for your approval.",
+      "On the \"Accounts\" tab, connect Bluesky with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
       "Bluesky, Mastodon, YouTube, TikTok, Instagram and Facebook Pages connect so far, and posts cannot be scheduled; plans for other platforms are yours."
     ],
