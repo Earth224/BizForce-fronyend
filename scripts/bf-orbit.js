@@ -14,12 +14,21 @@
    as connected or not, never with an unread count (none can be known without
    reading the mailbox).
 
+   THE LOOK (Nov 10 2026, visual match) is the approved mockup's, drawn in a
+   680 x 330 viewBox and scaled to the panel: a starfield panel, an outer ring
+   rx 275 / ry 110, an inner dashed ring rx 150 / ry 60, a core r 34 with a
+   decorative halo and three-quarter arc (never a percentage), and portals of
+   r 27 ON the ring with their labels 42 units under each circle. At rest
+   Oracle is at the top centre, Agents upper right, Connect lower right, Sell
+   lower left and Grow upper left (REST_BASE). The open portal grows to r 30
+   with a halo and reads "<Name> (open)"; the others keep full opacity.
+
    MOTION, transform and opacity only. The portals drift along the ring (one
    turn in DRIFT_MS), paused on hover and focus, while a portal is open, and
    while the tab is hidden. Opening a portal turns the orbit so that portal
-   comes to the front, nearest the grid (TURN_MS, ease-out). Under
-   prefers-reduced-motion there is no drift, the turn snaps, and the beam's dot
-   is still.
+   comes forward to the lower-left slot (FRONT_DEG; TURN_MS, ease-out), so the
+   ring settles in the approved arrangement. Under prefers-reduced-motion there
+   is no drift, the turn snaps, and the beam's dot is still.
 
    THE MOON. The Oracle portal draws tonight's moon on this device from the
    date alone: the age is the time since a known new moon (2000-01-06 18:14
@@ -42,7 +51,11 @@
   var DRIFT_MS = 120000;
   var TURN_MS = 600;
   var STEP_DEG = 72;
-  var VIEW = { w: 600, h: 300, cx: 300, cy: 150, rx: 250, ry: 95, innerRx: 180, innerRy: 62 };
+  var VIEW = { w: 680, h: 330, cx: 340, cy: 160, rx: 275, ry: 110, innerRx: 150, innerRy: 60, portalR: 27, labelDy: 42, coreR: 34, coreHaloR: 44 };
+  // A portal at angle a sits at (cx + rx sin a, cy + ry cos a): 0 is the bottom centre, 180 the top centre.
+  var FRONT_DEG = -36;    // the lower-left slot, where an opened portal comes to rest
+  var REST_BASE = -108;   // Grow -108 (upper left), Sell -36, Connect 36, Agents 108, Oracle 180 (top centre)
+  var STARS = [[38, 28, 0.9, 0.5], [118, 296, 0.7, 0.4], [212, 20, 1, 0.6], [474, 304, 0.8, 0.45], [560, 36, 0.7, 0.55], [646, 248, 1, 0.5], [22, 176, 0.8, 0.4], [662, 112, 0.7, 0.6]];
   var SYNODIC_DAYS = 29.530588853;
   var KNOWN_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14, 0);
   var DAY_MS = 86400000;
@@ -275,12 +288,12 @@
   function narrow() { try { return !!(window.matchMedia && window.matchMedia("(max-width: 640px)").matches); } catch (e) { return false; } }
 
   /* ── the orbit ── */
-  var portalBtn = {}, beam = {}, badge = {};
-  var core;
+  var portalBtn = {}, beam = {}, badge = {}, portalName = {};
+  var core, links;
   function emblem(key) {
     var g = sv("svg", { viewBox: "0 0 40 40", "class": "orbit-emblem", "aria-hidden": "true", focusable: "false" });
     if (key === "grow") g.appendChild(sv("polygon", { points: "20,6 34,32 6,32" }));
-    else if (key === "sell") g.appendChild(sv("polygon", { points: "20,5 33,12.5 33,27.5 20,35 7,27.5 7,12.5" }));
+    else if (key === "sell") { g.appendChild(sv("polygon", { points: "20,5 33,12.5 33,27.5 20,35 7,27.5 7,12.5" })); g.appendChild(sv("circle", { cx: "20", cy: "20", r: "4" })); }
     else if (key === "connect") { g.appendChild(sv("circle", { cx: "15", cy: "20", r: "9" })); g.appendChild(sv("circle", { cx: "25", cy: "20", r: "9" })); }
     else if (key === "agents") {
       g.appendChild(sv("circle", { cx: "20", cy: "20", r: "3", "class": "orbit-emblem-fill" }));
@@ -295,21 +308,34 @@
     }
     return g;
   }
+  // A point on the ring's circle frame (radius rx, before the squash) at angle a, for a turned-with-the-ring drawing.
+  function framePoint(a, r) { var rad = a * Math.PI / 180; return (r * Math.sin(rad)).toFixed(1) + " " + (r * Math.cos(rad)).toFixed(1); }
   function buildOrbit() {
+    STARS.forEach(function (s) { svg.appendChild(sv("circle", { cx: s[0], cy: s[1], r: s[2], opacity: s[3], "class": "orbit-star" })); });
     svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.rx, ry: VIEW.ry, "class": "orbit-ring" }));
     svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.innerRx, ry: VIEW.innerRy, "class": "orbit-ring-inner" }));
-    // The beams live in the ring's frame: a circle of radius rx squashed to the ellipse, so turning a beam is a rotation.
+    // The links and beams live in the ring's frame: a circle of radius rx squashed to the ellipse, so turning one is a rotation.
     var frame = sv("g", { "class": "orbit-beams", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ") scale(1 " + (VIEW.ry / VIEW.rx) + ")" });
+    // The faint dotted links: Grow to Sell, and Sell to a point under the core to Connect (drawn at base 0, turned with the ring).
+    links = sv("g", { "class": "orbit-links" });
+    links.appendChild(sv("path", { d: "M " + framePoint(0, VIEW.rx) + " L " + framePoint(72, VIEW.rx), "class": "orbit-link", "vector-effect": "non-scaling-stroke" }));
+    links.appendChild(sv("path", { d: "M " + framePoint(72, VIEW.rx) + " L " + framePoint(108, 175) + " L " + framePoint(144, VIEW.rx), "class": "orbit-link", "vector-effect": "non-scaling-stroke" }));
+    frame.appendChild(links);
     PORTALS.forEach(function (p) {
       var g = sv("g", { "class": "orbit-beam", "data-portal": p.key });
-      g.appendChild(sv("path", { d: "M 0 " + VIEW.rx + " Q 22 " + (VIEW.rx / 2) + " 0 0", "class": "orbit-beam-line", "vector-effect": "non-scaling-stroke" }));
-      g.appendChild(sv("circle", { r: "4", "class": "orbit-beam-dot" }));
+      var d = "M 0 " + VIEW.rx + " Q 22 " + (VIEW.rx / 2) + " 0 0";
+      g.appendChild(sv("path", { d: d, "class": "orbit-beam-glow", "vector-effect": "non-scaling-stroke" }));
+      g.appendChild(sv("path", { d: d, "class": "orbit-beam-line", "vector-effect": "non-scaling-stroke" }));
+      g.appendChild(sv("circle", { r: "3.5", "class": "orbit-beam-dot" }));
       g.setAttribute("hidden", "");
       g.style.display = "none";
       frame.appendChild(g);
       beam[p.key] = g;
     });
     svg.appendChild(frame);
+    // The core's decorative halo and its fixed three-quarter arc (no goal yet, so never a percentage).
+    svg.appendChild(sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, "class": "orbit-core-halo" }));
+    svg.appendChild(sv("path", { d: "M " + VIEW.cx + " " + (VIEW.cy - VIEW.coreHaloR) + " A " + VIEW.coreHaloR + " " + VIEW.coreHaloR + " 0 1 1 " + (VIEW.cx - VIEW.coreHaloR) + " " + VIEW.cy, "class": "orbit-core-arc" }));
 
     core = el("button", "orbit-core");
     core.type = "button";
@@ -317,7 +343,8 @@
     core.setAttribute("aria-expanded", "false");
     core.setAttribute("aria-controls", "orbitAllTools");
     core.appendChild(el("span", "orbit-core-label", "This week"));
-    core.appendChild(el("strong", "orbit-core-figure", "Loading..."));
+    core.appendChild(el("strong", "orbit-core-figure", ""));
+    core.appendChild(el("span", "orbit-core-unit", "Loading..."));
     core.appendChild(el("span", "orbit-core-all", "All tools"));
     core.addEventListener("click", function () { setAllTools(!state.allOpen); });
     stage.appendChild(core);
@@ -329,12 +356,19 @@
       b.setAttribute("aria-label", p.title + ", " + p.tools.length + " tools");
       b.setAttribute("aria-pressed", "false");
       b.setAttribute("aria-controls", "orbitGrid");
-      b.appendChild(emblem(p.key));
-      b.appendChild(el("span", "orbit-portal-name", p.title));
+      var disc = el("span", "orbit-disc");
+      disc.appendChild(el("span", "orbit-halo"));
+      disc.appendChild(emblem(p.key));
       var bd = el("span", "orbit-badge");
       bd.id = "orbitBadge-" + p.key;
       bd.hidden = true;
-      b.appendChild(bd);
+      disc.appendChild(bd);
+      b.appendChild(disc);
+      var name = el("span", "orbit-portal-name");
+      name.appendChild(el("span", "orbit-portal-title", p.title));
+      name.appendChild(document.createTextNode(""));
+      b.appendChild(name);
+      portalName[p.key] = name;
       badge[p.key] = bd;
       b.addEventListener("click", function () { toggle(p.key); });
       b.addEventListener("mouseenter", function () { showPreview(p.key); });
@@ -350,17 +384,22 @@
     stage.addEventListener("focusout", function () { state.focus = false; kick(); });
   }
   function indexOfPortal(key) { for (var i = 0; i < PORTALS.length; i++) if (PORTALS[i].key === key) return i; return -1; }
-  function frontBase(key) { return -indexOfPortal(key) * STEP_DEG; }
+  function frontBase(key) { return FRONT_DEG - indexOfPortal(key) * STEP_DEG; }
+  // The panel's scale (its width / 680), as --os: every circle is sized from it. On a phone the row uses a fixed 46 px disc.
+  function size() {
+    var s = narrow() ? 46 / 54 : (stage.clientWidth ? stage.clientWidth / VIEW.w : 1);
+    stage.style.setProperty("--os", s.toFixed(4));
+  }
+  // Each frame: transforms only. Every portal is the same size (r 27); none is scaled for depth.
   function place() {
     var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1;
     PORTALS.forEach(function (p, i) {
       var deg = state.base + i * STEP_DEG, rad = deg * Math.PI / 180;
       var x = VIEW.cx + VIEW.rx * Math.sin(rad), y = VIEW.cy + VIEW.ry * Math.cos(rad);
-      var depth = (Math.cos(rad) + 1) / 2;
-      var s = 0.78 + 0.27 * depth;
-      portalBtn[p.key].style.transform = "translate(" + (x * scale).toFixed(1) + "px, " + (y * scale).toFixed(1) + "px) translate(-50%, -50%) scale(" + s.toFixed(3) + ")";
+      portalBtn[p.key].style.transform = "translate(" + (x * scale).toFixed(1) + "px, " + (y * scale).toFixed(1) + "px) translate(-50%, -50%)";
       beam[p.key].setAttribute("transform", "rotate(" + (-deg).toFixed(2) + ")");
     });
+    links.setAttribute("transform", "rotate(" + (-state.base).toFixed(2) + ")");
     core.style.transform = "translate(" + (VIEW.cx * scale).toFixed(1) + "px, " + (VIEW.cy * scale).toFixed(1) + "px) translate(-50%, -50%)";
   }
   function drifting() { return !state.open && !state.hover && !state.focus && !reduced() && !document.hidden && !narrow(); }
@@ -402,11 +441,12 @@
   function openPortal(key, turn) {
     state.open = key;
     writeSession(key);
+    // The open portal is set apart by its halo and "(open)" alone: the others keep full opacity.
     PORTALS.forEach(function (p) {
       var on = p.key === key;
       portalBtn[p.key].setAttribute("aria-pressed", on ? "true" : "false");
       portalBtn[p.key].classList.toggle("is-open", on);
-      portalBtn[p.key].classList.toggle("is-dim", !on);
+      portalName[p.key].lastChild.nodeValue = on ? " (open)" : "";
     });
     if (turn) turnTo(key); else { state.base = frontBase(key); place(); }
     drawGrid();
@@ -417,7 +457,7 @@
     PORTALS.forEach(function (p) {
       portalBtn[p.key].setAttribute("aria-pressed", "false");
       portalBtn[p.key].classList.remove("is-open");
-      portalBtn[p.key].classList.remove("is-dim");
+      portalName[p.key].lastChild.nodeValue = "";
     });
     drawGrid();
     kick();
@@ -464,23 +504,37 @@
     var w = 168, h = 40, max = Math.max.apply(null, series.concat([1]));
     var s = sv("svg", { viewBox: "0 0 " + w + " " + h, "class": "orbit-spark", role: "img", "aria-label": label });
     var pts = series.map(function (v, i) { return (i * (w - 4) / (series.length - 1) + 2).toFixed(1) + "," + (h - 3 - (v / max) * (h - 8)).toFixed(1); });
-    s.appendChild(sv("polyline", { points: pts.join(" "), "class": "orbit-spark-line" }));
+    // A 1.8 px line over a 5 px glow at 15% (the stylesheet's widths, kept by non-scaling-stroke).
+    s.appendChild(sv("polyline", { points: pts.join(" "), "class": "orbit-spark-glow", "vector-effect": "non-scaling-stroke" }));
+    s.appendChild(sv("polyline", { points: pts.join(" "), "class": "orbit-spark-line", "vector-effect": "non-scaling-stroke" }));
     var lastPt = pts[pts.length - 1].split(",");
     s.appendChild(sv("circle", { cx: lastPt[0], cy: lastPt[1], r: "2.5", "class": "orbit-spark-dot" }));
     return s;
+  }
+  /* A main box: one big number and its label, one green line, the 14-day line. No description. */
+  function bigNumber(value, label) {
+    var big = el("p", "orbit-big");
+    big.appendChild(el("strong", null, value));
+    big.appendChild(el("span", null, label));
+    return big;
+  }
+  function smallLink(text, href) { var a = el("a", "orbit-connect", text); a.setAttribute("href", href); return a; }
+  function trendLine(v) {
+    if (v.last_week > 0) { var pct = Math.round((v.this_week - v.last_week) / v.last_week * 100); return (pct >= 0 ? "+" : "") + pct + "% on last week"; }
+    return v.this_week > 0 ? "Up from 0 last week" : "Same as last week";
   }
   function analyticsFigures(box) {
     var v = state.top && state.top.visits;
     var wrap = el("div", "orbit-figures");
     if (!state.top) return wrap;
-    if (!v) { wrap.appendChild(el("p", "orbit-live", "Visits could not be read just now")); return wrap; }
-    if (v.tracked === false) { wrap.appendChild(el("p", "orbit-live", "No tracked visits yet")); return wrap; }
-    var big = el("p", "orbit-big");
-    big.appendChild(el("strong", null, v.this_week));
-    big.appendChild(el("span", null, v.this_week === 1 ? " tracked visit this week" : " tracked visits this week"));
-    wrap.appendChild(big);
-    var diff = v.this_week - v.last_week;
-    wrap.appendChild(el("p", "orbit-change", diff === 0 ? "Same as last week (" + v.last_week + ")" : (diff > 0 ? "+" : "") + diff + " against last week (" + v.last_week + ")"));
+    if (!v || n(v.this_week) === null) { wrap.appendChild(el("p", "orbit-live", "Visits could not be read just now")); return wrap; }
+    if (v.tracked === false) {
+      wrap.appendChild(bigNumber(0, "tracked visits"));
+      wrap.appendChild(smallLink("Add tracked links to see visits", (TOOL.analytics && TOOL.analytics.href) || "/analytics-dashboard.html"));
+      return wrap;
+    }
+    wrap.appendChild(bigNumber(v.this_week, v.this_week === 1 ? "tracked visit" : "tracked visits"));
+    if (n(v.last_week) !== null) wrap.appendChild(el("p", "orbit-second", trendLine(v)));
     if (Array.isArray(v.per_day) && v.per_day.length > 1) wrap.appendChild(spark(v.per_day, "Tracked visits, last 14 days"));
     return wrap;
   }
@@ -489,22 +543,20 @@
     var wrap = el("div", "orbit-figures");
     if (!state.top) return wrap;
     if (!st) { wrap.appendChild(el("p", "orbit-live", "Your store could not be read just now")); return wrap; }
-    if (st.low_stock && n(st.low_stock.count) !== null) {
-      wrap.appendChild(el("p", "orbit-live", st.low_stock.count === 0 ? "Nothing at or below its reorder point" : st.low_stock.count + " at or below reorder point"));
-    }
-    if (st.connected === false) {
-      var a = el("a", "orbit-connect", "Connect a store to see orders");
-      a.setAttribute("href", "store-agent.html");
-      wrap.appendChild(a);
-      return wrap;
-    }
-    if (n(st.orders_this_week) !== null) {
-      var big = el("p", "orbit-big");
-      big.appendChild(el("strong", null, st.orders_this_week));
-      big.appendChild(el("span", null, st.orders_this_week === 1 ? " order this week" : " orders this week"));
-      wrap.appendChild(big);
-    }
+    if (st.low_stock && n(st.low_stock.count) !== null) wrap.appendChild(bigNumber(st.low_stock.count, st.low_stock.count === 1 ? "item low on stock" : "items low on stock"));
+    else wrap.appendChild(el("p", "orbit-live", "Stock could not be read just now"));
+    if (st.connected === false) { wrap.appendChild(smallLink("Connect a store to see orders", "store-agent.html")); return wrap; }
+    if (n(st.orders_this_week) !== null) wrap.appendChild(el("p", "orbit-second", plural(st.orders_this_week, "order", "orders") + " this week"));
     if (Array.isArray(st.orders_per_day) && st.orders_per_day.length > 1) wrap.appendChild(spark(st.orders_per_day, "Orders, last 14 days"));
+    return wrap;
+  }
+  // Any other tool chosen with Swap: its figure as the big number when it starts with one ("18 customers"), else one line.
+  function otherFigures(slug) {
+    var fig = figureFor(slug, state.top);
+    var wrap = el("div", "orbit-figures");
+    if (!fig) return wrap;
+    var m = /^(\d[\d.,]*) (.+)$/.exec(fig.text);
+    wrap.appendChild(m ? bigNumber(m[1], m[2]) : el("p", "orbit-second", fig.text));
     return wrap;
   }
   function drawMains() {
@@ -515,10 +567,21 @@
       var box = t.node.cloneNode(true);
       box.classList.add("orbit-main-box");
       box.setAttribute("data-main", String(i));
-      var figs = slug === "analytics" ? analyticsFigures(box) : slug === "store" ? storeFigures(box) : liveLine(slug);
-      var open = box.querySelector("a.bf-btn");
-      if (figs && open && open.parentNode === box) box.insertBefore(figs, open);
-      else if (figs) box.appendChild(figs);
+      if (!box.getAttribute("data-card")) box.setAttribute("data-card", slug);
+      // No long description in a main box: the descriptions stay on the grid boxes.
+      Array.prototype.slice.call(box.querySelectorAll("p")).forEach(function (p) { p.parentNode.removeChild(p); });
+      // The header row: the icon and title on the left, Swap on the right.
+      var head = el("div", "orbit-main-head");
+      var icon = box.querySelector(".bf-neon-icon"), title = box.querySelector("h3");
+      if (icon) head.appendChild(icon);
+      if (title) head.appendChild(title);
+      box.insertBefore(head, box.firstChild);
+      var stale = box.querySelector(".orbit-dir-head");
+      if (stale && !stale.firstChild) stale.parentNode.removeChild(stale);
+      var figs = slug === "analytics" ? analyticsFigures(box) : slug === "store" ? storeFigures(box) : otherFigures(slug);
+      var open = box.querySelector("a.bf-btn") || box.querySelector(".orbit-dir-actions");
+      if (open && open.parentNode) open.parentNode.insertBefore(figs, open);
+      else box.appendChild(figs);
       var swap = el("button", "orbit-swap", "Swap");
       swap.type = "button";
       swap.setAttribute("aria-expanded", "false");
@@ -529,7 +592,7 @@
         box.appendChild(swapList(i));
         swap.setAttribute("aria-expanded", "true");
       });
-      box.appendChild(swap);
+      head.appendChild(swap);
       mainWrap.appendChild(box);
     });
   }
@@ -596,12 +659,17 @@
   /* ── the figures on the orbit: core, badges, beams ── */
   function drawOrbitFigures() {
     var top = state.top;
-    var fig = core.querySelector(".orbit-core-figure");
+    // The core: THIS WEEK, the tracked visits large, "tracked visits", All tools. A count, never a percentage.
+    var fig = core.querySelector(".orbit-core-figure"), unit = core.querySelector(".orbit-core-unit");
     var v = top && top.visits;
-    if (!top) fig.textContent = "Loading...";
-    else if (!v) fig.textContent = "Visits unavailable";
-    else if (v.tracked === false || n(v.this_week) === null) fig.textContent = "No tracked visits yet";
-    else fig.textContent = plural(v.this_week, "tracked visit", "tracked visits");
+    var figure = "", words;
+    if (!top) words = "Loading...";
+    else if (!v || n(v.this_week) === null) words = "Visits unavailable";
+    else if (v.tracked === false) words = "No tracked visits yet";
+    else { figure = String(v.this_week); words = v.this_week === 1 ? "tracked visit" : "tracked visits"; }
+    fig.textContent = figure;
+    fig.hidden = !figure;
+    unit.textContent = words;
     var a = attention(top);
     PORTALS.forEach(function (p) {
       var k = a[p.key] || 0;
@@ -727,6 +795,7 @@
 
   var api = {
     PORTALS: PORTALS, UTILITIES: UTILITIES, DRIFT_MS: DRIFT_MS, TURN_MS: TURN_MS, SYNODIC_DAYS: SYNODIC_DAYS,
+    VIEW: VIEW, FRONT_DEG: FRONT_DEG, REST_BASE: REST_BASE, frontBase: frontBase,
     moonPhase: moonPhase, moonPath: moonPath, figureFor: figureFor, orderTools: orderTools, attention: attention, firstPortal: firstPortal,
     slashKey: slashKey, state: state, load: load, open: function (k) { openPortal(k, true); }, fold: fold, tools: function () { return TOOL; },
     go: function (url) { window.location.assign(url); }
@@ -734,13 +803,14 @@
   window.BFOrbit = api;
 
   buildOrbit();
+  size();
   var remembered = readSession();
   if (remembered && indexOfPortal(remembered) !== -1) { state.chosen = true; openPortal(remembered, false); }
-  else { state.base = frontBase("sell"); place(); }
+  else { state.base = REST_BASE; place(); }
   drawOrbitFigures();
   drawMains();
   kick();
-  window.addEventListener("resize", place);
+  window.addEventListener("resize", function () { size(); place(); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load);
   else load();
 }());
