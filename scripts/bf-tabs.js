@@ -40,6 +40,8 @@
       ".deck-tab.is-on { color: var(--bf-btn-text, #041018); background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff)var(--bf-btn-mid, ), var(--bf-btn-b, #7b2ff7)); border-color: transparent; }\n" +
       ".deck-tab:focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }\n" +
       ".deck-panel:focus-visible { outline: none; }\n" +
+      // A hidden panel stays hidden whatever display a page's own classes give it (Nov 10 2026, real-browser fix).
+      ".deck-panel[hidden] { display: none !important; }\n" +
       ".deck-tabs.deck-tabs-scroll { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }\n" +
       ".deck-tabs.deck-tabs-scroll .deck-tab { flex: 0 0 auto; white-space: nowrap; }\n";
     var head = document.head || document.documentElement;

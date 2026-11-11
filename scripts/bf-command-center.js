@@ -290,33 +290,37 @@
         document.dispatchEvent(new CustomEvent("bf:command-center", { detail: detail }));
     }
 
-    /* ══ CC-TABS: THE DASHBOARD'S TABBED MODE (Nov 10 2026, dashboard tabs) ═══════════════════════════════
+    /* ══ CC-TABS: THE DASHBOARD'S TABBED MODE (Nov 10 2026, dashboard tabs; Nov 10 2026, real-browser fix and essentials) ══
        dashboard.html's <section id="commandCenterSection" data-cc-mode="tabs"> holds one scripts/bf-tabs.js
        panel: Command, Plans, Activity, Autopilot, Outbound, System, Memory (#cc-command …, sessionStorage
        bf_cc_tab, Command by default). Every tab draws from the ONE GET /api/command-center read, the first
        time it is opened (Command at once); Refresh reads it again and redraws the open tab. Everything here
-       builds DOM with textContent; the step detail and the spend sentence are the shared renderers' own
-       escaped HTML (renderPlans, renderSpend), set by setPanel. The Executive page has no data-cc-mode and
-       renders exactly as before.
-       What each tab shows, and its caps (no data is deleted; the caps only limit what is shown):
-         Command    proposals waiting (count, the 3 newest), runs failed in 7 days (count, the 3 newest), the
-                    email sender's reasons only while it is held; chips for model calls today, the
-                    subscription, spend this month and, for an admin, the platform ceiling today.
-         Plans      unfinished plans (at most 10, from plan_lists), then the recent plans of the last 14 days
-                    (at most 5, from plans), each with "Show steps"; "Past plans (N)" folded, the 5 newest when
-                    opened, with a link to the Executive page's Plans tab.
-         Activity   the 7-day count per agent (agents with runs only), the 5 newest runs, "Show more" up to 20,
-                    and "Full history" (the Executive page's History tab).
-         Autopilot  agents with Automatic on, one line each, and their schedules; "N agents manual".
-         Outbound   per type with anything: its total and its 3 newest; empty types left out.
-         System     spend this month; for an admin, one health line, only the jobs that need attention, the
-                    hourly families as "X of 24 on time" rows, the radar in one line, "Show all jobs".
+       builds DOM with textContent; the step detail is the shared renderPlans's own escaped HTML, set by
+       setPanel. The Executive page has no data-cc-mode and renders exactly as before.
+       Hidden means hidden: dashboard.html's #ccDeck [hidden] rule (and bf-tabs.js's .deck-panel[hidden]) carry
+       display:none !important, because .bf-panel and .cc-panel ul set display and beat the attribute in a
+       real browser. Every fold below starts hidden, with aria-expanded="false".
+       Only the essentials (no data is deleted; the caps only limit what is shown):
+         Command    the chips (model calls today, subscription, spend this month, the platform ceiling for an
+                    admin); "Proposals waiting (N)" and "Failed in the last 7 days (N)", each with its 3
+                    newest and only when N > 0; with both 0, "Nothing needs you right now."
+         Plans      active plans (at most 10), steps behind "Show steps"; "Past plans (N)" folded, the 5 newest
+                    and the Executive page's Plans tab; with none, "No executive plans yet." and "Make a plan".
+         Activity   "Last 7 days: agent N, …" (or "No runs in the last 7 days."), the 5 newest runs, "Show
+                    more" folded up to 20, "Full history".
+         Autopilot  one line per agent on Automatic, one per schedule of those agents, "N agents manual".
+         Outbound   one line per type with something in it; the 3 latest of each behind one "Show latest".
+         System     "Spend: $X of $Y this month (resets <date>)", the pricing note as its tooltip; for an admin,
+                    one jobs health line, the jobs that need attention, one "X of 24 on time" line per hourly
+                    family, the radar line, "Email sending: held (<reason>)" only while held, "Show all jobs (N)".
          Memory     the Agent Memory section, moved here unchanged. */
     var ccSection = document.getElementById("commandCenterSection");
     var TABBED = !!(ccSection && typeof ccSection.getAttribute === "function" && ccSection.getAttribute("data-cc-mode") === "tabs");
     var CC_TABS = ["command", "plans", "activity", "autopilot", "outbound", "system", "memory"];
-    var CC_SHOW = { proposals: 3, failed: 3, runs: 5, runsMore: 20, outbound: 3, recentPlans: 5, recentDays: 14, hours: 24 };
-    var FAMILY_NAMES = { hourly_triggers: "Hourly triggers", hourly_agent_schedules: "Hourly agent schedules", hourly_email_sequences: "Hourly email sequences" };
+    var CC_SHOW = { proposals: 3, failed: 3, activePlans: 10, pastPlans: 5, runs: 5, runsMore: 20, outbound: 3, hours: 24 };
+    var FAMILY_NAMES = { hourly_agent_schedules: "Hourly agent schedules", hourly_triggers: "Hourly triggers", hourly_email_sequences: "Hourly email sequences" };
+    var SENDER_SHORT = { enabled: "switched off on the server", postal_address_set: "no postal address is set", webhook_secret_set: "no Resend webhook secret is set",
+        daily_cap: "the daily cap is not a usable number" };
     var tabbed = !TABBED ? null : (function ccTabs() {
         var body = null, failure = null, drawn = {}, openSteps = {}, ctl = null;
         function $(id) { return document.getElementById(id); }
@@ -331,12 +335,16 @@
         function clear(node) { while (node && node.firstChild) { node.removeChild(node.firstChild); } }
         function failBox(message) { return el("div", "cc-error", "Could not read this section: " + message); }
         function money(n) { return "$" + Number(n).toFixed(2); }
+        function day(value) { var d = new Date(value); return value && !isNaN(d.getTime()) ? d.toLocaleDateString() : "—"; }
         function list(items, make) { var ul = el("ul"); items.forEach(function (x) { ul.appendChild(make(x)); }); return ul; }
+        function line(text, cls) { return el("p", cls || null, text); }
+        // A fold: its button says aria-expanded="false" and the target starts hidden.
         function toggle(label, target, after) {
             var b = el("button", "bf-btn bf-btn-ghost cc-toggle", label);
             b.type = "button";
             b.setAttribute("aria-expanded", "false");
             b.setAttribute("aria-controls", target.id);
+            target.hidden = true;
             b.addEventListener("click", function () {
                 var open = b.getAttribute("aria-expanded") !== "true";
                 b.setAttribute("aria-expanded", open ? "true" : "false");
@@ -353,6 +361,7 @@
             if (s.ok !== true) { return { error: s.error || "the server gave no reason" }; }
             return { data: s.data };
         }
+        function isAdmin() { return !!body && Object.prototype.hasOwnProperty.call(body, "platform"); }
 
         function drawChips(chips) {
             var out = [];
@@ -363,17 +372,16 @@
                 out.push([ud.model_calls_today >= ud.model_calls_daily_cap, "Model calls today: " + ud.model_calls_today + " of " + ud.model_calls_daily_cap]);
             }
             if (!u.error && ud.subscription_active === true) { out.push([false, "Subscription active"]); }
-            else if (!u.error && ud.subscription_active === false) { out.push([true, "Subscription not active — scheduled runs wait until it is"]); }
+            else if (!u.error && ud.subscription_active === false) { out.push([true, "Subscription not active"]); }
             else { out.push([true, "Subscription could not be checked"]); }
             var sp = section("spend"), sd = sp.data;
             if (sp.error || !sd || typeof sd.usd !== "number") { out.push([true, "This month's spend could not be read"]); }
-            else if (typeof sd.monthly_cap_usd !== "number") { out.push([true, "Spend this month: " + money(sd.usd) + " — the monthly cap is not a usable number, so model calls are refused"]); }
+            else if (typeof sd.monthly_cap_usd !== "number") { out.push([true, "Spend this month: " + money(sd.usd) + " (no usable cap)"]); }
             else { out.push([sd.usd >= sd.monthly_cap_usd, "Spend this month: " + money(sd.usd) + " of " + money(sd.monthly_cap_usd)]); }
             // The platform section is in an admin's answer only; its ceiling only there.
-            if (body && Object.prototype.hasOwnProperty.call(body, "platform")) {
+            if (isAdmin()) {
                 var pf = section("platform"), c = pf.data && pf.data.ceiling;
-                if (pf.error || !c) { out.push([true, "Platform ceiling could not be read: " + (pf.error || "the answer carried none")]); }
-                else if (c.unavailable) { out.push([true, "Platform ceiling could not be read: " + c.unavailable]); }
+                if (pf.error || !c || c.unavailable) { out.push([true, "Platform ceiling could not be read"]); }
                 else { out.push([c.spent_usd >= c.cap_usd * 0.8, "Platform ceiling today: " + money(c.spent_usd) + " of " + money(c.cap_usd)]); }
             }
             out.forEach(function (x) { chips.appendChild(el("span", "cc-chip" + (x[0] ? " is-alert" : ""), x[1])); });
@@ -385,60 +393,45 @@
             if (chips) { drawChips(chips); }
             var s = section("needs_you");
             if (s.error) { out.appendChild(failBox(s.error)); return; }
-            var d = s.data, p = d && d.pending_proposals, f = d && d.failed_runs_7d, snd = d && d.email_sender;
-            if (!p || typeof p.count !== "number" || !Array.isArray(p.rows) || !f || typeof f.count !== "number" || !Array.isArray(f.rows) ||
-                !snd || !Array.isArray(snd.blocked_by)) {
-                out.appendChild(failBox("the answer did not carry proposals, failed runs and the email sender"));
+            var d = s.data, p = d && d.pending_proposals, f = d && d.failed_runs_7d;
+            if (!p || typeof p.count !== "number" || !Array.isArray(p.rows) || !f || typeof f.count !== "number" || !Array.isArray(f.rows)) {
+                out.appendChild(failBox("the answer did not carry proposals and failed runs"));
                 return;
             }
-            if (p.count === 0 && f.count === 0 && snd.blocked_by.length === 0) {
-                out.appendChild(el("p", "cc-clear", "Nothing needs you right now."));
+            if (p.count === 0 && f.count === 0) {
+                out.appendChild(line("Nothing needs you right now.", "cc-clear"));
                 return;
             }
             if (p.count > 0) {
-                out.appendChild(el("div", "cc-sub", "Proposals waiting for you (" + p.count + ")"));
+                out.appendChild(el("div", "cc-sub", "Proposals waiting (" + p.count + ")"));
                 out.appendChild(list(p.rows.slice(0, CC_SHOW.proposals), function (r) {
                     var li = el("li");
                     li.appendChild(link("proposals.html", r.title || "Untitled proposal"));
                     words(li, " ");
-                    li.appendChild(el("span", "cc-muted", (r.agent_type || "") + " · " + when(r.created_at)));
+                    li.appendChild(el("span", "cc-muted", (r.agent_type || "") + " · " + day(r.created_at)));
                     return li;
                 }));
-                if (p.count > CC_SHOW.proposals) {
-                    var more = el("p", "cc-muted", "and " + (p.count - CC_SHOW.proposals) + " more on ");
-                    more.appendChild(link("proposals.html", "Proposals"));
-                    out.appendChild(words(more, "."));
-                }
             }
             if (f.count > 0) {
-                out.appendChild(el("div", "cc-sub", "Runs that failed in the last 7 days (" + f.count + ")"));
+                out.appendChild(el("div", "cc-sub", "Failed in the last 7 days (" + f.count + ")"));
                 out.appendChild(list(f.rows.slice(0, CC_SHOW.failed), function (r) {
                     var li = el("li");
                     li.appendChild(link("run.html?id=" + encodeURIComponent(r.id), (r.agent_type || "") + " · " + (r.task_type || "")));
                     words(li, " ");
-                    li.appendChild(el("span", "cc-muted", when(r.created_at)));
+                    li.appendChild(el("span", "cc-muted", day(r.created_at)));
                     return li;
                 }));
-                if (f.count > CC_SHOW.failed) { out.appendChild(el("p", "cc-muted", "and " + (f.count - CC_SHOW.failed) + " more.")); }
-            }
-            if (snd.blocked_by.length) {
-                out.appendChild(el("div", "cc-sub", "Email sender: sequence mail is held"));
-                out.appendChild(list(snd.blocked_by, function (reason) { return el("li", null, SENDER_REASONS[reason] || reason); }));
             }
         }
 
-        function planHead(plan) {
-            var head = el("div", "cc-plan-head");
-            head.appendChild(el("strong", null, plan.goal || "No goal recorded"));
-            head.appendChild(el("span", "cc-muted", when(plan.created_at) + " · " + (plan.status || "")));
-            return head;
-        }
         function planWithSteps(plan) {
             var card = el("div", "cc-plan");
-            card.appendChild(planHead(plan));
+            var head = el("div", "cc-plan-head");
+            head.appendChild(el("strong", null, plan.goal || "No goal recorded"));
+            head.appendChild(el("span", "cc-muted", day(plan.created_at) + " · " + (plan.status || "")));
+            card.appendChild(head);
             var steps = el("div", "cc-steps");
             steps.id = "ccSteps-" + plan.id;
-            steps.hidden = true;
             var fill = function (open, b) {
                 if (open) { openSteps[plan.id] = true; setPanel(steps.id, renderPlans([plan])); b.textContent = "Hide steps"; }
                 else { delete openSteps[plan.id]; b.textContent = "Show steps"; }
@@ -458,45 +451,30 @@
                 out.appendChild(failBox("the answer did not carry the active and past plans"));
                 return;
             }
-            var active = d.active.slice(0, 10);
-            var taken = {};
-            active.forEach(function (p) { taken[p.id] = true; });
-            d.past_latest.forEach(function (p) { taken[p.id] = true; });
-            // The recent plans: the plans section's newest, finished within the last 14 days.
-            var ps = section("plans");
-            var cutoff = Date.now() - CC_SHOW.recentDays * 86400000;
-            var recent = ps.error || !Array.isArray(ps.data) ? [] : ps.data.filter(function (p) {
-                return !taken[p.id] && new Date(p.created_at).getTime() >= cutoff;
-            }).slice(0, CC_SHOW.recentPlans);
-            if (!active.length && !recent.length && d.past_count === 0) {
-                var none = el("p", "cc-muted", "No executive plans yet. Build one on the ");
-                none.appendChild(link("executive-agent.html", "Executive agent"));
-                out.appendChild(words(none, " page."));
+            var active = d.active.slice(0, CC_SHOW.activePlans);
+            if (!active.length && d.past_count === 0) {
+                var none = line("No executive plans yet. ");
+                none.appendChild(link("executive-agent.html#tool=plan", "Make a plan"));
+                out.appendChild(none);
                 return;
             }
             if (active.length) {
                 out.appendChild(el("div", "cc-sub", "Active plans (" + active.length + ")"));
                 active.forEach(function (p) { out.appendChild(planWithSteps(p)); });
             }
-            if (ps.error) { out.appendChild(failBox(ps.error)); }
-            if (recent.length) {
-                out.appendChild(el("div", "cc-sub", "Recent plans (last 14 days)"));
-                recent.forEach(function (p) { out.appendChild(planWithSteps(p)); });
-            }
             if (d.past_count > 0) {
                 var past = el("div", "cc-fold");
                 past.id = "ccPastPlans";
-                past.hidden = true;
-                past.appendChild(list(d.past_latest.slice(0, 5), function (p) {
+                past.appendChild(list(d.past_latest.slice(0, CC_SHOW.pastPlans), function (p) {
                     var li = el("li");
                     li.appendChild(el("strong", null, p.goal || "No goal recorded"));
                     words(li, " ");
-                    li.appendChild(el("span", "cc-muted", "finished " + when(p.finished_at) + " · " + (p.status || "")));
+                    li.appendChild(el("span", "cc-muted", "finished " + day(p.finished_at) + " · " + (p.status || "")));
                     return li;
                 }));
-                var all = el("p", "cc-muted", "Every plan is on the ");
-                all.appendChild(link("executive-agent.html#plans", "Executive page's Plans tab"));
-                past.appendChild(words(all, "."));
+                var all = el("p");
+                all.appendChild(link("executive-agent.html#plans", "All plans"));
+                past.appendChild(all);
                 out.appendChild(toggle("Past plans (" + d.past_count + ")", past));
                 out.appendChild(past);
             }
@@ -507,46 +485,30 @@
             clear(out);
             var s = section("activity"), d = s.data;
             if (s.error) { out.appendChild(failBox(s.error)); return; }
-            if (!d || !d.counts_7d || typeof d.counts_7d !== "object" || !Array.isArray(d.newest_runs_20) || typeof d.sales_dry_runs !== "number") {
+            if (!d || !d.counts_7d || typeof d.counts_7d !== "object" || !Array.isArray(d.newest_runs_20)) {
                 out.appendChild(failBox("the answer did not carry the 7-day counts and the newest runs"));
                 return;
             }
-            out.appendChild(el("div", "cc-sub", "Last 7 days"));
-            var agents = Object.keys(d.counts_7d).sort().filter(function (a) {
-                return Object.keys(d.counts_7d[a] || {}).some(function (st) { return d.counts_7d[a][st] > 0; });
-            });
-            if (!agents.length) { out.appendChild(el("p", "cc-muted", "No runs in the last 7 days.")); }
-            else {
-                out.appendChild(list(agents, function (a) {
-                    var by = d.counts_7d[a], total = 0;
-                    Object.keys(by).forEach(function (st) { total += by[st]; });
-                    var li = el("li");
-                    li.appendChild(el("strong", null, a));
-                    words(li, " " + plural(total, "run", "runs") + " ");
-                    li.appendChild(el("span", "cc-muted", Object.keys(by).sort().map(function (st) { return st + " " + by[st]; }).join(" · ")));
-                    return li;
-                }));
-            }
-            out.appendChild(el("p", "cc-muted", "Sales dry runs in the last 30 days, counted apart: " + d.sales_dry_runs + " — drafts that were never sent."));
-            out.appendChild(el("div", "cc-sub", "Newest runs"));
+            var counts = Object.keys(d.counts_7d).sort().map(function (a) {
+                var total = 0;
+                Object.keys(d.counts_7d[a] || {}).forEach(function (st) { total += d.counts_7d[a][st]; });
+                return [a, total];
+            }).filter(function (x) { return x[1] > 0; });
+            out.appendChild(line(counts.length ? "Last 7 days: " + counts.map(function (x) { return x[0] + " " + x[1]; }).join(", ") : "No runs in the last 7 days."));
             var runs = d.newest_runs_20.slice(0, CC_SHOW.runsMore);
-            if (!runs.length) { out.appendChild(el("p", "cc-muted", "No runs yet.")); }
-            else {
-                var row = function (r) {
-                    var li = el("li");
-                    li.appendChild(link("run.html?id=" + encodeURIComponent(r.id), (r.agent_type || "") + " · " + (r.task_type || "") + " · " + (r.status || "")));
-                    words(li, " ");
-                    li.appendChild(el("span", "cc-muted", when(r.created_at)));
-                    return li;
-                };
-                out.appendChild(list(runs.slice(0, CC_SHOW.runs), row));
-                if (runs.length > CC_SHOW.runs) {
-                    var rest = list(runs.slice(CC_SHOW.runs), row);
-                    rest.id = "ccMoreRuns";
-                    rest.hidden = true;
-                    out.appendChild(toggle("Show more", rest, function (open, b) { b.textContent = open ? "Show fewer" : "Show more"; }));
-                    out.appendChild(rest);
-                }
+            var row = function (r) {
+                var li = el("li");
+                li.appendChild(link("run.html?id=" + encodeURIComponent(r.id), (r.agent_type || "") + " · " + (r.task_type || "") + " · " + (r.status || "")));
+                words(li, " ");
+                li.appendChild(el("span", "cc-muted", when(r.created_at)));
+                return li;
+            };
+            if (runs.length) { out.appendChild(list(runs.slice(0, CC_SHOW.runs), row)); }
+            if (runs.length > CC_SHOW.runs) {
+                var rest = list(runs.slice(CC_SHOW.runs), row);
+                rest.id = "ccMoreRuns";
+                out.appendChild(toggle("Show more", rest, function (open, b) { b.textContent = open ? "Show fewer" : "Show more"; }));
+                out.appendChild(rest);
             }
             var full = el("p");
             full.appendChild(link("executive-agent.html#history", "Full history"));
@@ -561,31 +523,19 @@
             if (!d || !Array.isArray(d.autonomy) || !Array.isArray(d.schedules)) { out.appendChild(failBox("the answer did not carry autonomy and schedules")); return; }
             var on = d.autonomy.filter(function (r) { return r.enabled === true; });
             var manual = d.autonomy.length - on.length;
-            if (!on.length) { out.appendChild(el("p", "cc-muted", "No agents run automatically.")); }
+            if (!on.length) { out.appendChild(line("No agents run automatically.")); }
             else {
-                out.appendChild(el("div", "cc-sub", "Automatic"));
-                out.appendChild(list(on, function (r) {
-                    var li = el("li");
-                    li.appendChild(el("strong", null, r.agent_type));
-                    words(li, " Automatic on ");
-                    li.appendChild(el("span", "cc-muted", "since " + when(r.updated_at)));
-                    return li;
-                }));
                 var onTypes = on.map(function (r) { return r.agent_type; });
                 var mine = d.schedules.filter(function (r) { return onTypes.indexOf(r.agent_type) !== -1; });
-                out.appendChild(el("div", "cc-sub", "Schedules"));
-                if (!mine.length) { out.appendChild(el("p", "cc-muted", "No schedules for these agents.")); }
-                else {
+                out.appendChild(list(on, function (r) { return el("li", null, r.agent_type + ": Automatic on since " + day(r.updated_at)); }));
+                if (mine.length) {
                     out.appendChild(list(mine, function (r) {
-                        var li = el("li");
-                        li.appendChild(el("strong", null, r.agent_type));
-                        words(li, " · " + r.task_type + " · " + r.cadence + " at " + r.hour_utc + ":00 UTC · " + (r.enabled === true ? "enabled" : "paused") + " ");
-                        li.appendChild(el("span", "cc-muted", "last ran " + (r.last_run_on || "never")));
-                        return li;
+                        return el("li", null, r.agent_type + " · " + r.task_type + " · " + r.cadence + " at " + r.hour_utc + ":00 UTC · " + (r.enabled === true ? "enabled" : "paused") +
+                            " · last ran " + (r.last_run_on || "never"));
                     }));
                 }
             }
-            if (manual > 0) { out.appendChild(el("p", "cc-muted", plural(manual, "agent manual", "agents manual"))); }
+            if (manual > 0) { out.appendChild(line(plural(manual, "agent manual", "agents manual"), "cc-muted")); }
         }
 
         function drawOutbound() {
@@ -598,45 +548,42 @@
                 out.appendChild(failBox("the answer did not carry sequences, drafts and articles"));
                 return;
             }
-            var shown = 0;
-            if (d.email_sequences.length) {
-                shown++;
-                out.appendChild(el("div", "cc-sub", "Email sequences (" + d.email_sequences.length + ")"));
-                out.appendChild(list(d.email_sequences.slice(0, CC_SHOW.outbound), function (q) {
-                    var li = el("li");
-                    li.appendChild(el("strong", null, q.name));
-                    words(li, " · " + q.status + " ");
-                    var enrolled = Object.keys(q.enrollments || {}).sort().map(function (k) { return k + " " + q.enrollments[k]; }).join(" · ");
-                    li.appendChild(el("span", "cc-muted", enrolled || "no enrollments"));
-                    return li;
-                }));
-            }
+            var lines = [], latest = el("div", "cc-fold");
+            latest.id = "ccOutboundLatest";
             var socialTotal = 0;
             Object.keys(d.social_drafts_by_status).forEach(function (k) { socialTotal += d.social_drafts_by_status[k]; });
             if (socialTotal > 0) {
-                shown++;
-                out.appendChild(el("div", "cc-sub", "Social posts (" + socialTotal + ")"));
-                out.appendChild(el("p", "cc-muted", Object.keys(d.social_drafts_by_status).sort().map(function (k) { return k + " " + d.social_drafts_by_status[k]; }).join(" · ")));
-                out.appendChild(list(d.social_latest.slice(0, CC_SHOW.outbound), function (x) {
-                    var li = el("li");
-                    li.appendChild(el("strong", null, (x.platform || "no platform") + " · " + x.status));
-                    words(li, " " + (x.preview || ""));
-                    return li;
-                }));
+                lines.push("Social posts: " + Object.keys(d.social_drafts_by_status).sort().filter(function (k) { return d.social_drafts_by_status[k] > 0; })
+                    .map(function (k) { return d.social_drafts_by_status[k] + " " + k; }).join(", "));
+                if (d.social_latest.length) {
+                    latest.appendChild(el("div", "cc-sub", "Social posts"));
+                    latest.appendChild(list(d.social_latest.slice(0, CC_SHOW.outbound), function (x) {
+                        return el("li", null, (x.platform || "no platform") + " · " + x.status + " · " + (x.preview || ""));
+                    }));
+                }
+            }
+            if (d.email_sequences.length) {
+                lines.push("Email sequences: " + d.email_sequences.length);
+                latest.appendChild(el("div", "cc-sub", "Email sequences"));
+                latest.appendChild(list(d.email_sequences.slice(0, CC_SHOW.outbound), function (q) { return el("li", null, q.name + " · " + q.status); }));
             }
             if (d.content_published_30d.count > 0 || d.articles_latest.length) {
-                shown++;
-                out.appendChild(el("div", "cc-sub", "Articles"));
-                out.appendChild(el("p", null, plural(d.content_published_30d.count, "article", "articles") + " published in the last 30 days."));
-                out.appendChild(list(d.articles_latest.slice(0, CC_SHOW.outbound), function (x) {
-                    var li = el("li");
-                    li.appendChild(el("strong", null, x.title || "Untitled article"));
-                    words(li, " ");
-                    li.appendChild(el("span", "cc-muted", when(x.published_at || x.created_at)));
-                    return li;
-                }));
+                var newest = d.articles_latest[0];
+                lines.push("Articles: " + (d.content_published_30d.count > 0 ? d.content_published_30d.count + " in the last 30 days" : "") +
+                    (d.content_published_30d.count > 0 && newest ? ", " : "") + (newest ? "latest " + day(newest.published_at || newest.created_at) : ""));
+                if (d.articles_latest.length) {
+                    latest.appendChild(el("div", "cc-sub", "Articles"));
+                    latest.appendChild(list(d.articles_latest.slice(0, CC_SHOW.outbound), function (x) {
+                        return el("li", null, (x.title || "Untitled article") + " · " + day(x.published_at || x.created_at));
+                    }));
+                }
             }
-            if (!shown) { out.appendChild(el("p", "cc-muted", "Nothing has gone out yet.")); }
+            if (!lines.length) { out.appendChild(line("Nothing has gone out yet.")); return; }
+            lines.forEach(function (t) { out.appendChild(line(t)); });
+            if (latest.firstChild) {
+                out.appendChild(toggle("Show latest", latest));
+                out.appendChild(latest);
+            }
         }
 
         /* The jobs as units: each hourly family (name_h00 … name_h23) is one unit, on time only with all 24
@@ -657,7 +604,7 @@
                     u.text = (FAMILY_NAMES[u.family] || u.family) + ": " + u.onTime + " of " + CC_SHOW.hours + " on time";
                 } else {
                     u.ok = u.row.on_time === true;
-                    u.text = u.row.job_name + " — " + (u.row.on_time === true ? "on time" : (u.row.reason || "needs attention"));
+                    u.text = u.row.job_name + ": " + (u.row.on_time === true ? "on time" : (u.row.reason || "needs attention"));
                 }
             });
             return units;
@@ -665,14 +612,19 @@
         function drawSystem() {
             var out = $("ccSystemTab");
             clear(out);
-            out.appendChild(el("div", "cc-sub", "Spend"));
-            var spend = el("div");
-            spend.id = "ccSystemSpend";
-            out.appendChild(spend);
-            var sp = section("spend");
-            if (sp.error) { spend.appendChild(failBox(sp.error)); } else { setPanel(spend.id, renderSpend(sp.data)); }
-            if (!body || !Object.prototype.hasOwnProperty.call(body, "platform")) { return; }
-            out.appendChild(el("div", "cc-sub", "Background jobs"));
+            var sp = section("spend"), sd = sp.data;
+            if (sp.error) { out.appendChild(failBox(sp.error)); }
+            else if (!sd || typeof sd.usd !== "number") { out.appendChild(failBox("the answer did not carry this month's spend")); }
+            else {
+                var spend = line("Spend: " + money(sd.usd) + (typeof sd.monthly_cap_usd === "number" ? " of " + money(sd.monthly_cap_usd) : " (no usable cap)") +
+                    " this month (resets " + day(sd.resets_at) + ")");
+                spend.id = "ccSystemSpend";
+                var note = [sd.note || ""];
+                if (Array.isArray(sd.unpriced_models) && sd.unpriced_models.length) { note.push("No price is known for: " + sd.unpriced_models.join(", ") + "."); }
+                spend.title = note.filter(Boolean).join(" ");
+                out.appendChild(spend);
+            }
+            if (!isAdmin()) { return; }
             var pf = section("platform"), d = pf.data;
             if (pf.error) { out.appendChild(failBox(pf.error)); return; }
             if (!d || !Array.isArray(d.job_runs) || !Array.isArray(d.radar_status) || !Array.isArray(d.jobs_on_time)) {
@@ -681,19 +633,25 @@
             }
             var units = jobUnits(d.jobs_on_time);
             var bad = units.filter(function (u) { return !u.ok; });
-            if (!units.length) { out.appendChild(el("p", "cc-muted", "No job has recorded a run.")); }
-            else if (!bad.length) { out.appendChild(el("p", "cc-clear", "All " + units.length + " background jobs ran on time")); }
+            if (!units.length) { out.appendChild(line("No background job has recorded a run.")); }
+            else if (!bad.length) { out.appendChild(line("All " + units.length + " background jobs ran on time", "cc-clear")); }
             else {
-                out.appendChild(el("p", "cc-health", bad.length + " of " + units.length + " background jobs need attention"));
-                var listed = bad.filter(function (u) { return u.family !== "hourly_triggers"; });
+                out.appendChild(line(bad.length + " of " + units.length + " background jobs need attention", "cc-health"));
+                var listed = bad.filter(function (u) { return !u.family; });
                 if (listed.length) { out.appendChild(list(listed, function (u) { return el("li", null, u.text); })); }
             }
-            var triggers = units.filter(function (u) { return u.family === "hourly_triggers"; })[0];
-            if (triggers) { out.appendChild(el("p", triggers.ok ? null : "cc-attn", triggers.text)); }
-            var radar = d.radar_status.length ? d.radar_status.map(function (r) {
+            var familyOrder = Object.keys(FAMILY_NAMES);
+            units.filter(function (u) { return u.family; }).sort(function (a, b) {
+                var x = familyOrder.indexOf(a.family), y = familyOrder.indexOf(b.family);
+                return (x === -1 ? 99 : x) - (y === -1 ? 99 : y);
+            }).forEach(function (u) { out.appendChild(line(u.text, u.ok ? null : "cc-attn")); });
+            out.appendChild(line("Radar heartbeat: " + (d.radar_status.length ? d.radar_status.map(function (r) {
                 return r.source + " last tick " + when(r.last_tick_finished_at) + " · " + (r.last_outcome || "no outcome") + (r.last_error ? " (error: " + r.last_error + ")" : "");
-            }).join("; ") : "the radar has not recorded a tick";
-            out.appendChild(el("p", null, "Radar heartbeat: " + radar));
+            }).join("; ") : "the radar has not recorded a tick")));
+            var ny = section("needs_you"), held = ny.data && ny.data.email_sender && Array.isArray(ny.data.email_sender.blocked_by) ? ny.data.email_sender.blocked_by : [];
+            if (held.length) {
+                out.appendChild(line("Email sending: held (" + held.map(function (r) { return SENDER_SHORT[r] || r; }).join("; ") + ")", "cc-attn"));
+            }
             var verdictOf = {};
             d.jobs_on_time.forEach(function (v) { verdictOf[v.job_name] = v; });
             var all = list(d.job_runs, function (j) {
@@ -701,13 +659,10 @@
                 var li = el("li");
                 li.appendChild(el("strong", null, j.job_name));
                 words(li, " " + (v.cadence || "no schedule") + " · " + (v.on_time === true ? "on time" : "needs attention" + (v.reason ? ": " + v.reason : "")) +
-                    " · last ran " + (j.last_run_on || "never") + " ");
-                li.appendChild(el("span", "cc-muted", "finished " + when(j.finished_at)));
-                if (j.last_error) { li.appendChild(el("div", "cc-error", j.last_error)); }
+                    " · last ran " + (j.last_run_on || "never") + (j.last_error ? " · " + j.last_error : ""));
                 return li;
             });
             all.id = "ccAllJobs";
-            all.hidden = true;
             out.appendChild(toggle("Show all jobs (" + d.job_runs.length + ")", all));
             out.appendChild(all);
         }
