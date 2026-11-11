@@ -350,7 +350,19 @@
      in the panel's pixels, on a wide screen and on the phone row alike. STILL: nothing on them animates or transitions. */
   .orbit-stars{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:hidden;border-radius:18px}
   .orbit-panel > :not(.orbit-stars){position:relative}
-  .orbit-star,.orbit-star *{animation:none !important;transition:none !important}
+  /* NAMED (Nov 11 2026, one living sky): no POSITION animation. A star's group never animates or transitions; its halo and
+     core twinkle by opacity, its rays and glint by opacity and a scale about the star's own centre, each at the star's seeded
+     --tw-dur and --tw-delay (--gl-dur and --gl-delay for the glint). Paused while hidden or off the screen. */
+  .orbit-star{animation:none !important}
+  .orbit-star,.orbit-star *{transition:none !important}
+  .orbit-star-halo,.orbit-star-core{animation:orbitTwinkle var(--tw-dur, 4s) ease-in-out var(--tw-delay, 0s) infinite}
+  .orbit-star-rays,.orbit-star-glint{transform-box:fill-box;transform-origin:center}
+  .orbit-star-rays{animation:orbitFlare var(--tw-dur, 4s) ease-in-out var(--tw-delay, 0s) infinite}
+  .orbit-star-glint{opacity:0;animation:orbitGlint var(--gl-dur, 10s) ease-in-out var(--gl-delay, 0s) infinite}
+  .orbit-stars.is-paused .orbit-star *{animation-play-state:paused}
+  @keyframes orbitTwinkle{0%,100%{opacity:1}50%{opacity:.55}}
+  @keyframes orbitFlare{0%,100%{opacity:1;transform:scale(1.15)}50%{opacity:.55;transform:scale(.8)}}
+  @keyframes orbitGlint{0%,88%,100%{opacity:0;transform:scale(.6)}94%{opacity:1;transform:scale(1.25)}}
   .orbit-ring{fill:none;stroke:rgba(var(--bf-accent-a-rgb, 34,211,238),.3);stroke-width:1}
   .orbit-ring-inner{fill:none;stroke:rgba(var(--bf-accent-b-rgb, 208,140,255),.25);stroke-width:1;stroke-dasharray:3 6}
   .orbit-link{fill:none;stroke:rgba(124,240,201,.3);stroke-width:1;stroke-dasharray:2 5}
@@ -391,6 +403,12 @@
   .orbit-core-figure{font-size:clamp(16px, calc(var(--os) * 20px), 28px);font-weight:800;line-height:1}
   .orbit-core-unit{font-size:9px;color:#cfd3ff;padding:0 6px;line-height:1.2}
   .orbit-core-all{font-size:8.5px;color:var(--bf-accent-a, #22d3ee);text-decoration:underline;margin-top:1px}
+  /* NAMED (Nov 11 2026, one living sky): the preview and status lines share one row above the search, always there at a
+     fixed height (two lines), so showing or hiding either never changes the panel's height; the status steps back while a
+     preview shows. */
+  .orbit-say{height:2.6rem;margin:4px auto 0;max-width:640px;line-height:1.4}
+  .orbit-say > p{position:absolute;left:0;right:0;top:0;margin:0;text-align:center;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-height:2.6rem}
+  .orbit-preview:not([hidden]) + .orbit-status{visibility:hidden}
   .orbit-preview{text-align:center;margin:4px 0 0;min-height:1.4em;color:#cfd3ff;font-size:.9rem}
   .orbit-search{display:flex;align-items:center;gap:8px;max-width:520px;margin:10px auto 2px;padding:4px 6px 4px 14px;border-radius:16px;
     background:#0a1128;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);box-sizing:border-box}
@@ -456,6 +474,9 @@
   @media (prefers-reduced-motion: reduce){
     .orbit-beam-dot{animation:none;transform:translate(0px,137px)}
     .orbit-portal,.orbit-core{transition:none}
+    /* NAMED (Nov 11 2026, one living sky): no twinkle and no glint; every star shines steadily at full. */
+    .orbit-star *{animation:none !important}
+    .orbit-star-glint{display:none}
   }
   @media (max-width: 640px){
     /* The still stars stay on a phone, where the ring's drawing is hidden: the same layer, laid out around the row, with a
@@ -480,7 +501,10 @@
     <div class="orbit-stage" id="orbitStage">
       <svg class="orbit-svg" id="orbitSvg" viewBox="0 0 680 330" aria-hidden="true" focusable="false"></svg>
     </div>
-    <p class="orbit-preview" id="orbitPreview" role="status" hidden></p>
+    <div class="orbit-say" id="orbitSay">
+      <p class="orbit-preview" id="orbitPreview" role="status" hidden></p>
+      <p class="orbit-status" id="orbitStatus" role="status"></p>
+    </div>
     <div class="orbit-search">
       <label class="orbit-sr" for="orbitSearch">Go to any tool</label>
       <input id="orbitSearch" type="search" placeholder="Go to any tool..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="orbitResults">
@@ -488,7 +512,6 @@
       <button type="button" class="orbit-refresh" id="orbitRefresh" aria-label="Refresh" title="Refresh"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><polyline points="20 4 20 11 13 11"/></svg></button>
     </div>
     <ul class="orbit-results" id="orbitResults" role="listbox" aria-label="Tools" hidden></ul>
-    <p class="orbit-status" id="orbitStatus" role="status"></p>
   </div>
   <div class="orbit-main" id="orbitMain"></div>
   <div class="orbit-alltools" id="orbitAllTools" role="region" aria-label="All tools" hidden></div>

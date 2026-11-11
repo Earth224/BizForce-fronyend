@@ -58,9 +58,9 @@
   /* THE STARS (Nov 11 2026, still stars). The Oracle's abyss stars, kept STILL. oracle.html draws them on a canvas
      (makeStar and drawStarAt), inline in each Oracle page and inside its drift and twinkle loop, so they cannot be shared
      without changing those four pages: this is a faithful static copy in SVG, with drawStarAt's constants (ORACLE_STAR),
-     makeStar's tints, sizes and alphas (STAR_LAYERS, from a seeded generator, not a random one each load), and no animation,
-     no transition and nothing that changes over time. Each star: a soft radial halo, thin cross rays on the bright large
-     ones, and a sharp core, whitened on the brightest.
+     makeStar's tints, sizes and alphas (STAR_LAYERS, from a seeded generator, not a random one each load). Each star: a
+     soft radial halo, thin cross rays on the bright large ones, and a sharp core, whitened on the brightest. NAMED (Nov 11
+     2026, one living sky): no POSITION animation; they now twinkle in place (ONE LIVING SKY below).
      THE SKY (Nov 11 2026, more and even stars). How many follows the panel's area (STAR_SKY: 40 on the 1152 x 565 panel
      of a 1440 px screen, the same density elsewhere, never under 18 or over 48), in the Oracle's own mix (its layers'
      counts, 240 : 120 : 50, small : medium : large bright). They are spread by a grid over the WHOLE panel, one star to a
@@ -74,6 +74,28 @@
   // spot within jitter x the cell of its centre, then up to 12 more seeded spots over the cell; no two stars closer than
   // spacing x the cell's smaller side.
   var STAR_SKY = { refW: 1152, refH: 565, refCount: 40, min: 18, max: 48, spare: 1.5, jitter: 0.35, retries: 12, spacing: 0.6 };
+  /* ONE LIVING SKY (Nov 11 2026, one living sky). ONE fixed set: the seeds above are constants, the layout keeps clear of
+     everywhere anything can ever be (every place on the ring a portal at its open size and its halo can reach, every place
+     a label with " (open)" can reach, the core, the search, and the reserved row above the search where the preview and
+     status lines appear), and it is laid out again ONLY when the panel's width changes; hovering, opening, turning,
+     drifting, previews, Refresh and new figures leave every star where it is.
+     ALIVE IN PLACE: each star twinkles (its halo and core between 55% and 100% opacity) over a seeded 2.5 to 6 s with a
+     seeded start, so no two pulse together, as the Oracle's stars do (each its own speed and phase); the rays of the
+     spiked ones flare with it (opacity and a scale of 0.8 to 1.15 about the star's centre); the large ones glint now and
+     then (a seeded 6 to 14 s). CSS keyframes on opacity and scale only: nothing moves. Paused while the tab is hidden or
+     the panel is off the screen; none under reduced motion, where each star shines steadily at full.
+     THE ORACLE'S COLOURS: its pickTint gives one star in six a tint, one of three, so the sky is 5/6 white and 1/18 each
+     cyan, violet and gold; here those shares are dealt out exactly (largest remainder, at least one of each tint, each
+     tint on at least one star bigger than the smallest), and a tinted star carries its tint clearly: a stronger halo and
+     rays, and a core lightened toward white rather than white. */
+  var STAR_TINT_NAMES = ["white", "cyan", "violet", "gold"];
+  var STAR_WHITE = { r: 255, g: 255, b: 255 };
+  var STAR_SHARES = [5 / 6, 1 / 18, 1 / 18, 1 / 18];
+  var STAR_TINT_SEED = 1777;
+  // A tinted star: its halo (as wide as the Oracle draws it) at 0.8 x alpha, its rays at 0.8 x alpha, its core's centre the tint 35% toward white,
+  // its core's edge at 0.6 x alpha, and never fainter than alpha 0.5.
+  var STAR_TINT_LOOK = { haloAlpha: 0.8, rayAlpha: 0.8, coreMix: 0.35, coreEdgeAlpha: 0.6, minAlpha: 0.5 };
+  var STAR_TWINKLE = { seed: 4242, minDur: 2.5, maxDur: 6, low: 0.55, flareMin: 0.8, flareMax: 1.15, glintMin: 6, glintMax: 14, glintR: 2.6, glintLen: 4.8 };
   var SYNODIC_DAYS = 29.530588853;
   var KNOWN_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14, 0);
   var DAY_MS = 86400000;
@@ -268,6 +290,7 @@
   var results = document.getElementById("orbitResults");
   var refresh = document.getElementById("orbitRefresh");
   var status = document.getElementById("orbitStatus");
+  var say = document.getElementById("orbitSay");
   var template = document.getElementById("orbitTools");
 
   function el(tag, cls, text) { var x = document.createElement(tag); if (cls) x.className = cls; if (text !== undefined && text !== null) x.textContent = String(text); return x; }
@@ -366,10 +389,45 @@
       for (var i = 0; i < mix[k]; i++) { var s = oracleStar(rnd, L, k === 2 ? "spiked" : null); s.size = STAR_SIZES[k]; out.push(s); }
     });
     for (var j = out.length - 1; j > 0; j--) { var m = Math.floor(rnd() * (j + 1)), t = out[j]; out[j] = out[m]; out[m] = t; }
+    starDeal(out);
     return out;
   }
-  // How far a star's light reaches: its rays when it has them, else its halo.
-  function starReach(look) { return look.r * (look.spiked ? ORACLE_STAR.spikeLen : ORACLE_STAR.haloR); }
+  // The Oracle's colours dealt over these stars (again over the ones placed, once the layout is done, so the shares hold
+  // for the sky as drawn). Each tint shows on at least one star bigger than the smallest: a small one of that tint trades
+  // with a white medium or large one.
+  function starDeal(looks) {
+    var tints = starTints(looks.length);
+    for (var k = 1; k < STAR_TINT_NAMES.length; k++) {
+      var mine = [], white = [];
+      looks.forEach(function (s, i) { if (tints[i] === k) mine.push(i); else if (tints[i] === 0 && s.size !== "small") white.push(i); });
+      if (mine.length && white.length && mine.every(function (i) { return looks[i].size === "small"; })) { tints[white[0]] = k; tints[mine[0]] = 0; }
+    }
+    looks.forEach(function (s, i) { s.tint = tints[i] ? STAR_TINTS[tints[i] - 1] : STAR_WHITE; s.tintName = STAR_TINT_NAMES[tints[i]]; });
+  }
+  // The Oracle's shares dealt to n stars (0 white, 1 cyan, 2 violet, 3 gold): largest remainder, at least one of each tint,
+  // in a seeded order.
+  function starTints(n) {
+    var raw = STAR_SHARES.map(function (s) { return s * n; }), counts = raw.map(Math.floor), left = n - counts.reduce(function (a, b) { return a + b; }, 0);
+    raw.map(function (v, k) { return { k: k, f: v - Math.floor(v) }; }).sort(function (a, b) { return b.f - a.f || a.k - b.k; }).slice(0, left).forEach(function (o) { counts[o.k]++; });
+    for (var k = 1; k < counts.length; k++) if (counts[k] < 1 && counts[0] > 1) { counts[k]++; counts[0]--; }
+    var list = [];
+    counts.forEach(function (c, k) { for (var i = 0; i < c; i++) list.push(k); });
+    var rnd = seeded(STAR_TINT_SEED);
+    for (var j = list.length - 1; j > 0; j--) { var m = Math.floor(rnd() * (j + 1)), t = list[j]; list[j] = list[m]; list[m] = t; }
+    return list;
+  }
+  function starTinted(look) { return !!look.tint && !(look.tint.r === 255 && look.tint.g === 255 && look.tint.b === 255); }
+  // How far a star's light reaches: its rays at their longest flare when it has them, else its halo.
+  function starReach(look) {
+    return look.r * (look.spiked ? ORACLE_STAR.spikeLen * STAR_TWINKLE.flareMax : ORACLE_STAR.haloR);
+  }
+  // A star's own twinkle, from its place in the sky: a duration of 2.5 to 6 s, a start somewhere in it, and for the large
+  // ones a glint every 6 to 14 s, with its own start.
+  function starTwinkle(i) {
+    var rnd = seeded(STAR_TWINKLE.seed + 7919 * i), T = STAR_TWINKLE;
+    var dur = T.minDur + rnd() * (T.maxDur - T.minDur), delay = -rnd() * dur, gl = T.glintMin + rnd() * (T.glintMax - T.glintMin), glDelay = -rnd() * gl;
+    return { dur: +dur.toFixed(2), delay: +delay.toFixed(2), glint: +gl.toFixed(2), glintDelay: +glDelay.toFixed(2) };
+  }
   // Where a star may not sit, in the panel's pixels: g = { w, h, gap, edge, circles: [{x, y, r}], boxes: [{x, y, w, h}] }.
   function starClear(x, y, reach, g) {
     var k, c, b, dx, dy, room = g.edge + reach - g.gap;
@@ -401,7 +459,10 @@
     for (row = 0; row < grid.rows; row++) for (col = 0; col < grid.cols; col++) {
       var rnd = seeded(STAR_LAYOUT_SEED + 7919 * (row * grid.cols + col)), x0 = col * grid.cw, y0 = row * grid.ch;
       var first = { x: x0 + grid.cw * (0.5 + STAR_SKY.jitter * (2 * rnd() - 1)), y: y0 + grid.ch * (0.5 + STAR_SKY.jitter * (2 * rnd() - 1)) }, more = [];
-      for (var s = 0; s < STAR_SKY.retries; s++) more.push({ x: x0 + grid.cw * (s % 4 + rnd()) / 4, y: y0 + grid.ch * (Math.floor(s / 4) + rnd()) / 3 });
+      // NAMED (Nov 11 2026, one living sky): the phone row's sky is small pockets between the discs' halos, so its cells
+      // look at 96 spots (a 12 x 8 grid of them) instead of 12 (4 x 3); the rules a star must meet are the same.
+      var sc = g.narrow ? 12 : 4, sr = g.narrow ? 8 : 3;
+      for (var s = 0; s < sc * sr; s++) more.push({ x: x0 + grid.cw * (s % sc + rnd()) / sc, y: y0 + grid.ch * (Math.floor(s / sc) + rnd()) / sr });
       more.sort(function (a, b) { return Math.hypot(a.x - first.x, a.y - first.y) - Math.hypot(b.x - first.x, b.y - first.y); });
       cells.push({ row: row, col: col, spots: [first].concat(more), q: (row < grid.rows / 2 ? 0 : 2) + (col < grid.cols / 2 ? 0 : 1) });
     }
@@ -443,53 +504,65 @@
     waiting.forEach(function (wt) {
       if (rehome(wt)) { report.rehomed++; return; }
       if (wt.look.size === "large") {
-        wt.look = oracleStar(plain, STAR_LAYERS[1], "plain"); wt.look.size = "medium"; report.asMedium++;
+        var was = wt.look;
+        wt.look = oracleStar(plain, STAR_LAYERS[1], "plain"); wt.look.size = "medium"; wt.look.tint = was.tint; wt.look.tintName = was.tintName; report.asMedium++;
         if (rehome(wt)) { report.rehomed++; return; }
       } else if (wt.look.spiked) {
-        wt.look = { r: wt.look.r, alpha: 0.6, tint: wt.look.tint, size: wt.look.size, spiked: false }; report.dimmed++;
+        wt.look = { r: wt.look.r, alpha: 0.6, tint: wt.look.tint, tintName: wt.look.tintName, size: wt.look.size, spiked: false }; report.dimmed++;
         if (rehome(wt)) { report.rehomed++; return; }
       }
       report.unplaced++;
     });
+    starDeal(placed.map(function (p) { return p.look; }));
     placed.report = report; placed.grid = grid; placed.minGap = minGap;
     return placed;
   }
-  // The panel as it is drawn now. Wide: the ring's path, a portal's radius either side (a portal can drift anywhere on it),
-  // every place a label can drift to, and the core. Phone row: each disc, each label's cell width and the core. Both: the
-  // search, and its results, status and preview lines while they are shown (each changes the panel's size, so the stars
-  // are laid out again).
+  // The widest a portal's label can be, " (open)" and all, from its letters (not measured, so a font arriving late changes
+  // nothing): 9 px a title letter (10.5 px bold capitals spaced .08em), 7 px a letter of " (open)", and 12 px either side.
+  var STAR_KEEP = { titleCh: 9, openCh: 7, labelPad: 12, labelH: 18, haloR: 43 };
+  function starLabelHalf() {
+    var most = 0;
+    PORTALS.forEach(function (p) { most = Math.max(most, String(p.title || p.key).length); });
+    return (most * STAR_KEEP.titleCh + " (open)".length * STAR_KEEP.openCh) / 2 + STAR_KEEP.labelPad;
+  }
+  // Where the stars may not be: the union of everywhere anything in the panel can EVER be, whatever is open, hovered,
+  // turning or shown. Wide: at every degree of the ring a portal can drift to, its open halo (r 43) and its disc at the
+  // open size, and its widest label; the core. Phone row: each disc and its open halo, each label's whole cell, the core.
+  // Both: the search and the reserved row above it where the preview and status lines appear. The sky's height is the
+  // panel's without the results list (which opens below the search, over the sky, and does not move a star).
   function starGeometry() {
     var pr = panel.getBoundingClientRect();
     var box = function (node, grow) { var r = node.getBoundingClientRect(); return { x: r.left - pr.left - grow, y: r.top - pr.top - grow, w: r.width + 2 * grow, h: r.height + 2 * grow }; };
+    var listH = 0;
+    if (results && !results.hidden) { var lr = results.getBoundingClientRect(); listH = lr.height ? lr.height + 6 : 0; }
     // The phone row has little room: stars sit closer to it and to the edge there.
-    var g = { w: pr.width, h: pr.height, gap: narrow() ? 1 : 4, edge: narrow() ? 3 : 6, circles: [], boxes: [] };
+    var g = { w: pr.width, h: pr.height - listH, gap: narrow() ? 1 : 4, edge: narrow() ? 3 : 6, narrow: narrow(), circles: [], boxes: [] };
     var sr = stage.getBoundingClientRect();
     if (!narrow()) {
-      var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1, ox = sr.left - pr.left, oy = sr.top - pr.top, half = 0;
-      // The title alone, plus room for " (open)", so a portal open at load or later leaves the stars where they are.
-      PORTALS.forEach(function (p) { var t = portalName[p.key].querySelector(".orbit-portal-title") || portalName[p.key]; half = Math.max(half, t.getBoundingClientRect().width / 2); });
-      half += 30;
+      var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1, ox = sr.left - pr.left, oy = sr.top - pr.top, half = starLabelHalf();
       for (var a = 0; a < 360; a += 1) {
         var rad = a * Math.PI / 180, x = ox + (VIEW.cx + VIEW.rx * Math.sin(rad)) * scale, y = oy + (VIEW.cy + VIEW.ry * Math.cos(rad)) * scale;
-        // the disc's box at its open size (r 30), as a browser measures it, wherever it drifts on the ring
+        // the open halo (r 43) and the disc's box at its open size (r 30), wherever a portal drifts on the ring
+        g.circles.push({ x: x, y: y, r: STAR_KEEP.haloR * scale });
         g.boxes.push({ x: x - (VIEW.portalR + 3) * scale, y: y - (VIEW.portalR + 3) * scale, w: 2 * (VIEW.portalR + 3) * scale, h: 2 * (VIEW.portalR + 3) * scale });
-        if (a % 2 === 0) g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - 9, w: 2 * half, h: 18 });
+        g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - STAR_KEEP.labelH / 2, w: 2 * half, h: STAR_KEEP.labelH });
       }
       g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: (VIEW.coreHaloR + 4) * scale });
     } else {
-      // A label may grow to its whole cell ("Sell (open)"), so the cell's width is kept clear under it.
+      var os = 46 / 54;
+      // A label may grow to its whole cell ("Sell (open)"), so the cell's width is kept clear under it; each disc's open
+      // halo (r 43 x the row's scale) is kept clear around it.
       PORTALS.forEach(function (p) {
-        var cell = box(portalBtn[p.key], 0), name = box(portalName[p.key], 3);
-        g.boxes.push(box(portalBtn[p.key].querySelector(".orbit-disc"), 3));
+        var cell = box(portalBtn[p.key], 0), name = box(portalName[p.key], 3), disc = box(portalBtn[p.key].querySelector(".orbit-disc"), 3), hr = STAR_KEEP.haloR * os + 2;
+        g.boxes.push(disc);
+        g.circles.push({ x: disc.x + disc.w / 2, y: disc.y + disc.h / 2, r: hr });
         g.boxes.push({ x: cell.x, y: name.y, w: cell.w, h: name.h });
       });
       g.boxes.push(box(core, 3));
     }
-    [panel.querySelector(".orbit-search"), document.getElementById("orbitResults"), document.getElementById("orbitStatus"), document.getElementById("orbitPreview")].forEach(function (node, k) {
-      if (!node || (k > 0 && node.hidden)) return;
-      var b = box(node, 6);
-      if (k === 0 || b.h > 12) g.boxes.push(b);
-    });
+    if (say) g.boxes.push(box(say, 4));
+    var bar = panel.querySelector(".orbit-search");
+    if (bar) g.boxes.push(box(bar, 6));
     return g;
   }
   function starGradient(defs, kind, id, attrs, stops) {
@@ -497,32 +570,53 @@
     stops.forEach(function (s) { gr.appendChild(sv("stop", { offset: String(s[0]), "stop-color": "rgb(" + s[1].r + "," + s[1].g + "," + s[1].b + ")", "stop-opacity": String(+s[2].toFixed(4)) })); });
     defs.appendChild(gr);
   }
-  // drawStarAt, still: (a) the halo, then the rays (bright large stars only, under the core), then (b) the core.
+  var mixWhite = function (t, f) { return { r: Math.round(t.r + (255 - t.r) * f), g: Math.round(t.g + (255 - t.g) * f), b: Math.round(t.b + (255 - t.b) * f) }; };
+  // drawStarAt, alive in place: (a) the halo, then the rays (bright large stars only, under the core), then (b) the core;
+  // on the large ones a glint over all. A white star is drawn as the Oracle draws it; a tinted one with STAR_TINT_LOOK.
+  // Positions are written once, as numbers, and never animated: the halo and core twinkle by opacity, the rays and the
+  // glint by opacity and a scale about the star's own centre (transform-box: fill-box, transform-origin: center).
   function starNode(st, defs) {
-    var L = st.look, t = L.tint, a = L.alpha, O = ORACLE_STAR, id = "orbitStar" + st.i, x = st.x.toFixed(1), y = st.y.toFixed(1);
+    var L = st.look, t = L.tint, O = ORACLE_STAR, T = STAR_TINT_LOOK, tinted = starTinted(L), id = "orbitStar" + st.i, x = st.x.toFixed(1), y = st.y.toFixed(1);
+    var a = tinted ? Math.max(L.alpha, T.minAlpha) : L.alpha, tw = starTwinkle(st.i), glint = L.size === "large";
     var g = sv("g", { "class": "orbit-star", "data-star": String(st.i), "data-r": L.r.toFixed(3), "data-alpha": a.toFixed(3), "data-spiked": L.spiked ? "1" : "0",
-      "data-size": L.size, "data-cell": st.row + "," + st.col });
-    starGradient(defs, "radialGradient", id + "h", {}, [[0, t, a * O.haloAlpha], [1, t, 0]]);
+      "data-size": L.size, "data-cell": st.row + "," + st.col, "data-tint": L.tintName || "white", "data-tw-dur": String(tw.dur), "data-tw-delay": String(tw.delay) });
+    if (glint) g.setAttribute("data-gl-dur", String(tw.glint));
+    g.setAttribute("style", "--tw-dur:" + tw.dur + "s;--tw-delay:" + tw.delay + "s" + (glint ? ";--gl-dur:" + tw.glint + "s;--gl-delay:" + tw.glintDelay + "s" : ""));
+    starGradient(defs, "radialGradient", id + "h", {}, [[0, t, a * (tinted ? T.haloAlpha : O.haloAlpha)], [1, t, 0]]);
     g.appendChild(sv("circle", { cx: x, cy: y, r: (L.r * O.haloR).toFixed(3), fill: "url(#" + id + "h)", "class": "orbit-star-halo" }));
     if (L.spiked) {
-      var len = L.r * O.spikeLen, w = O.spikeWidth, ray = [[0, t, 0], [0.5, t, a * O.spikeAlpha], [1, t, 0]];
+      var len = L.r * O.spikeLen, w = O.spikeWidth, ray = [[0, t, 0], [0.5, t, a * (tinted ? T.rayAlpha : O.spikeAlpha)], [1, t, 0]];
       starGradient(defs, "linearGradient", id + "v", { x1: "0", y1: "0", x2: "0", y2: "1" }, ray);
       starGradient(defs, "linearGradient", id + "x", { x1: "0", y1: "0", x2: "1", y2: "0" }, ray);
-      g.appendChild(sv("rect", { x: (st.x - w / 2).toFixed(2), y: (st.y - len).toFixed(2), width: String(w), height: (2 * len).toFixed(2), fill: "url(#" + id + "v)", "class": "orbit-star-ray" }));
-      g.appendChild(sv("rect", { x: (st.x - len).toFixed(2), y: (st.y - w / 2).toFixed(2), width: (2 * len).toFixed(2), height: String(w), fill: "url(#" + id + "x)", "class": "orbit-star-ray" }));
+      var rays = sv("g", { "class": "orbit-star-rays" });
+      rays.appendChild(sv("rect", { x: (st.x - w / 2).toFixed(2), y: (st.y - len).toFixed(2), width: String(w), height: (2 * len).toFixed(2), fill: "url(#" + id + "v)", "class": "orbit-star-ray" }));
+      rays.appendChild(sv("rect", { x: (st.x - len).toFixed(2), y: (st.y - w / 2).toFixed(2), width: (2 * len).toFixed(2), height: String(w), fill: "url(#" + id + "x)", "class": "orbit-star-ray" }));
+      g.appendChild(rays);
     }
-    var c = a > O.brightAbove ? { r: Math.round(t.r + (255 - t.r) * O.brightMix), g: Math.round(t.g + (255 - t.g) * O.brightMix), b: Math.round(t.b + (255 - t.b) * O.brightMix) } : t;
-    starGradient(defs, "radialGradient", id + "c", {}, [[0, c, a], [1, t, a * O.coreEdgeAlpha]]);
+    var c = tinted ? mixWhite(t, T.coreMix) : (a > O.brightAbove ? mixWhite(t, O.brightMix) : t);
+    starGradient(defs, "radialGradient", id + "c", {}, [[0, c, a], [1, t, a * (tinted ? T.coreEdgeAlpha : O.coreEdgeAlpha)]]);
     g.appendChild(sv("circle", { cx: x, cy: y, r: (L.r * O.coreR).toFixed(3), fill: "url(#" + id + "c)", "class": "orbit-star-core" }));
+    if (glint) {
+      // A brighter flash now and then: a light-tinted glow and a short cross, hidden between glints.
+      var gl = sv("g", { "class": "orbit-star-glint" }), gr = L.r * STAR_TWINKLE.glintR, gLen = L.r * STAR_TWINKLE.glintLen, light = mixWhite(t, tinted ? T.coreMix : 1);
+      starGradient(defs, "radialGradient", id + "g", {}, [[0, light, 1], [0.35, t, 0.55], [1, t, 0]]);
+      gl.appendChild(sv("circle", { cx: x, cy: y, r: gr.toFixed(3), fill: "url(#" + id + "g)" }));
+      gl.appendChild(sv("rect", { x: (st.x - 0.6).toFixed(2), y: (st.y - gLen).toFixed(2), width: "1.2", height: (2 * gLen).toFixed(2), fill: "url(#" + id + "v)" }));
+      gl.appendChild(sv("rect", { x: (st.x - gLen).toFixed(2), y: (st.y - 0.6).toFixed(2), width: (2 * gLen).toFixed(2), height: "1.2", fill: "url(#" + id + "x)" }));
+      g.appendChild(gl);
+    }
     return g;
   }
-  // Drawn once, and again only when what they must keep clear of has moved (the same boxes give the same places).
+  // ONE fixed set: laid out once, and again ONLY when the panel's width changes (a height change, a hover, an open portal,
+  // a preview, Refresh or new figures never lays them out again).
   var starsDrawn = "";
+  function starsWidth() { return String(Math.round(panel.getBoundingClientRect().width)); }
   function drawStars() {
     if (!starsSvg || !panel || !panel.getBoundingClientRect) return;
-    var g = starGeometry(), key = JSON.stringify([Math.round(g.w), Math.round(g.h), g.boxes.length > 200 ? g.boxes.slice(-4) : g.boxes].concat(g.circles.slice(-1)), function (k, v) { return typeof v === "number" ? Math.round(v) : v; });
+    var key = starsWidth();
     if (key === starsDrawn) return;
     starsDrawn = key;
+    var g = starGeometry();
     while (starsSvg.firstChild) starsSvg.removeChild(starsSvg.firstChild);
     var defs = sv("defs", {});
     starsSvg.appendChild(defs);
@@ -1019,6 +1113,8 @@
     VIEW: VIEW, FRONT_DEG: FRONT_DEG, REST_BASE: REST_BASE, frontBase: frontBase,
     ORACLE_STAR: ORACLE_STAR, STAR_TINTS: STAR_TINTS, STAR_LAYERS: STAR_LAYERS, starLooks: starLooks, starReach: starReach, starLayout: starLayout, starGeometry: starGeometry, drawStars: drawStars,
     STAR_SKY: STAR_SKY, starCount: starCount, starMix: starMix, starGrid: starGrid,
+    STAR_SHARES: STAR_SHARES, STAR_TINT_NAMES: STAR_TINT_NAMES, STAR_TINT_LOOK: STAR_TINT_LOOK, STAR_TWINKLE: STAR_TWINKLE, STAR_KEEP: STAR_KEEP,
+    starTints: starTints, starTwinkle: starTwinkle, starLabelHalf: starLabelHalf,
     moonPhase: moonPhase, moonPath: moonPath, figureFor: figureFor, orderTools: orderTools, attention: attention, firstPortal: firstPortal,
     slashKey: slashKey, state: state, load: load, open: function (k) { openPortal(k, true); }, fold: fold, tools: function () { return TOOL; },
     go: function (url) { window.location.assign(url); }
@@ -1037,9 +1133,19 @@
   drawStars();
   window.addEventListener("resize", drawStars);
   window.addEventListener("load", drawStars);
-  // NAMED (Nov 11 2026, more and even stars): the panel settles after load (its boxes fill in) without a window resize,
-  // which left stars laid out for a taller panel below its edge; a change in the panel's own size lays them out again.
-  if (typeof ResizeObserver === "function" && panel) { try { new ResizeObserver(drawStars).observe(panel); } catch (e) { /* the resize and load calls stand */ } }
+  // NAMED (Nov 11 2026, one living sky): the panel's own resize lays the stars out again only when its WIDTH changed; a
+  // height-only change (a preview, the status line, the results list) is ignored.
+  if (typeof ResizeObserver === "function" && panel) {
+    try { new ResizeObserver(function () { if (starsWidth() !== starsDrawn) drawStars(); }).observe(panel); } catch (e) { /* the resize and load calls stand */ }
+  }
+  // The twinkle rests while the tab is hidden or the panel is off the screen.
+  var starsOff = false;
+  function starsPause() { if (starsSvg) starsSvg.classList.toggle("is-paused", !!document.hidden || starsOff); }
+  document.addEventListener("visibilitychange", starsPause);
+  if (typeof IntersectionObserver === "function" && panel) {
+    try { new IntersectionObserver(function (es) { starsOff = !es[es.length - 1].isIntersecting; starsPause(); }).observe(panel); } catch (e) { /* the hidden-tab pause stands */ }
+  }
+  starsPause();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load);
   else load();
 }());
