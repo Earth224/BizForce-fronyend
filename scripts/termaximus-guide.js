@@ -89,10 +89,10 @@
       "Didn't pass? Press \"Try Again\" on the result screen, or \"Start Assessment\" on the card later; there is no penalty for trying again."
     ],
     "digital-cards.html": [
-      "Fill in \"Full Name\", \"Job Title\" and your contact fields, style the card while the preview updates as you type, then press \"Save Card\".",
+      "Fill in \"Full Name\" and your contact fields, style it in the Text, Frame, Background and Motion tabs (the preview updates as you type), then press \"Save Card\".",
       "Press \"Share\" for the card's public link, where people save your contact; \"Your support link\" below has its own Copy and Share.",
       "\"Copy vCard\" copies the contact file itself; \"Download PNG\" is for screens and \"Export Print File\" for printing.",
-      "Shared card not showing your change? Press \"Save Card\" again; the public page shows only what was last saved.",
+      "The card has no QR code unless you switch on \"Show QR code on card\" in the \"QR Code\" tab, which also makes a QR for any web link.",
       "Under the card, \"Visits to your card\" counts 30 days of opens and taps; \"Leads\" lists what visitors leave once \"Let visitors leave their details\" is on."
     ],
     "business-id.html": [

@@ -17,6 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
   <script src="/scripts/bf-card.js"></script>
+  <script src="/scripts/bf-tabs.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
@@ -306,6 +307,18 @@
     /* ── Customization panel UI ── */
     .cust-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:16px 0}
     .cust-wrap{display:flex;flex-direction:column;gap:14px}
+    /* NAMED (Nov 11 2026, card QR optional, editor tabs): the editing options' tabs, with smaller pills than the agent pages'. */
+    /* width 0 with min-width 100%: the one-line row adds no width of its own to the column, so on a phone it scrolls inside it. */
+    .ed-tabs.deck-tabs{gap:4px;margin:0 0 12px;padding-bottom:8px;width:0;min-width:100%;box-sizing:border-box}
+    .ed-tabs .deck-tab{font-size:.66rem;letter-spacing:.05em;padding:5px 10px;border-radius:8px}
+    .ed-panel{display:flex;flex-direction:column;gap:14px}
+    #cardEdTabs .ed-panel[hidden]{display:none!important}
+    .ed-note{font-size:.66rem;color:#8892b8;margin:6px 0 0;line-height:1.45}
+    .qr-show-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .qr-show-lbl{font-size:.78rem;font-weight:700;color:#e8e8ff}
+    .qr-gen-input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#e8e8ff;font:inherit;font-size:.78rem}
+    .qr-gen-box{display:inline-block;margin-top:8px;padding:10px;border-radius:10px;background:#fff;max-width:100%;box-sizing:border-box}
+    #qrGenCanvas{display:block;width:240px;max-width:100%;height:auto}
     .cust-lbl{font-size:.63rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
     .cust-val-badge{font-size:.6rem;font-weight:700;color:#f472b6;background:rgba(244,114,182,.1);padding:1px 7px;border-radius:4px;letter-spacing:0}
     .cust-select{width:100%;padding:9px 32px 9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.85rem;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .2s}
@@ -390,6 +403,19 @@
     .card-preview.orient-vertical .card-right{flex-direction:row;justify-content:flex-start;align-items:center;gap:10px;flex:0 0 auto;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
     .card-preview.orient-vertical .card-name{font-size:clamp(1.1rem,5vw,1.6rem)!important;white-space:normal}
 
+    /* NAMED (Nov 11 2026, card QR optional, editor tabs): the card's QR is off unless the owner turns it on (qr-off), and
+       sits in the chosen corner (qr-<corner>); the PNG, print file and shared image are snapshots of this preview. */
+    .card-preview.qr-off .card-right,.card-preview.qr-off .card-video-qr-ov{display:none!important}
+    .card-preview.qr-off .card-left{padding-right:0;padding-left:0}
+    .card-preview.qr-top-right:not(.orient-vertical) .card-right,.card-preview.qr-top-left:not(.orient-vertical) .card-right{justify-content:flex-start}
+    .card-preview.qr-bottom-left:not(.orient-vertical) .card-inner,.card-preview.qr-top-left:not(.orient-vertical) .card-inner{flex-direction:row-reverse}
+    .card-preview.qr-bottom-left:not(.orient-vertical):not(.qr-off) .card-left,.card-preview.qr-top-left:not(.orient-vertical):not(.qr-off) .card-left{padding-right:0;padding-left:16px}
+    .card-preview.orient-vertical.qr-top-right .card-inner,.card-preview.orient-vertical.qr-top-left .card-inner{flex-direction:column-reverse}
+    .card-preview.orient-vertical.qr-top-right .card-right,.card-preview.orient-vertical.qr-top-left .card-right{padding-top:0;padding-bottom:10px;border-top:0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .card-preview.orient-vertical.qr-top-right .card-right,.card-preview.orient-vertical.qr-bottom-right .card-right{flex-direction:row-reverse}
+    .card-preview.qr-top-right .card-video-qr-ov,.card-preview.qr-top-left .card-video-qr-ov{bottom:auto;top:10px}
+    .card-preview.qr-bottom-left .card-video-qr-ov,.card-preview.qr-top-left .card-video-qr-ov{right:auto;left:10px}
+
     @media(max-width:760px){.builder{grid-template-columns:1fr}.card-preview{max-width:100%}}
 
     /* ── Free Position Mode ── */
@@ -415,7 +441,7 @@
   <div class="hero">
     <div class="hero-eyebrow">DIGITAL CARDS</div>
     <h1 class="hero-title">Business Card Builder</h1>
-    <p class="hero-sub">Create a shareable digital business card with built-in QR code. Download as PNG or copy your vCard.</p>
+    <p class="hero-sub">Create a shareable digital business card, with an optional QR code. Download as PNG or copy your vCard.</p>
   </div>
 
   <div class="builder">
@@ -629,7 +655,7 @@
     <div class="preview-panel">
       <div class="preview-label">Live Preview</div>
 
-      <div class="card-preview border-glow" id="cardPreview" data-theme="dark">
+      <div class="card-preview border-glow qr-off qr-bottom-right" id="cardPreview" data-theme="dark">
         <div id="cardBgLayer" class="card-bg-layer"></div>
         <div id="cardTextureLayer" class="card-texture-layer"></div>
         <div id="cardOverlayLayer" class="card-overlay-layer"></div>
@@ -650,7 +676,7 @@
               <div class="card-contact-line" id="pWebsite"></div>
             </div>
           </div>
-          <div class="card-right">
+          <div class="card-right" id="cardQrBlock">
             <div class="card-qr-wrap">
               <canvas id="qrCanvas" width="90" height="90"></canvas>
             </div>
@@ -728,233 +754,282 @@
       </div>
 
       <hr class="cust-divider">
-      <div class="cust-wrap">
-
-        <!-- FONT STYLE -->
-        <div>
-          <div class="cust-lbl">Font Style</div>
-          <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)" style="display:none">
-            <option value="default">Default</option>
-            <optgroup label="— FUTURISTIC —">
-              <option value="orbitron">Orbitron</option>
-              <option value="exo2">Exo 2</option>
-              <option value="rajdhani">Rajdhani</option>
-              <option value="audiowide">Audiowide</option>
-              <option value="syncopate">Syncopate</option>
-            </optgroup>
-            <optgroup label="— ELEGANT —">
-              <option value="cormorant">Cormorant Garamond</option>
-              <option value="playfair">Playfair Display</option>
-              <option value="cinzel">Cinzel</option>
-              <option value="imfell">IM Fell English</option>
-              <option value="baskerville">Libre Baskerville</option>
-            </optgroup>
-            <optgroup label="— BOLD —">
-              <option value="bebas">Bebas Neue</option>
-              <option value="oswald">Oswald</option>
-              <option value="anton">Anton</option>
-              <option value="blackhan">Black Han Sans</option>
-              <option value="righteous">Righteous</option>
-            </optgroup>
-            <optgroup label="— SCRIPT —">
-              <option value="dancing">Dancing Script</option>
-              <option value="pacifico">Pacifico</option>
-              <option value="lobster">Lobster</option>
-              <option value="satisfy">Satisfy</option>
-              <option value="greatvibes">Great Vibes</option>
-            </optgroup>
-            <optgroup label="— MODERN —">
-              <option value="montserrat">Montserrat</option>
-              <option value="raleway">Raleway</option>
-              <option value="poppins">Poppins</option>
-              <option value="nunito">Nunito</option>
-              <option value="lato">Lato</option>
-            </optgroup>
-            <optgroup label="— STREET —">
-              <option value="vt323">VT323</option>
-              <option value="pressstart">Press Start 2P</option>
-              <option value="permanentmarker">Permanent Marker</option>
-              <option value="russoone">Russo One</option>
-              <option value="bungee">Bungee</option>
-            </optgroup>
-          </select>
-          <div class="custom-font-picker" id="customFontPicker">
-            <div class="font-picker-selected" id="fontPickerSelected" onclick="toggleFontPicker()">
-              <span id="fontPickerLabel">Default</span>
-              <span class="font-picker-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="#8892b8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <!-- NAMED (Nov 11 2026, card QR optional, editor tabs): the editing options, in five compact tabs (bf-tabs.js, #ed-* hashes,
+           sessionStorage bf_card_ed_tab). Every control keeps its id, its handler and the value it saves. -->
+      <div class="ed-tabs-wrap" id="cardEdTabs">
+        <div class="deck-tabs deck-tabs-scroll ed-tabs" role="tablist" aria-label="Card design options" id="cardEdTablist">
+          <button type="button" class="deck-tab is-on" role="tab" id="edTab-text" data-ed-tab="text" aria-controls="edPanel-text" aria-selected="true" tabindex="0">Text</button>
+          <button type="button" class="deck-tab" role="tab" id="edTab-frame" data-ed-tab="frame" aria-controls="edPanel-frame" aria-selected="false" tabindex="-1">Frame</button>
+          <button type="button" class="deck-tab" role="tab" id="edTab-background" data-ed-tab="background" aria-controls="edPanel-background" aria-selected="false" tabindex="-1">Background</button>
+          <button type="button" class="deck-tab" role="tab" id="edTab-motion" data-ed-tab="motion" aria-controls="edPanel-motion" aria-selected="false" tabindex="-1">Motion</button>
+          <button type="button" class="deck-tab" role="tab" id="edTab-qr" data-ed-tab="qr" aria-controls="edPanel-qr" aria-selected="false" tabindex="-1">QR Code</button>
+        </div>
+        <div class="deck-panel ed-panel" role="tabpanel" id="edPanel-text" aria-labelledby="edTab-text" tabindex="0">
+          <!-- FONT STYLE -->
+          <div>
+            <div class="cust-lbl">Font Style</div>
+            <select class="cust-select" id="cardFontSel" onchange="applyCardFont(this.value)" style="display:none">
+              <option value="default">Default</option>
+              <optgroup label="— FUTURISTIC —">
+                <option value="orbitron">Orbitron</option>
+                <option value="exo2">Exo 2</option>
+                <option value="rajdhani">Rajdhani</option>
+                <option value="audiowide">Audiowide</option>
+                <option value="syncopate">Syncopate</option>
+              </optgroup>
+              <optgroup label="— ELEGANT —">
+                <option value="cormorant">Cormorant Garamond</option>
+                <option value="playfair">Playfair Display</option>
+                <option value="cinzel">Cinzel</option>
+                <option value="imfell">IM Fell English</option>
+                <option value="baskerville">Libre Baskerville</option>
+              </optgroup>
+              <optgroup label="— BOLD —">
+                <option value="bebas">Bebas Neue</option>
+                <option value="oswald">Oswald</option>
+                <option value="anton">Anton</option>
+                <option value="blackhan">Black Han Sans</option>
+                <option value="righteous">Righteous</option>
+              </optgroup>
+              <optgroup label="— SCRIPT —">
+                <option value="dancing">Dancing Script</option>
+                <option value="pacifico">Pacifico</option>
+                <option value="lobster">Lobster</option>
+                <option value="satisfy">Satisfy</option>
+                <option value="greatvibes">Great Vibes</option>
+              </optgroup>
+              <optgroup label="— MODERN —">
+                <option value="montserrat">Montserrat</option>
+                <option value="raleway">Raleway</option>
+                <option value="poppins">Poppins</option>
+                <option value="nunito">Nunito</option>
+                <option value="lato">Lato</option>
+              </optgroup>
+              <optgroup label="— STREET —">
+                <option value="vt323">VT323</option>
+                <option value="pressstart">Press Start 2P</option>
+                <option value="permanentmarker">Permanent Marker</option>
+                <option value="russoone">Russo One</option>
+                <option value="bungee">Bungee</option>
+              </optgroup>
+            </select>
+            <div class="custom-font-picker" id="customFontPicker">
+              <div class="font-picker-selected" id="fontPickerSelected" onclick="toggleFontPicker()">
+                <span id="fontPickerLabel">Default</span>
+                <span class="font-picker-arrow"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="#8892b8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="font-picker-dropdown" id="fontPickerDropdown"></div>
             </div>
-            <div class="font-picker-dropdown" id="fontPickerDropdown"></div>
           </div>
-        </div>
 
-        <!-- DESIGN ELEMENTS -->
-        <div>
-          <div class="cust-lbl">Decorative Divider</div>
-          <select class="cust-select" id="dividerSel" onchange="applyDivider(this.value)">
-            <option value="none">None</option>
-            <option value="straight">Straight Line</option>
-            <option value="double">Double Line</option>
-            <option value="dashed">Dashed</option>
-            <option value="dotted">Dotted</option>
-            <option value="diamond">Diamond Divider</option>
-            <option value="star">Star Divider</option>
-            <option value="ornate">Ornate Scroll</option>
-            <option value="wave">Wave Line</option>
-            <option value="zigzag">Zigzag</option>
-            <option value="arrow">Arrow Divider</option>
-            <option value="bracket">Bracket Divider</option>
-            <option value="fleur">Fleur Divider</option>
-          </select>
-        </div>
-        <div>
-          <div class="cust-lbl">Text Effect</div>
-          <select class="cust-select" id="textEffectSel" onchange="applyTextEffect(this.value)">
-            <option value="none">None</option>
-            <option value="shadow">Shadow</option>
-            <option value="outline">Outline</option>
-            <option value="glow">Glow</option>
-            <option value="emboss">Emboss</option>
-            <option value="gradient">Gradient Text</option>
-          </select>
-        </div>
-        <div>
-          <div class="cust-lbl">Card Texture</div>
-          <select class="cust-select" id="textureSel" onchange="applyTexture(this.value)">
-            <option value="none">None</option>
-            <option value="carbon">Carbon Fiber</option>
-            <option value="metal">Brushed Metal</option>
-            <option value="leather">Leather</option>
-            <option value="marble">Marble</option>
-            <option value="circuit">Circuit Board</option>
-            <option value="holo">Holographic Foil</option>
-            <option value="linen">Linen</option>
-            <option value="glass">Glass</option>
-          </select>
-        </div>
-        <div>
-          <div class="cust-lbl">Corner Style</div>
-          <select class="cust-select" id="cornerSel" onchange="applyCornerStyle(this.value)">
-            <option value="rounded">Rounded</option>
-            <option value="sharp">Sharp</option>
-            <option value="cut">Cut Corner</option>
-            <option value="scalloped">Scalloped</option>
-            <option value="pillow">Pillow</option>
-          </select>
-        </div>
-
-        <!-- TEXT COLOR -->
-        <div>
-          <div class="cust-lbl">Text Color</div>
-          <div class="cust-color-row">
-            <input type="color" class="cust-color-inp" id="cardTextColorInp" value="#ffffff" oninput="applyTextColor(this.value)">
-            <span class="cust-color-val" id="cardTextColorVal">theme default</span>
-            <button class="cust-reset-btn" onclick="applyTextColor('')">Reset</button>
+          <div>
+            <div class="cust-lbl">Text Effect</div>
+            <select class="cust-select" id="textEffectSel" onchange="applyTextEffect(this.value)">
+              <option value="none">None</option>
+              <option value="shadow">Shadow</option>
+              <option value="outline">Outline</option>
+              <option value="glow">Glow</option>
+              <option value="emboss">Emboss</option>
+              <option value="gradient">Gradient Text</option>
+            </select>
           </div>
-        </div>
 
-        <!-- ACCENT COLOR -->
-        <div>
-          <div class="cust-lbl">Accent Color</div>
-          <div class="cust-color-row">
-            <input type="color" class="cust-color-inp" id="cardAccentColorInp" value="#22d3ee" oninput="applyAccentColor(this.value)">
-            <span class="cust-color-val" id="cardAccentColorVal">theme default</span>
-            <button class="cust-reset-btn" onclick="applyAccentColor('')">Reset</button>
+          <!-- TEXT COLOR -->
+          <div>
+            <div class="cust-lbl">Text Color</div>
+            <div class="cust-color-row">
+              <input type="color" class="cust-color-inp" id="cardTextColorInp" value="#ffffff" oninput="applyTextColor(this.value)">
+              <span class="cust-color-val" id="cardTextColorVal">theme default</span>
+              <button class="cust-reset-btn" onclick="applyTextColor('')">Reset</button>
+            </div>
           </div>
-        </div>
 
-        <!-- CARD LAYOUT -->
-        <div>
-          <div class="cust-lbl">Card Layout</div>
-          <div class="cust-btn-row">
-            <button class="cust-btn active" data-layout="classic"  onclick="applyCardLayout('classic')">Classic</button>
-            <button class="cust-btn"        data-layout="centered" onclick="applyCardLayout('centered')">Centered</button>
-            <button class="cust-btn"        data-layout="minimal"  onclick="applyCardLayout('minimal')">Minimal</button>
+          <!-- ACCENT COLOR -->
+          <div>
+            <div class="cust-lbl">Accent Color</div>
+            <div class="cust-color-row">
+              <input type="color" class="cust-color-inp" id="cardAccentColorInp" value="#22d3ee" oninput="applyAccentColor(this.value)">
+              <span class="cust-color-val" id="cardAccentColorVal">theme default</span>
+              <button class="cust-reset-btn" onclick="applyAccentColor('')">Reset</button>
+            </div>
           </div>
-        </div>
 
-        <!-- BACKGROUND OVERLAY -->
-        <div>
-          <div class="cust-lbl">Background Overlay <span class="cust-val-badge" id="bgOverlayVal">0%</span></div>
-          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="bgOverlaySlider" min="0" max="100" value="0" oninput="applyBgOverlay(+this.value)">
-        </div>
-
-        <!-- BORDER STYLE -->
-        <div>
-          <div class="cust-lbl">Border Style</div>
-          <div class="cust-btn-row">
-            <button class="cust-btn active" data-border="glow"         onclick="applyBorderStyle('glow')">Glow</button>
-            <button class="cust-btn"        data-border="none"         onclick="applyBorderStyle('none')">None</button>
-            <button class="cust-btn"        data-border="neon-pulse"   onclick="applyBorderStyle('neon-pulse')">Neon Pulse</button>
-            <button class="cust-btn"        data-border="gold"         onclick="applyBorderStyle('gold')">Gold</button>
-            <button class="cust-btn"        data-border="holo-rainbow" onclick="applyBorderStyle('holo-rainbow')">Holo Rainbow</button>
-          </div>
-        </div>
-
-        <!-- BORDER WEIGHT -->
-        <div>
-          <div class="cust-lbl">Border Weight</div>
-          <div class="cust-btn-row">
-            <button class="cust-btn"        data-bweight="12px" onclick="applyBorderWeight('12px')">Thin</button>
-            <button class="cust-btn active" data-bweight="16px" onclick="applyBorderWeight('16px')">Standard</button>
-            <button class="cust-btn"        data-bweight="20px" onclick="applyBorderWeight('20px')">Bold</button>
-            <button class="cust-btn"        data-bweight="28px" onclick="applyBorderWeight('28px')">Signature</button>
-          </div>
-        </div>
-
-        <!-- DISSOLVING CARD -->
-        <div>
-          <div class="cust-lbl">DISSOLVING CARD</div>
-          <input type="file" id="fi-still-img" accept="image/jpeg,image/png,image/*" style="display:none">
-          <div class="vid-upload-row">
-            <button class="vid-upload-btn" onclick="document.getElementById('fi-still-img').click()">Choose Image</button>
-            <button type="button" class="vid-upload-btn" id="stillImgLibraryBtn">Choose from my library</button>
-            <span class="vid-upload-name" id="stillImgName">No file chosen</span>
-            <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
-          </div>
-          <div id="stillImgCropControls" style="display:none;margin-top:8px">
-            <div class="cust-lbl">Image Fit</div>
+          <!-- CARD LAYOUT -->
+          <div>
+            <div class="cust-lbl">Card Layout</div>
             <div class="cust-btn-row">
-              <button class="cust-btn active" data-still-mode="fill" onclick="setStillImgMode('fill')">Fill</button>
-              <button class="cust-btn" data-still-mode="fit"  onclick="setStillImgMode('fit')">Fit</button>
-              <button class="cust-btn" data-still-mode="center" onclick="setStillImgMode('center')">Center</button>
+              <button class="cust-btn active" data-layout="classic"  onclick="applyCardLayout('classic')">Classic</button>
+              <button class="cust-btn"        data-layout="centered" onclick="applyCardLayout('centered')">Centered</button>
+              <button class="cust-btn"        data-layout="minimal"  onclick="applyCardLayout('minimal')">Minimal</button>
             </div>
-            <div class="cust-lbl" style="margin-top:8px">Zoom <span class="cust-val-badge" id="stillImgZoomVal">100%</span></div>
-            <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillImgZoomSlider" min="100" max="300" value="100" oninput="applyStillImgZoom(+this.value)">
-            <div style="font-size:.6rem;color:#4a5380;margin-top:5px;text-align:center;letter-spacing:.04em">drag preview to reposition</div>
           </div>
-          <div class="cust-lbl" style="margin-top:8px">Background Color</div>
-          <div class="cust-color-row">
-            <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
-            <span class="cust-color-val" id="stillBgColorVal">#000000</span>
-            <button class="cust-reset-btn" onclick="applyStillBgColor('#000000')">Reset</button>
-          </div>
-          <div class="cust-lbl" style="margin-top:8px">Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
-          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillOverlaySlider" min="0" max="100" value="0" oninput="applyStillOverlay(+this.value)">
-          <div class="media-ctrl-row" style="margin-top:10px">
-            <span class="media-ctrl-lbl">Text Overlay</span>
-            <label class="vid-sw-wrap"><input type="checkbox" class="vid-sw-input" id="stillTextToggle" onchange="setStillTextOverlay(this.checked)"></label>
+
+          <!-- DESIGN ELEMENTS -->
+          <div>
+            <div class="cust-lbl">Decorative Divider</div>
+            <select class="cust-select" id="dividerSel" onchange="applyDivider(this.value)">
+              <option value="none">None</option>
+              <option value="straight">Straight Line</option>
+              <option value="double">Double Line</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+              <option value="diamond">Diamond Divider</option>
+              <option value="star">Star Divider</option>
+              <option value="ornate">Ornate Scroll</option>
+              <option value="wave">Wave Line</option>
+              <option value="zigzag">Zigzag</option>
+              <option value="arrow">Arrow Divider</option>
+              <option value="bracket">Bracket Divider</option>
+              <option value="fleur">Fleur Divider</option>
+            </select>
           </div>
         </div>
-
-        <!-- TRANSITION STYLE -->
-        <div>
-          <div class="cust-lbl">Transition Style <span style="font-size:.55rem;font-weight:500;color:#4a5380;text-transform:none;letter-spacing:0">— video dissolve on card-view</span></div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">
-            <button class="cust-btn active" data-vtrans="fade"         onclick="applyVidTransition('fade')">Fade</button>
-            <button class="cust-btn"        data-vtrans="blur-dissolve" onclick="applyVidTransition('blur-dissolve')">Blur</button>
-            <button class="cust-btn"        data-vtrans="iris"          onclick="applyVidTransition('iris')">Iris</button>
-            <button class="cust-btn"        data-vtrans="glitch"        onclick="applyVidTransition('glitch')">Glitch</button>
-            <button class="cust-btn"        data-vtrans="swipe-left"    onclick="applyVidTransition('swipe-left')">Swipe ←</button>
-            <button class="cust-btn"        data-vtrans="swipe-up"      onclick="applyVidTransition('swipe-up')">Swipe ↑</button>
-            <button class="cust-btn"        data-vtrans="zoom-in"       onclick="applyVidTransition('zoom-in')">Zoom</button>
-            <button class="cust-btn"        data-vtrans="color-burn"    onclick="applyVidTransition('color-burn')">Burn</button>
-            <button class="cust-btn"        data-vtrans="matrix"        onclick="applyVidTransition('matrix')">Matrix</button>
-            <button class="cust-btn"        data-vtrans="shatter"       onclick="applyVidTransition('shatter')">Shatter</button>
+        <div class="deck-panel ed-panel" role="tabpanel" id="edPanel-frame" aria-labelledby="edTab-frame" tabindex="0" hidden>
+          <div>
+            <div class="cust-lbl">Corner Style</div>
+            <select class="cust-select" id="cornerSel" onchange="applyCornerStyle(this.value)">
+              <option value="rounded">Rounded</option>
+              <option value="sharp">Sharp</option>
+              <option value="cut">Cut Corner</option>
+              <option value="scalloped">Scalloped</option>
+              <option value="pillow">Pillow</option>
+            </select>
           </div>
-          <div class="cust-lbl" style="margin-top:8px">Transition Duration <span class="cust-val-badge" id="transitionDurVal">0.8s</span></div>
-          <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="transitionDurSlider" min="0.3" max="3.0" step="0.1" value="0.8" oninput="applyTransitionDuration(+this.value)">
-        </div>
 
+          <!-- BORDER STYLE -->
+          <div>
+            <div class="cust-lbl">Border Style</div>
+            <div class="cust-btn-row">
+              <button class="cust-btn active" data-border="glow"         onclick="applyBorderStyle('glow')">Glow</button>
+              <button class="cust-btn"        data-border="none"         onclick="applyBorderStyle('none')">None</button>
+              <button class="cust-btn"        data-border="neon-pulse"   onclick="applyBorderStyle('neon-pulse')">Neon Pulse</button>
+              <button class="cust-btn"        data-border="gold"         onclick="applyBorderStyle('gold')">Gold</button>
+              <button class="cust-btn"        data-border="holo-rainbow" onclick="applyBorderStyle('holo-rainbow')">Holo Rainbow</button>
+            </div>
+          </div>
+
+          <!-- BORDER WEIGHT -->
+          <div>
+            <div class="cust-lbl">Border Weight</div>
+            <div class="cust-btn-row">
+              <button class="cust-btn"        data-bweight="12px" onclick="applyBorderWeight('12px')">Thin</button>
+              <button class="cust-btn active" data-bweight="16px" onclick="applyBorderWeight('16px')">Standard</button>
+              <button class="cust-btn"        data-bweight="20px" onclick="applyBorderWeight('20px')">Bold</button>
+              <button class="cust-btn"        data-bweight="28px" onclick="applyBorderWeight('28px')">Signature</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="cust-lbl">Card Texture</div>
+            <select class="cust-select" id="textureSel" onchange="applyTexture(this.value)">
+              <option value="none">None</option>
+              <option value="carbon">Carbon Fiber</option>
+              <option value="metal">Brushed Metal</option>
+              <option value="leather">Leather</option>
+              <option value="marble">Marble</option>
+              <option value="circuit">Circuit Board</option>
+              <option value="holo">Holographic Foil</option>
+              <option value="linen">Linen</option>
+              <option value="glass">Glass</option>
+            </select>
+          </div>
+        </div>
+        <div class="deck-panel ed-panel" role="tabpanel" id="edPanel-background" aria-labelledby="edTab-background" tabindex="0" hidden>
+          <!-- BACKGROUND OVERLAY -->
+          <div>
+            <div class="cust-lbl">Background Overlay <span class="cust-val-badge" id="bgOverlayVal">0%</span></div>
+            <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="bgOverlaySlider" min="0" max="100" value="0" oninput="applyBgOverlay(+this.value)">
+          </div>
+
+          <!-- DISSOLVING CARD -->
+          <div>
+            <div class="cust-lbl">DISSOLVING CARD</div>
+            <input type="file" id="fi-still-img" accept="image/jpeg,image/png,image/*" style="display:none">
+            <div class="vid-upload-row">
+              <button class="vid-upload-btn" onclick="document.getElementById('fi-still-img').click()">Choose Image</button>
+              <button type="button" class="vid-upload-btn" id="stillImgLibraryBtn">Choose from my library</button>
+              <span class="vid-upload-name" id="stillImgName">No file chosen</span>
+              <button class="remove-btn" id="stillImgRemoveBtn" onclick="clearStillImage()" style="display:none">Remove</button>
+            </div>
+            <div id="stillImgCropControls" style="display:none;margin-top:8px">
+              <div class="cust-lbl">Image Fit</div>
+              <div class="cust-btn-row">
+                <button class="cust-btn active" data-still-mode="fill" onclick="setStillImgMode('fill')">Fill</button>
+                <button class="cust-btn" data-still-mode="fit"  onclick="setStillImgMode('fit')">Fit</button>
+                <button class="cust-btn" data-still-mode="center" onclick="setStillImgMode('center')">Center</button>
+              </div>
+              <div class="cust-lbl" style="margin-top:8px">Zoom <span class="cust-val-badge" id="stillImgZoomVal">100%</span></div>
+              <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillImgZoomSlider" min="100" max="300" value="100" oninput="applyStillImgZoom(+this.value)">
+              <div style="font-size:.6rem;color:#4a5380;margin-top:5px;text-align:center;letter-spacing:.04em">drag preview to reposition</div>
+            </div>
+            <div class="cust-lbl" style="margin-top:8px">Background Color</div>
+            <div class="cust-color-row">
+              <input type="color" class="cust-color-inp" id="stillBgColorInp" value="#000000" oninput="applyStillBgColor(this.value)">
+              <span class="cust-color-val" id="stillBgColorVal">#000000</span>
+              <button class="cust-reset-btn" onclick="applyStillBgColor('#000000')">Reset</button>
+            </div>
+            <div class="cust-lbl" style="margin-top:8px">Overlay <span class="cust-val-badge" id="stillOverlayVal">0%</span></div>
+            <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="stillOverlaySlider" min="0" max="100" value="0" oninput="applyStillOverlay(+this.value)">
+            <div class="media-ctrl-row" style="margin-top:10px">
+              <span class="media-ctrl-lbl">Text Overlay</span>
+              <label class="vid-sw-wrap"><input type="checkbox" class="vid-sw-input" id="stillTextToggle" onchange="setStillTextOverlay(this.checked)"></label>
+            </div>
+          </div>
+        </div>
+        <div class="deck-panel ed-panel" role="tabpanel" id="edPanel-motion" aria-labelledby="edTab-motion" tabindex="0" hidden>
+          <!-- TRANSITION STYLE -->
+          <div>
+            <div class="cust-lbl">Transition Style <span style="font-size:.55rem;font-weight:500;color:#4a5380;text-transform:none;letter-spacing:0">— video dissolve on card-view</span></div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px">
+              <button class="cust-btn active" data-vtrans="fade"         onclick="applyVidTransition('fade')">Fade</button>
+              <button class="cust-btn"        data-vtrans="blur-dissolve" onclick="applyVidTransition('blur-dissolve')">Blur</button>
+              <button class="cust-btn"        data-vtrans="iris"          onclick="applyVidTransition('iris')">Iris</button>
+              <button class="cust-btn"        data-vtrans="glitch"        onclick="applyVidTransition('glitch')">Glitch</button>
+              <button class="cust-btn"        data-vtrans="swipe-left"    onclick="applyVidTransition('swipe-left')">Swipe ←</button>
+              <button class="cust-btn"        data-vtrans="swipe-up"      onclick="applyVidTransition('swipe-up')">Swipe ↑</button>
+              <button class="cust-btn"        data-vtrans="zoom-in"       onclick="applyVidTransition('zoom-in')">Zoom</button>
+              <button class="cust-btn"        data-vtrans="color-burn"    onclick="applyVidTransition('color-burn')">Burn</button>
+              <button class="cust-btn"        data-vtrans="matrix"        onclick="applyVidTransition('matrix')">Matrix</button>
+              <button class="cust-btn"        data-vtrans="shatter"       onclick="applyVidTransition('shatter')">Shatter</button>
+            </div>
+            <div class="cust-lbl" style="margin-top:8px">Transition Duration <span class="cust-val-badge" id="transitionDurVal">0.8s</span></div>
+            <input type="range" class="media-ctrl-sl" style="width:100%;margin-top:2px" id="transitionDurSlider" min="0.3" max="3.0" step="0.1" value="0.8" oninput="applyTransitionDuration(+this.value)">
+          </div>
+        </div>
+        <div class="deck-panel ed-panel" role="tabpanel" id="edPanel-qr" aria-labelledby="edTab-qr" tabindex="0" hidden>
+          <!-- SHOW QR ON CARD (Nov 11 2026): off unless the owner turns it on -->
+          <div>
+            <div class="qr-show-row">
+              <span class="qr-show-lbl" id="qrShowLbl">Show QR code on card</span>
+              <label class="vid-sw-wrap"><input type="checkbox" class="vid-sw-input" id="qrShowToggle" aria-labelledby="qrShowLbl" onchange="setShowQr(this.checked)"><div class="vid-sw-track"></div><div class="vid-sw-knob"></div></label>
+            </div>
+            <p class="ed-note">Off unless you turn it on, and saved when you press "Save Card". When it is on, the QR code is on this preview, your public card, the PNG, the print file and the shared image.</p>
+          </div>
+          <div>
+            <div class="cust-lbl">QR Corner</div>
+            <div class="cust-btn-row" role="group" aria-label="QR corner">
+              <button type="button" class="cust-btn" data-qr-corner="top-left" onclick="setQrCorner('top-left')">Top left</button>
+              <button type="button" class="cust-btn" data-qr-corner="top-right" onclick="setQrCorner('top-right')">Top right</button>
+              <button type="button" class="cust-btn" data-qr-corner="bottom-left" onclick="setQrCorner('bottom-left')">Bottom left</button>
+              <button type="button" class="cust-btn active" data-qr-corner="bottom-right" onclick="setQrCorner('bottom-right')">Bottom right</button>
+            </div>
+          </div>
+          <!-- QR CODE GENERATOR (Nov 11 2026): drawn in the browser with the page's QR library; nothing is sent anywhere -->
+          <div>
+            <div class="cust-lbl">QR Code Generator</div>
+            <label class="ed-note" for="qrGenUrl" style="display:block;margin:0 0 5px">Link to encode (http or https). Leave it empty for your card's public link.</label>
+            <input type="url" class="qr-gen-input" id="qrGenUrl" placeholder="https://example.com" inputmode="url" autocomplete="off" spellcheck="false" maxlength="2000" oninput="drawQrGenerator()">
+            <div class="cust-btn-row" style="margin-top:6px">
+              <button type="button" class="cust-btn" id="qrGenUseCard" onclick="useCardLinkForQr()">Use my card's link</button>
+            </div>
+            <p class="ed-note" id="qrGenNote" role="status" aria-live="polite"></p>
+            <div class="qr-gen-box" id="qrGenBox"><canvas id="qrGenCanvas" width="240" height="240" role="img" aria-label="QR code for the link above"></canvas></div>
+            <div class="cust-btn-row" style="margin-top:8px">
+              <button type="button" class="cust-btn" id="qrGenPngBtn" onclick="downloadQrGenerator('png')">Download QR (PNG)</button>
+              <button type="button" class="cust-btn" id="qrGenSvgBtn" onclick="downloadQrGenerator('svg')">Download QR (SVG)</button>
+            </div>
+          </div>
+        </div>
       </div>
       <hr class="cust-divider">
 
@@ -1119,7 +1194,9 @@ function getFields() {
       divider_style: cardDividerStyle !== "none"    ? cardDividerStyle  : undefined,
       text_effect:   cardTextEffect   !== "none"    ? cardTextEffect    : undefined,
       card_texture:  cardTexture      !== "none"    ? cardTexture       : undefined,
-      corner_style:  cardCornerStyle  !== "rounded" ? cardCornerStyle   : undefined
+      corner_style:  cardCornerStyle  !== "rounded" ? cardCornerStyle   : undefined,
+      // NAMED (Nov 11 2026, card QR optional, editor tabs): always sent, so turning the QR off is saved too.
+      show_qr: showQr === true, qr_corner: qrCorner
     }
   };
 }
@@ -1158,9 +1235,13 @@ function cardQrUrl() {
 
 async function generateQR() {
   var url = window.bfCard.qrUrl(cardQrUrl());
+  // The QR Code tab's generator follows the card's link when it is open and empty.
+  var genPanel = document.getElementById("edPanel-qr");
+  if (genPanel && !genPanel.hidden) drawQrGenerator();
   var colors = THEME_QR[activeTheme];
   var qr = document.getElementById("qrCanvas"), qrVideo = document.getElementById("qrVideoCanvas");
-  if (!url) {
+  // NAMED (Nov 11 2026, card QR optional, editor tabs): no QR is drawn on a card that does not show one.
+  if (!url || !showQr) {
     [qr, qrVideo].forEach(function (cv) { if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); });
     return;
   }
@@ -1260,6 +1341,11 @@ function fillForm(card) {
     document.getElementById("pitchVidName").textContent = "(saved video)";
   }
   if (card.holographic_style) { setHoloStyle(true); }
+  // NAMED (Nov 11 2026, card QR optional, editor tabs): a missing show_qr, or anything but true, is off.
+  var qml = card.media_layout || {};
+  showQr = qml.show_qr === true;
+  qrCorner = QR_CORNERS.indexOf(qml.qr_corner) !== -1 ? qml.qr_corner : "bottom-right";
+  applyQrSettings();
   if (card.media_layout) {
     var ml = card.media_layout;
     bgPosX  = ml.bg_pos_x  !== undefined ? +ml.bg_pos_x  : 50;
@@ -2755,6 +2841,124 @@ function onFpDragStart(e, key, el) {
   document.addEventListener('touchmove', onMove, {passive: false});
   document.addEventListener('touchend',  onUp);
 }
+
+/* ── The card's QR code: optional, off by default (Nov 11 2026, card QR optional, editor tabs) ──
+   showQr is true only when the owner turns it on; a saved card without show_qr,
+   or with anything but true, has none. The preview carries qr-off or nothing,
+   and qr-<corner>; the PNG, the print file and the shared image are snapshots
+   of the preview, so they follow it. card-view.html reads the same two values. */
+var QR_CORNERS = ["bottom-right", "bottom-left", "top-right", "top-left"];
+var showQr = false;
+var qrCorner = "bottom-right";
+function applyQrSettings() {
+  var cp = document.getElementById("cardPreview");
+  if (cp) {
+    cp.classList.toggle("qr-off", !showQr);
+    QR_CORNERS.forEach(function (c) { cp.classList.toggle("qr-" + c, c === qrCorner); });
+  }
+  var tg = document.getElementById("qrShowToggle");
+  if (tg) tg.checked = showQr;
+  document.querySelectorAll("[data-qr-corner]").forEach(function (b) {
+    var on = b.getAttribute("data-qr-corner") === qrCorner;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+function setShowQr(on) {
+  showQr = on === true;
+  applyQrSettings();
+  if (showQr) generateQR();
+}
+function setQrCorner(c) {
+  qrCorner = QR_CORNERS.indexOf(c) !== -1 ? c : "bottom-right";
+  applyQrSettings();
+}
+
+/* ── QR code generator (QR Code tab) ──
+   Any http or https link, or the card's own public link when the box is empty.
+   Drawn and downloaded in the browser with the page's QR library (qrcode@1.4.4):
+   no request is made. Works whether or not the QR is shown on the card. */
+function qrGeneratorTarget() {
+  var inp = document.getElementById("qrGenUrl");
+  var raw = inp ? String(inp.value || "").trim() : "";
+  if (!raw) {
+    var own = window.bfCard.qrUrl(cardQrUrl());
+    return own ? { url: own, note: "Your card's public link." } : { url: null, note: "Save your card to get its link, or type a link above." };
+  }
+  return validQrLink(raw) ? { url: raw, note: "The link you typed." } : { url: null, note: "Type a full link that starts with http:// or https://." };
+}
+function validQrLink(raw) {
+  if (typeof raw !== "string" || !raw || raw.length > 2000 || /\s/.test(raw)) return false;
+  var u;
+  try { u = new URL(raw); } catch (e) { return false; }
+  return (u.protocol === "http:" || u.protocol === "https:") && !!u.hostname;
+}
+var QR_GEN_OPTS = { margin: 2, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } };
+function drawQrGenerator() {
+  var t = qrGeneratorTarget();
+  var cv = document.getElementById("qrGenCanvas"), note = document.getElementById("qrGenNote");
+  if (note) note.textContent = t.note;
+  ["qrGenPngBtn", "qrGenSvgBtn"].forEach(function (id) { var b = document.getElementById(id); if (b) b.disabled = !t.url; });
+  if (!cv) return t;
+  if (!t.url) { cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); return t; }
+  try {
+    QRCode.toCanvas(cv, t.url, Object.assign({ width: 240 }, QR_GEN_OPTS), function (err) {
+      if (err) console.error("[BF] the QR code could not be drawn:", err);
+    });
+  } catch (e) { console.error("[BF] the QR code could not be drawn:", e); }
+  return t;
+}
+function useCardLinkForQr() {
+  var inp = document.getElementById("qrGenUrl");
+  if (inp) inp.value = "";
+  drawQrGenerator();
+}
+function saveQrFile(href, name) {
+  var a = document.createElement("a");
+  a.href = href;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function downloadQrGenerator(kind) {
+  var t = drawQrGenerator();
+  if (!t.url) return;
+  if (kind === "svg") {
+    QRCode.toString(t.url, Object.assign({ type: "svg" }, QR_GEN_OPTS), function (err, svg) {
+      if (err) { console.error("[BF] the QR code could not be made:", err); return; }
+      var href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      saveQrFile(href, "qr-code.svg");
+      setTimeout(function () { URL.revokeObjectURL(href); }, 4000);
+    });
+    return;
+  }
+  QRCode.toDataURL(t.url, Object.assign({ width: 1024 }, QR_GEN_OPTS), function (err, png) {
+    if (err) { console.error("[BF] the QR code could not be made:", err); return; }
+    saveQrFile(png, "qr-code.png");
+  });
+}
+
+/* ── The editing options' tabs (Nov 11 2026, card QR optional, editor tabs) ── */
+var ED_TABS = ["text", "frame", "background", "motion", "qr"];
+(function initEditorTabs() {
+  var list = document.getElementById("cardEdTablist");
+  if (!list || !window.BFTabs) return;
+  var api = window.BFTabs.create({
+    root: list,
+    tabs: ED_TABS,
+    attr: "data-ed-tab",
+    tabId: function (n) { return "edTab-" + n; },
+    panelId: function (n) { return "edPanel-" + n; },
+    hash: function (n) { return "#ed-" + n; },
+    nameOf: function (h) { var m = /^ed-([a-z]+)$/.exec(h); return m ? m[1] : null; },
+    storage: { kind: "session", key: "bf_card_ed_tab" },
+    fallback: "text",
+    onSelect: function (n) { if (n === "qr") drawQrGenerator(); }
+  });
+  api.route();
+})();
+applyQrSettings();
 
 (function initFpDrag() {
   FP_KEYS.forEach(function(key) {

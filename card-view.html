@@ -165,6 +165,15 @@
     #cardPreview.font-bungee        .card-name,#cardPreview.font-bungee        .card-job,#cardPreview.font-bungee        .card-company,#cardPreview.font-bungee        .card-contact-line,#cardPreview.font-bungee        .card-tagline{font-family:'Bungee',sans-serif!important}
 
     .card-contacts-block{display:flex;flex-direction:column;gap:5px}
+    /* NAMED (Nov 11 2026, card QR optional, editor tabs): the card's QR shows only when its owner turned it on
+       (media_layout.show_qr === true), in the corner they chose; otherwise there is no QR, no label and no empty box. */
+    .card-bottom-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+    .card-bottom-row .card-contacts-block{flex:1;min-width:0}
+    .card-top-row.qr-left,.card-bottom-row.qr-left{flex-direction:row-reverse}
+    .card-top-row.qr-left .card-company{text-align:right}
+    #cardPreview.qr-off .card-video-qr-ov,#cardPreview.qr-off #vidBox .card-video-qr-ov{display:none!important}
+    #cardPreview.qr-top-right .card-video-qr-ov,#cardPreview.qr-top-left .card-video-qr-ov{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 16px)}
+    #cardPreview.qr-bottom-left .card-video-qr-ov,#cardPreview.qr-top-left .card-video-qr-ov{right:auto;left:16px}
     .card-contact-line{font-size:.82rem;color:rgba(255,255,255,.48);line-height:1.4;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .card-contact-line:not(:empty)::before{content:"· ";color:rgba(255,255,255,.22)}
@@ -347,7 +356,7 @@
   </div>
 
   <!-- Card preview — edge to edge -->
-  <div id="cardPreview" data-theme="dark">
+  <div id="cardPreview" class="qr-off" data-theme="dark">
     <div id="cvBgLayer" class="card-bg-layer"></div>
     <img id="cardPoster" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:5;border-radius:20px;display:none;pointer-events:none;background:#000">
     <div id="cardPosterOverlay" style="position:absolute;inset:0;z-index:6;border-radius:20px;pointer-events:none;display:none"></div>
@@ -357,7 +366,7 @@
     <div class="card-inner">
       <div class="card-top-row">
         <div class="card-company" id="pCompany"></div>
-        <div>
+        <div class="cv-qr-block" id="cvQrBlock" hidden>
           <div class="card-qr-wrap">
             <canvas id="qrCanvas" width="80" height="80"></canvas>
           </div>
@@ -369,10 +378,12 @@
         <div class="card-job"  id="pTitle"></div>
         <div class="card-tagline" id="pTagline"></div>
       </div>
-      <div class="card-contacts-block">
-        <a class="card-contact-line card-contact-link" id="pEmail"></a>
-        <a class="card-contact-line card-contact-link" id="pPhone"></a>
-        <div class="card-contact-line" id="pWebsite"></div>
+      <div class="card-bottom-row" id="cvBottomRow">
+        <div class="card-contacts-block">
+          <a class="card-contact-line card-contact-link" id="pEmail"></a>
+          <a class="card-contact-line card-contact-link" id="pPhone"></a>
+          <div class="card-contact-line" id="pWebsite"></div>
+        </div>
       </div>
     </div>
     <div class="card-watermark">BIZFORCE AI</div>
@@ -503,6 +514,28 @@ function setCanonical(url) {
   if (og) og.setAttribute("content", url);
 }
 
+/* NAMED (Nov 11 2026, card QR optional, editor tabs): the card's QR, only when its owner turned it on.
+   show_qr must be true (missing or anything else is off); qr_corner picks the corner, bottom-right when
+   missing. Off: the block and its label stay hidden, nothing is drawn, and the video's QR is hidden too. */
+var CV_QR_CORNERS = ["bottom-right", "bottom-left", "top-right", "top-left"];
+function placeCardQr(card, ml) {
+  ml = ml || {};
+  var on = ml.show_qr === true;
+  var corner = CV_QR_CORNERS.indexOf(ml.qr_corner) !== -1 ? ml.qr_corner : "bottom-right";
+  var block = document.getElementById("cvQrBlock");
+  var top = card.querySelector(".card-top-row"), bottom = document.getElementById("cvBottomRow");
+  card.classList.toggle("qr-off", !on);
+  CV_QR_CORNERS.forEach(function (k) { card.classList.toggle("qr-" + k, on && k === corner); });
+  [top, bottom].forEach(function (row) { if (row) row.classList.remove("qr-left"); });
+  if (!block) return false;
+  block.hidden = !on;
+  if (!on) return false;
+  var row = corner.indexOf("top-") === 0 ? top : bottom;
+  if (row && block.parentNode !== row) row.appendChild(block);
+  if (row && corner.indexOf("-left") !== -1) row.classList.add("qr-left");
+  return true;
+}
+
 function renderCard(c) {
   var theme = c.theme || "dark";
   var card  = document.getElementById("cardPreview");
@@ -597,7 +630,7 @@ function renderCard(c) {
   setCanonical(cardUrl);
   var qrUrl = window.bfCard.qrUrl(cardUrl);
   var colors = THEME_QR[theme] || THEME_QR.dark;
-  try {
+  if (placeCardQr(card, c.media_layout)) try {
     QRCode.toCanvas(document.getElementById("qrCanvas"), qrUrl, {
       width: 80, margin: 1, errorCorrectionLevel: "M",
       color: { dark: colors.dark, light: colors.light }
