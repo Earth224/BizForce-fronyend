@@ -46,7 +46,9 @@
      bf_music, the music player's memory (scripts/bf-music.js: the track, the
      position, the volume, the queue and the player's settings) and, in this
      tab, bf_music_live (that music has played in this session and was not
-     stopped, so the other pages show the player).
+     stopped, so the other pages show the player), and bf_main_boxes, the two
+     tools the member chose with Swap for the dashboard's main boxes
+     (scripts/bf-orbit.js; added Nov 10 2026, orbit top half).
      Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
      app.html whenever it opens with no session.
 
@@ -62,7 +64,8 @@
      bf_boombox (where the music boombox sits and whether it is minimised),
      bf_tmx_not_now (which of Termaximus's suggestions were set aside with
      "Not now" on this device, and until when: fixed rule names, no data),
-     bf_agent_order, bf_dashboard_order and bf_dashboard_custom (card order),
+     bf_agent_order (card order), bf_orbit_portal (sessionStorage: which
+     dashboard orbit portal is open in this tab, scripts/bf-orbit.js),
      bf_return_to (the public page to return to after signing in, which
      app.html must still find), and bf_oauth_return (sessionStorage: which
      sign-in, youtube or tiktok, is coming back to the Social page in this
@@ -79,6 +82,7 @@
     "bf_offline_copy",
     "bizforce_ai_mailbox", "bf_agent_memories",
     "bf_oracle_name", "bf_oracle_date",
+    "bf_main_boxes",
     "mcTargetGoalConversions",
     "bf_theme",
     "bf_music"

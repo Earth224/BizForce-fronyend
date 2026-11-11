@@ -40,7 +40,7 @@ var OFFLINE_PAGES = [
 var STATIC_FILES = [
   "/css/bizforce-ui.css",
   "/scripts/bf-session.js", "/scripts/bf-offline.js", "/scripts/bf-paywall.js", "/scripts/bf-bfc-notice.js",
-  "/scripts/bf-identity.js", "/scripts/bf-agent-order.js", "/scripts/bf-dashboard-order.js", "/scripts/agent-profile.js",
+  "/scripts/bf-identity.js", "/scripts/bf-agent-order.js", "/scripts/bf-orbit.js", "/scripts/agent-profile.js",
   "/scripts/termaximus-guide.js", "/scripts/termaximus-presence.js", "/scripts/email-sequences.js", "/scripts/social-publish.js",
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"

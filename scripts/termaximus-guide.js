@@ -25,11 +25,11 @@
      loads this script and has no entry here shows no guide at all. */
   var PAGE_GUIDANCE = {
     "dashboard.html": [
-      "Start in \"Command Center\": its \"Command\" tab lists the proposals waiting for your approval and the runs that failed.",
-      "Under \"Plans\", press \"Show steps\", then \"Dispatch\" to run an assignment; that run then joins the counts under \"Activity\".",
+      "Press a portal, such as \"Sell\" or \"Agents\", to open its boxes; a number on a portal is waiting for you: low stock on Sell, proposals on Agents.",
+      "Press \"All tools\" in the middle for every page by group, or press / and type in \"Go to any tool...\"; \"Swap\" changes the two main boxes.",
+      "In \"Command Center\", its \"Command\" tab lists the proposals waiting for your approval; under \"Plans\", \"Show steps\" then \"Dispatch\" runs one.",
       "The music button in the top bar is your music: press it for the bar, then the boombox; \"Library\" slides out your tracks, \"Close to icon\" tucks it away.",
-      "Name or industry wrong? Press \"Expand Profile\" and edit it; every agent reads this profile.",
-      "To delegate new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
+      "Name or industry wrong? Press \"Expand Profile\" and edit it. For new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."
     ],
     "agents-hub.html": [
       "Press an agent's card, such as \"Content Agent\", to open its own page; that is where its tasks are written and run.",

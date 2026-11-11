@@ -332,7 +332,110 @@
   <p id="subscribeStartText">Your account is ready. Running agents, AI tasks and assignments needs the All Access subscription ($199 a month). Your business profile and memory, below, work now, and everything you fill in is kept.</p>
   <a class="bf-btn" id="subscribeStartLink" href="/billing.html">Subscribe on Billing</a>
 </div>
-<div class="bf-feature-grid cards">
+<!-- THE ORBIT (Nov 10 2026, orbit top half). Five portals around a core, two
+     swappable main boxes, the open portal's boxes, All tools and a "/" quick
+     search, drawn by scripts/bf-orbit.js from ONE GET /api/dashboard/top. It
+     replaces the feature grid and the AI Agent Directory card: every one of
+     those boxes is kept below, unchanged, in <template id="orbitTools">, and
+     each portal's grid is cloned from there. -->
+<style id="orbitStyle">
+  .bf-orbit{margin:0 0 24px}
+  .orbit-stage{position:relative;width:100%;max-width:900px;margin:0 auto;aspect-ratio:2/1}
+  .orbit-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .orbit-ring{fill:none;stroke:rgba(var(--bf-accent-a-rgb, 34,211,238),.35);stroke-width:1.5}
+  .orbit-ring-inner{fill:none;stroke:rgba(var(--bf-accent-b-rgb, 168,85,247),.3);stroke-width:1;stroke-dasharray:4 6}
+  .orbit-beam-line{fill:none;stroke:var(--bf-accent-a, #22d3ee);stroke-width:2;opacity:.7;filter:drop-shadow(0 0 6px var(--bf-accent-a, #22d3ee))}
+  .orbit-beam-dot{fill:var(--bf-accent-a, #22d3ee);animation:orbitDot 2.4s linear infinite}
+  .orbit-beam.is-still .orbit-beam-dot{animation:none;transform:translate(0px,125px)}
+  @keyframes orbitDot{0%{transform:translate(0px,250px);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translate(0px,0px);opacity:0}}
+  .orbit-portal,.orbit-core{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;flex-direction:column;align-items:center;gap:4px;
+    background:rgba(10,14,30,.72);color:#e8e8ff;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);border-radius:999px;cursor:pointer;
+    font:inherit;transition:opacity .3s ease}
+  .orbit-portal{width:88px;height:88px;justify-content:center;padding:6px}
+  .orbit-portal.is-dim{opacity:.45}
+  .orbit-portal.is-open{border-color:var(--bf-accent-a, #22d3ee);box-shadow:0 0 22px rgba(var(--bf-accent-a-rgb, 34,211,238),.55)}
+  .orbit-portal:focus-visible,.orbit-core:focus-visible,.orbit-swap:focus-visible,.orbit-search input:focus-visible{outline:3px solid var(--bf-accent-a, #22d3ee);outline-offset:3px}
+  .orbit-emblem{width:30px;height:30px;fill:none;stroke:var(--bf-accent-a, #22d3ee);stroke-width:2}
+  .orbit-emblem-fill{fill:var(--bf-accent-a, #22d3ee)}
+  .orbit-moon-dark{fill:#1b2033;stroke:rgba(255,255,255,.25);stroke-width:1}
+  .orbit-moon-lit{fill:#f4f1de;stroke:none}
+  .orbit-portal-name{font-size:.8rem;font-weight:600;letter-spacing:.04em}
+  .orbit-badge{position:absolute;top:2px;right:2px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#f5b942;color:#1a1300;
+    font-size:.75rem;font-weight:700;line-height:22px;text-align:center}
+  .orbit-core{width:150px;height:150px;justify-content:center;border-radius:50%;text-align:center;
+    border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.55);background:radial-gradient(circle,rgba(30,22,60,.95),rgba(10,14,30,.85))}
+  .orbit-core-label{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+  .orbit-core-figure{font-size:.95rem;padding:0 10px}
+  .orbit-core-all{font-size:.7rem;opacity:.75;text-decoration:underline}
+  .orbit-preview{text-align:center;margin:6px 0 0;min-height:1.4em;color:#cfd3ff;font-size:.9rem}
+  .orbit-search{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:12px 0 4px;position:relative}
+  .orbit-search input{flex:1 1 260px;max-width:460px;padding:10px 14px;border-radius:12px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);
+    background:rgba(10,14,30,.7);color:#e8e8ff;font:inherit}
+  .orbit-hint{font-size:.8rem;opacity:.7}
+  .orbit-status{text-align:center;font-size:.85rem;color:#cfd3ff;margin:4px 0}
+  .orbit-results{list-style:none;margin:0 auto 10px;padding:6px;max-width:460px;border-radius:12px;background:rgba(10,14,30,.92);
+    border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.35)}
+  .orbit-results li{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px}
+  .orbit-results li[aria-selected="true"]{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.18)}
+  .orbit-results a{color:#e8e8ff;text-decoration:none}
+  .orbit-result-group{font-size:.8rem;opacity:.7}
+  .orbit-main{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin:16px 0}
+  .orbit-main-box{position:relative}
+  .orbit-big{margin:8px 0 2px}
+  .orbit-big strong{font-size:1.8rem}
+  .orbit-change{margin:0 0 6px;font-size:.85rem;opacity:.85}
+  .orbit-live{margin:6px 0;font-weight:600;color:var(--bf-accent-a, #22d3ee)}
+  .orbit-spark{width:100%;max-width:240px;height:44px;display:block;margin:6px 0}
+  .orbit-spark-line{fill:none;stroke:var(--bf-accent-a, #22d3ee);stroke-width:2}
+  .orbit-spark-dot{fill:var(--bf-accent-a, #22d3ee)}
+  .orbit-connect{display:inline-block;margin:6px 0;color:var(--bf-accent-a, #22d3ee)}
+  .orbit-swap{position:absolute;top:12px;right:12px;padding:4px 10px;border-radius:999px;font:inherit;font-size:.75rem;cursor:pointer;
+    background:transparent;color:#e8e8ff;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45)}
+  .orbit-swap-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  .orbit-swap-list button{font:inherit;font-size:.8rem;padding:4px 10px;border-radius:999px;cursor:pointer;background:rgba(10,14,30,.7);color:#e8e8ff;
+    border:1px solid rgba(var(--bf-accent-b-rgb, 168,85,247),.45)}
+  .orbit-alltools{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:14px 0;padding:16px;border-radius:16px;
+    background:rgba(10,14,30,.6);border:1px solid rgba(var(--bf-accent-b-rgb, 168,85,247),.35)}
+  .orbit-alltools[hidden],.orbit-grid[hidden],.orbit-results[hidden],.orbit-preview[hidden],.orbit-badge[hidden]{display:none !important}
+  .orbit-group h3{margin:0 0 6px;font-size:.95rem}
+  .orbit-group ul{list-style:none;margin:0;padding:0}
+  .orbit-group a{color:#e8e8ff;line-height:1.9}
+  .orbit-grid .orbit-box-wide{grid-column:span 2}
+  .orbit-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){
+    .orbit-beam-dot{animation:none;transform:translate(0px,125px)}
+    .orbit-portal,.orbit-core{transition:none}
+  }
+  @media (max-width: 640px){
+    .orbit-stage{aspect-ratio:auto;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 10px;min-width:0;max-width:100%}
+    .orbit-svg{display:none}
+    .orbit-portal,.orbit-core{position:relative;transform:none !important}
+    .orbit-portal{flex:1 1 0;min-width:0;width:auto;height:72px;padding:4px}
+    .orbit-portal-name{font-size:.72rem;letter-spacing:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .orbit-core{order:-1;flex:1 1 100%;width:auto;height:64px;border-radius:18px}
+    .orbit-main{grid-template-columns:1fr}
+    .orbit-grid{grid-template-columns:1fr !important}
+    .orbit-grid .orbit-box-wide{grid-column:auto}
+  }
+</style>
+<section id="orbitTop" class="bf-orbit" aria-label="Your tools">
+  <div class="orbit-stage" id="orbitStage">
+    <svg class="orbit-svg" id="orbitSvg" viewBox="0 0 600 300" aria-hidden="true" focusable="false"></svg>
+  </div>
+  <p class="orbit-preview" id="orbitPreview" role="status" hidden></p>
+  <div class="orbit-search">
+    <label class="orbit-sr" for="orbitSearch">Go to any tool</label>
+    <input id="orbitSearch" type="search" placeholder="Go to any tool..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="orbitResults">
+    <button type="button" class="bf-btn" id="orbitRefresh">Refresh</button>
+    <span class="orbit-hint">Press / to search</span>
+  </div>
+  <ul class="orbit-results" id="orbitResults" role="listbox" aria-label="Tools" hidden></ul>
+  <p class="orbit-status" id="orbitStatus" role="status"></p>
+  <div class="orbit-main" id="orbitMain"></div>
+  <div class="orbit-alltools" id="orbitAllTools" role="region" aria-label="All tools" hidden></div>
+  <div class="bf-feature-grid cards orbit-grid" id="orbitGrid" role="region" hidden></div>
+</section>
+<template id="orbitTools">
 <div class="bf-feature-card card bf-card" data-card="analytics" onclick="window.location.href='/analytics-dashboard.html'" style="cursor:pointer">
   <div class="bf-neon-icon bf-hq-icon bf-card-icon analytics" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
   <h3>Analytics</h3>
@@ -511,59 +614,6 @@
   <p>View your marketplace orders and download your digital purchases.</p>
   <a href="my-purchases.html" class="bf-btn" onclick="event.stopPropagation()">Open My Purchases</a>
 </div>
-</div>
-<script src="/scripts/bf-dashboard-order.js"></script>
-<script>
-/* The twenty-six cards above are markup, so the saved ordering is applied by
-   moving the DOM nodes rather than by re-rendering. appendChild on an existing
-   child moves it, so nothing is rebuilt and no onclick, link or focus is lost.
-
-   PLACED HERE, DIRECTLY AFTER THE GRID, rather than at the end of the body
-   where agents-hub.html puts the same block. That page is 750 lines and its
-   end-of-body script still runs before the cards can paint; this one is 92,000
-   lines, and a script that far down would let the browser paint the cards in
-   page order and then visibly resort them. Everything else about the pattern is
-   agents-hub's: the module tag, then an IIFE that guards on the module and the
-   container, reads the preference, logs any fallback, and applies.
-
-   A FAILED READ FALLS BACK TO THE DEFAULT AND SAYS SO. localStorage throws in a
-   private window or with site data blocked, and silently applying an order
-   other than the one somebody chose is the failure worth avoiding here — so the
-   fallback is logged rather than presented as a choice. */
-(function () {
-  if (!window.BFDashboardOrder) return;
-
-  var grid = document.querySelector(".bf-feature-grid");
-  if (!grid) return;
-
-  var pref = window.BFDashboardOrder.readPreference();
-  var custom = window.BFDashboardOrder.readCustom();
-
-  if (pref.read_failed) {
-    console.warn("[dashboard-order] Could not read the saved card order (localStorage is " +
-      "unavailable). Falling back to the default order. This is NOT a saved preference — " +
-      "the setting could not be read.");
-  } else if (pref.invalid) {
-    console.warn("[dashboard-order] Saved card order " + JSON.stringify(pref.invalid) +
-      " is not one of " + window.BFDashboardOrder.ORDERINGS.join(", ") +
-      ". Falling back to the default order.");
-  }
-
-  /* Only worth saying when the arrangement is the thing being asked for: with
-     any other ordering in force an unreadable arrangement changes nothing. */
-  if (pref.ordering === "custom") {
-    if (custom.read_failed) {
-      console.warn("[dashboard-order] Could not read your saved arrangement (localStorage " +
-        "is unavailable). Showing the cards in page order.");
-    } else if (custom.invalid) {
-      console.warn("[dashboard-order] Saved arrangement is not a list of card slugs " +
-        "and was ignored. Showing the cards in page order.");
-    }
-  }
-
-  window.BFDashboardOrder.applyToContainer(grid, ".bf-feature-card", pref.ordering, custom.slugs);
-})();
-</script>
 <div id="agentDirectoryLanding" class="bf-directory-preview bf-glass-panel bf-card">
   <div class="bf-directory-preview-copy">
     <div class="bf-directory-heading">
@@ -582,6 +632,57 @@
     <div class="bf-agent-icon-block"><div class="bf-neon-icon bf-hq-icon bf-agent-icon social" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span>Social Agent</span></div>
   </div>
 </div>
+<!-- Boxes added with the orbit (Nov 10 2026): pages that had no box. -->
+<div class="bf-feature-card card bf-card" data-card="store" onclick="window.location.href='store-agent.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(45,212,191,.45);box-shadow:0 0 24px rgba(45,212,191,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div>
+  <h3>Store</h3>
+  <p>Stock and margin from your own inventory, store listings proposed for your approval, and store plans.</p>
+  <a href="store-agent.html" class="bf-btn" onclick="event.stopPropagation()">Open Store</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="garage-sale" onclick="window.location.href='garage-sale.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(251,146,60,.45);box-shadow:0 0 24px rgba(251,146,60,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
+  <h3>Garage Sale</h3>
+  <p>Buy and sell real, physical goods, priced in BizCash (BFC).</p>
+  <a href="garage-sale.html" class="bf-btn" onclick="event.stopPropagation()">Open Garage Sale</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="oracle" onclick="window.location.href='oracle.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.45);box-shadow:0 0 24px rgba(var(--bf-accent-b-rgb, 168,85,247),.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+  <h3>Oracle</h3>
+  <p>Termaximus and the Oracle: enter your birth name and date to open the channel.</p>
+  <a href="oracle.html" class="bf-btn" onclick="event.stopPropagation()">Open the Oracle</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="mychart" onclick="window.location.href='mychart.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.45);box-shadow:0 0 24px rgba(var(--bf-accent-b-rgb, 168,85,247),.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,3 21,20 3,20"/><circle cx="12" cy="14" r="2.5"/></svg></div>
+  <h3>My Chart</h3>
+  <p>Your interactive Divine Triangle blueprint.</p>
+  <a href="mychart.html" class="bf-btn" onclick="event.stopPropagation()">Open My Chart</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="the-third" onclick="window.location.href='the-third.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.45);box-shadow:0 0 24px rgba(var(--bf-accent-b-rgb, 168,85,247),.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/></svg></div>
+  <h3>The Third</h3>
+  <p>The Inner I.Q Test: a cognition diagnostic that maps the faculties of a mind.</p>
+  <a href="the-third.html" class="bf-btn" onclick="event.stopPropagation()">Open The Third</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="calendar" onclick="window.location.href='calendar.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(96,165,250,.45);box-shadow:0 0 24px rgba(96,165,250,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></div>
+  <h3>Calendar</h3>
+  <p>Your events, and your agents' scheduled runs, on one calendar.</p>
+  <a href="calendar.html" class="bf-btn" onclick="event.stopPropagation()">Open Calendar</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="settings" onclick="window.location.href='settings.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(148,163,184,.45);box-shadow:0 0 24px rgba(148,163,184,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></div>
+  <h3>Settings</h3>
+  <p>Your profile, API key, preferences, theme and account.</p>
+  <a href="settings.html" class="bf-btn" onclick="event.stopPropagation()">Open Settings</a>
+</div>
+<div class="bf-feature-card card bf-card" data-card="your-data" onclick="window.location.href='your-data.html'" style="cursor:pointer">
+  <div class="bf-neon-icon bf-hq-icon bf-card-icon" style="border-color:rgba(148,163,184,.45);box-shadow:0 0 24px rgba(148,163,184,.15);" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+  <h3>Your Data</h3>
+  <p>What BizForce stores about you, a download of all of it, and deleting your account.</p>
+  <a href="your-data.html" class="bf-btn" onclick="event.stopPropagation()">Open Your Data</a>
+</div>
+</template>
+<script src="/scripts/bf-orbit.js"></script>
 <!-- Recent Activity was removed here. It rendered two fixed items, "Account
      created successfully" and "BizForce AI dashboard activated", both stamped
      "Just now", on every visit, with nothing feeding it. The real records it
