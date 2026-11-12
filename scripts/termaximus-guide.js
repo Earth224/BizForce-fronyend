@@ -26,7 +26,7 @@
   var PAGE_GUIDANCE = {
     "dashboard.html": [
       "Press a portal, such as \"Sell\" or \"Agents\", to open its boxes; a number on a portal is waiting for you: low stock on Sell, proposals on Agents.",
-      "Press \"All tools\" in the middle for every page by group, or press / and type in \"Go to any tool...\"; \"Swap\" changes the two main boxes.",
+      "\"Set a weekly goal\" under the middle fills its ring as the week goes; dots circling it are agents at work. \"All tools\" lists every page; / searches.",
       "In \"Command Center\", its \"Command\" tab lists the proposals waiting for your approval; under \"Plans\", \"Show steps\" then \"Dispatch\" runs one.",
       "The music button in the top bar is your music: press it for the bar, then the boombox; \"Library\" slides out your tracks, \"Close to icon\" tucks it away.",
       "Name or industry wrong? Press \"Expand Profile\" and edit it. For new work, open \"Agent Hub\" or \"Full Directory\"; each lists all 18 agents."

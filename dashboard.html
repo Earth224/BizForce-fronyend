@@ -403,6 +403,63 @@
   .orbit-core-figure{font-size:clamp(16px, calc(var(--os) * 20px), 28px);font-weight:800;line-height:1}
   .orbit-core-unit{font-size:9px;color:#cfd3ff;padding:0 6px;line-height:1.2}
   .orbit-core-all{font-size:8.5px;color:var(--bf-accent-a, #22d3ee);text-decoration:underline;margin-top:1px}
+  /* NAMED (Nov 11 2026, orbit stage 2): the weekly goal (its arc on the core's halo, "Goal met", "As of", the phone's slim
+     bar), the goal button under the core, the satellites, the links' sparks, the Store box's freshness, and the setter. */
+  .orbit-goal-arc{fill:none;stroke:#7cf0c9;stroke-width:3;stroke-linecap:round}
+  .orbit-goal-arc.is-met{stroke:#ffc46b}
+  .orbit-core-met{font-size:8.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#ffc46b}
+  .orbit-core-asof{font-size:7.5px;color:#8fa3d6;line-height:1.1}
+  .orbit-goal-bar{display:none}
+  .orbit-core-met[hidden],.orbit-core-asof[hidden],.orbit-goal-bar[hidden],.orbit-sat-count[hidden],.orbit-dialog-back[hidden],.orbit-goal-hint[hidden],.orbit-goal-cur[hidden]{display:none !important}
+  /* hidden, the goal button keeps its place (its phone row never appears late under a star) */
+  .orbit-goal-set[hidden]{display:block;visibility:hidden}
+  .orbit-goal-set{position:absolute;left:0;top:0;transform-origin:0 0;width:calc(var(--os) * 104px);height:calc(var(--os) * 20px);min-height:18px;padding:0 6px;
+    border-radius:999px;font:inherit;font-size:10px;line-height:1;cursor:pointer;background:rgba(10,17,40,.9);color:#7cf0c9;border:1px solid rgba(124,240,201,.45);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+  .orbit-goal-set:focus-visible,.orbit-sync:focus-visible,.orbit-dialog button:focus-visible,.orbit-dialog input:focus-visible,.orbit-dialog select:focus-visible{outline:3px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}
+  .orbit-sats{pointer-events:none}
+  .orbit-sats-spin{transform-box:view-box;transform-origin:0px 0px;animation:orbitSatSpin 90s linear infinite}
+  .orbit-stage.is-paused .orbit-sats-spin{animation-play-state:paused}
+  @keyframes orbitSatSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .orbit-sat{opacity:1;transition:opacity .6s ease}
+  .orbit-sat.is-entering,.orbit-sat.is-leaving{opacity:0}
+  .orbit-sat-dot{stroke:#0a1128;stroke-width:1}
+  .orbit-sat-grow .orbit-sat-dot{fill:#7cf0c9}
+  .orbit-sat-sell .orbit-sat-dot{fill:#ffc46b}
+  .orbit-sat-connect .orbit-sat-dot{fill:var(--bf-accent-a, #22d3ee)}
+  .orbit-sat-agents .orbit-sat-dot{fill:#ff8ad8}
+  .orbit-sat-oracle .orbit-sat-dot{fill:#d08cff}
+  .orbit-sats-more{fill:#cfd3ff;font-size:9px;font-weight:700}
+  .orbit-link.is-lit{stroke:rgba(124,240,201,.95);stroke-width:2}
+  .orbit-link-spark{pointer-events:none}
+  .orbit-link-spark-glow{fill:#7cf0c9;opacity:.3}
+  .orbit-link-spark-dot{fill:#e8fff7}
+  .orbit-portal.is-lit .orbit-disc{box-shadow:0 0 0 3px rgba(124,240,201,.8)}
+  .orbit-portal.is-pulse .orbit-disc::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid #7cf0c9;animation:orbitPulse 1.2s ease-out 1;pointer-events:none}
+  @keyframes orbitPulse{0%{opacity:.9;transform:scale(.9)}100%{opacity:0;transform:scale(1.5)}}
+  .orbit-sat-count{display:none}
+  .orbit-store-fresh{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 0 8px;font-size:.8rem;color:#8fa3d6}
+  .orbit-sync{padding:3px 10px;border-radius:999px;font:inherit;font-size:.75rem;cursor:pointer;background:transparent;color:#ffc46b;border:1px solid rgba(255,196,107,.5)}
+  .orbit-sync:disabled{opacity:.6;cursor:default}
+  .orbit-main .orbit-main-box p.orbit-not-counted{margin:0 0 8px;font-size:.8rem;color:#cfd3ff}
+  .orbit-dialog-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(3,6,18,.72);box-sizing:border-box}
+  .orbit-dialog{width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;padding:18px 20px;border-radius:16px;background:#0a1128;color:#e8e8ff;
+    border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);box-sizing:border-box}
+  .orbit-dialog h2{margin:0 0 10px;font-size:1.1rem}
+  .orbit-goal-metrics{border:0;margin:0 0 12px;padding:0;display:grid;gap:6px}
+  .orbit-goal-metrics legend{padding:0;margin:0 0 6px;font-size:.85rem;color:#8fa3d6}
+  .orbit-goal-metric{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:.9rem}
+  .orbit-goal-metric input:disabled + .orbit-goal-name{opacity:.5}
+  .orbit-goal-hint{font-size:.75rem;color:#ffc46b}
+  .orbit-goal-row{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  .orbit-goal-row label{flex:0 0 auto;font-size:.85rem;color:#cfd3ff}
+  .orbit-goal-row input,.orbit-goal-row select{flex:1 1 auto;min-width:0;padding:6px 8px;border-radius:8px;border:1px solid rgba(143,163,214,.45);background:#060b1e;color:#e8e8ff;font:inherit}
+  .orbit-goal-week{margin:0 0 8px;font-size:.8rem;color:#8fa3d6}
+  .orbit-goal-error{margin:0 0 8px;min-height:1.2em;font-size:.8rem;color:#ff8ad8}
+  .orbit-goal-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+  .orbit-goal-actions button{padding:6px 14px;border-radius:999px;font:inherit;font-size:.85rem;cursor:pointer;background:transparent;color:#e8e8ff;border:1px solid rgba(143,163,214,.5)}
+  .orbit-goal-actions .orbit-goal-save{background:var(--bf-accent-a, #22d3ee);color:#0a1128;border-color:transparent;font-weight:700}
+  .orbit-goal-actions button:disabled{opacity:.5;cursor:default}
   /* NAMED (Nov 11 2026, one living sky): the preview and status lines share one row above the search, always there at a
      fixed height (two lines), so showing or hiding either never changes the panel's height; the status steps back while a
      preview shows. */
@@ -477,6 +534,10 @@
     /* NAMED (Nov 11 2026, one living sky): no twinkle and no glint; every star shines steadily at full. */
     .orbit-star *{animation:none !important}
     .orbit-star-glint{display:none}
+    /* NAMED (Nov 11 2026, orbit stage 2): the satellites still, no fade, no pulse ring (a still highlight instead). */
+    .orbit-sats-spin{animation:none}
+    .orbit-sat{transition:none}
+    .orbit-portal.is-pulse .orbit-disc::after{animation:none;opacity:0}
   }
   @media (max-width: 640px){
     /* The still stars stay on a phone, where the ring's drawing is hidden: the same layer, laid out around the row, with a
@@ -492,6 +553,14 @@
     .orbit-portal.is-open .orbit-disc{inset:auto}
     .orbit-portal-name{position:static;transform:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;letter-spacing:.02em}
     .orbit-core{order:-1;flex:1 1 100%;width:auto;height:64px;border-radius:18px;flex-direction:row;flex-wrap:wrap;gap:4px 8px}
+    /* NAMED (Nov 11 2026, orbit stage 2): on a phone the goal's slim bar runs along the core box's foot, the goal button is
+       its own row under the core, and the Agents disc counts the agents running now. */
+    .orbit-core{position:relative;overflow:hidden}
+    .orbit-goal-bar{display:block;position:absolute;left:12px;right:12px;bottom:6px;height:3px;border-radius:2px;background:rgba(124,240,201,.18)}
+    .orbit-goal-bar-fill{display:block;height:100%;border-radius:2px;background:#7cf0c9;transform-origin:0 50%}
+    .orbit-goal-set{position:relative;order:-1;flex:1 1 100%;width:auto;height:28px;transform:none !important;font-size:12px}
+    .orbit-sat-count{display:block;position:absolute;right:-6px;bottom:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;box-sizing:border-box;
+      background:#7cf0c9;color:#0a1128;font-size:9px;font-weight:800;line-height:16px;text-align:center}
     .orbit-main{grid-template-columns:1fr}
     .orbit-grid{grid-template-columns:1fr !important}
     .orbit-grid .orbit-box-wide,.orbit-grid .orbit-dir{grid-column:auto}

@@ -42,6 +42,31 @@
    try/catch.
 
    Every server string is set with textContent. No innerHTML.
+
+   ORBIT STAGE 2 (Nov 11 2026, orbit stage 2).
+   THE WEEKLY GOAL. /top's goal: with one set, the core reads THIS WEEK, the
+   value large, "of <target> <unit>", and an arc round the core of value /
+   target (capped at 100%), "Goal met" past it; a store goal adds "As of
+   <time>"; a value the route could not read shows "Unavailable" and no arc,
+   never 0. With none, the core is as it was (tracked visits and the fixed
+   three-quarter arc) and "Set a weekly goal" sits under it. The setter is a
+   dialog (five metrics, the store ones only with a store connected, a target,
+   a currency for sales, the week's reset in this device's time zone), saved
+   with PUT /api/user/preferences weekly_goal. The Store main box, with a store
+   goal, shows "As of <time>" and "Sync now" (the store's own sync route).
+   SATELLITES. GET /api/dashboard/pulse every PULSE_MS, only while the tab is
+   visible and the orbit is on the screen: a dot for each agent running now on
+   a tight orbit round the core (SAT.r), coloured by the portal the pulse names,
+   at most SAT.max then "+N"; a slow turn, fading in and out; still under
+   reduced motion.
+   LINKS AND SPARKS. The pulse names the portal pairs an event can use; each is
+   a faint dotted line in the ring's frame, bent through LINK_BEND_R so it
+   never crosses the core. An event after the page loaded sends a spark along
+   its link (SPARK.ms; transform and opacity only), or from the core to its
+   portal; never during a turn (they wait, at most SPARK.queue, the older
+   dropped); a still highlight under reduced motion. On a phone: a slim bar in
+   the core box, a count of running agents on the Agents disc, and a pulse on
+   the portal an event reaches.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -55,6 +80,22 @@
   // A portal at angle a sits at (cx + rx sin a, cy + ry cos a): 0 is the bottom centre, 180 the top centre.
   var FRONT_DEG = -36;    // the lower-left slot, where an opened portal comes to rest
   var REST_BASE = -108;   // Grow -108 (upper left), Sell -36, Connect 36, Agents 108, Oracle 180 (top centre)
+  /* ORBIT STAGE 2 (Nov 11 2026, orbit stage 2). The satellites' orbit (r 58 round the core), the stars' clearance round
+     the core (r 66, was the halo's 44 + 4), the goal button's place under the core, the sparks, the pulse's period. */
+  var SAT = { r: 58, dotR: 3.6, max: 8, fadeMs: 600 };
+  var CORE_KEEP_R = 66;
+  var GOAL_BTN = { dy: 52, w: 104, h: 20 };
+  var SPARK = { ms: 1200, queue: 3, litMs: 1500, fromCoreR: 120 };
+  var LINK_BEND_R = 175;
+  var PULSE_MS = 30000;
+  var GOAL_METRICS = [
+    { key: "tracked_visits", name: "Tracked visits", unit: "tracked visits", store: false },
+    { key: "store_orders", name: "Store orders", unit: "store orders", store: true },
+    { key: "store_sales", name: "Store sales", unit: null, store: true },
+    { key: "card_visits", name: "Card visits", unit: "card visits", store: false },
+    { key: "marketplace_orders", name: "Marketplace orders", unit: "marketplace orders", store: false }
+  ];
+  var PORTAL_COLOURS = ["grow", "sell", "connect", "agents", "oracle"];
   /* THE STARS (Nov 11 2026, still stars). The Oracle's abyss stars, kept STILL. oracle.html draws them on a canvas
      (makeStar and drawStarAt), inline in each Oracle page and inside its drift and twinkle loop, so they cannot be shared
      without changing those four pages: this is a faithful static copy in SVG, with drawStarAt's constants (ORACLE_STAR),
@@ -333,6 +374,7 @@
   /* ── the orbit ── */
   var portalBtn = {}, beam = {}, badge = {}, portalName = {};
   var core, links;
+  var goalArc, goalBtn, satSpin, satMore, satCount, satDot = {}, linkPath = {};
   function emblem(key) {
     var g = sv("svg", { viewBox: "0 0 40 40", "class": "orbit-emblem", "aria-hidden": "true", focusable: "false" });
     if (key === "grow") g.appendChild(sv("polygon", { points: "20,6 34,32 6,32" }));
@@ -547,7 +589,10 @@
         g.boxes.push({ x: x - (VIEW.portalR + 3) * scale, y: y - (VIEW.portalR + 3) * scale, w: 2 * (VIEW.portalR + 3) * scale, h: 2 * (VIEW.portalR + 3) * scale });
         g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - STAR_KEEP.labelH / 2, w: 2 * half, h: STAR_KEEP.labelH });
       }
-      g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: (VIEW.coreHaloR + 4) * scale });
+      // NAMED (Nov 11 2026, orbit stage 2): BEFORE the core kept r 48 (its halo's 44 + 4). AFTER r 66, the satellites'
+      // orbit (r 58) and their dots; and the goal button's box under the core, at its fixed size.
+      g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: CORE_KEEP_R * scale });
+      g.boxes.push({ x: ox + (VIEW.cx - GOAL_BTN.w / 2) * scale - 3, y: oy + (VIEW.cy + GOAL_BTN.dy - GOAL_BTN.h / 2) * scale - 3, w: GOAL_BTN.w * scale + 6, h: GOAL_BTN.h * scale + 6 });
     } else {
       var os = 46 / 54;
       // A label may grow to its whole cell ("Sell (open)"), so the cell's width is kept clear under it; each disc's open
@@ -559,6 +604,8 @@
         g.boxes.push({ x: cell.x, y: name.y, w: cell.w, h: name.h });
       });
       g.boxes.push(box(core, 3));
+      // NAMED (Nov 11 2026, orbit stage 2): the goal button's row on a phone.
+      if (goalBtn) g.boxes.push(box(goalBtn, 3));
     }
     if (say) g.boxes.push(box(say, 4));
     var bar = panel.querySelector(".orbit-search");
@@ -631,10 +678,10 @@
     svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.innerRx, ry: VIEW.innerRy, "class": "orbit-ring-inner" }));
     // The links and beams live in the ring's frame: a circle of radius rx squashed to the ellipse, so turning one is a rotation.
     var frame = sv("g", { "class": "orbit-beams", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ") scale(1 " + (VIEW.ry / VIEW.rx) + ")" });
-    // The faint dotted links: Grow to Sell, and Sell to a point under the core to Connect (drawn at base 0, turned with the ring).
+    /* The faint dotted links (drawn at base 0, turned with the ring). NAMED (Nov 11 2026, orbit stage 2): BEFORE two fixed
+       links, Grow to Sell and Sell to Connect. AFTER one for each portal pair the pulse names (drawLinks), each bent
+       through LINK_BEND_R; until the first pulse, none. */
     links = sv("g", { "class": "orbit-links" });
-    links.appendChild(sv("path", { d: "M " + framePoint(0, VIEW.rx) + " L " + framePoint(72, VIEW.rx), "class": "orbit-link", "vector-effect": "non-scaling-stroke" }));
-    links.appendChild(sv("path", { d: "M " + framePoint(72, VIEW.rx) + " L " + framePoint(108, 175) + " L " + framePoint(144, VIEW.rx), "class": "orbit-link", "vector-effect": "non-scaling-stroke" }));
     frame.appendChild(links);
     PORTALS.forEach(function (p) {
       var g = sv("g", { "class": "orbit-beam", "data-portal": p.key });
@@ -651,6 +698,18 @@
     // The core's decorative halo and its fixed three-quarter arc (no goal yet, so never a percentage).
     svg.appendChild(sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, "class": "orbit-core-halo" }));
     svg.appendChild(sv("path", { d: "M " + VIEW.cx + " " + (VIEW.cy - VIEW.coreHaloR) + " A " + VIEW.coreHaloR + " " + VIEW.coreHaloR + " 0 1 1 " + (VIEW.cx - VIEW.coreHaloR) + " " + VIEW.cy, "class": "orbit-core-arc" }));
+    // NAMED (Nov 11 2026, orbit stage 2): the goal's arc, on the halo, from the top, clockwise, value / target of its 100.
+    goalArc = sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, pathLength: "100", "stroke-dasharray": "0 100",
+      transform: "rotate(-90 " + VIEW.cx + " " + VIEW.cy + ")", "class": "orbit-goal-arc", "data-pct": "0" });
+    goalArc.style.display = "none";
+    svg.appendChild(goalArc);
+    // The satellites: a group at the core's centre, turned slowly by CSS; each dot at (SAT.r, 0) turned to its place.
+    var satWrap = sv("g", { "class": "orbit-sats", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ")" });
+    satSpin = sv("g", { "class": "orbit-sats-spin" });
+    satWrap.appendChild(satSpin);
+    satMore = sv("text", { x: String(SAT.r + 8), y: "4", "class": "orbit-sats-more" });
+    satWrap.appendChild(satMore);
+    svg.appendChild(satWrap);
 
     core = el("button", "orbit-core");
     core.type = "button";
@@ -660,9 +719,20 @@
     core.appendChild(el("span", "orbit-core-label", "This week"));
     core.appendChild(el("strong", "orbit-core-figure", ""));
     core.appendChild(el("span", "orbit-core-unit", "Loading..."));
+    // NAMED (Nov 11 2026, orbit stage 2): "Goal met", the store goal's "As of", and the phone's slim bar.
+    var met = el("span", "orbit-core-met", "Goal met"); met.hidden = true; core.appendChild(met);
+    var asOf = el("span", "orbit-core-asof", ""); asOf.hidden = true; core.appendChild(asOf);
+    var bar = el("span", "orbit-goal-bar"); bar.setAttribute("aria-hidden", "true"); bar.appendChild(el("span", "orbit-goal-bar-fill")); bar.hidden = true; core.appendChild(bar);
     core.appendChild(el("span", "orbit-core-all", "All tools"));
     core.addEventListener("click", function () { setAllTools(!state.allOpen); });
     stage.appendChild(core);
+    goalBtn = el("button", "orbit-goal-set", "Set a weekly goal");
+    goalBtn.type = "button";
+    goalBtn.id = "orbitGoalSet";
+    goalBtn.setAttribute("aria-haspopup", "dialog");
+    goalBtn.hidden = true;
+    goalBtn.addEventListener("click", function () { openGoalDialog(); });
+    stage.appendChild(goalBtn);
 
     PORTALS.forEach(function (p) {
       var b = el("button", "orbit-portal");
@@ -678,6 +748,8 @@
       bd.id = "orbitBadge-" + p.key;
       bd.hidden = true;
       disc.appendChild(bd);
+      // NAMED (Nov 11 2026, orbit stage 2): on a phone, the Agents disc counts the agents running now.
+      if (p.key === "agents") { satCount = el("span", "orbit-sat-count"); satCount.id = "orbitSatCount"; satCount.hidden = true; disc.appendChild(satCount); }
       b.appendChild(disc);
       var name = el("span", "orbit-portal-name");
       name.appendChild(el("span", "orbit-portal-title", p.title));
@@ -716,6 +788,7 @@
     });
     links.setAttribute("transform", "rotate(" + (-state.base).toFixed(2) + ")");
     core.style.transform = "translate(" + (VIEW.cx * scale).toFixed(1) + "px, " + (VIEW.cy * scale).toFixed(1) + "px) translate(-50%, -50%)";
+    goalBtn.style.transform = "translate(" + (VIEW.cx * scale).toFixed(1) + "px, " + ((VIEW.cy + GOAL_BTN.dy) * scale).toFixed(1) + "px) translate(-50%, -50%)";
   }
   function drifting() { return !state.open && !state.hover && !state.focus && !reduced() && !document.hidden && !narrow(); }
   function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
@@ -727,7 +800,8 @@
       if (!state.turn.start) state.turn.start = ts;
       var t = Math.min(1, (ts - state.turn.start) / TURN_MS);
       state.base = state.turn.from + (state.turn.to - state.turn.from) * easeOut(t);
-      if (t >= 1) state.turn = null;
+      // NAMED (Nov 11 2026, orbit stage 2): the sparks that waited for the turn go once it has settled.
+      if (t >= 1) { state.turn = null; flushSparks(); }
     } else if (drifting()) {
       state.base += dt * 360 / DRIFT_MS;
     }
@@ -742,7 +816,7 @@
   function turnTo(key) {
     var target = frontBase(key);
     var delta = ((target - state.base) % 360 + 540) % 360 - 180;   // the short way round
-    if (reduced() || narrow()) { state.turn = null; state.base += delta; place(); return; }
+    if (reduced() || narrow()) { state.turn = null; state.base += delta; place(); flushSparks(); return; }
     state.turn = { from: state.base, to: state.base + delta, start: 0 };
     kick();
   }
@@ -863,6 +937,20 @@
     if (st.connected === false) { wrap.appendChild(smallLink("Connect a store to see orders", "store-agent.html")); return wrap; }
     if (n(st.orders_this_week) !== null) wrap.appendChild(el("p", "orbit-second", plural(st.orders_this_week, "order", "orders") + " this week"));
     if (Array.isArray(st.orders_per_day) && st.orders_per_day.length > 1) wrap.appendChild(spark(st.orders_per_day, "Orders, last 14 days"));
+    // NAMED (Nov 11 2026, orbit stage 2): with a store goal, how fresh the store's figures are, and Sync now.
+    var g = goalOf(state.top);
+    if (g && g.store) {
+      var fresh = el("div", "orbit-store-fresh");
+      var when = asOfText(g.raw.as_of);
+      fresh.appendChild(el("span", "orbit-asof", when ? "As of " + when : "Not synced yet"));
+      var sync = el("button", "orbit-sync", "Sync now");
+      sync.type = "button";
+      sync.addEventListener("click", function (e) { e.stopPropagation(); syncStores(sync); });
+      fresh.appendChild(sync);
+      wrap.appendChild(fresh);
+      var nc = notCountedText(g.raw.not_counted);
+      if (nc) wrap.appendChild(el("p", "orbit-not-counted", nc));
+    }
     return wrap;
   }
   // Any other tool chosen with Swap: its figure as the big number when it starts with one ("18 customers"), else one line.
@@ -982,9 +1070,13 @@
     else if (!v || n(v.this_week) === null) words = "Visits unavailable";
     else if (v.tracked === false) words = "No tracked visits yet";
     else { figure = String(v.this_week); words = v.this_week === 1 ? "tracked visit" : "tracked visits"; }
+    // NAMED (Nov 11 2026, orbit stage 2): with a weekly goal, its value of its target instead (goalView).
+    var gv = goalView(top);
+    if (gv) { figure = gv.figure; words = gv.words; }
     fig.textContent = figure;
     fig.hidden = !figure;
     unit.textContent = words;
+    drawGoal(gv, top);
     var a = attention(top);
     PORTALS.forEach(function (p) {
       var k = a[p.key] || 0;
@@ -997,6 +1089,375 @@
       else { beam[p.key].setAttribute("hidden", ""); beam[p.key].style.display = "none"; }
       beam[p.key].classList.toggle("is-still", reduced());
     });
+  }
+
+  /* ── ORBIT STAGE 2: the weekly goal (Nov 11 2026, orbit stage 2) ── */
+  function apiBase() { return (typeof window.API_URL === "string" && window.API_URL) || API_FALLBACK; }
+  function authHeaders(json) {
+    var token = null;
+    try { token = window.localStorage.getItem("bf_token"); } catch (e) { token = null; }
+    var h = { "Authorization": "Bearer " + token };
+    if (json) h["Content-Type"] = "application/json";
+    return h;
+  }
+  function metricSpec(key) { for (var i = 0; i < GOAL_METRICS.length; i++) if (GOAL_METRICS[i].key === key) return GOAL_METRICS[i]; return null; }
+  function amount(x) { return Number.isInteger(x) ? String(x) : x.toFixed(2); }
+  // The goal /top gave, when one is set: its metric, target, currency and value (null when the route could not read it).
+  function goalOf(top) {
+    var g = top && top.goal;
+    if (!g || g.set !== true) return null;
+    var spec = metricSpec(g.metric), target = n(g.target);
+    if (!spec || target === null || !(target > 0)) return null;
+    return { metric: g.metric, spec: spec, target: target, currency: typeof g.currency === "string" ? g.currency : null, value: n(g.value), store: spec.store, raw: g };
+  }
+  // What the core shows for the goal: the value, "of <target> <unit>", the arc's share (null: no arc), met, as of.
+  function goalView(top) {
+    var g = goalOf(top);
+    if (!g) return null;
+    var unit = g.metric === "store_sales" ? (g.currency || "") : g.spec.unit;
+    if (g.value === null) return { metric: g.metric, figure: "", words: "Unavailable", pct: null, met: false, asOf: g.store ? asOfText(g.raw.as_of) : null, title: goalTitle(g) };
+    var pct = Math.min(100, g.value / g.target * 100);
+    return { metric: g.metric, figure: amount(g.value), words: "of " + amount(g.target) + (unit ? " " + unit : ""), pct: +pct.toFixed(2), met: g.value >= g.target,
+      asOf: g.store ? asOfText(g.raw.as_of) : null, title: goalTitle(g) };
+  }
+  function goalTitle(g) {
+    if (g.metric === "card_visits" && typeof g.raw.note === "string") return g.raw.note;
+    if (g.metric === "store_sales") return notCountedText(g.raw.not_counted);
+    return null;
+  }
+  function asOfText(iso) {
+    var t = typeof iso === "string" ? Date.parse(iso) : NaN;
+    if (!isFinite(t)) return null;
+    try { return new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch (e) { return new Date(t).toISOString().slice(0, 16).replace("T", " "); }
+  }
+  // "Other currencies not counted: 1 order in EUR (45.00)". Never converted.
+  function notCountedText(list) {
+    if (!Array.isArray(list) || !list.length) return null;
+    var parts = list.filter(function (c) { return c && n(c.orders) !== null && c.orders > 0; }).map(function (c) {
+      return plural(c.orders, "order", "orders") + " in " + (typeof c.currency === "string" && c.currency ? c.currency : "no stated currency") + (n(c.total) !== null ? " (" + c.total.toFixed(2) + ")" : "");
+    });
+    return parts.length ? "Other currencies not counted: " + parts.join(", ") : null;
+  }
+  function drawGoal(gv, top) {
+    var g = top && top.goal;
+    var set = !!(g && g.set === true);
+    goalBtn.hidden = !top || !g;
+    goalBtn.textContent = set ? "Edit weekly goal" : "Set a weekly goal";
+    // With no goal the fixed decorative arc stays, as before; with one, only the goal's arc (none when its value is unknown).
+    var deco = svg.querySelector(".orbit-core-arc");
+    if (deco) deco.style.display = gv ? "none" : "";
+    var on = !!(gv && gv.pct !== null);
+    goalArc.style.display = on ? "" : "none";
+    goalArc.setAttribute("stroke-dasharray", (on ? gv.pct : 0) + " 100");
+    goalArc.setAttribute("data-pct", String(on ? gv.pct : 0));
+    goalArc.classList.toggle("is-met", !!(gv && gv.met));
+    var met = core.querySelector(".orbit-core-met"), asOf = core.querySelector(".orbit-core-asof"), bar = core.querySelector(".orbit-goal-bar");
+    met.hidden = !(gv && gv.met);
+    asOf.textContent = gv && gv.asOf ? "As of " + gv.asOf : "";
+    asOf.hidden = !(gv && gv.asOf);
+    bar.hidden = !on;
+    bar.firstChild.style.transform = "scaleX(" + (on ? gv.pct / 100 : 0).toFixed(4) + ")";
+    bar.setAttribute("data-pct", String(on ? gv.pct : 0));
+    if (gv && gv.title) core.setAttribute("title", gv.title); else core.removeAttribute("title");
+    core.setAttribute("data-goal", gv ? gv.metric : "");
+  }
+
+  /* The goal setter: a modal dialog; Tab stays inside it, Escape closes it, focus returns to the button that opened it. */
+  var dialog = null, dialogOpener = null;
+  function deviceZone() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch (e) { return "UTC"; } }
+  function buildGoalDialog() {
+    var back = el("div", "orbit-dialog-back");
+    back.id = "orbitGoalDialog";
+    back.hidden = true;
+    var box = el("div", "orbit-dialog");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-labelledby", "orbitGoalTitle");
+    box.setAttribute("aria-describedby", "orbitGoalWeek");
+    var h = el("h2", null, "Weekly goal"); h.id = "orbitGoalTitle"; box.appendChild(h);
+    var fs = el("fieldset", "orbit-goal-metrics");
+    fs.appendChild(el("legend", null, "What to count"));
+    GOAL_METRICS.forEach(function (m) {
+      var lab = el("label", "orbit-goal-metric");
+      var r = el("input"); r.type = "radio"; r.name = "orbitGoalMetric"; r.value = m.key; r.id = "orbitGoalMetric-" + m.key;
+      r.addEventListener("change", syncDialog);
+      lab.appendChild(r);
+      lab.appendChild(el("span", "orbit-goal-name", m.name));
+      if (m.store) { var hint = el("span", "orbit-goal-hint", "Connect a store first"); hint.hidden = true; lab.appendChild(hint); }
+      fs.appendChild(lab);
+    });
+    box.appendChild(fs);
+    var row = el("div", "orbit-goal-row");
+    var tl = el("label", null, "Target this week"); tl.setAttribute("for", "orbitGoalTarget"); row.appendChild(tl);
+    var ti = el("input"); ti.id = "orbitGoalTarget"; ti.type = "number"; ti.min = "1"; ti.step = "1"; ti.setAttribute("inputmode", "numeric"); row.appendChild(ti);
+    box.appendChild(row);
+    var crow = el("div", "orbit-goal-row orbit-goal-cur");
+    var cl = el("label", null, "Currency"); cl.setAttribute("for", "orbitGoalCurrency"); crow.appendChild(cl);
+    var cs = el("select"); cs.id = "orbitGoalCurrency"; crow.appendChild(cs);
+    box.appendChild(crow);
+    var wk = el("p", "orbit-goal-week", ""); wk.id = "orbitGoalWeek"; box.appendChild(wk);
+    var err = el("p", "orbit-goal-error", ""); err.id = "orbitGoalError"; err.setAttribute("role", "alert"); box.appendChild(err);
+    var act = el("div", "orbit-goal-actions");
+    var save = el("button", "orbit-goal-save", "Save"); save.type = "button"; save.id = "orbitGoalSave";
+    var clr = el("button", "orbit-goal-clear", "Clear goal"); clr.type = "button"; clr.id = "orbitGoalClear";
+    var cancel = el("button", "orbit-goal-cancel", "Cancel"); cancel.type = "button"; cancel.id = "orbitGoalCancel";
+    save.addEventListener("click", function () { var w = readGoalForm(); if (w.error) { err.textContent = w.error; return; } saveGoal(w.goal); });
+    clr.addEventListener("click", function () { saveGoal(null); });
+    cancel.addEventListener("click", closeGoalDialog);
+    act.appendChild(save); act.appendChild(clr); act.appendChild(cancel);
+    box.appendChild(act);
+    back.appendChild(box);
+    back.addEventListener("click", function (e) { if (e.target === back) closeGoalDialog(); });
+    back.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeGoalDialog(); return; }
+      if (e.key !== "Tab") return;
+      var f = Array.prototype.filter.call(box.querySelectorAll("input, select, button"), function (x) {
+        return !x.disabled && !x.closest("[hidden]") && (x.type !== "radio" || x.checked);
+      });
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    document.body.appendChild(back);
+    return back;
+  }
+  function chosenMetric() { var r = dialog && dialog.querySelector("input[name=orbitGoalMetric]:checked"); return r ? r.value : null; }
+  function syncDialog() {
+    var sales = chosenMetric() === "store_sales", ti = dialog.querySelector("#orbitGoalTarget");
+    ti.step = sales ? "0.01" : "1";
+    ti.min = sales ? "0.01" : "1";
+    ti.setAttribute("inputmode", sales ? "decimal" : "numeric");
+    dialog.querySelector(".orbit-goal-cur").hidden = !sales;
+  }
+  function openGoalDialog() {
+    if (!dialog) dialog = buildGoalDialog();
+    var g = (state.top && state.top.goal) || {};
+    var hasStore = Array.isArray(g.stores) ? g.stores.length > 0 : !!(state.top && state.top.store && state.top.store.connected === true);
+    var want = g.set ? g.metric : (g.suggested || "tracked_visits");
+    GOAL_METRICS.forEach(function (m) {
+      var r = dialog.querySelector("#orbitGoalMetric-" + m.key), off = m.store && !hasStore;
+      r.disabled = off;
+      var hint = r.parentNode.querySelector(".orbit-goal-hint");
+      if (hint) hint.hidden = !off;
+      if (off && want === m.key) want = "tracked_visits";
+    });
+    GOAL_METRICS.forEach(function (m) { dialog.querySelector("#orbitGoalMetric-" + m.key).checked = m.key === want; });
+    dialog.querySelector("#orbitGoalTarget").value = g.set && n(g.target) !== null ? String(g.target) : "";
+    var cs = dialog.querySelector("#orbitGoalCurrency");
+    clear(cs);
+    var curs = (Array.isArray(g.store_currencies) ? g.store_currencies : []).filter(function (c) { return typeof c === "string" && /^[A-Z]{3}$/.test(c); });
+    if (typeof g.currency === "string" && curs.indexOf(g.currency) === -1) curs.unshift(g.currency);
+    curs.forEach(function (c) { var o = el("option", null, c); o.value = c; cs.appendChild(o); });
+    if (g.currency) cs.value = g.currency;
+    dialog.querySelector("#orbitGoalWeek").textContent = "Week resets Monday 00:00, " + deviceZone();
+    dialog.querySelector("#orbitGoalError").textContent = "";
+    dialog.querySelector("#orbitGoalClear").disabled = !g.set;
+    syncDialog();
+    dialogOpener = document.activeElement;
+    dialog.hidden = false;
+    var first = dialog.querySelector("input[name=orbitGoalMetric]:checked") || dialog.querySelector("#orbitGoalTarget");
+    if (first) first.focus();
+  }
+  function closeGoalDialog() {
+    if (!dialog) return;
+    dialog.hidden = true;
+    var back = dialogOpener && document.contains(dialogOpener) ? dialogOpener : goalBtn;
+    if (back && back.focus) back.focus();
+  }
+  // The form as a goal, or the reason it is not one yet.
+  function readGoalForm() {
+    var metric = chosenMetric(), spec = metricSpec(metric);
+    if (!spec) return { error: "Choose what to count." };
+    var raw = String(dialog.querySelector("#orbitGoalTarget").value || "").trim(), t = Number(raw);
+    if (!raw || !isFinite(t) || t <= 0) return { error: "Enter a target above 0." };
+    if (metric !== "store_sales" && !Number.isInteger(t)) return { error: "The target is a whole number." };
+    if (metric === "store_sales" && Math.round(t * 100) / 100 !== t) return { error: "The target has at most two decimal places." };
+    var goal = { metric: metric, weekly_target: t, time_zone: deviceZone() };
+    if (metric === "store_sales") {
+      var c = dialog.querySelector("#orbitGoalCurrency").value;
+      if (!/^[A-Z]{3}$/.test(String(c || ""))) return { error: "Choose the currency to count." };
+      goal.currency = c;
+    }
+    return { goal: goal };
+  }
+  function saveGoal(goal) {
+    var err = dialog.querySelector("#orbitGoalError");
+    err.textContent = "Saving...";
+    return fetch(apiBase() + "/api/user/preferences", { method: "PUT", headers: authHeaders(true), body: JSON.stringify({ weekly_goal: goal }) })
+      .then(function (r) { return r.json().then(function (b) { return { ok: r.ok, body: b }; }, function () { return { ok: r.ok, body: null }; }); })
+      .then(function (res) {
+        if (!res.ok) { err.textContent = res.body && typeof res.body.error === "string" ? res.body.error : "The goal could not be saved just now."; return; }
+        err.textContent = "";
+        closeGoalDialog();
+        return load();
+      })
+      .catch(function () { err.textContent = "The goal could not be saved just now."; });
+  }
+  // Sync now: each connected store's own sync route, one after another, then the figures again.
+  function syncStores(btn) {
+    var g = state.top && state.top.goal, stores = g && Array.isArray(g.stores) ? g.stores : [];
+    if (!stores.length) return Promise.resolve();
+    btn.disabled = true;
+    btn.textContent = "Syncing...";
+    var chain = Promise.resolve(), failed = 0;
+    stores.forEach(function (s) {
+      chain = chain.then(function () {
+        return fetch(apiBase() + "/api/store/connections/" + encodeURIComponent(String(s.id)) + "/sync", { method: "POST", headers: authHeaders(true), body: "{}" })
+          .then(function (r) { if (!r.ok) failed++; }, function () { failed++; });
+      });
+    });
+    return chain.then(function () { return load(); }).then(function () {
+      if (failed && status) status.textContent = failed === stores.length ? "Your store could not be synced just now." : "Some of your stores could not be synced just now.";
+    });
+  }
+
+  /* ── ORBIT STAGE 2: satellites, links and sparks, from the pulse ── */
+  var AGENT_WORDS = { rd: "R&D", seo: "SEO" };
+  function agentName(key) {
+    var k = String(key);
+    if (AGENT_WORDS[k]) return AGENT_WORDS[k];
+    var w = k.replace(/_/g, " ");
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }
+  function knownPortal(k) { return PORTAL_COLOURS.indexOf(k) !== -1; }
+  function pairKey(a, b) { return PORTAL_COLOURS.indexOf(a) < PORTAL_COLOURS.indexOf(b) ? a + "|" + b : b + "|" + a; }
+  function frameAt(a, r) { var rad = a * Math.PI / 180; return [r * Math.sin(rad), r * Math.cos(rad)]; }
+  // A link from portal a to portal b, at base 0 in the ring's frame: a's place on the ring, the point midway between them
+  // the short way round at LINK_BEND_R, b's place.
+  function linkPoints(a, b) {
+    var A = indexOfPortal(a) * STEP_DEG, B = indexOfPortal(b) * STEP_DEG, d = ((B - A) % 360 + 540) % 360 - 180;
+    return [frameAt(A, VIEW.rx), frameAt(A + d / 2, LINK_BEND_R), frameAt(B, VIEW.rx)];
+  }
+  function drawLinks(pairs) {
+    if (!Array.isArray(pairs)) return;
+    var key = pairs.map(String).join(",");
+    if (key === links.getAttribute("data-pairs")) return;
+    links.setAttribute("data-pairs", key);
+    Object.keys(linkPath).forEach(function (k) { if (linkPath[k].parentNode) linkPath[k].parentNode.removeChild(linkPath[k]); delete linkPath[k]; });
+    pairs.forEach(function (p) {
+      var ab = String(p).split("|");
+      if (ab.length !== 2 || ab[0] === ab[1] || !knownPortal(ab[0]) || !knownPortal(ab[1])) return;
+      var k = pairKey(ab[0], ab[1]);
+      if (linkPath[k]) return;
+      var pts = linkPoints(ab[0], ab[1]);
+      var d = "M " + pts.map(function (q) { return q[0].toFixed(1) + " " + q[1].toFixed(1); }).join(" L ");
+      var path = sv("path", { d: d, "class": "orbit-link", "data-link": k, "vector-effect": "non-scaling-stroke" });
+      links.appendChild(path);
+      linkPath[k] = path;
+    });
+  }
+  // A dot for each agent running now (at most SAT.max, then "+N"), evenly round the core; new ones fade in, gone ones out.
+  function drawSatellites(list) {
+    var rows = (Array.isArray(list) ? list : []).filter(function (r) { return r && typeof r.agent === "string"; });
+    var shown = rows.slice(0, SAT.max), extra = rows.length - shown.length, keep = {};
+    shown.forEach(function (r, i) {
+      keep[r.agent] = true;
+      var portal = knownPortal(r.portal) ? r.portal : "agents";
+      var dot = satDot[r.agent], fresh = !dot;
+      if (fresh) {
+        dot = sv("g", { "class": "orbit-sat is-entering", "data-agent": r.agent });
+        dot.appendChild(sv("title", {}));
+        dot.appendChild(sv("circle", { cx: String(SAT.r), cy: "0", r: String(SAT.dotR), "class": "orbit-sat-dot" }));
+        satSpin.appendChild(dot);
+        satDot[r.agent] = dot;
+      }
+      dot.setAttribute("data-portal", portal);
+      dot.setAttribute("class", "orbit-sat orbit-sat-" + portal + (fresh ? " is-entering" : ""));
+      dot.setAttribute("transform", "rotate(" + (i * 360 / shown.length - 90).toFixed(2) + ")");
+      var since = Date.parse(r.started_at), at = isFinite(since) ? new Date(since).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : null;
+      dot.firstChild.textContent = agentName(r.agent) + " agent, running" + (at ? " since " + at : " now");
+      if (fresh) { void dot.getBoundingClientRect(); dot.setAttribute("class", "orbit-sat orbit-sat-" + portal); }
+    });
+    Object.keys(satDot).forEach(function (k) {
+      if (keep[k]) return;
+      var dot = satDot[k];
+      delete satDot[k];
+      dot.setAttribute("class", dot.getAttribute("class") + " is-leaving");
+      dot.setAttribute("data-leaving", "1");
+      setTimeout(function () { if (dot.parentNode) dot.parentNode.removeChild(dot); }, reduced() ? 0 : SAT.fadeMs);
+    });
+    satMore.textContent = extra > 0 ? "+" + extra : "";
+    satCount.textContent = rows.length ? String(rows.length) : "";
+    satCount.hidden = !rows.length;
+    if (rows.length) satCount.setAttribute("aria-label", plural(rows.length, "agent", "agents") + " running now"); else satCount.removeAttribute("aria-label");
+    stage.setAttribute("data-running", String(rows.length));
+  }
+  var pulse = { since: null, loadedAt: Date.now(), busy: false, last: 0, queue: [], flying: 0 };
+  var sparkLayer = null;
+  function lightUp(node, cls, ms) { if (!node) return; node.classList.add(cls); setTimeout(function () { node.classList.remove(cls); }, ms); }
+  // One event's spark: along its link (or from the core to its portal), or, on a phone, a pulse on the portal it reaches;
+  // under reduced motion a still highlight of the link and the portal.
+  function playSpark(e) {
+    var from = e.portal_from, to = e.portal_to;
+    if (!knownPortal(to) || (from !== "core" && !knownPortal(from))) return false;
+    var pair = from !== "core" && from !== to ? pairKey(from, to) : null;
+    if (narrow()) { lightUp(portalBtn[to], reduced() ? "is-lit" : "is-pulse", reduced() ? SPARK.litMs : SPARK.ms); return true; }
+    if (reduced()) { lightUp(pair ? linkPath[pair] : null, "is-lit", SPARK.litMs); lightUp(portalBtn[to], "is-lit", SPARK.litMs); return true; }
+    if (from === to) { lightUp(portalBtn[to], "is-pulse", SPARK.ms); return true; }
+    var A = indexOfPortal(to) * STEP_DEG;
+    var pts = from === "core" ? [frameAt(A, SPARK.fromCoreR), frameAt(A, VIEW.rx)] : linkPoints(from, to);
+    if (!sparkLayer) { sparkLayer = sv("g", { "class": "orbit-sparks" }); svg.appendChild(sparkLayer); }
+    var g = sv("g", { "class": "orbit-link-spark", "data-from": from, "data-to": to, "data-type": String(e.type || ""), "data-link": pair || "core" });
+    g.appendChild(sv("circle", { r: "7", "class": "orbit-link-spark-glow" }));
+    g.appendChild(sv("circle", { r: "3", "class": "orbit-link-spark-dot" }));
+    sparkLayer.appendChild(g);
+    pulse.flying++;
+    var segs = [], total = 0;
+    for (var i = 1; i < pts.length; i++) { var len = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(len); total += len; }
+    var k = VIEW.ry / VIEW.rx, start = 0;
+    function at(t) {
+      var dist = t * total, j = 0;
+      while (j < segs.length - 1 && dist > segs[j]) { dist -= segs[j]; j++; }
+      var f = segs[j] ? Math.min(1, dist / segs[j]) : 1, p = pts[j], q = pts[j + 1];
+      var x = p[0] + (q[0] - p[0]) * f, y = p[1] + (q[1] - p[1]) * f;
+      // the frame point turned with the ring (state.base), then squashed to the ellipse
+      var phi = Math.atan2(x, y) + state.base * Math.PI / 180, rho = Math.hypot(x, y);
+      return [VIEW.cx + rho * Math.sin(phi), VIEW.cy + k * rho * Math.cos(phi)];
+    }
+    function frame(ts) {
+      if (!start) start = ts;
+      var t = Math.min(1, (ts - start) / SPARK.ms), e2 = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2, xy = at(e2);
+      g.setAttribute("transform", "translate(" + xy[0].toFixed(1) + " " + xy[1].toFixed(1) + ")");
+      g.style.opacity = String(t < 0.15 ? t / 0.15 : t > 0.85 ? (1 - t) / 0.15 : 1);
+      g.setAttribute("data-t", t.toFixed(3));
+      if (t < 1) window.requestAnimationFrame(frame);
+      else { if (g.parentNode) g.parentNode.removeChild(g); pulse.flying--; lightUp(portalBtn[to], "is-pulse", 400); }
+    }
+    var xy0 = at(0);
+    g.setAttribute("transform", "translate(" + xy0[0].toFixed(1) + " " + xy0[1].toFixed(1) + ")");
+    g.style.opacity = "0";
+    window.requestAnimationFrame(frame);
+    return true;
+  }
+  function pulseOn() { return !document.hidden && !starsOff; }
+  // An event from before this page loaded never sparks; one that comes during a turn waits (the newest SPARK.queue).
+  function sparkFor(e) {
+    var t = e && typeof e.at === "string" ? Date.parse(e.at) : NaN;
+    if (!isFinite(t) || t <= pulse.loadedAt || !pulseOn()) return false;
+    if (state.turn) { pulse.queue.push(e); while (pulse.queue.length > SPARK.queue) pulse.queue.shift(); return false; }
+    return playSpark(e);
+  }
+  function flushSparks() { var q = pulse.queue; pulse.queue = []; q.forEach(playSpark); }
+  // The pulse: only while the tab is visible and the orbit is on the screen.
+  function pollPulse(force) {
+    if (pulse.busy || !pulseOn()) return Promise.resolve(false);
+    if (!force && Date.now() - pulse.last < PULSE_MS / 3) return Promise.resolve(false);
+    pulse.busy = true;
+    pulse.last = Date.now();
+    var url = apiBase() + "/api/dashboard/pulse" + (pulse.since ? "?since=" + encodeURIComponent(pulse.since) : "");
+    return fetch(url, { headers: authHeaders() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (body) {
+        if (!body || typeof body !== "object") return false;
+        if (typeof body.generated_at === "string") pulse.since = body.generated_at;
+        drawLinks(body.links);
+        drawSatellites(body.running);
+        (Array.isArray(body.events) ? body.events : []).forEach(sparkFor);
+        return true;
+      })
+      .catch(function () { return false; })
+      .then(function (ok) { pulse.busy = false; return ok; });
   }
 
   /* ── the quick search ── */
@@ -1117,7 +1578,12 @@
     starTints: starTints, starTwinkle: starTwinkle, starLabelHalf: starLabelHalf,
     moonPhase: moonPhase, moonPath: moonPath, figureFor: figureFor, orderTools: orderTools, attention: attention, firstPortal: firstPortal,
     slashKey: slashKey, state: state, load: load, open: function (k) { openPortal(k, true); }, fold: fold, tools: function () { return TOOL; },
-    go: function (url) { window.location.assign(url); }
+    go: function (url) { window.location.assign(url); },
+    // NAMED (Nov 11 2026, orbit stage 2)
+    SAT: SAT, CORE_KEEP_R: CORE_KEEP_R, GOAL_BTN: GOAL_BTN, SPARK: SPARK, LINK_BEND_R: LINK_BEND_R, PULSE_MS: PULSE_MS, GOAL_METRICS: GOAL_METRICS,
+    goalView: goalView, notCountedText: notCountedText, linkPoints: linkPoints, drawSatellites: drawSatellites, sparkFor: sparkFor, playSpark: playSpark,
+    pulse: function () { return pollPulse(true); }, pulseState: pulse, pulseOn: function () { return pulseOn(); },
+    openGoal: function () { openGoalDialog(); }, readGoalForm: function () { return readGoalForm(); }, syncStores: syncStores
   };
   window.BFOrbit = api;
 
@@ -1140,12 +1606,20 @@
   }
   // The twinkle rests while the tab is hidden or the panel is off the screen.
   var starsOff = false;
-  function starsPause() { if (starsSvg) starsSvg.classList.toggle("is-paused", !!document.hidden || starsOff); }
+  // NAMED (Nov 11 2026, orbit stage 2): the satellites rest with the stars, and the pulse is asked again when the orbit
+  // comes back into view (at most once in a third of PULSE_MS).
+  function starsPause() {
+    var off = !!document.hidden || starsOff;
+    if (starsSvg) starsSvg.classList.toggle("is-paused", off);
+    stage.classList.toggle("is-paused", off);
+    if (!off) pollPulse(false);
+  }
   document.addEventListener("visibilitychange", starsPause);
   if (typeof IntersectionObserver === "function" && panel) {
     try { new IntersectionObserver(function (es) { starsOff = !es[es.length - 1].isIntersecting; starsPause(); }).observe(panel); } catch (e) { /* the hidden-tab pause stands */ }
   }
   starsPause();
+  setInterval(function () { pollPulse(true); }, PULSE_MS);
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load);
   else load();
 }());
