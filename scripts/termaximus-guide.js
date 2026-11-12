@@ -109,7 +109,7 @@
     ],
     "card-view.html": [
       "Press \"Save Contact\" to add this card's details to your phone's contacts.",
-      "The card's short link and its QR codes open this same page, so anyone you share it with sees what you see.",
+      "The card's short link, and its QR code when the owner shows one, open this same page, so anyone you share it with sees what you see.",
       "Nothing here can be edited; the owner sees daily counts of opens and taps, and your name and contact only if you send them with \"Leave your details\".",
       "Card not showing? The link may be mistyped or the card removed; ask its owner to send the link again.",
       "\"Support\" lists the owner's payment links; each opens the provider in a new tab, and BizForce never handles that money."

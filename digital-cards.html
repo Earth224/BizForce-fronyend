@@ -145,6 +145,10 @@
     .form-section-lbl{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#f472b6;margin-bottom:14px;display:flex;align-items:center;gap:6px}
     .form-section-lbl svg{width:13px;height:13px;flex-shrink:0}
     .vid-upload-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    /* NAMED (Nov 11 2026, card exports and phone layout): the buttons and the file name wrap onto a second line rather than
+       widening the column (at 390 px it was 434 px wide). */
+    .vid-upload-row{flex-wrap:wrap}
+    .vid-upload-row .vid-upload-name{flex:1 1 120px}
     .vid-upload-btn{padding:8px 14px;background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);border-radius:9px;color:#f472b6;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .2s}
     .vid-upload-btn:hover{background:rgba(244,114,182,.2)}
     .vid-upload-name{font-size:.73rem;color:#8892b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
@@ -497,14 +501,14 @@
           <span style="font-size:.8rem;color:#8892b8;white-space:nowrap">bizforceai.net/c/</span>
           <input class="form-input" id="fSlug" type="text" placeholder="jane-smith" maxlength="40" autocomplete="off" spellcheck="false">
         </div>
-        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">3 to 40 lowercase letters, numbers and hyphens. Your QR code opens this link once the card is saved.</p>
+        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">3 to 40 lowercase letters, numbers and hyphens. This is your card's link; if you show a QR code, it opens this link once the card is saved.</p>
       </div>
       <div class="form-group" id="cardPrivacyGroup">
         <span class="form-label">On your public card</span>
         <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowEmail" checked> Show my email (tap to email)</label>
         <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowPhone" checked> Show my phone (tap to call)</label>
         <label style="display:flex;gap:8px;align-items:center;font-size:.82rem;color:#c8cce8;margin:4px 0"><input type="checkbox" id="fShowPhoto" checked> Put my profile photo in the saved contact</label>
-        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">A field you untick is not sent to anyone who opens your card, scans its QR code or saves the contact.</p>
+        <p style="font-size:.72rem;color:#8892b8;margin:4px 0 0">A field you untick is not sent to anyone who opens your card, scans its QR code (when shown) or saves the contact.</p>
       </div>
 
       <hr class="form-divider">
@@ -1730,11 +1734,128 @@ async function saveCard() {
   btn.disabled = false;
 }
 
+/* NAMED (Nov 11 2026, card exports and phone layout): THE BORDER IN THE EXPORTS.
+   The brand border (.card-brand-border) is a gradient layer cut to a ring by a CSS mask. html2canvas 1.4.1 does not
+   support CSS masks, so every export painted the whole gradient over the card: a solid slab, no name, text or QR.
+   All three exports (Download PNG, Export Print File, Share as Image) render with cardExportOptions(), whose onclone
+   swaps the masked layer, in html2canvas's copy of the page only, for the same ring drawn on a canvas: the layer's own
+   computed gradient (so Glow, None, Neon Pulse, Gold and Holo Rainbow, at any weight), its tile size and position at
+   that moment (an animated style exports as a still frame of its look, at full strength), its outer radius, and the
+   mask's square inner edge; the two thin inset shades on top. The layer itself stays, unmasked and unpainted, so its
+   two stamps (the diamonds and BIZFORCE AI) still print over the ring. The live preview is not touched. */
+var CARD_EXPORT_SCALE = 3;
+function cardExportOptions() {
+  return { scale: CARD_EXPORT_SCALE, useCORS: true, allowTaint: false, onclone: unmaskBrandBorder };
+}
+// Split a CSS function's arguments at its top-level commas.
+function splitCssArgs(s) {
+  var out = [], depth = 0, start = 0;
+  for (var i = 0; i < s.length; i++) {
+    var ch = s.charAt(i);
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) { out.push(s.slice(start, i).trim()); start = i + 1; }
+  }
+  out.push(s.slice(start).trim());
+  return out;
+}
+// A computed linear-gradient(...) as { angle (deg), stops: [{ color, at (0..1) }] }, or null.
+function parseCssGradient(css) {
+  var m = /linear-gradient\((.*)\)\s*$/.exec(String(css || "").trim());
+  if (!m) return null;
+  var args = splitCssArgs(m[1]), angle = 180;
+  if (/^-?[\d.]+deg$/.test(args[0])) { angle = parseFloat(args[0]); args.shift(); }
+  else if (/^to /.test(args[0])) {
+    var dirs = { "to top": 0, "to right": 90, "to bottom": 180, "to left": 270, "to top right": 45, "to right top": 45, "to bottom right": 135, "to right bottom": 135, "to bottom left": 225, "to left bottom": 225, "to top left": 315, "to left top": 315 };
+    angle = dirs[args[0]] !== undefined ? dirs[args[0]] : 180; args.shift();
+  }
+  var stops = args.map(function (a, i) {
+    var pm = /^(.*\))\s+([\d.]+)%$/.exec(a) || /^(\S+)\s+([\d.]+)%$/.exec(a);
+    return { color: pm ? pm[1] : a, at: pm ? parseFloat(pm[2]) / 100 : (args.length > 1 ? i / (args.length - 1) : 0) };
+  });
+  return stops.length ? { angle: angle, stops: stops } : null;
+}
+function cssLength(v, whole) { v = String(v || "").trim(); if (/%$/.test(v)) return parseFloat(v) / 100 * whole; if (v === "auto" || !v) return whole; return parseFloat(v) || 0; }
+function cssFraction(v) { v = String(v || "").trim(); if (/%$/.test(v)) return { f: parseFloat(v) / 100 }; if (v === "left" || v === "top") return { f: 0 }; if (v === "right" || v === "bottom") return { f: 1 }; if (v === "center") return { f: 0.5 }; return { px: parseFloat(v) || 0 }; }
+function roundRectPath(ctx, x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
+}
+// The brand border's ring, mask-free, on a canvas in document doc, from the live layer's computed look.
+function brandRingCanvas(live, doc, scale) {
+  var cs = getComputedStyle(live), w = live.offsetWidth, h = live.offsetHeight;
+  var pad = parseFloat(cs.paddingTop) || 0, rad = parseFloat(cs.borderTopLeftRadius) || 0;
+  var cv = doc.createElement("canvas");
+  cv.className = "card-brand-ring";
+  cv.width = Math.max(1, Math.round(w * scale)); cv.height = Math.max(1, Math.round(h * scale));
+  cv.style.cssText = "position:absolute;left:0;top:0;width:" + w + "px;height:" + h + "px;z-index:30;pointer-events:none;border-radius:" + rad + "px";
+  cv.setAttribute("data-ring", JSON.stringify({ w: w, h: h, pad: pad, rad: rad, image: cs.backgroundImage, size: cs.backgroundSize, position: cs.backgroundPosition }));
+  var ctx = cv.getContext && cv.getContext("2d");
+  if (!ctx) return cv;
+  ctx.scale(scale, scale);
+  // The mask's ring: the rounded outer edge less the square content box.
+  ctx.beginPath(); roundRectPath(ctx, 0, 0, w, h, rad); ctx.rect(pad, pad, w - 2 * pad, h - 2 * pad); ctx.clip("evenodd");
+  var gr = parseCssGradient(cs.backgroundImage);
+  var szs = String(cs.backgroundSize).split(/\s+/);
+  if (gr && cssLength(szs[0], w) > 0 && cssLength(szs[1] || szs[0], h) > 0) {
+    var sz = String(cs.backgroundSize).split(/\s+/), bw = cssLength(sz[0], w), bh = cssLength(sz[1] || sz[0], h);
+    var ps = String(cs.backgroundPosition).split(/\s+/), fx = cssFraction(ps[0]), fy = cssFraction(ps[1] || "50%");
+    var bx = fx.px !== undefined ? fx.px : (w - bw) * fx.f, by = fy.px !== undefined ? fy.px : (h - bh) * fy.f;
+    var a = gr.angle * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), len = Math.abs(bw * dx) + Math.abs(bh * dy), cx = bx + bw / 2, cy = by + bh / 2;
+    var lg = ctx.createLinearGradient(cx - dx * len / 2, cy - dy * len / 2, cx + dx * len / 2, cy + dy * len / 2);
+    gr.stops.forEach(function (st) { try { lg.addColorStop(Math.max(0, Math.min(1, st.at)), st.color); } catch (e) { /* an unreadable colour is skipped */ } });
+    ctx.fillStyle = lg;
+    // the tile, repeated so it covers the card wherever the animation had it
+    var x0 = bx - Math.ceil(bx / bw) * bw, y0 = by - Math.ceil(by / bh) * bh;
+    for (var tx = x0; tx < w; tx += bw) for (var ty = y0; ty < h; ty += bh) {
+      ctx.save(); ctx.translate(tx - bx, ty - by); ctx.fillRect(bx, by, bw, bh); ctx.restore();
+    }
+  }
+  // its two inset shades: light along the top edge, dark along the bottom
+  var top = ctx.createLinearGradient(0, 0, 0, 3); top.addColorStop(0, "rgba(255,255,255,.35)"); top.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = top; ctx.fillRect(0, 0, w, 3);
+  var bot = ctx.createLinearGradient(0, h, 0, h - 3); bot.addColorStop(0, "rgba(0,0,0,.5)"); bot.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bot; ctx.fillRect(0, h - 3, w, 3);
+  return cv;
+}
+// html2canvas's onclone: in its copy of the page, the masked layer becomes the canvas ring plus the unpainted layer (stamps only).
+function unmaskBrandBorder(doc) {
+  // Gradient text (background-clip: text: the name on every theme, and the Gradient text effect) is also beyond
+  // html2canvas 1.4.1, which paints the gradient as a solid bar over the words. In its copy only, such text is filled
+  // with the gradient's first colour instead, so the words show.
+  // (html2canvas adds its own elements for ::before and ::after to its copy; they are left out of the pairing.)
+  var liveAll = document.querySelectorAll("#cardPreview *"), copyAll = [].filter.call(doc.querySelectorAll("#cardPreview *"), function (n) { return !/pseudoelement/i.test(n.tagName); });
+  if (liveAll.length === copyAll.length) {
+    for (var i = 0; i < liveAll.length; i++) {
+      var lcs = getComputedStyle(liveAll[i]);
+      if ((lcs.webkitBackgroundClip || lcs.backgroundClip) !== "text") continue;
+      var lgr = parseCssGradient(lcs.backgroundImage), first = lgr && lgr.stops.length ? lgr.stops[0].color : "#ffffff";
+      copyAll[i].style.setProperty("background", "none", "important");
+      copyAll[i].style.setProperty("-webkit-background-clip", "border-box", "important");
+      copyAll[i].style.setProperty("background-clip", "border-box", "important");
+      copyAll[i].style.setProperty("-webkit-text-fill-color", first, "important");
+      copyAll[i].style.setProperty("color", first, "important");
+    }
+  }
+  var live = document.querySelector("#cardPreview .card-brand-border"), copy = doc.querySelector("#cardPreview .card-brand-border");
+  if (!live || !copy) return;
+  copy.parentNode.insertBefore(brandRingCanvas(live, doc, CARD_EXPORT_SCALE), copy);
+  copy.style.setProperty("-webkit-mask", "none", "important");
+  copy.style.setProperty("mask", "none", "important");
+  copy.style.setProperty("background", "none", "important");
+  copy.style.setProperty("box-shadow", "none", "important");
+  copy.style.setProperty("animation", "none", "important");
+  copy.style.setProperty("opacity", "1", "important");
+}
+
 async function downloadCard() {
   setStatus("Generating download...", "info");
   try {
     var el = document.getElementById("cardPreview");
-    var canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false });
+    var canvas = await html2canvas(el, cardExportOptions());
     var link = document.createElement("a");
     link.download = "bizforce-card.png";
     link.href = canvas.toDataURL("image/png");
@@ -1756,7 +1877,7 @@ async function exportPrintFile() {
   try {
     var el = document.getElementById("cardPreview");
     /* Render at 3x (≈300 dpi equivalent for a standard screen-rendered card) */
-    var canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false });
+    var canvas = await html2canvas(el, cardExportOptions());
 
     var finalCanvas = canvas;
     if (addBleed) {
@@ -1792,7 +1913,9 @@ async function exportPrintFile() {
       /* Business card dims in inches; bleed adds 0.25" total (0.125" each side) */
       var W = (isVertical ? 2   : 3.5) + (addBleed ? 0.25 : 0);
       var H = (isVertical ? 3.5 : 2  ) + (addBleed ? 0.25 : 0);
-      var doc = new JsPDF({ unit: "in", format: [W, H] });
+      /* NAMED (Nov 11 2026, card exports and phone layout): the orientation is given, so a horizontal card gets a 3.5 x 2 in
+         page; without it jsPDF turned every page upright (2 x 3.5 in) and stretched a horizontal card onto it. */
+      var doc = new JsPDF({ unit: "in", format: [W, H], orientation: W > H ? "landscape" : "portrait" });
       var imgData = finalCanvas.toDataURL("image/png");
       doc.addImage(imgData, "PNG", 0, 0, W, H);
       if (addBleed) {
@@ -1842,8 +1965,8 @@ async function exportPrintFile() {
    belong to exportPrintFile, which is for a printer, and are meaningless here.
 
    Rendering matches the existing exports exactly — same html2canvas build from
-   the same CDN tag, the same { scale: 3, useCORS: true, allowTaint: false },
-   and the same #cardPreview element — so this cannot drift into being a second
+   the same CDN tag, the same cardExportOptions() (scale 3, useCORS, no taint, and
+   the mask-free border ring), and the same #cardPreview element — so this cannot drift into being a second
    way of rendering the same card. */
 async function shareCardImage() {
   var btn = document.getElementById("shareImageBtn");
@@ -1852,7 +1975,7 @@ async function shareCardImage() {
 
   try {
     var el = document.getElementById("cardPreview");
-    var canvas = await html2canvas(el, { scale: 3, useCORS: true, allowTaint: false });
+    var canvas = await html2canvas(el, cardExportOptions());
 
     /* Compose onto the social frame. Contain rather than cover: scaled to fit
        the smaller axis so the whole card survives, centred, on the page's own
