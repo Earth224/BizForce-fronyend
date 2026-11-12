@@ -480,9 +480,11 @@
   }
   @media (max-width: 640px){
     /* The still stars stay on a phone, where the ring's drawing is hidden: the same layer, laid out around the row, with a
-       strip of sky above the core (28 px at the top, was 12). */
-    .orbit-panel{padding:28px 10px 14px}
-    .orbit-stage{aspect-ratio:auto;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 6px;min-width:0;max-width:100%}
+       strip of sky above the core (28 px at the top, was 12). NAMED (Nov 11 2026, polish): more sky on a phone, so at least
+       2 large rayed stars fit the fixed set's even spread: 104 px of sky above the core and 56 below the search (were 28
+       and 14), and 32 px under the row (was 6). Desktop unchanged. */
+    .orbit-panel{padding:104px 10px 56px}
+    .orbit-stage{aspect-ratio:auto;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 32px;min-width:0;max-width:100%}
     .orbit-svg{display:none}
     .orbit-portal,.orbit-core{position:relative;transform:none !important}
     .orbit-portal{flex:1 1 0;min-width:0;width:auto;height:auto;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
@@ -496,16 +498,16 @@
   }
 </style>
 <section id="orbitTop" class="bf-orbit" aria-label="Your tools">
-  <div class="orbit-panel" id="orbitPanel">
+  <div class="orbit-panel" id="orbitPanel" data-tmx-clear>
     <svg class="orbit-stars" id="orbitStars" aria-hidden="true" focusable="false"></svg>
-    <div class="orbit-stage" id="orbitStage">
+    <div class="orbit-stage" id="orbitStage" data-tmx-avoid>
       <svg class="orbit-svg" id="orbitSvg" viewBox="0 0 680 330" aria-hidden="true" focusable="false"></svg>
     </div>
     <div class="orbit-say" id="orbitSay">
       <p class="orbit-preview" id="orbitPreview" role="status" hidden></p>
       <p class="orbit-status" id="orbitStatus" role="status"></p>
     </div>
-    <div class="orbit-search">
+    <div class="orbit-search" data-tmx-avoid>
       <label class="orbit-sr" for="orbitSearch">Go to any tool</label>
       <input id="orbitSearch" type="search" placeholder="Go to any tool..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="orbitResults">
       <kbd class="orbit-key" aria-hidden="true">/</kbd>
@@ -1248,6 +1250,7 @@ Save Business Profile
 
 <textarea
 id="taskPrompt"
+class="bf-span-2"
 placeholder="Tell your AI agent what to do..."
 style="
 padding:18px;
@@ -1255,7 +1258,6 @@ font-size:16px;
 border-radius:12px;
 border:none;
 min-height:180px;
-grid-column:1/3;
 "></textarea>
 
 <button
@@ -1303,6 +1305,17 @@ style="display:flex;flex-direction:column;gap:18px;"></div>
 .cc-steps .cc-plan{border:0;padding:0;margin:0;background:none}
 .cc-steps .cc-plan-head{display:none}
 .cc-deck #agentMemorySection{margin:0}
+/* NAMED (Nov 11 2026, polish): nothing wider than a phone. The AI Agent Tasks form's controls keep to their column
+   (#taskPrompt spans both columns by .bf-span-2, which the phone rule folds to one; its old inline grid-column:1/3 made
+   a second column there, 400 px wide on a 390 px screen); the Command Center's tab row scrolls inside itself; and the
+   top bar's actions wrap rather than push past the edge at 360 px. */
+.bf-form-grid input,.bf-form-grid select,.bf-form-grid textarea{box-sizing:border-box;max-width:100%;min-width:0}
+.cc-deck .deck-tabs{max-width:100%;min-width:0}
+@media (max-width:640px){
+  .bf-form-grid{grid-template-columns:minmax(0,1fr)}
+  .topbar{flex-wrap:wrap}
+  .topbar-actions{min-width:0;flex:1 1 auto}
+}
 </style>
 <script src="/scripts/bf-tabs.js"></script>
 <section id="commandCenterSection" class="bf-section" data-cc-mode="tabs">

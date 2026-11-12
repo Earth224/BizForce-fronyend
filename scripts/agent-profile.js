@@ -5286,6 +5286,9 @@
         '.ap-live-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}' +
         '@media (max-width:980px){.ap-live-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}' +
         '@media (max-width:560px){.ap-live-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}' +
+        // NAMED (Nov 11 2026, polish): on a phone the status line wraps ("Retrying in 120s - the request did not complete" ran
+        // past the edge at 390 px on every agent page); wider screens keep it on one line.
+        '@media (max-width:560px){.ap-live-status{white-space:normal;overflow-wrap:anywhere;min-width:0}}' +
         '.ap-live-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.1);min-width:0}' +
         '.ap-live-k{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin-bottom:5px}' +
         '.ap-live-v{font-size:.98rem;font-weight:700;color:#e8e8ff;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +

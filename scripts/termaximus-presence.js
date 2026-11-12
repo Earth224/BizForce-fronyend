@@ -2118,6 +2118,7 @@
     var dy = e.clientY - _tmxPressY;
     if (!_tmxDragMoved && Math.sqrt(dx * dx + dy * dy) < TMX_DRAG_THRESHOLD) return;
     _tmxDragMoved = true;
+    root.style.translate = "";   // the keep-clear shift below; the drag places the mist itself, from where it was seen
     var c = _tmxClampPosition(_tmxStartLeft + dx, _tmxStartTop + dy);
     root.style.left   = c.left + "px";
     root.style.top    = c.top  + "px";
@@ -2138,6 +2139,79 @@
 
   root.addEventListener("pointerup", _tmxEndDrag);
   root.addEventListener("pointercancel", _tmxEndDrag);
+
+  /* ── NAMED (Nov 11 2026, polish): KEEP CLEAR of what a page marks ──
+     A page marks a region with data-tmx-clear (the dashboard's orbit panel) and the parts inside it the mist must never
+     cover with data-tmx-avoid (the orbit's stage, holding the portals, their labels and the core, and the search). When
+     the mist's usual spot (its corner, or where it was dragged) would cover any of them, it is shifted, by the CSS
+     translate property alone, to the nearest spot outside the region: fully on the screen if one is; else one with its
+     centre on the screen; else the nearest spot on the screen that covers none of the marked parts; else the nearest
+     outside spot. Its usual spot and the saved position are not changed, so it returns there once the way is clear.
+     Checked on scroll, resize and a change in a region's size; never during a drag. A page with no marks is untouched. */
+  var TMX_CLEAR_GAP = 8;
+  function _tmxRectOf(el) {
+    var r = el.getBoundingClientRect(), u = { l: r.left, t: r.top, r: r.right, b: r.bottom };
+    var all = el.querySelectorAll("*");
+    for (var i = 0; i < all.length; i++) {
+      var q = all[i].getBoundingClientRect();
+      if (!q.width && !q.height) continue;
+      if (q.left < u.l) u.l = q.left; if (q.top < u.t) u.t = q.top; if (q.right > u.r) u.r = q.right; if (q.bottom > u.b) u.b = q.bottom;
+    }
+    return u;
+  }
+  function _tmxMeets(a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; }
+  function _tmxShown(el) { var r = el.getBoundingClientRect(); return (r.width > 0 || r.height > 0) && getComputedStyle(el).display !== "none"; }
+  function _tmxKeepClear() {
+    if (_tmxDragging) return;
+    var regions = Array.prototype.filter.call(document.querySelectorAll("[data-tmx-clear]"), _tmxShown);
+    if (!regions.length) { if (root.style.translate) root.style.translate = ""; return; }
+    root.style.translate = "";
+    var home = root.getBoundingClientRect(), w = home.width, h = home.height, vw = window.innerWidth, vh = window.innerHeight;
+    var box = function (x, y) { return { l: x, t: y, r: x + w, b: y + h }; };
+    var avoid = [];
+    regions.forEach(function (rg) {
+      Array.prototype.forEach.call(rg.querySelectorAll("[data-tmx-avoid]"), function (el) { if (_tmxShown(el)) avoid.push(_tmxRectOf(el)); });
+    });
+    var clear = function (b) { return avoid.every(function (a) { return !_tmxMeets(a, b); }); };
+    if (clear(box(home.left, home.top))) return;
+    var outside = [];
+    regions.forEach(function (rg) {
+      var p = rg.getBoundingClientRect();
+      outside.push([p.left - w - TMX_CLEAR_GAP, home.top], [p.right + TMX_CLEAR_GAP, home.top], [home.left, p.top - h - TMX_CLEAR_GAP], [home.left, p.bottom + TMX_CLEAR_GAP]);
+    });
+    var outOfAll = function (b) { return regions.every(function (rg) { var p = rg.getBoundingClientRect(); return !_tmxMeets({ l: p.left, t: p.top, r: p.right, b: p.bottom }, b); }); };
+    var dist = function (s) { return Math.hypot(s[0] - home.left, s[1] - home.top); };
+    var onScreen = function (s) { return s[0] >= 0 && s[1] >= 0 && s[0] + w <= vw && s[1] + h <= vh; };
+    var centreOn = function (s) { var cx = s[0] + w / 2, cy = s[1] + h / 2; return cx >= 0 && cy >= 0 && cx <= vw && cy <= vh; };
+    var pick = function (list) { return list.slice().sort(function (a, b) { return dist(a) - dist(b); })[0] || null; };
+    var spot = pick(outside.filter(function (s) { return onScreen(s) && outOfAll(box(s[0], s[1])) && clear(box(s[0], s[1])); })) ||
+      pick(outside.filter(function (s) { return centreOn(s) && outOfAll(box(s[0], s[1])) && clear(box(s[0], s[1])); }));
+    if (!spot) {
+      var scan = [];
+      for (var y = 0; y + h <= vh; y += 8) scan.push([home.left, y]);
+      for (var x = 0; x + w <= vw; x += 8) scan.push([x, home.top]);
+      spot = pick(scan.filter(function (s) { return clear(box(s[0], s[1])); })) || pick(outside);
+    }
+    if (spot) root.style.translate = Math.round(spot[0] - home.left) + "px " + Math.round(spot[1] - home.top) + "px";
+  }
+  var _tmxClearFrame = 0;
+  function _tmxKeepClearSoon() {
+    if (_tmxClearFrame) return;
+    var run = function () { _tmxClearFrame = 0; _tmxKeepClear(); };
+    _tmxClearFrame = typeof window.requestAnimationFrame === "function" ? window.requestAnimationFrame(run) : setTimeout(run, 16);
+  }
+  window.addEventListener("scroll", _tmxKeepClearSoon, { passive: true });
+  window.addEventListener("resize", _tmxKeepClearSoon);
+  root.addEventListener("pointerup", _tmxKeepClearSoon);
+  if (typeof ResizeObserver === "function") {
+    var _tmxClearSeen = new ResizeObserver(_tmxKeepClearSoon);
+    var _tmxWatchRegions = function () { Array.prototype.forEach.call(document.querySelectorAll("[data-tmx-clear]"), function (rg) { _tmxClearSeen.observe(rg); }); };
+    _tmxWatchRegions();
+    document.addEventListener("DOMContentLoaded", function () { _tmxWatchRegions(); _tmxKeepClearSoon(); });
+    window.addEventListener("load", _tmxKeepClearSoon);
+  }
+  window.TmxKeepClear = _tmxKeepClear;
+  _tmxKeepClearSoon();
 
   root.addEventListener("click", function (e) {
     if (_tmxDragMoved) return;

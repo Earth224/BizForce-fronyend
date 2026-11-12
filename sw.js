@@ -42,6 +42,15 @@ var STATIC_FILES = [
   "/scripts/bf-session.js", "/scripts/bf-offline.js", "/scripts/bf-paywall.js", "/scripts/bf-bfc-notice.js",
   "/scripts/bf-identity.js", "/scripts/bf-agent-order.js", "/scripts/bf-orbit.js", "/scripts/agent-profile.js",
   "/scripts/termaximus-guide.js", "/scripts/termaximus-presence.js", "/scripts/email-sequences.js", "/scripts/social-publish.js",
+  /* NAMED (Nov 11 2026, polish): every same-origin script an offline page loads. Before, 26 of them were missing (the tab
+     folders' bf-tabs.js among them), so a page opened offline had no tabs, no theme and no footer script. The cache's
+     version needs no hand bump: BUILD below is the deploying commit (netlify.toml), so this deploy is a new cache. */
+  "/scripts/agent-descriptions.js", "/scripts/bf-boombox.js", "/scripts/bf-command-center.js", "/scripts/bf-cycles.js",
+  "/scripts/bf-exec-deck.js", "/scripts/bf-hq.js", "/scripts/bf-legal-footer.js", "/scripts/bf-music.js", "/scripts/bf-network.js",
+  "/scripts/bf-support.js", "/scripts/bf-tabs.js", "/scripts/bf-theme-studio.js", "/scripts/bf-theme.js", "/scripts/bf-triggers.js",
+  "/scripts/bf-why.js", "/scripts/bluesky-connect.js", "/scripts/bluesky-mentions.js", "/scripts/facebook.js", "/scripts/instagram.js",
+  "/scripts/mastodon-connect.js", "/scripts/media-picker.js", "/scripts/oauth-return.js", "/scripts/store-changes.js",
+  "/scripts/store-connect.js", "/scripts/tiktok.js", "/scripts/youtube.js",
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];

@@ -1821,23 +1821,123 @@ function brandRingCanvas(live, doc, scale) {
   ctx.fillStyle = bot; ctx.fillRect(0, h - 3, w, 3);
   return cv;
 }
+/* NAMED (Nov 11 2026, polish): GRADIENT TEXT IN THE EXPORTS. html2canvas 1.4.1 cannot draw background-clip:text (the
+   name on every theme, and the Gradient text effect): it paints the gradient as a bar. Until now the copy filled such
+   text with the gradient's first colour. Now, in the copy only, the element's words are drawn on a canvas laid over it:
+   each word where the live page put it (its line, its x, from the page's own layout, so the line breaks, alignment and
+   letter spacing are the page's), in the computed font, size, weight, letter spacing and case, filled with the computed
+   gradient (linear, its angle and stops; or radial, its centre and stops) over the element's box, with its first text
+   shadow. The copy's own text is made transparent beneath it. The live preview and the public card are not touched. */
+function cssBackgroundLayer(css) { var layers = splitCssArgs(String(css || "")); return layers.length ? layers[0] : ""; }
+// A computed radial-gradient(...) as { at: [x, y] (fractions or px), stops: [...] }, or null.
+function parseCssRadial(css) {
+  var m = /^radial-gradient\((.*)\)\s*$/.exec(String(css || "").trim());
+  if (!m) return null;
+  var args = splitCssArgs(m[1]), at = ["50%", "50%"];
+  if (/^(circle|ellipse|closest|farthest|at\s|[\d.]+(px|%))/.test(args[0]) && !/^(rgb|hsl|#)/.test(args[0])) {
+    var am = / at (\S+)(?: (\S+))?/.exec(" " + args[0]);
+    if (am) at = [am[1], am[2] || "50%"];
+    args.shift();
+  }
+  var stops = args.map(function (a, i) {
+    var pm = /^(.*\))\s+([\d.]+)%$/.exec(a) || /^(\S+)\s+([\d.]+)%$/.exec(a);
+    return { color: pm ? pm[1] : a, at: pm ? parseFloat(pm[2]) / 100 : (args.length > 1 ? i / (args.length - 1) : 0) };
+  });
+  return stops.length ? { at: at, stops: stops } : null;
+}
+// The canvas paint for a computed background-image over a w x h box: its gradient, or null.
+function cssPaint(ctx, image, w, h) {
+  var layer = cssBackgroundLayer(image), add = function (g, stops) { stops.forEach(function (st) { try { g.addColorStop(Math.max(0, Math.min(1, st.at)), st.color); } catch (e) { /* an unreadable colour is skipped */ } }); return g; };
+  var lin = parseCssGradient(layer);
+  if (lin) {
+    var a = lin.angle * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a), len = Math.abs(w * dx) + Math.abs(h * dy);
+    return add(ctx.createLinearGradient(w / 2 - dx * len / 2, h / 2 - dy * len / 2, w / 2 + dx * len / 2, h / 2 + dy * len / 2), lin.stops);
+  }
+  var rad = parseCssRadial(layer);
+  if (rad) {
+    var fx = cssFraction(rad.at[0]), fy = cssFraction(rad.at[1]), cx = fx.px !== undefined ? fx.px : w * fx.f, cy = fy.px !== undefined ? fy.px : h * fy.f;
+    var r = Math.max(Math.hypot(cx, cy), Math.hypot(w - cx, cy), Math.hypot(cx, h - cy), Math.hypot(w - cx, h - cy)) || 1;
+    return add(ctx.createRadialGradient(cx, cy, 0, cx, cy, r), rad.stops);
+  }
+  return null;
+}
+function cssCase(text, tt) {
+  if (tt === "uppercase") return text.toUpperCase();
+  if (tt === "lowercase") return text.toLowerCase();
+  if (tt === "capitalize") return text.replace(/(^|\s)(\S)/g, function (m, s, c) { return s + c.toUpperCase(); });
+  return text;
+}
+// The words of a background-clip:text element, drawn as the page lays them out, on a canvas for the copy document doc.
+function gradientTextCanvas(live, doc, scale) {
+  var cs = getComputedStyle(live), box = live.getBoundingClientRect(), w = live.offsetWidth, h = live.offsetHeight;
+  if (!w || !h) return null;
+  var sx = box.width / w || 1, sy = box.height / h || 1;
+  var cv = doc.createElement("canvas");
+  cv.className = "card-gradient-text";
+  cv.width = Math.max(1, Math.round(w * scale)); cv.height = Math.max(1, Math.round(h * scale));
+  cv.style.cssText = "position:absolute;left:" + (-(parseFloat(cs.borderLeftWidth) || 0)) + "px;top:" + (-(parseFloat(cs.borderTopWidth) || 0)) +
+    "px;width:" + w + "px;height:" + h + "px;pointer-events:none;margin:0;padding:0;border:0";
+  var words = [];
+  var walk = document.createTreeWalker(live, NodeFilter.SHOW_TEXT, null), node;
+  while ((node = walk.nextNode())) {
+    var host = node.parentNode, skip = false;
+    for (var e = host; e && e !== live; e = e.parentNode) { var ecs = getComputedStyle(e); if ((ecs.webkitBackgroundClip || ecs.backgroundClip) === "text" || ecs.display === "none") { skip = true; break; } }
+    if (skip) continue;
+    var pcs = getComputedStyle(host), text = node.nodeValue, re = /\S+/g, m;
+    if (pcs.visibility === "hidden") continue;
+    // A child with a colour of its own paints that colour, not the gradient, in the page too; html2canvas draws it.
+    if (host !== live && !/^(transparent|rgba\([^)]*,\s*0\))$/.test(pcs.webkitTextFillColor || pcs.color)) continue;
+    while ((m = re.exec(text))) {
+      var range = document.createRange(); range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+      var rects = range.getClientRects();
+      if (rects.length === 1) words.push({ text: cssCase(m[0], pcs.textTransform), r: rects[0], cs: pcs });
+      else for (var k = 0; k < m[0].length; k++) {   // a word broken over lines: letter by letter
+        var r1 = document.createRange(); r1.setStart(node, m.index + k); r1.setEnd(node, m.index + k + 1);
+        var q = r1.getBoundingClientRect(); if (q.width || q.height) words.push({ text: cssCase(m[0].charAt(k), pcs.textTransform), r: q, cs: pcs });
+      }
+    }
+  }
+  cv.setAttribute("data-words", JSON.stringify(words.map(function (wd) { return wd.text; })));
+  var ctx = cv.getContext && cv.getContext("2d");
+  if (!ctx) return cv;
+  ctx.scale(scale, scale);
+  var paint = cssPaint(ctx, cs.backgroundImage, w, h);
+  var shadow = /^(rgba?\([^)]*\)|#\w+|\w+)\s+(-?[\d.]+)px\s+(-?[\d.]+)px(?:\s+([\d.]+)px)?/.exec(cs.textShadow || "");
+  words.forEach(function (wd) {
+    var c = wd.cs;
+    ctx.font = c.font || (c.fontStyle + " " + c.fontWeight + " " + c.fontSize + " " + c.fontFamily);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = c.letterSpacing === "normal" ? "0px" : c.letterSpacing;
+    ctx.textBaseline = "alphabetic";
+    var mt = ctx.measureText(wd.text), asc = mt.fontBoundingBoxAscent || parseFloat(c.fontSize) * 0.8, desc = mt.fontBoundingBoxDescent || parseFloat(c.fontSize) * 0.2;
+    var x = (wd.r.left - box.left) / sx, top = (wd.r.top - box.top) / sy, rh = wd.r.height / sy;
+    ctx.save();
+    if (shadow) { ctx.shadowColor = shadow[1]; ctx.shadowOffsetX = +shadow[2]; ctx.shadowOffsetY = +shadow[3]; ctx.shadowBlur = +(shadow[4] || 0); }
+    ctx.fillStyle = paint || c.color;
+    ctx.fillText(wd.text, x, top + (rh - (asc + desc)) / 2 + asc);
+    ctx.restore();
+  });
+  return cv;
+}
 // html2canvas's onclone: in its copy of the page, the masked layer becomes the canvas ring plus the unpainted layer (stamps only).
 function unmaskBrandBorder(doc) {
-  // Gradient text (background-clip: text: the name on every theme, and the Gradient text effect) is also beyond
-  // html2canvas 1.4.1, which paints the gradient as a solid bar over the words. In its copy only, such text is filled
-  // with the gradient's first colour instead, so the words show.
+  // Gradient text: each such element's words on a canvas over it (gradientTextCanvas, above); its own text transparent.
   // (html2canvas adds its own elements for ::before and ::after to its copy; they are left out of the pairing.)
   var liveAll = document.querySelectorAll("#cardPreview *"), copyAll = [].filter.call(doc.querySelectorAll("#cardPreview *"), function (n) { return !/pseudoelement/i.test(n.tagName); });
   if (liveAll.length === copyAll.length) {
     for (var i = 0; i < liveAll.length; i++) {
       var lcs = getComputedStyle(liveAll[i]);
       if ((lcs.webkitBackgroundClip || lcs.backgroundClip) !== "text") continue;
-      var lgr = parseCssGradient(lcs.backgroundImage), first = lgr && lgr.stops.length ? lgr.stops[0].color : "#ffffff";
-      copyAll[i].style.setProperty("background", "none", "important");
-      copyAll[i].style.setProperty("-webkit-background-clip", "border-box", "important");
-      copyAll[i].style.setProperty("background-clip", "border-box", "important");
-      copyAll[i].style.setProperty("-webkit-text-fill-color", first, "important");
-      copyAll[i].style.setProperty("color", first, "important");
+      var words = gradientTextCanvas(liveAll[i], doc, CARD_EXPORT_SCALE);
+      if (!words) continue;
+      var copyEl = copyAll[i];
+      copyEl.style.setProperty("background", "none", "important");
+      copyEl.style.setProperty("-webkit-background-clip", "border-box", "important");
+      copyEl.style.setProperty("background-clip", "border-box", "important");
+      copyEl.style.setProperty("-webkit-text-fill-color", "transparent", "important");
+      copyEl.style.setProperty("color", "transparent", "important");
+      copyEl.style.setProperty("text-shadow", "none", "important");
+      if (lcs.position === "static") copyEl.style.setProperty("position", "relative", "important");
+      copyEl.appendChild(words);
     }
   }
   var live = document.querySelector("#cardPreview .card-brand-border"), copy = doc.querySelector("#cardPreview .card-brand-border");
