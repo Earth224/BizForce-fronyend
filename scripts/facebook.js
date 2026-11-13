@@ -293,12 +293,22 @@
     setKind("video");
     drawKind(String(v.id));
   }
+  /* NAMED (Nov 13 2026, S2): the chip says what Facebook HAS of the video (GET /api/videos facebook_status,
+     read from facebook_posts and pending proposals), not what the file allows. The file rule ("must be MP4 or
+     MOV") stays as the disabled Prepare button's reason. Posted links the post, as YouTube and TikTok do. */
+  var STATUS_CHIP = { posted: ["posted", "ok"], publishing: ["publishing", "wait"], pending: ["waiting for your approval", "wait"],
+    failed: ["failed", "bad"], removed: ["removed", "off"], not_sent: ["not sent", "off"], unknown: ["status unavailable", "off"] };
+  function statusOf(v) { return Object.prototype.hasOwnProperty.call(STATUS_CHIP, v.facebook_status) ? v.facebook_status : "not_sent"; }
   var HOOK = {
     chip: function (v) {
-      if (v.status !== "ready") return { text: "Facebook: file deleted", tone: "off" };
-      return videoOk(v) ? { text: "Facebook: can post as a video", tone: "ready" } : { text: "Facebook: needs MP4 or MOV", tone: "bad" };
+      var s = statusOf(v);
+      if (s === "not_sent" && v.status !== "ready") return { text: "Facebook: file deleted", tone: "off" };
+      return { text: "Facebook: " + STATUS_CHIP[s][0], tone: STATUS_CHIP[s][1] };
     },
     actions: function (v, row) {
+      var s = statusOf(v);
+      if (s === "posted" && typeof v.facebook_post_url === "string" && PERMALINK_RE.test(v.facebook_post_url)) row.link(v.facebook_post_url);
+      if (s === "failed" && typeof v.facebook_error === "string" && v.facebook_error) row.note("Facebook didn't post it: " + v.facebook_error);
       if (v.status !== "ready") return;
       var b = row.prepare("facebook", "Prepare for Facebook", "Facebook video post", function (shell) { prepareVideo(v, shell); });
       if (!videoOk(v)) { b.disabled = true; b.title = VIDEO_TYPE; }

@@ -137,7 +137,7 @@
     ],
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
-      "For one post, press \"Write the post\" in \"Platform Post\"; for a video, add it under \"Your videos\" and press \"Prepare for YouTube\" or another platform.",
+      "Add a video under \"Your videos\" and press \"Prepare for YouTube\" or another platform; each chip then says posted, waiting for approval, failed or not sent.",
       "On the \"Accounts\" tab, connect Bluesky with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
       "Bluesky, Mastodon, YouTube, TikTok, Instagram and Facebook Pages connect so far, and posts cannot be scheduled; plans for other platforms are yours."
@@ -595,7 +595,8 @@
 
     /* ── phones: a "Guide" button and a bottom sheet ──
        The panel above stays hidden at 860px and below; this button opens the
-       same tips there. BOTTOM-LEFT, 16px in: the mist's four default corners
+       same tips there. From 640px to 860px (below 640px see the NAMED Nov 13 2026 rule at the end):
+       BOTTOM-LEFT, 16px in: the mist's four default corners
        (termaximus-presence.js MIST_CORNERS) all sit 120px or more above the
        bottom edge, or 180px in from the right, so this 44px button clears
        every one of them; a mist dragged onto it moves the button to the
@@ -622,9 +623,12 @@
     "  letter-spacing: 0.06em;",
     "  cursor: pointer;",
     "}",
-    "#tmx-guide-fab.tmx-guide-fab--right {",
+    "#tmx-guide-fab.tmx-guide-fab--moved {",
     "  left: auto;",
     "  right: 16px;",
+    "}",
+    "#tmx-guide-fab .tmx-guide-fab-icon, #tmx-guide-fab-spacer {",
+    "  display: none;",
     "}",
     "#tmx-guide-fab:focus-visible, #tmx-guide-sheet-close:focus-visible {",
     "  outline: 2px solid var(--bf-accent-a, #22d3ee);",
@@ -716,6 +720,18 @@
     "@media (max-width: 860px) {",
     "  #tmx-guide-root { display: none; }",
     "  #tmx-guide-fab { display: inline-flex; }",
+    "}",
+
+    /* NAMED (Nov 13 2026, S2): below 640px the button is a round 48px icon button (its name stays "Guide"),
+       bottom-right inside the safe-area insets, z-index 40 as above (over the page, under every dialog). A spacer
+       as tall as the button and its insets ends the page, so the last content scrolls clear of it; a mist on it
+       moves it to the bottom-left. 640px and up is unchanged. */
+    "@media (max-width: 639px) {",
+    "  #tmx-guide-fab { left: auto; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; padding: 0; gap: 0; border-radius: 50%; }",
+    "  #tmx-guide-fab.tmx-guide-fab--moved { right: auto; left: calc(16px + env(safe-area-inset-left, 0px)); }",
+    "  #tmx-guide-fab .tmx-guide-fab-icon { display: block; }",
+    "  #tmx-guide-fab .tmx-guide-fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }",
+    "  #tmx-guide-fab-spacer { display: block; height: calc(80px + env(safe-area-inset-bottom, 0px)); }",
     "}"
 
   ].join("\n");
@@ -784,11 +800,19 @@
   var fab = document.createElement("button");
   fab.type = "button";
   fab.id = "tmx-guide-fab";
-  fab.setAttribute("aria-label", "Open the Termaximus Guide for this page");
+  // NAMED (Nov 13 2026, S2): its name is "Guide", the word it shows; below 640px it shows an icon instead (the word kept for screen readers).
+  fab.setAttribute("aria-label", "Guide");
+  fab.setAttribute("title", "Open the Termaximus Guide for this page");
   fab.setAttribute("aria-haspopup", "dialog");
   fab.setAttribute("aria-expanded", "false");
   fab.setAttribute("aria-controls", "tmx-guide-sheet");
-  fab.textContent = "Guide";
+  fab.innerHTML = '<svg class="tmx-guide-fab-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>' +
+    '<span class="tmx-guide-fab-text">Guide</span>';
+  // The page ends with room for the button, so its last content is never left under it (shown below 640px only).
+  var fabSpacer = document.createElement("div");
+  fabSpacer.id = "tmx-guide-fab-spacer";
+  fabSpacer.setAttribute("aria-hidden", "true");
 
   var sheetBackdrop = document.createElement("div");
   sheetBackdrop.id = "tmx-guide-sheet-backdrop";
@@ -809,6 +833,7 @@
     '</div>' +
     renderGuidance(guidanceText);
 
+  document.body.appendChild(fabSpacer);
   document.body.appendChild(fab);
   document.body.appendChild(sheetBackdrop);
   document.body.appendChild(sheet);
@@ -865,16 +890,81 @@
      so the button moves to the bottom-right while the two would touch. */
   function placeFab() {
     var mist = document.getElementById("tmx-presence-root");
-    fab.classList.remove("tmx-guide-fab--right");
+    fab.classList.remove("tmx-guide-fab--moved");
     if (!mist || !fab.getBoundingClientRect) return;
     var a = fab.getBoundingClientRect(), b = mist.getBoundingClientRect();
     if (!a.width || !b.width) return;
     var touching = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    if (touching) fab.classList.add("tmx-guide-fab--right");
+    if (touching) fab.classList.add("tmx-guide-fab--moved");
   }
   placeFab();
   window.addEventListener("resize", placeFab);
   document.addEventListener("pointerup", function () { setTimeout(placeFab, 0); });
+
+  /* NAMED (Nov 13 2026, S2): below 640px the button never rests on what a member reads or taps.
+     1. The spacer stays the page's last element, after anything a later script appends (the legal
+        footer), so the page always ends with room for the button.
+     2. At rest (on load, after a resize, once scrolling stops) the button, still in its corner,
+        is raised in small steps, up to 45% of the screen, to the lowest spot where it covers no
+        header, nav, tab, heading, form field, button, link or the Your videos card; if the corner has
+        none, the other corner is tried the same way. With no clear spot it stays in its corner.
+     Above 640px nothing here applies: the desktop button is unchanged. */
+  var PHONE = window.matchMedia ? window.matchMedia("(max-width: 639px)") : null;
+  var AVOID = "header,nav,[role=tablist],[role=tab],h1,h2,h3,input:not([type=hidden]),textarea,select,button,a[href],.btn,#videosCard";
+  function keepSpacerLast() {
+    for (var n = fabSpacer.nextElementSibling; n; n = n.nextElementSibling) {
+      if (!/^tmx-guide-/.test(n.id || "")) { document.body.appendChild(fabSpacer); return; }
+    }
+  }
+  function blockers() {
+    var out = [];
+    var list = document.querySelectorAll(AVOID);
+    for (var i = 0; i < list.length; i++) {
+      var n = list[i];
+      if (n === fab || fab.contains(n) || (n.closest && n.closest("[id^=tmx-guide], #tmx-presence-root"))) continue;
+      var r = n.getBoundingClientRect();
+      if (!(r.width > 0 && r.height > 0) || r.bottom <= 0 || r.top >= window.innerHeight) continue;
+      out.push({ n: n, r: r });
+    }
+    return out;
+  }
+  function covers(list, l, t, w, h) {
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i].r;
+      if (r.left < l + w - 0.5 && r.right > l + 0.5 && r.top < t + h - 0.5 && r.bottom > t + 0.5) {
+        var cs = window.getComputedStyle(list[i].n);
+        if (cs.visibility !== "hidden" && cs.opacity !== "0") return true;
+      }
+    }
+    return false;
+  }
+  function restFab() {
+    if (!fab.getBoundingClientRect) return;
+    fab.style.transform = "";
+    if (!PHONE || !PHONE.matches) return;
+    keepSpacerLast();
+    var a = fab.getBoundingClientRect();
+    if (!a.width) return;
+    var list = blockers(), max = Math.round(window.innerHeight * 0.45), step = 4;
+    var other = window.innerWidth - a.right;   // the other corner keeps the same inset
+    var sides = [a.left, other];
+    for (var s = 0; s < sides.length; s++) {
+      for (var up = 0; up <= max; up += step) {
+        if (!covers(list, sides[s], a.top - up, a.width, a.height)) {
+          if (s === 1) fab.style.transform = "translate(" + Math.round(other - a.left) + "px, " + (-up) + "px)";
+          else if (up) fab.style.transform = "translateY(" + (-up) + "px)";
+          return;
+        }
+      }
+    }
+  }
+  var restTimer = null;
+  function restSoon(ms) { clearTimeout(restTimer); restTimer = setTimeout(restFab, ms); }
+  window.addEventListener("scroll", function () { restSoon(150); }, { passive: true });
+  window.addEventListener("resize", function () { restSoon(150); });
+  window.addEventListener("load", function () { keepSpacerLast(); restSoon(0); setTimeout(restFab, 800); });
+  document.addEventListener("pointerup", function () { restSoon(50); });
+  restSoon(0);
 
   /* ── the insight, fetched on demand and cached for the sitting ──────────────
 

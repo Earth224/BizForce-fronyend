@@ -54,17 +54,22 @@
     .badge-executing{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.32);color:#fbbf24}
     .badge-executed{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.32);color:#34d399}
     .badge-failed{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.32);color:#f87171}
-    .exec-block{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;overflow-x:auto}
+    /* NAMED (Nov 13 2026, S2): every human-readable value on a card (the detail rows, a description or caption
+       block, the approval line, links) is in the page's own font. Monospace only in the "View payload" raw JSON
+       (.exec-block.payload-raw). */
+    .exec-block{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#c9d1e6;font-family:inherit;font-size:.84rem;line-height:1.55;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;overflow-x:auto}
+    .exec-block.payload-raw{color:#8892b8;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;line-height:1.5}
     .exec-block.exec-error{border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.08);color:#f87171}
     .payload-fields{margin:0 0 12px;font-size:.78rem;line-height:1.8;color:#8892b8}
     .payload-fields>div{margin-bottom:4px}
     .pf-label{display:inline-block;min-width:150px;color:#4a5280;text-transform:uppercase;letter-spacing:.08em;font-size:.68rem;font-weight:700}
     .pf-image{display:flex;align-items:center;gap:10px;margin:6px 0}
     .pf-image img{width:72px;height:72px;object-fit:cover;border-radius:8px}
-    .pf-value{color:#e6edf3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;word-break:break-word}
+    .pf-value{color:#e6edf3;font-family:inherit;font-size:.84rem;font-weight:500;word-break:break-word;overflow-wrap:anywhere}
+    a.pf-value{color:var(--bf-accent-a, #22d3ee);text-decoration:underline;text-underline-offset:2px}
     .pf-count{color:#4a5280;font-size:.72rem}
     .payload-fields ul{margin:4px 0 0 150px;padding-left:18px}
-    .payload-fields li{color:#e6edf3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;word-break:break-word;margin-bottom:2px}
+    .payload-fields li{color:#e6edf3;font-family:inherit;font-size:.84rem;word-break:break-word;overflow-wrap:anywhere;margin-bottom:2px}
     .payload-toggle{margin:0 0 12px}
     .payload-toggle summary{cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:4px 0;color:var(--bf-accent-a, #22d3ee);font-size:.78rem;font-weight:700;letter-spacing:.03em;list-style:none;user-select:none}
     .payload-toggle summary::-webkit-details-marker{display:none}
@@ -925,7 +930,7 @@ function renderProposals() {
         fieldsHtml +
         '<details class="payload-toggle">' +
           '<summary>View payload</summary>' +
-          '<pre class="exec-block">' + escapeHtml(collapsibleText) + '</pre>' +
+          '<pre class="exec-block payload-raw">' + escapeHtml(collapsibleText) + '</pre>' +
         '</details>';
     }
 

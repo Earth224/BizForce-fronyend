@@ -231,12 +231,22 @@
     setKind(true);
     drawKind(String(v.id));
   }
+  /* NAMED (Nov 13 2026, S2): the chip says what Instagram HAS of the video (GET /api/videos instagram_status,
+     read from instagram_posts and pending proposals), not what the file allows. The file rule ("needs an MP4 or
+     MOV") stays as the disabled Prepare button's reason. Posted links the post, as YouTube and TikTok do. */
+  var STATUS_CHIP = { posted: ["posted", "ok"], publishing: ["publishing", "wait"], pending: ["waiting for your approval", "wait"],
+    failed: ["failed", "bad"], not_sent: ["not sent", "off"], unknown: ["status unavailable", "off"] };
+  function statusOf(v) { return Object.prototype.hasOwnProperty.call(STATUS_CHIP, v.instagram_status) ? v.instagram_status : "not_sent"; }
   var HOOK = {
     chip: function (v) {
-      if (v.status !== "ready") return { text: "Instagram: file deleted", tone: "off" };
-      return reelOk(v) ? { text: "Instagram: can post as a Reel", tone: "ready" } : { text: "Instagram: needs MP4 or MOV", tone: "bad" };
+      var s = statusOf(v);
+      if (s === "not_sent" && v.status !== "ready") return { text: "Instagram: file deleted", tone: "off" };
+      return { text: "Instagram: " + STATUS_CHIP[s][0], tone: STATUS_CHIP[s][1] };
     },
     actions: function (v, row) {
+      var s = statusOf(v);
+      if (s === "posted" && typeof v.instagram_post_url === "string" && PERMALINK_RE.test(v.instagram_post_url)) row.link(v.instagram_post_url);
+      if (s === "failed" && typeof v.instagram_error === "string" && v.instagram_error) row.note("Instagram didn't post it: " + v.instagram_error);
       if (v.status !== "ready") return;
       var b = row.prepare("instagram", "Prepare for Instagram", "Instagram Reel", function (shell) { prepareReel(v, shell); });
       if (!reelOk(v)) { b.disabled = true; b.title = REEL_TYPE; }
