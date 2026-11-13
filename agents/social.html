@@ -399,6 +399,67 @@
     .bsky-mention-text { white-space: pre-wrap; color: #e6edf3; font-size: .88rem; line-height: 1.6; margin: 6px 0; }
     .bsky-reply-text { white-space: pre-wrap; color: #e6edf3; font-size: .86rem; line-height: 1.6; margin: 6px 0; padding: 9px 11px; border-radius: 10px; border: 1px solid rgba(244,114,182,.3); background: rgba(10,14,30,.6); }
 
+    /* NAMED (Nov 12 2026, Social page clean-up): ONE form style for Your videos and the YouTube, TikTok, Instagram and
+       Facebook forms. Every input, textarea and select in them carries .sf-control: the page's own field look (the
+       .bsky-fields glass, border and radius above), the site font, a focus glow and a dark select. Labels sit above
+       their fields in one column, at most 640px wide; one 14px rhythm. */
+    .sf-form { display: grid; gap: 14px; width: 100%; max-width: 640px; min-width: 0; }
+    .sf-add { margin-top: 6px; }
+    .sf-field { display: grid; gap: 6px; min-width: 0; }
+    .sf-label { display: block; text-align: left; font-size: .8rem; font-weight: 600; color: #c4cbe6; }
+    .sf-control { display: block; width: 100%; max-width: 100%; min-width: 0; margin: 0; padding: 9px 11px; border-radius: 10px;
+      border: 1px solid rgba(244,114,182,.3); background-color: rgba(10,14,30,.6); color: #e6edf3;
+      font-family: inherit; font-size: .9rem; line-height: 1.5; }
+    textarea.sf-control { resize: vertical; }
+    .sf-control::placeholder { color: #6f7aa3; opacity: 1; }
+    .sf-control:focus { outline: none; border-color: rgba(244,114,182,.75); box-shadow: 0 0 0 3px rgba(244,114,182,.18); }
+    .sf-control:disabled { opacity: .55; cursor: not-allowed; }
+    select.sf-control { -webkit-appearance: none; appearance: none; padding-right: 34px; cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, #c4cbe6 50%), linear-gradient(135deg, #c4cbe6 50%, transparent 50%);
+      background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+    select.sf-control option { background-color: #0d1328; color: #e6edf3; }
+    input.sf-file { padding: 7px 9px; }
+    input.sf-file::file-selector-button { margin-right: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .82rem; font-weight: 700;
+      color: #e6edf3; background: rgba(12, 16, 36, 0.9); border: 1px solid rgba(148, 163, 255, 0.3); }
+    input.sf-control[type="checkbox"] { display: inline-block; width: 18px; height: 18px; padding: 0; flex: 0 0 auto; accent-color: #f472b6; cursor: pointer; }
+    .sf-check { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; line-height: 1.4; color: #e6edf3; cursor: pointer; }
+    .sf-check-group { display: grid; gap: 10px; }
+    .sf-under { margin-top: 4px; }
+    .sf-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .sf-note { margin: 0; color: #8892b8; font-size: .82rem; line-height: 1.6; }
+    /* The segmented pair: real radio inputs (role radiogroup), drawn like the site's tabs (scripts/bf-tabs.js .deck-tab). */
+    .sf-seg { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+    .sf-seg-opt { position: relative; display: inline-flex; cursor: pointer; }
+    .sf-seg-input.sf-control { position: absolute; opacity: 0; width: 1px; height: 1px; padding: 0; margin: 0; border: 0; pointer-events: none; }
+    .sf-seg-opt span { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 10px; font-size: .82rem; font-weight: 800; letter-spacing: .06em;
+      color: #b6c2ee; background: rgba(12, 16, 36, 0.9); border: 1px solid rgba(148, 163, 255, 0.22); }
+    .sf-seg-input:checked + span { color: var(--bf-btn-text, #041018); background: linear-gradient(135deg, var(--bf-btn-a, #00e5ff)var(--bf-btn-mid, ), var(--bf-btn-b, #7b2ff7)); border-color: transparent; }
+    .sf-seg-input:focus-visible + span { outline: 2px solid #67e8f9; outline-offset: 2px; }
+    .sf-seg-input:disabled + span { opacity: .5; cursor: not-allowed; }
+    /* A form opened under a row of Your videos: a small header, the form, its own messages. */
+    .sf-panel { display: grid; gap: 12px; margin-top: 12px; padding: 16px; border-radius: 14px; max-width: 640px; min-width: 0;
+      border: 1px solid rgba(244,114,182,.22); background: rgba(10,14,30,.45); }
+    .sf-panel-head { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--bf-accent-a, #22d3ee); }
+    .sf-panel .bsky-sub { margin-top: 0; padding-top: 0; border-top: 0; }
+    .sf-in-row > h3, .sf-in-row .sf-kind-row { display: none; }
+    /* Your videos: a row is its label and size, one chip per connected platform, then its actions. */
+    .sf-videos > li { padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(244,114,182,.22); background: rgba(10,14,30,.45); min-width: 0; }
+    .sf-video-title { margin: 0; font-weight: 700; color: #e6edf3; overflow-wrap: anywhere; }
+    .sf-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .sf-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: .74rem; font-weight: 700; letter-spacing: .02em;
+      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), .3); background: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), .08); color: var(--bf-accent-a, #22d3ee); }
+    .sf-chip--ok { border-color: rgba(52, 211, 153, .4); background: rgba(52, 211, 153, .1); color: var(--bf-success, #34d399); }
+    .sf-chip--wait { border-color: rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .1); color: var(--bf-warning, #fbbf24); }
+    .sf-chip--bad { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .1); color: #f87171; }
+    .sf-chip--off { border-color: rgba(136, 146, 184, .35); background: rgba(136, 146, 184, .08); color: var(--bf-text-muted, #8892b8); }
+    .sf-videos .masto-post-link { display: inline-block; margin-top: 8px; overflow-wrap: anywhere; }
+    .sf-videos .bsky-row .action-btn { padding: 9px 14px; }
+    .sf-videos .action-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    @media (max-width: 480px) {
+      .sf-panel { padding: 12px; }
+      .sf-videos > li { padding: 10px; }
+    }
+
     .agent-avatar{border-color:rgba(244,114,182,0.5);background:linear-gradient(135deg,rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),rgba(var(--bf-accent-b-rgb, 168,85,247),0.22));box-shadow:0 0 24px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),0 0 32px rgba(var(--bf-accent-b-rgb, 168,85,247),0.12);}
   </style>
 </head>
@@ -507,9 +568,23 @@
         <div class="bsky-msg" id="mastoAutoMsg"></div>
       </div>
     </section>
+    <!-- NAMED (Nov 12 2026, Social page clean-up): Your videos is its own card, above the platform cards. Each row shows one
+         chip and one Prepare button per CONNECTED platform; scripts/youtube.js draws it (window.BFVideos). -->
+    <section class="context-card bsky-card" id="videosCard" aria-label="Your videos">
+      <h2 class="section-label">Your videos</h2>
+      <p class="bsky-quiet">Videos up to 50 MB (MP4, WebM or MOV).</p>
+      <p class="bsky-quiet">BizForce deletes the file once every platform you sent it to has it, or 14 days after you added it.</p>
+      <div class="sf-form sf-add">
+        <div class="sf-field"><label class="sf-label" for="ytLabel">Label (optional)</label><input type="text" class="sf-control" id="ytLabel" maxlength="120" autocomplete="off" /></div>
+        <div class="sf-field"><label class="sf-label" for="ytFile">Add video</label><input type="file" class="sf-control sf-file" id="ytFile" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" /></div>
+      </div>
+      <div class="bsky-msg" id="ytUploadMsg"></div>
+      <ul class="bsky-mentions-list sf-videos" id="ytVideoList"></ul>
+    </section>
     <section class="context-card bsky-card" id="ytConnect" aria-label="YouTube">
       <h2 class="section-label">YouTube</h2>
       <p class="bsky-quiet">Connect your own YouTube channel, add a video, and file the upload. Nothing goes to YouTube until you approve it on the proposals page.</p>
+      <p class="bsky-quiet">Until Google approves BizForce, YouTube keeps uploads from BizForce private.</p>
       <div class="bsky-msg" id="ytStatusMsg"></div>
       <p class="bsky-warn" id="ytUnavailable" hidden>YouTube connection isn't set up yet.</p>
       <div id="ytConnected" hidden>
@@ -521,18 +596,6 @@
         <button type="button" class="action-btn action-btn--ghost" id="ytDisconnectBtn" hidden>Disconnect</button>
       </div>
       <div class="bsky-msg" id="ytConnectMsg"></div>
-      <div class="bsky-sub" id="ytVideos">
-        <h3 class="section-label">Your videos</h3>
-        <p class="bsky-quiet">Videos up to 50 MB (MP4, WebM or MOV).</p>
-        <p class="bsky-quiet">BizForce deletes the file once every platform you sent it to has it, or 14 days after you added it.</p>
-        <p class="bsky-quiet">Until Google approves BizForce, YouTube keeps uploads from BizForce private.</p>
-        <div class="bsky-fields">
-          <label>Label (optional)<input type="text" id="ytLabel" maxlength="120" autocomplete="off" /></label>
-          <label>Add video<input type="file" id="ytFile" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" /></label>
-        </div>
-        <div class="bsky-msg" id="ytUploadMsg"></div>
-        <ul class="bsky-mentions-list" id="ytVideoList"></ul>
-      </div>
     </section>
     <section class="context-card bsky-card" id="ttConnect" aria-label="TikTok">
       <h2 class="section-label">TikTok</h2>
@@ -569,32 +632,39 @@
         <button type="button" class="action-btn action-btn--ghost" id="igDisconnectBtn" hidden>Disconnect</button>
       </div>
       <div class="bsky-msg" id="igConnectMsg"></div>
+      <!-- NAMED (Nov 12 2026, Social page clean-up): the shared form style. "Prepare for Instagram" on a row of Your videos
+           moves this same form under that row as a Reel (scripts/instagram.js BFInstagram.prepareReel), and back here on close. -->
+      <div id="igPrepareHome">
       <div class="bsky-sub" id="igPrepare" hidden>
         <h3 class="section-label">Prepare Instagram post</h3>
-        <div class="bsky-row">
-          <label><input type="radio" name="igKind" id="igKindPhotos" value="photos" checked /> Photos</label>
-          <label><input type="radio" name="igKind" id="igKindReel" value="reel" /> Reel</label>
-        </div>
-        <div id="igPhotos">
-          <p class="bsky-quiet" id="igPhotoCount"></p>
-          <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="igAddPhoto">Add a photo</button></div>
-          <ul class="bsky-mentions-list" id="igPhotoList"></ul>
-        </div>
-        <div id="igReel" hidden>
-          <div class="bsky-fields">
-            <label>Video<select id="igVideo"></select></label>
+        <div class="sf-form">
+          <div class="sf-field sf-kind-row">
+            <span class="sf-label" id="igKindLabel">Post type</span>
+            <div class="sf-seg" role="radiogroup" aria-labelledby="igKindLabel">
+              <label class="sf-seg-opt"><input type="radio" class="sf-control sf-seg-input" name="igKind" id="igKindPhotos" value="photos" checked /><span>Photos</span></label>
+              <label class="sf-seg-opt"><input type="radio" class="sf-control sf-seg-input" name="igKind" id="igKindReel" value="reel" /><span>Reel</span></label>
+            </div>
           </div>
+          <div id="igPhotos">
+            <p class="bsky-quiet" id="igPhotoCount"></p>
+            <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="igAddPhoto">Add a photo</button></div>
+            <ul class="bsky-mentions-list" id="igPhotoList"></ul>
+          </div>
+          <div class="sf-field" id="igReel" hidden><label class="sf-label" for="igVideo">Video</label><select class="sf-control" id="igVideo"></select></div>
+          <div class="sf-field">
+            <label class="sf-label" for="igIdea" id="igIdeaLabel">Describe the post for the AI writer</label>
+            <textarea class="sf-control" id="igIdea" rows="3" maxlength="1000" placeholder="For example: three photos of our herbal oil and how to use it"></textarea>
+            <div class="sf-under"><button type="button" class="action-btn action-btn--ghost" id="igDraftBtn">Draft caption with AI</button></div>
+          </div>
+          <div class="sf-field">
+            <label class="sf-label" for="igCaption">Caption</label>
+            <textarea class="sf-control" id="igCaption" rows="4"></textarea>
+            <span class="bsky-quiet" id="igCount">0 of 2200</span>
+          </div>
+          <div class="sf-actions"><button type="button" class="action-btn" id="igFileBtn">File for approval</button></div>
+          <div class="bsky-msg" id="igPrepareMsg"></div>
         </div>
-        <div class="bsky-fields">
-          <label>Caption<textarea id="igCaption" rows="4"></textarea></label>
-          <span class="bsky-quiet" id="igCount">0 of 2200</span>
-          <label>What it's about, for the AI draft<textarea id="igIdea" rows="2" maxlength="1000"></textarea></label>
-        </div>
-        <div class="bsky-row">
-          <button type="button" class="action-btn action-btn--ghost" id="igDraftBtn">Draft caption with AI</button>
-          <button type="button" class="action-btn" id="igFileBtn">File for approval</button>
-        </div>
-        <div class="bsky-msg" id="igPrepareMsg"></div>
+      </div>
       </div>
       <div class="bsky-sub" id="igPosts" hidden>
         <h3 class="section-label">Recent Instagram posts</h3>
@@ -615,7 +685,7 @@
       <div id="fbChoosing" hidden>
         <p class="bsky-connected-as">Choose the Page to post to</p>
         <p class="bsky-quiet">You manage more than one Page that BizForce can post to. Choose one; to change it later, connect again.</p>
-        <div class="bsky-fields"><label>Page<select id="fbPageSelect"></select></label></div>
+        <div class="sf-form"><div class="sf-field"><label class="sf-label" for="fbPageSelect">Page</label><select class="sf-control" id="fbPageSelect"></select></div></div>
         <div class="bsky-row"><button type="button" class="action-btn" id="fbChooseBtn">Use this Page</button></div>
       </div>
       <div id="fbReconnect" hidden><p class="bsky-warn" id="fbReconnectText"></p></div>
@@ -624,33 +694,40 @@
         <button type="button" class="action-btn action-btn--ghost" id="fbDisconnectBtn" hidden>Disconnect</button>
       </div>
       <div class="bsky-msg" id="fbConnectMsg"></div>
+      <!-- NAMED (Nov 12 2026, Social page clean-up): the shared form style. "Prepare for Facebook" on a row of Your videos
+           moves this same form under that row as a video post (scripts/facebook.js BFFacebook.prepareVideo), and back here on close. -->
+      <div id="fbPrepareHome">
       <div class="bsky-sub" id="fbPrepare" hidden>
         <h3 class="section-label">Prepare Facebook post</h3>
-        <div class="bsky-row">
-          <label><input type="radio" name="fbKind" id="fbKindText" value="text" checked /> Text</label>
-          <label><input type="radio" name="fbKind" id="fbKindPhotos" value="photos" /> Photos</label>
-          <label><input type="radio" name="fbKind" id="fbKindVideo" value="video" /> Video</label>
-        </div>
-        <div id="fbPhotos" hidden>
-          <p class="bsky-quiet" id="fbPhotoCount"></p>
-          <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="fbAddPhoto">Add a photo</button></div>
-          <ul class="bsky-mentions-list" id="fbPhotoList"></ul>
-        </div>
-        <div id="fbVideoPick" hidden>
-          <div class="bsky-fields">
-            <label>Video<select id="fbVideo"></select></label>
+        <div class="sf-form">
+          <div class="sf-field sf-kind-row">
+            <span class="sf-label" id="fbKindLabel">Post type</span>
+            <div class="sf-seg" role="radiogroup" aria-labelledby="fbKindLabel">
+              <label class="sf-seg-opt"><input type="radio" class="sf-control sf-seg-input" name="fbKind" id="fbKindText" value="text" checked /><span>Text</span></label>
+              <label class="sf-seg-opt"><input type="radio" class="sf-control sf-seg-input" name="fbKind" id="fbKindPhotos" value="photos" /><span>Photos</span></label>
+              <label class="sf-seg-opt"><input type="radio" class="sf-control sf-seg-input" name="fbKind" id="fbKindVideo" value="video" /><span>Video</span></label>
+            </div>
           </div>
+          <div id="fbPhotos" hidden>
+            <p class="bsky-quiet" id="fbPhotoCount"></p>
+            <div class="bsky-row"><button type="button" class="action-btn action-btn--ghost" id="fbAddPhoto">Add a photo</button></div>
+            <ul class="bsky-mentions-list" id="fbPhotoList"></ul>
+          </div>
+          <div class="sf-field" id="fbVideoPick" hidden><label class="sf-label" for="fbVideo">Video</label><select class="sf-control" id="fbVideo"></select></div>
+          <div class="sf-field">
+            <label class="sf-label" for="fbIdea" id="fbIdeaLabel">Describe the post for the AI writer</label>
+            <textarea class="sf-control" id="fbIdea" rows="3" maxlength="1000" placeholder="For example: our new herbal oil and how to use it"></textarea>
+            <div class="sf-under"><button type="button" class="action-btn action-btn--ghost" id="fbDraftBtn">Draft with AI</button></div>
+          </div>
+          <div class="sf-field">
+            <label class="sf-label" for="fbMessage">Message</label>
+            <textarea class="sf-control" id="fbMessage" rows="4"></textarea>
+            <span class="bsky-quiet" id="fbCount">0 of 63206</span>
+          </div>
+          <div class="sf-actions"><button type="button" class="action-btn" id="fbFileBtn">File for approval</button></div>
+          <div class="bsky-msg" id="fbPrepareMsg"></div>
         </div>
-        <div class="bsky-fields">
-          <label>Message<textarea id="fbMessage" rows="4"></textarea></label>
-          <span class="bsky-quiet" id="fbCount">0 of 63206</span>
-          <label>What it's about, for the AI draft<textarea id="fbIdea" rows="2" maxlength="1000"></textarea></label>
-        </div>
-        <div class="bsky-row">
-          <button type="button" class="action-btn action-btn--ghost" id="fbDraftBtn">Draft with AI</button>
-          <button type="button" class="action-btn" id="fbFileBtn">File for approval</button>
-        </div>
-        <div class="bsky-msg" id="fbPrepareMsg"></div>
+      </div>
       </div>
       <div class="bsky-sub" id="fbPosts" hidden>
         <h3 class="section-label">Recent Facebook posts</h3>
@@ -802,7 +879,7 @@
 <script>
 window.AGENT_PROFILE_CONFIG = {
   // NAMED (Nov 11 2026, agent tabs): this page's own sections, in one tab after the shared five.
-  specificTab: { name: "Accounts", sectionIds: ["bskyConnect", "bskyMentions", "mastoConnect", "ytConnect", "ttConnect", "igConnect", "fbConnect"] },
+  specificTab: { name: "Accounts", sectionIds: ["bskyConnect", "bskyMentions", "mastoConnect", "videosCard", "ytConnect", "ttConnect", "igConnect", "fbConnect"] },
   agentType:   "social",
   agentLabel:  "Social Agent",
   accentColor: "#f472b6",

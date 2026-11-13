@@ -30,6 +30,12 @@
    scripts/tiktok.js adds TikTok's side to each video (window.BFTikTok), and
    the file input is on when YouTube OR TikTok is set up (window.BFVideos);
    NAMED (Nov 7 2026): or Instagram, whose Reels come from these videos.
+   NAMED (Nov 12 2026, Social page clean-up): BEFORE the list sat in the
+   YouTube card and "Prepare upload" showed on every ready video. AFTER it is
+   the "Your videos" card (#videosCard), drawn here for every platform: chips
+   and "Prepare for ..." buttons only for connected platforms (see
+   BFVideos.register below), one form open at a time, all in the shared form
+   style (.sf-control). The YouTube form's payload and rules are unchanged.
    Nothing reaches YouTube until the member approves the proposal.
 
    The server is the only source of truth, and every server message is shown
@@ -117,6 +123,8 @@
         "YouTube stopped accepting BizForce's access to your channel, so nothing is being uploaded. Connect again.";
     }
     fileSwitch();
+    // NAMED (Nov 12 2026, Social page clean-up): YouTube's chip and buttons show in Your videos only while connected.
+    setConnected("youtube", state.connected);
   }
 
   // The file input: on when either platform a video can go to is set up.
@@ -254,7 +262,28 @@
     });
   }
 
-  /* ── the list ──────────────────────────────────────────────────────────── */
+  /* ── Your videos: its own card ─────────────────────────────────────────────
+     NAMED (Nov 12 2026, Social page clean-up): BEFORE, the list sat inside the
+     YouTube card, said YouTube's side in words, and TikTok's script hung its own
+     box under each row ("TikTok: not sent" inside YouTube). AFTER, #videosCard
+     holds it. Each row is its label and size, one chip per CONNECTED platform,
+     and that platform's buttons ("Prepare for YouTube", "Prepare for TikTok",
+     "Prepare for Instagram", "Prepare for Facebook"), then Delete. A platform
+     that is not connected shows no chip and no button; with none connected a
+     ready row says "Connect a platform below to send this video.". Each
+     platform script registers { chip(v), actions(v, row) } with
+     window.BFVideos.register, and says whether it is connected with
+     BFVideos.setConnected. A Prepare button opens that platform's form under
+     its row, with a small header, and only one form is open at a time: opening
+     another, or drawing the list again, closes it. The routes, the payloads and
+     every rule are the ones each platform script always had. */
+  var PLATFORMS = ["youtube", "tiktok", "instagram", "facebook"];
+  var NONE_CONNECTED = "Connect a platform below to send this video.";
+  var connected = { youtube: false, tiktok: false, instagram: false, facebook: false };
+  var hooks = {};
+  var lastVideos = null;
+  var openForm = null;
+
   function loadVideos() {
     return call("GET", "/api/videos").then(function (res) {
       if (!res.ok) { tell("ytUploadMsg", "Your videos could not be listed. (" + errorOf(res) + ")", true); return; }
@@ -264,40 +293,101 @@
     });
   }
 
+  function closeOpenForm() {
+    if (!openForm) return;
+    var f = openForm;
+    openForm = null;
+    f.close();
+  }
+
   function drawVideos(videos) {
+    lastVideos = videos;
+    closeOpenForm();
     var list = el("ytVideoList");
     if (!list) return;
     while (list.firstChild) list.removeChild(list.firstChild);
     if (!videos.length) { list.appendChild(make("li", "No videos yet.", "bsky-quiet")); return; }
     videos.forEach(function (v) { list.appendChild(videoItem(v)); });
   }
+  function redraw() { if (lastVideos) drawVideos(lastVideos); }
 
-  function statusWord(v) {
-    if (v.youtube_video_id) return "on YouTube";
-    if (v.upload_unfinished) return "YouTube upload unfinished";
-    if (v.status === "ready") return "not on YouTube";
-    return "file deleted";
+  /* The one open form: a panel under the row, its header, its body and its own
+     messages. The same button again closes it. */
+  function toggleForm(key, slot, title, build) {
+    var same = !!openForm && openForm.key === key;
+    closeOpenForm();
+    if (same) return;
+    var panel = make("div", null, "sf-panel");
+    panel.setAttribute("data-form", key);
+    panel.appendChild(make("p", title, "sf-panel-head"));
+    var body = make("div", null, "sf-panel-body");
+    var fmsg = make("div", "", "bsky-msg");
+    panel.appendChild(body);
+    panel.appendChild(fmsg);
+    slot.appendChild(panel);
+    var onClose = [];
+    var mine = {
+      key: key,
+      panel: panel,
+      close: function () {
+        onClose.forEach(function (f) { try { f(); } catch (e) { /* the panel still goes */ } });
+        if (panel.parentNode) panel.parentNode.removeChild(panel);
+      }
+    };
+    openForm = mine;
+    build({ body: body, msg: fmsg, onClose: function (f) { onClose.push(f); }, isOpen: function () { return openForm === mine; } });
   }
 
   function videoItem(v) {
     var li = make("li");
-    li.appendChild(make("p", (v.label || "Untitled video") + " · " + sizeText(v.bytes) + " · " + statusWord(v)));
+    li.setAttribute("data-video-id", String(v.id));
+    li.appendChild(make("p", (v.label || "Untitled video") + " · " + sizeText(v.bytes) + (v.status === "ready" ? "" : " · file deleted"), "sf-video-title"));
+    var chips = make("div", null, "sf-chips");
+    var links = make("div", null, "sf-links");
+    var notes = make("div", null, "sf-notes");
+    var actions = make("div", null, "bsky-row");
+    var slot = make("div", null, "sf-slot");
     var msg = make("div", "", "bsky-msg");
-    var row = make("div", null, "bsky-row");
-    if (v.status === "ready") {
-      if (!v.youtube_video_id) {
-        var prepare = make("button", "Prepare upload", "action-btn");
-        prepare.type = "button";
-        row.appendChild(prepare);
-        var form = uploadForm(v, msg);
-        form.hidden = true;
-        prepare.addEventListener("click", function () { form.hidden = !form.hidden; });
+    var row = {
+      msg: msg,
+      button: function (text, ghost) {
+        var b = make("button", text, ghost ? "action-btn action-btn--ghost" : "action-btn");
+        b.type = "button";
+        actions.appendChild(b);
+        return b;
+      },
+      link: function (url) {
+        var a = make("a", url, "masto-post-link");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener";
+        links.appendChild(a);
+        return a;
+      },
+      note: function (text) { notes.appendChild(make("p", text, "sf-note")); },
+      prepare: function (platform, text, title, build) {
+        var b = row.button(text, false);
+        b.setAttribute("data-prepare", platform);
+        b.addEventListener("click", function () { toggleForm(v.id + ":" + platform, slot, title, build); });
+        return b;
       }
-      var del = make("button", "Delete", "action-btn action-btn--ghost");
-      del.type = "button";
-      row.appendChild(del);
-      li.appendChild(row);
-      if (form) li.appendChild(form);
+    };
+    var any = false;
+    PLATFORMS.forEach(function (name) {
+      var hook = hooks[name];
+      if (!connected[name] || !hook) return;
+      any = true;
+      var c = hook.chip(v);
+      if (c) {
+        var chip = make("span", c.text, "sf-chip sf-chip--" + (c.tone || "off"));
+        chip.setAttribute("data-platform", name);
+        chips.appendChild(chip);
+      }
+      hook.actions(v, row);
+    });
+    if (!any && v.status === "ready") row.note(NONE_CONNECTED);
+    if (v.status === "ready") {
+      var del = row.button("Delete", true);
       del.addEventListener("click", function () {
         del.disabled = true;
         call("DELETE", "/api/videos/" + encodeURIComponent(v.id)).then(function (res) {
@@ -306,22 +396,31 @@
         }, function () { del.disabled = false; msg.textContent = "Deleting didn't finish. Try again."; });
       });
     }
-    if (v.youtube_video_id) {
-      var ytRow = make("div", null, "bsky-row");
-      if (typeof v.youtube_url === "string" && WATCH_RE.test(v.youtube_url)) {
-        var link = make("a", v.youtube_url, "masto-post-link");
-        link.href = v.youtube_url;
-        link.target = "_blank";
-        link.rel = "noopener";
-        li.appendChild(link);
+    if (chips.firstChild) li.appendChild(chips);
+    if (links.firstChild) li.appendChild(links);
+    if (notes.firstChild) li.appendChild(notes);
+    if (actions.firstChild) li.appendChild(actions);
+    li.appendChild(slot);
+    li.appendChild(msg);
+    return li;
+  }
+
+  /* YouTube's own side of a row. */
+  hooks.youtube = {
+    chip: function (v) {
+      if (v.youtube_video_id) return { text: "YouTube: uploaded", tone: "ok" };
+      if (v.upload_unfinished) return { text: "YouTube: upload unfinished", tone: "wait" };
+      return { text: "YouTube: not sent", tone: "off" };
+    },
+    actions: function (v, row) {
+      if (v.status === "ready" && !v.youtube_video_id) {
+        row.prepare("youtube", "Prepare for YouTube", "YouTube upload", function (shell) { uploadForm(v, shell); });
       }
-      var check = make("button", "Check status", "action-btn action-btn--ghost");
-      check.type = "button";
-      var remove = make("button", "Remove from YouTube", "action-btn action-btn--ghost");
-      remove.type = "button";
-      ytRow.appendChild(check);
-      ytRow.appendChild(remove);
-      li.appendChild(ytRow);
+      if (!v.youtube_video_id) return;
+      if (typeof v.youtube_url === "string" && WATCH_RE.test(v.youtube_url)) row.link(v.youtube_url);
+      var msg = row.msg;
+      var check = row.button("Check status", true);
+      var remove = row.button("Remove from YouTube", true);
       check.addEventListener("click", function () {
         check.disabled = true;
         call("GET", "/api/youtube/videos/" + encodeURIComponent(v.id) + "/status").then(function (res) {
@@ -340,60 +439,101 @@
         }, function () { remove.disabled = false; msg.textContent = "Filing didn't finish. Try again."; });
       });
     }
-    li.appendChild(msg);
-    // TikTok's side of the same video, from scripts/tiktok.js.
-    if (window.BFTikTok && typeof window.BFTikTok.decorate === "function") window.BFTikTok.decorate(li, v, msg);
-    return li;
+  };
+
+  /* ── the YouTube upload form (the shared form style) ───────────────────── */
+  var IDEA_LABEL = "Describe the video for the AI writer";
+  var IDEA_PLACEHOLDER = "For example: a 30-second clip showing our herbal oil and how to use it";
+
+  function control(node) { node.className = "sf-control"; return node; }
+  function field(labelText, ctl, id) {
+    var wrap = make("div", null, "sf-field");
+    var label = make("label", labelText, "sf-label");
+    ctl.id = id;
+    label.setAttribute("for", id);
+    wrap.appendChild(label);
+    wrap.appendChild(ctl);
+    return wrap;
   }
 
-  function field(labelText, control) {
-    var label = make("label", labelText);
-    label.appendChild(control);
-    return label;
+  /* "Made for kids?": a segmented Yes / No built on two required radio inputs
+     in a role="radiogroup", labelled above like every other field. The arrow
+     keys move the choice; nothing is chosen until the member chooses. */
+  function kidsChoice(name, labelId) {
+    var wrap = make("div", null, "sf-field");
+    var label = make("span", "Made for kids?", "sf-label");
+    label.id = labelId;
+    var group = make("div", null, "sf-seg");
+    group.setAttribute("role", "radiogroup");
+    group.setAttribute("aria-labelledby", labelId);
+    group.setAttribute("aria-required", "true");
+    var radios = [];
+    [["yes", "Yes"], ["no", "No"]].forEach(function (o) {
+      var opt = make("label", null, "sf-seg-opt");
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = name; r.value = o[0]; r.required = true;
+      r.className = "sf-control sf-seg-input";
+      opt.appendChild(r);
+      opt.appendChild(make("span", o[1]));
+      group.appendChild(opt);
+      radios.push(r);
+    });
+    group.addEventListener("keydown", function (e) {
+      var k = e && e.key;
+      var step = (k === "ArrowRight" || k === "ArrowDown") ? 1 : ((k === "ArrowLeft" || k === "ArrowUp") ? -1 : 0);
+      if (!step) return;
+      if (typeof e.preventDefault === "function") e.preventDefault();
+      var at = -1;
+      radios.forEach(function (r, i) { if (r.checked) at = i; });
+      var next = radios[at === -1 ? (step > 0 ? 0 : radios.length - 1) : (at + step + radios.length) % radios.length];
+      radios.forEach(function (r) { r.checked = r === next; });
+      if (typeof next.focus === "function") next.focus();
+    });
+    wrap.appendChild(label);
+    wrap.appendChild(group);
+    return { node: wrap, yes: radios[0], no: radios[1] };
   }
 
-  function uploadForm(v, msg) {
-    var box = make("div", null, "bsky-sub");
-    var title = document.createElement("input");
+  function uploadForm(v, shell) {
+    var msg = shell.msg;
+    var form = make("div", null, "sf-form");
+    var idp = "yt-" + v.id + "-";
+    var idea = control(document.createElement("textarea"));
+    idea.rows = 3; idea.maxLength = 1000; idea.placeholder = IDEA_PLACEHOLDER;
+    var title = control(document.createElement("input"));
     title.type = "text"; title.maxLength = 100; title.autocomplete = "off";
-    var description = document.createElement("textarea");
+    var description = control(document.createElement("textarea"));
     description.rows = 5;
-    var tags = document.createElement("input");
+    var tags = control(document.createElement("input"));
     tags.type = "text"; tags.autocomplete = "off"; tags.placeholder = "comma, separated, tags";
-    var privacy = document.createElement("select");
+    var privacy = control(document.createElement("select"));
     [["private", "Private"], ["unlisted", "Unlisted"], ["public", "Public"]].forEach(function (o, i) {
       var opt = make("option", o[1]);
       opt.value = o[0];
       if (i === 0) opt.selected = true;
       privacy.appendChild(opt);
     });
-    var kidsName = "ytKids-" + v.id;
-    var kids = make("fieldset");
-    kids.appendChild(make("legend", "Made for kids?"));
-    var yes = document.createElement("input"); yes.type = "radio"; yes.name = kidsName; yes.value = "yes"; yes.required = true;
-    var no = document.createElement("input"); no.type = "radio"; no.name = kidsName; no.value = "no"; no.required = true;
-    kids.appendChild(field("Yes", yes));
-    kids.appendChild(field("No", no));
-    var idea = document.createElement("textarea");
-    idea.rows = 2; idea.maxLength = 1000; idea.placeholder = "What is the video about?";
+    var kids = kidsChoice("ytKids-" + v.id, idp + "kids");
+    var yes = kids.yes, no = kids.no;
 
-    var fields = make("div", null, "bsky-fields");
-    fields.appendChild(field("Title", title));
-    fields.appendChild(field("Description", description));
-    fields.appendChild(field("Tags", tags));
-    fields.appendChild(field("Privacy", privacy));
-    box.appendChild(fields);
-    box.appendChild(kids);
-    box.appendChild(field("What it's about, for the AI draft", idea));
-
-    var row = make("div", null, "bsky-row");
+    var helper = field(IDEA_LABEL, idea, idp + "idea");
+    var under = make("div", null, "sf-under");
     var draft = make("button", "Draft with AI", "action-btn action-btn--ghost");
     draft.type = "button";
+    under.appendChild(draft);
+    helper.appendChild(under);
+    form.appendChild(helper);
+    form.appendChild(field("Title", title, idp + "title"));
+    form.appendChild(field("Description", description, idp + "description"));
+    form.appendChild(field("Tags", tags, idp + "tags"));
+    form.appendChild(field("Privacy", privacy, idp + "privacy"));
+    form.appendChild(kids.node);
+    var actions = make("div", null, "sf-actions");
     var file = make("button", "File for approval", "action-btn");
     file.type = "button";
-    row.appendChild(draft);
-    row.appendChild(file);
-    box.appendChild(row);
+    actions.appendChild(file);
+    form.appendChild(actions);
+    shell.body.appendChild(form);
 
     draft.addEventListener("click", function () {
       draft.disabled = true;
@@ -425,7 +565,7 @@
         msg.textContent = res.ok ? (res.data.note || "Filed for approval.") : errorOf(res);
       }, function () { file.disabled = false; msg.textContent = "Filing didn't finish. Try again."; });
     });
-    return box;
+    return form;
   }
 
   function init() {
@@ -447,9 +587,24 @@
     else call("GET", "/api/youtube/status").then(function (res) { if (res.ok) drawStatus(res.data); }, function () {});
   }
 
+  function setConnected(name, on) {
+    if (!Object.prototype.hasOwnProperty.call(connected, name)) return;
+    var was = connected[name];
+    connected[name] = on === true;
+    if (was !== connected[name]) redraw();
+  }
+
   // For scripts/tiktok.js: the list drawn again, and whether TikTok is set up.
   window.BFVideos = {
     reload: function () { return loadVideos(); },
+    // NAMED (Nov 12 2026, Social page clean-up): each video platform registers its side of a row, and says when it is connected.
+    register: function (name, hook) {
+      if (PLATFORMS.indexOf(name) === -1 || !hook || typeof hook.chip !== "function" || typeof hook.actions !== "function") return;
+      hooks[name] = hook;
+      redraw();
+    },
+    setConnected: setConnected,
+    closeForm: function () { closeOpenForm(); },
     setTiktokAvailable: function (on) { state.tiktokAvailable = on === true; fileSwitch(); },
     // NAMED (Nov 7 2026, Instagram posting): Reels come from these videos too.
     setInstagramAvailable: function (on) { state.instagramAvailable = on === true; fileSwitch(); },

@@ -15,8 +15,11 @@
    "tiktok"; it no longer reads ?code or ?state itself.
 
    Posting: the videos are the ones in "Your videos" (scripts/youtube.js
-   draws the list and calls window.BFTikTok.decorate for each). A video whose
-   file is here and that isn't on TikTok gets "Prepare TikTok post", which
+   draws the list; NAMED (Nov 12 2026, Social page clean-up): this script
+   registers its side with window.BFVideos.register, BEFORE it was
+   window.BFTikTok.decorate). A video whose file is here and that isn't on
+   TikTok gets, while TikTok is connected, "Prepare for TikTok" (BEFORE
+   "Prepare TikTok post"), which
    reads GET /api/tiktok/creator-info live and follows TikTok's rules:
      - the account's nickname is shown;
      - who can see it comes from TikTok's options, with NO default;
@@ -118,6 +121,8 @@
         "TikTok stopped accepting BizForce's access to your account, so nothing is being posted. Connect again.";
     }
     var v = videos();
+    // NAMED (Nov 12 2026, Social page clean-up): TikTok's chip and buttons show in Your videos only while connected.
+    if (v && typeof v.setConnected === "function") v.setConnected("tiktok", state.connected);
     if (v) { v.setTiktokAvailable(state.available); v.reload(); }
   }
 
@@ -193,7 +198,13 @@
     });
   }
 
-  /* ── one video's TikTok side ───────────────────────────────────────────── */
+  /* ── one video's TikTok side ───────────────────────────────────────────────
+     NAMED (Nov 12 2026, Social page clean-up): BEFORE decorate() hung a box
+     under every row of the list, connected or not ("TikTok: not sent" inside
+     the YouTube card). AFTER this side registers with window.BFVideos: a chip
+     in the same words, and "Prepare for TikTok" / "Check TikTok status", shown
+     only while TikTok is connected. The form opens under the row (one at a
+     time) with the header "TikTok post"; its rules are unchanged. */
   function statusWord(v) {
     if (v.tiktok_status === "posted") return "TikTok: posted";
     if (v.tiktok_status === "processing") return "TikTok: processing";
@@ -201,23 +212,29 @@
     if (v.tiktok_status === "failed") return "TikTok: not posted";
     return "TikTok: not sent";
   }
+  function chipOf(v) {
+    var tone = v.tiktok_status === "posted" ? "ok" :
+      ((v.tiktok_status === "processing" || v.tiktok_upload_unfinished) ? "wait" : (v.tiktok_status === "failed" ? "bad" : "off"));
+    return { text: statusWord(v), tone: tone };
+  }
 
-  function decorate(li, v, msg) {
-    var box = make("div", null, "bsky-sub");
-    box.appendChild(make("p", statusWord(v), "bsky-quiet"));
-    var row = make("div", null, "bsky-row");
-    if (v.tiktok_status === "posted" && typeof v.tiktok_post_url === "string" && POST_URL_RE.test(v.tiktok_post_url)) {
-      var link = make("a", v.tiktok_post_url, "masto-post-link");
-      link.href = v.tiktok_post_url;
-      link.target = "_blank";
-      link.rel = "noopener";
-      box.appendChild(link);
+  function actionsOf(v, row) {
+    var msg = row.msg;
+    if (v.tiktok_status === "posted" && typeof v.tiktok_post_url === "string" && POST_URL_RE.test(v.tiktok_post_url)) row.link(v.tiktok_post_url);
+    if (v.tiktok_status === "posted") row.note("To remove a TikTok post, delete it in the TikTok app.");
+    if (v.status === "ready" && v.tiktok_status !== "posted" && v.tiktok_status !== "processing") {
+      row.prepare("tiktok", "Prepare for TikTok", "TikTok post", function (shell) {
+        shell.msg.textContent = "Asking TikTok what your account allows…";
+        call("GET", "/api/tiktok/creator-info").then(function (res) {
+          if (!shell.isOpen()) return;
+          if (!res.ok) { shell.msg.textContent = errorOf(res); return; }
+          shell.msg.textContent = "";
+          shell.body.appendChild(postForm(v, res.data, shell.msg));
+        }, function () { if (shell.isOpen()) shell.msg.textContent = "TikTok couldn't be asked just now. Try again."; });
+      });
     }
-    if (v.tiktok_status === "posted") box.appendChild(make("p", "To remove a TikTok post, delete it in the TikTok app.", "bsky-quiet"));
     if (v.tiktok_status === "initiated" || v.tiktok_status === "processing" || v.tiktok_status === "posted") {
-      var check = make("button", "Check TikTok status", "action-btn action-btn--ghost");
-      check.type = "button";
-      row.appendChild(check);
+      var check = row.button("Check TikTok status", true);
       check.addEventListener("click", function () {
         check.disabled = true;
         call("GET", "/api/tiktok/videos/" + encodeURIComponent(v.id) + "/status").then(function (res) {
@@ -230,58 +247,49 @@
         }, function () { check.disabled = false; msg.textContent = "The status couldn't be checked. Try again."; });
       });
     }
-    var form = null;
-    if (v.status === "ready" && v.tiktok_status !== "posted" && v.tiktok_status !== "processing" && state.connected) {
-      var prepare = make("button", "Prepare TikTok post", "action-btn");
-      prepare.type = "button";
-      row.appendChild(prepare);
-      prepare.addEventListener("click", function () {
-        if (form) { form.hidden = !form.hidden; return; }
-        prepare.disabled = true;
-        msg.textContent = "Asking TikTok what your account allows…";
-        call("GET", "/api/tiktok/creator-info").then(function (res) {
-          prepare.disabled = false;
-          if (!res.ok) { msg.textContent = errorOf(res); return; }
-          msg.textContent = "";
-          form = postForm(v, res.data, msg);
-          box.appendChild(form);
-        }, function () { prepare.disabled = false; msg.textContent = "TikTok couldn't be asked just now. Try again."; });
-      });
-    }
-    if (row.firstChild) box.appendChild(row);
-    li.insertBefore(box, msg);
   }
 
-  function field(labelText, control) {
-    var label = make("label", labelText);
-    label.appendChild(control);
-    return label;
+  /* The shared form style (.sf-control on every control, labels above). */
+  var IDEA_LABEL = "Describe the video for the AI writer";
+  var IDEA_PLACEHOLDER = "For example: a 30-second clip showing our herbal oil and how to use it";
+  var formSeq = 0;
+  function control(node) { node.className = "sf-control"; return node; }
+  function field(labelText, ctl, id) {
+    var wrap = make("div", null, "sf-field");
+    var label = make("label", labelText, "sf-label");
+    ctl.id = id;
+    label.setAttribute("for", id);
+    wrap.appendChild(label);
+    wrap.appendChild(ctl);
+    return wrap;
   }
   function checkbox(labelText) {
     var input = document.createElement("input");
     input.type = "checkbox";
+    input.className = "sf-control";
     input.checked = false;
-    var label = make("label", null);
+    var label = make("label", null, "sf-check");
     label.appendChild(input);
     label.appendChild(document.createTextNode(" " + labelText));
     return { input: input, label: label };
   }
 
   function postForm(v, info, msg) {
-    var box = make("div", null, "bsky-sub");
+    var box = make("div", null, "sf-form");
+    var idp = "tt-" + v.id + "-" + (++formSeq) + "-";
     var words = plainObject(info.privacy_words) ? info.privacy_words : {};
     var options = Array.isArray(info.privacy_level_options) ? info.privacy_level_options.filter(function (o) { return typeof o === "string"; }) : [];
     box.appendChild(make("p", "Posting as " + (typeof info.creator_nickname === "string" ? info.creator_nickname : "your TikTok account"), "bsky-connected-as"));
     box.appendChild(make("p", "Until TikTok reviews BizForce, TikTok keeps posts from BizForce visible only to you.", "bsky-quiet"));
 
-    var caption = document.createElement("textarea");
+    var idea = control(document.createElement("textarea"));
+    idea.rows = 3; idea.maxLength = 1000; idea.placeholder = IDEA_PLACEHOLDER;
+    var caption = control(document.createElement("textarea"));
     caption.rows = 4;
     var count = make("span", "0 of " + CAPTION_MAX, "bsky-quiet");
-    var idea = document.createElement("textarea");
-    idea.rows = 2; idea.maxLength = 1000; idea.placeholder = "What is the video about?";
 
     // Who can see it: TikTok's options only, and nothing chosen until the member chooses.
-    var privacy = document.createElement("select");
+    var privacy = control(document.createElement("select"));
     var none = make("option", "Choose who can see it");
     none.value = "";
     none.selected = true;
@@ -303,7 +311,7 @@
     });
 
     var disclose = checkbox("Disclose video content");
-    var brands = make("div", null, "bsky-sub");
+    var brands = make("div", null, "sf-check-group");
     brands.hidden = true;
     var yours = checkbox("Your brand");
     var branded = checkbox("Branded content");
@@ -313,18 +321,25 @@
     labelLine.hidden = true;
     var consent = make("p", CONSENT, "bsky-quiet");
 
-    var fields = make("div", null, "bsky-fields");
-    fields.appendChild(field("Caption", caption));
-    fields.appendChild(count);
-    fields.appendChild(field("Who can see it", privacy));
-    box.appendChild(fields);
-    box.appendChild(comment.label);
-    box.appendChild(duet.label);
-    box.appendChild(stitch.label);
-    box.appendChild(disclose.label);
+    var helper = field(IDEA_LABEL, idea, idp + "idea");
+    var under = make("div", null, "sf-under");
+    var draft = make("button", "Draft with AI", "action-btn action-btn--ghost");
+    draft.type = "button";
+    under.appendChild(draft);
+    helper.appendChild(under);
+    box.appendChild(helper);
+    var capField = field("Caption", caption, idp + "caption");
+    capField.appendChild(count);
+    box.appendChild(capField);
+    box.appendChild(field("Who can see it", privacy, idp + "privacy"));
+    var interactions = make("div", null, "sf-check-group");
+    interactions.appendChild(comment.label);
+    interactions.appendChild(duet.label);
+    interactions.appendChild(stitch.label);
+    interactions.appendChild(disclose.label);
+    box.appendChild(interactions);
     box.appendChild(brands);
     box.appendChild(labelLine);
-    box.appendChild(field("What it's about, for the AI draft", idea));
     box.appendChild(consent);
 
     function redraw() {
@@ -345,12 +360,9 @@
       n.addEventListener("change", redraw);
     });
 
-    var row = make("div", null, "bsky-row");
-    var draft = make("button", "Draft with AI", "action-btn action-btn--ghost");
-    draft.type = "button";
+    var row = make("div", null, "sf-actions");
     var file = make("button", "File for approval", "action-btn");
     file.type = "button";
-    row.appendChild(draft);
     row.appendChild(file);
     box.appendChild(row);
 
@@ -391,7 +403,9 @@
     return box;
   }
 
-  window.BFTikTok = { decorate: decorate };
+  var HOOK = { chip: chipOf, actions: actionsOf };
+  window.BFTikTok = HOOK;
+  if (window.BFVideos && typeof window.BFVideos.register === "function") window.BFVideos.register("tiktok", HOOK);
 
   function init() {
     var btn = el("ttConnectBtn");

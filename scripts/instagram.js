@@ -113,6 +113,8 @@
     }
     var v = videos();
     if (v) v.setInstagramAvailable(state.available);
+    // NAMED (Nov 12 2026, Social page clean-up): Instagram's chip and "Prepare for Instagram" show in Your videos only while connected.
+    if (v && typeof v.setConnected === "function") v.setConnected("instagram", state.connected);
     if (state.available && (state.connected || reconnect)) loadPosts();
   }
 
@@ -186,12 +188,62 @@
 
   /* ── preparing a post ──────────────────────────────────────────────────── */
   function kind() { var reel = el("igKindReel"); return reel && reel.checked ? "reel" : "photos"; }
-  function drawKind() {
+  // NAMED (Nov 12 2026, Social page clean-up): the AI helper names a video for a Reel, a post for photos.
+  var IDEA_VIDEO = ["Describe the video for the AI writer", "For example: a 30-second clip showing our herbal oil and how to use it"];
+  var IDEA_POST = ["Describe the post for the AI writer", "For example: three photos of our herbal oil and how to use it"];
+  // pick: a video id to choose once the list is read (from "Prepare for Instagram"); a change event passes none.
+  function drawKind(pick) {
     var k = kind();
     showIf("igPhotos", k === "photos");
     showIf("igReel", k === "reel");
-    if (k === "reel") loadReelChoices();
+    var words = k === "reel" ? IDEA_VIDEO : IDEA_POST;
+    var label = el("igIdeaLabel"), idea = el("igIdea");
+    if (label) label.textContent = words[0];
+    if (idea) idea.placeholder = words[1];
+    if (k === "reel") loadReelChoices(typeof pick === "string" ? pick : null);
   }
+
+  /* NAMED (Nov 12 2026, Social page clean-up): a row of Your videos, while
+     Instagram is connected, shows a chip (what the file allows: /api/videos
+     says nothing of Instagram's side) and "Prepare for Instagram", which moves
+     THIS form (#igPrepare) under the row as a Reel of that video, and puts it
+     back in the Instagram card when it closes. Same routes, same payload. */
+  function reelOk(v) { return REEL_MIMES.indexOf(v.mime) !== -1; }
+  function setKind(reelOn) {
+    var photos = el("igKindPhotos"), reel = el("igKindReel");
+    if (photos) photos.checked = !reelOn;
+    if (reel) reel.checked = reelOn;
+  }
+  function prepareReel(v, shell) {
+    var node = el("igPrepare");
+    if (!node) return;
+    node.className = "bsky-sub sf-in-row";
+    node.hidden = false;
+    shell.body.appendChild(node);
+    shell.onClose(function () {
+      node.className = "bsky-sub";
+      var home = el("igPrepareHome");
+      if (home) home.appendChild(node);
+      setKind(false);
+      drawKind();
+      node.hidden = !state.connected;
+    });
+    setKind(true);
+    drawKind(String(v.id));
+  }
+  var HOOK = {
+    chip: function (v) {
+      if (v.status !== "ready") return { text: "Instagram: file deleted", tone: "off" };
+      return reelOk(v) ? { text: "Instagram: can post as a Reel", tone: "ready" } : { text: "Instagram: needs MP4 or MOV", tone: "bad" };
+    },
+    actions: function (v, row) {
+      if (v.status !== "ready") return;
+      var b = row.prepare("instagram", "Prepare for Instagram", "Instagram Reel", function (shell) { prepareReel(v, shell); });
+      if (!reelOk(v)) { b.disabled = true; b.title = REEL_TYPE; }
+    }
+  };
+  window.BFInstagram = { chip: HOOK.chip, actions: HOOK.actions, prepareReel: prepareReel };
+  if (window.BFVideos && typeof window.BFVideos.register === "function") window.BFVideos.register("instagram", HOOK);
 
   function drawPhotos() {
     var list = el("igPhotoList");
@@ -238,7 +290,7 @@
     }, function () { tell("igPrepareMsg", "The Media Library couldn't be opened. Try again.", true); });
   }
 
-  function loadReelChoices() {
+  function loadReelChoices(pick) {
     var select = el("igVideo");
     if (!select) return;
     call("GET", "/api/videos").then(function (res) {
@@ -256,6 +308,7 @@
         select.appendChild(opt);
       });
       if (select.options.length === 1) tell("igPrepareMsg", "Add an MP4 or MOV video in Your videos first.");
+      if (pick) select.value = pick;
     }, function () { tell("igPrepareMsg", "Your videos could not be listed. Try again.", true); });
   }
 

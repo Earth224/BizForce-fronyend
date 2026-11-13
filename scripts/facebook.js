@@ -125,6 +125,8 @@
     }
     var v = videos();
     if (v) v.setFacebookAvailable(state.available);
+    // NAMED (Nov 12 2026, Social page clean-up): Facebook's chip and "Prepare for Facebook" show in Your videos only while connected.
+    if (v && typeof v.setConnected === "function") v.setConnected("facebook", state.connected);
     if (choosing && state.available) {
       if (Array.isArray(st.pages)) drawChoices(st.pages);
       else loadChoices();
@@ -247,12 +249,63 @@
     if (el("fbKindVideo") && el("fbKindVideo").checked) return "video";
     return "text";
   }
-  function drawKind() {
+  // NAMED (Nov 12 2026, Social page clean-up): the AI helper names a video for a video post, a post otherwise.
+  var IDEA_VIDEO = ["Describe the video for the AI writer", "For example: a 30-second clip showing our herbal oil and how to use it"];
+  var IDEA_POST = ["Describe the post for the AI writer", "For example: our new herbal oil and how to use it"];
+  // pick: a video id to choose once the list is read (from "Prepare for Facebook"); a change event passes none.
+  function drawKind(pick) {
     var k = kind();
     showIf("fbPhotos", k === "photos");
     showIf("fbVideoPick", k === "video");
-    if (k === "video") loadVideoChoices();
+    var words = k === "video" ? IDEA_VIDEO : IDEA_POST;
+    var label = el("fbIdeaLabel"), idea = el("fbIdea");
+    if (label) label.textContent = words[0];
+    if (idea) idea.placeholder = words[1];
+    if (k === "video") loadVideoChoices(typeof pick === "string" ? pick : null);
   }
+
+  /* NAMED (Nov 12 2026, Social page clean-up): a row of Your videos, while
+     Facebook is connected, shows a chip (what the file allows: /api/videos
+     says nothing of Facebook's side) and "Prepare for Facebook", which moves
+     THIS form (#fbPrepare) under the row as a video post of that video, and
+     puts it back in the Facebook card when it closes. Same routes, same payload. */
+  function videoOk(v) { return VIDEO_MIMES.indexOf(v.mime) !== -1; }
+  function setKind(k) {
+    [["fbKindText", "text"], ["fbKindPhotos", "photos"], ["fbKindVideo", "video"]].forEach(function (pair) {
+      var radio = el(pair[0]);
+      if (radio) radio.checked = pair[1] === k;
+    });
+  }
+  function prepareVideo(v, shell) {
+    var node = el("fbPrepare");
+    if (!node) return;
+    node.className = "bsky-sub sf-in-row";
+    node.hidden = false;
+    shell.body.appendChild(node);
+    shell.onClose(function () {
+      node.className = "bsky-sub";
+      var home = el("fbPrepareHome");
+      if (home) home.appendChild(node);
+      setKind("text");
+      drawKind();
+      node.hidden = !state.connected;
+    });
+    setKind("video");
+    drawKind(String(v.id));
+  }
+  var HOOK = {
+    chip: function (v) {
+      if (v.status !== "ready") return { text: "Facebook: file deleted", tone: "off" };
+      return videoOk(v) ? { text: "Facebook: can post as a video", tone: "ready" } : { text: "Facebook: needs MP4 or MOV", tone: "bad" };
+    },
+    actions: function (v, row) {
+      if (v.status !== "ready") return;
+      var b = row.prepare("facebook", "Prepare for Facebook", "Facebook video post", function (shell) { prepareVideo(v, shell); });
+      if (!videoOk(v)) { b.disabled = true; b.title = VIDEO_TYPE; }
+    }
+  };
+  window.BFFacebook = { chip: HOOK.chip, actions: HOOK.actions, prepareVideo: prepareVideo };
+  if (window.BFVideos && typeof window.BFVideos.register === "function") window.BFVideos.register("facebook", HOOK);
 
   function drawPhotos() {
     var list = el("fbPhotoList");
@@ -297,7 +350,7 @@
     }, function () { tell("fbPrepareMsg", "The Media Library couldn't be opened. Try again.", true); });
   }
 
-  function loadVideoChoices() {
+  function loadVideoChoices(pick) {
     var select = el("fbVideo");
     if (!select) return;
     call("GET", "/api/videos").then(function (res) {
@@ -315,6 +368,7 @@
         select.appendChild(opt);
       });
       if (select.options.length === 1) tell("fbPrepareMsg", "Add an MP4 or MOV video in Your videos first.");
+      if (pick) select.value = pick;
     }, function () { tell("fbPrepareMsg", "Your videos could not be listed. Try again.", true); });
   }
 

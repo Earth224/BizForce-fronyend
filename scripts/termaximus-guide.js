@@ -137,7 +137,7 @@
     ],
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
-      "For one post, open \"Platform Post\" and press \"Write the post\"; for a schedule, \"Posting Calendar\" and \"Build the plan\".",
+      "For one post, press \"Write the post\" in \"Platform Post\"; for a video, add it under \"Your videos\" and press \"Prepare for YouTube\" or another platform.",
       "On the \"Accounts\" tab, connect Bluesky with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
       "Bluesky, Mastodon, YouTube, TikTok, Instagram and Facebook Pages connect so far, and posts cannot be scheduled; plans for other platforms are yours."
