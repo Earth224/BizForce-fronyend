@@ -1350,6 +1350,7 @@ function fillForm(card) {
   showQr = qml.show_qr === true;
   qrCorner = QR_CORNERS.indexOf(qml.qr_corner) !== -1 ? qml.qr_corner : "bottom-right";
   applyQrSettings();
+  applyCardOrientation(cardOrientationOf(card.media_layout));
   if (card.media_layout) {
     var ml = card.media_layout;
     bgPosX  = ml.bg_pos_x  !== undefined ? +ml.bg_pos_x  : 50;
@@ -1366,7 +1367,6 @@ function fillForm(card) {
     if (ml.bg_overlay)   applyBgOverlay(+ml.bg_overlay);
     if (ml.border_style) applyBorderStyle(ml.border_style);
     if (ml.border_weight) applyBorderWeight(ml.border_weight);
-    if (ml.orientation)  applyCardOrientation(ml.orientation);
     if (ml.vid_transition) applyVidTransition(ml.vid_transition);
     if (ml.still_bg_color) applyStillBgColor(ml.still_bg_color);
     if (ml.still_overlay)  applyStillOverlay(+ml.still_overlay);
@@ -2464,8 +2464,16 @@ function applyTransitionDuration(v) {
   document.getElementById("transitionDurVal").textContent = v.toFixed(1) + "s";
 }
 
+/* NAMED (Nov 13 2026, horizontal default): a card is horizontal unless its owner saved it vertical. A saved card's
+   media_layout.orientation is read here only: "vertical" is vertical, anything else (missing, null, an old or unknown
+   value) is horizontal. The page's own markup starts horizontal (the Horizontal button active, the preview without
+   orient-vertical), so nothing upright is painted before a card loads. The exports render this preview. */
+function cardOrientationOf(ml) {
+  return ml && ml.orientation === "vertical" ? "vertical" : "horizontal";
+}
+
 function applyCardOrientation(orient) {
-  cardOrientation = orient || "horizontal";
+  cardOrientation = orient === "vertical" ? "vertical" : "horizontal";
   var card = document.getElementById("cardPreview");
   card.classList.toggle("orient-vertical", cardOrientation === "vertical");
   document.querySelectorAll("[data-orient]").forEach(function(b) {

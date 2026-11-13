@@ -329,6 +329,25 @@
       font-size:.44rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
       color:rgba(255,255,255,.14);white-space:nowrap;pointer-events:none;
     }
+
+    /* NAMED (Nov 13 2026, horizontal default): a card is horizontal unless its owner saved it vertical
+       (media_layout.orientation "vertical"). Horizontal is this page's default, set here in CSS before any script runs:
+       a 1.75 : 1 card with its buttons under it. renderCard adds cv-vertical to #cardViewport (and orient-vertical to the
+       card) only for a saved vertical card, which keeps the full-height upright card above. */
+    #cardViewport:not(.cv-vertical){max-width:680px;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:16px}
+    #cardViewport:not(.cv-vertical) #cardPreview{position:relative;inset:auto;width:100%;height:auto;aspect-ratio:1.75;flex:none}
+    #cardViewport:not(.cv-vertical) .card-inner{padding:calc(var(--border-weight,16px) + 10px) calc(var(--border-weight,16px) + 14px)}
+    #cardViewport:not(.cv-vertical) .card-name{font-size:clamp(1.2rem,5.4vw,2.3rem);margin-bottom:4px}
+    #cardViewport:not(.cv-vertical) .card-job{font-size:clamp(.7rem,2.6vw,.92rem)}
+    #cardViewport:not(.cv-vertical) .card-contacts-block{gap:2px}
+    #cardViewport:not(.cv-vertical) .card-contact-line{font-size:clamp(.62rem,2.4vw,.82rem)}
+    #cardViewport:not(.cv-vertical) #qrCanvas{width:56px!important;height:56px!important}
+    #cardViewport:not(.cv-vertical) .card-watermark{bottom:6px}
+    #cardViewport:not(.cv-vertical) .card-video-text{padding:12px 18px}
+    #cardViewport:not(.cv-vertical) .card-video-qr-ov{bottom:14px}
+    #cardViewport:not(.cv-vertical) .card-actions{position:relative;bottom:auto;left:auto;right:auto;padding:0;background:none;flex-wrap:wrap}
+    #cardViewport:not(.cv-vertical) .cv-btn{flex:1 1 150px}
+    #cardViewport:not(.cv-vertical) #cvAudioBar{position:relative;bottom:auto;border:1px solid rgba(34,211,238,.18);border-radius:14px}
   </style>
 <style id="bf-scrollbars">
 /* BF-SCROLLBARS:BEGIN. One scrollbar for every scrollable element in BizForce: a translucent noir track, a thumb in the theme's gradient with a soft glow. This exact text is in css/bizforce-ui.css, scripts/bf-theme.js (which adds it to every page it runs on) and the public pages that load neither; scripts/checkScrollbars.js keeps every copy the same. */
@@ -539,15 +558,28 @@ function placeCardQr(card, ml) {
   return true;
 }
 
+/* NAMED (Nov 13 2026, horizontal default): "vertical" only when the owner saved it; anything else is horizontal. */
+function cvOrientationOf(ml) {
+  return ml && ml.orientation === "vertical" ? "vertical" : "horizontal";
+}
+
 function renderCard(c) {
   var theme = c.theme || "dark";
   var card  = document.getElementById("cardPreview");
   card.dataset.theme = theme;
+  // The orientation is set before the card is shown (it is display:none until the end of renderCard).
+  var vertical = cvOrientationOf(c.media_layout) === "vertical";
+  document.getElementById("cardViewport").classList.toggle("cv-vertical", vertical);
+  card.classList.toggle("orient-vertical", vertical);
+  if (!vertical) {
+    // A horizontal card is too short to carry the audio bar: it goes under the card, above the buttons.
+    var cvBar = document.getElementById("cvAudioBar"), cvActs = document.getElementById("cardActions");
+    if (cvBar && cvActs && cvBar.parentNode !== cvActs.parentNode) cvActs.parentNode.insertBefore(cvBar, cvActs);
+  }
 
   if (c.holographic_style) { card.classList.add("holographic"); }
   if (c.media_layout) {
     var ml = c.media_layout;
-    if (ml.orientation === "vertical") card.classList.add("orient-vertical");
     var _CV_BORDERS = ["none","glow","neon-pulse","gold","holo-rainbow"];
     _CV_BORDERS.forEach(function(b) { card.classList.remove("border-" + b); });
     card.classList.add("border-" + (ml.border_style || "glow"));
