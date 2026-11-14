@@ -34,11 +34,15 @@
       background: #070b18;
     }
 
+    /* NAMED (Nov 13 2026, Q5b): a column, the page (brand and panel) centred in the screen and the legal footer at
+       the bottom centre. In a row (as before) the footer sat beside the panel, mid-screen, and pushed it to the left. */
     body {
       min-height: 100vh;
+      min-height: 100svh;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
       padding: 24px;
       /* viewport-fit=cover is on; black-translucent puts this view under the
          iOS status bar, so the top gutter has to clear it, and in landscape
@@ -54,20 +58,77 @@
     /* The backdrop is the token rule in scripts/bf-theme.js; this page keeps its own glows. */
     :root { --bf-glow-a-at: top left; --bf-glow-a-alpha: 0.18; --bf-glow-a-reach: 35%; --bf-glow-b-at: bottom right; --bf-glow-b-alpha: 0.22; --bf-glow-b-reach: 35%; }
 
+    /* One centred column (the brand, then the panel) below 1024px; two columns from 1024px (see the media rule at
+       the end): the brand on the left, the panel on the right, in a 1080px container with equal outer margins. */
     .wrap {
+      flex: 1 0 auto;
       width: 100%;
-      max-width: 460px;
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 460px);
+      justify-content: center;
+      align-content: center;
+      align-items: center;
+      gap: 26px;
       position: relative;
       z-index: 10;
       pointer-events: auto;
     }
 
+    .panel-col {
+      width: 100%;
+      min-width: 0;
+    }
+
     .brand {
       text-align: center;
-      margin-bottom: 26px;
+      margin-bottom: 0;
       position: relative;
       z-index: 10;
       pointer-events: none;
+    }
+
+    .brand-logo {
+      display: block;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 14px;
+      border-radius: 14px;
+    }
+
+    .brand-points {
+      display: none;
+      list-style: none;
+      margin: 22px 0 0;
+      padding: 0;
+      color: #cbd5e1;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .brand-points li {
+      position: relative;
+      padding-left: 22px;
+      margin-top: 10px;
+    }
+
+    .brand-points li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, var(--bf-accent-a, #22d3ee), var(--bf-accent-b, #a855f7));
+    }
+
+    body > footer.bf-legal-footer {
+      flex: none;
+      width: 100%;
+      margin: 24px auto 0;
+      padding-bottom: 8px;
     }
 
     .brand h1 {
@@ -292,8 +353,17 @@
       font-weight: 700;
     }
 
-    .plan {
+    /* The plan, the automatic-renewal line and Start Subscription: three blocks in one column with one gap, so
+       nothing touches (Q5b: the line used to run into the button). */
+    .subscribe {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
       margin: 18px 26px 0;
+    }
+
+    .plan {
+      margin: 0;
       padding: 16px;
       border: 1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238), 0.22);
       border-radius: 18px;
@@ -309,9 +379,11 @@
       margin-bottom: 8px;
     }
 
-    .renew-consent { display: flex; gap: 10px; align-items: flex-start; margin: 12px 26px 0; font-size: 13px; line-height: 1.5; color: #e8e8ff; text-align: left; cursor: pointer; }
+    .renew-consent { display: flex; gap: 10px; align-items: flex-start; margin: 0; font-size: 13px; line-height: 1.5; color: #e8e8ff; text-align: left; cursor: pointer; }
     .renew-consent[hidden] { display: none; }
-    .renew-consent input { margin-top: 2px; width: 18px; height: 18px; flex: 0 0 auto; }
+    /* The general input rule above (full width, 15px padding, no native look) would turn the box into a wide empty
+       field; the box keeps a checkbox's own size and look, aligned with the first line of its label. */
+    .renew-consent input[type="checkbox"] { width: 18px; height: 18px; flex: 0 0 auto; margin: 2px 0 0; padding: 0; -webkit-appearance: checkbox; appearance: auto; accent-color: var(--bf-accent-a, #22d3ee); }
 
     .plan span {
       display: block;
@@ -331,13 +403,53 @@
       pointer-events: none;
     }
 
+    /* Two columns from 1024px: the brand (logo, wordmark, tagline and three lines from this page's own copy) on
+       the left, the panel on the right, both centred in the screen's height. */
+    @media (min-width: 1024px) {
+      body {
+        padding-left: max(32px, env(safe-area-inset-left, 0px));
+        padding-right: max(32px, env(safe-area-inset-right, 0px));
+      }
+
+      .wrap {
+        grid-template-columns: minmax(0, 1fr) 460px;
+        justify-content: space-between;
+        column-gap: 72px;
+        padding: 0 24px;
+      }
+
+      .brand {
+        text-align: left;
+      }
+
+      .brand-logo {
+        margin: 0 0 18px;
+      }
+
+      .brand h1 {
+        font-size: 52px;
+      }
+
+      .brand p {
+        font-size: 17px;
+      }
+
+      .brand-points {
+        display: block;
+      }
+    }
+
     @media (max-width: 520px) {
       body {
         padding: 18px;
         padding-left: max(18px, env(safe-area-inset-left, 0px));
         padding-right: max(18px, env(safe-area-inset-right, 0px));
-        align-items: flex-start;
+        align-items: stretch;
         padding-top: calc(58px + env(safe-area-inset-top, 0px));
+      }
+
+      .subscribe {
+        margin: 16px 22px 0;
       }
 
       .brand h1 {
@@ -350,10 +462,6 @@
 
       .msg {
         margin: 0 22px;
-      }
-
-      .plan {
-        margin: 16px 22px 0;
       }
 
       .fine {
@@ -375,10 +483,18 @@
 <body>
   <main class="wrap">
     <section class="brand">
+      <img class="brand-logo" src="/icons/apple-touch-icon.png" alt="" width="56" height="56">
       <h1>BizForce AI</h1>
       <p>Business-owner AI network for growth, automation, leads, and revenue.</p>
+      <!-- Desktop only: three lines from this page's own copy (the plan and the note under it), nothing new. -->
+      <ul class="brand-points">
+        <li>One subscription covers all 18 AI business agents.</li>
+        <li>Deploy AI agents for SEO, sales, content, ads, analytics, social, storefronts, PR, and R&amp;D.</li>
+        <li>Specialists spanning marketing, operations, and executive strategy.</li>
+      </ul>
     </section>
 
+    <div class="panel-col">
     <section class="card">
       <div class="tabs">
         <button id="loginTab" class="tab active" type="button">Sign In</button>
@@ -432,16 +548,19 @@
       <div id="status" class="msg status" aria-live="polite"></div>
       <div id="err" class="msg error" aria-live="assertive"></div>
 
+      <div class="subscribe">
       <div class="plan">
         <strong>BizForce AI All Access — $199/month</strong>
         <span>One subscription covers all 18 AI business agents. Lead Radar isn't included, and publishing to social accounts and direct SMS sending aren't available.</span>
       </div>
       <label class="renew-consent" data-bf-renew-consent hidden><input type="checkbox" data-bf-renew-consent-box> <span data-bf-renew-consent-text></span></label>
 <button id="subscribeBtn" class="btn">Start Subscription</button>
+      </div>
       <div class="fine">Deploy AI agents for SEO, sales, content, ads, analytics, social, storefronts, PR, and R&amp;D — 18 specialists in all, spanning marketing, operations, and executive strategy.</div>
     </section>
 
     <div class="forgot"><a class="forgot-link" href="/">Back to BizForce AI</a></div>
+    </div>
   </main>
 
   <script>
@@ -654,6 +773,16 @@ document.addEventListener("DOMContentLoaded", function () {
   if (registerTab) {
     registerTab.addEventListener("click", showRegister);
   }
+
+  /* NAMED (Nov 13 2026, Q5b): app.html#create and app.html?tab=create open on Create Account (the public card's
+     "Create Your Own" links here); anything else opens on Sign In, as before. */
+  function wantsCreate() {
+    var tab = "";
+    try { tab = new URLSearchParams(window.location.search).get("tab") || ""; } catch (e) { tab = ""; }
+    return window.location.hash === "#create" || tab === "create";
+  }
+  if (wantsCreate()) showRegister();
+  window.addEventListener("hashchange", function () { if (window.location.hash === "#create") showRegister(); });
 
   
 if (loginForm) {

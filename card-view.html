@@ -22,17 +22,21 @@
     /* NAMED (Nov 11 2026, card exports and phone layout): a column, the card and then the legal footer under it, the card
        centred across at every width. In a row the footer sat beside the card and, on a phone, pushed it about 150 px off
        to the left. The page scrolls down to the footer; never sideways. */
-    html,body{width:100%;min-height:100%;background:#070b18;overflow-x:hidden;
+    /* NAMED (Nov 13 2026, Q5b): the page is one screen. The card (business-card proportions, 1.75 : 1 either way),
+       its buttons directly under it, then the legal footer, all inside the viewport with no scrollbar. The card shrinks
+       when space is short; the page scrolls only while Support or the lead form is open under the buttons. */
+    html,body{width:100%;background:#070b18;overflow-x:hidden;
       font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff}
-    body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
-    #cvSupport{position:absolute;left:12px;right:12px;bottom:92px;max-height:45%;overflow:auto;z-index:25;background:rgba(10,15,35,.95);
+    body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;min-height:100svh}
+    body > footer.bf-legal-footer{margin:0 auto;padding:6px 16px 10px;flex:none;width:100%}
+    /* Support and the lead form open inline, directly under the button row, pushing the footer down. */
+    #cvSupport,#cvLead{position:static;width:min(560px,92vw);flex:none;background:rgba(10,15,35,.95);
       border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px}
     #cvSupport[hidden],#cvSupportBtn[hidden]{display:none}
     /* The lead form (C2): opened from "Leave your details" when the owner turned it on. */
-    #cvLead{position:absolute;left:12px;right:12px;bottom:92px;max-height:70%;overflow:auto;z-index:26;background:rgba(10,15,35,.97);
-      border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-size:.8rem}
+    #cvLead{font-size:.8rem}
     #cvLead[hidden],#cvLeadBtn[hidden]{display:none}
-    /* Add to Google Wallet: Android only, while the server says Wallet is set up. */
+    /* Add to Google Wallet: while the server says Wallet is set up, on every device but an iPhone or iPad (Q5b). */
     #cvWalletBtn[hidden]{display:none}
     #cvLead h2{font-size:.9rem;margin:0 0 8px;color:#e8e8ff}
     #cvLead label{display:block;margin:6px 0 2px;color:#c8cce8}
@@ -47,18 +51,24 @@
     /* The honeypot: off-screen, out of the tab order and hidden from screen readers. */
     .cv-lead-hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
 
-    /* ── Viewport container: phone-width centered on desktop ── */
+    /* ── The card's column: the card, the audio bar, the buttons and the open panel, centred in the screen ──
+       NAMED (Nov 13 2026, Q5b): --cv-reserve is everything on the page but the card (paddings, gaps, the audio bar,
+       the buttons and the footer). A guess here; fitCard() measures it once the card is drawn and on every resize. */
+    :root{--cv-reserve:200px;--cv-avail:calc(100vh - var(--cv-reserve))}
+    @supports (height:100svh){:root{--cv-avail:calc(100svh - var(--cv-reserve))}}
+    @media (max-width:600px){:root{--cv-reserve:260px}}
     #cardViewport{
       position:relative;
-      width:100vw;max-width:430px;
-      height:100vh;height:100dvh;
-      overflow:hidden;background:#070b18;
-      flex-shrink:0;
+      width:100%;max-width:none;
+      flex:1 0 auto;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+      padding:14px 0 10px;
+      background:#070b18;
     }
 
     /* ── Loading / Error ── */
     .state-wrap{
-      position:absolute;inset:0;display:flex;flex-direction:column;
+      position:relative;inset:auto;min-height:50vh;width:100%;display:flex;flex-direction:column;
       align-items:center;justify-content:center;
       background:#070b18;z-index:30;padding:40px 24px;text-align:center;
     }
@@ -70,10 +80,20 @@
     .state-err-ico{font-size:2.8rem;margin-bottom:14px}
     .state-err-title{font-size:1.15rem;font-weight:900;color:#f4f7ff;margin-bottom:8px}
 
-    /* ── Card preview fills viewport ── */
+    /* ── The card: a business card, 1.75 : 1 lying down (horizontal) or standing up (vertical) ──
+       NAMED (Nov 13 2026, Q5b). Horizontal: width min(560px, 92vw, the free height x 1.75). Vertical: height
+       min(560px, the free height, 92vw x 1.75), width from the ratio. Its text, QR and border scale with it
+       (container units). The old upright card filled the whole screen; it no longer does. */
     #cardPreview{
-      position:absolute;inset:0;width:100%;height:100%;
+      position:relative;inset:auto;flex:none;
+      --cv-w:min(560px, 92vw, calc(var(--cv-avail) * 1.75));
+      width:var(--cv-w);height:calc(var(--cv-w) / 1.75);
+      container-type:size;container-name:cvcard;
       overflow:hidden;display:none;border-radius:20px;--border-weight:16px;
+    }
+    #cardPreview.orient-vertical{
+      --cv-h:min(560px, var(--cv-avail), calc(92vw * 1.75));
+      width:calc(var(--cv-h) / 1.75);height:var(--cv-h);
     }
     #cardPreview[data-theme="dark"]    {background:linear-gradient(160deg,#0c1228 0%,#070b18 100%)}
     #cardPreview[data-theme="midnight"]{background:linear-gradient(160deg,#1a1040 0%,#0f1729 100%)}
@@ -102,11 +122,11 @@
       100%{background-position:200% 50%}
     }
 
-    /* ── Card inner layout: vertical full-screen ── */
+    /* ── Card inner layout (Q5b: inside the card's own border, the same in both orientations) ── */
     .card-inner{
       position:absolute;inset:0;
       display:flex;flex-direction:column;justify-content:space-between;
-      padding:env(safe-area-inset-top,44px) 28px calc(env(safe-area-inset-bottom,0px) + 128px) 28px;
+      padding:calc(var(--border-weight,16px) + 8px) calc(var(--border-weight,16px) + 12px);
       z-index:7;
     }
 
@@ -334,20 +354,35 @@
        (media_layout.orientation "vertical"). Horizontal is this page's default, set here in CSS before any script runs:
        a 1.75 : 1 card with its buttons under it. renderCard adds cv-vertical to #cardViewport (and orient-vertical to the
        card) only for a saved vertical card, which keeps the full-height upright card above. */
-    #cardViewport:not(.cv-vertical){max-width:680px;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:16px}
-    #cardViewport:not(.cv-vertical) #cardPreview{position:relative;inset:auto;width:100%;height:auto;aspect-ratio:1.75;flex:none}
-    #cardViewport:not(.cv-vertical) .card-inner{padding:calc(var(--border-weight,16px) + 10px) calc(var(--border-weight,16px) + 14px)}
-    #cardViewport:not(.cv-vertical) .card-name{font-size:clamp(1.2rem,5.4vw,2.3rem);margin-bottom:4px}
-    #cardViewport:not(.cv-vertical) .card-job{font-size:clamp(.7rem,2.6vw,.92rem)}
-    #cardViewport:not(.cv-vertical) .card-contacts-block{gap:2px}
-    #cardViewport:not(.cv-vertical) .card-contact-line{font-size:clamp(.62rem,2.4vw,.82rem)}
-    #cardViewport:not(.cv-vertical) #qrCanvas{width:56px!important;height:56px!important}
-    #cardViewport:not(.cv-vertical) .card-watermark{bottom:6px}
-    #cardViewport:not(.cv-vertical) .card-video-text{padding:12px 18px}
-    #cardViewport:not(.cv-vertical) .card-video-qr-ov{bottom:14px}
-    #cardViewport:not(.cv-vertical) .card-actions{position:relative;bottom:auto;left:auto;right:auto;padding:0;background:none;flex-wrap:wrap}
-    #cardViewport:not(.cv-vertical) .cv-btn{flex:1 1 150px}
-    #cardViewport:not(.cv-vertical) #cvAudioBar{position:relative;bottom:auto;border:1px solid rgba(34,211,238,.18);border-radius:14px}
+    /* NAMED (Nov 13 2026, Q5b): a saved vertical card is no longer the full-height upright card. Both orientations
+       are business cards (1.75 : 1 lying down, 1 : 1.75 standing up) in the flow, sized by #cardPreview above, with
+       the audio bar and the buttons under them; the text, the QR and the overlays scale with the card (cqw, cqh). */
+    #cardViewport:not(.cv-vertical) #cardPreview{position:relative;inset:auto;aspect-ratio:1.75;flex:none}
+    #cardViewport.cv-vertical #cardPreview{position:relative;inset:auto;aspect-ratio:1 / 1.75;flex:none}
+    #cardPreview .card-company{font-size:clamp(.5rem,2.1cqw,.72rem)}
+    #cardPreview .card-name{font-size:clamp(.95rem,6.4cqw,2.3rem);margin-bottom:4px}
+    #cardPreview .card-job{font-size:clamp(.62rem,2.7cqw,.92rem)}
+    #cardPreview .card-tagline{font-size:clamp(.5rem,2.1cqw,.72rem)}
+    #cardPreview .card-contacts-block{gap:2px}
+    #cardPreview .card-contact-line{font-size:clamp(.6rem,2.4cqw,.82rem)}
+    #cardPreview #qrCanvas{width:clamp(36px,19cqh,64px)!important;height:clamp(36px,19cqh,64px)!important}
+    #cardPreview.orient-vertical .card-company{font-size:clamp(.52rem,3.6cqw,.72rem)}
+    #cardPreview.orient-vertical .card-name{font-size:clamp(1rem,10cqw,2.2rem)}
+    #cardPreview.orient-vertical .card-job{font-size:clamp(.66rem,4.6cqw,.92rem)}
+    #cardPreview.orient-vertical .card-tagline{font-size:clamp(.52rem,3.6cqw,.72rem)}
+    #cardPreview.orient-vertical .card-contact-line{font-size:clamp(.58rem,4cqw,.82rem)}
+    #cardPreview.orient-vertical #qrCanvas{width:clamp(40px,22cqw,72px)!important;height:clamp(40px,22cqw,72px)!important}
+    #cardPreview .card-watermark{bottom:6px}
+    #cardPreview .card-video-text{padding:12px 18px calc(var(--border-weight,16px) + 10px)}
+    #cardPreview .card-video-vname{font-size:clamp(.9rem,6cqw,1.7rem)}
+    #cardPreview .card-video-qr-ov{bottom:calc(var(--border-weight,16px) + 8px);right:calc(var(--border-weight,16px) + 8px)}
+    #cardPreview.qr-top-right .card-video-qr-ov,#cardPreview.qr-top-left .card-video-qr-ov{top:calc(var(--border-weight,16px) + 8px)}
+    #cardPreview.qr-bottom-left .card-video-qr-ov,#cardPreview.qr-top-left .card-video-qr-ov{left:calc(var(--border-weight,16px) + 8px)}
+    /* The buttons: directly under the card (never over its art), wrapping two to a row on a phone. */
+    .card-actions{position:relative;bottom:auto;left:auto;right:auto;padding:0;background:none;flex-wrap:wrap;width:min(560px,92vw);flex:none}
+    .card-actions .cv-btn{flex:1 1 150px}
+    #cvSupportBtn,#cvLeadBtn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.2);color:#e8e8ff}
+    #cvAudioBar{position:relative;left:auto;right:auto;bottom:auto;width:min(560px,92vw);flex:none;border:1px solid rgba(34,211,238,.18);border-radius:14px}
   </style>
 <style id="bf-scrollbars">
 /* BF-SCROLLBARS:BEGIN. One scrollbar for every scrollable element in BizForce: a translucent noir track, a thumb in the theme's gradient with a soft glow. This exact text is in css/bizforce-ui.css, scripts/bf-theme.js (which adds it to every page it runs on) and the public pages that load neither; scripts/checkScrollbars.js keeps every copy the same. */
@@ -436,7 +471,23 @@
     <div class="card-brand-border"></div>
   </div>
 
-  <!-- The card owner's support links, drawn by scripts/bf-support.js; shown from the Support button. -->
+  <!-- The buttons, directly under the card (Q5b) -->
+  <div class="card-actions" id="cardActions">
+    <button class="cv-btn" id="cvSupportBtn" type="button" aria-controls="cvSupport" aria-expanded="false" hidden>Support</button>
+    <button class="cv-btn" id="cvLeadBtn" type="button" aria-controls="cvLead" aria-expanded="false" hidden>Leave your details</button>
+    <button class="cv-btn cv-btn-vcf" onclick="saveContact()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Save Contact
+    </button>
+    <button class="cv-btn cv-btn-wallet" id="cvWalletBtn" type="button" hidden>Add to Google Wallet</button>
+    <a class="cv-btn cv-btn-create" href="https://bizforceai.net/app.html#create">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+      Create Your Own
+    </a>
+  </div>
+
+
+  <!-- The card owner's support links, drawn by scripts/bf-support.js; shown from the Support button, inline under the buttons (Q5b). -->
   <div id="cvSupport" hidden></div>
 
   <!-- The lead form (C2), shown from "Leave your details" only when the owner turned it on. -->
@@ -460,21 +511,6 @@
       <p id="cvLeadStatus" role="status" aria-live="polite"></p>
       <p class="cv-lead-note"><span id="cvLeadPrivacy"></span> <a href="/privacy.html">Privacy Policy</a></p>
     </form>
-  </div>
-
-  <!-- Action buttons pinned to bottom -->
-  <div class="card-actions" id="cardActions">
-    <button class="cv-btn" id="cvSupportBtn" type="button" aria-controls="cvSupport" aria-expanded="false" hidden>Support</button>
-    <button class="cv-btn" id="cvLeadBtn" type="button" aria-controls="cvLead" aria-expanded="false" hidden>Leave your details</button>
-    <button class="cv-btn cv-btn-vcf" onclick="saveContact()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Save Contact
-    </button>
-    <button class="cv-btn cv-btn-wallet" id="cvWalletBtn" type="button" hidden>Add to Google Wallet</button>
-    <a class="cv-btn cv-btn-create" href="https://bizforceai.net/digital-cards.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-      Create Your Own
-    </a>
   </div>
 
   <div class="page-watermark">BIZFORCE AI</div>
@@ -571,11 +607,10 @@ function renderCard(c) {
   var vertical = cvOrientationOf(c.media_layout) === "vertical";
   document.getElementById("cardViewport").classList.toggle("cv-vertical", vertical);
   card.classList.toggle("orient-vertical", vertical);
-  if (!vertical) {
-    // A horizontal card is too short to carry the audio bar: it goes under the card, above the buttons.
-    var cvBar = document.getElementById("cvAudioBar"), cvActs = document.getElementById("cardActions");
-    if (cvBar && cvActs && cvBar.parentNode !== cvActs.parentNode) cvActs.parentNode.insertBefore(cvBar, cvActs);
-  }
+  // The audio bar goes under the card, above the buttons. NAMED (Nov 13 2026, Q5b): for an upright card too, which
+  // is now a business card and no longer carries it over its foot.
+  var cvBar = document.getElementById("cvAudioBar"), cvActs = document.getElementById("cardActions");
+  if (cvBar && cvActs && cvBar.parentNode !== cvActs.parentNode) cvActs.parentNode.insertBefore(cvBar, cvActs);
 
   if (c.holographic_style) { card.classList.add("holographic"); }
   if (c.media_layout) {
@@ -926,7 +961,7 @@ function sendTap(kind) {
 document.getElementById("pPhone").addEventListener("click", function () { if (this.getAttribute("href")) sendTap("tel"); });
 document.getElementById("pEmail").addEventListener("click", function () { if (this.getAttribute("href")) sendTap("email"); });
 
-/* The owner's support links: a Support button opens them over the card.
+/* The owner's support links: a Support button opens them inline under the buttons (Q5b).
    Links only; the in-app support is on their profile and support page. */
 function renderCardSupport(links) {
   var panel = document.getElementById("cvSupport"), btn = document.getElementById("cvSupportBtn");
@@ -943,12 +978,20 @@ function renderCardSupport(links) {
 }
 
 /* "Add to Google Wallet": shown only when the card's answer says google_wallet
-   is true AND the visitor is on Android. A tap counts itself (kind wallet,
-   not awaited) and goes to the server's link, which answers with Google's
-   save page. Everyone else sees no change. */
+   is true. A tap counts itself (kind wallet, not awaited) and goes to the
+   server's link, which answers with Google's save page.
+   NAMED (Nov 13 2026, Q5b): it was Android only, so a desktop visitor never saw
+   it even with Wallet set up on the server. Google's save page also works in a
+   desktop browser (the pass goes to the visitor's Google account and their
+   Android phone); only an iPhone or iPad, where Google Wallet does not run,
+   is left without it (an iPad that reports itself as a Mac is known by touch). */
+function cvAppleMobile() {
+  var ua = navigator.userAgent || "";
+  return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+}
 function renderCardWallet(c) {
   var btn = document.getElementById("cvWalletBtn");
-  if (!btn || !c || c.google_wallet !== true || !/Android/i.test(navigator.userAgent || "") || !cardRef()) return;
+  if (!btn || !c || c.google_wallet !== true || cvAppleMobile() || !cardRef()) return;
   btn.hidden = false;
   btn.addEventListener("click", function () {
     sendTap("wallet");
@@ -1007,6 +1050,40 @@ function renderCardLead(c) {
   });
 }
 
+/* NAMED (Nov 13 2026, Q5b): the card, its buttons and the footer fit the screen with no scrollbar. --cv-reserve is
+   everything but the card: the column's paddings and gaps, the audio bar, the buttons and the footer, each as drawn
+   now (a hidden panel, an absolute or fixed layer and the card itself are left out, so the answer does not depend on
+   the card's own size). The card's CSS takes the rest of the screen, capped at 560 px. */
+function fitCard() {
+  var vp = document.getElementById("cardViewport"), card = document.getElementById("cardPreview");
+  if (!vp || !card || card.style.display !== "block") return;
+  var cs = window.getComputedStyle(vp), gap = parseFloat(cs.rowGap) || 0;
+  var sum = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0), n = 0;
+  Array.prototype.forEach.call(vp.children, function (el) {
+    if (el === card) { n++; return; }
+    if (el.id === "cvSupport" || el.id === "cvLead") return;   // an open panel lets the page scroll; it never shrinks the card
+    var s = window.getComputedStyle(el);
+    if (el.hidden || s.display === "none" || s.position === "absolute" || s.position === "fixed") return;
+    sum += el.getBoundingClientRect().height; n++;
+  });
+  sum += Math.max(0, n - 1) * gap;
+  var foot = document.querySelector("body > footer.bf-legal-footer");
+  if (foot) { var fs = window.getComputedStyle(foot); sum += foot.getBoundingClientRect().height + (parseFloat(fs.marginTop) || 0) + (parseFloat(fs.marginBottom) || 0); }
+  document.documentElement.style.setProperty("--cv-reserve", Math.ceil(sum + 2) + "px");
+}
+window.addEventListener("resize", fitCard);
+window.addEventListener("load", function () {
+  fitCard();
+  setTimeout(fitCard, 300);
+  // A button that appears later (Support, once bf-support.js has loaded) or a footer that grows refits the card.
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { fitCard(); });
+    ["cardActions", "cvAudioBar"].forEach(function (id) { var el = document.getElementById(id); if (el) ro.observe(el); });
+    var foot = document.querySelector("body > footer.bf-legal-footer");
+    if (foot) ro.observe(foot);
+  }
+});
+
 (async function() {
   var source = cardSource();
   if (!source) {
@@ -1023,6 +1100,8 @@ function renderCardLead(c) {
     renderCardSupport(d.support_links || []);
     renderCardLead(cardData);
     renderCardWallet(cardData);
+    fitCard();
+    setTimeout(fitCard, 0);
   } catch(e) {
     document.getElementById("stateLoading").style.display = "none";
     document.getElementById("stateError").style.display   = "block";
