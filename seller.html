@@ -343,12 +343,12 @@ function renderVideoCard(v) {
   if (v.video_type === "youtube") {
     var yt = getYouTubeId(v.video_url);
     embed = yt
-      ? '<iframe src="https://www.youtube.com/embed/' + esc(yt) + '" allowfullscreen loading="lazy"></iframe>'
+      ? '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(yt) + '" allowfullscreen loading="lazy"></iframe>'
       : '<div class="sf-card-img-fallback">Unable to embed video</div>';
   } else if (v.video_type === "vimeo") {
     var vm = getVimeoId(v.video_url);
     embed = vm
-      ? '<iframe src="https://player.vimeo.com/video/' + esc(vm) + '" allowfullscreen loading="lazy"></iframe>'
+      ? '<iframe src="https://player.vimeo.com/video/' + esc(vm) + '?dnt=1" allowfullscreen loading="lazy"></iframe>'
       : '<div class="sf-card-img-fallback">Unable to embed video</div>';
   } else {
     embed = '<video controls src="' + esc(v.video_url) + '"></video>';
