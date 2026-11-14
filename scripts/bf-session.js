@@ -48,7 +48,9 @@
      tab, bf_music_live (that music has played in this session and was not
      stopped, so the other pages show the player), and bf_main_boxes, the two
      tools the member chose with Swap for the dashboard's main boxes
-     (scripts/bf-orbit.js; added Nov 10 2026, orbit top half).
+     (scripts/bf-orbit.js; added Nov 10 2026, orbit top half), and, in this
+     tab, bf_card_pick, the card the card maker's picker last opened (one of
+     the member's card ids; added Nov 13 2026, S3).
      Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
      app.html whenever it opens with no session.
 
@@ -91,7 +93,7 @@
     "bf_theme",
     "bf_music"
   ];
-  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail", "bf_music_live"];
+  var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail", "bf_music_live", "bf_card_pick"];
   var OFFLINE_DB = "bf-offline";
 
   function clearDevice() {

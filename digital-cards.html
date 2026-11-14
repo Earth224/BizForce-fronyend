@@ -119,6 +119,14 @@
     .btn-save{background:rgba(244,114,182,.12);border-color:rgba(244,114,182,.4);color:#f472b6}
     .btn-save:hover{background:rgba(244,114,182,.22)}
     .btn-save:disabled{opacity:.5;cursor:not-allowed}
+    /* NAMED (Nov 13 2026, S3): the card picker and the unsaved-changes question. */
+    .card-picker{margin-bottom:18px}
+    .card-picker[hidden]{display:none}
+    .card-switch-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(3,6,16,.72)}
+    .card-switch-box{width:100%;max-width:400px;padding:22px;border-radius:16px;border:1px solid rgba(244,114,182,.3);background:rgba(12,18,38,.97);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+    .card-switch-text{margin:0 0 18px;color:#e8e8ff;font-size:.95rem;line-height:1.55}
+    .card-switch-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+    .btn-quiet{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#c9d1e6}
     .btn-dl{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.1);border-color:rgba(var(--bf-accent-a-rgb, 34,211,238),.35);color:var(--bf-accent-a, #22d3ee)}
     .btn-dl:hover{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.18)}
     .btn-vcf{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#8892b8}
@@ -456,6 +464,11 @@
       <div class="form-panel-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Card Details
+      </div>
+      <!-- NAMED (Nov 13 2026, S3): the card picker, shown only to a member with two or more cards (drawCardPicker). -->
+      <div class="form-group card-picker" id="cardPickerWrap" hidden>
+        <label class="form-label" for="cardPicker">Your cards</label>
+        <select class="cust-select" id="cardPicker" onchange="pickCard(this.value)"></select>
       </div>
       <div class="form-group" style="margin-bottom:18px">
         <label class="form-label">Card Orientation</label>
@@ -1498,6 +1511,115 @@ function applyCornerStyle(style) {
   if (sel) sel.value = cardCornerStyle;
 }
 
+/* ── The card picker ──────────────────────────────────────────────────────
+   NAMED (Nov 13 2026, S3): BEFORE the maker opened the member's newest card and
+   there was no way to edit another. AFTER, with two or more cards, a picker at
+   the top of Card Details lists each card (its name, its short link or "no
+   short link", Horizontal or Vertical), the open one selected. Choosing another
+   remembers its id for this session (sessionStorage bf_card_pick) and opens the
+   maker again, so loadCard fills it exactly as it fills the newest: fields,
+   media, QR settings and orientation, nothing left over from the last card.
+   With unsaved changes it asks first ("You have unsaved changes. Switch cards
+   anyway?"). Save writes to the open card only (PUT /api/digital-cards/<its id>).
+   One card: no picker. None: a new card, as before. */
+var CARD_PICK_KEY = "bf_card_pick";
+var memberCards = [];
+var cardBaseline = null;
+function rememberedCardPick() { try { return sessionStorage.getItem(CARD_PICK_KEY) || ""; } catch (e) { return ""; } }
+function rememberCardPick(id) { try { sessionStorage.setItem(CARD_PICK_KEY, String(id)); } catch (e) { /* not remembered */ } }
+function cardToOpen(cards) {
+  var want = rememberedCardPick();
+  var hit = want ? cards.filter(function (c) { return String(c.id) === want; })[0] : null;
+  return hit || cards[0];
+}
+function cardPickLabel(c) {
+  var name = (c.full_name || "").trim() || "Untitled card";
+  var link = c.slug ? "bizforceai.net/c/" + c.slug : "no short link";
+  return name + " · " + link + " · " + (cardOrientationOf(c.media_layout) === "vertical" ? "Vertical" : "Horizontal");
+}
+function drawCardPicker() {
+  var wrap = document.getElementById("cardPickerWrap"), sel = document.getElementById("cardPicker");
+  if (!wrap || !sel) return;
+  while (sel.firstChild) sel.removeChild(sel.firstChild);
+  if (memberCards.length < 2) { wrap.hidden = true; return; }
+  memberCards.forEach(function (c) {
+    var o = document.createElement("option");
+    o.value = String(c.id);
+    o.textContent = cardPickLabel(c);
+    if (String(c.id) === String(activeCardId)) o.selected = true;
+    sel.appendChild(o);
+  });
+  wrap.hidden = false;
+}
+// What Save would send, plus the switches beside it: compared with the state when the card was loaded or saved.
+function cardSnapshot() {
+  try {
+    return JSON.stringify([getFields(), cardPrivacyReady ? privacyFields() : null,
+      document.getElementById("fDiscoverable").checked, document.getElementById("fLeadForm").checked]);
+  } catch (e) { return null; }
+}
+function cardHasUnsavedChanges() { return cardBaseline !== null && cardSnapshot() !== cardBaseline; }
+function reloadMaker() { window.location.reload(); }
+function pickCard(id) {
+  var sel = document.getElementById("cardPicker");
+  if (!id || String(id) === String(activeCardId)) return;
+  var go = function () { rememberCardPick(id); reloadMaker(); };
+  if (!cardHasUnsavedChanges()) { go(); return; }
+  askCardSwitch().then(function (yes) {
+    if (yes) go();
+    else if (sel) sel.value = String(activeCardId);
+  });
+}
+/* "You have unsaved changes. Switch cards anyway?": a modal dialog (role="dialog", aria-modal,
+   labelled by its sentence). Focus starts on Cancel, Tab stays on its two buttons, Escape or a
+   click outside cancels, and focus goes back to the picker. Resolves true only for "Switch cards". */
+function askCardSwitch() {
+  return new Promise(function (resolve) {
+    var back = document.createElement("div");
+    back.className = "card-switch-back";
+    var box = document.createElement("div");
+    box.className = "card-switch-box";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    var line = document.createElement("p");
+    line.className = "card-switch-text";
+    line.id = "cardSwitchText";
+    line.textContent = "You have unsaved changes. Switch cards anyway?";
+    box.setAttribute("aria-labelledby", line.id);
+    var acts = document.createElement("div");
+    acts.className = "card-switch-actions";
+    var yes = document.createElement("button");
+    yes.type = "button"; yes.className = "action-btn btn-save"; yes.textContent = "Switch cards";
+    var no = document.createElement("button");
+    no.type = "button"; no.className = "action-btn btn-quiet"; no.textContent = "Cancel";
+    acts.appendChild(yes); acts.appendChild(no);
+    box.appendChild(line); box.appendChild(acts);
+    back.appendChild(box);
+    document.body.appendChild(back);
+    var trap = [yes, no];
+    function done(answer) {
+      document.removeEventListener("keydown", onKey, true);
+      if (back.parentNode) back.parentNode.removeChild(back);
+      var sel = document.getElementById("cardPicker");
+      if (sel && typeof sel.focus === "function") sel.focus();
+      resolve(answer);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); done(false); return; }
+      if (e.key !== "Tab") return;
+      e.preventDefault();
+      var at = trap.indexOf(document.activeElement);
+      var next = e.shiftKey ? (at <= 0 ? trap.length - 1 : at - 1) : (at === -1 || at === trap.length - 1 ? 0 : at + 1);
+      trap[next].focus();
+    }
+    document.addEventListener("keydown", onKey, true);
+    yes.addEventListener("click", function () { done(true); });
+    no.addEventListener("click", function () { done(false); });
+    back.addEventListener("click", function (e) { if (e.target === back) done(false); });
+    no.focus();
+  });
+}
+
 async function loadCard() {
   try {
     var res = await fetch(API_URL + "/api/digital-cards", {
@@ -1507,12 +1629,16 @@ async function loadCard() {
     var data = await res.json();
     if (!data || !Array.isArray(data.cards)) { markCardLoadFailed("the response could not be read"); return; }
     if (data.cards && data.cards.length) {
-      activeCardId = data.cards[0].id;
-      if (data.cards[0].share_token) activeShareToken = data.cards[0].share_token;
-      fillPrivacy(data.cards[0]);
-      fillForm(data.cards[0]);
-      document.getElementById("fDiscoverable").checked = data.cards[0].discoverable === true;
-      document.getElementById("fLeadForm").checked = data.cards[0].lead_form_on === true;
+      // NAMED (Nov 13 2026, S3): BEFORE the newest card (cards[0]) always; AFTER the card picked this session, else the newest.
+      memberCards = data.cards;
+      var card = cardToOpen(data.cards);
+      activeCardId = card.id;
+      if (card.share_token) activeShareToken = card.share_token;
+      fillPrivacy(card);
+      fillForm(card);
+      document.getElementById("fDiscoverable").checked = card.discoverable === true;
+      document.getElementById("fLeadForm").checked = card.lead_form_on === true;
+      drawCardPicker();
       generateQR();
       loadCardStats();
       loadCardLeads();
@@ -1521,6 +1647,7 @@ async function loadCard() {
       generateQR();
     }
     cardLoadState = "ready";
+    cardBaseline = cardSnapshot();
   } catch(e) {
     generateQR();
     markCardLoadFailed("could not reach the server");
@@ -1723,10 +1850,14 @@ async function saveCard() {
       if (Object.prototype.hasOwnProperty.call(saved, "show_email")) fillPrivacy(saved);
       document.getElementById("fDiscoverable").checked = saved.discoverable === true;
       document.getElementById("fLeadForm").checked = saved.lead_form_on === true;
+      // NAMED (Nov 13 2026, S3): the picker shows the saved name, link and shape; saved means nothing unsaved.
+      memberCards = memberCards.map(function (c) { return String(c.id) === String(saved.id) ? saved : c; });
+      drawCardPicker();
       generateQR();
       loadCardStats();
       loadCardLeads();
     }
+    cardBaseline = cardSnapshot();
     setStatus("", "info");
     showToast("Card saved!");
   } catch(e) {

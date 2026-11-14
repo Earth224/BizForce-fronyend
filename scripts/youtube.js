@@ -279,6 +279,84 @@
      every rule are the ones each platform script always had. */
   var PLATFORMS = ["youtube", "tiktok", "instagram", "facebook"];
   var NONE_CONNECTED = "Connect a platform below to send this video.";
+
+  /* BUTTON_RULES. NAMED (Nov 13 2026, S3, "Post again"): BEFORE a video already on a platform showed the
+     same "Prepare for ..." button as a new one, or none at all. AFTER each connected platform's button
+     follows what that platform has of the video:
+       not sent            "Prepare for <Platform>", opens the form;
+       waiting / publishing the same button, disabled, its reason beside it ("Waiting for your approval",
+                           with a link to Proposals; "Publishing");
+       posted              "Post again on <Platform>": first a styled dialog, "This video is already on
+                           <Platform>. Post it again?" (Post again / Cancel; Escape cancels, Tab stays in
+                           it), and only after "Post again" the form, whose filing carries repost: true;
+       failed              "Try again on <Platform>", opens the form.
+     A file the platform can't take (needs MP4 or MOV) keeps its disabled reason whatever the status. The
+     server still refuses a second post of a video unless the filing says repost: true, and still keeps
+     one pending proposal per video and platform. */
+  var PLATFORM_WORDS = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram", facebook: "Facebook" };
+  var WAITING = "Waiting for your approval";
+  var PUBLISHING = "Publishing";
+  var PROPOSALS_PATH = "/proposals.html";
+  function buttonText(state, word) {
+    if (state === "posted") return "Post again on " + word;
+    if (state === "failed") return "Try again on " + word;
+    return "Prepare for " + word;
+  }
+  // "pending" or "publishing" from GET /api/videos <platform>_proposal (a proposal naming the video), else null.
+  function proposalState(v, name) {
+    var p = v && v[name + "_proposal"];
+    return p === "pending" || p === "publishing" ? p : null;
+  }
+
+  /* The repost question: a modal dialog over the page (role="dialog", aria-modal, labelled by its
+     sentence). Focus starts on Cancel and Tab stays on its two buttons; Escape or a click outside
+     cancels; focus goes back to the button that opened it. Resolves true only for "Post again". */
+  var dialogOpen = false;
+  function confirmRepost(word, opener) {
+    return new Promise(function (resolve) {
+      if (dialogOpen) { resolve(false); return; }
+      dialogOpen = true;
+      var back = make("div", null, "sf-dialog-back");
+      var box = make("div", null, "sf-dialog");
+      box.setAttribute("role", "dialog");
+      box.setAttribute("aria-modal", "true");
+      var line = make("p", "This video is already on " + word + ". Post it again?", "sf-dialog-text");
+      line.id = "sfDialogText";
+      box.setAttribute("aria-labelledby", line.id);
+      var acts = make("div", null, "sf-dialog-actions");
+      var yes = make("button", "Post again", "action-btn");
+      yes.type = "button";
+      var no = make("button", "Cancel", "action-btn action-btn--ghost");
+      no.type = "button";
+      acts.appendChild(yes);
+      acts.appendChild(no);
+      box.appendChild(line);
+      box.appendChild(acts);
+      back.appendChild(box);
+      document.body.appendChild(back);
+      var trap = [yes, no];
+      function done(answer) {
+        document.removeEventListener("keydown", onKey, true);
+        if (back.parentNode) back.parentNode.removeChild(back);
+        dialogOpen = false;
+        if (opener && typeof opener.focus === "function") opener.focus();
+        resolve(answer);
+      }
+      function onKey(e) {
+        if (e.key === "Escape") { e.preventDefault(); done(false); return; }
+        if (e.key !== "Tab") return;
+        e.preventDefault();
+        var at = trap.indexOf(document.activeElement);
+        var next = e.shiftKey ? (at <= 0 ? trap.length - 1 : at - 1) : (at === -1 || at === trap.length - 1 ? 0 : at + 1);
+        trap[next].focus();
+      }
+      document.addEventListener("keydown", onKey, true);
+      yes.addEventListener("click", function () { done(true); });
+      no.addEventListener("click", function () { done(false); });
+      back.addEventListener("click", function (e) { if (e.target === back) done(false); });
+      no.focus();
+    });
+  }
   var connected = { youtube: false, tiktok: false, instagram: false, facebook: false };
   var hooks = {};
   var lastVideos = null;
@@ -365,10 +443,39 @@
         return a;
       },
       note: function (text) { notes.appendChild(make("p", text, "sf-note")); },
-      prepare: function (platform, text, title, build) {
-        var b = row.button(text, false);
+      // NAMED (Nov 13 2026, S3): the platform's one button, by its state (see BUTTON_RULES). build(shell, repost).
+      platform: function (platform, state, title, build, fileReason) {
+        var word = PLATFORM_WORDS[platform] || platform;
+        var b = row.button(buttonText(state, word), false);
         b.setAttribute("data-prepare", platform);
-        b.addEventListener("click", function () { toggleForm(v.id + ":" + platform, slot, title, build); });
+        b.setAttribute("data-state", state);
+        // The file rule wins: a file the platform can't take is the reason, whatever the status.
+        if (fileReason) { b.disabled = true; b.title = fileReason; return b; }
+        if (state === "pending" || state === "publishing") {
+          b.disabled = true;
+          var why = make("span", state === "pending" ? WAITING : PUBLISHING, "sf-why");
+          why.id = "sfWhy-" + v.id + "-" + platform;
+          b.setAttribute("aria-describedby", why.id);
+          b.title = why.textContent;
+          actions.appendChild(why);
+          if (state === "pending") {
+            var go = make("a", "Open Proposals", "sf-why-link");
+            go.href = PROPOSALS_PATH;
+            actions.appendChild(go);
+          }
+          return b;
+        }
+        var key = v.id + ":" + platform;
+        b.addEventListener("click", function () {
+          // Closing an open form, or any state but posted, needs no question.
+          if (state !== "posted" || (openForm && openForm.key === key)) {
+            toggleForm(key, slot, title, function (shell) { build(shell, false); });
+            return;
+          }
+          confirmRepost(word, b).then(function (yes) {
+            if (yes) toggleForm(key, slot, title, function (shell) { build(shell, true); });
+          });
+        });
         return b;
       }
     };
@@ -409,12 +516,18 @@
   hooks.youtube = {
     chip: function (v) {
       if (v.youtube_video_id) return { text: "YouTube: uploaded", tone: "ok" };
+      // NAMED (Nov 13 2026, S3): a filed upload says so (GET /api/videos youtube_proposal).
+      if (proposalState(v, "youtube") === "pending") return { text: "YouTube: waiting for your approval", tone: "wait" };
+      if (proposalState(v, "youtube") === "publishing") return { text: "YouTube: publishing", tone: "wait" };
       if (v.upload_unfinished) return { text: "YouTube: upload unfinished", tone: "wait" };
       return { text: "YouTube: not sent", tone: "off" };
     },
     actions: function (v, row) {
-      if (v.status === "ready" && !v.youtube_video_id) {
-        row.prepare("youtube", "Prepare for YouTube", "YouTube upload", function (shell) { uploadForm(v, shell); });
+      // NAMED (Nov 13 2026, S3): posted means a YouTube video id exists; an unfinished upload stays "Prepare for
+      // YouTube", whose filing resumes it with the details it was filed with (the server's rule, unchanged).
+      if (v.status === "ready") {
+        var st = proposalState(v, "youtube") || (v.youtube_video_id ? "posted" : "new");
+        row.platform("youtube", st, "YouTube upload", function (shell, repost) { uploadForm(v, shell, repost); });
       }
       if (!v.youtube_video_id) return;
       if (typeof v.youtube_url === "string" && WATCH_RE.test(v.youtube_url)) row.link(v.youtube_url);
@@ -494,7 +607,8 @@
     return { node: wrap, yes: radios[0], no: radios[1] };
   }
 
-  function uploadForm(v, shell) {
+  // repost: opened by a confirmed "Post again"; only then does the filing say repost: true.
+  function uploadForm(v, shell, repost) {
     var msg = shell.msg;
     var form = make("div", null, "sf-form");
     var idp = "yt-" + v.id + "-";
@@ -560,6 +674,7 @@
         privacy: privacy.value,
         made_for_kids: yes.checked
       };
+      if (repost === true) body.repost = true;
       call("POST", "/api/youtube/propose-upload", body).then(function (res) {
         file.disabled = false;
         msg.textContent = res.ok ? (res.data.note || "Filed for approval.") : errorOf(res);

@@ -90,8 +90,8 @@
     ],
     "digital-cards.html": [
       "Fill in \"Full Name\" and your contact fields, style it in the Text, Frame, Background and Motion tabs (the preview updates as you type), then press \"Save Card\".",
-      "Press \"Share\" for the card's public link, where people save your contact; \"Your support link\" below has its own Copy and Share.",
-      "\"Copy vCard\" copies the contact file itself; \"Download PNG\" is for screens and \"Export Print File\" for printing.",
+      "Press \"Share\" for the card's public link; \"Copy vCard\" copies the contact file, \"Download PNG\" is for screens and \"Export Print File\" for printing.",
+      "Have two or more cards? Choose one under \"Your cards\" at the top of Card Details; \"Save Card\" saves only the card chosen there.",
       "The card has no QR code unless you switch on \"Show QR code on card\" in the \"QR Code\" tab, which also makes a QR for any web link.",
       "Under the card, \"Visits to your card\" counts 30 days of opens and taps; \"Leads\" lists what visitors leave once \"Let visitors leave their details\" is on."
     ],
@@ -137,7 +137,7 @@
     ],
     "social.html": [
       "Pick \"Content Calendar\" or \"Platform Playbook\", name your platforms and goals, and press \"Launch Task\".",
-      "Add a video under \"Your videos\" and press \"Prepare for YouTube\" or another platform; each chip then says posted, waiting for approval, failed or not sent.",
+      "Under \"Your videos\", press \"Prepare for YouTube\" or another platform; a posted video offers \"Post again\", which asks first, and a failed one \"Try again\".",
       "On the \"Accounts\" tab, connect Bluesky with an app password, never your main one; then \"Show my mentions\" and draft replies, which wait for approval.",
       "Turn on \"Post approved drafts automatically\" and a filed post goes out at once; every screen still runs, and profile edits always wait.",
       "Bluesky, Mastodon, YouTube, TikTok, Instagram and Facebook Pages connect so far, and posts cannot be scheduled; plans for other platforms are yours."

@@ -214,13 +214,17 @@
     if (photos) photos.checked = !reelOn;
     if (reel) reel.checked = reelOn;
   }
-  function prepareReel(v, shell) {
+  // NAMED (Nov 13 2026, S3): set while the form was opened by a confirmed "Post again" on that video.
+  var repostFor = null;
+  function prepareReel(v, shell, repost) {
     var node = el("igPrepare");
     if (!node) return;
     node.className = "bsky-sub sf-in-row";
     node.hidden = false;
     shell.body.appendChild(node);
+    repostFor = repost === true ? String(v.id) : null;
     shell.onClose(function () {
+      repostFor = null;
       node.className = "bsky-sub";
       var home = el("igPrepareHome");
       if (home) home.appendChild(node);
@@ -248,8 +252,10 @@
       if (s === "posted" && typeof v.instagram_post_url === "string" && PERMALINK_RE.test(v.instagram_post_url)) row.link(v.instagram_post_url);
       if (s === "failed" && typeof v.instagram_error === "string" && v.instagram_error) row.note("Instagram didn't post it: " + v.instagram_error);
       if (v.status !== "ready") return;
-      var b = row.prepare("instagram", "Prepare for Instagram", "Instagram Reel", function (shell) { prepareReel(v, shell); });
-      if (!reelOk(v)) { b.disabled = true; b.title = REEL_TYPE; }
+      // NAMED (Nov 13 2026, S3): the button follows scripts/youtube.js BUTTON_RULES; the file rule still wins.
+      var p = v.instagram_proposal === "pending" || v.instagram_proposal === "publishing" ? v.instagram_proposal : null;
+      var st = p || (s === "posted" || s === "pending" || s === "publishing" || s === "failed" ? s : "new");
+      row.platform("instagram", st, "Instagram Reel", function (shell, repost) { prepareReel(v, shell, repost); }, reelOk(v) ? "" : REEL_TYPE);
     }
   };
   window.BFInstagram = { chip: HOOK.chip, actions: HOOK.actions, prepareReel: prepareReel };
@@ -350,6 +356,7 @@
       var select = el("igVideo");
       if (!select || !select.value) { tell("igPrepareMsg", "Choose a video for the Reel.", true); return; }
       body.video_id = select.value;
+      if (repostFor && body.video_id === repostFor) body.repost = true;
     }
     if (btn) btn.disabled = true;
     tell("igPrepareMsg", "Filing…");

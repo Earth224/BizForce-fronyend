@@ -276,13 +276,17 @@
       if (radio) radio.checked = pair[1] === k;
     });
   }
-  function prepareVideo(v, shell) {
+  // NAMED (Nov 13 2026, S3): set while the form was opened by a confirmed "Post again" on that video.
+  var repostFor = null;
+  function prepareVideo(v, shell, repost) {
     var node = el("fbPrepare");
     if (!node) return;
     node.className = "bsky-sub sf-in-row";
     node.hidden = false;
     shell.body.appendChild(node);
+    repostFor = repost === true ? String(v.id) : null;
     shell.onClose(function () {
+      repostFor = null;
       node.className = "bsky-sub";
       var home = el("fbPrepareHome");
       if (home) home.appendChild(node);
@@ -310,8 +314,11 @@
       if (s === "posted" && typeof v.facebook_post_url === "string" && PERMALINK_RE.test(v.facebook_post_url)) row.link(v.facebook_post_url);
       if (s === "failed" && typeof v.facebook_error === "string" && v.facebook_error) row.note("Facebook didn't post it: " + v.facebook_error);
       if (v.status !== "ready") return;
-      var b = row.prepare("facebook", "Prepare for Facebook", "Facebook video post", function (shell) { prepareVideo(v, shell); });
-      if (!videoOk(v)) { b.disabled = true; b.title = VIDEO_TYPE; }
+      // NAMED (Nov 13 2026, S3): the button follows scripts/youtube.js BUTTON_RULES; the file rule still wins.
+      // A post the member removed from Facebook is not there any more: "Prepare for Facebook".
+      var p = v.facebook_proposal === "pending" || v.facebook_proposal === "publishing" ? v.facebook_proposal : null;
+      var st = p || (s === "posted" || s === "pending" || s === "publishing" || s === "failed" ? s : "new");
+      row.platform("facebook", st, "Facebook video post", function (shell, repost) { prepareVideo(v, shell, repost); }, videoOk(v) ? "" : VIDEO_TYPE);
     }
   };
   window.BFFacebook = { chip: HOOK.chip, actions: HOOK.actions, prepareVideo: prepareVideo };
@@ -411,6 +418,7 @@
       var select = el("fbVideo");
       if (!select || !select.value) { tell("fbPrepareMsg", "Choose a video.", true); return; }
       body.video_id = select.value;
+      if (repostFor && body.video_id === repostFor) body.repost = true;
     }
     if (btn) btn.disabled = true;
     tell("fbPrepareMsg", "Filing…");

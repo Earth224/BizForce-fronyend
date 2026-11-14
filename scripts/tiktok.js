@@ -205,16 +205,20 @@
      in the same words, and "Prepare for TikTok" / "Check TikTok status", shown
      only while TikTok is connected. The form opens under the row (one at a
      time) with the header "TikTok post"; its rules are unchanged. */
+  // NAMED (Nov 13 2026, S3): a filed post naming the video (GET /api/videos tiktok_proposal): "pending" or "publishing".
+  function proposalOf(v) { return v.tiktok_proposal === "pending" || v.tiktok_proposal === "publishing" ? v.tiktok_proposal : null; }
   function statusWord(v) {
     if (v.tiktok_status === "posted") return "TikTok: posted";
     if (v.tiktok_status === "processing") return "TikTok: processing";
+    if (proposalOf(v) === "pending") return "TikTok: waiting for your approval";
+    if (proposalOf(v) === "publishing") return "TikTok: publishing";
     if (v.tiktok_upload_unfinished) return "TikTok: upload unfinished";
     if (v.tiktok_status === "failed") return "TikTok: not posted";
     return "TikTok: not sent";
   }
   function chipOf(v) {
     var tone = v.tiktok_status === "posted" ? "ok" :
-      ((v.tiktok_status === "processing" || v.tiktok_upload_unfinished) ? "wait" : (v.tiktok_status === "failed" ? "bad" : "off"));
+      ((v.tiktok_status === "processing" || proposalOf(v) || v.tiktok_upload_unfinished) ? "wait" : (v.tiktok_status === "failed" ? "bad" : "off"));
     return { text: statusWord(v), tone: tone };
   }
 
@@ -222,14 +226,20 @@
     var msg = row.msg;
     if (v.tiktok_status === "posted" && typeof v.tiktok_post_url === "string" && POST_URL_RE.test(v.tiktok_post_url)) row.link(v.tiktok_post_url);
     if (v.tiktok_status === "posted") row.note("To remove a TikTok post, delete it in the TikTok app.");
-    if (v.status === "ready" && v.tiktok_status !== "posted" && v.tiktok_status !== "processing") {
-      row.prepare("tiktok", "Prepare for TikTok", "TikTok post", function (shell) {
+    /* NAMED (Nov 13 2026, S3): BEFORE a posted or processing video had no TikTok button. AFTER the one button
+       follows scripts/youtube.js BUTTON_RULES: processing or a filed post disables it with its reason; posted is
+       "Post again on TikTok" (asked first; the filing says repost: true); failed is "Try again on TikTok". An
+       upload that never finished stays "Prepare for TikTok" and is sent again as it was started. */
+    if (v.status === "ready") {
+      var st = proposalOf(v) || (v.tiktok_status === "processing" ? "publishing" :
+        (v.tiktok_status === "posted" ? "posted" : (v.tiktok_status === "failed" ? "failed" : "new")));
+      row.platform("tiktok", st, "TikTok post", function (shell, repost) {
         shell.msg.textContent = "Asking TikTok what your account allows…";
         call("GET", "/api/tiktok/creator-info").then(function (res) {
           if (!shell.isOpen()) return;
           if (!res.ok) { shell.msg.textContent = errorOf(res); return; }
           shell.msg.textContent = "";
-          shell.body.appendChild(postForm(v, res.data, shell.msg));
+          shell.body.appendChild(postForm(v, res.data, shell.msg, repost));
         }, function () { if (shell.isOpen()) shell.msg.textContent = "TikTok couldn't be asked just now. Try again."; });
       });
     }
@@ -274,7 +284,8 @@
     return { input: input, label: label };
   }
 
-  function postForm(v, info, msg) {
+  // repost: opened by a confirmed "Post again"; only then does the filing say repost: true.
+  function postForm(v, info, msg, repost) {
     var box = make("div", null, "sf-form");
     var idp = "tt-" + v.id + "-" + (++formSeq) + "-";
     var words = plainObject(info.privacy_words) ? info.privacy_words : {};
@@ -394,6 +405,7 @@
         brand_organic: yours.input.checked,
         brand_content: branded.input.checked
       };
+      if (repost === true) body.repost = true;
       call("POST", "/api/tiktok/propose-post", body).then(function (res) {
         file.disabled = false;
         msg.textContent = res.ok ? (res.data.note || "Filed for approval.") : errorOf(res);
