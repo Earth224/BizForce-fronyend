@@ -625,6 +625,11 @@
                 out.appendChild(spend);
             }
             if (!isAdmin()) { return; }
+            // Owner-only tool (W3, Nov 15 2026): the Shopify data requests page.
+            var owned = line("Owner tools: ");
+            owned.id = "ccOwnerTools";
+            owned.appendChild(link("shopify-requests.html", "Shopify data requests"));
+            out.appendChild(owned);
             var pf = section("platform"), d = pf.data;
             if (pf.error) { out.appendChild(failBox(pf.error)); return; }
             if (!d || !Array.isArray(d.job_runs) || !Array.isArray(d.radar_status) || !Array.isArray(d.jobs_on_time)) {
