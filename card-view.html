@@ -965,7 +965,13 @@ document.getElementById("pEmail").addEventListener("click", function () { if (th
    Links only; the in-app support is on their profile and support page. */
 function renderCardSupport(links) {
   var panel = document.getElementById("cvSupport"), btn = document.getElementById("cvSupportBtn");
-  if (!window.BFSupport || !links.length) return;
+  if (!links.length) return;
+  /* NAMED (Nov 15 2026, S4): the card's answer can arrive before the support script (loaded after this
+     script) has run; BEFORE the Support button was then never shown. AFTER it is drawn once the page has loaded. */
+  if (!window.BFSupport) {
+    if (document.readyState !== "complete") window.addEventListener("load", function () { if (window.BFSupport) renderCardSupport(links); }, { once: true });
+    return;
+  }
   window.BFSupport.mountPublic(panel, { displayName: cardData && cardData.full_name, links: links, bizcash: false });
   panel.hidden = true;
   btn.hidden = false;

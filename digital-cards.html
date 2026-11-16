@@ -122,6 +122,15 @@
     /* NAMED (Nov 13 2026, S3): the card picker and the unsaved-changes question. */
     .card-picker{margin-bottom:18px}
     .card-picker[hidden]{display:none}
+    /* NAMED (Nov 15 2026, S4): a closed <select> shows one line and cut long card names off. The select stays (the same
+       control, keyboard and list) but sits invisible over .card-pick-shown, which shows the open card's whole label on
+       up to two lines, then an ellipsis; both carry the full label as their title. */
+    .card-pick-box{position:relative;min-width:0;contain:inline-size}
+    .card-pick-shown{display:block;line-height:1.35;box-sizing:border-box;width:100%;padding:9px 32px 9px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#e8e8ff;font-size:.85rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;transition:border-color .2s}
+    /* The clamp is on the text inside, so the box's padding never shows a third line's top. */
+    .card-pick-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+    .card-pick-box .cust-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0}
+    .card-pick-box:focus-within .card-pick-shown{border-color:rgba(244,114,182,.45);outline:2px solid rgba(244,114,182,.45);outline-offset:2px}
     .card-switch-back{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(3,6,16,.72)}
     .card-switch-box{width:100%;max-width:400px;padding:22px;border-radius:16px;border:1px solid rgba(244,114,182,.3);background:rgba(12,18,38,.97);box-shadow:0 16px 48px rgba(0,0,0,.5)}
     .card-switch-text{margin:0 0 18px;color:#e8e8ff;font-size:.95rem;line-height:1.55}
@@ -468,7 +477,10 @@
       <!-- NAMED (Nov 13 2026, S3): the card picker, shown only to a member with two or more cards (drawCardPicker). -->
       <div class="form-group card-picker" id="cardPickerWrap" hidden>
         <label class="form-label" for="cardPicker">Your cards</label>
-        <select class="cust-select" id="cardPicker" onchange="pickCard(this.value)"></select>
+        <div class="card-pick-box">
+          <span class="card-pick-shown" id="cardPickerShown" aria-hidden="true"><span class="card-pick-text" id="cardPickerText"></span></span>
+          <select class="cust-select" id="cardPicker" onchange="pickCard(this.value)"></select>
+        </div>
       </div>
       <div class="form-group" style="margin-bottom:18px">
         <label class="form-label">Card Orientation</label>
@@ -1540,15 +1552,22 @@ function cardPickLabel(c) {
 function drawCardPicker() {
   var wrap = document.getElementById("cardPickerWrap"), sel = document.getElementById("cardPicker");
   if (!wrap || !sel) return;
+  var shown = document.getElementById("cardPickerShown");
   while (sel.firstChild) sel.removeChild(sel.firstChild);
   if (memberCards.length < 2) { wrap.hidden = true; return; }
+  var openLabel = "";
   memberCards.forEach(function (c) {
     var o = document.createElement("option");
     o.value = String(c.id);
     o.textContent = cardPickLabel(c);
-    if (String(c.id) === String(activeCardId)) o.selected = true;
+    o.title = o.textContent;
+    if (String(c.id) === String(activeCardId)) { o.selected = true; openLabel = o.textContent; }
     sel.appendChild(o);
   });
+  // NAMED (Nov 15 2026, S4): the open card's whole label, on up to two lines, and as the title of both.
+  if (!openLabel && sel.options.length) openLabel = sel.options[sel.selectedIndex >= 0 ? sel.selectedIndex : 0].textContent;
+  sel.title = openLabel;
+  if (shown) { (document.getElementById("cardPickerText") || shown).textContent = openLabel; shown.title = openLabel; }
   wrap.hidden = false;
 }
 // What Save would send, plus the switches beside it: compared with the state when the card was loaded or saved.

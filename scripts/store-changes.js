@@ -76,7 +76,9 @@
   /* "Propose a change" for one synced item. prefill: { field, value }. */
   function proposeControl(conn, itemId, prefill) {
     var box = el("div", "store-change");
-    var open = el("button", "action-btn action-btn--ghost store-change-open", "Propose a change");
+    // NAMED (Nov 15 2026, S4): BEFORE only action-btn, which inventory.html does not define (bare browser buttons there).
+    // AFTER both of the site's button classes: action-btn on store-agent.html, bf-btn (css/bizforce-ui.css) on inventory.html.
+    var open = el("button", "action-btn action-btn--ghost bf-btn bf-btn-ghost store-change-open", "Propose a change");
     open.type = "button";
     var form = el("div", "store-change-form");
     form.hidden = true;
@@ -91,7 +93,7 @@
     input.type = "number";
     input.min = "0";
     input.step = "0.01";
-    var send = el("button", "action-btn store-change-send", "Propose");
+    var send = el("button", "action-btn bf-btn store-change-send", "Propose");
     send.type = "button";
     var msg = el("div", "store-msg");
     if (prefill && (prefill.field === "price" || prefill.field === "stock")) pick.value = prefill.field;
@@ -240,6 +242,8 @@
     READ_ONLY_TEXT: READ_ONLY_TEXT,
     decorateInventory: decorateInventory,
     decorateStockMargin: decorateStockMargin,
+    // NAMED (Nov 15 2026, S4): the Store tab's product list uses the same control inventory.html gets.
+    controlFor: controlFor,
     renderLog: renderLog,
     reset: function () { connections = null; }
   };

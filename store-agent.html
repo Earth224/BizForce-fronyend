@@ -408,6 +408,23 @@
     .store-change-list { margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(56,189,248,.18); }
     .store-change-row { padding: 8px 0; border-bottom: 1px solid rgba(56,189,248,.12); }
     .store-change-what { color: #e6edf3; font-size: .86rem; margin: 4px 0; }
+    /* NAMED (Nov 15 2026, S4): the connect form folds behind "Connect another store" once a store is connected,
+       and each connected store lists its synced products (the same inventory_items inventory.html lists). */
+    .store-sub[hidden] { display: none; }
+    .store-another[hidden] { display: none; }
+    .store-products { margin-top: 12px; }
+    .store-products-head { color: #e6edf3; font-size: .84rem; font-weight: 700; margin: 0 0 6px; }
+    .store-prod { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px 14px; align-items: start; padding: 10px 0; border-top: 1px solid rgba(56,189,248,.12); }
+    .store-prod-name { color: #e6edf3; font-size: .86rem; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
+    .store-prod-sku, .store-prod-label { color: #8892b8; font-size: .76rem; margin: 2px 0 0; overflow-wrap: anywhere; }
+    .store-prod-value { color: #e6edf3; font-size: .84rem; margin: 0; }
+    .store-prod-slot { grid-column: 1 / -1; }
+    .store-prod-slot:empty { display: none; }
+    .store-pager { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(56,189,248,.12); }
+    .store-pager[hidden] { display: none; }
+    .store-pager-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .store-pager select { padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(56,189,248,.3); background: rgba(10,14,30,.6); color: #e6edf3; font: inherit; }
+    @media (max-width: 560px) { .store-prod { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .store-prod-main { grid-column: 1 / -1; } }
     .agent-avatar{border-color:rgba(56,189,248,0.55);background:linear-gradient(135deg,rgba(56,189,248,0.2),rgba(var(--bf-accent-b-rgb, 168,85,247),0.12));box-shadow:0 0 24px rgba(var(--bf-accent-a3-rgb, 0,229,255),0.18),0 0 32px rgba(var(--bf-accent-b-rgb, 168,85,247),0.12);}
   </style>
 </head>
@@ -436,7 +453,8 @@
       <p class="store-quiet">Connect your own Shopify, WooCommerce, Etsy or Amazon store and Stock &amp; Margin, your low-stock triggers and the Store panel read your products, stock and order totals from it. Order summaries hold the date, the total and the items as SKU and quantity, never a customer's name, email, address or phone.</p>
       <div class="store-msg" id="storeStatusMsg"></div>
       <div id="storeConnections"></div>
-      <div class="store-sub">
+      <div class="store-row store-another" id="storeAnotherRow" hidden><button type="button" class="action-btn action-btn--ghost" id="storeConnectAnother" aria-expanded="false" aria-controls="storeConnectForm">Connect another store</button></div>
+      <div class="store-sub" id="storeConnectForm">
         <div class="store-pick" role="group" aria-label="Store platform">
           <button type="button" class="action-btn action-btn--ghost" id="storePickShopify" aria-pressed="true">Shopify</button>
           <button type="button" class="action-btn action-btn--ghost" id="storePickWoo" aria-pressed="false">WooCommerce</button>
@@ -511,8 +529,8 @@
           <div class="store-row"><button type="button" class="action-btn" id="storeAmazonBtn">Connect Amazon</button></div>
           <p class="store-msg" id="storeAmazonUnset" hidden>Amazon connection isn't set up yet.</p>
         </div>
-        <div class="store-msg" id="storeConnectMsg"></div>
       </div>
+      <div class="store-msg" id="storeConnectMsg"></div>
     </section>
     <section class="context-card store-card" id="storeChangesCard" aria-label="Store changes">
       <h2 class="section-label">Store changes</h2>

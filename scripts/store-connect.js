@@ -43,6 +43,16 @@
    Amazon app is a draft (amazon_draft), the page says only the account that
    registered BizForce can connect.
 
+   NAMED (Nov 15 2026, S4): with a store connected, the connect form (platform
+   picker, store field, checkbox, Connect) folds behind "Connect another store";
+   it stays open with none connected, while a connection needs reconnecting, and
+   when Shopify opens the page to finish. Under each connected store, its synced
+   products from GET /api/inventory/items?store_connection_id= (the rows
+   inventory.html lists): name, SKU, stock (at the chosen Shopify location),
+   store price with the currency, and the same "Propose a change" control
+   (scripts/store-changes.js) on the same rows, paged as inventory.html pages
+   (limit and offset, has_more, Previous and Next, 10 to 100 a page).
+
    Every server message is shown as the server wrote it, with textContent.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -176,9 +186,111 @@
     return wrap;
   }
 
+  /* The connect form: open with no store, folded behind "Connect another store" with one or more. */
+  var formOpen = false, formHeld = false;
+  function foldForm(list) {
+    var form = byId("storeConnectForm"), row = byId("storeAnotherRow"), btn = byId("storeConnectAnother");
+    if (!form || !row || !btn) return;
+    var any = list.length > 0;
+    var held = formHeld || list.some(function (c) { return c && c.status === "needs_reconnect"; });
+    var open = !any || held || formOpen;
+    form.hidden = !open;
+    row.hidden = !any || held;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  function toggleForm() {
+    formOpen = !formOpen;
+    var form = byId("storeConnectForm");
+    form.hidden = !formOpen;
+    byId("storeConnectAnother").setAttribute("aria-expanded", formOpen ? "true" : "false");
+  }
+
+  /* A connected store's synced products, a page at a time (inventory.html's paging). */
+  var PAGE_SIZES = [10, 25, 50, 100];
+  var pages = {};
+  function pageOf(id) { if (!pages[id]) pages[id] = { limit: 25, offset: 0, hasMore: false }; return pages[id]; }
+  function priceWith(value, currency) {
+    if (value === null || value === undefined || value === "") return "Not read yet";
+    return String(value) + (typeof currency === "string" && /^[A-Z]{3}$/.test(currency) ? " " + currency : "");
+  }
+  function stockLabel(c) {
+    return c.platform === "shopify" && c.stock_scope === "location" && c.location_name ? "Stock at " + c.location_name : "Stock";
+  }
+  function productRow(c, it) {
+    var row = el("div", "store-prod");
+    var main = el("div", "store-prod-main");
+    main.appendChild(el("p", "store-prod-name", String(it.name || "Unnamed")));
+    main.appendChild(el("p", "store-prod-sku", it.sku ? "SKU " + String(it.sku) : "No SKU"));
+    row.appendChild(main);
+    var n = Number(it.quantity_on_hand);
+    var stock = el("div", "store-prod-stock");
+    stock.appendChild(el("p", "store-prod-value", Number.isFinite(n) ? String(n) : "Unknown"));
+    stock.appendChild(el("p", "store-prod-label", stockLabel(c)));
+    row.appendChild(stock);
+    var price = el("div", "store-prod-price");
+    price.appendChild(el("p", "store-prod-value", priceWith(it.unit_price, c.currency)));
+    price.appendChild(el("p", "store-prod-label", "Store price"));
+    row.appendChild(price);
+    var slot = el("div", "store-prod-slot");
+    // The rows inventory.html gives a control (a synced item), and the same control.
+    if (it.source && window.bfStoreChanges && typeof window.bfStoreChanges.controlFor === "function") {
+      var node = window.bfStoreChanges.controlFor(c, String(it.id), { field: "price", value: it.unit_price });
+      if (node) slot.appendChild(node);
+    }
+    row.appendChild(slot);
+    return row;
+  }
+  function renderProducts(c, box) {
+    var page = pageOf(c.id);
+    box.textContent = "";
+    box.appendChild(el("p", "store-products-head", "Products"));
+    var list = el("div", "store-products-list");
+    list.appendChild(el("p", "store-quiet", "Loading products..."));
+    box.appendChild(list);
+    var pager = el("div", "store-pager");
+    pager.hidden = true;
+    var info = el("span", "store-quiet store-pager-info");
+    var btns = el("div", "store-pager-btns");
+    var sizeId = "storeProdSize-" + c.id;
+    var sizeLabel = el("label", "store-quiet", "Per page");
+    sizeLabel.setAttribute("for", sizeId);
+    var size = el("select", "store-pager-size");
+    size.id = sizeId;
+    PAGE_SIZES.forEach(function (v) { var o = el("option", null, String(v)); o.value = String(v); if (v === page.limit) o.selected = true; size.appendChild(o); });
+    var prev = el("button", "action-btn action-btn--ghost store-pager-prev", "Previous");
+    prev.type = "button";
+    var next = el("button", "action-btn action-btn--ghost store-pager-next", "Next");
+    next.type = "button";
+    btns.appendChild(sizeLabel); btns.appendChild(size); btns.appendChild(prev); btns.appendChild(next);
+    pager.appendChild(info); pager.appendChild(btns);
+    box.appendChild(pager);
+    size.addEventListener("change", function () { page.limit = Number(size.value) || 25; page.offset = 0; renderProducts(c, box); });
+    prev.addEventListener("click", function () { if (page.offset === 0) return; page.offset = Math.max(0, page.offset - page.limit); renderProducts(c, box); });
+    next.addEventListener("click", function () { if (!page.hasMore) return; page.offset += page.limit; renderProducts(c, box); });
+    api("GET", "/api/inventory/items?store_connection_id=" + encodeURIComponent(c.id) + "&limit=" + page.limit + "&offset=" + page.offset).then(function (res) {
+      list.textContent = "";
+      if (!res.ok) { list.appendChild(el("p", "store-msg err", "Your products could not be loaded: " + serverMessage(res))); return; }
+      var items = Array.isArray(res.data.items) ? res.data.items : [];
+      page.hasMore = res.data.has_more === true;
+      if (typeof res.data.limit === "number") page.limit = res.data.limit;
+      if (typeof res.data.offset === "number") page.offset = res.data.offset;
+      // Past the end (a sync removed rows): step back a page, as inventory.html does.
+      if (!items.length && page.offset > 0) { page.offset = Math.max(0, page.offset - page.limit); renderProducts(c, box); return; }
+      if (!items.length) { list.appendChild(el("p", "store-quiet store-products-empty", "No synced products yet. Press Sync now.")); return; }
+      items.forEach(function (it) { list.appendChild(productRow(c, it)); });
+      var first = page.offset + 1, last = page.offset + items.length;
+      info.textContent = page.hasMore ? "Showing " + first + "\u2013" + last + ", and there are more."
+        : page.offset === 0 ? "Showing all " + items.length + "." : "Showing " + first + "\u2013" + last + ". End of the list.";
+      prev.disabled = page.offset === 0;
+      next.disabled = !page.hasMore;
+      pager.hidden = false;
+    }, function () { list.textContent = ""; list.appendChild(el("p", "store-msg err", "Your products could not be loaded: the request failed.")); });
+  }
+
   function renderConnections(list) {
     var box = byId("storeConnections");
     box.textContent = "";
+    foldForm(list);
     if (!list.length) {
       box.appendChild(el("p", "store-quiet", "No store connected yet."));
       return;
@@ -244,7 +356,11 @@
       var msg = el("div", "store-msg");
       msg.id = msgId;
       row.appendChild(msg);
+      var products = el("div", "store-products");
+      products.id = "storeProducts-" + c.id;
+      row.appendChild(products);
       box.appendChild(row);
+      renderProducts(c, products);
     });
   }
 
@@ -346,6 +462,7 @@
       stripQuery();
       choose("shopify");
       if (shown) byId("storeShop").value = shown;
+      formHeld = true;   // the member is asked to press Connect Shopify, so the form stays open
       say("storeConnectMsg", FINISH_HINT);
       load();
       return;
@@ -447,6 +564,7 @@
     byId("storeEtsyBtn").addEventListener("click", connectEtsy);
     byId("storePickAmazon").addEventListener("click", function () { choose("amazon"); });
     byId("storeAmazonBtn").addEventListener("click", connectAmazon);
+    if (byId("storeConnectAnother")) byId("storeConnectAnother").addEventListener("click", toggleForm);
     choose("shopify");
     var q = new URLSearchParams(window.location.search);
     if (q.get("store") === "woocommerce") {

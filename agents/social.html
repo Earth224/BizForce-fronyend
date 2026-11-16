@@ -452,7 +452,12 @@
     .sf-chip--wait { border-color: rgba(251, 191, 36, .4); background: rgba(251, 191, 36, .1); color: var(--bf-warning, #fbbf24); }
     .sf-chip--bad { border-color: rgba(248, 113, 113, .4); background: rgba(248, 113, 113, .1); color: #f87171; }
     .sf-chip--off { border-color: rgba(136, 146, 184, .35); background: rgba(136, 146, 184, .08); color: var(--bf-text-muted, #8892b8); }
-    .sf-videos .masto-post-link { display: inline-block; margin-top: 8px; overflow-wrap: anywhere; }
+    /* NAMED (Nov 15 2026, S4): BEFORE each posted link was inline-block with only a top margin, so two platforms' links
+       ran together on one line. AFTER they sit in .sf-links, a wrapping row spaced as .sf-chips (6px between lines) and
+       .sf-form (14px between links). The site has no spacing tokens, so these are the values those rules use. */
+    .sf-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 8px; min-width: 0; }
+    .sf-links:empty { display: none; }
+    .sf-videos .masto-post-link { display: inline-block; min-width: 0; overflow-wrap: anywhere; }
     .sf-videos .bsky-row .action-btn { padding: 9px 14px; }
     .sf-videos .action-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
     /* NAMED (Nov 13 2026, S3): a disabled platform button's reason sits beside it, with a link to Proposals while it waits. */
