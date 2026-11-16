@@ -49,7 +49,9 @@
     /* Card preview */
     .preview-panel{display:flex;flex-direction:column;gap:20px}
     .preview-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8892b8;margin-bottom:0}
-    .card-preview{width:100%;max-width:560px;aspect-ratio:1.75;border-radius:20px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5);--border-weight:16px}
+    /* NAMED (Nov 15 2026, S5): contain:inline-size, so no text on the card can widen the column or the page (a long name
+       pushed a 375 px phone to 657 px); the card keeps its size and bf-card.js fitText fits the text inside it. */
+    .card-preview{width:100%;max-width:560px;aspect-ratio:1.75;border-radius:20px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 12px 40px rgba(0,0,0,.5);--border-weight:16px;contain:inline-size}
     .card-preview[data-theme="dark"]{background:linear-gradient(135deg,#0c1228,#070b18);border:1.5px solid rgba(34,211,238,.3)}
     .card-preview[data-theme="midnight"]{background:linear-gradient(135deg,#1a1040,#0f1729);border:1.5px solid rgba(168,85,247,.35)}
     .card-preview[data-theme="forest"]{background:linear-gradient(135deg,#0a1f14,#061a12);border:1.5px solid rgba(52,211,153,.32)}
@@ -1254,6 +1256,9 @@ function updatePreview() {
   qrTimer = setTimeout(generateQR, 400);
   if (freePositionMode) syncFpOverlay();
   syncStillText();
+  // NAMED (Nov 15 2026, S5): every field fitted to the card (bf-card.js fitText); refitted on size, class, theme and font changes.
+  window.bfCard.fitCardText(document);
+  window.bfCard.watchCardText(document.getElementById("cardPreview"));
 }
 
 /* The QR encodes the card's public URL (scripts/bf-card.js says why): the
@@ -3120,10 +3125,11 @@ function setFreePositionMode(on) {
 
 function syncFpOverlay() {
   var textMap = {
-    company: document.getElementById('pCompany').textContent,
-    name:    document.getElementById('pName').textContent,
-    title:   document.getElementById('pTitle').textContent,
-    tagline: document.getElementById('pTagline').textContent
+    // NAMED (Nov 15 2026, S5): the whole text, not the fitted (possibly cut) one the card shows.
+    company: window.bfCard.fullText(document.getElementById('pCompany')),
+    name:    window.bfCard.fullText(document.getElementById('pName')),
+    title:   window.bfCard.fullText(document.getElementById('pTitle')),
+    tagline: window.bfCard.fullText(document.getElementById('pTagline'))
   };
   FP_KEYS.forEach(function(key) {
     var el  = document.getElementById(FP_IDS[key]);

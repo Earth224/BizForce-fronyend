@@ -98,8 +98,14 @@
     var msg = el("div", "store-msg");
     if (prefill && (prefill.field === "price" || prefill.field === "stock")) pick.value = prefill.field;
     if (prefill && prefill.value !== undefined && prefill.value !== null) input.value = String(prefill.value);
-    pick.addEventListener("change", function () { input.step = pick.value === "stock" ? "1" : "0.01"; });
-    input.step = pick.value === "stock" ? "1" : "0.01";
+    /* NAMED (Nov 15 2026, S5): the store line about stock (Shopify's location, Etsy's 0 to 999, Amazon's FBA) shows only
+       while "New stock level" is chosen; BEFORE it showed under "New price" too. It follows the field picker live. */
+    var stockNote = null;
+    function syncField() {
+      input.step = pick.value === "stock" ? "1" : "0.01";
+      if (stockNote) stockNote.hidden = pick.value !== "stock";
+    }
+    pick.addEventListener("change", syncField);
     open.addEventListener("click", function () { form.hidden = !form.hidden; });
     send.addEventListener("click", function () {
       send.disabled = true;
@@ -114,13 +120,15 @@
     form.appendChild(input);
     form.appendChild(send);
     if (conn && conn.platform === "shopify") {
-      form.appendChild(el("p", "store-quiet store-change-where", conn.location_name ? "Stock changes apply at " + conn.location_name + "."
-        : "Choose a location for stock changes on the Store Agent page before proposing a stock change."));
+      stockNote = el("p", "store-quiet store-change-where", conn.location_name ? "Stock changes apply at " + conn.location_name + "."
+        : "Choose a location for stock changes on the Store Agent page before proposing a stock change.");
     }
     // Etsy (Nov 8 2026, migration 181): an offering's quantity is 0 to 999.
-    if (conn && conn.platform === "etsy") form.appendChild(el("p", "store-quiet store-change-where", "Etsy allows a stock level from 0 to 999."));
+    if (conn && conn.platform === "etsy") stockNote = el("p", "store-quiet store-change-where", "Etsy allows a stock level from 0 to 999.");
     // Amazon (Nov 8 2026, migration 182): Amazon keeps the stock of the items it ships (FBA).
-    if (conn && conn.platform === "amazon") form.appendChild(el("p", "store-quiet store-change-where", "Stock changes apply to items you ship yourself; Amazon keeps the stock of items it ships for you (FBA)."));
+    if (conn && conn.platform === "amazon") stockNote = el("p", "store-quiet store-change-where", "Stock changes apply to items you ship yourself; Amazon keeps the stock of items it ships for you (FBA).");
+    if (stockNote) form.appendChild(stockNote);
+    syncField();
     box.appendChild(open);
     box.appendChild(form);
     box.appendChild(msg);

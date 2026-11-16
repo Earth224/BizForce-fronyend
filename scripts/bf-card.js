@@ -26,6 +26,18 @@
    it cannot be fetched). The public card's fields arrive already filtered by
    the server: a field the member hid is "" there, so it is in neither the
    page, its links nor this vCard.
+
+   NAMED (Nov 15 2026, S5): THE CARD'S TEXT FITS THE CARD. A long field never
+   widens the card or the page. fitText(el, field) keeps the text on one line
+   at the page's own size, shrinks it toward a minimum (the name: 60% of its
+   size, never under 11 px; every other field: 75%, never under 7 px), then
+   lets it wrap to a second line at that minimum, then cuts it with an ellipsis
+   written into the text itself, so html2canvas (the PNG, the print file and
+   the shared image) draws exactly what the card shows. The whole text stays
+   in the title attribute, and fullText(el) gives it back to any reader.
+   watchCardText refits on any change of the card's size, class or theme, and
+   when a web font arrives. card-view.html and digital-cards.html call the
+   same functions with the same field ids.
    ══════════════════════════════════════════════════════════════════════════ */
 (function (root) {
   "use strict";
@@ -152,6 +164,78 @@
     var n = String(fullName == null ? "" : fullName).replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "").replace(/\s+/g, " ").trim();
     return n || "the owner of this card";
   }
+  /* NAMED (Nov 15 2026, S5): the card's text fitting (see the header). */
+  var CARD_TEXT_IDS = ["pCompany", "pName", "pTitle", "pTagline", "pEmail", "pPhone", "pWebsite"];
+  var NAME_MIN = { ratio: 0.6, px: 11 }, FIELD_MIN = { ratio: 0.75, px: 7 };
+  var ELLIPSIS = "\u2026";
+  function fullText(el) {
+    if (!el) return "";
+    var shown = el.getAttribute("data-fit-shown");
+    return shown !== null && el.textContent === shown ? (el.getAttribute("data-fit-full") || "") : el.textContent;
+  }
+  function minFor(field, max) {
+    var m = field === "name" ? NAME_MIN : FIELD_MIN;
+    return Math.min(max, Math.max(m.px, Math.round(max * m.ratio * 10) / 10));
+  }
+  function fitText(el, field) {
+    if (!el) return null;
+    var full = fullText(el);
+    ["font-size", "white-space", "overflow-wrap", "overflow", "text-overflow"].forEach(function (p) { el.style.removeProperty(p); });
+    if (el.textContent !== full) el.textContent = full;
+    el.setAttribute("data-fit-full", full);
+    el.setAttribute("data-fit-shown", full);
+    if (full) el.setAttribute("title", full); else el.removeAttribute("title");
+    var out = { stage: "one-line", size: null };
+    if (!full || !el.clientWidth) return out;
+    var view = el.ownerDocument.defaultView;
+    el.style.setProperty("overflow", "hidden", "important");
+    el.style.setProperty("text-overflow", "clip", "important");
+    el.style.setProperty("white-space", "nowrap", "important");
+    var max = parseFloat(view.getComputedStyle(el).fontSize) || 12, min = minFor(field, max);
+    var fitsLine = function () { return el.scrollWidth <= el.clientWidth + 0.5; };
+    out.size = max;
+    if (fitsLine()) return out;
+    el.style.setProperty("font-size", min + "px", "important");
+    if (fitsLine()) {
+      var lo = min, hi = max;
+      for (var i = 0; i < 10; i++) { var mid = (lo + hi) / 2; el.style.setProperty("font-size", mid + "px", "important"); if (fitsLine()) lo = mid; else hi = mid; }
+      lo = Math.floor(lo * 10) / 10;
+      el.style.setProperty("font-size", lo + "px", "important");
+      out.stage = "shrunk"; out.size = lo;
+      return out;
+    }
+    // At the minimum and still too long: two lines, then an ellipsis. One line's height is measured here, still on
+    // one line at the minimum, so a line-height of "normal" (the font's own) counts as truly as a number would.
+    var cs = view.getComputedStyle(el), pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    var lh = el.clientHeight - pad;
+    if (!(lh > 0)) lh = parseFloat(cs.lineHeight) || min * 1.2;
+    el.style.setProperty("white-space", "normal", "important");
+    el.style.setProperty("overflow-wrap", "anywhere", "important");
+    var fitsTwo = function () { return el.clientHeight - pad <= lh * 2 + 1 && el.scrollWidth <= el.clientWidth + 0.5; };
+    out.size = min;
+    out.stage = "two-lines";
+    if (fitsTwo()) return out;
+    var chars = Array.from(full), a = 0, b = chars.length;
+    while (a < b) { var n = Math.ceil((a + b) / 2); el.textContent = chars.slice(0, n).join("").replace(/\s+$/, "") + ELLIPSIS; if (fitsTwo()) a = n; else b = n - 1; }
+    el.textContent = chars.slice(0, a).join("").replace(/\s+$/, "") + ELLIPSIS;
+    el.setAttribute("data-fit-shown", el.textContent);
+    out.stage = "ellipsis";
+    return out;
+  }
+  function fitCardText(doc) {
+    var d = doc || document;
+    return CARD_TEXT_IDS.map(function (id) { return fitText(d.getElementById(id), id === "pName" ? "name" : "field"); });
+  }
+  function watchCardText(card) {
+    if (!card || card.getAttribute("data-fit-watched")) return;
+    card.setAttribute("data-fit-watched", "1");
+    var doc = card.ownerDocument, view = doc.defaultView, again = function () { fitCardText(doc); };
+    if (view.ResizeObserver) new view.ResizeObserver(again).observe(card);
+    if (view.MutationObserver) new view.MutationObserver(again).observe(card, { attributes: true, attributeFilter: ["class", "data-theme"] });
+    if (doc.fonts && doc.fonts.addEventListener) doc.fonts.addEventListener("loadingdone", again);
+    view.addEventListener("resize", again);
+  }
+
   function consentSentence(fullName) {
     var head = "I agree that ", tail = " may contact me about this message.";
     var chars = Array.from(leadName(fullName)), room = 300 - head.length - tail.length, name = "";
@@ -166,6 +250,7 @@
     SITE: SITE, PHOTO_EMBED_MAX_BYTES: PHOTO_EMBED_MAX_BYTES,
     publicUrl: publicUrl, qrUrl: qrUrl, isSafeMediaUrl: isSafeMediaUrl, telHref: telHref, mailtoHref: mailtoHref,
     vcardEscape: esc, fold: fold, buildVCard: buildVCard, photoFor: photoFor,
-    leadName: leadName, consentSentence: consentSentence
+    leadName: leadName, consentSentence: consentSentence,
+    CARD_TEXT_IDS: CARD_TEXT_IDS, NAME_MIN: NAME_MIN, FIELD_MIN: FIELD_MIN, fullText: fullText, fitText: fitText, fitCardText: fitCardText, watchCardText: watchCardText
   };
 })(typeof window !== "undefined" ? window : this);

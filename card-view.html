@@ -694,6 +694,9 @@ function renderCard(c) {
   setContactLink("pPhone", c.phone, window.bfCard.telHref(c.phone));
   var ws = (c.website || "").replace(/^https?:\/\//, "");
   document.getElementById("pWebsite").textContent = ws;
+  // NAMED (Nov 15 2026, S5): the same fitting as the maker (bf-card.js fitText): shrink, two lines, an ellipsis; the title the whole text.
+  window.bfCard.fitCardText(document);
+  window.bfCard.watchCardText(card);
 
   if (c.full_name) document.title = c.full_name + (c.company ? " — " + c.company : "") + " — BizForce AI Card";
   var cardUrl = window.bfCard.publicUrl(c) || window.location.href;
