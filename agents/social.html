@@ -424,6 +424,8 @@
     input.sf-control[type="checkbox"] { display: inline-block; width: 18px; height: 18px; padding: 0; flex: 0 0 auto; accent-color: #f472b6; cursor: pointer; }
     .sf-check { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; line-height: 1.4; color: #e6edf3; cursor: pointer; }
     .sf-check-group { display: grid; gap: 10px; }
+    /* NAMED (Nov 17 2026, TK1): BEFORE display: grid drew a hidden group anyway (Your brand and Branded content showed with Disclose off). */
+    .sf-check-group[hidden] { display: none; }
     .sf-under { margin-top: 4px; }
     .sf-actions { display: flex; flex-wrap: wrap; gap: 10px; }
     .sf-note { margin: 0; color: #8892b8; font-size: .82rem; line-height: 1.6; }
@@ -616,7 +618,9 @@
     <section class="context-card bsky-card" id="ttConnect" aria-label="TikTok">
       <h2 class="section-label">TikTok</h2>
       <p class="bsky-quiet">Connect your own TikTok account and prepare a post from a video in Your videos. Nothing goes to TikTok until you approve it on the proposals page.</p>
-      <p class="bsky-quiet">Until TikTok reviews BizForce, TikTok keeps posts from BizForce visible only to you.</p>
+      <!-- NAMED (Nov 17 2026, TK1): the private-account rule, from TikTok's content-sharing guidelines ("All user accounts using the API client to post must be set to private at the time of posting."). -->
+      <p class="bsky-quiet">Until TikTok reviews BizForce, your TikTok account must be set to private, and TikTok keeps posts from BizForce visible only to you.</p>
+      <p class="bsky-quiet">After you approve a post, TikTok may take a few minutes to process it before it appears on your profile.</p>
       <p class="bsky-quiet">To remove a TikTok post, delete it in the TikTok app.</p>
       <div class="bsky-msg" id="ttStatusMsg"></div>
       <p class="bsky-warn" id="ttUnavailable" hidden>TikTok connection isn't set up yet.</p>

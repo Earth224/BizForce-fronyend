@@ -224,6 +224,34 @@
   }
 
   // A PUT with a progress line. Resolves the status, or 0 for a network failure.
+  /* NAMED (Nov 17 2026, TK1): the browser's own measure of the video's length, in whole ms, or null. The server
+     reads MP4 and MOV lengths from the file itself and uses this only when it cannot (WebM), after its own sanity
+     check; TikTok's rule is that a post's length is checked against max_video_post_duration_sec. */
+  function measureDuration(file) {
+    return new Promise(function (resolve) {
+      // Anything this browser cannot do here leaves the length to the server (null).
+      try { measureInto(file, resolve); } catch (e) { resolve(null); }
+    });
+  }
+  function measureInto(file, resolve) {
+    var url = null, done = false, v = document.createElement("video");
+    var finish = function (ms) {
+      if (done) return; done = true;
+      try { v.removeAttribute("src"); v.load(); } catch (e) {}
+      if (url) URL.revokeObjectURL(url);
+      resolve(ms);
+    };
+    var timer = setTimeout(function () { finish(null); }, 8000);
+    v.preload = "metadata"; v.muted = true;
+    v.onloadedmetadata = function () {
+      clearTimeout(timer);
+      var d = v.duration;
+      finish(isFinite(d) && d > 0 ? Math.round(d * 1000) : null);
+    };
+    v.onerror = function () { clearTimeout(timer); finish(null); };
+    try { url = URL.createObjectURL(file); v.src = url; } catch (e) { clearTimeout(timer); finish(null); }
+  }
+
   function putFile(url, file, mime, onProgress) {
     return new Promise(function (resolve) {
       var xhr = new XMLHttpRequest();
@@ -256,7 +284,12 @@
       }).then(function (status) {
         if (status < 200 || status >= 300) throw new Error("The upload didn't finish. Try again.");
         tell("ytUploadMsg", "Checking the file…");
-        return call("POST", "/api/videos/finalize", { path: path, label: label, bytes: file.size });
+        // NAMED (Nov 17 2026, TK1): duration_ms, the browser's measure, a fallback the server checks.
+        return measureDuration(file).then(function (ms) {
+          var body = { path: path, label: label, bytes: file.size };
+          if (ms !== null) body.duration_ms = ms;
+          return call("POST", "/api/videos/finalize", body);
+        });
       });
     }).then(function (res) {
       if (!res.ok) throw new Error(errorOf(res));

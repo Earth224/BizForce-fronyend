@@ -55,6 +55,22 @@
   var CONSENT = "By posting, you agree to TikTok's Music Usage Confirmation.";
   var CONSENT_BRANDED = "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation.";
   var SELF_ONLY = "SELF_ONLY";
+  /* NAMED (Nov 17 2026, TK1), TikTok's content-sharing guidelines (developers.tiktok.com/docs/en/content-sharing-guidelines):
+     - the declaration's two names link to TikTok's own pages (MUSIC_URL, BC_URL);
+     - "hovering over it will display a prompt stating, "Branded content visibility cannot be set to private."" (PRIVATE_HOVER);
+     - "it may take a few minutes for the content to process and be visible on their profile." (PROCESSING);
+     - "All user accounts using the API client to post must be set to private at the time of posting." (REVIEWED). */
+  var MUSIC_URL = "https://www.tiktok.com/legal/page/global/music-usage-confirmation/en";
+  var BC_URL = "https://www.tiktok.com/legal/page/global/bc-policy/en";
+  var PRIVATE_HOVER = "Branded content visibility cannot be set to private.";
+  var PROCESSING = "TikTok may take a few minutes to process this video before it appears on your profile.";
+  var REVIEWED = "Until TikTok reviews BizForce, your TikTok account must be set to private, and TikTok keeps posts from BizForce visible only to you.";
+  var CHOOSE_DISCLOSURE = "Choose Your brand, Branded content, or both.";
+  /* NAMED (Nov 17 2026, TK1): "API clients should poll the publish/status/fetch API". A video TikTok is still processing
+     is asked about on its own: one request per video at a time (polls), after 10 s, then 20, 40, 80 and 160 s, stopping
+     at the first final answer (posted or failed). "Check TikTok status" stays for any time after. */
+  var POLL_DELAYS = [10000, 20000, 40000, 80000, 160000];
+  var polls = {};
   var state = { available: false, connected: false };
 
   function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
@@ -95,6 +111,80 @@
     try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); } catch (e) { return String(iso); }
   }
   function videos() { return window.BFVideos && typeof window.BFVideos.reload === "function" ? window.BFVideos : null; }
+  /* NAMED (Nov 17 2026, TK1): "45 s", "3 min", "2 min 5 s". */
+  function lengthText(ms) {
+    var total = Math.max(0, Math.round(Number(ms) / 1000));
+    var h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), sec = total % 60, parts = [];
+    if (h) parts.push(h + " h");
+    if (m) parts.push(m + " min");
+    if (sec || !parts.length) parts.push(sec + " s");
+    return parts.join(" ");
+  }
+  /* NAMED (Nov 17 2026, TK1): "API Clients should display a preview of the to-be-posted content." The member's own file
+     from GET /api/videos/:id/preview: muted, with controls, never autoplaying; a deleted file says so. */
+  function preview(v) {
+    var wrap = make("div", null, "sf-field tt-preview");
+    wrap.appendChild(make("span", "Preview", "sf-label"));
+    var note = make("p", "Loading the preview…", "bsky-quiet");
+    wrap.appendChild(note);
+    call("GET", "/api/videos/" + encodeURIComponent(v.id) + "/preview").then(function (res) {
+      if (res.status === 410 || res.status === 404) { note.textContent = "This video's file was deleted, so it can't be previewed or posted."; return; }
+      if (!res.ok || typeof res.data.url !== "string" || res.data.url.indexOf("https://") !== 0) {
+        note.textContent = (typeof res.data.error === "string" && res.data.error) || "The preview couldn't be opened just now.";
+        return;
+      }
+      var player = document.createElement("video");
+      player.controls = true; player.muted = true; player.autoplay = false; player.preload = "metadata";
+      player.setAttribute("playsinline", ""); player.setAttribute("muted", "");
+      player.setAttribute("style", "display:block;max-width:100%;max-height:360px;border-radius:8px;background:#000");
+      player.src = res.data.url;
+      note.textContent = "";
+      note.hidden = true;
+      wrap.appendChild(player);
+    }, function () { note.textContent = "The preview couldn't be opened just now."; });
+    return wrap;
+  }
+  /* NAMED (Nov 17 2026, TK1): TikTok's declaration with each name linked to TikTok's own page; built node by node. */
+  function declaration(node, branded) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+    var link = function (text, href) { var a = make("a", text); a.href = href; a.target = "_blank"; a.rel = "noopener"; return a; };
+    node.appendChild(document.createTextNode("By posting, you agree to TikTok's "));
+    if (branded) { node.appendChild(link("Branded Content Policy", BC_URL)); node.appendChild(document.createTextNode(" and ")); }
+    node.appendChild(link("Music Usage Confirmation", MUSIC_URL));
+    node.appendChild(document.createTextNode("."));
+    node.setAttribute("data-says", branded ? CONSENT_BRANDED : CONSENT);
+  }
+  /* NAMED (Nov 17 2026, TK1): the status poll for one video (POLL_DELAYS). show(text) writes into the row's message. */
+  function poll(v, show) {
+    var p = polls[v.id];
+    if (p) { p.show = show; if (p.text) show(p.text); return; }
+    p = polls[v.id] = { tries: 0, busy: false, done: false, text: "", show: show };
+    var say = function (text) { p.text = text; p.show(text); };
+    var next = function () {
+      if (p.done) return;
+      if (p.tries >= POLL_DELAYS.length) { say("TikTok is still processing it. Use Check TikTok status later."); return; }
+      setTimeout(ask, POLL_DELAYS[p.tries]);
+    };
+    var ask = function () {
+      if (p.busy || p.done) return;
+      p.busy = true; p.tries++;
+      call("GET", "/api/tiktok/videos/" + encodeURIComponent(v.id) + "/status").then(function (res) {
+        p.busy = false;
+        var st = res.ok ? res.data.tiktok_status : null;
+        if (st === "posted" || st === "failed") {
+          p.done = true;
+          say("TikTok: " + st + (res.data.fail_reason ? " (" + res.data.fail_reason + ")" : "") + ".");
+          var list = videos();
+          if (list) list.reload();
+          return;
+        }
+        say(res.ok ? PROCESSING : errorOf(res));
+        next();
+      }, function () { p.busy = false; next(); });
+    };
+    say(PROCESSING);
+    next();
+  }
   function returns() { return window.BFOAuthReturn || null; }
 
   /* ── the connection ────────────────────────────────────────────────────── */
@@ -243,6 +333,8 @@
         }, function () { if (shell.isOpen()) shell.msg.textContent = "TikTok couldn't be asked just now. Try again."; });
       });
     }
+    // NAMED (Nov 17 2026, TK1): a video TikTok is still processing is asked about on its own (poll), with the notice.
+    if (v.tiktok_status === "processing") poll(v, function (text) { msg.textContent = text; });
     if (v.tiktok_status === "initiated" || v.tiktok_status === "processing" || v.tiktok_status === "posted") {
       var check = row.button("Check TikTok status", true);
       check.addEventListener("click", function () {
@@ -251,7 +343,8 @@
           check.disabled = false;
           if (!res.ok) { msg.textContent = errorOf(res); return; }
           var d = res.data;
-          msg.textContent = "TikTok: " + (d.tiktok_status || "unknown") + (d.fail_reason ? " (" + d.fail_reason + ")" : "") + ".";
+          msg.textContent = "TikTok: " + (d.tiktok_status || "unknown") + (d.fail_reason ? " (" + d.fail_reason + ")" : "") + "." +
+            (d.tiktok_status === "processing" ? " " + PROCESSING : "");
           var list = videos();
           if (list && d.tiktok_status !== v.tiktok_status) list.reload();
         }, function () { check.disabled = false; msg.textContent = "The status couldn't be checked. Try again."; });
@@ -291,7 +384,17 @@
     var words = plainObject(info.privacy_words) ? info.privacy_words : {};
     var options = Array.isArray(info.privacy_level_options) ? info.privacy_level_options.filter(function (o) { return typeof o === "string"; }) : [];
     box.appendChild(make("p", "Posting as " + (typeof info.creator_nickname === "string" ? info.creator_nickname : "your TikTok account"), "bsky-connected-as"));
-    box.appendChild(make("p", "Until TikTok reviews BizForce, TikTok keeps posts from BizForce visible only to you.", "bsky-quiet"));
+    // NAMED (Nov 17 2026, TK1): BEFORE visible only to you. AFTER the private-account rule too.
+    box.appendChild(make("p", REVIEWED, "bsky-quiet"));
+    box.appendChild(preview(v));
+    /* NAMED (Nov 17 2026, TK1): "API clients must check if the duration of the to-be-posted video follows the
+       max_video_post_duration_sec returned in the creator_info API." Shown here; the server refuses it at filing and approval. */
+    var maxSec = typeof info.max_video_post_duration_sec === "number" && info.max_video_post_duration_sec > 0 ? info.max_video_post_duration_sec : null;
+    var lengthLine = make("p", "", "bsky-quiet tt-length");
+    if (typeof v.duration_ms !== "number") lengthLine.textContent = "BizForce doesn't know this video's length, so TikTok can't be asked to post it. Delete it from Your videos and add it again.";
+    else if (maxSec !== null && v.duration_ms > maxSec * 1000) lengthLine.textContent = "This video is " + lengthText(v.duration_ms) + " long, and TikTok lets this account post videos up to " + lengthText(maxSec * 1000) + ".";
+    else lengthLine.textContent = "Length " + lengthText(v.duration_ms) + (maxSec !== null ? "; TikTok allows this account up to " + lengthText(maxSec * 1000) + "." : ".");
+    box.appendChild(lengthLine);
 
     var idea = control(document.createElement("textarea"));
     idea.rows = 3; idea.maxLength = 1000; idea.placeholder = IDEA_PLACEHOLDER;
@@ -330,7 +433,8 @@
     brands.appendChild(branded.label);
     var labelLine = make("p", "", "bsky-quiet");
     labelLine.hidden = true;
-    var consent = make("p", CONSENT, "bsky-quiet");
+    var consent = make("p", null, "bsky-quiet tt-declaration");
+    declaration(consent, false);
 
     var helper = field(IDEA_LABEL, idea, idp + "idea");
     var under = make("div", null, "sf-under");
@@ -360,17 +464,26 @@
       var paid = branded.input.checked;
       labelLine.textContent = paid ? PAID : (yours.input.checked ? PROMOTIONAL : "");
       labelLine.hidden = !labelLine.textContent;
-      consent.textContent = paid ? CONSENT_BRANDED : CONSENT;
+      declaration(consent, paid);
       // Branded content can't be private: "Only you" can't be chosen while it's on.
+      // NAMED (Nov 17 2026, TK1): and, disabled, it says why on hover (PRIVATE_HOVER).
       for (var i = 0; i < privacy.options.length; i++) {
-        if (privacy.options[i].value === SELF_ONLY) privacy.options[i].disabled = paid;
+        if (privacy.options[i].value !== SELF_ONLY) continue;
+        privacy.options[i].disabled = paid;
+        privacy.options[i].title = paid ? PRIVATE_HOVER : "";
       }
+      /* NAMED (Nov 17 2026, TK1): "If the commercial content disclosure toggle is turned on but no options are selected,
+         the publish button should be disabled." */
+      var unchosen = disclose.input.checked && !yours.input.checked && !branded.input.checked;
+      file.disabled = unchosen || busy;
+      file.title = unchosen ? CHOOSE_DISCLOSURE : "";
     }
     [caption, privacy, disclose.input, yours.input, branded.input].forEach(function (n) {
       n.addEventListener("input", redraw);
       n.addEventListener("change", redraw);
     });
 
+    var busy = false;
     var row = make("div", null, "sf-actions");
     var file = make("button", "File for approval", "action-btn");
     file.type = "button";
@@ -391,8 +504,9 @@
 
     file.addEventListener("click", function () {
       if (!privacy.value) { msg.textContent = "Choose who can see this post."; return; }
-      if (disclose.input.checked && !yours.input.checked && !branded.input.checked) { msg.textContent = "Choose Your brand, Branded content, or both."; return; }
+      if (disclose.input.checked && !yours.input.checked && !branded.input.checked) { msg.textContent = CHOOSE_DISCLOSURE; return; }
       if (branded.input.checked && privacy.value === SELF_ONLY) { msg.textContent = BRANDED_PRIVATE; return; }
+      busy = true;
       file.disabled = true;
       var body = {
         video_id: v.id,
@@ -407,9 +521,10 @@
       };
       if (repost === true) body.repost = true;
       call("POST", "/api/tiktok/propose-post", body).then(function (res) {
-        file.disabled = false;
+        busy = false;
+        redraw();
         msg.textContent = res.ok ? (res.data.note || "Filed for approval.") : errorOf(res);
-      }, function () { file.disabled = false; msg.textContent = "Filing didn't finish. Try again."; });
+      }, function () { busy = false; redraw(); msg.textContent = "Filing didn't finish. Try again."; });
     });
     redraw();
     return box;
