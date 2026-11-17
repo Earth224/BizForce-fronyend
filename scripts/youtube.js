@@ -55,7 +55,9 @@
   var CANCELLED = "You cancelled the Google sign-in.";
   var NOT_FINISHED = "Google sign-in didn't finish. Try again.";
   var START_AGAIN = "Start the connection again.";
-  var state = { available: false, connected: false, busy: false, tiktokAvailable: false, instagramAvailable: false, facebookAvailable: false };
+  var REMOVE_SCOPE = "Reconnect YouTube to allow removing videos.";
+  var state = { available: false, connected: false, busy: false, tiktokAvailable: false, instagramAvailable: false, facebookAvailable: false,
+    canRemove: true, removeMessage: "" };
 
   function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function plainObject(v) { return v !== null && typeof v === "object" && !Array.isArray(v); }
@@ -104,15 +106,22 @@
     state.available = st.youtube_available === true;
     state.connected = st.connected === true && st.status === "connected";
     var reconnect = st.status === "needs_reconnect";
+    /* NAMED (Nov 17 2026, P2): a connection made before BizForce asked for youtube.force-ssl can upload but not remove.
+       The server says so (can_remove false, remove_message); the panel shows the message and a "Reconnect YouTube"
+       button (the same Connect flow), and Remove from YouTube explains instead of filing. */
+    state.canRemove = !(state.connected && st.can_remove === false);
+    state.removeMessage = typeof st.remove_message === "string" && st.remove_message ? st.remove_message : REMOVE_SCOPE;
     showIf("ytUnavailable", !state.available);
     var btn = el("ytConnectBtn");
     if (btn) {
       btn.disabled = !state.available;
-      btn.hidden = state.connected;
-      btn.textContent = reconnect ? "Connect YouTube again" : "Connect YouTube";
+      btn.hidden = state.connected && state.canRemove;
+      btn.textContent = reconnect ? "Connect YouTube again" : (state.connected ? "Reconnect YouTube" : "Connect YouTube");
     }
     showIf("ytConnected", state.connected);
     showIf("ytReconnect", reconnect);
+    showIf("ytRemoveScope", !state.canRemove);
+    if (!state.canRemove && el("ytRemoveScopeText")) el("ytRemoveScopeText").textContent = state.removeMessage;
     showIf("ytDisconnectBtn", state.connected || reconnect);
     if (state.connected) {
       el("ytChannel").textContent = "Connected to " + (typeof st.channel_title === "string" ? st.channel_title : "your channel");
@@ -545,6 +554,8 @@
         }, function () { check.disabled = false; msg.textContent = "The status couldn't be checked. Try again."; });
       });
       remove.addEventListener("click", function () {
+        // NAMED (Nov 17 2026, P2): without the removal permission, explain; nothing is filed.
+        if (!state.canRemove) { msg.textContent = state.removeMessage; return; }
         remove.disabled = true;
         call("POST", "/api/youtube/videos/" + encodeURIComponent(v.id) + "/propose-delete", {}).then(function (res) {
           remove.disabled = false;

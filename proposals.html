@@ -469,12 +469,17 @@ function descriptionBlock(text, cls) {
   var empty = t.trim() === "";
   return '<pre class="exec-block' + (cls ? " " + cls : "") + (empty ? " pf-none" : "") + '">' + (empty ? "None" : escapeHtml(t)) + '</pre>';
 }
+// NAMED (Nov 17 2026, P2): a YouTube proposal filed since P2 names no channel (payload.connection_since instead of channel_id);
+// one filed before still shows its channel id in brackets.
+function youtubeChannelNote(payload) {
+  return typeof payload.channel_id === "string" && payload.channel_id ? " (" + escapeHtml(payload.channel_id) + ")" : "";
+}
 function youtubeUploadPayloadFields(payload) {
   var privacy = payload.privacy === "public" || payload.privacy === "unlisted" ? payload.privacy : "private";
   var kids = payload.made_for_kids === true ? "Yes" : (payload.made_for_kids === false ? "No" : "not answered");
   var tags = Array.isArray(payload.tags) ? payload.tags.map(String).join(", ") : "";
   return '<div class="payload-fields">' +
-      '<div><span class="pf-label">channel</span><span class="pf-value yt-channel">your connected YouTube channel (' + escapeHtml(String(payload.channel_id == null ? "" : payload.channel_id)) + ')</span></div>' +
+      '<div><span class="pf-label">channel</span><span class="pf-value yt-channel">your connected YouTube channel' + youtubeChannelNote(payload) + '</span></div>' +
       '<div><span class="pf-label">title</span><span class="pf-value yt-title">' + escapeHtml(String(payload.title == null ? "" : payload.title)) + '</span></div>' +
       '<div><span class="pf-label">privacy</span><span class="pf-value yt-privacy">' + escapeHtml(privacy) + '</span></div>' +
       '<div><span class="pf-label">made for kids</span><span class="pf-value yt-kids">' + escapeHtml(kids) + '</span></div>' +
@@ -490,7 +495,7 @@ function youtubeDeletePayloadFields(payload) {
   var id = typeof payload.youtube_video_id === "string" && /^[A-Za-z0-9_-]{11}$/.test(payload.youtube_video_id) ? payload.youtube_video_id : "";
   return '<div class="payload-fields">' +
       '<div><span class="pf-label">remove</span><span class="pf-value yt-remove">' + escapeHtml(id ? "https://www.youtube.com/watch?v=" + id : "no video recorded") + '</span></div>' +
-      '<div><span class="pf-label">channel</span><span class="pf-value">your connected YouTube channel (' + escapeHtml(String(payload.channel_id == null ? "" : payload.channel_id)) + ')</span></div>' +
+      '<div><span class="pf-label">channel</span><span class="pf-value">your connected YouTube channel' + youtubeChannelNote(payload) + '</span></div>' +
       '<div><span class="pf-label">approval</span><span class="pf-value">removed from YouTube only when you approve</span></div>' +
     '</div>';
 }
