@@ -7,6 +7,13 @@
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
   var AGENT_TYPE  = String(cfg.agentType  || "general").toLowerCase();
   var AGENT_LABEL = String(cfg.agentLabel || "Agent");
+  /* NAMED (Nov 18 2026, LOGO1): the brand marks (scripts/bf-marks.js, the one source), loaded once for the running
+     indicator (workingMark) where the page did not load them itself. */
+  if (!window.BFMarks && !document.querySelector('script[src="/scripts/bf-marks.js"]')) {
+    var marksTag = document.createElement("script");
+    marksTag.src = "/scripts/bf-marks.js";
+    (document.head || document.documentElement).appendChild(marksTag);
+  }
   var ACCENT      = String(cfg.accentColor || (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a", "#22d3ee") : "#22d3ee"));
   var TASK_TYPES  = Array.isArray(cfg.taskTypes) ? cfg.taskTypes : [{ value: "general", label: "General Task" }];
   /* This agent's own tools, the same idea as taskTypes: declared per page, so one
@@ -3651,12 +3658,18 @@
   }
 
   /* ── button loading state ── */
+  /* NAMED (Nov 18 2026, LOGO1): an agent running shows the Agent Network mark with its centre dot pulsing
+     (prefers-reduced-motion stops the pulse), in white on the gradient button. BEFORE the round .ap-spinner;
+     it stays the fallback until bf-marks.js has loaded. */
+  function workingMark() {
+    return window.BFMarks ? window.BFMarks.svg("agents", { size: 18, working: true, color: "#FFFFFF" }) : '<span class="ap-spinner"></span>';
+  }
   function setBtnLoading(loading) {
     var btn = document.getElementById("apLaunchBtn");
     if (!btn) return;
     if (loading) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="ap-spinner"></span>Running…';
+      btn.innerHTML = workingMark() + 'Running…';
     } else {
       btn.disabled = false;
       btn.textContent = "Launch Task";
