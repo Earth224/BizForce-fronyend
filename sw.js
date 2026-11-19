@@ -51,7 +51,8 @@ var STATIC_FILES = [
   "/scripts/bf-why.js", "/scripts/bluesky-connect.js", "/scripts/bluesky-mentions.js", "/scripts/facebook.js", "/scripts/instagram.js",
   "/scripts/mastodon-connect.js", "/scripts/media-picker.js", "/scripts/oauth-return.js", "/scripts/store-changes.js",
   "/scripts/store-connect.js", "/scripts/tiktok.js", "/scripts/youtube.js",
-  // NAMED (Nov 18 2026, LOGO1): the brand marks, loaded by dashboard.html, ai-agents.html and every agent page.
+  // NAMED (Nov 18 2026, LOGO1): the brand marks. NAMED (Nov 19 2026, LOGO2): now only the Layered Stack, loaded by
+  // dashboard.html for its top bar.
   "/scripts/bf-marks.js",
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
