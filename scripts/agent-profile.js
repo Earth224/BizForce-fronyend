@@ -1057,7 +1057,12 @@
       "#agTabs{margin-top:28px}" +
       "#agTabs .ag-panel[hidden],#agTabs .deck-panel[hidden]{display:none !important}" +
       "#agTabs .ag-panel > :first-child{margin-top:0}" +
-      "#apScheduleSection .ap-auto{margin-top:0;padding-top:0;border-top:0}";
+      "#apScheduleSection .ap-auto{margin-top:0;padding-top:0;border-top:0}" +
+      /* PH1 (Nov 19 2026): on a phone the Run, Schedule, Activity and Learning tabs are one row that scrolls sideways, its
+         right edge fading out (a mask) so a cut tab reads as "more this way"; the row's end padding lets the last tab
+         scroll clear of the fade. Desktop unchanged. */
+      "@media (max-width:760px){#agTabs .deck-tabs-scroll{padding-inline-end:32px;scroll-padding-inline:0 32px;" +
+        "-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent)}}";
     holder.appendChild(style);
     var list = document.createElement("div");
     list.className = "deck-tabs deck-tabs-scroll";
@@ -5289,6 +5294,13 @@
         // NAMED (Nov 11 2026, polish): on a phone the status line wraps ("Retrying in 120s - the request did not complete" ran
         // past the edge at 390 px on every agent page); wider screens keep it on one line.
         '@media (max-width:560px){.ap-live-status{white-space:normal;overflow-wrap:anywhere;min-width:0}}' +
+        // PH1 (Nov 19 2026, the agent pages on a phone). NAMED BEFORE: a tile's figure and its line under it were cut to an
+        // ellipsis ("Done · 11/19/2026, 5:3..."). AFTER, up to the site's phone breakpoint (760 px): both wrap in full, never
+        // cut; at 390 px and below the tiles are one column, so each line has the card's width. Desktop unchanged.
+        '@media (max-width:760px){.ap-live-v,.ap-live-s{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}' +
+          '.ap-live-v a{display:inline-flex;align-items:center;min-height:44px}' +
+          '.ap-sig-list li{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}}' +
+        '@media (max-width:390px){.ap-live-grid{grid-template-columns:1fr}}' +
         '.ap-live-cell{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.1);min-width:0}' +
         '.ap-live-k{font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8892b8;margin-bottom:5px}' +
         '.ap-live-v{font-size:.98rem;font-weight:700;color:#e8e8ff;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +

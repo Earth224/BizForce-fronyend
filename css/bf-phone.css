@@ -1,0 +1,108 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   bf-phone.css — every member page on a phone (PH1, Nov 19 2026).
+
+   The owner runs BizForce as an installed phone app (about 390 px wide). Every
+   page in lib/appMap.json links this file last in its head. EVERY RULE HERE IS
+   INSIDE @media (max-width: 760px), the phone breakpoint (the widest one the
+   site already used, settings.html's): a desktop window never applies any of
+   it, so the desktop is unchanged.
+
+     tap targets   every control at least 44 x 44 (WCAG 2.5.5); a link inside
+                   a sentence is left inline;
+     inputs        16 px type, so iOS Safari never zooms into a field;
+     full height   100dvh after a 100vh fallback, so the URL bar's coming and
+                   going never leaves a gap or hides the foot of a page;
+     decoration    the stars, the nebula glows and the Termaximus mist sit
+                   behind the text, faded, and never take a tap;
+     the Guide     48 px, bottom-right inside the safe area; the page ends with
+                   room for it, so at the end it covers no card, link or line.
+
+   The dashboard's top bar, orbit and cards are in dashboard.html; the agent
+   pages' tiles and tabs in scripts/agent-profile.js; the music button in
+   scripts/bf-boombox.js; each under the same breakpoint.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 760px) {
+  /* ── H. The app shell: full height that follows the visible viewport ── */
+  html, body { min-height: 100vh; min-height: 100dvh; }
+  .inbox-shell { height: calc(100vh - 300px); height: calc(100dvh - 300px); }
+  .orbit-dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
+  .bf-why-panel { max-height: calc(100vh - 96px) !important; max-height: calc(100dvh - 96px) !important; }
+  .cal-day-panel-inner { max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); }
+  .mc-info-panel { max-height: calc(100vh - 160px); max-height: calc(100dvh - 160px); }
+  :root { --cv-avail: calc(100dvh - var(--cv-reserve, 200px)); }
+  /* The safe area (viewport-fit=cover lets a page draw under an iPhone's notch and home bar): every page's header row
+     starts below the notch, its sides inside the rounded corners. The dashboard's top bar pads itself (dashboard.html's
+     phone block), so its page is left out here. On a screen with no notch every inset is 0 and nothing moves. */
+  html:not(:has(header.topbar)) { padding-top: env(safe-area-inset-top, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+
+  /* No field below 16 px: iOS zooms the page into any smaller one. */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=hidden]),
+  select, textarea { font-size: 16px !important; }
+
+  /* ── I. Tap targets: 44 x 44 at least. :where() keeps these at no specificity, so a page's own larger
+     min-height (a textarea, a tall card) still wins; a control a page sizes below 44 is raised by the
+     page rules further down. min-height does nothing to an inline link, so a link in a sentence is left as
+     it is. ── */
+  :where(button, [role=button], [role=tab], [role=switch], summary, select, a[href], [tabindex]:not([tabindex="-1"]),
+    input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=color])) { min-height: 44px; }
+  :where(button, [role=button], [role=tab], [role=switch], input[type=color], [tabindex]:not([tabindex="-1"])) { min-width: 44px; }
+  :where(input[type=range], input[type=color]) { min-height: 44px; }
+  :where(summary) { box-sizing: border-box; padding-block: 10px; }
+  /* A checkbox or a radio is tapped by its label. */
+  :where(label:has(> input[type=checkbox]), label:has(> input[type=radio])) { min-height: 44px; display: flex; align-items: center; }
+  /* A link that stands alone (a list of links, a nav, a back link, a button-like link) is a 44 px row, its text centred. */
+  :where(li > a[href]:only-child, nav a[href], a[href][class*=btn], a[href][class*=back], a[href][class*=link], a[href][class*=tab],
+    a[href][class*=pill], a[href][class*=chip], a[href].back, .back > a[href], a[href].hq-alert) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; }
+  /* Buttons with their own small heights. */
+  .back-link, .pf-back, .pf-nav-btn, .deck-tab, .deck-mode, .hq-chip, .hq-alert, .filter-pill, .filter-btn, .tab-btn, .tab, .workspace-tab,
+  .cust-btn, .pf-font-btn, .iv-act, .btn-generate, .btn-approve, .btn-reject, .pf-btn-primary, .action-btn, .ap-btn, .ap-sched-btn,
+  .forgot-link, .create-btn, .send-btn, .sms-add-btn, .sms-ghost-btn, .cel-dd-trigger, .cal-nav-btn, .cal-today-btn, .cel-now-btn,
+  .vid-upload-btn, .pf-section-toggle, .pf-empty-btn, .pf-custom-save, .pf-share-copy-btn, .category-menu-trigger, .mb-btn,
+  .browse-link, .btn-primary, .orbit-swap, .orbit-refresh, .bf-btn, .bfm-icon, .feed-sort-label + select, .pf-form-select,
+  .pf-color-picker, .form-input { min-height: 44px; box-sizing: border-box; }
+  .cal-nav-btn, .pf-section-toggle, .pf-color-picker, .orbit-refresh, .bfm-icon { min-width: 44px; }
+
+  /* ── G. Decoration behind the text: the stars, the nebula glows and the Termaximus mist sit under the
+     page (a negative z-index in the root's stacking order), faded, and never take a tap. ── */
+  #tmx-presence-root { z-index: -1 !important; opacity: .6; pointer-events: none !important; }
+  .tmx-star { pointer-events: none !important; }
+  canvas.star-canvas, #starCanvas { z-index: -1 !important; pointer-events: none !important; opacity: .75; }
+  .corner-star, #oracleCornerStar { z-index: -1 !important; pointer-events: none !important; opacity: .55; }
+
+  /* ── C. The Guide: 48 px, bottom-right inside the safe area; its spacer (scripts/termaximus-guide.js, the page's last
+     element, 80 px and the bottom inset) ends every page, so at the end it covers no card, link or line. Up to 639 px
+     the Guide drew this already; PH1 carries it to the 760 px breakpoint. ── */
+  #tmx-guide-fab { width: 48px; height: 48px; min-width: 48px; min-height: 48px;
+    right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  #tmx-guide-fab { left: auto; padding: 0; gap: 0; border-radius: 50%; }
+  #tmx-guide-fab .tmx-guide-fab-icon { display: block; }
+  #tmx-guide-fab .tmx-guide-fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #tmx-guide-fab-spacer { display: block !important; height: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+
+  /* ── I. Pages ── */
+  /* Every page's legal footer (scripts/bf-legal-footer.js): each link a 44 x 44 target, the row above any page decoration. */
+  .bf-legal-footer { position: relative; z-index: 1; }
+  .bf-legal-footer a { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+  /* Messages: the compose row keeps Send whole at 360 px (the field gives way, never the button). */
+  .compose-bar > input { min-width: 0; flex: 1 1 auto; }
+  .compose-bar > #sendBtn { flex: 0 0 auto; white-space: nowrap; }
+  /* The music player's "Play when I open BizForce": its label (beside the checkbox, for= it) is a 44 px target. */
+  .bfm-toggle label[for] { display: inline-flex; align-items: center; min-height: 44px; }
+  /* Vitality: the form's card has a desktop's 40 x 32 padding; on a phone 24 x 18, the site's card padding. */
+  .card:has(> #formView) { padding: 24px 18px; }
+  /* Contact: the support address stands alone under its heading, a 44 px target. */
+  h2#email + p > a[href^="mailto:"] { display: inline-flex; align-items: center; min-height: 44px; }
+  /* The dashboard's Expand Profile (css/bizforce-ui.css holds it at 40 px with !important). */
+  .bf-profile-expand { min-height: 44px !important; }
+  /* E. The agent pages' foot: "Last run" on its own line (its date a 44 px link), then REFRESH DATA and OPEN DASHBOARD
+     side by side, the same height, each half the width. */
+  .toolbar:has(> .toolbar-meta) { flex-direction: column; align-items: stretch; gap: 12px; }
+  .toolbar > .toolbar-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0 6px; min-height: 44px; }
+  .toolbar > .toolbar-meta a { display: inline-flex; align-items: center; min-height: 44px; }
+  .toolbar:has(> .toolbar-meta) > div:last-child { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px !important; }
+  .toolbar:has(> .toolbar-meta) > div:last-child > .action-btn { justify-content: center; text-align: center; min-height: 48px; padding-inline: 10px; }
+  /* My Chart: the calendar rail is a fixed column on a desktop; on a phone it is part of the page, above the chart. */
+  .mychart-left-rail { position: static !important; width: auto !important; max-height: none !important; overflow: visible !important; margin: 0 0 20px; }
+  /* Terms and the other legal pages: the contents list is a column of 44 px rows. */
+  .toc a[href], nav.toc a[href] { display: inline-flex; align-items: center; min-height: 44px; }
+}

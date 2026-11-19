@@ -28,7 +28,11 @@
    worker never stores a request to send later. */
 
 var BUILD = "__BF_BUILD__";
-var CACHE = "bf-shell-" + BUILD;
+/* NAMED (Nov 19 2026, PH1): the shell's own version, bumped when the phone layout changed (css/bf-phone.css on every
+   page, the orbit, the top bar). BEFORE the cache was "bf-shell-" + BUILD alone; AFTER it also carries SHELL_REV, so
+   even a build whose commit placeholder is left as "local" starts a new cache, and activate deletes the older one. */
+var SHELL_REV = "ph1";
+var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
   "dashboard.html", "wallet.html", "your-data.html", "settings.html", "run.html", "agents-hub.html", "ai-agents.html",
@@ -39,6 +43,7 @@ var OFFLINE_PAGES = [
 ];
 var STATIC_FILES = [
   "/css/bizforce-ui.css",
+  "/css/bf-phone.css",   // NAMED (Nov 19 2026, PH1): the phone layout, linked by every page
   "/scripts/bf-session.js", "/scripts/bf-offline.js", "/scripts/bf-paywall.js", "/scripts/bf-bfc-notice.js",
   "/scripts/bf-identity.js", "/scripts/bf-agent-order.js", "/scripts/bf-orbit.js", "/scripts/agent-profile.js",
   "/scripts/termaximus-guide.js", "/scripts/termaximus-presence.js", "/scripts/email-sequences.js", "/scripts/social-publish.js",

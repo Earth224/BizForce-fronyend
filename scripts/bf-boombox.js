@@ -152,6 +152,15 @@
      bars the button lives in (the dashboard's header.topbar, every other page's .top-nav). */
   var ICON_SMALL = 32;
   var BAR_SEL = "header, nav, .topbar, .top-nav";
+  /* PH1 (Nov 19 2026, the music button on a phone). Up to the site's phone breakpoint (760 px, css/bf-phone.css) the
+     music button (the ICON stage) is never placed over the page: on the dashboard it is a flow item of the top bar's
+     first row (dashboard.html orders it beside the R avatar); on every other page, while music is on, it is the last
+     item of the page's own header row (ROW_SEL, the first one shown near the top), pushed to its right end. Same
+     button, same behaviour: a tap opens the bar, as before. The bar and the boombox keep their phone dock. Desktop
+     unchanged. */
+  var PHONE_ROW_QUERY = "(max-width: 760px)";
+  var ROW_SEL = ".topbar, nav.top-nav, .top-nav, .pf-nav, .top-bar, header, nav";
+  var ROW_TOP_MAX = 200;
   /* The deck's lanes (px inside its border): every part has its own slot, so
      nothing overlaps at any fader or crossfader position. */
   var XF_W = 88, XF_CAP = 14, XF_TRAVEL = XF_W - XF_CAP;
@@ -183,6 +192,16 @@
     try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; }
   }
   function phone() { return window.innerWidth <= PHONE_MAX; }
+  function phoneRow() { try { return !!(window.matchMedia && window.matchMedia(PHONE_ROW_QUERY).matches); } catch (e) { return false; } }
+  // PH1: the page's header row on a phone: the first of ROW_SEL that is shown and starts near the top of the page.
+  function headerRow() {
+    var list = doc.querySelectorAll(ROW_SEL);
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0 && r.top + (window.scrollY || 0) < ROW_TOP_MAX && r.height < 160) return list[i];
+    }
+    return null;
+  }
 
   /* The mist's clamp (termaximus-presence.js _tmxClampPosition), the same rule. */
   function clampPosition(left, top, el) {
@@ -482,6 +501,10 @@
     ".bfm-pop .bfm-drawer{position:static;width:min(560px,100%);margin:0;pointer-events:auto;overflow:visible}",
     ".bfm-pop .bfm-panel{transform:none;max-height:none}",
     ".bfm-float[data-dock=phone]{left:0!important;right:0;top:auto!important;bottom:0!important;max-width:100vw;align-items:stretch;gap:0}",
+    /* PH1 (Nov 19 2026): the button in the page's header row on a phone, a flow item at the row's right end. */
+    "@media (max-width: 760px){[data-bfm-row=true]{display:flex;align-items:center;flex-wrap:wrap;gap:10px}" +
+      ".bfm-float[data-inheader=true]{position:relative!important;left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;margin-left:auto;z-index:auto}" +
+      ".bfm-float[data-inbar=true]{z-index:auto}}",
     ".bfm-float[data-dock=phone] .bfm-tag{width:100%;border-radius:14px 14px 0 0;cursor:default}",
     ".bfm-float[data-dock=phone][data-state=box]{max-height:88vh;overflow:auto;padding:12px 8px 8px;border-radius:16px 16px 0 0;background:rgba(8,10,24,.97);box-shadow:0 -10px 30px rgba(0,0,0,.55);align-items:center}",
     ".bfm-float[data-dock=phone] .bbx{transform:scale(var(--bbx-fit, 1));transform-origin:top center;margin-bottom:calc((var(--bbx-fit, 1) - 1) * " + BOX_H + "px)}",
@@ -566,7 +589,9 @@
 
   /* The stage a page opens in: what the member left it as, else the icon on
      the dashboard (home) and the bar elsewhere (shown there only while music is on). */
-  function stageOf(s, home) { return STAGES.indexOf(s) !== -1 ? s : (home ? "icon" : "tag"); }
+  // PH1 (Nov 19 2026): with no stage remembered, a phone starts at the icon on every page (in the header row), not the
+  // bar docked over the foot of the page. NAMED BEFORE: (home ? "icon" : "tag").
+  function stageOf(s, home) { return STAGES.indexOf(s) !== -1 ? s : (home || phoneRow() ? "icon" : "tag"); }
 
   /* THE NOW PLAYING BANNER'S NAME (Nov 10 2026, artist name, screen-aware motion): the track's artist,
      trimmed; with no artist, its title; with neither, NOW_PLAYING. Shown with textContent only (a member's
@@ -835,6 +860,7 @@
       (opts.host || doc.body || doc.documentElement).appendChild(root);
     }
     function placeInBar() {
+      leaveRow();   // PH1: out of a page's header row first (a phone turned to a desktop width, or the dashboard)
       var a = opts.anchor, bar = barOf(), slot = a;
       while (slot && slot.parentElement !== bar) slot = slot.parentElement;
       if (held && held.bar !== bar) leaveBar();
@@ -844,6 +870,14 @@
       }
       if (root.parentNode !== bar) bar.appendChild(root);
       root.setAttribute("data-inbar", "true");
+      // PH1: on a phone the bar lays it out (a flow item beside the avatar), so no coordinates and no reserved margin.
+      if (phoneRow()) {
+        if (held.prop) { slot.style[held.prop] = held.was; held.prop = ""; }
+        root.setAttribute("data-icon-size", "full");
+        ["left", "top", "right", "bottom"].forEach(function (k) { root.style.removeProperty(k); });
+        root.setAttribute("data-placed", "true");
+        return;
+      }
       var b0 = rectOf(bar), l0 = rectOf(a);
       var prop = iconPlan(b0, l0, [], window.innerWidth).side === "right" ? "marginRight" : "marginLeft";
       if (held.prop !== prop) { if (held.prop) slot.style[held.prop] = held.was; held.prop = prop; held.was = slot.style[prop]; }
@@ -890,10 +924,31 @@
       root.style.bottom = "auto";
       root.setAttribute("data-placed", "true");
     }
+    /* PH1: the page's header row, on a phone, for the icon on any page but the dashboard. */
+    var rowHeld = null;
+    function toRow(row) {
+      if (rowHeld && rowHeld !== row) leaveRow();
+      rowHeld = row;
+      row.setAttribute("data-bfm-row", "true");
+      if (root.parentNode !== row) row.appendChild(root);
+      root.setAttribute("data-inheader", "true");
+      root.setAttribute("data-dock", "row");
+      root.style.left = ""; root.style.top = ""; root.style.right = ""; root.style.bottom = "";
+      root.setAttribute("data-placed", "true");
+    }
+    function leaveRow() {
+      if (!rowHeld) return;
+      rowHeld.removeAttribute("data-bfm-row");
+      rowHeld = null;
+      root.removeAttribute("data-inheader");
+      (opts.host || doc.body || doc.documentElement).appendChild(root);
+    }
     function place() {
       if (popout) return;
       if (inBar()) { root.setAttribute("data-dock", "desktop"); placeInBar(); side(); return; }
       leaveBar();
+      if (phoneRow() && state === "icon" && !home) { var row = headerRow(); if (row) { toRow(row); return; } }
+      leaveRow();
       if (phone() && state !== "icon") {
         root.setAttribute("data-dock", "phone");
         root.removeAttribute("data-placed");

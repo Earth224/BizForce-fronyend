@@ -135,6 +135,7 @@
     .bf-paid-banner.neutral .bf-paid-icon{border-color:rgba(148,163,184,.4);background:rgba(148,163,184,.08);color:#cbd5e1}
     .bf-paid-banner.neutral .bf-paid-title{color:#cbd5e1}
 </style>
+<link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
 <body class="app-shell">
 <div id="planStatus" class="plan-status-minimal" role="status">Checking subscription...</div>
@@ -541,28 +542,37 @@
     .orbit-sat{transition:none}
     .orbit-portal.is-pulse .orbit-disc::after{animation:none;opacity:0}
   }
-  @media (max-width: 640px){
-    /* The still stars stay on a phone, where the ring's drawing is hidden: the same layer, laid out around the row, with a
-       strip of sky above the core (28 px at the top, was 12). NAMED (Nov 11 2026, polish): more sky on a phone, so at least
-       2 large rayed stars fit the fixed set's even spread: 104 px of sky above the core and 56 below the search (were 28
-       and 14), and 32 px under the row (was 6). Desktop unchanged. */
-    .orbit-panel{padding:104px 10px 56px}
-    .orbit-stage{aspect-ratio:auto;display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 32px;min-width:0;max-width:100%}
-    .orbit-svg{display:none}
-    .orbit-portal,.orbit-core{position:relative;transform:none !important}
-    .orbit-portal{flex:1 1 0;min-width:0;width:auto;height:auto;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0}
-    .orbit-disc{position:relative;inset:auto;width:46px;height:46px;flex:0 0 auto}
-    .orbit-portal.is-open .orbit-disc{inset:auto}
-    .orbit-portal-name{position:static;transform:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;letter-spacing:.02em}
-    .orbit-core{order:-1;flex:1 1 100%;width:auto;height:64px;border-radius:18px;flex-direction:row;flex-wrap:wrap;gap:4px 8px}
-    /* NAMED (Nov 11 2026, orbit stage 2): on a phone the goal's slim bar runs along the core box's foot, the goal button is
-       its own row under the core, and the Agents disc counts the agents running now. */
-    .orbit-core{position:relative;overflow:hidden}
-    .orbit-goal-bar{display:block;position:absolute;left:12px;right:12px;bottom:6px;height:3px;border-radius:2px;background:rgba(124,240,201,.18)}
-    .orbit-goal-bar-fill{display:block;height:100%;border-radius:2px;background:#7cf0c9;transform-origin:0 50%}
-    .orbit-goal-set{position:relative;order:-1;flex:1 1 100%;width:auto;height:28px;transform:none !important;font-size:12px}
-    .orbit-sat-count{display:block;position:absolute;right:-6px;bottom:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;box-sizing:border-box;
-      background:#7cf0c9;color:#0a1128;font-size:9px;font-weight:800;line-height:16px;text-align:center}
+  /* PH1 (Nov 19 2026, the orbit on a phone). NAMED BEFORE: up to 640 px a flat row of five 46 px discs under a core box,
+     the labels cut to an ellipsis ("SELL (op..."), 104 px of empty sky above the core and the ring's drawing hidden.
+     AFTER: up to 760 px (the site's phone breakpoint) the SAME orbit as the desktop's, drawn by scripts/bf-orbit.js in
+     its phone view (a circle fitted to the stage, every unit a CSS pixel): the rings, beams, links, satellites, goal arc
+     and stars shown; 52 px discs (--os); each label in full, up to two lines under its disc, above every halo; the core
+     (--oc) shows the figure and "All tools", and THIS WEEK and the goal button are rows under the orbit at the card's
+     full width (.orbit-below). Desktop unchanged. */
+  .orbit-below{display:none}
+  @media (max-width: 760px){
+    .orbit-panel{padding:12px 12px 14px}
+    .orbit-stage{aspect-ratio:auto;max-width:none;min-width:0;margin:0}
+    .orbit-portal-name{top:calc(50% + var(--os) * 27px + 4px);transform:translateX(-50%);white-space:normal;width:84px;text-align:center;
+      font-size:10.5px;line-height:1.2;letter-spacing:.06em;overflow:visible;z-index:2;overflow-wrap:break-word}
+    .orbit-halo{z-index:0}
+    .orbit-core{width:var(--oc, 80px);height:var(--oc, 80px);gap:4px}
+    .orbit-core-label,.orbit-core-unit,.orbit-core-met,.orbit-core-asof,.orbit-goal-bar,.orbit-sat-count{display:none !important}
+    .orbit-core-figure{font-size:22px}
+    .orbit-core-all{font-size:11px}
+    .orbit-below{display:flex;flex-direction:column;gap:8px;margin:4px 0 0}
+    .orbit-week{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin:0;min-height:44px;padding:10px 14px;box-sizing:border-box;
+      border-radius:14px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.25);background:rgba(10,17,40,.75);font-size:.85rem;color:#cfd3ff;text-align:center}
+    .orbit-week:empty{display:none}
+    .orbit-week-label{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8fa3d6}
+    .orbit-week-figure{font-size:1.15rem;font-weight:800;color:#e8e8ff}
+    .orbit-week-met{font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#ffc46b}
+    .orbit-week-asof{color:#8fa3d6;font-size:.78rem}
+    .orbit-below .orbit-goal-set{position:relative;left:auto;top:auto;transform:none !important;width:100%;height:44px;min-height:44px;font-size:.85rem;border-radius:14px}
+    .orbit-search{margin:10px 0 2px;max-width:none;padding:0 4px 0 14px}
+    .orbit-search input{min-height:44px;padding:0}
+    .orbit-key{display:none}
+    .orbit-refresh{width:44px;height:44px}
     .orbit-main{grid-template-columns:1fr}
     .orbit-grid{grid-template-columns:1fr !important}
     .orbit-grid .orbit-box-wide,.orbit-grid .orbit-dir{grid-column:auto}
@@ -2800,6 +2810,106 @@ if (document.readyState !== "loading") {
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
+<!-- PH1 (Nov 19 2026): the dashboard on a phone. Every rule is inside @media (max-width: 760px); desktop unchanged. -->
+<style id="ph1Phone">
+  /* The avatar's menu exists on every width but only ever opens on a phone (scripts below). */
+  .topbar-menu{display:none}
+  @media (max-width: 760px){
+    /* A. THE TOP BAR, two tidy rows. NAMED BEFORE: three ragged rows (the brand and the music button; 0 AGENTS, the orb
+       and TERMAXIMUS; the avatar, Settings and Sign Out). AFTER: row 1, the Layered Stack and "BizForce AI" on the left,
+       the music button and the R avatar on the right, on one centre line; row 2, AGENTS, the orb and the TERMAXIMUS
+       toggle, 46 px tall each, evenly across the full width. Settings and Sign Out are in the avatar's menu. The header
+       keeps the safe area at the top and the sides (iPhone, viewport-fit=cover). */
+    .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
+      padding:calc(10px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px))}
+    .topbar-actions{display:contents}
+    .topbar-brand{order:1;flex:1 1 auto;min-width:0;margin:0 !important}
+    .topbar > .bfm-float[data-inbar]{order:2;position:relative !important;left:auto !important;top:auto !important;flex:0 0 auto}
+    .topbar-user{order:3;position:relative;padding:0;border:0;background:none;box-shadow:none;flex:0 0 auto}
+    .topbar-user-meta{display:none}
+    .topbar-avatar{width:44px;height:44px;cursor:pointer;font-size:1rem}
+    .topbar::after{content:"";order:4;flex:0 0 100%;height:0}
+    .topbar-agents-pill{order:5;flex:1 1 0;flex-direction:row;gap:6px;height:46px;min-height:46px;padding:0 10px;box-sizing:border-box}
+    .topbar-agents-lbl{margin-top:0}
+    .topbar-oracle-gate{order:6;flex:0 0 46px}
+    .topbar-tmx-toggle{order:7;flex:1 1 0;justify-content:center;height:46px;min-height:46px;box-sizing:border-box}
+    #settingsNavBtn,.topbar .logout{display:none}
+    .topbar-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:180px;padding:6px;border-radius:14px;
+      background:rgba(10,15,35,.97);border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.3);box-shadow:0 16px 36px rgba(0,0,0,.5)}
+    .topbar-menu.is-open{display:flex;flex-direction:column;gap:2px}
+    .topbar-menu a,.topbar-menu button{display:flex;align-items:center;min-height:44px;padding:0 14px;border:0;border-radius:10px;background:transparent;
+      color:#e8e8ff;font:inherit;font-size:.95rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer;box-sizing:border-box}
+    .topbar-menu a:hover,.topbar-menu button:hover,.topbar-menu a:focus-visible,.topbar-menu button:focus-visible{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.12);outline:none}
+    .topbar-avatar:focus-visible{outline:3px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}
+
+    /* F. THE CARDS. NAMED BEFORE: 28 px of padding, a 60 px icon on a row of its own, its 14 px margin, and a large gap
+       above each box. AFTER: 16 px of even padding; the 44 px icon, the title and Swap on one row; the figures, the
+       progress line and the main button under it, evenly spaced. */
+    .orbit-main{gap:14px;margin:12px 0}
+    .orbit-main-box.card.bf-card,.orbit-grid .card.bf-card,.orbit-alltools{padding:16px}
+    .orbit-main-head{gap:12px;margin-bottom:6px;align-items:center}
+    .orbit-main-head .bf-hq-icon,.orbit-main-box .bf-card-icon{width:44px;height:44px;flex:0 0 44px;margin:0}
+    .orbit-main-head .bf-hq-icon svg{width:22px;height:22px}
+    .orbit-main-head h3{margin:0;font-size:.95rem}
+    .orbit-main-box .orbit-big{margin:2px 0}
+    .orbit-main-box .orbit-spark{margin:4px 0 8px;max-width:none}
+    .orbit-main-box .bf-btn{margin-top:4px}
+    .orbit-grid .bf-feature-card{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:12px;row-gap:6px;align-items:center}
+    .orbit-grid .bf-feature-card > *{grid-column:1 / -1;margin:0}
+    .orbit-grid .bf-feature-card > .bf-hq-icon{grid-column:1;width:44px;height:44px;margin:0}
+    .orbit-grid .bf-feature-card > .bf-hq-icon svg{width:22px;height:22px}
+    .orbit-grid .bf-feature-card > h3{grid-column:2;margin:0}
+    .orbit-grid .bf-feature-card > .bf-btn{justify-self:start;margin-top:6px}
+  }
+</style>
+<script>
+/* PH1 (Nov 19 2026): the R avatar's menu, on a phone. Tapping the avatar opens Settings and Sign Out (the top bar's own
+   two, hidden on the phone); Escape, a tap outside or a choice closes it. Above 760 px the avatar is as it was: no role,
+   no menu. Sign Out is logout() above, the same as the top bar's button. */
+(function avatarMenu() {
+  var av = document.getElementById("userAvatar");
+  var user = av && av.closest ? av.closest(".topbar-user") : null;
+  if (!av || !user) return;
+  var mq = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+  var menu = document.createElement("div");
+  menu.id = "bfAvatarMenu";
+  menu.className = "topbar-menu";
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", "Account");
+  var settings = document.createElement("a");
+  settings.href = "settings.html";
+  settings.textContent = "Settings";
+  settings.setAttribute("role", "menuitem");
+  var out = document.createElement("button");
+  out.type = "button";
+  out.textContent = "Sign Out";
+  out.setAttribute("role", "menuitem");
+  out.setAttribute("data-offline-ok", "");
+  out.addEventListener("click", function () { close(false); logout(); });
+  menu.appendChild(settings);
+  menu.appendChild(out);
+  user.appendChild(menu);
+  function onPhone() { return !!mq && mq.matches; }
+  function open() { menu.classList.add("is-open"); av.setAttribute("aria-expanded", "true"); var f = menu.querySelector("a,button"); if (f) f.focus(); }
+  function close(focus) { if (!menu.classList.contains("is-open")) return; menu.classList.remove("is-open"); av.setAttribute("aria-expanded", "false"); if (focus) av.focus(); }
+  function sync() {
+    if (onPhone()) {
+      av.setAttribute("role", "button"); av.setAttribute("tabindex", "0"); av.setAttribute("aria-haspopup", "menu");
+      av.setAttribute("aria-controls", "bfAvatarMenu"); av.setAttribute("aria-expanded", menu.classList.contains("is-open") ? "true" : "false");
+      av.setAttribute("aria-label", "Account menu");
+    } else {
+      close(false);
+      ["role", "tabindex", "aria-haspopup", "aria-controls", "aria-expanded", "aria-label"].forEach(function (k) { av.removeAttribute(k); });
+    }
+  }
+  av.addEventListener("click", function (e) { if (!onPhone()) return; e.stopPropagation(); if (menu.classList.contains("is-open")) close(false); else open(); });
+  av.addEventListener("keydown", function (e) { if (onPhone() && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); av.click(); } });
+  menu.addEventListener("keydown", function (e) { if (e.key === "Escape") close(true); });
+  document.addEventListener("click", function (e) { if (!menu.contains(e.target) && e.target !== av) close(false); });
+  if (mq && mq.addEventListener) mq.addEventListener("change", sync); else if (mq && mq.addListener) mq.addListener(sync);
+  sync();
+}());
+</script>
 </body>
 </html>
 

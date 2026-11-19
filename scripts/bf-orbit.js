@@ -67,6 +67,22 @@
    dropped); a still highlight under reduced motion. On a phone: a slim bar in
    the core box, a count of running agents on the Agents disc, and a pulse on
    the portal an event reaches.
+
+   PH1 (Nov 19 2026, the orbit on a phone). BEFORE: up to 640 px the portals
+   were a flat row of five discs under a core box, the labels cut to an
+   ellipsis ("SELL (op..."), with 104 px of empty sky above the core.
+   AFTER: up to 760 px (the site's phone breakpoint, css/bf-phone.css) it is
+   the SAME orbit as the desktop's: the core, both rings, the beams, the
+   links and their sparks, the satellites, the goal arc, the stars, the
+   portals in the same order with the same emblems, colours and halo,
+   drifting the same way, turning to the front when opened. Only the shape
+   is the phone's: a CIRCLE (rx = ry, PHONE_VIEW) fitted to the stage's width
+   with room for every label, in CSS pixels (scale 1): discs of 52 px
+   (44 at least), labels in full (wrapped to two lines when " (open)" does
+   not fit, never cut), the core sized so no label can reach it at any
+   angle. THIS WEEK (the core's own figures, mirrored) and the goal button
+   sit under the orbit at the card's full width (.orbit-below). Desktop
+   unchanged: above 760 px VIEW is VIEW_WIDE and every figure is as before.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -77,6 +93,22 @@
   var TURN_MS = 600;
   var STEP_DEG = 72;
   var VIEW = { w: 680, h: 330, cx: 340, cy: 160, rx: 275, ry: 110, innerRx: 150, innerRy: 60, portalR: 27, labelDy: 42, coreR: 34, coreHaloR: 44 };
+  /* PH1 (Nov 19 2026): the desktop's view, kept; VIEW is it above 760 px and phoneView(width) up to 760 px. On the phone
+     every unit is a CSS pixel: discs of r 26 (52 px), labels 84 px wide and up to two lines (30 px) under each disc, a
+     margin at the top for the open halo, the ring's radius the most the width allows (84 to 128), and the core no wider
+     than leaves a label clear of it at every angle on the ring. */
+  var VIEW_WIDE = VIEW;
+  var PHONE_QUERY = "(max-width: 760px)";
+  var PHONE_VIEW = { discR: 26, labelW: 84, labelH: 30, labelGap: 4, top: 46, bottom: 6, minR: 84, maxR: 128, coreMax: 120, coreMin: 64 };
+  function phoneView(w) {
+    var P = PHONE_VIEW, half = P.labelW / 2;
+    var r = Math.max(P.minR, Math.min(P.maxR, w / 2 - half - 2));
+    var core = Math.max(P.coreMin, Math.min(P.coreMax, 2 * (r - P.discR - P.labelGap - P.labelH - 4), 2 * (r * Math.sin(72 * Math.PI / 180) - half - 6)));
+    var cy = P.top + r;
+    return { w: w, h: Math.round(cy + r + P.discR + P.labelGap + P.labelH + P.bottom), cx: w / 2, cy: cy, rx: r, ry: r, innerRx: Math.round(r * 0.55), innerRy: Math.round(r * 0.55),
+      portalR: P.discR, labelDy: P.discR + P.labelGap + P.labelH / 2, labelHalf: half + 4, labelH: P.labelH, coreR: core / 2, coreHaloR: core / 2 + 6,
+      satR: core / 2 + 13, keepR: core / 2 + 18, haloR: 43 * (2 * P.discR / 54), phone: true };
+  }
   // A portal at angle a sits at (cx + rx sin a, cy + ry cos a): 0 is the bottom centre, 180 the top centre.
   var FRONT_DEG = -36;    // the lower-left slot, where an opened portal comes to rest
   var REST_BASE = -108;   // Grow -108 (upper left), Sell -36, Connect 36, Agents 108, Oracle 180 (top centre)
@@ -369,11 +401,16 @@
     return list.slice();
   }
   function reduced() { try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; } }
-  function narrow() { try { return !!(window.matchMedia && window.matchMedia("(max-width: 640px)").matches); } catch (e) { return false; } }
+  // PH1 (Nov 19 2026): NAMED BEFORE narrow(), "(max-width: 640px)", chose the phone row. AFTER the phone is the orbit's
+  // own view (phoneView), at the site's 760 px breakpoint.
+  function phone() { try { return !!(window.matchMedia && window.matchMedia(PHONE_QUERY).matches); } catch (e) { return false; } }
+  // The ring frame's lengths (the link bend, a spark's start) scale with the ring: 1 on a desktop.
+  function ringK() { return VIEW.rx / VIEW_WIDE.rx; }
 
   /* ── the orbit ── */
   var portalBtn = {}, beam = {}, badge = {}, portalName = {};
   var core, links;
+  var below, week;   // PH1: the phone's rows under the orbit
   var goalArc, goalBtn, satSpin, satMore, satCount, satDot = {}, linkPath = {};
   function emblem(key) {
     var g = sv("svg", { viewBox: "0 0 40 40", "class": "orbit-emblem", "aria-hidden": "true", focusable: "false" });
@@ -569,7 +606,7 @@
   }
   // Where the stars may not be: the union of everywhere anything in the panel can EVER be, whatever is open, hovered,
   // turning or shown. Wide: at every degree of the ring a portal can drift to, its open halo (r 43) and its disc at the
-  // open size, and its widest label; the core. Phone row: each disc and its open halo, each label's whole cell, the core.
+  // open size, and its widest label; the core (PH1: the phone's orbit the same way, in its own view).
   // Both: the search and the reserved row above it where the preview and status lines appear. The sky's height is the
   // panel's without the results list (which opens below the search, over the sky, and does not move a star).
   function starGeometry() {
@@ -578,34 +615,27 @@
     var listH = 0;
     if (results && !results.hidden) { var lr = results.getBoundingClientRect(); listH = lr.height ? lr.height + 6 : 0; }
     // The phone row has little room: stars sit closer to it and to the edge there.
-    var g = { w: pr.width, h: pr.height - listH, gap: narrow() ? 1 : 4, edge: narrow() ? 3 : 6, narrow: narrow(), circles: [], boxes: [] };
+    var g = { w: pr.width, h: pr.height - listH, gap: VIEW.phone ? 1 : 4, edge: VIEW.phone ? 3 : 6, narrow: !!VIEW.phone, circles: [], boxes: [] };
     var sr = stage.getBoundingClientRect();
-    if (!narrow()) {
-      var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1, ox = sr.left - pr.left, oy = sr.top - pr.top, half = starLabelHalf();
+    // PH1 (Nov 19 2026): NAMED BEFORE the phone row had its own branch (each disc, its halo, its label's cell, the core box,
+    // the goal button's row). AFTER the phone draws the orbit, so one measure serves both, from VIEW: on the phone its label
+    // box, its halo and its core's clearance are the phone's, and the rows under the orbit are kept clear.
+    {
+      var scale = stage.clientWidth ? stage.clientWidth / VIEW.w : 1, ox = sr.left - pr.left, oy = sr.top - pr.top, half = VIEW.labelHalf || starLabelHalf();
+      var labelH = VIEW.labelH || STAR_KEEP.labelH, haloR = VIEW.haloR || STAR_KEEP.haloR;
       for (var a = 0; a < 360; a += 1) {
         var rad = a * Math.PI / 180, x = ox + (VIEW.cx + VIEW.rx * Math.sin(rad)) * scale, y = oy + (VIEW.cy + VIEW.ry * Math.cos(rad)) * scale;
         // the open halo (r 43) and the disc's box at its open size (r 30), wherever a portal drifts on the ring
-        g.circles.push({ x: x, y: y, r: STAR_KEEP.haloR * scale });
+        g.circles.push({ x: x, y: y, r: haloR * scale });
         g.boxes.push({ x: x - (VIEW.portalR + 3) * scale, y: y - (VIEW.portalR + 3) * scale, w: 2 * (VIEW.portalR + 3) * scale, h: 2 * (VIEW.portalR + 3) * scale });
-        g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - STAR_KEEP.labelH / 2, w: 2 * half, h: STAR_KEEP.labelH });
+        g.boxes.push({ x: x - half, y: y + VIEW.labelDy * scale - labelH / 2, w: 2 * half, h: labelH });
       }
       // NAMED (Nov 11 2026, orbit stage 2): BEFORE the core kept r 48 (its halo's 44 + 4). AFTER r 66, the satellites'
       // orbit (r 58) and their dots; and the goal button's box under the core, at its fixed size.
-      g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: CORE_KEEP_R * scale });
-      g.boxes.push({ x: ox + (VIEW.cx - GOAL_BTN.w / 2) * scale - 3, y: oy + (VIEW.cy + GOAL_BTN.dy - GOAL_BTN.h / 2) * scale - 3, w: GOAL_BTN.w * scale + 6, h: GOAL_BTN.h * scale + 6 });
-    } else {
-      var os = 46 / 54;
-      // A label may grow to its whole cell ("Sell (open)"), so the cell's width is kept clear under it; each disc's open
-      // halo (r 43 x the row's scale) is kept clear around it.
-      PORTALS.forEach(function (p) {
-        var cell = box(portalBtn[p.key], 0), name = box(portalName[p.key], 3), disc = box(portalBtn[p.key].querySelector(".orbit-disc"), 3), hr = STAR_KEEP.haloR * os + 2;
-        g.boxes.push(disc);
-        g.circles.push({ x: disc.x + disc.w / 2, y: disc.y + disc.h / 2, r: hr });
-        g.boxes.push({ x: cell.x, y: name.y, w: cell.w, h: name.h });
-      });
-      g.boxes.push(box(core, 3));
-      // NAMED (Nov 11 2026, orbit stage 2): the goal button's row on a phone.
-      if (goalBtn) g.boxes.push(box(goalBtn, 3));
+      g.circles.push({ x: ox + VIEW.cx * scale, y: oy + VIEW.cy * scale, r: (VIEW.keepR || CORE_KEEP_R) * scale });
+      if (!VIEW.phone) g.boxes.push({ x: ox + (VIEW.cx - GOAL_BTN.w / 2) * scale - 3, y: oy + (VIEW.cy + GOAL_BTN.dy - GOAL_BTN.h / 2) * scale - 3, w: GOAL_BTN.w * scale + 6, h: GOAL_BTN.h * scale + 6 });
+      // PH1: on the phone the goal button and THIS WEEK are their own rows under the orbit.
+      else if (below) g.boxes.push(box(below, 4));
     }
     if (say) g.boxes.push(box(say, 4));
     var bar = panel.querySelector(".orbit-search");
@@ -673,11 +703,30 @@
     var r = sky.report;
     starsSvg.setAttribute("data-sky", [r.count, r.cols, r.rows, r.skipped, r.rehomed, r.asMedium, r.dimmed, r.unplaced].join(","));
   }
+  /* PH1 (Nov 19 2026): the ring's static drawing, from VIEW. buildOrbit draws it once; setView lays it out again when the
+     view changes (a phone turned, a window crossing 760 px), on the same nodes, so the links, beams, satellites and the
+     goal arc keep their state. On a desktop every value is the one buildOrbit always drew. */
+  var ringEl = {}, beamPath = [];
+  function layoutRing() {
+    var k = ringK();
+    ringEl.outer.setAttribute("cx", VIEW.cx); ringEl.outer.setAttribute("cy", VIEW.cy); ringEl.outer.setAttribute("rx", VIEW.rx); ringEl.outer.setAttribute("ry", VIEW.ry);
+    ringEl.inner.setAttribute("cx", VIEW.cx); ringEl.inner.setAttribute("cy", VIEW.cy); ringEl.inner.setAttribute("rx", VIEW.innerRx); ringEl.inner.setAttribute("ry", VIEW.innerRy);
+    ringEl.frame.setAttribute("transform", "translate(" + VIEW.cx + " " + VIEW.cy + ") scale(1 " + (VIEW.ry / VIEW.rx) + ")");
+    var d = "M 0 " + VIEW.rx + " Q " + (22 * k) + " " + (VIEW.rx / 2) + " 0 0";
+    beamPath.forEach(function (p) { p.setAttribute("d", d); });
+    ringEl.halo.setAttribute("cx", VIEW.cx); ringEl.halo.setAttribute("cy", VIEW.cy); ringEl.halo.setAttribute("r", VIEW.coreHaloR);
+    ringEl.arc.setAttribute("d", "M " + VIEW.cx + " " + (VIEW.cy - VIEW.coreHaloR) + " A " + VIEW.coreHaloR + " " + VIEW.coreHaloR + " 0 1 1 " + (VIEW.cx - VIEW.coreHaloR) + " " + VIEW.cy);
+    goalArc.setAttribute("cx", VIEW.cx); goalArc.setAttribute("cy", VIEW.cy); goalArc.setAttribute("r", VIEW.coreHaloR);
+    goalArc.setAttribute("transform", "rotate(-90 " + VIEW.cx + " " + VIEW.cy + ")");
+    ringEl.sats.setAttribute("transform", "translate(" + VIEW.cx + " " + VIEW.cy + ")");
+    satMore.setAttribute("x", String((VIEW.satR || SAT.r) + 8));
+    Object.keys(satDot).forEach(function (a) { var c = satDot[a].querySelector("circle"); if (c) c.setAttribute("cx", String(VIEW.satR || SAT.r)); });
+  }
   function buildOrbit() {
-    svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.rx, ry: VIEW.ry, "class": "orbit-ring" }));
-    svg.appendChild(sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.innerRx, ry: VIEW.innerRy, "class": "orbit-ring-inner" }));
+    svg.appendChild(ringEl.outer = sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.rx, ry: VIEW.ry, "class": "orbit-ring" }));
+    svg.appendChild(ringEl.inner = sv("ellipse", { cx: VIEW.cx, cy: VIEW.cy, rx: VIEW.innerRx, ry: VIEW.innerRy, "class": "orbit-ring-inner" }));
     // The links and beams live in the ring's frame: a circle of radius rx squashed to the ellipse, so turning one is a rotation.
-    var frame = sv("g", { "class": "orbit-beams", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ") scale(1 " + (VIEW.ry / VIEW.rx) + ")" });
+    var frame = ringEl.frame = sv("g", { "class": "orbit-beams", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ") scale(1 " + (VIEW.ry / VIEW.rx) + ")" });
     /* The faint dotted links (drawn at base 0, turned with the ring). NAMED (Nov 11 2026, orbit stage 2): BEFORE two fixed
        links, Grow to Sell and Sell to Connect. AFTER one for each portal pair the pulse names (drawLinks), each bent
        through LINK_BEND_R; until the first pulse, none. */
@@ -686,8 +735,8 @@
     PORTALS.forEach(function (p) {
       var g = sv("g", { "class": "orbit-beam", "data-portal": p.key });
       var d = "M 0 " + VIEW.rx + " Q 22 " + (VIEW.rx / 2) + " 0 0";
-      g.appendChild(sv("path", { d: d, "class": "orbit-beam-glow", "vector-effect": "non-scaling-stroke" }));
-      g.appendChild(sv("path", { d: d, "class": "orbit-beam-line", "vector-effect": "non-scaling-stroke" }));
+      g.appendChild(beamPath[beamPath.length] = sv("path", { d: d, "class": "orbit-beam-glow", "vector-effect": "non-scaling-stroke" }));
+      g.appendChild(beamPath[beamPath.length] = sv("path", { d: d, "class": "orbit-beam-line", "vector-effect": "non-scaling-stroke" }));
       g.appendChild(sv("circle", { r: "3.5", "class": "orbit-beam-dot" }));
       g.setAttribute("hidden", "");
       g.style.display = "none";
@@ -696,18 +745,18 @@
     });
     svg.appendChild(frame);
     // The core's decorative halo and its fixed three-quarter arc (no goal yet, so never a percentage).
-    svg.appendChild(sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, "class": "orbit-core-halo" }));
-    svg.appendChild(sv("path", { d: "M " + VIEW.cx + " " + (VIEW.cy - VIEW.coreHaloR) + " A " + VIEW.coreHaloR + " " + VIEW.coreHaloR + " 0 1 1 " + (VIEW.cx - VIEW.coreHaloR) + " " + VIEW.cy, "class": "orbit-core-arc" }));
+    svg.appendChild(ringEl.halo = sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, "class": "orbit-core-halo" }));
+    svg.appendChild(ringEl.arc = sv("path", { d: "M " + VIEW.cx + " " + (VIEW.cy - VIEW.coreHaloR) + " A " + VIEW.coreHaloR + " " + VIEW.coreHaloR + " 0 1 1 " + (VIEW.cx - VIEW.coreHaloR) + " " + VIEW.cy, "class": "orbit-core-arc" }));
     // NAMED (Nov 11 2026, orbit stage 2): the goal's arc, on the halo, from the top, clockwise, value / target of its 100.
     goalArc = sv("circle", { cx: VIEW.cx, cy: VIEW.cy, r: VIEW.coreHaloR, pathLength: "100", "stroke-dasharray": "0 100",
       transform: "rotate(-90 " + VIEW.cx + " " + VIEW.cy + ")", "class": "orbit-goal-arc", "data-pct": "0" });
     goalArc.style.display = "none";
     svg.appendChild(goalArc);
     // The satellites: a group at the core's centre, turned slowly by CSS; each dot at (SAT.r, 0) turned to its place.
-    var satWrap = sv("g", { "class": "orbit-sats", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ")" });
+    var satWrap = ringEl.sats = sv("g", { "class": "orbit-sats", transform: "translate(" + VIEW.cx + " " + VIEW.cy + ")" });
     satSpin = sv("g", { "class": "orbit-sats-spin" });
     satWrap.appendChild(satSpin);
-    satMore = sv("text", { x: String(SAT.r + 8), y: "4", "class": "orbit-sats-more" });
+    satMore = sv("text", { x: String((VIEW.satR || SAT.r) + 8), y: "4", "class": "orbit-sats-more" });
     satWrap.appendChild(satMore);
     svg.appendChild(satWrap);
 
@@ -733,6 +782,24 @@
     goalBtn.hidden = true;
     goalBtn.addEventListener("click", function () { openGoalDialog(); });
     stage.appendChild(goalBtn);
+    /* PH1 (Nov 19 2026): under the orbit on the phone, at the card's full width: THIS WEEK (the core's label, figure,
+       unit, "Goal met" and "As of", mirrored as they change) and the goal button, moved here from the stage while the
+       view is the phone's. Hidden above 760 px, where the core shows them and the button sits under it. */
+    below = el("div", "orbit-below");
+    week = el("p", "orbit-week");
+    week.setAttribute("aria-hidden", "true");
+    below.appendChild(week);
+    if (stage.parentNode) stage.parentNode.insertBefore(below, stage.nextSibling);
+    var mirror = function () {
+      clear(week);
+      [".orbit-core-label", ".orbit-core-figure", ".orbit-core-unit", ".orbit-core-met", ".orbit-core-asof"].forEach(function (sel) {
+        var from = core.querySelector(sel);
+        if (!from || from.hidden || !from.textContent) return;
+        week.appendChild(el(sel === ".orbit-core-figure" ? "strong" : "span", "orbit-week-" + sel.slice(12), from.textContent));
+      });
+    };
+    mirror();
+    if (typeof MutationObserver === "function") new MutationObserver(mirror).observe(core, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
 
     PORTALS.forEach(function (p) {
       var b = el("button", "orbit-portal");
@@ -774,8 +841,28 @@
   function frontBase(key) { return FRONT_DEG - indexOfPortal(key) * STEP_DEG; }
   // The panel's scale (its width / 680), as --os: every circle is sized from it. On a phone the row uses a fixed 46 px disc.
   function size() {
-    var s = narrow() ? 46 / 54 : (stage.clientWidth ? stage.clientWidth / VIEW.w : 1);
+    // PH1: on the phone --os sizes the 52 px discs and --oc the core (the view's own); NAMED BEFORE: narrow() ? 46 / 54.
+    var s = VIEW.phone ? (2 * VIEW.portalR) / 54 : (stage.clientWidth ? stage.clientWidth / VIEW.w : 1);
     stage.style.setProperty("--os", s.toFixed(4));
+    if (VIEW.phone) stage.style.setProperty("--oc", Math.round(2 * VIEW.coreR) + "px"); else stage.style.removeProperty("--oc");
+  }
+  /* PH1 (Nov 19 2026): the view for this width. On the phone: phoneView of the stage's width, the SVG's viewBox in CSS
+     pixels, the stage as tall as the view, the goal button in the row under the orbit. Above 760 px: VIEW_WIDE, the
+     680 x 330 viewBox, the stage's own aspect ratio, the button back in the stage after the core. */
+  var viewKey = "";
+  function setView() {
+    var onPhone = phone(), w = stage.clientWidth || 0;
+    var key = onPhone ? "phone:" + Math.round(w) : "wide";
+    if (key === viewKey) return false;
+    viewKey = key;
+    VIEW = onPhone && w > 0 ? phoneView(Math.round(w)) : VIEW_WIDE;
+    svg.setAttribute("viewBox", "0 0 " + VIEW.w + " " + VIEW.h);
+    stage.style.height = VIEW.phone ? VIEW.h + "px" : "";
+    if (VIEW.phone && goalBtn.parentNode !== below) below.appendChild(goalBtn);
+    if (!VIEW.phone && goalBtn.parentNode !== stage) stage.insertBefore(goalBtn, core.nextSibling);
+    layoutRing();
+    if (links && links.getAttribute("data-pairs")) { var pairs = links.getAttribute("data-pairs").split(","); links.removeAttribute("data-pairs"); drawLinks(pairs); }
+    return true;
   }
   // Each frame: transforms only. Every portal is the same size (r 27); none is scaled for depth.
   function place() {
@@ -788,9 +875,11 @@
     });
     links.setAttribute("transform", "rotate(" + (-state.base).toFixed(2) + ")");
     core.style.transform = "translate(" + (VIEW.cx * scale).toFixed(1) + "px, " + (VIEW.cy * scale).toFixed(1) + "px) translate(-50%, -50%)";
+    if (VIEW.phone) { goalBtn.style.transform = ""; return; }   // PH1: its own row under the orbit on the phone
     goalBtn.style.transform = "translate(" + (VIEW.cx * scale).toFixed(1) + "px, " + ((VIEW.cy + GOAL_BTN.dy) * scale).toFixed(1) + "px) translate(-50%, -50%)";
   }
-  function drifting() { return !state.open && !state.hover && !state.focus && !reduced() && !document.hidden && !narrow(); }
+  // PH1 (Nov 19 2026): NAMED BEFORE: ... && !narrow() (the phone row never drifted). AFTER the phone's orbit drifts too.
+  function drifting() { return !state.open && !state.hover && !state.focus && !reduced() && !document.hidden; }
   function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
   function tick(ts) {
     state.frame = 0;
@@ -816,7 +905,7 @@
   function turnTo(key) {
     var target = frontBase(key);
     var delta = ((target - state.base) % 360 + 540) % 360 - 180;   // the short way round
-    if (reduced() || narrow()) { state.turn = null; state.base += delta; place(); flushSparks(); return; }
+    if (reduced()) { state.turn = null; state.base += delta; place(); flushSparks(); return; }   // PH1: NAMED BEFORE reduced() || narrow()
     state.turn = { from: state.base, to: state.base + delta, start: 0 };
     kick();
   }
@@ -1327,7 +1416,7 @@
   // the short way round at LINK_BEND_R, b's place.
   function linkPoints(a, b) {
     var A = indexOfPortal(a) * STEP_DEG, B = indexOfPortal(b) * STEP_DEG, d = ((B - A) % 360 + 540) % 360 - 180;
-    return [frameAt(A, VIEW.rx), frameAt(A + d / 2, LINK_BEND_R), frameAt(B, VIEW.rx)];
+    return [frameAt(A, VIEW.rx), frameAt(A + d / 2, LINK_BEND_R * ringK()), frameAt(B, VIEW.rx)];
   }
   function drawLinks(pairs) {
     if (!Array.isArray(pairs)) return;
@@ -1358,7 +1447,7 @@
       if (fresh) {
         dot = sv("g", { "class": "orbit-sat is-entering", "data-agent": r.agent });
         dot.appendChild(sv("title", {}));
-        dot.appendChild(sv("circle", { cx: String(SAT.r), cy: "0", r: String(SAT.dotR), "class": "orbit-sat-dot" }));
+        dot.appendChild(sv("circle", { cx: String(VIEW.satR || SAT.r), cy: "0", r: String(SAT.dotR), "class": "orbit-sat-dot" }));
         satSpin.appendChild(dot);
         satDot[r.agent] = dot;
       }
@@ -1392,11 +1481,11 @@
     var from = e.portal_from, to = e.portal_to;
     if (!knownPortal(to) || (from !== "core" && !knownPortal(from))) return false;
     var pair = from !== "core" && from !== to ? pairKey(from, to) : null;
-    if (narrow()) { lightUp(portalBtn[to], reduced() ? "is-lit" : "is-pulse", reduced() ? SPARK.litMs : SPARK.ms); return true; }
+    // PH1 (Nov 19 2026): NAMED BEFORE on a phone only a pulse on the portal; AFTER the phone's orbit has the links, so the same spark.
     if (reduced()) { lightUp(pair ? linkPath[pair] : null, "is-lit", SPARK.litMs); lightUp(portalBtn[to], "is-lit", SPARK.litMs); return true; }
     if (from === to) { lightUp(portalBtn[to], "is-pulse", SPARK.ms); return true; }
     var A = indexOfPortal(to) * STEP_DEG;
-    var pts = from === "core" ? [frameAt(A, SPARK.fromCoreR), frameAt(A, VIEW.rx)] : linkPoints(from, to);
+    var pts = from === "core" ? [frameAt(A, SPARK.fromCoreR * ringK()), frameAt(A, VIEW.rx)] : linkPoints(from, to);
     if (!sparkLayer) { sparkLayer = sv("g", { "class": "orbit-sparks" }); svg.appendChild(sparkLayer); }
     var g = sv("g", { "class": "orbit-link-spark", "data-from": from, "data-to": to, "data-type": String(e.type || ""), "data-link": pair || "core" });
     g.appendChild(sv("circle", { r: "7", "class": "orbit-link-spark-glow" }));
@@ -1588,6 +1677,7 @@
   window.BFOrbit = api;
 
   buildOrbit();
+  setView();
   size();
   var remembered = readSession();
   if (remembered && indexOfPortal(remembered) !== -1) { state.chosen = true; openPortal(remembered, false); }
@@ -1595,7 +1685,7 @@
   drawOrbitFigures();
   drawMains();
   kick();
-  window.addEventListener("resize", function () { size(); place(); });
+  window.addEventListener("resize", function () { if (setView()) starsDrawn = ""; size(); place(); });
   drawStars();
   window.addEventListener("resize", drawStars);
   window.addEventListener("load", drawStars);
