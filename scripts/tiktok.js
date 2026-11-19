@@ -122,6 +122,7 @@
   }
   /* NAMED (Nov 17 2026, TK1): "API Clients should display a preview of the to-be-posted content." The member's own file
      from GET /api/videos/:id/preview: muted, with controls, never autoplaying; a deleted file says so. */
+  var PREVIEW_START = "Preview shows the start of the video.";
   function preview(v) {
     var wrap = make("div", null, "sf-field tt-preview");
     wrap.appendChild(make("span", "Preview", "sf-label"));
@@ -141,6 +142,8 @@
       note.textContent = "";
       note.hidden = true;
       wrap.appendChild(player);
+      // NAMED (Nov 18 2026, BV1): a video over 50 MB is kept as parts and the preview plays the first one, so it says so.
+      if (res.data.partial === true) wrap.appendChild(make("p", PREVIEW_START, "bsky-quiet tt-preview-part"));
     }, function () { note.textContent = "The preview couldn't be opened just now."; });
     return wrap;
   }

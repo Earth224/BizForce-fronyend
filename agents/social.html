@@ -589,12 +589,15 @@
          chip and one Prepare button per CONNECTED platform; scripts/youtube.js draws it (window.BFVideos). -->
     <section class="context-card bsky-card" id="videosCard" aria-label="Your videos">
       <h2 class="section-label">Your videos</h2>
-      <p class="bsky-quiet">Videos up to 50 MB (MP4, WebM or MOV).</p>
+      <!-- NAMED (Nov 18 2026, BV1): BEFORE "Videos up to 50 MB (MP4, WebM or MOV)." AFTER 500 MB for YouTube and TikTok (a video over
+           50 MB goes up in parts, with a progress bar and Cancel), 50 MB for Instagram and Facebook. -->
+      <p class="bsky-quiet">Videos up to 500 MB for YouTube and TikTok (MP4, WebM or MOV). Instagram and Facebook take videos up to 50 MB.</p>
       <p class="bsky-quiet">BizForce deletes the file once every platform you sent it to has it, or 14 days after you added it.</p>
       <div class="sf-form sf-add">
         <div class="sf-field"><label class="sf-label" for="ytLabel">Label (optional)</label><input type="text" class="sf-control" id="ytLabel" maxlength="120" autocomplete="off" /></div>
         <div class="sf-field"><label class="sf-label" for="ytFile">Add video</label><input type="file" class="sf-control sf-file" id="ytFile" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" /></div>
       </div>
+      <div class="bsky-row" id="ytUploadProgress" hidden><progress id="ytUploadBar" max="100" value="0" aria-label="Upload progress"></progress> <button type="button" class="action-btn action-btn--ghost" id="ytUploadCancel">Cancel upload</button></div>
       <div class="bsky-msg" id="ytUploadMsg"></div>
       <ul class="bsky-mentions-list sf-videos" id="ytVideoList"></ul>
     </section>

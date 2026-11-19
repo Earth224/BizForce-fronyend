@@ -43,6 +43,11 @@
   var VIDEO_TYPE = "Facebook videos must be MP4 or MOV.";
   var PHOTO_MIMES = ["image/jpeg", "image/png", "image/gif"];
   var VIDEO_MIMES = ["video/mp4", "video/quicktime"];
+  /* NAMED (Nov 18 2026, BV1): Facebook fetches ONE address, and a video over 50 MB is kept as parts, so a larger
+     video's button and its choice in the picker are off, with this reason. GET /api/videos says fits_meta. */
+  var META_MAX_BYTES = 50 * 1024 * 1024;
+  var VIDEO_SIZE = "Facebook takes videos up to 50 MB from BizForce.";
+  function videoSize(v) { return v.fits_meta === false || (Number(v.bytes) || 0) > META_MAX_BYTES ? VIDEO_SIZE : ""; }
   var KIND_WORDS = { text: "Text post", photo: "Photo post", photos: "Photos post", video: "Video" };
   var STATUS_WORDS = { creating: "sending to Facebook", publishing: "waiting for Facebook to confirm", published: "published", failed: "not published" };
   var state = { available: false, connected: false, photos: [] };
@@ -318,7 +323,7 @@
       // A post the member removed from Facebook is not there any more: "Prepare for Facebook".
       var p = v.facebook_proposal === "pending" || v.facebook_proposal === "publishing" ? v.facebook_proposal : null;
       var st = p || (s === "posted" || s === "pending" || s === "publishing" || s === "failed" ? s : "new");
-      row.platform("facebook", st, "Facebook video post", function (shell, repost) { prepareVideo(v, shell, repost); }, videoOk(v) ? "" : VIDEO_TYPE);
+      row.platform("facebook", st, "Facebook video post", function (shell, repost) { prepareVideo(v, shell, repost); }, videoOk(v) ? videoSize(v) : VIDEO_TYPE);
     }
   };
   window.BFFacebook = { chip: HOOK.chip, actions: HOOK.actions, prepareVideo: prepareVideo };
@@ -379,7 +384,9 @@
       var list = Array.isArray(res.data.videos) ? res.data.videos : [];
       list.filter(function (v) { return plainObject(v) && v.status === "ready"; }).forEach(function (v) {
         var fits = VIDEO_MIMES.indexOf(v.mime) !== -1;
-        var opt = make("option", (v.label || "Untitled video") + ", " + sizeText(v.bytes) + (fits ? "" : " (" + VIDEO_TYPE + ")"));
+        var why = fits ? videoSize(v) : VIDEO_TYPE;
+        fits = !why;
+        var opt = make("option", (v.label || "Untitled video") + ", " + sizeText(v.bytes) + (why ? " (" + why + ")" : ""));
         opt.value = v.id;
         opt.disabled = !fits;
         select.appendChild(opt);

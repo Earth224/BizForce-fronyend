@@ -38,6 +38,11 @@
   var JPEG_ONLY = "Instagram accepts JPEG photos only. Choose a JPEG photo.";
   var REEL_TYPE = "Instagram Reels need an MP4 or MOV video.";
   var REEL_MIMES = ["video/mp4", "video/quicktime"];
+  /* NAMED (Nov 18 2026, BV1): Instagram fetches ONE address, and a video over 50 MB is kept as parts, so a larger
+     video's button and its choice in the picker are off, with this reason. GET /api/videos says fits_meta. */
+  var META_MAX_BYTES = 50 * 1024 * 1024;
+  var REEL_SIZE = "Instagram takes videos up to 50 MB from BizForce.";
+  function reelSize(v) { return v.fits_meta === false || (Number(v.bytes) || 0) > META_MAX_BYTES ? REEL_SIZE : ""; }
   var KIND_WORDS = { image: "Photo post", carousel: "Carousel", reel: "Reel" };
   var STATUS_WORDS = { creating: "sending to Instagram", processing: "Instagram is preparing it", published: "published", failed: "not published" };
   var state = { available: false, connected: false, photos: [] };
@@ -255,7 +260,7 @@
       // NAMED (Nov 13 2026, S3): the button follows scripts/youtube.js BUTTON_RULES; the file rule still wins.
       var p = v.instagram_proposal === "pending" || v.instagram_proposal === "publishing" ? v.instagram_proposal : null;
       var st = p || (s === "posted" || s === "pending" || s === "publishing" || s === "failed" ? s : "new");
-      row.platform("instagram", st, "Instagram Reel", function (shell, repost) { prepareReel(v, shell, repost); }, reelOk(v) ? "" : REEL_TYPE);
+      row.platform("instagram", st, "Instagram Reel", function (shell, repost) { prepareReel(v, shell, repost); }, reelOk(v) ? reelSize(v) : REEL_TYPE);
     }
   };
   window.BFInstagram = { chip: HOOK.chip, actions: HOOK.actions, prepareReel: prepareReel };
@@ -318,9 +323,10 @@
       var list = Array.isArray(res.data.videos) ? res.data.videos : [];
       list.filter(function (v) { return plainObject(v) && v.status === "ready"; }).forEach(function (v) {
         var reelOk = REEL_MIMES.indexOf(v.mime) !== -1;
-        var opt = make("option", (v.label || "Untitled video") + ", " + sizeText(v.bytes) + (reelOk ? "" : " (" + REEL_TYPE + ")"));
+        var why = reelOk ? reelSize(v) : REEL_TYPE;
+        var opt = make("option", (v.label || "Untitled video") + ", " + sizeText(v.bytes) + (why ? " (" + why + ")" : ""));
         opt.value = v.id;
-        opt.disabled = !reelOk;
+        opt.disabled = !!why;
         select.appendChild(opt);
       });
       if (select.options.length === 1) tell("igPrepareMsg", "Add an MP4 or MOV video in Your videos first.");

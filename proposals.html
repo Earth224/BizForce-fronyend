@@ -583,7 +583,8 @@ function fillTiktokPreviews(container) {
       v.controls = true; v.muted = true; v.autoplay = false; v.preload = "metadata";
       v.setAttribute("playsinline", ""); v.setAttribute("muted", "");
       v.src = r.d.url;
-      msg.textContent = "";
+      // NAMED (Nov 18 2026, BV1): a video over 50 MB is kept as parts and the preview plays the first one, so it says so.
+      msg.textContent = r.d.partial === true ? "Preview shows the start of the video." : "";
       spot.appendChild(v);
     }, function () { msg.textContent = "The preview couldn't be opened just now."; });
   });

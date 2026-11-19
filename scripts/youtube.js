@@ -18,10 +18,17 @@
    marker, oauth-return.js strips the query and this script says "Start the
    connection again.".
 
-   Your videos: a file of up to 50 MB (MP4, WebM or MOV) is checked here
+   Your videos: a file of up to 500 MB (MP4, WebM or MOV) is checked here
    first, then PUT straight to the signed upload URL that
    POST /api/videos/upload-url makes, then POST /api/videos/finalize checks
-   it on the server. A video whose file is here gets Delete, and while
+   it on the server. NAMED (Nov 18 2026, BV1): BEFORE every video was at most
+   50 MB and ONE PUT. AFTER a video over 50 MB goes up in PARTS of the size
+   upload-url names (part_bytes, 45 MB), in order: for each part, its sha256
+   here (crypto.subtle), POST /api/videos/part-url for its own signed URL,
+   the PUT, then POST /api/videos/part-done; a failed part is tried again
+   (PART_TRIES in all), the progress bar (#ytUploadBar) counts every byte,
+   and "Cancel upload" stops it (the server deletes parts left behind after
+   24 hours). Then finalize, as before. A video whose file is here gets Delete, and while
    YouTube doesn't have it, "Prepare upload" (title, description, tags,
    privacy with Private first, "Made for kids?" required, "Draft with AI",
    "File for approval"); a video on YouTube, its YouTube link, "Check status"
@@ -47,7 +54,11 @@
   var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
   var PAGE_PATH = "/agents/social.html";
   var GOOGLE_HOST = "https://accounts.google.com/";
-  var MAX_BYTES = 50 * 1024 * 1024;
+  // NAMED (Nov 18 2026, BV1): BEFORE MAX_BYTES 50 MB. AFTER 500 MB; over ONE_FILE_MAX_BYTES (50 MB) in parts.
+  var MAX_BYTES = 500 * 1024 * 1024;
+  var ONE_FILE_MAX_BYTES = 50 * 1024 * 1024;
+  var PART_TRIES = 3;
+  var CANCELLED_UPLOAD = "Upload cancelled. Nothing was added.";
   var TYPES = { mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
   var MIMES = ["video/mp4", "video/webm", "video/quicktime"];
   var WATCH_RE = /^https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}$/;
@@ -252,16 +263,86 @@
     try { url = URL.createObjectURL(file); v.src = url; } catch (e) { clearTimeout(timer); finish(null); }
   }
 
-  function putFile(url, file, mime, onProgress) {
+  /* NAMED (Nov 18 2026, BV1): the PUT can be cancelled (upload.xhr is the one under way) and reports the bytes sent so
+     far (onBytes), so a parted upload's bar counts the whole video. Resolves the status, or 0 for a network failure or a
+     cancel. */
+  var upload = { xhr: null, cancelled: false };
+  function putFile(url, file, mime, onBytes) {
     return new Promise(function (resolve) {
       var xhr = new XMLHttpRequest();
+      upload.xhr = xhr;
       xhr.open("PUT", url);
       xhr.setRequestHeader("Content-Type", mime);
-      xhr.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(Math.floor(e.loaded * 100 / e.total)); };
-      xhr.onload = function () { resolve(xhr.status); };
-      xhr.onerror = function () { resolve(0); };
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable) onBytes(e.loaded); };
+      xhr.onload = function () { upload.xhr = null; resolve(xhr.status); };
+      xhr.onerror = function () { upload.xhr = null; resolve(0); };
+      xhr.onabort = function () { upload.xhr = null; resolve(0); };
       xhr.send(file);
     });
+  }
+  function showProgress(on, pct) {
+    showIf("ytUploadProgress", on);
+    var bar = el("ytUploadBar");
+    if (bar) bar.value = Math.max(0, Math.min(100, pct || 0));
+  }
+  function cancelUpload() {
+    upload.cancelled = true;
+    if (upload.xhr) { try { upload.xhr.abort(); } catch (e) { /* already finished */ } }
+  }
+  function stopIfCancelled() { if (upload.cancelled) throw new Error(CANCELLED_UPLOAD); }
+  // The sha256 of a Blob, as 64 hex characters (the server checks it against the stored part at finalize).
+  function sha256Hex(blob) {
+    var subtle = window.crypto && window.crypto.subtle;
+    if (!subtle || typeof blob.arrayBuffer !== "function") return Promise.reject(new Error("This browser can't check a large video before sending it. Use a current browser, or a video up to 50 MB."));
+    return blob.arrayBuffer().then(function (buf) { return subtle.digest("SHA-256", buf); }).then(function (d) {
+      return Array.prototype.map.call(new Uint8Array(d), function (b) { return (b < 16 ? "0" : "") + b.toString(16); }).join("");
+    });
+  }
+  /* One part: its sha256, its own signed URL, the PUT, then part-done. Tried again up to PART_TRIES times; a refusal the
+     server says is final (4xx other than a size the server deleted) stops it. */
+  function sendPart(plan, file, mime, idx, onBytes) {
+    var start = idx * plan.partBytes, part = file.slice(start, Math.min(file.size, start + plan.partBytes));
+    return sha256Hex(part).then(function (hex) {
+      function tryOnce(n) {
+        stopIfCancelled();
+        return call("POST", "/api/videos/part-url", { path: plan.path, idx: idx, bytes: file.size }).then(function (res) {
+          if (!res.ok || typeof res.data.upload_url !== "string") throw Object.assign(new Error(errorOf(res)), { final: res.status >= 400 && res.status < 500 && res.status !== 429 });
+          return putFile(res.data.upload_url, part, mime, onBytes);
+        }).then(function (status) {
+          stopIfCancelled();
+          if (status < 200 || status >= 300) throw new Error("Part " + (idx + 1) + " of " + plan.parts + " didn't finish.");
+          return call("POST", "/api/videos/part-done", { path: plan.path, idx: idx, bytes: file.size, sha256: hex });
+        }).then(function (res) {
+          if (!res.ok) throw Object.assign(new Error(errorOf(res)), { final: res.status >= 400 && res.status < 500 && res.status !== 404 && res.status !== 422 && res.status !== 429 });
+          return true;
+        }).catch(function (err) {
+          if (upload.cancelled) throw new Error(CANCELLED_UPLOAD);
+          if ((err && err.final) || n >= PART_TRIES) throw err;
+          onBytes(0);
+          tell("ytUploadMsg", "Part " + (idx + 1) + " of " + plan.parts + " didn't finish. Trying again…");
+          return tryOnce(n + 1);
+        });
+      }
+      return tryOnce(1);
+    });
+  }
+  function sendParts(plan, file, mime) {
+    var idx = 0, done = 0;
+    function next() {
+      stopIfCancelled();
+      if (idx >= plan.parts) return Promise.resolve();
+      var here = idx;
+      return sendPart(plan, file, mime, here, function (sent) {
+        var pct = Math.floor((done + sent) * 100 / file.size);
+        showProgress(true, pct);
+        tell("ytUploadMsg", "Uploading part " + (here + 1) + " of " + plan.parts + "… " + pct + "%");
+      }).then(function () {
+        done += Math.min(plan.partBytes, file.size - here * plan.partBytes);
+        idx++;
+        return next();
+      });
+    }
+    return next();
   }
 
   function addVideo() {
@@ -272,17 +353,34 @@
     var labelEl = el("ytLabel");
     var label = labelEl ? labelEl.value.trim() : "";
     if (!mime) { input.value = ""; tell("ytUploadMsg", "That file type isn't supported. Use MP4, WebM or MOV.", true); return; }
-    if (file.size > MAX_BYTES) { input.value = ""; tell("ytUploadMsg", "A video is at most 50 MB.", true); return; }
+    if (file.size > MAX_BYTES) { input.value = ""; tell("ytUploadMsg", "A video is at most 500 MB.", true); return; }
     if (file.size < 1) { input.value = ""; tell("ytUploadMsg", "That file is empty.", true); return; }
     input.disabled = true;
+    upload.cancelled = false;
+    showProgress(true, 0);
     tell("ytUploadMsg", "Preparing the upload…");
     call("POST", "/api/videos/upload-url", { mime: mime, bytes: file.size, label: label }).then(function (res) {
-      if (!res.ok || typeof res.data.upload_url !== "string" || typeof res.data.path !== "string") throw new Error(errorOf(res));
+      if (!res.ok || typeof res.data.path !== "string") throw new Error(errorOf(res));
       var path = res.data.path;
-      return putFile(res.data.upload_url, file, mime, function (pct) {
-        tell("ytUploadMsg", "Uploading… " + pct + "%");
-      }).then(function (status) {
-        if (status < 200 || status >= 300) throw new Error("The upload didn't finish. Try again.");
+      var sent;
+      // NAMED (Nov 18 2026, BV1): over 50 MB the answer is the plan (parts, part_bytes) and each part gets its own URL.
+      if (file.size > ONE_FILE_MAX_BYTES) {
+        if (!(Number.isInteger(res.data.parts) && res.data.parts > 1 && Number.isInteger(res.data.part_bytes) && res.data.part_bytes > 0)) throw new Error(errorOf(res));
+        sent = sendParts({ path: path, parts: res.data.parts, partBytes: res.data.part_bytes }, file, mime);
+      } else {
+        if (typeof res.data.upload_url !== "string") throw new Error(errorOf(res));
+        sent = putFile(res.data.upload_url, file, mime, function (n) {
+          var pct = Math.floor(n * 100 / file.size);
+          showProgress(true, pct);
+          tell("ytUploadMsg", "Uploading… " + pct + "%");
+        }).then(function (status) {
+          stopIfCancelled();
+          if (status < 200 || status >= 300) throw new Error("The upload didn't finish. Try again.");
+        });
+      }
+      return sent.then(function () {
+        stopIfCancelled();
+        showProgress(true, 100);
         tell("ytUploadMsg", "Checking the file…");
         // NAMED (Nov 17 2026, TK1): duration_ms, the browser's measure, a fallback the server checks.
         return measureDuration(file).then(function (ms) {
@@ -299,6 +397,8 @@
     }).catch(function (err) {
       tell("ytUploadMsg", (err && err.message) || "The upload didn't finish. Try again.", true);
     }).then(function () {
+      upload.xhr = null;
+      showProgress(false, 0);
       input.value = "";
       fileSwitch();
     });
@@ -492,7 +592,17 @@
         b.setAttribute("data-prepare", platform);
         b.setAttribute("data-state", state);
         // The file rule wins: a file the platform can't take is the reason, whatever the status.
-        if (fileReason) { b.disabled = true; b.title = fileReason; return b; }
+        // NAMED (Nov 18 2026, BV1): BEFORE the reason was only the button's title. AFTER it is also shown beside the button
+        // ("Instagram takes videos up to 50 MB from BizForce."), so it can be read without hovering.
+        if (fileReason) {
+          b.disabled = true;
+          b.title = fileReason;
+          var reason = make("span", fileReason, "sf-why");
+          reason.id = "sfWhy-" + v.id + "-" + platform;
+          b.setAttribute("aria-describedby", reason.id);
+          actions.appendChild(reason);
+          return b;
+        }
         if (state === "pending" || state === "publishing") {
           b.disabled = true;
           var why = make("span", state === "pending" ? WAITING : PUBLISHING, "sf-why");
@@ -735,6 +845,9 @@
     if (off) off.addEventListener("click", disconnect);
     var file = el("ytFile");
     if (file) file.addEventListener("change", addVideo);
+    // NAMED (Nov 18 2026, BV1): Cancel stops the upload under way.
+    var cancel = el("ytUploadCancel");
+    if (cancel) cancel.addEventListener("click", cancelUpload);
     var returning = false;
     var rt = returns();
     if (rt) {
