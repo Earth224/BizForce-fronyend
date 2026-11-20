@@ -48,6 +48,9 @@
    CONTINUITY ACROSS PAGES, honestly: a page's audio stops when the page
    goes. The next page restores the track, the position, the queue and the
    volume (bf_music), and if the music was playing it resumes by itself
+   (HQ1, Nov 19 2026: only with "Play when I open BizForce" on and no pause or
+   stop by the member in this visit, loadPlayAllowed; otherwise it waits,
+   paused, for play)
    (after RESUME_WAIT_MS, long enough to hear a pop-out that is playing). A
    continuation is tried without waiting for a click; if the browser refuses
    sound before an interaction, the tag says RESUME_TAP and the first click,
@@ -168,6 +171,10 @@
   var STAGES = ["icon", "tag", "box"];
   var HOME_PAGE = "dashboard.html";        // the only page with the icon
   var LIVE_KEY = "bf_music_live";          // sessionStorage: music has played in this tab and was not stopped
+  /* HQ1 (Nov 19 2026): sessionStorage, the member paused or stopped the music in this tab, so no page of this visit starts
+     it on load, even with "Play when I open BizForce" on, until they press play. Its name starts with LIVE_KEY, so
+     scripts/bf-session.js's "bf_music_live" prefix clears it at sign-out with the rest of the tab's music state. */
+  var HELD_KEY = "bf_music_live_held";
   var EQ_BANDS = ["bass", "mid", "treble"];
   var EQ_MAX = 12;
   var EQ_HZ = { bass: 120, mid: 1000, treble: 6000 };
@@ -565,6 +572,7 @@
   /* After a page change: carry on from where the last page stopped. */
   function resumeAfterNavigation() {
     R.settled = true;
+    if (!loadPlayAllowed()) { save(); render(); return Promise.resolve(false); }   // HQ1
     if (popoutAlive() || R.playing || !S.was_playing || !S.track_id || !trackById(S.track_id)) { render(); return Promise.resolve(false); }
     R.resuming = true;
     R.armed = false;
@@ -588,6 +596,7 @@
   /* The one door to sound. Before the member has interacted with this page,
      it only arms the player for their first click, tap or key press. */
   function play(opts) {
+    if (!(opts && opts.auto)) hold(false);   // HQ1: the member pressed play
     if (popoutAlive()) { relay("play"); return Promise.resolve(false); }
     if (!R.activated) { arm(); return Promise.resolve(false); }
     if (R.starting) return R.starting;
@@ -615,7 +624,8 @@
     save();
     render();
   }
-  function pause() { if (popoutAlive()) return relay("pause"); pauseLocal(); }
+  // HQ1: a pause by the member is remembered for the rest of this visit (held).
+  function pause() { hold(true); if (popoutAlive()) return relay("pause"); pauseLocal(); }
   function toggle() { if (popoutAlive()) return relay("toggle"); if (R.starting) return R.starting; return R.playing ? pause() : play(); }
   function order() { return S.queue.length ? S.queue : baseOrder(); }
   /* The track after this one, by shuffle and repeat; `manual` is the Next button. */
@@ -671,8 +681,14 @@
   function markLive(on) {
     try { if (on && UID) sessionStorage.setItem(LIVE_KEY, UID); else sessionStorage.removeItem(LIVE_KEY); } catch (e) { /* storage unavailable */ }
   }
+  function held() { try { return !!UID && sessionStorage.getItem(HELD_KEY) === UID; } catch (e) { return false; } }
+  function hold(on) { try { if (on && UID) sessionStorage.setItem(HELD_KEY, UID); else sessionStorage.removeItem(HELD_KEY); } catch (e) { /* storage unavailable */ } }
+  /* HQ1 (Nov 19 2026): THE ONE RULE for sound on a page's load: only with "Play when I open BizForce" on (S.autoplay, saved
+     by its checkbox), and not after the member paused or stopped in this visit. */
+  function loadPlayAllowed() { return S.autoplay === true && !held(); }
   function sessionLive() { try { return !!UID && sessionStorage.getItem(LIVE_KEY) === UID; } catch (e) { return false; } }
   function stop() {
+    hold(true);   // HQ1
     markLive(false);
     if (popoutAlive()) { relay("stop"); render(); return; }
     stopAtEnd();
@@ -736,6 +752,7 @@
   function setView(v) { if (VIEWS.indexOf(v) === -1) return; S.view = v; save(); render(); startViz(); }
   function setAutoplay(on) { S.autoplay = !!on; save(); render(); }
   function playTrack(id) {
+    hold(false);   // HQ1: the member chose a track to play
     if (popoutAlive()) return relay("track", id);
     if (!trackById(id)) return;
     if (!R.activated) { S.track_id = id; S.position = 0; save(); render(); return; }
@@ -1754,18 +1771,23 @@
     window.addEventListener("pagehide", function () { if (R.playing) save(); });
     ticker = setInterval(tick, TICK_MS);
     loadLibrary().then(function () {
-      if (S.was_playing && S.track_id && trackById(S.track_id)) {
+      /* HQ1 (Nov 19 2026). NAMED BEFORE: music that was playing when the last page went carried on here by itself (the
+         resume below) whatever "Play when I open BizForce" said, and with it on, every page but the dashboard armed the
+         player on load (the icon stage, the dashboard's, was left out), so the member's first tap anywhere started the
+         music. AFTER: both only when loadPlayAllowed(): the setting on, and no pause or stop by the member in this visit. */
+      if (loadPlayAllowed() && S.was_playing && S.track_id && trackById(S.track_id)) {
         /* Music was playing when the last page went: carry on, once a
            pop-out that is playing has had time to say so. */
         setTimeout(resumeAfterNavigation, RESUME_WAIT_MS);
         return;
       }
       R.settled = true;
+      if (S.was_playing) save();   // HQ1: not carried on, so no longer "playing" for the next page
       render();
       /* "Play when I open BizForce": play() refuses until the first
-         interaction, and arms the player for it. Never from the icon: in
-         the icon stage no audio starts. */
-      if (S.autoplay && LIB.tracks.length && !(BOX && BOX.state() === "icon")) play({ auto: true });
+         interaction, and arms the player for it. HQ1: NAMED BEFORE never from the icon (the dashboard); AFTER on every
+         page alike, the dashboard too, and only when loadPlayAllowed(). */
+      if (loadPlayAllowed() && LIB.tracks.length) play({ auto: true });
     });
   }
 
@@ -1778,7 +1800,7 @@
     fadeGains: fadeGains, energyStep: energyStep, easeOut: easeOut, clamp01: clamp01,
     play: play, pause: pause, toggle: toggle, next: next, prev: prev, seek: seek, setVolume: setVolume, toggleMute: toggleMute,
     setShuffle: setShuffle, cycleRepeat: cycleRepeat, setRepeat: setRepeat, setCrossfade: setCrossfade, setView: setView,
-    setAutoplay: setAutoplay, playTrack: playTrack, stop: stop, setPosition: setPosition, musicOn: musicOn, LIVE_KEY: LIVE_KEY, HOME_PAGE: HOME_PAGE, POSITIONS: POSITIONS, STAGES: STAGES, popOut: popOut, choosePlaylist: choosePlaylist, moveTrack: moveTrack, uploadFiles: uploadFiles,
+    setAutoplay: setAutoplay, HELD_KEY: HELD_KEY, loadPlayAllowed: function () { return loadPlayAllowed(); }, playTrack: playTrack, stop: stop, setPosition: setPosition, musicOn: musicOn, LIVE_KEY: LIVE_KEY, HOME_PAGE: HOME_PAGE, POSITIONS: POSITIONS, STAGES: STAGES, popOut: popOut, choosePlaylist: choosePlaylist, moveTrack: moveTrack, uploadFiles: uploadFiles,
     loadLibrary: loadLibrary,
     state: function () { return JSON.parse(JSON.stringify(S)); },
     library: function () { return LIB; },

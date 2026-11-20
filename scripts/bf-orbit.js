@@ -959,7 +959,18 @@
     }
     return box;
   }
+  /* HQ1 (Nov 19 2026): the phone's Compact and Grid views (scripts/bf-hq-views.js) draw one row or tile per box drawn
+     here; each draw of the main boxes or the grid tells them, once the boxes are in place. */
+  function drawn() {
+    var ev;
+    try { ev = new CustomEvent("bf-orbit-drawn", { detail: { open: state.open } }); } catch (e) { ev = document.createEvent("CustomEvent"); ev.initCustomEvent("bf-orbit-drawn", false, false, { open: state.open }); }
+    root.dispatchEvent(ev);
+  }
   function drawGrid() {
+    drawGridBoxes();
+    drawn();
+  }
+  function drawGridBoxes() {
     clear(grid);
     var portal = null;
     PORTALS.forEach(function (p) { if (p.key === state.open) portal = p; });
@@ -1087,6 +1098,7 @@
       head.appendChild(swap);
       mainWrap.appendChild(box);
     });
+    drawn();   // HQ1
   }
   function swapList(i) {
     var ul = el("ul", "orbit-swap-list");
@@ -1672,7 +1684,9 @@
     SAT: SAT, CORE_KEEP_R: CORE_KEEP_R, GOAL_BTN: GOAL_BTN, SPARK: SPARK, LINK_BEND_R: LINK_BEND_R, PULSE_MS: PULSE_MS, GOAL_METRICS: GOAL_METRICS,
     goalView: goalView, notCountedText: notCountedText, linkPoints: linkPoints, drawSatellites: drawSatellites, sparkFor: sparkFor, playSpark: playSpark,
     pulse: function () { return pollPulse(true); }, pulseState: pulse, pulseOn: function () { return pulseOn(); },
-    openGoal: function () { openGoalDialog(); }, readGoalForm: function () { return readGoalForm(); }, syncStores: syncStores
+    openGoal: function () { openGoalDialog(); }, readGoalForm: function () { return readGoalForm(); }, syncStores: syncStores,
+    // HQ1 (Nov 19 2026): the Swap list and its choice, for the phone's Compact and Grid rows; the main boxes' slugs.
+    swapList: function (i) { return swapList(i); }, chooseMain: function (i, slug) { chooseMain(i, slug); }, mains: function () { return state.mains.slice(); }
   };
   window.BFOrbit = api;
 

@@ -31,7 +31,8 @@ var BUILD = "__BF_BUILD__";
 /* NAMED (Nov 19 2026, PH1): the shell's own version, bumped when the phone layout changed (css/bf-phone.css on every
    page, the orbit, the top bar). BEFORE the cache was "bf-shell-" + BUILD alone; AFTER it also carries SHELL_REV, so
    even a build whose commit placeholder is left as "local" starts a new cache, and activate deletes the older one. */
-var SHELL_REV = "ph1";
+/* NAMED (Nov 19 2026, HQ1): BEFORE "ph1"; AFTER "hq1" (the phone card views, the orbit toggle, the Oracle set, the boombox autoplay fix). */
+var SHELL_REV = "hq1";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -46,6 +47,7 @@ var STATIC_FILES = [
   "/css/bf-phone.css",   // NAMED (Nov 19 2026, PH1): the phone layout, linked by every page
   "/scripts/bf-session.js", "/scripts/bf-offline.js", "/scripts/bf-paywall.js", "/scripts/bf-bfc-notice.js",
   "/scripts/bf-identity.js", "/scripts/bf-agent-order.js", "/scripts/bf-orbit.js", "/scripts/agent-profile.js",
+  "/scripts/bf-oracle-moon.js", "/scripts/bf-hq-views.js",   // NAMED (Nov 19 2026, HQ1): the dashboard loads both
   "/scripts/termaximus-guide.js", "/scripts/termaximus-presence.js", "/scripts/email-sequences.js", "/scripts/social-publish.js",
   /* NAMED (Nov 11 2026, polish): every same-origin script an offline page loads. Before, 26 of them were missing (the tab
      folders' bf-tabs.js among them), so a page opened offline had no tabs, no theme and no footer script. The cache's

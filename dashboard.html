@@ -848,6 +848,104 @@
 </div>
 </template>
 <script src="/scripts/bf-orbit.js"></script>
+<!-- HQ1 (Nov 19 2026): the phone dashboard's card views, orbit toggle and Oracle set. Every rule that shows anything is inside
+     @media (max-width: 760px); above it each element HQ1 adds is display:none, so the desktop is unchanged. -->
+<style id="hq1Phone">
+  .hq-chips,.hq-view-row,.hq-list,.hq-moon,.hq-core-moon,.hq-gold-ring{display:none}
+  /* THE GOLD: the Termaximus chat box's rim (#tmx-chat::before, in the Termaximus presence script), exactly: the same nine
+     stops, the same 260% size, the same tmx-gold-shimmer keyframes at 7s. scripts/checkHqViews.js holds every value equal. */
+  @keyframes tmx-gold-shimmer {
+    0%,100% { background-position: 15% 20%; }
+    25%      { background-position: 70% 35%; }
+    50%      { background-position: 85% 75%; }
+    75%      { background-position: 30% 65%; }
+  }
+  .hq-gold,.hq-gold-ring{
+    background: linear-gradient(135deg,
+      #6b4e00 0%, #b8860b 14%, #fff6d5 24%, #d4af37 34%,
+      #f7dd8a 46%, #8b6508 58%, #fff3c4 70%, #b8860b 82%, #6b4e00 100%);
+    background-size: 260% 260%;
+    animation: tmx-gold-shimmer 7s ease-in-out infinite;
+  }
+  /* a ring: the gold masked to a frame (the chat box's own method) */
+  .hq-gold-ring{position:absolute;inset:-3px;border-radius:50%;padding:3px;box-sizing:border-box;pointer-events:none;z-index:2;
+    -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  /* an icon: the gold masked by the icon's own drawing */
+  .hq-gold-glyph{display:block;width:20px;height:20px;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  @media (prefers-reduced-motion: reduce){ .hq-gold,.hq-gold-ring{animation:none} }
+
+  @media (max-width: 760px){
+    /* text: the gold through the letters */
+    .hq-set-title.hq-gold,.orbit-portal-name.hq-gold,.hq-chip-name.hq-gold{-webkit-background-clip:text;background-clip:text;color:transparent !important;-webkit-text-fill-color:transparent}
+    /* 1. THE ORBIT, or the chips */
+    #orbitTop[data-hq-orbit="hidden"] .orbit-stage{display:none}
+    #orbitTop[data-hq-orbit="hidden"] .hq-chips{display:flex;gap:6px;margin:0 0 4px}
+    .hq-chip{position:relative;flex:1 1 0;min-width:0;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px 2px;
+      border-radius:14px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);background:#0f1a3d;color:#8fa3d6;font:inherit;cursor:pointer;box-sizing:border-box}
+    .hq-chip-disc{position:relative;display:block;width:24px;height:24px;border-radius:50%}
+    .hq-chip-disc .orbit-emblem{display:block;width:100%;height:100%}
+    .hq-chip-name{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.2;color:#8fa3d6}
+    .hq-chip[data-portal="oracle"]{background:#140f33;border-color:rgba(var(--bf-accent-b-rgb, 208,140,255),.7)}
+    .hq-chip[data-portal="oracle"] .hq-chip-name{color:#b98cff}
+    .hq-chip.is-open{border:1.8px solid var(--bf-accent-a, #22d3ee);box-shadow:0 0 0 4px rgba(var(--bf-accent-a-rgb, 34,211,238),.12)}
+    .hq-chip.is-open .hq-chip-name{color:var(--bf-accent-a, #22d3ee)}
+    .hq-chip:focus-visible,.hq-view-btn:focus-visible,.hq-link:focus-visible,.hq-more:focus-visible{outline:3px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}
+
+    /* the moon: on the ORACLE node and chip, and in the centre while ORACLE is open (scripts/bf-oracle-moon.js) */
+    .hq-moon{display:block;position:absolute;inset:0;border-radius:50%;pointer-events:none}
+    .hq-moon[hidden],.hq-core-moon[hidden]{display:none !important}
+    .hq-moon svg,.hq-core-moon svg{display:block;width:100%;height:100%}
+    .orbit-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon,.hq-chip-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon{visibility:hidden}
+    #orbitTop[data-hq-open="oracle"] .hq-core-moon{display:block;position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:0}
+    #orbitTop[data-hq-open="oracle"] .orbit-core > :not(.hq-core-moon):not(.hq-gold-ring){position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+    /* the gold rings: round the ORACLE node and chip when open, and round the centre while ORACLE is open */
+    .orbit-portal[data-portal="oracle"].is-open .orbit-disc{border-color:transparent}
+    .orbit-portal[data-portal="oracle"].is-open .hq-gold-ring,#orbitTop[data-hq-open="oracle"] .orbit-core > .hq-gold-ring{display:block}
+    .hq-chip[data-portal="oracle"].is-open{border-color:#140f33;box-shadow:0 0 0 4px rgba(var(--bf-accent-b-rgb, 208,140,255),.12)}
+    .hq-chip[data-portal="oracle"].is-open .hq-gold-ring{display:block}
+
+    /* 2. THE VIEW ROW */
+    .hq-view-row{display:flex;align-items:center;gap:6px;margin:12px 0 0}
+    .hq-set-title{flex:1 1 auto;min-width:0;margin:0;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8fa3d6;line-height:1.3}
+    .hq-view-btns{display:flex;gap:6px;flex:0 0 auto}
+    .hq-view-btn,.hq-more{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:12px;
+      border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.25);background:rgba(10,17,40,.75);color:#8fa3d6;cursor:pointer;box-sizing:border-box}
+    .hq-view-btn[aria-pressed="true"]{border:1.8px solid var(--bf-accent-a, #22d3ee);color:var(--bf-accent-a, #22d3ee);box-shadow:0 0 0 3px rgba(var(--bf-accent-a-rgb, 34,211,238),.12)}
+    .hq-glyph{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .hq-glyph .hq-glyph-fill{fill:currentColor;stroke:none}
+
+    /* 3. THE VIEWS: Large is the PH1 cards; Compact and Grid replace them with the list */
+    #orbitTop:not([data-hq-view="large"]) #orbitMain,#orbitTop:not([data-hq-view="large"]) #orbitGrid{display:none !important}
+    #orbitTop:not([data-hq-view="large"]) .hq-list{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+    .hq-item{position:relative;border-radius:16px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.25);background:rgba(10,17,40,.75)}
+    .hq-link{display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 12px;box-sizing:border-box;color:inherit;text-decoration:none}
+    .hq-item[data-main] .hq-link{padding-right:60px}
+    .hq-more{position:absolute;right:8px;top:8px}
+    .hq-icon{flex:0 0 40px;width:40px;height:40px}
+    .hq-icon > .bf-neon-icon{width:40px;height:40px;border-radius:12px;margin:0;box-sizing:border-box}
+    .hq-icon > .bf-neon-icon svg{width:20px;height:20px}
+    .hq-text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+    /* the name in the cards' own title style (.card.bf-card h3), the sub-line in their description's colour */
+    .hq-name{font-size:.95rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;line-height:1.25;overflow-wrap:anywhere}
+    .hq-sub{color:#8892b8;font-size:.8rem;line-height:1.4}
+    .hq-fig{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;text-align:right;color:#8fa3d6}
+    .hq-num{font-size:1.15rem;font-weight:800;color:#e8e8ff;line-height:1.1}
+    .hq-unit{display:none;font-size:.72rem;color:#8fa3d6;line-height:1.3}
+    .hq-item .orbit-swap-list{margin:0;padding:0 12px 12px}
+    /* Grid: two columns of tiles, each one link */
+    #orbitTop[data-hq-view="grid"] .hq-list{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+    #orbitTop[data-hq-view="grid"] .hq-item.is-swapping{grid-column:1 / -1}
+    #orbitTop[data-hq-view="grid"] .hq-link{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;min-height:120px;height:100%;padding:12px}
+    #orbitTop[data-hq-view="grid"] .hq-item[data-main] .hq-link{padding-right:12px}
+    #orbitTop[data-hq-view="grid"] .hq-name{font-size:.85rem}
+    #orbitTop[data-hq-view="grid"] .hq-item[data-fig] .hq-sub{display:none}
+    #orbitTop[data-hq-view="grid"] .hq-fig{flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px;text-align:left}
+    #orbitTop[data-hq-view="grid"] .hq-item:not([data-fig]) .hq-fig{display:none}
+    #orbitTop[data-hq-view="grid"] .hq-unit{display:inline}
+  }
+</style>
+<script src="/scripts/bf-oracle-moon.js"></script>
+<script src="/scripts/bf-hq-views.js"></script>
 <!-- Recent Activity was removed here. It rendered two fixed items, "Account
      created successfully" and "BizForce AI dashboard activated", both stamped
      "Just now", on every visit, with nothing feeding it. The real records it
