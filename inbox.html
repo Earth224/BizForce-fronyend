@@ -35,6 +35,9 @@
     .panes{display:grid;grid-template-columns:320px minmax(0,1fr) 260px;gap:16px;min-height:560px}
     .pane{display:flex;flex-direction:column;min-width:0;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden}
     .pane-head{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .pane-head .open-menu{margin-left:auto;display:flex}
+    .pane-head .open-menu:empty{display:none}
+    .owner-moderation{margin:0 0 12px}
     .pane-head h2{flex:1;margin:0;font-size:1rem;font-weight:800;color:#f4f7ff;min-width:0;overflow-wrap:anywhere}
     .pane-body{flex:1;overflow-y:auto;padding:8px}
     .pane-back{display:none}
@@ -111,6 +114,8 @@
   <h1 class="inbox-title">Inbox</h1>
   <p class="inbox-sub">Messages from members, your agents' work waiting for approval, and notifications. <a href="mailbox.html">Your email</a> is separate.</p>
 
+  <!-- P2-2: the owner alone sees the moderation queue's waiting count here, only when above 0 (scripts/bf-safety.js ownerCount) -->
+  <p class="owner-moderation" id="ownerModeration" hidden></p>
   <div class="tabs" role="tablist" aria-label="Inbox">
     <button type="button" class="tab-btn" role="tab" id="tab-messages" data-tab="messages" aria-controls="paneList" aria-selected="true">Messages <span class="tab-count" id="count-messages" hidden></span></button>
     <button type="button" class="tab-btn" role="tab" id="tab-approvals" data-tab="approvals" aria-controls="paneList" aria-selected="false">Approvals <span class="tab-count" id="count-approvals" hidden></span></button>
@@ -128,6 +133,7 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <h2 id="openTitle">Nothing open</h2>
+        <span id="openMenu" class="open-menu"></span>
       </div>
       <div class="pane-body" id="openBody"><p class="empty">Choose a conversation, an approval or a notification.</p></div>
       <div class="compose" id="compose" hidden>
@@ -227,12 +233,16 @@ document.querySelector(".tabs").addEventListener("keydown", function (e) {
 
 function openPane(title) {
   document.getElementById("openTitle").textContent = title;
+  document.getElementById("openMenu").innerHTML = "";   // P2-2: only a conversation has the menu
+  state.safetyItem = null;
   document.getElementById("inboxPage").classList.add("inbox-open");
 }
 function closeItem() {
   state.openId = null;
   document.getElementById("inboxPage").classList.remove("inbox-open");
   document.getElementById("openTitle").textContent = "Nothing open";
+  document.getElementById("openMenu").innerHTML = "";
+  state.safetyItem = null;
   document.getElementById("openBody").innerHTML = '<p class="empty">Choose a conversation, an approval or a notification.</p>';
   document.getElementById("detailsBody").innerHTML = '<p class="empty">Details of what you open show here.</p>';
   document.getElementById("compose").hidden = true;
@@ -305,6 +315,14 @@ function openThread(otherId) {
     state.person = r.ok ? r.data.person : null;
     if (state.person) document.getElementById("openTitle").textContent = state.person.name;
     renderPerson();
+    /* P2-2: Report, Block and Mute (scripts/bf-safety.js). Report is about their latest message once the thread has one
+       (renderThread points the item at it), else about them. */
+    if (window.BFSafety && state.person) {
+      state.safetyItem = { type: "profile", id: otherId, userId: otherId, name: state.person.name,
+        onChange: function () { closeItem(); loadConversations(); } };
+      latestTheirs();
+      window.BFSafety.mount(document.getElementById("openMenu"), state.safetyItem);
+    }
   }).catch(function () {});
   loadThread(otherId, false).then(function () {
     return api("/api/inbox/read/" + encodeURIComponent(otherId), { method: "POST" });
@@ -337,9 +355,20 @@ function renderThread(toEnd) {
     return '<div class="msg' + (mine ? " mine" : "") + '"><div class="msg-bubble">' + escapeHtml(m.content) + '</div><div class="msg-time">' + escapeHtml(when(m.created_at)) + '</div></div>';
   }).join("") + '</div>';
   body.innerHTML = html;
+  latestTheirs();
   var earlier = document.getElementById("earlier");
   if (earlier) earlier.addEventListener("click", function () { earlier.disabled = true; loadThread(state.openId, true); });
   if (toEnd) body.scrollTop = body.scrollHeight;
+}
+/* P2-2: the menu's Report points at the other member's latest message in the thread, when there is one. */
+function latestTheirs() {
+  var item = state.safetyItem;
+  if (!item) return;
+  for (var i = state.thread.length - 1; i >= 0; i--) {
+    var m = state.thread[i];
+    if (m && m.id && m.sender_id === item.userId) { item.type = "message"; item.id = m.id; return; }
+  }
+  item.type = "profile"; item.id = item.userId;
 }
 function renderPerson() {
   var p = state.person;
@@ -535,6 +564,8 @@ function wirePush() {
 })();
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
+<script src="/scripts/bf-safety.js"></script>
+<script>if (window.BFSafety) window.BFSafety.ownerCount(document.getElementById("ownerModeration"));</script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
 </body>

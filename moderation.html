@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/scripts/bf-theme.js"></script>
+<script src="/scripts/bf-offline.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BizForce AI — Moderation</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    /* The backdrop is the token rule in scripts/bf-theme.js. */
+    .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 40px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:12px;border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.25);background:rgba(12,18,38,.6);color:var(--bf-accent-a, #22d3ee);font-weight:700;font-size:.85rem;text-decoration:none}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ),var(--bf-mark-b, #a855f7));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;margin-bottom:24px}
+    .hero-eyebrow{display:inline-block;padding:6px 16px;border-radius:999px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.3);background:rgba(var(--bf-accent-a-rgb, 34,211,238),.08);color:var(--bf-accent-a, #22d3ee);font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+    .hero-title{margin:0 0 8px;font-size:clamp(1.8rem,4.5vw,2.6rem);font-weight:800;letter-spacing:-.03em;color:#f4f7ff}
+    .hero-sub{margin:0;color:#8892b8;font-size:.95rem;line-height:1.6}
+    .storage{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px 20px;margin-bottom:20px}
+    .storage-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    .storage h2{margin:0;font-size:1rem;font-weight:800;color:#f4f7ff}
+    .meter{height:12px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+    .meter span{display:block;height:100%;background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6))}
+    .meter.warn span{background:linear-gradient(90deg,#fbbf24,#f87171)}
+    .storage-facts{margin:10px 0 0;font-size:.85rem;line-height:1.6;color:#c4cbe0}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .tab-btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#cfd3ea;font:700 .85rem/1 inherit;font-family:inherit;cursor:pointer}
+    .tab-btn[aria-selected="true"]{border-color:rgba(var(--bf-accent-a-rgb, 34,211,238),.6);color:var(--bf-accent-a, #22d3ee);background:rgba(var(--bf-accent-a-rgb, 34,211,238),.08)}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:16px 18px}
+    .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+    .card-title{font-size:.98rem;font-weight:800;color:#f4f7ff;line-height:1.4;min-width:0;overflow-wrap:anywhere}
+    .badges{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{padding:4px 10px;border-radius:999px;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid rgba(255,255,255,.2);color:#cfd3ea}
+    .badge.p1{border-color:rgba(248,113,113,.45);color:#f87171}
+    .badge.hidden{border-color:rgba(251,191,36,.45);color:#fbbf24}
+    .badge.ok{border-color:rgba(52,211,153,.4);color:#34d399}
+    .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;margin:0}
+    .facts div{min-width:0}
+    .facts dt{font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#6b74a3;margin-bottom:2px}
+    .facts dd{margin:0;font-size:.86rem;line-height:1.5;color:#e6edf3;overflow-wrap:anywhere}
+    .text-block{margin:8px 0 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);font-size:.88rem;line-height:1.55;color:#dfe5f5;white-space:pre-wrap;overflow-wrap:anywhere}
+    .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btn{min-height:44px;padding:0 18px;border:none;border-radius:12px;font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer}
+    .btn-primary{color:var(--bf-btn-text, #fff);background:linear-gradient(135deg,var(--bf-btn-a, #00e5ff),var(--bf-btn-b, #7b2ff7))}
+    .btn-quiet{color:#cfd3ea;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+    .btn-danger{color:#1a0505;background:#f87171}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    a.btn{display:inline-flex;align-items:center;text-decoration:none}
+    .detail h2{margin:0 0 6px;font-size:1.15rem;color:#f4f7ff}
+    .detail h3{margin:18px 0 8px;font-size:.78rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8892b8}
+    .detail a{color:var(--bf-accent-a, #22d3ee)}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .thumbs img,.thumbs video{width:96px;height:96px;object-fit:cover;border-radius:10px;background:#111830}
+    .note-label{display:block;margin:14px 0 6px;font-size:.8rem;font-weight:700;color:#c4cbe0}
+    textarea{width:100%;min-height:84px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#070b18;color:#e6edf3;font:15px/1.45 inherit;font-family:inherit;resize:vertical}
+    .msg{margin:10px 0 0;font-size:.88rem;line-height:1.5}
+    .msg.error{color:#f87171}
+    .msg.ok{color:#34d399}
+    .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
+    .empty-state.error{color:#f87171}
+  </style>
+<link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Executive HQ
+    </a>
+    <span class="brand-badge">BizForce AI</span>
+  </nav>
+
+  <!-- Owner only (P2-2, Nov 20 2026). A visitor who is not signed in, or whose account is not the admin, sees the one line
+       in #ownerOnly and nothing else: the server answers every /api/admin/moderation route with 401 or 403 for them
+       (requireAuth and requireAdmin), and this page draws no list, no headings and no buttons in that case. -->
+  <p class="empty-state" id="ownerOnly" hidden>This page is for the site owner.</p>
+
+  <div id="ownerView" hidden>
+    <header class="hero">
+      <span class="hero-eyebrow">Safety</span>
+      <h1 class="hero-title">Moderation</h1>
+      <p class="hero-sub">Reports, the content screen's questions and copyright notices. Each decision is logged, and the author and the reporters are told.</p>
+    </header>
+
+    <section class="storage" aria-labelledby="storageTitle">
+      <div class="storage-head">
+        <h2 id="storageTitle">Storage</h2>
+        <button type="button" class="btn btn-quiet" id="storageAgain">Measure again</button>
+      </div>
+      <div id="storageBody"><p class="storage-facts">Measuring...</p></div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Moderation">
+      <button type="button" class="tab-btn" role="tab" data-tab="waiting" aria-selected="true">Waiting</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="reports" aria-selected="false">Reports</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="copyright" aria-selected="false">Copyright</button>
+      <button type="button" class="tab-btn" role="tab" data-tab="decided" aria-selected="false">Decided</button>
+    </div>
+    <div id="area" role="tabpanel"><p class="empty-state">Loading...</p></div>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+var current = "waiting";
+var REASON = { spam: "Spam", harassment: "Harassment", hate: "Hate", sexual: "Sexual content", minor_safety: "A child's safety", violence: "Violence or threats",
+  health_claim: "Health claim", prohibited_item: "Prohibited item", scam: "Scam or fraud", copyright: "Copyright", impersonation: "Impersonation",
+  privacy: "Private information", other: "Something else" };
+var SOURCE = { report: "Reported", policy_screen: "Content screen", new_member: "New member", copyright_notice: "Copyright notice" };
+
+function showOwnerOnly() { document.getElementById("ownerView").hidden = true; document.getElementById("ownerOnly").hidden = false; }
+function showOwnerView() { document.getElementById("ownerOnly").hidden = true; document.getElementById("ownerView").hidden = false; }
+function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function when(iso) {
+  if (!iso) return "";
+  var d = new Date(iso);
+  return isNaN(d.getTime()) ? esc(iso) : esc(d.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }));
+}
+function fact(label, html) { return '<div><dt>' + esc(label) + '</dt><dd>' + html + '</dd></div>'; }
+function call(method, path, body) {
+  var h = { "Authorization": "Bearer " + token };
+  if (body) h["Content-Type"] = "application/json";
+  return fetch(API_URL + path, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, body: d || {} }; }); });
+}
+function failText(what) { return '<p class="empty-state error">' + esc(what) + ' could not be loaded just now. Try again in a minute.</p>'; }
+
+/* ── storage ── */
+function mb(n) { return (Number(n) / (1024 * 1024)).toFixed(1) + " MB"; }
+function loadStorage(fresh) {
+  var body = document.getElementById("storageBody");
+  body.innerHTML = '<p class="storage-facts">Measuring...</p>';
+  call("GET", "/api/admin/moderation/storage" + (fresh ? "?fresh=1" : "")).then(function (r) {
+    if (!r.ok) { body.innerHTML = '<p class="storage-facts">' + esc(r.body.error || "Storage could not be measured just now.") + '</p>'; return; }
+    var d = r.body, pct = Math.max(0, Math.min(100, Number(d.percent) || 0));
+    var buckets = (d.buckets || []).map(function (b) { return esc(b.bucket) + " " + mb(b.bytes) + " (" + esc(b.files) + " files)";}).join("; ");
+    body.innerHTML = '<div class="meter' + (pct >= 80 ? " warn" : "") + '" role="img" aria-label="' + pct + ' percent used"><span style="width:' + pct + '%"></span></div>' +
+      '<p class="storage-facts"><strong>' + mb(d.total_bytes) + '</strong> of ' + mb(d.limit_bytes) + ' used (' + pct + '%).' +
+      (buckets ? " " + buckets + "." : "") + (d.partial ? " Not every file was counted: the count stopped at its limit, so the real total is higher." : "") +
+      " Measured " + when(d.measured_at) + (d.cached ? " (saved from the last 10 minutes)." : ".") + '</p>';
+  }).catch(function () { body.innerHTML = '<p class="storage-facts">Storage could not be measured just now.</p>'; });
+}
+document.getElementById("storageAgain").addEventListener("click", function () { loadStorage(true); });
+
+/* ── the tabs ── */
+function selectTab(tab) {
+  current = tab;
+  Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), function (b) { b.setAttribute("aria-selected", b.getAttribute("data-tab") === tab ? "true" : "false"); });
+  loadTab();
+}
+Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), function (b) { b.addEventListener("click", function () { selectTab(b.getAttribute("data-tab")); }); });
+
+function queueCard(x) {
+  var badges = '<span class="badge' + (x.priority === 1 ? " p1" : "") + '">Priority ' + esc(x.priority) + '</span>' +
+    (x.auto_hidden ? '<span class="badge hidden">Hidden until decided</span>' : "") +
+    (x.decided_at ? '<span class="badge' + (x.state === "kept" ? " ok" : " hidden") + '">' + esc(x.state) + '</span>' : "");
+  return '<article class="card"><div class="card-head"><div class="card-title">' + esc(x.object_type) + (x.author ? " by " + esc(x.author) : "") + '</div><div class="badges">' + badges + '</div></div>' +
+    '<dl class="facts">' + fact("Why", esc(SOURCE[x.source] || x.source)) + fact("Reports", esc(x.report_count || 0)) +
+    fact(x.decided_at ? "Decided" : "Waiting since", when(x.decided_at || x.created_at)) + (x.decision_note ? fact("Note", esc(x.decision_note)) : "") + '</dl>' +
+    '<div class="row-actions"><button type="button" class="btn btn-primary" data-open="' + esc(x.id) + '">Open</button></div></article>';
+}
+function reportCard(x) {
+  return '<article class="card"><div class="card-head"><div class="card-title">' + esc(REASON[x.reason] || x.reason) + ': ' + esc(x.object_type) + (x.author ? " by " + esc(x.author) : "") + '</div>' +
+    '<div class="badges">' + (x.reason === "minor_safety" || x.reason === "copyright" ? '<span class="badge p1">Priority 1</span>' : "") + '</div></div>' +
+    '<dl class="facts">' + fact("Reported by", esc(x.reporter || "a member")) + fact("When", when(x.created_at)) + '</dl>' +
+    (x.detail ? '<p class="text-block">' + esc(x.detail) + '</p>' : "") +
+    (x.queue_id ? '<div class="row-actions"><button type="button" class="btn btn-primary" data-open="' + esc(x.queue_id) + '">Open</button></div>' : "") + '</article>';
+}
+function noticeCard(x) {
+  var c = x.counter_notice || null;
+  var work = String(x.work || "").split("\n\n")[0];
+  return '<article class="card"><div class="card-head"><div class="card-title">' + esc(x.claimant_name) + ' about a ' + esc(x.object_type) + '</div>' +
+    '<div class="badges"><span class="badge' + (x.status === "received" ? " p1" : "") + '">' + esc(x.status) + '</span></div></div>' +
+    '<dl class="facts">' + fact("Claimant email", esc(x.claimant_email)) + fact("Received", when(x.created_at)) +
+    (c ? fact("Counter-notice", "from " + esc(c.name) + ", " + when(c.received_at) + (c.court_filed ? "; court filing recorded" : "")) : "") + '</dl>' +
+    '<p class="text-block">' + esc(work) + '</p>' +
+    '<div class="row-actions">' + (x.queue_id ? '<button type="button" class="btn btn-primary" data-open="' + esc(x.queue_id) + '">Open</button>' : "") +
+    (x.status === "countered" && c && !c.court_filed ? '<button type="button" class="btn btn-quiet" data-court="' + esc(x.id) + '">Claimant filed in court</button>' : "") + '</div>' +
+    '<p class="msg" data-court-msg="' + esc(x.id) + '" role="status"></p></article>';
+}
+function loadTab() {
+  var area = document.getElementById("area");
+  area.innerHTML = '<p class="empty-state">Loading...</p>';
+  call("GET", "/api/admin/moderation?tab=" + encodeURIComponent(current)).then(function (r) {
+    if (r.status === 401 || r.status === 403) { showOwnerOnly(); return; }
+    showOwnerView();
+    if (!r.ok || !Array.isArray(r.body.items)) { area.innerHTML = failText("This list"); return; }
+    var items = r.body.items;
+    if (!items.length) {
+      area.innerHTML = '<p class="empty-state">' + ({ waiting: "Nothing is waiting.", reports: "No open reports.", copyright: "No copyright notices.", decided: "Nothing has been decided yet." }[current]) + '</p>';
+      return;
+    }
+    var draw = current === "reports" ? reportCard : current === "copyright" ? noticeCard : queueCard;
+    area.innerHTML = '<div class="list">' + items.map(draw).join("") + '</div>';
+    wire(area);
+  }).catch(function () { showOwnerView(); area.innerHTML = failText("This list"); });
+}
+function wire(area) {
+  Array.prototype.forEach.call(area.querySelectorAll("[data-open]"), function (b) { b.addEventListener("click", function () { openItem(b.getAttribute("data-open")); }); });
+  Array.prototype.forEach.call(area.querySelectorAll("[data-court]"), function (b) {
+    b.addEventListener("click", function () {
+      var id = b.getAttribute("data-court"), m = area.querySelector('[data-court-msg="' + id + '"]');
+      b.disabled = true;
+      call("POST", "/api/admin/moderation/notice/" + encodeURIComponent(id) + "/court-filed").then(function (r) {
+        if (r.ok) { m.className = "msg ok"; m.textContent = "Recorded. The material will not be restored."; b.hidden = true; }
+        else { b.disabled = false; m.className = "msg error"; m.textContent = r.body.error || "That did not work."; }
+      }).catch(function () { b.disabled = false; });
+    });
+  });
+}
+
+/* ── one item ── */
+function openItem(id) {
+  var area = document.getElementById("area");
+  area.innerHTML = '<p class="empty-state">Loading...</p>';
+  call("GET", "/api/admin/moderation/item/" + encodeURIComponent(id)).then(function (r) {
+    if (r.status === 401 || r.status === 403) { showOwnerOnly(); return; }
+    if (!r.ok) { area.innerHTML = '<p class="empty-state error">' + esc(r.body.error || "That item could not be loaded.") + '</p>'; return; }
+    var d = r.body, it = d.item || {}, c = d.content, a = d.author;
+    var media = c && Array.isArray(c.media) ? c.media.filter(function (m) { return m && /^https:\/\//.test(m.url || ""); }).slice(0, 8) : [];
+    var html = '<article class="card detail"><div class="row-actions" style="margin:0 0 12px"><button type="button" class="btn btn-quiet" id="backToList">Back to the list</button></div>' +
+      '<h2>' + esc(c ? c.title : "This " + it.object_type + " no longer exists") + '</h2>' +
+      '<div class="badges"><span class="badge' + (it.priority === 1 ? " p1" : "") + '">Priority ' + esc(it.priority) + '</span>' +
+      (it.auto_hidden ? '<span class="badge hidden">Hidden until decided</span>' : '<span class="badge">' + esc(it.state) + '</span>') + '</div>' +
+      (c && c.link ? '<div class="row-actions"><a class="btn btn-quiet" href="' + esc(c.link) + '" target="_blank" rel="noopener">Open it where members see it</a></div>' : "") +
+      (c && c.text ? '<p class="text-block">' + esc(c.text) + '</p>' : "") +
+      (media.length ? '<div class="thumbs">' + media.map(function (m) {
+        return /^video\//.test(m.type || "") ? '<video src="' + esc(m.url) + '" muted controls preload="metadata"></video>' : '<img src="' + esc(m.url) + '" alt="">';
+      }).join("") + '</div>' : "") +
+      '<h3>Author</h3>' + (a ? '<dl class="facts">' + fact("Member", esc(a.name || "a member")) + fact("Joined", esc(a.joined || "")) +
+        fact("Account age", esc(a.account_age_days == null ? "" : a.account_age_days + " days")) + fact("Past removals", esc(a.past_removals)) +
+        fact("Banned", a.banned ? "Yes" : "No") + '</dl>' : '<p class="msg">No author on record.</p>') +
+      '<h3>Reports (' + (d.reports || []).length + ')</h3>' + ((d.reports || []).length ? '<div class="list">' + d.reports.map(function (x) {
+        return '<div class="card"><dl class="facts">' + fact("Reason", esc(REASON[x.reason] || x.reason)) + fact("By", esc(x.reporter || "a member")) +
+          fact("When", when(x.created_at)) + fact("Status", esc(x.status)) + '</dl>' + (x.detail ? '<p class="text-block">' + esc(x.detail) + '</p>' : "") + '</div>';
+      }).join("") + '</div>' : '<p class="msg">None.</p>') +
+      '<h3>What the content screen found</h3>' + ((d.findings || []).length ? '<ul>' + d.findings.map(function (f) {
+        return '<li>' + esc(f.field ? f.field + ": " : "") + esc(f.label || f.category || f.rule || "") + (f.term ? ' ("' + esc(f.term) + '")' : "") + '</li>';
+      }).join("") + '</ul>' : '<p class="msg">Nothing.</p>') +
+      ((d.notices || []).length ? '<h3>Copyright notices</h3>' + d.notices.map(function (n) {
+        return '<div class="card"><dl class="facts">' + fact("From", esc(n.claimant_name) + " (" + esc(n.claimant_email) + ")") + fact("Status", esc(n.status)) + fact("Received", when(n.created_at)) + '</dl>' +
+          '<p class="text-block">' + esc(n.work) + '</p></div>';
+      }).join("") : "") +
+      '<h3>Decide</h3><label class="note-label" for="decisionNote">A note to the author (optional, at most 1000 characters)</label>' +
+      '<textarea id="decisionNote" maxlength="1000"></textarea>' +
+      '<div class="row-actions"><button type="button" class="btn btn-quiet" data-act="keep">Keep</button>' +
+      '<button type="button" class="btn btn-quiet" data-act="hide">Hide</button>' +
+      '<button type="button" class="btn btn-danger" data-act="remove">Remove</button>' +
+      (a && !a.banned ? '<button type="button" class="btn btn-danger" data-act="ban">Remove and ban</button>' : "") + '</div>' +
+      '<p class="msg" id="decideMsg" role="status"></p></article>';
+    area.innerHTML = html;
+    document.getElementById("backToList").addEventListener("click", loadTab);
+    Array.prototype.forEach.call(area.querySelectorAll("[data-act]"), function (b) {
+      b.addEventListener("click", function () { decide(it.id, b.getAttribute("data-act"), a); });
+    });
+  }).catch(function () { area.innerHTML = failText("That item"); });
+}
+function decide(id, act, author) {
+  var msg = document.getElementById("decideMsg"), note = document.getElementById("decisionNote").value;
+  var buttons = document.querySelectorAll("[data-act]");
+  Array.prototype.forEach.call(buttons, function (b) { b.disabled = true; });
+  var again = function () { Array.prototype.forEach.call(buttons, function (b) { b.disabled = false; }); };
+  msg.className = "msg"; msg.textContent = "Saving...";
+  call("POST", "/api/admin/moderation/item/" + encodeURIComponent(id) + "/decide", { action: act === "ban" ? "remove" : act, note: note }).then(function (r) {
+    if (!r.ok) { again(); msg.className = "msg error"; msg.textContent = r.body.error || "That did not save."; return; }
+    var told = r.body.reporters_told ? " " + r.body.reporters_told + " reporter(s) told." : "";
+    var banned = r.body.repeat_infringer && r.body.repeat_infringer.banned ? " The member reached " + r.body.repeat_infringer.upheld + " upheld notices and was banned." : "";
+    if (act !== "ban") { msg.className = "msg ok"; msg.textContent = "Saved." + told + banned; return; }
+    // Remove and ban: the existing ban route (users.banned_at, moderation_logs)
+    return call("POST", "/api/admin/ban/" + encodeURIComponent(author.id), { reason: "Removed in moderation" + (note ? ": " + note : "") }).then(function (b) {
+      msg.className = b.ok ? "msg ok" : "msg error";
+      msg.textContent = b.ok ? "Removed and banned." + told : "Removed." + told + " The ban did not save: " + (b.body.error || "try again from the member's admin page.");
+    });
+  }).catch(function () { again(); msg.className = "msg error"; msg.textContent = "That did not save. Check your connection."; });
+}
+
+if (!token) showOwnerOnly();
+else { loadTab(); loadStorage(false); }
+</script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
+</body>
+</html>

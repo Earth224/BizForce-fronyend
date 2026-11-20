@@ -50,6 +50,7 @@
     .sf-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;display:block;border:3px solid rgba(10,15,35,.95);box-shadow:0 0 0 1px rgba(var(--sa-rgb),.25),0 0 24px rgba(var(--sa-rgb),.2)}
     .sf-avatar-initials{width:112px;height:112px;border-radius:50%;border:3px solid rgba(10,15,35,.95);box-shadow:0 0 0 1px rgba(var(--sa-rgb),.25),0 0 24px rgba(var(--sa-rgb),.2);background:rgba(var(--sa-rgb),.1);display:none;align-items:center;justify-content:center;font-size:2.2rem;font-weight:900;color:var(--sa)}
     .sf-name-block{flex:1;min-width:200px;padding-bottom:6px}
+    .sf-header .bf-safety-dots{margin-bottom:8px}
     .sf-name{margin:0 0 4px;font-size:1.7rem;font-weight:800;color:#f4f7ff;letter-spacing:-.02em}
     .sf-tagline{margin:0 0 8px;color:#8892b8;font-size:.95rem;line-height:1.5}
     .sf-meta-row{display:flex;flex-wrap:wrap;gap:14px}
@@ -391,6 +392,11 @@ function renderStorefront(data) {
   }
 
   document.getElementById("sfName").textContent = seller.display_name || seller.username || "Unnamed seller";
+  // P2-2: Report, Block and Mute (scripts/bf-safety.js); signed out, Report asks to sign in
+  if (window.BFSafety && seller.user_id) {
+    window.BFSafety.mount(document.querySelector(".sf-header"), { type: "profile", id: seller.user_id, userId: seller.user_id,
+      name: seller.display_name || (seller.username ? "@" + seller.username : ""), onChange: function () { window.location.reload(); } });
+  }
 
   var taglineEl = document.getElementById("sfTagline");
   if (seller.tagline) { taglineEl.textContent = seller.tagline; taglineEl.style.display = ""; }
@@ -474,6 +480,7 @@ function renderStorefront(data) {
 loadSeller();
 </script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

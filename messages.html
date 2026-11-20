@@ -302,6 +302,25 @@ function renderThreadHeader(profile) {
     : '<div class="thread-avatar thread-avatar-fallback">' + escapeHtml(initial) + '</div>';
   header.innerHTML = avatar + '<div class="thread-name">' + escapeHtml(name) + '</div>';
   header.style.display = "flex";
+  /* P2-2: Report, Block and Mute (scripts/bf-safety.js). Report is about their latest message once there is one
+     (renderThread points the item at it), else about them. */
+  safetyItem = null;
+  if (window.BFSafety && activeThreadUserId) {
+    safetyItem = { type: "profile", id: activeThreadUserId, userId: activeThreadUserId, name: name,
+      onChange: function () { window.location.href = "messages.html"; } };
+    latestTheirs();
+    var dots = window.BFSafety.mount(header, safetyItem);
+    if (dots) dots.style.marginLeft = "auto";
+  }
+}
+var safetyItem = null;
+function latestTheirs() {
+  if (!safetyItem) return;
+  for (var i = threadMessages.length - 1; i >= 0; i--) {
+    var m = threadMessages[i];
+    if (m && m.id && m.sender_id === safetyItem.userId) { safetyItem.type = "message"; safetyItem.id = m.id; return; }
+  }
+  safetyItem.type = "profile"; safetyItem.id = safetyItem.userId;
 }
 
 function renderThread() {
@@ -317,6 +336,7 @@ function renderThread() {
     container.innerHTML = '<div class="empty-state">No messages yet. Say hello!</div>';
     return;
   }
+  latestTheirs();
   container.innerHTML = threadMessages.map(function (m) {
     var isMine = m.sender_id === currentUserId;
     return '<div class="msg-row ' + (isMine ? "msg-mine" : "msg-theirs") + '">' +
@@ -387,6 +407,7 @@ loadConversations().then(function () {
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<script src="/scripts/bf-safety.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
 </body>

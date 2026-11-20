@@ -175,6 +175,7 @@
     /* Name block */
     .pf-name-block { flex: 1; min-width: 200px; padding-bottom: 6px; }
     .pf-name-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 3px; }
+    .pf-name-row .bf-safety-dots { margin-left: auto; align-self: center; }
     .pf-display-name {
       font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 900;
       letter-spacing: -.03em; line-height: 1.1; color: var(--text);
@@ -1654,6 +1655,12 @@ async function loadAll() {
     if (eb) eb.style.display = "none";
     var sb = document.getElementById("shareLinkBtn");
     if (sb) sb.style.display = "none";
+    // P2-2: Report, Block and Mute on another member's profile (scripts/bf-safety.js); never on your own or its preview
+    if (window.BFSafety && viewUserId && viewUserId !== myUserId && !bfPreview) {
+      var dn = document.getElementById("displayName");
+      window.BFSafety.mount(document.querySelector(".pf-name-row"), { type: "profile", id: viewUserId, userId: viewUserId,
+        name: dn ? dn.textContent : "", onChange: function () { window.location.reload(); } });
+    }
   }
 }
 
@@ -2116,11 +2123,14 @@ async function handleGenericUpload(fileInput) {
   fileInput.value = "";
 }
 async function uploadToStorage(file, folder, statusId) {
-  var res = await apiFetch("/api/bfp/upload-url","POST",{ folder, filename:file.name, contentType:file.type });
-  if (!res.ok) throw new Error("Could not get upload URL");
+  // P2-2: the size is sent, and the stored file is checked before its link is used (POST /api/bfp/upload-check)
+  var res = await apiFetch("/api/bfp/upload-url","POST",{ folder, filename:file.name, contentType:file.type, size:file.size });
+  if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
   var d = await res.json();
   var upRes = await fetch(d.signedUrl, { method:"PUT", headers:{"Content-Type":file.type,"x-upsert":"true"}, body:file });
   if (!upRes.ok) throw new Error("Storage upload failed");
+  var ck = await apiFetch("/api/bfp/upload-check","POST",{ path: d.path });
+  if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
   return d.publicUrl;
 }
 
@@ -2923,6 +2933,7 @@ function renderShareCard() {
 }
 </script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/bf-profile-editor.js"></script>
 <script src="/scripts/bf-profile-shell.js"></script>

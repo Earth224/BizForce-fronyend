@@ -227,6 +227,8 @@
   <p class="hq-hero-sub">Control your AI business empire.</p>
   <p class="hq-hero-welcome" id="welcomeMsg">Welcome</p>
 </header>
+<!-- P2-2: the owner alone sees the moderation queue's waiting count here, only when above 0 (scripts/bf-safety.js ownerCount) -->
+<p class="owner-moderation" id="ownerModeration" hidden style="text-align:center;margin:0 0 12px"></p>
 <!-- CHECKOUT OUTCOME NOTICE, shown when Stripe redirects here with
      ?subscribed=1 (success_url) or ?checkout=cancel (cancel_url). One element,
      two moods: the markup below is the paid state, and the handler under the
@@ -2906,6 +2908,8 @@ if (document.readyState !== "loading") {
 <script src="/scripts/bf-music.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
+<script src="/scripts/bf-safety.js"></script>
+<script>if (window.BFSafety) window.BFSafety.ownerCount(document.getElementById("ownerModeration"));</script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
 <!-- PH1 (Nov 19 2026): the dashboard on a phone. Every rule is inside @media (max-width: 760px); desktop unchanged. -->

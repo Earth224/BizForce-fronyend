@@ -29,7 +29,11 @@
   var API_FALLBACK = "https://dynamic-prosperity-production-5382.up.railway.app";
   var REFRESH_MS = 30 * 60 * 1000;
 
-  function oracleMoonBlock(document, API_URL, getActiveMoment, dateTimeInput) {
+  function oracleMoonBlock(document, getActiveMoment, dateTimeInput) {
+    /* NAMED (Nov 20 2026, P2-2): BEFORE the base came in as a parameter, API_URL, which scripts/checkApiBase.js cannot
+       see is the API's origin. AFTER the wrapper declares it here, outside the copy, in the form that check reads as the base;
+       the value is the one the removed apiBase() gave. */
+    var API_URL = (typeof window.API_URL === "string" && window.API_URL) || API_FALLBACK;
 /* BEGIN COPY oracle.html MOON_IMG_URL (exact; scripts/checkHqViews.js holds it equal) */
     var MOON_IMG_URL = "https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg";
 /* END COPY oracle.html MOON_IMG_URL */
@@ -318,12 +322,11 @@
 
   function phone() { try { return !!(window.matchMedia && window.matchMedia(PHONE_QUERY).matches); } catch (e) { return false; } }
   var stage = null, block = null, started = false, timer = null, serial = 0;
-  function apiBase() { return (typeof window.API_URL === "string" && window.API_URL) || API_FALLBACK; }
   function make() {
     if (block) return block;
     stage = { abyssMoon: window.document.createElement("div"), celMoonSvg: window.document.createElement("div") };
     var doc = { getElementById: function (id) { return Object.prototype.hasOwnProperty.call(stage, id) ? stage[id] : null; } };
-    block = oracleMoonBlock(doc, apiBase(), function () { return new Date(); }, null);
+    block = oracleMoonBlock(doc, function () { return new Date(); }, null);
     return block;
   }
   // Each target's own ids: id="x" becomes id="x-hqmN", and every url(#x) follows it.

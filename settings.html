@@ -633,6 +633,11 @@
             <span>Account</span>
             <span class="sidebar-chevron">&#8250;</span>
           </button>
+          <!-- NAMED (Nov 20 2026, P2-2): last, so every item above stays where it was -->
+          <button type="button" class="sidebar-item" data-target="safety">
+            <span>Blocked and muted</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
         </nav>
 
         <div class="settings-content">
@@ -1235,6 +1240,13 @@
             <p class="pref-note">Puts every page back on the original look. Your saved themes are kept.</p>
           </section>
 
+          <!-- NAMED (Nov 20 2026, P2-2): the members you blocked or muted (scripts/bf-safety.js renderSettings, GET /api/me/safety). -->
+          <section class="settings-panel" id="panel-safety" data-panel="safety" aria-labelledby="safetyHeading">
+            <h2 id="safetyHeading">Blocked and muted</h2>
+            <p class="subtitle">A member you block can't see your profile or storefront, message you, send you BizCash, buy from you or donate to your campaigns, and you won't see theirs. A member you mute no longer appears in your lists. Neither is told.</p>
+            <div id="safetyList"></div>
+          </section>
+
           <section class="settings-panel" id="panel-account" data-panel="account">
             <h2>Account</h2>
 
@@ -1347,6 +1359,8 @@
           var isMatch2 = panels[j].getAttribute("data-panel") === name;
           panels[j].classList.toggle("active", isMatch2);
         }
+        // P2-2: Blocked and muted is read each time it opens
+        if (name === "safety" && window.BFSafety) window.BFSafety.renderSettings(document.getElementById("safetyList"));
       }
 
       for (var k = 0; k < sidebarItems.length; k++) {
@@ -1357,6 +1371,11 @@
 
       // settings.html#theme opens the Theme section (each page's way into the studio).
       if (window.location.hash === "#theme") activateSection("theme");
+      // P2-2: bf-safety.js loads after this script, so the list is drawn once it is there (on load)
+      if (window.location.hash === "#blocked") {
+        activateSection("safety");
+        window.addEventListener("load", function () { if (window.BFSafety) window.BFSafety.renderSettings(document.getElementById("safetyList")); });
+      }
 
       /* ── API Key (verbatim logic, reused from the previous single-purpose page) ── */
       var statusLine = document.getElementById("statusLine");
@@ -2734,6 +2753,7 @@
   </script>
 <script src="/scripts/bf-theme-studio.js"></script>
 <script src="/scripts/bf-local-settings.js"></script>
+<script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

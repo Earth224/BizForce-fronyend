@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/scripts/bf-theme.js"></script>
+<script src="/scripts/bf-offline.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BizForce AI — Copyright notices</title>
+  <meta name="description" content="Send BizForce a copyright notice about material on the site, or a counter-notice if your material was removed by mistake." />
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    /* The backdrop is the token rule in scripts/bf-theme.js. */
+    .page{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 24px 40px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:12px;border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.25);background:rgba(12,18,38,.6);color:var(--bf-accent-a, #22d3ee);font-weight:700;font-size:.85rem;text-decoration:none}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ),var(--bf-mark-b, #a855f7));-webkit-background-clip:text;background-clip:text;color:transparent}
+    h1{margin:0 0 10px;font-size:clamp(1.7rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.02em;color:#f4f7ff}
+    .lead{margin:0 0 22px;color:#c4cbe0;font-size:.95rem;line-height:1.65}
+    .lead a,.card a{color:var(--bf-accent-a, #22d3ee)}
+    .card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 22px;margin-bottom:20px}
+    .card h2{margin:0 0 8px;font-size:1.1rem;color:#f4f7ff}
+    .card p{margin:0 0 12px;color:#c4cbe0;font-size:.9rem;line-height:1.6}
+    .field{margin:0 0 14px}
+    .field label{display:block;margin:0 0 6px;font-size:.84rem;font-weight:700;color:#dfe5f5}
+    .field .hint{display:block;margin-top:4px;font-size:.78rem;color:#8892b8;line-height:1.5}
+    input[type=text],input[type=email],input[type=tel],textarea{width:100%;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#070b18;color:#e6edf3;font-size:16px;font-family:inherit}
+    textarea{min-height:110px;resize:vertical;line-height:1.5}
+    .field.bad input,.field.bad textarea{border-color:#f87171}
+    .check{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;font-size:.86rem;line-height:1.55;color:#dfe5f5}
+    .check input{width:20px;height:20px;margin:2px 0 0;flex-shrink:0}
+    .check.bad{color:#f87171}
+    .btn{min-height:44px;padding:0 20px;border:none;border-radius:12px;font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer}
+    .btn-primary{color:var(--bf-btn-text, #fff);background:linear-gradient(135deg,var(--bf-btn-a, #00e5ff),var(--bf-btn-b, #7b2ff7))}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    a.btn{display:inline-flex;align-items:center;text-decoration:none}
+    .msg{margin:12px 0 0;font-size:.9rem;line-height:1.55}
+    .msg.error{color:#f87171}
+    .msg.ok{color:#34d399}
+    .facts{margin:0 0 14px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);font-size:.88rem;line-height:1.6;color:#dfe5f5;overflow-wrap:anywhere}
+  </style>
+<link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="/" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      BizForce AI
+    </a>
+    <span class="brand-badge">Copyright</span>
+  </nav>
+
+  <!-- P2-2 (Nov 20 2026). Public: anyone may send a notice (POST /api/copyright/notices, 5 an hour per address; the fields
+       are lib/safety.js validateNotice's). ?where=<link> fills in where it is (the report menu's "Send a copyright
+       notice", scripts/bf-safety.js). ?counter=<notice id> is the member's counter-notice form, signed in only
+       (GET and POST /api/copyright/counter/:id; the fields are validateCounter's). The Terms (section 7, #copyright)
+       say how notices, counter-notices, restoring and repeat infringers work. -->
+  <div id="noticeView">
+    <h1>Send a copyright notice</h1>
+    <p class="lead">If something on BizForce uses work you own without permission, tell us here. We review every notice, remove material that infringes, and tell the member who posted it, who may send a counter-notice. A member with three upheld notices loses their account. How this works is in the <a href="/terms.html#copyright">Terms, section 7</a>.</p>
+    <form class="card" id="noticeForm" novalidate>
+      <h2>The notice</h2>
+      <div class="field" data-f="name"><label for="nName">Your full name</label><input type="text" id="nName" maxlength="200" autocomplete="name"></div>
+      <div class="field" data-f="email"><label for="nEmail">Email address</label><input type="email" id="nEmail" maxlength="254" autocomplete="email"><span class="hint">We reply here, and pass it to the member if they send a counter-notice.</span></div>
+      <div class="field" data-f="address"><label for="nAddress">Postal address (optional)</label><input type="text" id="nAddress" maxlength="500" autocomplete="street-address"></div>
+      <div class="field" data-f="phone"><label for="nPhone">Phone (optional)</label><input type="tel" id="nPhone" maxlength="40" autocomplete="tel"></div>
+      <div class="field" data-f="work"><label for="nWork">The work you own</label><textarea id="nWork" maxlength="2000"></textarea><span class="hint">What it is, and where the original can be seen if it is online.</span></div>
+      <div class="field" data-f="location"><label for="nWhere">Where it is on BizForce</label><input type="text" id="nWhere" maxlength="500" placeholder="https://bizforceai.net/listing/..."><span class="hint">The link to the listing, campaign, profile or storefront.</span></div>
+      <label class="check" data-f="good_faith"><input type="checkbox" id="nGood"><span>I believe in good faith that this use is not authorized by the owner, its agent or the law.</span></label>
+      <label class="check" data-f="accuracy"><input type="checkbox" id="nAccurate"><span>The information in this notice is accurate and, under penalty of perjury, I am the owner or authorized to act for the owner.</span></label>
+      <div class="field" data-f="signature"><label for="nSign">Signature (type your full name)</label><input type="text" id="nSign" maxlength="200"></div>
+      <button type="submit" class="btn btn-primary" id="noticeSend">Send the notice</button>
+      <p class="msg" id="noticeMsg" role="status"></p>
+    </form>
+  </div>
+
+  <div id="counterView" hidden>
+    <h1>Send a counter-notice</h1>
+    <p class="lead">If your material was removed because of a copyright notice and you believe that was a mistake, you can send a counter-notice. Unless the person who complained tells us they have gone to court, the material is restored after 10 business days. How this works is in the <a href="/terms.html#copyright">Terms, section 7</a>.</p>
+    <div class="card" id="counterSignIn" hidden>
+      <p>Sign in to the account the material belongs to, and you will come back here.</p>
+      <a class="btn btn-primary" id="counterSignInLink" href="/app.html">Sign in</a>
+    </div>
+    <p class="msg" id="counterLoad" role="status"></p>
+    <form class="card" id="counterForm" novalidate hidden>
+      <h2>The counter-notice</h2>
+      <div class="facts" id="counterFacts"></div>
+      <div class="field" data-f="name"><label for="cName">Your full name</label><input type="text" id="cName" maxlength="200" autocomplete="name"></div>
+      <div class="field" data-f="address"><label for="cAddress">Your address</label><input type="text" id="cAddress" maxlength="500" autocomplete="street-address"></div>
+      <div class="field" data-f="phone"><label for="cPhone">Phone (optional)</label><input type="tel" id="cPhone" maxlength="40" autocomplete="tel"></div>
+      <div class="field" data-f="statement"><label for="cStatement">Why the material was removed by mistake</label><textarea id="cStatement" maxlength="2000"></textarea></div>
+      <label class="check" data-f="perjury"><input type="checkbox" id="cPerjury"><span>Under penalty of perjury, I believe in good faith the material was removed by mistake or because it was misidentified.</span></label>
+      <label class="check" data-f="consent"><input type="checkbox" id="cConsent"><span>I consent to the jurisdiction of the federal court for my address (or, outside the United States, any court where BizForce may be found), and I will accept service from the person who sent the notice.</span></label>
+      <div class="field" data-f="signature"><label for="cSign">Signature (type your full name)</label><input type="text" id="cSign" maxlength="200"></div>
+      <button type="submit" class="btn btn-primary" id="counterSend">Send the counter-notice</button>
+      <p class="msg" id="counterMsg" role="status"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var params = new URLSearchParams(window.location.search);
+function token() { try { return localStorage.getItem("bf_token"); } catch (e) { return null; } }
+function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function val(id) { return document.getElementById(id).value; }
+function ticked(id) { return document.getElementById(id).checked; }
+function markBad(form, field) {
+  Array.prototype.forEach.call(form.querySelectorAll(".bad"), function (el) { el.classList.remove("bad"); });
+  var el = field ? form.querySelector('[data-f="' + field + '"]') : null;
+  if (el) { el.classList.add("bad"); var input = el.querySelector("input,textarea"); if (input) input.focus(); }
+}
+function send(path, body, auth) {
+  var h = { "Content-Type": "application/json" };
+  if (auth) h.Authorization = "Bearer " + auth;
+  return fetch(API_URL + path, { method: "POST", headers: h, body: JSON.stringify(body) })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, body: d || {} }; }); });
+}
+
+/* ── the notice ── */
+var where = params.get("where");
+if (where) document.getElementById("nWhere").value = where.slice(0, 500);
+document.getElementById("noticeForm").addEventListener("submit", function (ev) {
+  ev.preventDefault();
+  var form = this, btn = document.getElementById("noticeSend"), msg = document.getElementById("noticeMsg");
+  btn.disabled = true; msg.className = "msg"; msg.textContent = "Sending...";
+  send("/api/copyright/notices", { name: val("nName"), email: val("nEmail"), address: val("nAddress"), phone: val("nPhone"), work: val("nWork"),
+    location: val("nWhere"), signature: val("nSign"), good_faith: ticked("nGood"), accuracy: ticked("nAccurate") }).then(function (r) {
+    if (r.ok) { markBad(form, null); form.innerHTML = '<h2>Notice received</h2><p class="msg ok">' + esc(r.body.message || "Your notice was received.") + '</p>'; return; }
+    btn.disabled = false; msg.className = "msg error";
+    msg.textContent = r.status === 429 ? "You can send 5 notices an hour. Try again later." : (r.body.error || "That did not send. Try again.");
+    markBad(form, r.body.field);
+  }).catch(function () { btn.disabled = false; msg.className = "msg error"; msg.textContent = "That did not send. Check your connection and try again."; });
+});
+
+/* ── the counter-notice ── */
+var counterId = params.get("counter");
+if (counterId) {
+  document.getElementById("noticeView").hidden = true;
+  document.getElementById("counterView").hidden = false;
+  var t = token(), load = document.getElementById("counterLoad");
+  if (!t) {
+    document.getElementById("counterSignIn").hidden = false;
+    document.getElementById("counterSignInLink").addEventListener("click", function () {
+      try { localStorage.setItem("bf_return_to", window.location.pathname + window.location.search); } catch (e) { /* signs in to the dashboard */ }
+    });
+  } else {
+    load.textContent = "Loading...";
+    fetch(API_URL + "/api/copyright/counter/" + encodeURIComponent(counterId), { headers: { Authorization: "Bearer " + t } }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok || !d.notice) { load.className = "msg error"; load.textContent = d.error || "That counter-notice isn't available."; return; }
+        var n = d.notice;
+        if (n.countered) { load.className = "msg ok"; load.textContent = "Your counter-notice for this was already received."; return; }
+        load.textContent = "";
+        document.getElementById("counterFacts").innerHTML = "Removed: your " + esc(n.object_type) + (n.title ? ' "' + esc(n.title) + '"' : "") +
+          ", after a notice received " + esc(n.received) + ".<br>The work they named: " + esc(n.work);
+        document.getElementById("counterForm").hidden = false;
+      });
+    }).catch(function () { load.className = "msg error"; load.textContent = "This could not be loaded just now. Try again in a minute."; });
+  }
+  document.getElementById("counterForm").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var form = this, btn = document.getElementById("counterSend"), msg = document.getElementById("counterMsg");
+    btn.disabled = true; msg.className = "msg"; msg.textContent = "Sending...";
+    send("/api/copyright/counter/" + encodeURIComponent(counterId), { name: val("cName"), address: val("cAddress"), phone: val("cPhone"),
+      statement: val("cStatement"), signature: val("cSign"), perjury: ticked("cPerjury"), consent: ticked("cConsent") }, token()).then(function (r) {
+      if (r.ok) { form.innerHTML = '<h2>Counter-notice received</h2><p class="msg ok">' + esc(r.body.message || "Your counter-notice was received.") + '</p>'; return; }
+      btn.disabled = false; msg.className = "msg error"; msg.textContent = r.body.error || "That did not send. Try again.";
+      markBad(form, r.body.field);
+    }).catch(function () { btn.disabled = false; msg.className = "msg error"; msg.textContent = "That did not send. Check your connection and try again."; });
+  });
+}
+</script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
+</body>
+</html>

@@ -369,6 +369,12 @@ document.addEventListener("click", function(e) {
 
 var listingMedia = [];
 var listingMediaUploading = 0;
+/* P2-2 (fix a): what an edit sends as media: the list when it changed, nothing (so the server keeps it) when it did not. */
+var editingMediaJson = null;
+function mediaForSave() {
+  if (editingId && editingMediaJson !== null && JSON.stringify(listingMedia) === editingMediaJson) return undefined;
+  return listingMedia;
+}
 
 /* Reads an error body without trusting it to be JSON, so an HTML error page from
    the proxy does not surface as "Unexpected token '<'". */
@@ -587,6 +593,7 @@ function renderCard(l) {
 
 function openCreateModal() {
   editingId = null;
+  editingMediaJson = null;
   createKind = null;
   document.getElementById("modalTitle").textContent = "List a Service";
   document.getElementById("submitBtn").textContent = "List Service";
@@ -612,6 +619,12 @@ function openEditModal(id) {
   document.getElementById("fCategory").value = listing.category || "";
   document.getElementById("fPrice").value = listing.price_bfc || "";
   document.getElementById("fTags").value = (listing.tags || []).join(", ");
+  /* P2-2 (fix a): the listing's own photos and videos are loaded, so saving an edit keeps them. BEFORE the form opened with
+     no media and the save sent media: [], which emptied the listing. The save now sends media only when it changed. */
+  listingMedia = (Array.isArray(listing.media) ? listing.media : []).filter(function (m) { return m && m.url; })
+    .map(function (m) { return { url: m.url, type: m.type || (/\.(mp4|webm|mov)(\?|$)/i.test(m.url) ? "video/mp4" : "image/jpeg"), name: m.name || "" }; });
+  editingMediaJson = JSON.stringify(listingMedia);
+  renderMediaPreview();
   document.getElementById("listingModal").classList.add("open");
 }
 
@@ -677,9 +690,9 @@ async function uploadListingMedia(file) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     var upRes = await fetch(d.signedUrl, {
       method: "PUT",
@@ -687,6 +700,13 @@ async function uploadListingMedia(file) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     listingMedia.push({ url: d.publicUrl, type: file.type, name: file.name });
   } catch (e) {
     showToast(e.message || "Media upload failed", "error");
@@ -742,7 +762,7 @@ async function submitListing() {
   try {
     var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
     var method = editingId ? "PUT" : "POST";
-    var body = { title, description: desc, category, price_bfc: price, tags: tagsRaw, media: listingMedia };
+    var body = { title, description: desc, category, price_bfc: price, tags: tagsRaw, media: mediaForSave() };
     if (!editingId && createKind) body.listing_kind = createKind;
     if (isDigital && digitalUpload) {
       body.is_digital = true;

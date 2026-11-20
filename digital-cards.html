@@ -2767,9 +2767,9 @@ async function uploadStillImage(file, prevStillImageUrl) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     console.log("[BF] uploadStillImage: signed URL received, uploading to storage");
     var upRes = await fetch(d.signedUrl, {
@@ -2778,6 +2778,13 @@ async function uploadStillImage(file, prevStillImageUrl) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     stillImageUrl = d.publicUrl;
     console.log("[BF] uploadStillImage: complete. stillImageUrl =", stillImageUrl);
     nameEl.textContent = file.name;
@@ -2808,9 +2815,9 @@ async function uploadBgImage(file) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     prog.style.width = "55%";
     var upRes = await fetch(d.signedUrl, {
@@ -2819,6 +2826,13 @@ async function uploadBgImage(file) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     prog.style.width = "100%";
     setBgImage(d.publicUrl);
     syncBgSliders();
@@ -2887,9 +2901,9 @@ async function uploadAudio(file) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     prog.style.width = "55%";
     var upRes = await fetch(d.signedUrl, {
@@ -2898,6 +2912,13 @@ async function uploadAudio(file) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     prog.style.width = "100%";
     audioUrl = d.publicUrl;
     audioTrackName = file.name.replace(/\.[^.]+$/, "");
@@ -2928,9 +2949,9 @@ async function uploadPitchVideo(file, prevVideoUrl) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "card-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     prog.style.width = "55%";
     var upRes = await fetch(d.signedUrl, {
@@ -2939,6 +2960,13 @@ async function uploadPitchVideo(file, prevVideoUrl) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     prog.style.width = "100%";
     videoUrl = d.publicUrl;
     status.textContent = "Uploaded!";

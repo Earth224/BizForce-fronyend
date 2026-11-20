@@ -1,4 +1,4 @@
-/* The one footer, on every page: Terms · Privacy · Refunds · Contact · Your data.
+/* The one footer, on every page: Terms · Privacy · Refunds · Contact · Your data, and below them Copyright notices.
    ─────────────────────────────────────────────────────────────────────────
    A page places an empty element where the footer belongs and loads this file
    right after it:
@@ -30,6 +30,9 @@
     ["Contact", "/contact"],
     ["Your data", "/your-data.html"]
   ];
+  /* NAMED (Nov 20 2026, P2-2): copyright.html (notices and counter-notices) on a SECOND line, so the five links above keep
+     their places on every page; only the footer grows by one line. */
+  var LINE2 = [["Copyright notices", "/copyright.html"]];
 
   function addStyle(doc) {
     if (doc.getElementById("bf-legal-footer-style")) { return; }
@@ -40,6 +43,7 @@
       ".bf-legal-footer a{color:#8e98c2;text-decoration:none;margin:0 2px}" +
       ".bf-legal-footer a:hover{color:var(--bf-accent-a, #22d3ee);text-decoration:underline}" +
       ".bf-legal-footer .sep{margin:0 6px;opacity:.6}" +
+      ".bf-legal-footer .line2{display:block;margin-top:2px}" +
       ".bf-terms-notice{position:fixed;left:12px;right:12px;bottom:12px;z-index:9000;max-width:560px;margin:0 auto;padding:14px 44px 14px 16px;border-radius:14px;" +
       "background:#0d1328;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.45);box-shadow:0 12px 32px rgba(0,0,0,.45);color:#e8e8ff;font:14px/1.5 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif}" +
       ".bf-terms-notice a{color:var(--bf-accent-a, #22d3ee)}" +
@@ -71,6 +75,15 @@
         nav.appendChild(a);
       }
       el.appendChild(nav);
+      var line2 = doc.createElement("div");
+      line2.className = "line2";
+      for (var k = 0; k < LINE2.length; k++) {
+        var b = doc.createElement("a");
+        b.href = LINE2[k][1];
+        b.textContent = LINE2[k][0];
+        line2.appendChild(b);
+      }
+      el.appendChild(line2);
     }
     return els.length;
   }
@@ -147,7 +160,7 @@
     return p;
   }
 
-  global.BFLegalFooter = { fillFooters: fillFooters, checkTerms: checkTerms, LINKS: LINKS };
+  global.BFLegalFooter = { fillFooters: fillFooters, checkTerms: checkTerms, LINKS: LINKS, LINE2: LINE2 };
   if (global.document) {
     fillFooters(global.document);
     checkTerms(global.document);

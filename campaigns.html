@@ -34,6 +34,7 @@
     .campaign-card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;transition:all .25s;position:relative}
     .campaign-card:hover{border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.28);transform:translateY(-2px);box-shadow:0 0 28px rgba(var(--bf-accent-b-rgb, 168,85,247),.1)}
     .campaign-header{display:flex;align-items:center;gap:8px;min-height:20px}
+    .campaign-header .campaign-dots{margin-left:auto}
     .campaign-media{position:relative;width:100%;height:170px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
     .campaign-media img,.campaign-media video{width:100%;height:100%;object-fit:cover;display:block}
     .campaign-media-count{position:absolute;bottom:8px;right:8px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.12);color:#f4f7ff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:999px}
@@ -268,6 +269,11 @@ function renderCard(c) {
   var card = el("div", { "class": "campaign-card" });
   var header = el("div", { "class": "campaign-header" });
   if (c.category) header.appendChild(el("span", { "class": "campaign-cat" }, c.category));
+  // P2-2: Report, Block and Mute (scripts/bf-safety.js) on someone else's campaign
+  if (c.is_own !== true && window.BFSafety) {
+    var dots = window.BFSafety.mount(header, { type: "campaign", id: c.id, name: "the organiser", onChange: loadCampaigns });
+    if (dots) dots.classList.add("campaign-dots");
+  }
   card.appendChild(header);
   var media = mediaBlock(c.media);
   if (media) card.appendChild(media);
@@ -513,9 +519,9 @@ async function uploadCampaignMedia(file) {
     var res = await fetch(API_URL + "/api/bfp/upload-url", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type })
+      body: JSON.stringify({ folder: "marketplace-media", filename: file.name, contentType: file.type, size: file.size })
     });
-    if (!res.ok) throw new Error("Could not get upload URL");
+    if (!res.ok) { var ue = await res.json().catch(function () { return {}; }); throw new Error(ue.error || "Could not get upload URL"); }
     var d = await res.json();
     var upRes = await fetch(d.signedUrl, {
       method: "PUT",
@@ -523,6 +529,13 @@ async function uploadCampaignMedia(file) {
       body: file
     });
     if (!upRes.ok) throw new Error("Storage upload failed");
+    // P2-2: the stored file is read back and checked; one that is not what it said is deleted and refused
+    var ck = await fetch(API_URL + "/api/bfp/upload-check", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ path: d.path })
+    });
+    if (!ck.ok) { var ce = await ck.json().catch(function () { return {}; }); throw new Error(ce.error || "That file could not be checked, so it was not added."); }
     campaignMedia.push({ url: d.publicUrl, type: file.type, name: file.name });
   } catch (e) {
     showToast(e.message || "Media upload failed", "error");
@@ -655,6 +668,7 @@ if (new URLSearchParams(window.location.search).get("create") === "campaign") {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/media-picker.js"></script>
 <script>
 /* "Choose from my library" (scripts/media-picker.js): a file from the member's

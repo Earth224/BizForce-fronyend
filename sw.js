@@ -33,7 +33,8 @@ var BUILD = "__BF_BUILD__";
    even a build whose commit placeholder is left as "local" starts a new cache, and activate deletes the older one. */
 /* NAMED (Nov 19 2026, HQ1): BEFORE "ph1"; AFTER "hq1" (the phone card views, the orbit toggle, the Oracle set, the boombox autoplay fix). */
 /* NAMED (Nov 19 2026, P2-1): BEFORE "hq1"; AFTER "p21" (the bottom bar, Home, the Inbox). */
-var SHELL_REV = "p21";
+/* NAMED (Nov 20 2026, P2-2): BEFORE "p21"; AFTER "p22" (the report, block and mute menu, Moderation, Copyright notices). */
+var SHELL_REV = "p22";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -42,7 +43,8 @@ var OFFLINE_PAGES = [
   "influencer-agent.html", "operations-agent.html", "publicist-agent.html", "rd-agent.html", "reputation-agent.html",
   "store-agent.html", "vertical-marketing-agent.html",
   "agents/analytics.html", "agents/content.html", "agents/sales.html", "agents/seo.html", "agents/social.html",
-  "home.html", "inbox.html"   // NAMED (Nov 19 2026, P2-1): the phone app shell's Home and Inbox
+  "home.html", "inbox.html",   // NAMED (Nov 19 2026, P2-1): the phone app shell's Home and Inbox
+  "moderation.html", "copyright.html"   // NAMED (Nov 20 2026, P2-2): the owner's Moderation and the copyright notice form
 ];
 var STATIC_FILES = [
   "/css/bizforce-ui.css",
@@ -65,6 +67,7 @@ var STATIC_FILES = [
   "/scripts/bf-marks.js",
   // NAMED (Nov 19 2026, P2-1): the bottom bar (bf-session.js loads it), the profile header and Settings, Local.
   "/scripts/bf-tabbar.js", "/scripts/bf-profile-shell.js", "/scripts/bf-local-settings.js",
+  "/scripts/bf-safety.js",   // NAMED (Nov 20 2026, P2-2): the report, block and mute menu (the Inbox, Settings and Executive HQ load it)
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];
