@@ -172,6 +172,12 @@
     if (window.location.pathname === "/campaigns.html" && /^\?campaign=[a-z2-7]{16}$/.test(window.location.search)) {
       write("bf_return_to", window.location.pathname + window.location.search);
     }
+    /* NAMED (Nov 19 2026, P2-1): Home and the Inbox, opened signed out, are the pages to come back to after sign-in
+       (an Inbox link carries only its tab or the member id of a conversation; app.html accepts nothing else). */
+    if ((window.location.pathname === "/home.html" && !window.location.search) ||
+        (window.location.pathname === "/inbox.html" && /^(\?(tab=(messages|approvals|notifications)|with=[0-9a-f-]{36}))?$/.test(window.location.search))) {
+      write("bf_return_to", window.location.pathname + window.location.search);
+    }
     window.location.replace(LOGIN_PAGE);
     return;
   }
@@ -180,9 +186,20 @@
      dashboard's console, the pop-out window, and a mini-bar everywhere else.
      A page that already loads scripts/bf-music.js itself is left alone. */
   function loadMusicPlayer() {
+    loadTabBar();
     if (window.BFMusic || document.querySelector("script[src$='/scripts/bf-music.js']")) return;
     var tag = document.createElement("script");
     tag.src = "/scripts/bf-music.js";
+    tag.defer = true;
+    (document.body || document.head || document.documentElement).appendChild(tag);
+  }
+  /* NAMED (Nov 19 2026, P2-1): THE PHONE APP'S BOTTOM BAR rides with the music player on every signed-in page this guard
+     protects (and on settings.html, through data-music): scripts/bf-tabbar.js decides where it shows (phone only, never on
+     the sign-in, legal, public or Oracle pages) and holds the Create sheet. A page that loads it itself is left alone. */
+  function loadTabBar() {
+    if (window.BFTabbar || document.querySelector("script[src$='/scripts/bf-tabbar.js']")) return;
+    var tag = document.createElement("script");
+    tag.src = "/scripts/bf-tabbar.js";
     tag.defer = true;
     (document.body || document.head || document.documentElement).appendChild(tag);
   }

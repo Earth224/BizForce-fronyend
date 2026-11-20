@@ -265,6 +265,9 @@ function showNotFound() {
 
 async function loadSeller() {
   var handle = new URLSearchParams(window.location.search).get("u");
+  /* NAMED (Nov 19 2026, P2-1): bizforceai.net/@handle shows this page (_redirects rewrites it here and the address stays
+     /@handle), so the handle is read from the path when there is no ?u. */
+  if (!handle) { var at = /^\/@([a-z0-9_-]{1,40})$/i.exec(window.location.pathname); if (at) handle = at[1]; }
   if (!handle) { showNotFound(); return; }
   try {
     var res = await fetch(API_URL + "/api/bfp/seller/" + encodeURIComponent(handle));

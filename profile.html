@@ -1057,6 +1057,15 @@
       .pf-form-row { grid-template-columns: 1fr; }
       .pf-custom-inner { gap: 18px; }
     }
+    /* NAMED (Nov 19 2026, P2-1): on a phone the owner's four nav buttons (Your data, Share, Customise profile, Edit
+       Profile) wrap onto a second line. BEFORE they ran past the screen's right edge (489 px wide at 390), which widened
+       the phone's layout viewport, so the bottom bar and the Guide button sat below the visible screen. Wrapped, the
+       nav is three rows tall, so on a phone it scrolls with the page instead of sticking over the content (the bottom
+       bar and the profile header's own Edit and Share do its job there). Phone only. */
+    @media (max-width: 760px) {
+      .pf-nav { position: static; }
+      .pf-nav-actions { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -1132,6 +1141,10 @@
     </div>
   </div>
 </div>
+
+<!-- NAMED (Nov 19 2026, P2-1): the app header: @handle, Sales and (for the owner) BizCash, Edit, Share and Wallet, the
+     storefront link, and the Posts, Shop and Services tabs (scripts/bf-profile-shell.js). -->
+<div id="pfShell"></div>
 
 <!-- ── Main sections ── -->
 <div class="pf-sections">
@@ -2912,6 +2925,7 @@ function renderShareCard() {
 <script src="/scripts/bf-support.js"></script>
 <script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/bf-profile-editor.js"></script>
+<script src="/scripts/bf-profile-shell.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

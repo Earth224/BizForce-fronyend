@@ -691,7 +691,8 @@ document.addEventListener("DOMContentLoaded", function () {
     var u;
     try { u = new URL(raw, window.location.origin); } catch (e) { return null; }
     if (u.origin !== window.location.origin) return null;
-    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80}|campaigns\.html)$/i.test(u.pathname)) return null;
+    // NAMED (Nov 19 2026, P2-1): home.html and inbox.html too (scripts/bf-session.js keeps them when opened signed out).
+    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80}|campaigns\.html|home\.html|inbox\.html|@[a-z0-9_-]{3,30})$/i.test(u.pathname)) return null;
     return u.pathname + u.search;
   }
 

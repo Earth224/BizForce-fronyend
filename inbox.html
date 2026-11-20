@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/scripts/bf-theme.js"></script>
+<script src="/scripts/bf-session.js"></script>
+<script src="/scripts/bf-offline.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="robots" content="noindex"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>BizForce AI — Inbox</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* P2-1 (Nov 19 2026): messages, agent approvals and notifications in one place. On a desktop three panes (the list,
+       the open item, its details); on a phone the tabs and the list, and an opened item fills the screen with a back
+       button. messages.html and proposals.html stay as they were. */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    /* The backdrop is the token rule in scripts/bf-theme.js. */
+    .page{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:32px 24px 48px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .nav-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.25);background:rgba(12,18,38,.6);color:var(--bf-accent-a, #22d3ee);text-decoration:none;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ),var(--bf-mark-b, #a855f7));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .inbox-title{margin:0 0 4px;font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,var(--bf-accent-a3, #00e5ff) 0%,var(--bf-accent-b3, #7b2ff7) 60%,var(--bf-accent-b, #a855f7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .inbox-sub{margin:0 0 18px;color:#8892b8;font-size:.92rem;line-height:1.55}
+    .inbox-sub a{color:var(--bf-accent-a, #22d3ee);font-weight:700;text-decoration:none}
+    .tabs{display:flex;gap:6px;margin:0 0 16px;padding:4px;border-radius:14px;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);width:fit-content;max-width:100%}
+    .tab-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:10px;background:transparent;color:#a9b3cc;
+      font:700 .9rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer}
+    .tab-btn[aria-selected=true]{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.14);color:#f4f7ff}
+    .tab-count{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--bf-accent-b, #8b5cf6);color:#fff;font-size:.72rem;line-height:20px;text-align:center}
+    .tab-count[hidden]{display:none}
+    .panes{display:grid;grid-template-columns:320px minmax(0,1fr) 260px;gap:16px;min-height:560px}
+    .pane{display:flex;flex-direction:column;min-width:0;background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden}
+    .pane-head{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .pane-head h2{flex:1;margin:0;font-size:1rem;font-weight:800;color:#f4f7ff;min-width:0;overflow-wrap:anywhere}
+    .pane-body{flex:1;overflow-y:auto;padding:8px}
+    .pane-back{display:none}
+    .list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+    .item{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 12px;border-radius:12px;border:1px solid transparent;background:transparent;
+      color:#e8e8ff;text-align:left;text-decoration:none;cursor:pointer;font:inherit}
+    .item:hover,.item:focus-visible{background:rgba(255,255,255,.04);outline:none}
+    .item.active{border-color:rgba(var(--bf-accent-a-rgb, 34,211,238),.35);background:rgba(var(--bf-accent-a-rgb, 34,211,238),.08)}
+    .item.unread .item-title{color:#fff}
+    .avatar{width:44px;height:44px;flex:none;border-radius:22px;object-fit:cover;background:#121a36;display:flex;align-items:center;justify-content:center;font-weight:800;color:#c9d1e6}
+    .item-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+    .item-title{font-size:.9rem;font-weight:700;color:#d6dcf0;overflow-wrap:anywhere}
+    .item-sub{font-size:.8rem;color:#8892b8;line-height:1.4;overflow-wrap:anywhere}
+    .item-time{flex:none;font-size:.72rem;color:#6b7899}
+    .dot{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--bf-accent-b, #8b5cf6);color:#fff;font-size:.72rem;font-weight:700;line-height:20px;text-align:center}
+    .thread{display:flex;flex-direction:column;gap:10px;padding:6px}
+    .msg{display:flex;flex-direction:column;max-width:78%}
+    .msg.mine{align-self:flex-end;align-items:flex-end}
+    .msg-bubble{padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.06);font-size:.9rem;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+    .msg.mine .msg-bubble{background:rgba(var(--bf-accent-a-rgb, 34,211,238),.16)}
+    .msg-time{margin-top:3px;font-size:.7rem;color:#6b7899}
+    .compose{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+    .compose textarea{flex:1 1 auto;min-width:0;min-height:44px;max-height:140px;resize:vertical;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+      background:rgba(5,8,20,.7);color:#e8e8ff;font:inherit;font-size:.92rem}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 16px;border-radius:12px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.04);color:#e8e8ff;font:700 .88rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer;text-decoration:none}
+    .btn:disabled{opacity:.6;cursor:default}
+    .btn-primary{border:0;color:#070b18;background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6))}
+    .btn-quiet{border-color:transparent;color:var(--bf-accent-a, #22d3ee)}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .empty,.loading{margin:0;padding:24px 12px;color:#8892b8;font-size:.88rem;line-height:1.55;text-align:center}
+    .error{margin:0;padding:12px;color:#fca5a5;font-size:.86rem;line-height:1.5}
+    .detail{display:flex;flex-direction:column;gap:12px;padding:10px}
+    .detail h3{margin:0;font-size:1.05rem;font-weight:800;color:#f4f7ff;overflow-wrap:anywhere}
+    .detail p{margin:0;color:#c9d1e6;font-size:.88rem;line-height:1.55;overflow-wrap:anywhere}
+    .detail .label{font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6b7899}
+    .person-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;text-align:center}
+    .person-card .avatar{width:72px;height:72px;border-radius:36px;font-size:1.4rem}
+    .push-box{display:flex;flex-direction:column;gap:8px;margin:0 0 10px;padding:12px;border-radius:12px;border:1px dashed rgba(255,255,255,.14)}
+    .push-box p{margin:0;font-size:.82rem;color:#a9b3cc;line-height:1.5}
+    .status{font-size:.82rem;color:#a9b3cc}
+    .status.ok{color:#6ee7b7}.status.err{color:#fca5a5}
+    [hidden]{display:none!important}
+    @media (max-width: 1100px){ .panes{grid-template-columns:300px minmax(0,1fr)} .pane-details{display:none} }
+    @media (max-width: 760px){
+      .page{padding:16px 16px 16px}
+      .top-nav{margin-bottom:12px}
+      .tabs{width:100%}
+      .tab-btn{flex:1 1 0;justify-content:center;padding:0 8px}
+      .panes{display:block;min-height:0}
+      .pane{min-height:0}
+      .pane-list{border-radius:16px}
+      .pane-open{display:none}
+      .inbox-open .pane-list{display:none}
+      .inbox-open .pane-open{display:flex}
+      .pane-back{display:inline-flex}
+      .msg{max-width:88%}
+    }
+  </style>
+<link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
+</head>
+<body>
+<div class="page" id="inboxPage">
+  <nav class="top-nav">
+    <div class="nav-left">
+      <a href="dashboard.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        HQ
+      </a>
+    </div>
+    <span class="brand-badge" data-bf-boombox-anchor>BizForce AI</span>
+  </nav>
+
+  <h1 class="inbox-title">Inbox</h1>
+  <p class="inbox-sub">Messages from members, your agents' work waiting for approval, and notifications. <a href="mailbox.html">Your email</a> is separate.</p>
+
+  <div class="tabs" role="tablist" aria-label="Inbox">
+    <button type="button" class="tab-btn" role="tab" id="tab-messages" data-tab="messages" aria-controls="paneList" aria-selected="true">Messages <span class="tab-count" id="count-messages" hidden></span></button>
+    <button type="button" class="tab-btn" role="tab" id="tab-approvals" data-tab="approvals" aria-controls="paneList" aria-selected="false">Approvals <span class="tab-count" id="count-approvals" hidden></span></button>
+    <button type="button" class="tab-btn" role="tab" id="tab-notifications" data-tab="notifications" aria-controls="paneList" aria-selected="false">Notifications <span class="tab-count" id="count-notifications" hidden></span></button>
+  </div>
+
+  <div class="panes" id="panes">
+    <section class="pane pane-list" id="paneList" role="tabpanel" aria-labelledby="tab-messages">
+      <div class="pane-head"><h2 id="listTitle">Messages</h2><span id="listAction"></span></div>
+      <div class="pane-body" id="listBody"><p class="loading">Loading...</p></div>
+    </section>
+    <section class="pane pane-open" id="paneOpen" aria-labelledby="openTitle">
+      <div class="pane-head">
+        <button type="button" class="btn btn-quiet pane-back" id="paneBack" aria-label="Back to the list">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 id="openTitle">Nothing open</h2>
+      </div>
+      <div class="pane-body" id="openBody"><p class="empty">Choose a conversation, an approval or a notification.</p></div>
+      <div class="compose" id="compose" hidden>
+        <textarea id="composeInput" maxlength="5000" placeholder="Write a message" aria-label="Message"></textarea>
+        <button type="button" class="btn btn-primary" id="sendBtn">Send</button>
+      </div>
+      <p class="error" id="sendError" role="alert" hidden></p>
+    </section>
+    <aside class="pane pane-details" id="paneDetails" aria-labelledby="detailsTitle">
+      <div class="pane-head"><h2 id="detailsTitle">Details</h2></div>
+      <div class="pane-body" id="detailsBody"><p class="empty">Details of what you open show here.</p></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+// The member's own id, read from the session token the way messages.html reads it (it marks "mine" in a thread).
+var me = (function () { try { return JSON.parse(atob(token.split(".")[1])).id; } catch (e) { return null; } })();
+
+var TABS = ["messages", "approvals", "notifications"];
+var state = { tab: "messages", openId: null, conversations: [], nextBefore: null, thread: [], threadMore: false, threadBefore: null,
+  person: null, approvals: [], notices: [] };
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) && !/^\/\//.test(u) ? u : ""; }
+function when(iso) {
+  var d = new Date(iso);
+  if (isNaN(d)) return "";
+  var now = new Date();
+  return d.toDateString() === now.toDateString() ? d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+function avatarHtml(p, cls) {
+  var name = (p && (p.name || p.username)) || "?";
+  var initial = String(name).replace(/^@/, "").charAt(0).toUpperCase();
+  return p && safeUrl(p.avatar_url) ? '<img class="' + (cls || "avatar") + '" src="' + escapeHtml(p.avatar_url) + '" alt="">'
+    : '<span class="' + (cls || "avatar") + '" aria-hidden="true">' + escapeHtml(initial) + '</span>';
+}
+function api(path, opts) {
+  opts = opts || {};
+  var headers = { "Authorization": "Bearer " + token };
+  if (opts.body) headers["Content-Type"] = "application/json";
+  return fetch(API_URL + path, { method: opts.method || "GET", headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined })
+    .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); });
+}
+function failText(what) { return '<p class="error">' + escapeHtml(what) + ' could not be loaded just now. This is not a statement that there is nothing here.</p>'; }
+
+/* ── the counts on the tabs (and the bottom bar's badge) ── */
+function loadCounts() {
+  return api("/api/inbox/counts").then(function (r) {
+    if (!r.ok) return;
+    setCount("messages", r.data.messages);
+    setCount("approvals", r.data.approvals);
+    setCount("notifications", r.data.notifications);
+    if (window.BFTabbar && typeof r.data.badge === "number") window.BFTabbar.setBadge(r.data.badge);
+  }).catch(function () {});
+}
+function setCount(tab, n) {
+  var el = document.getElementById("count-" + tab);
+  n = Number(n) || 0;
+  el.hidden = n === 0;
+  el.textContent = n > 99 ? "99+" : String(n);
+}
+
+/* ── tabs ── */
+function selectTab(tab, keepOpen) {
+  if (TABS.indexOf(tab) === -1) tab = "messages";
+  state.tab = tab;
+  TABS.forEach(function (t) {
+    var b = document.getElementById("tab-" + t);
+    b.setAttribute("aria-selected", t === tab ? "true" : "false");
+    b.tabIndex = t === tab ? 0 : -1;
+  });
+  document.getElementById("paneList").setAttribute("aria-labelledby", "tab-" + tab);
+  document.getElementById("listTitle").textContent = tab === "messages" ? "Messages" : tab === "approvals" ? "Waiting for approval" : "Notifications";
+  if (!keepOpen) closeItem();
+  document.getElementById("listAction").innerHTML = "";
+  if (tab === "messages") loadConversations();
+  else if (tab === "approvals") loadApprovals();
+  else loadNotices();
+}
+document.querySelector(".tabs").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-tab]");
+  if (b) selectTab(b.getAttribute("data-tab"));
+});
+document.querySelector(".tabs").addEventListener("keydown", function (e) {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  var i = TABS.indexOf(state.tab) + (e.key === "ArrowRight" ? 1 : -1);
+  var next = TABS[(i + TABS.length) % TABS.length];
+  selectTab(next);
+  document.getElementById("tab-" + next).focus();
+});
+
+function openPane(title) {
+  document.getElementById("openTitle").textContent = title;
+  document.getElementById("inboxPage").classList.add("inbox-open");
+}
+function closeItem() {
+  state.openId = null;
+  document.getElementById("inboxPage").classList.remove("inbox-open");
+  document.getElementById("openTitle").textContent = "Nothing open";
+  document.getElementById("openBody").innerHTML = '<p class="empty">Choose a conversation, an approval or a notification.</p>';
+  document.getElementById("detailsBody").innerHTML = '<p class="empty">Details of what you open show here.</p>';
+  document.getElementById("compose").hidden = true;
+  document.getElementById("sendError").hidden = true;
+}
+document.getElementById("paneBack").addEventListener("click", function () { closeItem(); renderList(); });
+
+function renderList() {
+  if (state.tab === "messages") renderConversations();
+  else if (state.tab === "approvals") renderApprovals();
+  else renderNotices();
+}
+
+/* ── MESSAGES ── */
+function loadConversations(more) {
+  var body = document.getElementById("listBody");
+  if (!more) body.innerHTML = '<p class="loading">Loading conversations...</p>';
+  var q = more && state.nextBefore ? "?before=" + encodeURIComponent(state.nextBefore) : "";
+  return api("/api/inbox/conversations" + q).then(function (r) {
+    if (!r.ok) throw new Error();
+    var list = r.data.conversations || [];
+    if (more) {
+      var seen = {};
+      state.conversations.forEach(function (c) { seen[c.other_id] = true; });
+      state.conversations = state.conversations.concat(list.filter(function (c) { return !seen[c.other_id]; }));
+    } else state.conversations = list;
+    state.nextBefore = r.data.next_before || null;
+    renderConversations();
+  }).catch(function () { body.innerHTML = failText("Your conversations"); });
+}
+function renderConversations() {
+  if (state.tab !== "messages") return;
+  var body = document.getElementById("listBody");
+  if (!state.conversations.length) { body.innerHTML = '<p class="empty">No conversations yet. Message a seller from the Market, or a member from their page.</p>'; return; }
+  body.innerHTML = '<ul class="list">' + state.conversations.map(function (c) {
+    var p = c.person || {};
+    return '<li><button type="button" class="item' + (c.unread ? " unread" : "") + (state.openId === c.other_id ? " active" : "") + '" data-open="' + escapeHtml(c.other_id) + '">' +
+      avatarHtml(p) + '<span class="item-info"><span class="item-title">' + escapeHtml(p.name) + '</span>' +
+      '<span class="item-sub">' + (c.last_from_me ? "You: " : "") + escapeHtml(c.last_message) + '</span></span>' +
+      (c.unread ? '<span class="dot" aria-label="' + c.unread + ' unread">' + c.unread + '</span>' : '<span class="item-time">' + escapeHtml(when(c.last_at)) + '</span>') +
+      '</button></li>';
+  }).join("") + '</ul>' + (state.nextBefore ? '<div class="row" style="justify-content:center;padding:8px"><button type="button" class="btn" id="moreConversations">Older conversations</button></div>' : "");
+  var more = document.getElementById("moreConversations");
+  if (more) more.addEventListener("click", function () { loadConversations(true); });
+}
+document.getElementById("listBody").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-open]");
+  if (!b) return;
+  var id = b.getAttribute("data-open");
+  if (state.tab === "messages") openThread(id);
+  else if (state.tab === "approvals") openApproval(id);
+});
+
+function openThread(otherId) {
+  state.openId = otherId;
+  state.thread = []; state.threadMore = false; state.threadBefore = null; state.person = null;
+  renderConversations();
+  openPane("Conversation");
+  document.getElementById("openBody").innerHTML = '<p class="loading">Loading messages...</p>';
+  document.getElementById("compose").hidden = false;
+  document.getElementById("sendError").hidden = true;
+  api("/api/inbox/person/" + encodeURIComponent(otherId)).then(function (r) {
+    if (state.openId !== otherId) return;
+    if (r.status === 404) {
+      document.getElementById("openTitle").textContent = "Not a member";
+      document.getElementById("openBody").innerHTML = '<p class="empty">There is no member with that id.</p>';
+      document.getElementById("compose").hidden = true;
+      return;
+    }
+    state.person = r.ok ? r.data.person : null;
+    if (state.person) document.getElementById("openTitle").textContent = state.person.name;
+    renderPerson();
+  }).catch(function () {});
+  loadThread(otherId, false).then(function () {
+    return api("/api/inbox/read/" + encodeURIComponent(otherId), { method: "POST" });
+  }).then(function () {
+    state.conversations.forEach(function (c) { if (c.other_id === otherId) c.unread = 0; });
+    renderConversations();
+    loadCounts();
+  }).catch(function () {});
+}
+function loadThread(otherId, earlier) {
+  var q = "?limit=50" + (earlier && state.threadBefore ? "&before=" + encodeURIComponent(state.threadBefore) : "");
+  return api("/api/messages/" + encodeURIComponent(otherId) + q).then(function (r) {
+    if (state.openId !== otherId) return;
+    if (!r.ok) throw new Error();
+    var page = r.data.messages || [];
+    state.thread = earlier ? page.concat(state.thread) : page;
+    state.threadMore = !!r.data.has_more;
+    state.threadBefore = r.data.next_before || null;
+    renderThread(!earlier);
+  }).catch(function () {
+    if (state.openId === otherId && !state.thread.length) document.getElementById("openBody").innerHTML = failText("This conversation");
+  });
+}
+function renderThread(toEnd) {
+  var body = document.getElementById("openBody");
+  var html = state.threadMore ? '<div class="row" style="justify-content:center"><button type="button" class="btn" id="earlier">Earlier messages</button></div>' : "";
+  if (!state.thread.length) html += '<p class="empty">No messages yet. Say hello.</p>';
+  html += '<div class="thread">' + state.thread.map(function (m) {
+    var mine = m.sender_id === me;
+    return '<div class="msg' + (mine ? " mine" : "") + '"><div class="msg-bubble">' + escapeHtml(m.content) + '</div><div class="msg-time">' + escapeHtml(when(m.created_at)) + '</div></div>';
+  }).join("") + '</div>';
+  body.innerHTML = html;
+  var earlier = document.getElementById("earlier");
+  if (earlier) earlier.addEventListener("click", function () { earlier.disabled = true; loadThread(state.openId, true); });
+  if (toEnd) body.scrollTop = body.scrollHeight;
+}
+function renderPerson() {
+  var p = state.person;
+  var d = document.getElementById("detailsBody");
+  if (!p) { d.innerHTML = '<p class="empty">This member could not be loaded.</p>'; return; }
+  d.innerHTML = '<div class="person-card">' + avatarHtml(p) + '<h3>' + escapeHtml(p.name) + '</h3>' +
+    (p.username ? '<p>@' + escapeHtml(p.username) + '</p><a class="btn" href="/@' + encodeURIComponent(p.username) + '">Visit page</a>' : '<p>No public handle yet.</p>') + '</div>';
+}
+function sendMessage() {
+  var input = document.getElementById("composeInput");
+  var text = input.value.trim();
+  var err = document.getElementById("sendError");
+  if (!text || !state.openId) return;
+  var btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+  err.hidden = true;
+  var to = state.openId;
+  api("/api/messages", { method: "POST", body: { receiver_id: to, content: text } }).then(function (r) {
+    if (!r.ok) throw new Error((r.data && r.data.error) || "Your message could not be sent.");
+    input.value = "";
+    return loadThread(to, false).then(function () { return loadConversations(); });
+  }).catch(function (e) {
+    err.textContent = e.message || "Your message could not be sent.";
+    err.hidden = false;
+  }).then(function () { btn.disabled = false; });
+}
+document.getElementById("sendBtn").addEventListener("click", sendMessage);
+document.getElementById("composeInput").addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+/* ── APPROVALS (the proposals routes; proposals.html shows every detail) ── */
+function loadApprovals() {
+  var body = document.getElementById("listBody");
+  body.innerHTML = '<p class="loading">Loading approvals...</p>';
+  return api("/api/proposals?status=pending").then(function (r) {
+    if (!r.ok) throw new Error();
+    state.approvals = r.data.proposals || [];
+    renderApprovals();
+  }).catch(function () { body.innerHTML = failText("Your approvals"); });
+}
+function agentName(a) { return String(a || "agent").replace(/[_-]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+function renderApprovals() {
+  if (state.tab !== "approvals") return;
+  var body = document.getElementById("listBody");
+  if (!state.approvals.length) { body.innerHTML = '<p class="empty">Nothing is waiting for your approval.</p>'; return; }
+  body.innerHTML = '<ul class="list">' + state.approvals.map(function (p) {
+    return '<li><button type="button" class="item' + (state.openId === p.id ? " active" : "") + '" data-open="' + escapeHtml(p.id) + '">' +
+      '<span class="item-info"><span class="item-title">' + escapeHtml(p.title) + '</span><span class="item-sub">' + escapeHtml(agentName(p.agent_type)) + '</span></span>' +
+      '<span class="item-time">' + escapeHtml(when(p.created_at)) + '</span></button></li>';
+  }).join("") + '</ul>';
+}
+function openApproval(id) {
+  var p = state.approvals.filter(function (x) { return x.id === id; })[0];
+  if (!p) return;
+  state.openId = id;
+  renderApprovals();
+  openPane(p.title);
+  document.getElementById("compose").hidden = true;
+  document.getElementById("openBody").innerHTML = '<div class="detail">' +
+    '<span class="label">' + escapeHtml(agentName(p.agent_type)) + '</span><h3>' + escapeHtml(p.title) + '</h3>' +
+    (p.reasoning ? '<p>' + escapeHtml(p.reasoning) + '</p>' : "") +
+    (p.target ? '<p><span class="label">Target</span><br>' + escapeHtml(p.target) + '</p>' : "") +
+    '<p>Nothing happens until you approve it.</p>' +
+    '<div class="row"><button type="button" class="btn btn-primary" id="approveBtn">Approve</button><button type="button" class="btn" id="rejectBtn">Reject</button>' +
+    '<a class="btn btn-quiet" href="proposals.html">See every detail</a></div><p class="error" id="decideMsg" role="alert" hidden></p></div>';
+  document.getElementById("detailsBody").innerHTML = '<div class="detail"><span class="label">Action</span><p>' + escapeHtml(String(p.action_type || "").replace(/_/g, " ")) + '</p>' +
+    '<span class="label">Proposed</span><p>' + escapeHtml(new Date(p.created_at).toLocaleString("en-US")) + '</p></div>';
+  document.getElementById("approveBtn").addEventListener("click", function () { decide(p.id, "approve"); });
+  document.getElementById("rejectBtn").addEventListener("click", function () { decide(p.id, "reject"); });
+}
+function decide(id, action) {
+  var a = document.getElementById("approveBtn"), b = document.getElementById("rejectBtn"), msg = document.getElementById("decideMsg");
+  a.disabled = true; b.disabled = true; msg.hidden = true;
+  (action === "approve" ? a : b).textContent = action === "approve" ? "Approving..." : "Rejecting...";
+  api("/api/proposals/" + encodeURIComponent(id) + "/" + action, { method: "POST" }).then(function (r) {
+    if (r.status === 409) throw new Error("This is no longer waiting for approval.");
+    if (r.status === 402) throw new Error((r.data && r.data.error) || "This needs an active plan. Nothing was done; it is still waiting.");
+    if (!r.ok) throw new Error((r.data && r.data.error) || "Could not " + action + " this.");
+    closeItem();
+    return loadApprovals().then(loadCounts);
+  }).catch(function (e) {
+    msg.textContent = e.message; msg.hidden = false;
+    a.disabled = false; b.disabled = false; a.textContent = "Approve"; b.textContent = "Reject";
+  });
+}
+
+/* ── NOTIFICATIONS ── */
+function loadNotices() {
+  var body = document.getElementById("listBody");
+  body.innerHTML = '<p class="loading">Loading notifications...</p>';
+  document.getElementById("listAction").innerHTML = '<button type="button" class="btn btn-quiet" id="markAll">Mark all read</button>';
+  document.getElementById("markAll").addEventListener("click", markAllRead);
+  return api("/api/notifications?exclude=message").then(function (r) {
+    if (!r.ok) throw new Error();
+    state.notices = r.data.notifications || [];
+    renderNotices();
+  }).catch(function () { body.innerHTML = failText("Your notifications"); });
+}
+function renderNotices() {
+  if (state.tab !== "notifications") return;
+  var body = document.getElementById("listBody");
+  var push = '<div class="push-box" id="pushBox"><p>Get a push notification on this device when something arrives.</p>' +
+    '<div class="row"><button type="button" class="btn" id="pushBtn">Turn on push notifications</button><span class="status" id="pushStatus" role="status"></span></div></div>';
+  if (!state.notices.length) { body.innerHTML = push + '<p class="empty">No notifications yet.</p>'; wirePush(); return; }
+  body.innerHTML = push + '<ul class="list">' + state.notices.map(function (n) {
+    var inner = '<span class="item-info"><span class="item-title">' + escapeHtml(n.title || "Notification") + '</span>' +
+      (n.message ? '<span class="item-sub">' + escapeHtml(n.message) + '</span>' : "") + '</span>' +
+      (n.read ? '<span class="item-time">' + escapeHtml(when(n.created_at)) + '</span>' : '<span class="dot" aria-label="unread">1</span>');
+    var link = safeUrl(n.link);
+    return '<li>' + (link ? '<a class="item' + (n.read ? "" : " unread") + '" href="' + escapeHtml(link) + '" data-notice="' + escapeHtml(n.id) + '">' + inner + '</a>'
+      : '<button type="button" class="item' + (n.read ? "" : " unread") + '" data-notice="' + escapeHtml(n.id) + '">' + inner + '</button>') + '</li>';
+  }).join("") + '</ul>';
+  wirePush();
+}
+document.getElementById("listBody").addEventListener("click", function (e) {
+  var n = e.target.closest("[data-notice]");
+  if (!n) return;
+  var id = n.getAttribute("data-notice");
+  var row = state.notices.filter(function (x) { return x.id === id; })[0];
+  if (!row || row.read) return;
+  row.read = true;
+  var mark = api("/api/notifications/" + encodeURIComponent(id) + "/read", { method: "PUT" }).then(loadCounts).catch(function () {});
+  if (n.tagName === "A") {
+    e.preventDefault();
+    var href = n.getAttribute("href");
+    mark.then(function () { window.location.href = href; });
+  } else renderNotices();
+});
+function markAllRead() {
+  var b = document.getElementById("markAll");
+  b.disabled = true;
+  api("/api/notifications/read-all", { method: "POST" }).then(function (r) {
+    if (!r.ok) throw new Error();
+    state.notices.forEach(function (n) { n.read = true; });
+    renderNotices();
+    loadCounts();
+  }).catch(function () {}).then(function () { b.disabled = false; });
+}
+
+/* Web Push: the same subscription Settings makes (POST /api/push/subscribe); turning it off is in Settings. */
+function pushSupported() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+function keyBytes(base64String) {
+  var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  var raw = window.atob(base64), out = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+function pushStatus(text, cls) { var s = document.getElementById("pushStatus"); if (s) { s.textContent = text; s.className = "status" + (cls ? " " + cls : ""); } }
+function wirePush() {
+  var btn = document.getElementById("pushBtn");
+  if (!btn) return;
+  if (!pushSupported()) { btn.disabled = true; pushStatus("Not supported by this browser.", "err"); return; }
+  if (Notification.permission === "denied") { btn.disabled = true; pushStatus("Blocked in your browser's settings for this site.", "err"); return; }
+  navigator.serviceWorker.getRegistration().then(function (reg) { return reg ? reg.pushManager.getSubscription() : null; })
+    .then(function (sub) { if (sub) { btn.hidden = true; pushStatus("On for this device. Turn it off in Settings.", "ok"); } })
+    .catch(function () {});
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    pushStatus("Turning on...", "");
+    navigator.serviceWorker.register("/sw.js").then(function (reg) {
+      return Notification.requestPermission().then(function (p) { if (p !== "granted") throw new Error("Permission was not granted."); return reg; });
+    }).then(function (reg) {
+      return api("/api/push/public-key").then(function (r) {
+        if (!r.ok || !r.data.publicKey) throw new Error("Push notifications could not be turned on. Try again.");
+        return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(r.data.publicKey) });
+      });
+    }).then(function (subscription) {
+      var s = subscription.toJSON();
+      return api("/api/push/subscribe", { method: "POST", body: { endpoint: s.endpoint, keys: s.keys } });
+    }).then(function (r) {
+      if (!r.ok) throw new Error("Push notifications could not be turned on. Try again.");
+      btn.hidden = true;
+      pushStatus("On for this device. Turn it off in Settings.", "ok");
+    }).catch(function (e) {
+      btn.disabled = false;
+      pushStatus(e.message || "Push notifications could not be turned on. Try again.", "err");
+    });
+  });
+}
+
+/* ── start: ?tab=messages|approvals|notifications, or ?with=<member id> opens that conversation ── */
+(function start() {
+  var params = new URLSearchParams(window.location.search);
+  var withId = params.get("with");
+  var tab = params.get("tab");
+  if (withId && /^[0-9a-f-]{36}$/i.test(withId)) {
+    selectTab("messages", true);
+    openThread(withId);
+  } else selectTab(TABS.indexOf(tab) !== -1 ? tab : "messages");
+  loadCounts();
+})();
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
+</body>
+</html>

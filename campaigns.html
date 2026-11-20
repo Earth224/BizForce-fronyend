@@ -646,6 +646,12 @@ document.getElementById("fMedia").addEventListener("change", function() {
 loadCampaigns();
 loadMyCampaigns();
 openSharedCampaign();
+/* NAMED (Nov 19 2026, P2-1): the Create sheet (scripts/bf-tabbar.js) opens this page as campaigns.html?create=campaign:
+   the new-campaign form opens at once. With no ?create the page is exactly as before. */
+if (new URLSearchParams(window.location.search).get("create") === "campaign") {
+  try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  openCreateModal();
+}
 </script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
 <script src="/scripts/bf-support.js"></script>

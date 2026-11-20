@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/scripts/bf-theme.js"></script>
+<script src="/scripts/bf-session.js"></script>
+<script src="/scripts/bf-offline.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="robots" content="noindex"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>BizForce AI — Home</title>
+  <link rel="stylesheet" href="/css/bizforce-ui.css"/>
+  <style>
+    /* P2-1 (Nov 19 2026): Home before there are posts. Real records only (GET /api/home/starter): the newest listings with
+       a photo, campaigns with a share link, members whose page is public. Never sample posts. On a desktop: a centred
+       600 px column with a column beside it; on a phone, one column above the bottom bar (scripts/bf-tabbar.js). */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
+    body{min-height:100vh;position:relative;overflow-x:hidden}
+    /* The backdrop is the token rule in scripts/bf-theme.js. */
+    .page{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:32px 24px 80px}
+    .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+    .back-link{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:12px;border:1px solid rgba(var(--bf-accent-a3-rgb, 0,229,255),.25);background:rgba(12,18,38,.6);color:var(--bf-accent-a, #22d3ee);text-decoration:none;font-size:.875rem;font-weight:600;backdrop-filter:blur(12px)}
+    .back-link svg{width:16px;height:16px;flex-shrink:0}
+    .brand-badge{font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ),var(--bf-mark-b, #a855f7));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .home-grid{display:grid;grid-template-columns:minmax(0,600px) minmax(0,300px);gap:28px;justify-content:center;align-items:start}
+    .home-main,.home-side{display:flex;flex-direction:column;gap:22px;min-width:0}
+    .home-title{margin:0 0 6px;font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,var(--bf-accent-a3, #00e5ff) 0%,var(--bf-accent-b3, #7b2ff7) 60%,var(--bf-accent-b, #a855f7) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .home-sub{margin:0;color:#8892b8;font-size:.95rem;line-height:1.6}
+    .card{background:rgba(10,15,35,.82);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px}
+    .card h2{margin:0 0 4px;font-size:1.05rem;font-weight:800;color:#f4f7ff}
+    .card .card-sub{margin:0 0 14px;color:#8892b8;font-size:.85rem;line-height:1.5}
+    .first-post{display:flex;flex-direction:column;gap:12px;border-color:rgba(var(--bf-accent-a-rgb, 34,211,238),.3)}
+    .first-post p{margin:0;color:#c9d1e6;font-size:.92rem;line-height:1.55}
+    .btn-create{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border:0;border-radius:12px;cursor:pointer;
+      font:700 .92rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#070b18;background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6))}
+    .btn-create svg{width:18px;height:18px}
+    .soon-line{margin:0;padding:12px 14px;border-radius:12px;border:1px dashed rgba(255,255,255,.14);color:#a9b3cc;font-size:.85rem;line-height:1.5}
+    .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
+    .tile{display:flex;flex-direction:column;height:100%;border-radius:14px;overflow:hidden;background:rgba(18,26,54,.9);border:1px solid rgba(255,255,255,.08);color:#e8e8ff;text-decoration:none}
+    .tile:hover,.tile:focus-visible{border-color:rgba(var(--bf-accent-a-rgb, 34,211,238),.45);outline:none}
+    .tile img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#0b1230}
+    .tile .tile-noimg{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;background:#0b1230;color:#4a5280;font-size:.8rem}
+    .tile-body{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px}
+    .tile-title{font-size:.88rem;font-weight:700;line-height:1.3;color:#f4f7ff;overflow-wrap:anywhere}
+    .tile-meta{font-size:.8rem;color:#a9b3cc}
+    .tile-price{font-size:.85rem;font-weight:800;color:#34d399}
+    .people{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+    .person{display:flex;align-items:center;gap:12px}
+    .person-avatar{width:44px;height:44px;flex:none;border-radius:22px;object-fit:cover;background:#121a36;display:flex;align-items:center;justify-content:center;font-weight:800;color:#c9d1e6}
+    .person-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .person-name{font-size:.9rem;font-weight:700;color:#f4f7ff;overflow-wrap:anywhere}
+    .person-handle{font-size:.8rem;color:#8892b8;overflow-wrap:anywhere}
+    .btn-visit{flex:none;display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:64px;padding:0 14px;border-radius:12px;
+      border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.35);color:var(--bf-accent-a, #22d3ee);text-decoration:none;font-size:.85rem;font-weight:700}
+    .empty,.loading,.load-error{margin:0;color:#8892b8;font-size:.88rem;line-height:1.55}
+    .load-error{color:#fca5a5}
+    .more-link{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;color:var(--bf-accent-a, #22d3ee);font-size:.88rem;font-weight:700;text-decoration:none}
+    @media (max-width: 760px){
+      .page{padding:16px 16px 24px}
+      .top-nav{margin-bottom:16px}
+      .home-grid{grid-template-columns:minmax(0,1fr);gap:18px}
+      .home-main,.home-side{gap:18px}
+      .card{padding:16px}
+    }
+  </style>
+<link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
+</head>
+<body>
+<div class="page">
+  <nav class="top-nav">
+    <a href="dashboard.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      HQ
+    </a>
+    <span class="brand-badge" data-bf-boombox-anchor>BizForce AI</span>
+  </nav>
+
+  <div class="home-grid">
+    <main class="home-main">
+      <header>
+        <h1 class="home-title">Home</h1>
+        <p class="home-sub">What members are offering on BizForce right now.</p>
+        <p class="bfc-notice" data-bfc-notice></p>
+        <script src="/scripts/bf-bfc-notice.js"></script>
+      </header>
+
+      <section class="card first-post" aria-labelledby="firstPostTitle">
+        <h2 id="firstPostTitle">Make your first post</h2>
+        <p>List a product or a service, start a campaign, sell a garage sale item, share your business card, or have an agent draft something for you to approve.</p>
+        <button type="button" class="btn-create" id="openCreate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Create
+        </button>
+        <p class="soon-line" id="soonLine">Posts are coming. The Following, Local, Market and For You tabs arrive with them.</p>
+      </section>
+
+      <section class="card" aria-labelledby="marketTitle">
+        <h2 id="marketTitle">New in the Market</h2>
+        <p class="card-sub">The newest listings with a photo.</p>
+        <div id="marketList"><p class="loading">Loading the Market...</p></div>
+        <a class="more-link" href="marketplace.html">Open the Market</a>
+      </section>
+
+      <section class="card" aria-labelledby="campaignsTitle">
+        <h2 id="campaignsTitle">Campaigns</h2>
+        <p class="card-sub">Active campaigns members have shared.</p>
+        <div id="campaignList"><p class="loading">Loading campaigns...</p></div>
+        <a class="more-link" href="campaigns.html">All campaigns</a>
+      </section>
+    </main>
+
+    <aside class="home-side">
+      <section class="card" aria-labelledby="peopleTitle">
+        <h2 id="peopleTitle">People</h2>
+        <p class="card-sub">Members with a public page.</p>
+        <div id="peopleList"><p class="loading">Loading people...</p></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+var token = localStorage.getItem("bf_token");
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) ? u : ""; }
+function bfc(n) { return (Number(n) || 0).toLocaleString("en-US") + " BFC"; }
+
+/* "Create" opens the Create sheet (scripts/bf-tabbar.js, which scripts/bf-session.js loads on every signed-in page). */
+document.getElementById("openCreate").addEventListener("click", function () {
+  var btn = this;
+  if (window.BFTabbar) { window.BFTabbar.openCreate(btn); return; }
+  var tries = 0;
+  var wait = setInterval(function () {
+    tries++;
+    if (window.BFTabbar) { clearInterval(wait); window.BFTabbar.openCreate(btn); }
+    else if (tries > 40) { clearInterval(wait); }
+  }, 50);
+});
+
+function renderMarket(list) {
+  var el = document.getElementById("marketList");
+  if (!list.length) { el.innerHTML = '<p class="empty">No listings with a photo yet.</p>'; return; }
+  el.innerHTML = '<ul class="tiles">' + list.map(function (l) {
+    var img = safeUrl(l.photo) ? '<img src="' + escapeHtml(l.photo) + '" alt="" loading="lazy">' : '<span class="tile-noimg">No photo</span>';
+    return '<li><a class="tile" href="/listing/' + encodeURIComponent(l.id) + '">' + img +
+      '<span class="tile-body"><span class="tile-title">' + escapeHtml(l.title) + '</span>' +
+      '<span class="tile-meta">' + (l.kind === "service" ? "Service" : "Product") + '</span>' +
+      '<span class="tile-price">' + escapeHtml(bfc(l.price_bfc)) + '</span></span></a></li>';
+  }).join("") + '</ul>';
+}
+
+function renderCampaigns(list) {
+  var el = document.getElementById("campaignList");
+  if (!list.length) { el.innerHTML = '<p class="empty">No shared campaigns right now.</p>'; return; }
+  el.innerHTML = '<ul class="tiles">' + list.map(function (c) {
+    var img = safeUrl(c.photo) ? '<img src="' + escapeHtml(c.photo) + '" alt="" loading="lazy">' : '<span class="tile-noimg">No photo</span>';
+    return '<li><a class="tile" href="' + escapeHtml(safeUrl(c.link)) + '">' + img +
+      '<span class="tile-body"><span class="tile-title">' + escapeHtml(c.title) + '</span>' +
+      '<span class="tile-meta">' + escapeHtml(bfc(c.raised_bfc)) + ' of ' + escapeHtml(bfc(c.goal_bfc)) + '</span></span></a></li>';
+  }).join("") + '</ul>';
+}
+
+function renderPeople(list) {
+  var el = document.getElementById("peopleList");
+  if (!list.length) { el.innerHTML = '<p class="empty">No public member pages yet.</p>'; return; }
+  el.innerHTML = '<ul class="people">' + list.map(function (p) {
+    var initial = String(p.name || p.username || "?").replace(/^@/, "").charAt(0).toUpperCase();
+    var avatar = safeUrl(p.avatar_url) ? '<img class="person-avatar" src="' + escapeHtml(p.avatar_url) + '" alt="">' : '<span class="person-avatar" aria-hidden="true">' + escapeHtml(initial) + '</span>';
+    return '<li class="person">' + avatar + '<span class="person-info"><span class="person-name">' + escapeHtml(p.name) + '</span>' +
+      '<span class="person-handle">@' + escapeHtml(p.username) + '</span></span>' +
+      '<a class="btn-visit" href="' + escapeHtml(safeUrl(p.link)) + '" aria-label="Visit ' + escapeHtml(p.name) + '">Visit</a></li>';
+  }).join("") + '</ul>';
+}
+
+function showError() {
+  var msg = '<p class="load-error">This could not be loaded just now. It is not a statement that there is nothing here.</p>';
+  ["marketList", "campaignList", "peopleList"].forEach(function (id) { document.getElementById(id).innerHTML = msg; });
+}
+
+async function loadHome() {
+  try {
+    var res = await fetch(API_URL + "/api/home/starter", { headers: { "Authorization": "Bearer " + token } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var d = await res.json();
+    renderMarket(d.listings || []);
+    renderCampaigns(d.campaigns || []);
+    renderPeople(d.people || []);
+  } catch (e) {
+    showError();
+  }
+}
+loadHome();
+</script>
+<script src="/scripts/termaximus-presence.js"></script>
+<footer class="bf-legal-footer" data-bf-legal-footer></footer>
+<script src="/scripts/bf-legal-footer.js"></script>
+</body>
+</html>

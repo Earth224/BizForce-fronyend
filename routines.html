@@ -32,6 +32,8 @@
     .create-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,198,255,.35)}
     .create-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
     .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+    /* NAMED (Nov 19 2026, P2-1): on a phone, one column the width of the screen. BEFORE, minmax(340px,1fr) made a 340 px column that ran 4 px past a 360 px screen, so the fixed bottom bar ran off it. Phone only. */
+    @media (max-width: 760px){.listings-grid{grid-template-columns:minmax(0,1fr)}}
     .listing-card{display:flex;flex-direction:column;gap:12px;padding:22px 24px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(12,18,38,.72);transition:border-color .25s,box-shadow .25s}
     .listing-card:hover{border-color:rgba(var(--bf-accent-a3-rgb, 0,229,255),.25);box-shadow:0 16px 48px rgba(0,0,0,.35)}
     .listing-title{margin:0;font-size:1.02rem;font-weight:700;color:#e8e8ff;word-break:break-word}

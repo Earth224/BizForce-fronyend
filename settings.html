@@ -609,6 +609,10 @@
             <span>Profile</span>
             <span class="sidebar-chevron">&#8250;</span>
           </button>
+          <button type="button" class="sidebar-item" data-target="local">
+            <span>Local</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
           <button type="button" class="sidebar-item" data-target="apikey">
             <span>API Key</span>
             <span class="sidebar-chevron">&#8250;</span>
@@ -662,6 +666,41 @@
               <button class="btn" id="profileSaveBtn" type="button">Save Profile</button>
             </div>
             <div class="msg" id="profileMsg"></div>
+          </section>
+
+          <!-- NAMED (Nov 19 2026, P2-1): your place for the Local feed (scripts/bf-local-settings.js, GET and PUT /api/me/place).
+               Typed by the member; never the location of the device. -->
+          <section class="settings-panel" id="panel-local" data-panel="local" aria-labelledby="localHeading">
+            <h2 id="localHeading">Local</h2>
+            <p class="subtitle">Where you are, in your own words, for the Local feed. BizForce never uses your device's location.</p>
+
+            <div class="form-group">
+              <label for="placeCity">City or town</label>
+              <input type="text" id="placeCity" maxlength="80" autocomplete="address-level2" />
+            </div>
+            <div class="form-group">
+              <label for="placeRegion">State, province or region</label>
+              <input type="text" id="placeRegion" maxlength="80" autocomplete="address-level1" />
+            </div>
+            <div class="form-group">
+              <label for="placeCountry">Country</label>
+              <select id="placeCountry"><option value="">Not set</option></select>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-copy">
+                <div class="toggle-title" id="localOptInLabel">Show my posts in Local</div>
+                <div class="toggle-desc">When this is on, members near the place above see your posts in their Local feed. Your place is shown only while it is on.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="localOptIn" aria-labelledby="localOptInLabel" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn" id="placeSaveBtn" type="button">Save Local</button>
+            </div>
+            <div class="msg" id="placeMsg" role="status"></div>
           </section>
 
           <section class="settings-panel" id="panel-apikey" data-panel="apikey">
@@ -2694,6 +2733,7 @@
     })();
   </script>
 <script src="/scripts/bf-theme-studio.js"></script>
+<script src="/scripts/bf-local-settings.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

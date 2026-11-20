@@ -550,6 +550,12 @@ document.getElementById("mediaPreview").addEventListener("click", function(e) {
 });
 
 loadListings();
+/* NAMED (Nov 19 2026, P2-1): the Create sheet (scripts/bf-tabbar.js) opens this page as garage-sale.html?create=item:
+   the new-item form opens at once. With no ?create the page is exactly as before. */
+if (new URLSearchParams(window.location.search).get("create") === "item") {
+  try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  openCreateModal();
+}
 </script>
 <script src="/scripts/media-picker.js"></script>
 <script>

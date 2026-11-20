@@ -32,7 +32,8 @@ var BUILD = "__BF_BUILD__";
    page, the orbit, the top bar). BEFORE the cache was "bf-shell-" + BUILD alone; AFTER it also carries SHELL_REV, so
    even a build whose commit placeholder is left as "local" starts a new cache, and activate deletes the older one. */
 /* NAMED (Nov 19 2026, HQ1): BEFORE "ph1"; AFTER "hq1" (the phone card views, the orbit toggle, the Oracle set, the boombox autoplay fix). */
-var SHELL_REV = "hq1";
+/* NAMED (Nov 19 2026, P2-1): BEFORE "hq1"; AFTER "p21" (the bottom bar, Home, the Inbox). */
+var SHELL_REV = "p21";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -40,7 +41,8 @@ var OFFLINE_PAGES = [
   "ads-agent.html", "broker-agent.html", "community-agent.html", "email-agent.html", "etsy-agent.html", "executive-agent.html",
   "influencer-agent.html", "operations-agent.html", "publicist-agent.html", "rd-agent.html", "reputation-agent.html",
   "store-agent.html", "vertical-marketing-agent.html",
-  "agents/analytics.html", "agents/content.html", "agents/sales.html", "agents/seo.html", "agents/social.html"
+  "agents/analytics.html", "agents/content.html", "agents/sales.html", "agents/seo.html", "agents/social.html",
+  "home.html", "inbox.html"   // NAMED (Nov 19 2026, P2-1): the phone app shell's Home and Inbox
 ];
 var STATIC_FILES = [
   "/css/bizforce-ui.css",
@@ -61,6 +63,8 @@ var STATIC_FILES = [
   // NAMED (Nov 18 2026, LOGO1): the brand marks. NAMED (Nov 19 2026, LOGO2): now only the Layered Stack, loaded by
   // dashboard.html for its top bar.
   "/scripts/bf-marks.js",
+  // NAMED (Nov 19 2026, P2-1): the bottom bar (bf-session.js loads it), the profile header and Settings, Local.
+  "/scripts/bf-tabbar.js", "/scripts/bf-profile-shell.js", "/scripts/bf-local-settings.js",
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];

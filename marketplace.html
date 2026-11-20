@@ -283,6 +283,19 @@ var myListings = [];
 var purchasedListingIds = new Set();
 var activeTab = "all";
 var editingId = null;
+/* NAMED (Nov 19 2026, P2-1): the Create sheet (scripts/bf-tabbar.js) opens this page as marketplace.html?create=product
+   or ?create=service: the new-listing form opens at once with its kind set, and the listing is saved with that
+   listing_kind. With no ?create the page and its form are exactly as before. */
+var createKind = null;
+function openCreateFromLink() {
+  var kind = new URLSearchParams(window.location.search).get("create");
+  if (kind !== "product" && kind !== "service") return;
+  try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+  openCreateModal();
+  createKind = kind;
+  document.getElementById("modalTitle").textContent = kind === "product" ? "List a Product" : "List a Service";
+  document.getElementById("submitBtn").textContent = kind === "product" ? "List Product" : "List Service";
+}
 var searchTimer = null;
 
 // NOTE: &#39; is decoded by the HTML parser before an inline event handler's
@@ -574,6 +587,7 @@ function renderCard(l) {
 
 function openCreateModal() {
   editingId = null;
+  createKind = null;
   document.getElementById("modalTitle").textContent = "List a Service";
   document.getElementById("submitBtn").textContent = "List Service";
   document.getElementById("fTitle").value = "";
@@ -729,6 +743,7 @@ async function submitListing() {
     var url = editingId ? API_URL + "/api/marketplace/listings/" + editingId : API_URL + "/api/marketplace/listings";
     var method = editingId ? "PUT" : "POST";
     var body = { title, description: desc, category, price_bfc: price, tags: tagsRaw, media: listingMedia };
+    if (!editingId && createKind) body.listing_kind = createKind;
     if (isDigital && digitalUpload) {
       body.is_digital = true;
       body.digital_file_path = digitalUpload.path;
@@ -885,6 +900,7 @@ renderCategoryMenu();
 renderCategorySelectOptions();
 showPurchaseResultBanner();
 loadListings();
+openCreateFromLink();
 </script>
 <script src="/scripts/media-picker.js"></script>
 <script>
