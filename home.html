@@ -55,7 +55,28 @@
     .empty,.loading,.load-error{margin:0;color:#8892b8;font-size:.88rem;line-height:1.55}
     .load-error{color:#fca5a5}
     .more-link{display:inline-flex;align-items:center;min-height:44px;margin-top:6px;color:var(--bf-accent-a, #22d3ee);font-size:.88rem;font-weight:700;text-decoration:none}
+    /* NAMED (Nov 20 2026, P2-3): the Following feed (scripts/bf-feed.js). Only the Following tab: For You, Local and Market are
+       not shown until they exist. Search says it is coming. On a desktop the feed is the 600 px column and Market, Campaigns
+       and People are the column beside it; on a phone, with posts, the feed fills the screen above the bottom bar, and
+       P2-1's starter sections show below it only while no member has posted. */
+    .feed-top{display:flex;align-items:center;gap:8px}
+    .feed-tabs{flex:1;display:flex;justify-content:center;gap:4px}
+    .feed-tab{min-height:44px;padding:0 16px;border:0;border-bottom:2px solid var(--bf-accent-a, #22d3ee);background:transparent;color:#fff;font:800 .95rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:default}
+    .feed-search{width:44px;height:44px;flex:none;border-radius:22px;border:1px solid rgba(255,255,255,.16);background:rgba(11,16,34,.6);color:#e8e8ff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .feed-search svg{width:20px;height:20px}
+    .feed-say{margin:0;min-height:0;color:#a9b3cc;font-size:.88rem;text-align:center}
+    .feed-say:empty{display:none}
+    .feed-empty{display:flex;flex-direction:column;gap:8px}
+    .feed-empty[hidden],.find-people[hidden],.first-post[hidden]{display:none}
+    .find-people .btn-visit{cursor:pointer;background:transparent;font-family:inherit}
+    .find-people .btn-visit.is-on{border-color:rgba(255,255,255,.2);color:#a9b3cc}
+    .home-side .tiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
     @media (max-width: 760px){
+      body.has-posts .starter{display:none}
+      body.feed-full .top-nav,body.feed-full .home-main>header,body.feed-full .first-post{display:none}
+      body.feed-full .feed-top{position:fixed;top:0;left:0;right:0;z-index:41;padding:calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;background:linear-gradient(rgba(0,0,0,.6),transparent)}
+      body.feed-full .feed-say{position:fixed;top:calc(60px + env(safe-area-inset-top, 0px));left:16px;right:16px;z-index:42;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.65);color:#fff}
+      body.feed-full #feed>.bf-legal-footer{flex:0 0 auto;width:100%;margin:0;scroll-snap-align:end}
       .page{padding:16px 16px 24px}
       .top-nav{margin-bottom:16px}
       .home-grid{grid-template-columns:minmax(0,1fr);gap:18px}
@@ -79,38 +100,56 @@
     <main class="home-main">
       <header>
         <h1 class="home-title">Home</h1>
-        <p class="home-sub">What members are offering on BizForce right now.</p>
+        <p class="home-sub">Posts from the people you follow, and what members are offering.</p>
         <p class="bfc-notice" data-bfc-notice></p>
         <script src="/scripts/bf-bfc-notice.js"></script>
       </header>
 
+      <div class="feed-top">
+        <div class="feed-tabs" role="tablist" aria-label="Feeds"><button type="button" class="feed-tab" role="tab" id="tabFollowing" aria-selected="true" aria-controls="feed">Following</button></div>
+        <button type="button" class="feed-search" id="feedSearch" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+      </div>
+      <p class="feed-say" id="feedSay" role="status" aria-live="polite"></p>
+      <div id="feed" role="tabpanel" aria-labelledby="tabFollowing"></div>
+      <section class="card feed-empty" id="feedEmpty" hidden aria-labelledby="feedEmptyTitle">
+        <h2 id="feedEmptyTitle">Your Following feed is empty</h2>
+        <p class="card-sub">Posts from the people you follow, and your own, show here, newest first.</p>
+      </section>
+      <section class="card find-people" id="findPeople" hidden aria-labelledby="findPeopleTitle">
+        <h2 id="findPeopleTitle">Find people to follow</h2>
+        <p class="card-sub">Members with a public page; those who post most recently first.</p>
+        <div id="findPeopleList"></div>
+      </section>
+
       <section class="card first-post" aria-labelledby="firstPostTitle">
         <h2 id="firstPostTitle">Make your first post</h2>
-        <p>List a product or a service, start a campaign, sell a garage sale item, share your business card, or have an agent draft something for you to approve.</p>
+        <p>Post a photo or a few words to your followers, list a product or a service, start a campaign, sell a garage sale item, share your business card, or have an agent draft something for you to approve.</p>
         <button type="button" class="btn-create" id="openCreate">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           Create
         </button>
-        <p class="soon-line" id="soonLine">Posts are coming. The Following, Local, Market and For You tabs arrive with them.</p>
+        <p class="soon-line" id="soonLine">Video posts are coming. The Local, Market and For You tabs arrive later.</p>
       </section>
 
-      <section class="card" aria-labelledby="marketTitle">
+    </main>
+
+    <aside class="home-side">
+      <section class="card starter" aria-labelledby="marketTitle">
         <h2 id="marketTitle">New in the Market</h2>
         <p class="card-sub">The newest listings with a photo.</p>
         <div id="marketList"><p class="loading">Loading the Market...</p></div>
         <a class="more-link" href="marketplace.html">Open the Market</a>
       </section>
 
-      <section class="card" aria-labelledby="campaignsTitle">
+      <section class="card starter" aria-labelledby="campaignsTitle">
         <h2 id="campaignsTitle">Campaigns</h2>
         <p class="card-sub">Active campaigns members have shared.</p>
         <div id="campaignList"><p class="loading">Loading campaigns...</p></div>
         <a class="more-link" href="campaigns.html">All campaigns</a>
       </section>
-    </main>
-
-    <aside class="home-side">
-      <section class="card" aria-labelledby="peopleTitle">
+      <section class="card starter" aria-labelledby="peopleTitle">
         <h2 id="peopleTitle">People</h2>
         <p class="card-sub">Members with a public page.</p>
         <div id="peopleList"><p class="loading">Loading people...</p></div>
@@ -198,6 +237,63 @@ async function loadHome() {
   }
 }
 loadHome();
+</script>
+<script src="/scripts/bf-safety.js"></script>
+<script src="/scripts/bf-feed.js"></script>
+<script>
+/* NAMED (Nov 20 2026, P2-3): the Following feed. */
+var params = new URLSearchParams(window.location.search);
+var feedSay = document.getElementById("feedSay");
+function say(text) { feedSay.textContent = text; clearTimeout(say.t); say.t = setTimeout(function () { feedSay.textContent = ""; }, 4000); }
+document.getElementById("feedSearch").addEventListener("click", function () { say("Search is coming."); });
+function markFull() {
+  var full = document.getElementById("feed").classList.contains("is-full");
+  document.body.classList.toggle("feed-full", full);
+  document.querySelector(".first-post").hidden = full || document.querySelectorAll("#feed .bfp-post").length > 0;
+  document.getElementById("feedEmpty").hidden = document.querySelectorAll("#feed .bfp-post").length > 0;
+  // a phone's full-screen feed covers the page: the legal footer goes to the feed's end, after "You are all caught up"
+  var feedEl = document.getElementById("feed"), foot = document.querySelector(".bf-legal-footer");
+  if (full && foot && foot.parentNode !== feedEl && window.matchMedia("(max-width: 760px)").matches) feedEl.appendChild(foot);
+}
+function renderSuggestions(list) {
+  var box = document.getElementById("findPeople");
+  if (!list || !list.length) { box.hidden = true; return; }
+  document.getElementById("findPeopleList").innerHTML = '<ul class="people">' + list.map(function (p) {
+    var initial = String(p.name || p.username || "?").replace(/^@/, "").charAt(0).toUpperCase();
+    var avatar = safeUrl(p.avatar_url) ? '<img class="person-avatar" src="' + escapeHtml(p.avatar_url) + '" alt="">' : '<span class="person-avatar" aria-hidden="true">' + escapeHtml(initial) + '</span>';
+    return '<li class="person">' + avatar + '<a class="person-info" href="' + escapeHtml(safeUrl(p.link)) + '" style="text-decoration:none"><span class="person-name">' + escapeHtml(p.name) + '</span>' +
+      '<span class="person-handle">@' + escapeHtml(p.username) + (p.recent_posts ? " &middot; " + p.recent_posts + " recent post" + (p.recent_posts === 1 ? "" : "s") : "") + '</span></a>' +
+      '<button type="button" class="btn-visit" data-follow="' + escapeHtml(p.user_id) + '" aria-label="Follow ' + escapeHtml(p.name) + '">Follow</button></li>';
+  }).join("") + '</ul>';
+  box.hidden = false;
+  var feedEl = document.getElementById("feed");
+  if (feedEl.classList.contains("is-full") && window.matchMedia("(max-width: 760px)").matches) { box.classList.add("bfp-slide"); feedHandle.append(box); }
+}
+var feedHandle = window.BFFeed.mount(document.getElementById("feed"), { full: true, onFirst: function (body) {
+  if (!body) { markFull(); return; }
+  document.body.classList.toggle("has-posts", body.any_posts === true);
+  markFull();
+  if (body.following_count < 3) renderSuggestions(body.suggestions || []);
+  openFromLink();
+} });
+/* home.html?post=<id> (a notice, the public page): that post first; &talk=1 opens Talk. */
+function openFromLink() {
+  var id = params.get("post");
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+  var tok = null;
+  try { tok = localStorage.getItem("bf_token"); } catch (e) { tok = null; }
+  fetch(API_URL + "/api/posts/" + encodeURIComponent(id), { headers: { "Authorization": "Bearer " + tok } }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (d) { return { ok: res.ok, body: d || {} }; });
+  }).then(function (r) {
+    if (!r.ok) { say(r.body.error || "That post isn't available."); return; }
+    var el = feedHandle.prepend(r.body.post);
+    markFull();
+    if (el.scrollIntoView) el.scrollIntoView({ block: "start" });
+    if (params.get("talk") === "1") window.BFFeed.openTalk(id);
+  }).catch(function () { say("That post could not be loaded just now."); });
+}
+/* the composer modal (desktop) adds the new post at the top */
+window.BFHome = { added: function (post, d) { if (!post) return; feedHandle.prepend(post); document.body.classList.add("has-posts"); markFull(); say((d && d.message) || "Your post is up."); } };
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

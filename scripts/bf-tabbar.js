@@ -34,14 +34,16 @@
    included) is never under the bar or the button. A page with no Guide ends
    with this script's own 56 px spacer instead.
 
-   THE CREATE SHEET. Post and Video say "Coming soon" and do nothing (posts
-   arrive in P2-3, video posts in P2-8). Every other item opens the real
+   THE CREATE SHEET. NAMED (Nov 20 2026, P2-3): Post opens the composer: on a
+   phone the full-screen page compose.html, on a desktop a modal over the page
+   (scripts/bf-composer.js). BEFORE: Post said "Coming soon". Video still says
+   "Coming soon" and does nothing (video posts arrive in P2-8). Every other item opens the real
    creator that exists today: a product or a service listing
    (marketplace.html?create=product|service), a campaign
    (campaigns.html?create=campaign), a garage sale item
    (garage-sale.html?create=item), a business card (digital-cards.html), and
    Ask an agent (run.html, where an agent's work is drafted for approval).
-   Nothing here creates a record.
+   Nothing here creates a record; the composer posts only when its Post button is pressed.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
@@ -56,7 +58,8 @@
     "oracle.html", "mychart.html", "calendar.html", "synastry.html", "the-third.html"
   ];
   var SIGNED_OUT_HIDDEN = ["listing.html", "seller.html"];
-  var HIDDEN_PREFIXES = ["/campaign/", "/c/", "/card/", "/support/", "/blog/", "/listing/"];
+  // NAMED (Nov 20 2026, P2-3): "/p/", a post's public page, which has its own buttons
+  var HIDDEN_PREFIXES = ["/campaign/", "/c/", "/card/", "/support/", "/blog/", "/listing/", "/p/"];
   var TABS = [
     { key: "home", label: "Home", href: "/home.html" },
     { key: "hq", label: "HQ", href: "/dashboard.html" },
@@ -70,7 +73,7 @@
     "profile.html": "profile", "settings.html": "profile"
   };
   var CREATE = [
-    { key: "post", title: "Post", sub: "Photo or text to your followers", soon: true, color: "var(--bf-accent-a, #22d3ee)",
+    { key: "post", title: "Post", sub: "Photo or text to your followers", href: "/compose.html", color: "var(--bf-accent-a, #22d3ee)",
       icon: '<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>' },
     { key: "video", title: "Video", sub: "Short videos for your followers", soon: true, color: "#f472b6",
       icon: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>' },
@@ -265,6 +268,14 @@
       '<button type="button" class="bf-create-close" aria-label="Close">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18, 2.4) + '</button></div>' +
       '<ul class="bf-create-grid">' + items + '</ul>';
     sheet.querySelector(".bf-create-close").addEventListener("click", closeCreate);
+    // NAMED (Nov 20 2026, P2-3): on a desktop, Post opens the composer as a modal over this page; on a phone, compose.html
+    var postItem = sheet.querySelector('a[data-create="post"]');
+    if (postItem) postItem.addEventListener("click", function (e) {
+      if (window.matchMedia && window.matchMedia(BREAKPOINT).matches) return;
+      e.preventDefault();
+      closeCreate();
+      openComposer();
+    });
     sheet.addEventListener("keydown", function (e) {
       if (e.key === "Escape") { e.preventDefault(); closeCreate(); return; }
       if (e.key !== "Tab") return;
@@ -276,6 +287,16 @@
     });
     document.body.appendChild(backdrop);
     document.body.appendChild(sheet);
+  }
+
+  /* NAMED (Nov 20 2026, P2-3): the composer modal (scripts/bf-composer.js, loaded the first time it is wanted). */
+  function openComposer() {
+    if (window.BFComposer) { window.BFComposer.openModal(); return; }
+    var s = document.createElement("script");
+    s.src = "/scripts/bf-composer.js";
+    s.onload = function () { if (window.BFComposer) window.BFComposer.openModal(); };
+    s.onerror = function () { location.href = "/compose.html"; };
+    document.head.appendChild(s);
   }
 
   function openCreate(from) {
@@ -298,6 +319,7 @@
   window.BFTabbar = {
     openCreate: openCreate,
     closeCreate: closeCreate,
+    openComposer: openComposer,
     refreshBadge: refreshBadge,
     setBadge: setBadge,
     wanted: wanted,

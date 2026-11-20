@@ -694,7 +694,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // NAMED (Nov 19 2026, P2-1): home.html and inbox.html too (scripts/bf-session.js keeps them when opened signed out).
     // NAMED (Nov 20 2026, P2-2): copyright.html (the counter-notice form), messages.html and /listing/<key>, where the
     // report menu offers "Sign in to report" (scripts/bf-safety.js).
-    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80}|campaigns\.html|home\.html|inbox\.html|messages\.html|copyright\.html|listing\/[a-z0-9-]{1,100}|@[a-z0-9_-]{3,30})$/i.test(u.pathname)) return null;
+    // NAMED (Nov 20 2026, P2-3): a post's public page /p/<id>, whose Like, Talk, Save and Follow lead here and back.
+    if (!/^\/(support\/[a-z0-9_-]{1,40}|seller\.html|profile\.html|card-view\.html|c\/[a-z0-9-]{1,80}|campaigns\.html|home\.html|inbox\.html|messages\.html|copyright\.html|listing\/[a-z0-9-]{1,100}|p\/[0-9a-f-]{36}|@[a-z0-9_-]{3,30})$/i.test(u.pathname)) return null;
     return u.pathname + u.search;
   }
 

@@ -18,6 +18,11 @@
    (the member's OWN choices; whether they were blocked is never asked), and are
    left out for the member's own items and when signed out.
 
+   NAMED (Nov 20 2026, P2-3): item.type may also be "post" or "comment"; item.extra,
+   when given, is a list of { act, label, danger, run } shown first (the author's
+   Edit and Delete on a post); and a campaign may be named by item.shareId instead
+   of its id (the public /campaign/<share id> page knows no other).
+
    SETTINGS. BFSafety.renderSettings(el) lists the member's blocks and mutes
    (GET /api/me/safety), each with Unblock or Unmute.
 
@@ -51,7 +56,8 @@
     ["privacy", "Private information", "Shares someone's contact details or personal data"],
     ["other", "Something else", "Tell us in the detail"]
   ];
-  var NOUN = { profile: "profile", listing: "listing", campaign: "campaign", message: "message" };
+  // NAMED (Nov 20 2026, P2-3): post and comment. BEFORE profile, listing, campaign and message.
+  var NOUN = { post: "post", comment: "comment", profile: "profile", listing: "listing", campaign: "campaign", message: "message" };
   var ICON_DOTS = '<circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>';
   var ICON_CLOSE = '<path d="M6 6l12 12M18 6L6 18"/>';
 
@@ -206,19 +212,27 @@
     var reportRow = signedIn
       ? '<li><button type="button" class="bf-safety-item" data-act="report">Report this ' + noun + '</button></li>'
       : '<li><a class="bf-safety-item" data-act="signin" href="/app.html">Sign in to report</a></li>';
-    var s = show("Options", '<ul class="bf-safety-list" id="bf-safety-menu">' + reportRow +
+    // NAMED (Nov 20 2026, P2-3): the page's own actions first (the author's Edit and Delete)
+    var extra = (item.extra || []).map(function (x, i) {
+      return '<li><button type="button" class="bf-safety-item' + (x.danger ? " is-danger" : "") + '" data-extra="' + i + '">' + esc(x.label) + '</button></li>';
+    }).join("");
+    var s = show("Options", '<ul class="bf-safety-list" id="bf-safety-menu">' + extra + reportRow +
       '<li data-slot="relation"></li>' +
       '<li><a class="bf-safety-item" data-act="copyright" href="' + esc(copyrightHref) + '">Send a copyright notice</a></li></ul>' +
       '<p class="bf-safety-msg" id="bf-safety-menu-msg" role="status"></p>');
     // signing in comes back here (app.html signInReturnTo accepts the storefront, profile and campaign pages)
     var si = s.querySelector('[data-act="signin"]');
     if (si) si.addEventListener("click", function () { try { localStorage.setItem("bf_return_to", window.location.href); } catch (e) { /* signs in to the dashboard */ } });
+    Array.prototype.forEach.call(s.querySelectorAll("[data-extra]"), function (btn) {
+      btn.addEventListener("click", function () { var x = item.extra[Number(btn.getAttribute("data-extra"))]; close(); if (x && typeof x.run === "function") x.run(); });
+    });
     var rb = s.querySelector('[data-act="report"]');
     if (rb) rb.addEventListener("click", function () { openReport(item); });
     if (!signedIn) return;
     // whose item it is: the member, by id or handle, or else the item itself (the server finds its owner)
     var q = item.userId ? "user_id=" + encodeURIComponent(item.userId)
       : item.handle ? "handle=" + encodeURIComponent(String(item.handle).replace(/^@/, ""))
+      : item.shareId ? "object_type=campaign&share_id=" + encodeURIComponent(item.shareId)
       : "object_type=" + encodeURIComponent(item.type) + "&object_id=" + encodeURIComponent(item.id);
     call("GET", "/api/me/relation?" + q).then(function (r) {
       if (sheet.hidden || !document.getElementById("bf-safety-menu")) return;
@@ -267,7 +281,9 @@
       if (!picked) { message(msg, "Choose a reason first.", "error"); return; }
       send.disabled = true;
       message(msg, "Sending...");
-      call("POST", "/api/reports", { object_type: item.type, object_id: item.id, reason: picked.value, detail: detail.value })
+      var sent = { object_type: item.type, object_id: item.id, reason: picked.value, detail: detail.value };
+      if (item.shareId && !item.id) { delete sent.object_id; sent.share_id = item.shareId; }   // NAMED (Nov 20 2026, P2-3)
+      call("POST", "/api/reports", sent)
         .then(function (r) {
           if (r.ok) {
             message(msg, r.body.message || "Thanks. Your report was sent.", "ok");

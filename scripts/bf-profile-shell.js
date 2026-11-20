@@ -14,12 +14,23 @@
                       else the link is copied
      Wallet           the owner's: wallet.html
      bio, storefront  the bio, and a link to the storefront (/@handle)
-     Posts            an empty state: posts arrive in P2-3
+     Posts            NAMED (Nov 20 2026, P2-3): the member's posts, three to a
+                      row (GET /api/posts/by/:id): each photo post's first
+                      thumbnail, a text post as a text tile; each opens the
+                      post (home.html?post=<id>, or /p/<id> signed out)
+     Saved            NAMED (Nov 20 2026, P2-3): the owner's only, private
+                      (GET /api/posts/saved)
+     Followers,       NAMED (Nov 20 2026, P2-3): the counts
+     Following        (GET /api/follows/:id/counts); each opens its list
+                      (GET /api/follows/:id/followers|following, blocks
+                      respected; signed out, sign in first)
+     Follow           NAMED (Nov 20 2026, P2-3): a signed-in visitor's Follow
+                      or Following (POST /api/follows, DELETE /api/follows/:id)
      Shop, Services   the member's active listings by listing_kind, three to a
                       row, each opening its listing page
 
-   Following, Followers and Reviews are NOT shown: they do not exist yet
-   (P2-3, P2-7), and a zero would claim they do. On a desktop the block sits
+   Reviews are NOT shown: they do not exist yet (P2-7), and a zero would
+   claim they do. BEFORE (P2-1) Following and Followers were not shown either. On a desktop the block sits
    between the page's header and its sections and the bio line is left to
    the About section; on a phone (max-width 760px) it is the page's header.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -36,7 +47,9 @@
   try { me = token ? JSON.parse(atob(token.split(".")[1])).id : null; } catch (e) { me = null; }
   var viewId = params.get("id") || me;
   var owner = !!me && viewId === me && params.get("bf_preview") !== "1";
-  var state = { profile: null, stats: null, shop: [], services: [], tab: "posts", listingsLoaded: false, listingsFailed: false };
+  var state = { profile: null, stats: null, shop: [], services: [], tab: "posts", listingsLoaded: false, listingsFailed: false,
+    // NAMED (Nov 20 2026, P2-3)
+    posts: null, postsFailed: false, saved: null, savedFailed: false, follows: null };
 
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
   function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) && !/^\/\//.test(u) ? u : ""; }
@@ -77,6 +90,26 @@
     ".pfs-cell-name{display:block;font-weight:700;overflow-wrap:anywhere}",
     ".pfs-cell-price{display:block;color:#34d399;font-weight:800}",
     ".pfs-empty{margin:0;padding:22px 8px;text-align:center;color:#8892b8;font-size:.88rem;line-height:1.55}",
+    /* NAMED (Nov 20 2026, P2-3): post tiles, the follow counts and their lists, the Follow button */
+    ".pfs-cell.is-text{display:flex;align-items:center;justify-content:center;padding:10px;background:linear-gradient(135deg,#12204a,#2a1650);font-size:.78rem;font-weight:700;line-height:1.35;text-align:center;overflow:hidden}",
+    ".pfs-cell.is-text span{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}",
+    ".pfs-cell-badge{position:absolute;top:6px;right:6px;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.6);font-size:.68rem;font-weight:800;color:#fff}",
+    ".pfs-stat.is-link{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;min-height:44px;padding:0;border-radius:10px}",
+    ".pfs-stat.is-link:hover .pfs-lab,.pfs-stat.is-link:focus-visible .pfs-lab{color:#fff;text-decoration:underline}",
+    ".pfs-btn.is-follow{background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6));color:#070b18;font-weight:800}",
+    ".pfs-btn.is-follow.is-on{background:rgba(26,34,68,.95);color:#e8e8ff}",
+    "#pfs-people-back{position:fixed;inset:0;z-index:2147483150;background:rgba(2,4,12,.6)}",
+    "#pfs-people{position:fixed;z-index:2147483151;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 64px);overflow-y:auto;box-sizing:border-box;",
+    "padding:18px;border-radius:20px;background:#0b1022;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22);color:#e8e8ff;display:flex;flex-direction:column;gap:12px}",
+    "#pfs-people[hidden],#pfs-people-back[hidden]{display:none}",
+    "#pfs-people h2{flex:1;margin:0;font-size:1.1rem;font-weight:800;color:#f4f7ff}",
+    ".pfs-ph{display:flex;align-items:center;gap:10px}",
+    ".pfs-x{width:44px;height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.16);background:transparent;color:#e8e8ff;cursor:pointer}",
+    ".pfs-people{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}",
+    ".pfs-person{display:flex;align-items:center;gap:10px;min-height:52px;color:#e8e8ff;text-decoration:none}",
+    ".pfs-person img,.pfs-person .av{width:40px;height:40px;border-radius:20px;object-fit:cover;background:#1b2447;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}",
+    ".pfs-person span{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}",
+    ".pfs-person small{color:#8892b8}",
     "@media (max-width: 760px){",
     "#pfShell{padding:0 16px;margin-top:8px}",
     ".pfs{padding:14px;align-items:stretch}",
@@ -96,6 +129,12 @@
     var out = [];
     if (typeof s.sales === "number") out.push('<li class="pfs-stat"><span class="pfs-num">' + s.sales.toLocaleString("en-US") + '</span><span class="pfs-lab">Sales</span></li>');
     if (owner && typeof s.bizcash === "number") out.push('<li class="pfs-stat"><span class="pfs-num is-bfc">' + s.bizcash.toLocaleString("en-US") + '</span><span class="pfs-lab">BizCash</span></li>');
+    // NAMED (Nov 20 2026, P2-3): Followers and Following, each opening its list
+    var f = state.follows;
+    if (f && typeof f.followers === "number") {
+      out.push('<li><button type="button" class="pfs-stat is-link" data-pfs-people="followers"><span class="pfs-num">' + f.followers.toLocaleString("en-US") + '</span><span class="pfs-lab">Followers</span></button></li>');
+      out.push('<li><button type="button" class="pfs-stat is-link" data-pfs-people="following"><span class="pfs-num">' + f.following.toLocaleString("en-US") + '</span><span class="pfs-lab">Following</span></button></li>');
+    }
     return out.length ? '<ul class="pfs-stats" aria-label="Counts">' + out.join("") + '</ul>' : "";
   }
 
@@ -111,10 +150,25 @@
     }).join("") + '</ul>';
   }
 
+  /* NAMED (Nov 20 2026, P2-3): post tiles. A photo post shows its first thumbnail; a text post its first words. */
+  function postTiles(list, failed, empty) {
+    if (failed) return '<p class="pfs-empty">These could not be loaded just now. This is not a statement that there are none.</p>';
+    if (!list) return '<p class="pfs-empty">Loading...</p>';
+    if (!list.length) return '<p class="pfs-empty">' + empty + '</p>';
+    return '<ul class="pfs-grid">' + list.map(function (p) {
+      var href = token ? "/home.html?post=" + encodeURIComponent(p.id) : "/p/" + encodeURIComponent(p.id);
+      var ph = (p.photos || [])[0];
+      var badge = p.status === "pending" ? '<span class="pfs-cell-badge">In review</span>' : (p.photos || []).length > 1 ? '<span class="pfs-cell-badge">' + p.photos.length + '</span>' : "";
+      if (ph && safeUrl(ph.thumb_url)) return '<li><a class="pfs-cell" data-post-tile="' + esc(p.id) + '" href="' + href + '"><img src="' + esc(ph.thumb_url) + '" alt="' + esc(ph.alt || "") + '" loading="lazy">' + badge + '</a></li>';
+      return '<li><a class="pfs-cell is-text" data-post-tile="' + esc(p.id) + '" href="' + href + '"><span>' + esc(String(p.body || "").slice(0, 160)) + '</span>' + badge + '</a></li>';
+    }).join("") + '</ul>';
+  }
+
   function panel() {
     if (state.tab === "shop") return tiles(state.shop, owner ? "You have no products listed. Use Create to list one." : "No products listed.");
     if (state.tab === "services") return tiles(state.services, owner ? "You have no services listed. Use Create to offer one." : "No services listed.");
-    return '<p class="pfs-empty">' + (owner ? "Your posts will show here. Posts are coming soon." : "Posts are coming soon.") + '</p>';
+    if (state.tab === "saved") return postTiles(state.saved, state.savedFailed, "Posts you save show here. Only you can see them.");
+    return postTiles(state.posts, state.postsFailed, owner ? "Your posts show here. Use Create, then Post." : "No posts yet.");
   }
 
   function render() {
@@ -122,11 +176,14 @@
     var handle = p.username || "";
     var bio = String(p.bio || "").trim();
     var tabs = [["posts", "Posts"], ["shop", "Shop"], ["services", "Services"]];
+    if (owner) tabs.push(["saved", "Saved"]);   // NAMED (Nov 20 2026, P2-3): private
+    var f = state.follows;
+    var followBtn = !owner && me && f && !f.self ? '<button type="button" class="pfs-btn is-follow' + (f.i_follow ? " is-on" : "") + '" id="pfsFollow" aria-pressed="' + !!f.i_follow + '">' + (f.i_follow ? "Following" : "Follow") + '</button>' : "";
     host.innerHTML = '<section class="pfs" aria-label="Profile">' +
       '<div class="pfs-top">' +
         '<p class="pfs-handle">' + (handle ? "@" + esc(handle) + " &middot; BizForce member" : (owner ? "No handle yet. Choose one in Edit profile." : "BizForce member")) + '</p>' +
         counts() +
-        '<div class="pfs-actions">' +
+        '<div class="pfs-actions">' + followBtn +
           (owner ? '<button type="button" class="pfs-btn" id="pfsEdit">Edit profile</button>' : "") +
           (handle ? '<button type="button" class="pfs-btn" id="pfsShare">Share profile</button>' : "") +
           (owner ? '<a class="pfs-btn is-wallet" href="wallet.html" aria-label="Wallet">' + svg('<circle cx="12" cy="12" r="8"/><path d="M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4M12 7.5v9"/>', 20) + '</a>' : "") +
@@ -146,6 +203,8 @@
       var top = document.querySelector(".pf-header-wrap");
       if (top && top.scrollIntoView) top.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+    var fb = document.getElementById("pfsFollow");
+    if (fb) fb.addEventListener("click", toggleFollow);
     var share = document.getElementById("pfsShare");
     if (share) share.addEventListener("click", function () { shareProfile(handle, p.display_name); });
   }
@@ -168,7 +227,53 @@
     else note(url);
   }
 
+  /* ── NAMED (Nov 20 2026, P2-3): follows ── */
+  function send(method, path, body) {
+    var h = { Authorization: "Bearer " + token };
+    if (body) h["Content-Type"] = "application/json";
+    return fetch(API + path, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, body: d }; }); });
+  }
+  function toggleFollow() {
+    var f = state.follows;
+    if (!f || !token) return;
+    var on = !f.i_follow;
+    (on ? send("POST", "/api/follows", { user_id: viewId }) : send("DELETE", "/api/follows/" + encodeURIComponent(viewId))).then(function (r) {
+      if (!r.ok) { note(r.body.error || "That did not work. Try again."); return; }
+      f.i_follow = on;
+      f.followers = Math.max(0, f.followers + (on ? 1 : -1));
+      render();
+      var again = document.getElementById("pfsFollow");
+      if (again) again.focus();
+    }).catch(function () { note("That did not work. Check your connection."); });
+  }
+  var sheet = null, back = null, sheetFrom = null;
+  function closePeople() { if (sheet && !sheet.hidden) { sheet.hidden = true; back.hidden = true; if (sheetFrom && sheetFrom.focus) sheetFrom.focus(); } }
+  function openPeople(which, from) {
+    if (!token) { try { localStorage.setItem("bf_return_to", window.location.pathname + window.location.search); } catch (e) { /* fine */ } window.location.href = "/app.html"; return; }
+    sheetFrom = from;
+    if (!sheet) {
+      back = document.createElement("div"); back.id = "pfs-people-back"; back.addEventListener("click", closePeople);
+      sheet = document.createElement("div"); sheet.id = "pfs-people"; sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-modal", "true"); sheet.setAttribute("aria-labelledby", "pfs-people-title");
+      sheet.addEventListener("keydown", function (e) { if (e.key === "Escape") closePeople(); });
+      document.body.appendChild(back); document.body.appendChild(sheet);
+    }
+    sheet.innerHTML = '<div class="pfs-ph"><h2 id="pfs-people-title">' + (which === "followers" ? "Followers" : "Following") + '</h2><button type="button" class="pfs-x" aria-label="Close">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></div><ul class="pfs-people"><li class="pfs-empty">Loading...</li></ul>';
+    sheet.querySelector(".pfs-x").addEventListener("click", closePeople);
+    back.hidden = false; sheet.hidden = false;
+    sheet.querySelector(".pfs-x").focus();
+    get("/api/follows/" + encodeURIComponent(viewId) + "/" + which, true).then(function (d) {
+      var list = d.people || [];
+      sheet.querySelector(".pfs-people").innerHTML = list.length ? list.map(function (p) {
+        var pic = safeUrl(p.avatar_url) ? '<img src="' + esc(p.avatar_url) + '" alt="">' : '<span class="av" aria-hidden="true">' + esc(String(p.name || "?").replace(/^@/, "").charAt(0).toUpperCase()) + '</span>';
+        return '<li><a class="pfs-person" href="' + esc(safeUrl(p.link) || "#") + '">' + pic + '<span><strong>' + esc(p.name || "A member") + '</strong>' + (p.username ? '<small>@' + esc(p.username) + '</small>' : "") + '</span></a></li>';
+      }).join("") : '<li class="pfs-empty">No one yet.</li>';
+    }).catch(function () { sheet.querySelector(".pfs-people").innerHTML = '<li class="pfs-empty">This list could not be loaded just now.</li>'; });
+  }
+
   host.addEventListener("click", function (e) {
+    var pp = e.target.closest("[data-pfs-people]");
+    if (pp) { openPeople(pp.getAttribute("data-pfs-people"), pp); return; }
     var t = e.target.closest("[data-pfs-tab]");
     if (!t) return;
     state.tab = t.getAttribute("data-pfs-tab");
@@ -178,7 +283,7 @@
   });
   host.addEventListener("keydown", function (e) {
     if ((e.key !== "ArrowRight" && e.key !== "ArrowLeft") || !e.target.closest("[data-pfs-tab]")) return;
-    var order = ["posts", "shop", "services"];
+    var order = owner ? ["posts", "shop", "services", "saved"] : ["posts", "shop", "services"];
     var i = order.indexOf(state.tab) + (e.key === "ArrowRight" ? 1 : -1);
     state.tab = order[(i + order.length) % order.length];
     render();
@@ -214,6 +319,11 @@
       .then(function () { state.listingsLoaded = true; render(); })
       .catch(function () { state.listingsLoaded = true; state.listingsFailed = true; render(); });
     statsReq.then(function (s) { state.stats = s; render(); }).catch(function () { /* no counts: nothing is claimed */ });
+    // NAMED (Nov 20 2026, P2-3): the posts, the follow counts, and the owner's private Saved
+    get("/api/posts/by/" + encodeURIComponent(viewId), true).then(function (d) { state.posts = d.posts || []; render(); })
+      .catch(function () { state.postsFailed = true; render(); });
+    get("/api/follows/" + encodeURIComponent(viewId) + "/counts", true).then(function (d) { state.follows = d; render(); }).catch(function () { /* no counts: nothing is claimed */ });
+    if (owner) get("/api/posts/saved", true).then(function (d) { state.saved = d.posts || []; render(); }).catch(function () { state.savedFailed = true; render(); });
   }
 
   window.BFProfileShell = { render: render, state: state, owner: owner };

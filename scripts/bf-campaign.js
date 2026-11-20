@@ -36,6 +36,9 @@
   if (S && copyBtn) copyBtn.addEventListener("click", function () {
     S.copyText(url).then(function () { shareStatus.textContent = "Link copied"; }, function () { shareStatus.textContent = "Copy this link: " + url; });
   });
+  // NAMED (Nov 20 2026, P2-3): Report, Block and Mute (scripts/bf-safety.js); the page knows the campaign by its share id only
+  var menu = document.getElementById("cmpMenu");
+  if (menu && root.BFSafety) root.BFSafety.mount(menu, { type: "campaign", shareId: shareId, name: main.getAttribute("data-title") || "", where: url });
   var canvas = document.getElementById("cmpQr");
   if (root.QRCode && canvas) root.QRCode.toCanvas(canvas, url, { width: 148, margin: 1 }, function () {});
 
