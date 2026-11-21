@@ -17,6 +17,7 @@
   <!-- qrcode 1.4.4 is the library's last browser build; the 1.5.3 path this page named returns 404, so no QR was ever drawn. -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js" integrity="sha384-0RsG1yo/crf/1Qc14sho26SXXOTngNCjgJw7fuvXBt9W/OChF/Ijx+aUuBDqQwEk" crossorigin="anonymous"></script>
   <script src="/scripts/bf-card.js"></script>
+  <script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge -->
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     /* NAMED (Nov 11 2026, card exports and phone layout): a column, the card and then the legal footer under it, the card
@@ -1107,6 +1108,8 @@ window.addEventListener("load", function () {
     var d = await res.json();
     cardData = d.card;
     renderCard(cardData);
+    // NAMED (Nov 21 2026, P3-2): the card owner's Verified badge inside the name, after its text (scripts/bf-verified.js)
+    if (window.bfVerified && d.verified) document.getElementById("pName").insertAdjacentHTML("beforeend", window.bfVerified.html(d.verified));
     renderCardSupport(d.support_links || []);
     renderCardLead(cardData);
     renderCardWallet(cardData);

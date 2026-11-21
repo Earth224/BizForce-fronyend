@@ -1618,6 +1618,8 @@ async function loadAll() {
         profileData.design_photo_url = typeof pBody.design_photo_url === "string" ? pBody.design_photo_url : null;
         // The public route adds the member's support links, rebuilt by the server; the owner's own route does not.
         supportLinksData = Array.isArray(pBody.support_links) ? pBody.support_links : [];
+        // NAMED (Nov 21 2026, P3-2): the Verified badge's kind, or null (both routes send it beside the profile)
+        profileData.verified = typeof pBody.verified === "string" ? pBody.verified : null;
         bfProfileLoadState = "ready";
       } catch(e) {
         console.error('[BF] profile parse:', e);
@@ -1765,6 +1767,8 @@ function applyProfile(p) {
   // Name
   var name = p.display_name || (isOwner ? "Your Name" : "");
   document.getElementById("displayName").textContent = name;
+  // NAMED (Nov 21 2026, P3-2): the Verified badge inside the name, after its text (scripts/bf-verified.js)
+  if (window.bfVerified && p.verified) document.getElementById("displayName").insertAdjacentHTML("beforeend", window.bfVerified.html(p.verified));
   document.getElementById("displayNameInput").value = p.display_name || "";
   // Initials
   var initials = name.split(" ").filter(Boolean).map(function(w){ return w[0]; }).join("").toUpperCase().slice(0,2) || "?";
@@ -2936,6 +2940,7 @@ function renderShareCard() {
 <script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/bf-profile-editor.js"></script>
+<script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge -->
 <script src="/scripts/bf-feed.js"></script><!-- NAMED (Nov 20 2026, FX1): its Coming soon sheet, for the Reviews tab -->
 <script src="/scripts/bf-profile-shell.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>

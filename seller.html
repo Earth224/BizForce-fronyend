@@ -433,6 +433,8 @@ function renderStorefront(data) {
   }
 
   document.getElementById("sfName").textContent = seller.display_name || seller.username || "Unnamed seller";
+  // NAMED (Nov 21 2026, P3-2): the Verified badge inside the name, after its text (scripts/bf-verified.js)
+  if (window.bfVerified && data.verified) document.getElementById("sfName").insertAdjacentHTML("beforeend", window.bfVerified.html(data.verified));
   // P2-2: Report, Block and Mute (scripts/bf-safety.js); signed out, Report asks to sign in
   if (window.BFSafety && seller.user_id) {
     window.BFSafety.mount(document.querySelector(".sf-header"), { type: "profile", id: seller.user_id, userId: seller.user_id,
@@ -523,6 +525,7 @@ function renderStorefront(data) {
 loadSeller();
 </script>
 <script src="/scripts/bf-support.js"></script>
+<script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge -->
 <script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/bf-profile-design.js"></script>
 <script src="/scripts/termaximus-presence.js"></script>

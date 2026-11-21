@@ -28,6 +28,9 @@
     .listing-head{display:flex;align-items:flex-start;gap:12px}
     .listing-head .listing-title{flex:1;min-width:0}
     .listing-title{margin:0 0 18px;font-size:clamp(1.8rem,4.5vw,2.4rem);font-weight:800;letter-spacing:-.03em;line-height:1.2;background:linear-gradient(135deg,#00e5ff 0%,#7b2ff7 60%,#a855f7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    /* NAMED (Nov 21 2026, P3-2): who sells it, linking to the storefront, with the Verified badge after the name */
+    .listing-seller{margin:-10px 0 16px;font-size:.95rem;color:#9aa3cc}
+    .listing-seller a{display:inline-flex;align-items:center;min-height:44px;color:#e6edf3;font-weight:700;text-decoration:none}
     .listing-description{margin:0 0 28px;font-size:17px;line-height:1.75;color:#e6edf3;white-space:pre-wrap;word-break:break-word}
     .listing-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:12px;margin:0 0 24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)}
     .price-sep{color:#4a5280;font-size:1rem}
@@ -57,6 +60,7 @@
   <script src="/scripts/bf-bfc-notice.js"></script>
 </div>
 
+<script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge -->
 <script src="/scripts/bf-safety.js"></script>
 <script>
 var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
@@ -140,6 +144,9 @@ async function loadListing() {
     document.getElementById("listingRoot").innerHTML =
       categoryHtml +
       '<div class="listing-head"><h1 class="listing-title">' + escapeHtml(listing.title) + '</h1><span id="listingMenu"></span></div>' +
+      // NAMED (Nov 21 2026, P3-2): the seller, by name, with the Verified badge (scripts/bf-verified.js)
+      (d && d.handle ? '<p class="listing-seller">Sold by <a href="/@' + encodeURIComponent(d.handle) + '">' + escapeHtml(d.display_name || ("@" + d.handle)) +
+        (window.bfVerified ? window.bfVerified.html(d.verified) : "") + '</a></p>' : "") +
       '<p class="listing-description">' + escapeHtml(listing.description || "") + "</p>" +
       '<div class="listing-price">' + priceHtml + "</div>" +
       (forSale ? '<a class="buy-btn" href="' + escapeHtml(buyHref) + '">Buy with BizCash</a>' : "");

@@ -42,7 +42,9 @@
     "agents/analytics.html", "agents/content.html", "agents/sales.html", "agents/seo.html", "agents/social.html",
     "analytics-dashboard.html", "integrations.html", "mailbox.html", "crm.html", "prospecting.html", "inventory.html",
     "calendar.html", "bizdoc.html", "certifications.html", "digital-cards.html",
-    "oracle.html", "mychart.html", "synastry.html", "the-third.html"
+    "oracle.html", "mychart.html", "synastry.html", "the-third.html",
+    // NAMED (Nov 21 2026, P3-2, the owner's decision): the media library and the business ID; their write routes are members only
+    "media.html", "business-id.html"
   ];
   var BANNER_TEXT = "Confirm your email to post publicly, list in the Market, message people who do not follow you, and receive BizCash. We sent you a link when you signed up.";
 

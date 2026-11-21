@@ -54,6 +54,8 @@
     member: null };
 
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  /* NAMED (Nov 21 2026, P3-2): the Verified badge (scripts/bf-verified.js), inside a name after its text; "" for null */
+  function vb(reason) { return window.bfVerified ? window.bfVerified.html(reason) : ""; }
   function safeUrl(u) { return typeof u === "string" && /^(https:\/\/|\/)/.test(u) && !/^\/\//.test(u) ? u : ""; }
   function get(path, auth) {
     var h = {};
@@ -250,7 +252,7 @@
       '<div class="pfs-bar">' +
         '<button type="button" class="pfs-icon" id="pfsInvite" aria-label="' + (owner ? "Invite friends" : "Share this profile with friends") + '">' +
           svg('<circle cx="9" cy="8" r="4"/><path d="M2 21c.8-4 3.6-6 7-6s6.2 2 7 6M19 8v6M16 11h6"/>', 24) + '</button>' +
-        '<h2 class="pfs-title">' + esc(name) + '</h2>' +
+        '<h2 class="pfs-title">' + esc(name) + vb(state.verified) + '</h2>' +
         '<button type="button" class="pfs-icon" id="pfsMenu" aria-label="Menu" aria-haspopup="dialog">' + svg('<path d="M4 7h16M4 12h16M4 17h16"/>', 24) + '</button>' +
       '</div>' +
       '<div class="pfs-pic"><span class="pfs-av"><span class="pfs-av-in">' + pic + '</span></span></div>' +
@@ -391,7 +393,7 @@
       var list = d.people || [];
       sheet.querySelector(".pfs-people").innerHTML = list.length ? list.map(function (p) {
         var pic = safeUrl(p.avatar_url) ? '<img src="' + esc(p.avatar_url) + '" alt="">' : '<span class="av" aria-hidden="true">' + esc(String(p.name || "?").replace(/^@/, "").charAt(0).toUpperCase()) + '</span>';
-        return '<li><a class="pfs-person" href="' + esc(safeUrl(p.link) || "#") + '">' + pic + '<span><strong>' + esc(p.name || "A member") + '</strong>' + (p.username ? '<small>@' + esc(p.username) + '</small>' : "") + '</span></a></li>';
+        return '<li><a class="pfs-person" href="' + esc(safeUrl(p.link) || "#") + '">' + pic + '<span><strong>' + esc(p.name || "A member") + vb(p.verified) + '</strong>' + (p.username ? '<small>@' + esc(p.username) + '</small>' : "") + '</span></a></li>';
       }).join("") : '<li class="pfs-empty">No one yet.</li>';
     }).catch(function () { sheet.querySelector(".pfs-people").innerHTML = '<li class="pfs-empty">This list could not be loaded just now.</li>'; });
   }
@@ -436,7 +438,8 @@
     var profileReq = owner ? get("/api/bfp/profile/me", true) : get("/api/bfp/profile/" + encodeURIComponent(viewId), false);
     var statsReq = owner ? get("/api/bfp/profile/me/stats", true).then(function (d) { return d; })
       : get("/api/bfp/profile/" + encodeURIComponent(viewId) + "/stats", false).then(function (d) { return d.stats || null; });
-    profileReq.then(function (d) { state.profile = d.profile || null; state.visitorMember = d.member === true; render(); return state.profile; })
+    // NAMED (Nov 21 2026, P3-2): verified, the Verified badge's kind (or null), from both profile routes
+    profileReq.then(function (d) { state.profile = d.profile || null; state.visitorMember = d.member === true; state.verified = typeof d.verified === "string" ? d.verified : null; render(); return state.profile; })
       .then(function (p) {
         if (owner) return get("/api/marketplace/my-listings", true).then(function (d) { mine(d.listings); });
         if (p && p.username) return get("/api/bfp/seller/" + encodeURIComponent(p.username), false).then(function (d) { state.shop = d.products || []; state.services = d.services || []; });

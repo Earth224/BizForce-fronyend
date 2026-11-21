@@ -260,6 +260,7 @@ async function loadHome() {
 loadHome();
 </script>
 <script src="/scripts/bf-safety.js"></script>
+<script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge, before the feed that draws it -->
 <script src="/scripts/bf-feed.js"></script>
 <script>
 /* NAMED (Nov 20 2026, P2-3): the Following feed. */
@@ -289,7 +290,7 @@ function renderSuggestions(list) {
   document.getElementById("findPeopleList").innerHTML = '<ul class="people">' + list.map(function (p) {
     var initial = String(p.name || p.username || "?").replace(/^@/, "").charAt(0).toUpperCase();
     var avatar = safeUrl(p.avatar_url) ? '<img class="person-avatar" src="' + escapeHtml(p.avatar_url) + '" alt="">' : '<span class="person-avatar" aria-hidden="true">' + escapeHtml(initial) + '</span>';
-    return '<li class="person">' + avatar + '<a class="person-info" href="' + escapeHtml(safeUrl(p.link)) + '" style="text-decoration:none"><span class="person-name">' + escapeHtml(p.name) + '</span>' +
+    return '<li class="person">' + avatar + '<a class="person-info" href="' + escapeHtml(safeUrl(p.link)) + '" style="text-decoration:none"><span class="person-name">' + escapeHtml(p.name) + (window.bfVerified ? window.bfVerified.html(p.verified) : "") + '</span>' +
       '<span class="person-handle">@' + escapeHtml(p.username) + (p.recent_posts ? " &middot; " + p.recent_posts + " recent post" + (p.recent_posts === 1 ? "" : "s") : "") + '</span></a>' +
       '<button type="button" class="btn-visit" data-follow="' + escapeHtml(p.user_id) + '" aria-label="Follow ' + escapeHtml(p.name) + '">Follow</button></li>';
   }).join("") + '</ul>';

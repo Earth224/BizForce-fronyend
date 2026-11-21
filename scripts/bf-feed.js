@@ -249,6 +249,9 @@
     (document.head || document.documentElement).appendChild(st);
   }
 
+  /* NAMED (Nov 21 2026, P3-2): the Verified badge (scripts/bf-verified.js), inside the name after its text; "" when the API says null */
+  function vb(reason) { return window.bfVerified ? window.bfVerified.html(reason) : ""; }
+
   /* ── one post ── */
   var posts = {};   // id -> the post as last answered
   function avatarHtml(a, cls) {
@@ -306,7 +309,7 @@
     var textPost = !(p.photos || []).length;
     var head = '<div class="bfp-head">' +
       '<a class="bfp-av-link" href="' + esc(safeUrl(a.link) || "#") + '">' + avatarHtml(a, "bfp-av") + '</a>' +
-      '<a class="bfp-who" href="' + esc(safeUrl(a.link) || "#") + '"><span class="bfp-name">' + esc(a.name || "A member") + '</span>' +
+      '<a class="bfp-who" href="' + esc(safeUrl(a.link) || "#") + '"><span class="bfp-name">' + esc(a.name || "A member") + vb(a.verified) + '</span>' +
       (a.username ? '<span class="bfp-handle">@' + esc(a.username) + '</span>' : "") + '</a>' +
       (showFollow ? '<button type="button" class="bfp-follow" data-follow="' + esc(a.id) + '" aria-label="Follow ' + esc(a.name || "this member") + '">Follow</button>' : "") +
       '<span class="bfp-menu"></span></div>';
@@ -533,7 +536,7 @@
       (c.can_hide ? '<button type="button" class="bfp-c-act" data-c-act="hide" data-c="' + esc(c.id) + '">Hide</button>' : "") +
       (!c.mine ? '<button type="button" class="bfp-c-act" data-c-act="report" data-c="' + esc(c.id) + '">Report</button>' : "") + '</div>';
     return '<li class="bfp-c' + (reply ? " is-reply" : "") + (c.deleted ? " is-deleted" : "") + '" data-comment="' + esc(c.id) + '">' +
-      '<div class="bfp-c-top">' + (c.deleted ? '<span class="bfp-c-name">[deleted]</span>' : '<a class="bfp-c-name" href="' + esc(safeUrl(a.link) || "#") + '">' + esc(a.name || "A member") + '</a>') +
+      '<div class="bfp-c-top">' + (c.deleted ? '<span class="bfp-c-name">[deleted]</span>' : '<a class="bfp-c-name" href="' + esc(safeUrl(a.link) || "#") + '">' + esc(a.name || "A member") + vb(a.verified) + '</a>') +
       '<span class="bfp-c-time">' + esc(ago(c.created_at)) + '</span></div>' +
       '<p class="bfp-c-body">' + esc(c.body) + '</p>' + acts + '</li>';
   }

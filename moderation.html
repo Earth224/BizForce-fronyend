@@ -65,6 +65,14 @@
     .msg.ok{color:#34d399}
     .empty-state{text-align:center;padding:40px 20px;color:#8892b8;font-size:.88rem;line-height:1.6;margin:auto}
     .empty-state.error{color:#f87171}
+    /* NAMED (Nov 21 2026, P3-2): Verified sellers */
+    .vs-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px}
+    .vs-form label{display:flex;flex-direction:column;gap:6px;flex:1 1 220px;font-size:.8rem;font-weight:700;color:#c4cbe0}
+    .vs-form input,.vs-form select{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#070b18;color:#e6edf3;font:15px/1.45 inherit;font-family:inherit}
+    .vs-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .vs-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04)}
+    .vs-who{min-width:0;font-size:.9rem;color:#e6edf3;overflow-wrap:anywhere}
+    .vs-who small{display:block;color:#8892b8;font-size:.8rem}
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -96,6 +104,22 @@
         <button type="button" class="btn btn-quiet" id="storageAgain">Measure again</button>
       </div>
       <div id="storageBody"><p class="storage-facts">Measuring...</p></div>
+    </section>
+
+    <!-- NAMED (Nov 21 2026, P3-2): the Verified badge's seller kind, given and removed by the owner by handle. Each change is
+         logged in moderation_logs by the server (POST /api/admin/verify/:userId, POST /api/admin/unverify/:userId). -->
+    <section class="storage" id="verifiedBox" aria-labelledby="verifiedTitle">
+      <div class="storage-head">
+        <h2 id="verifiedTitle">Verified sellers</h2>
+      </div>
+      <p class="storage-facts">Give or remove the Verified seller badge, or mark one of BizForce's own accounts as official, by handle. Each change is logged. A badge is not an endorsement.</p>
+      <form class="vs-form" id="verifiedForm">
+        <label for="verifiedHandle">Handle<input id="verifiedHandle" type="text" autocomplete="off" spellcheck="false" placeholder="@handle" maxlength="41"></label>
+        <label for="verifiedKind">Kind<select id="verifiedKind"><option value="seller">Verified seller</option><option value="official">Official BizForce account</option></select></label>
+        <button type="submit" class="btn btn-primary" id="verifiedAdd">Give the badge</button>
+      </form>
+      <p class="msg" id="verifiedMsg" role="status" aria-live="polite"></p>
+      <div class="vs-list" id="verifiedList"><p class="storage-facts">Loading...</p></div>
     </section>
 
     <div class="tabs" role="tablist" aria-label="Moderation">
@@ -283,8 +307,55 @@ function decide(id, act, author) {
   }).catch(function () { again(); msg.className = "msg error"; msg.textContent = "That did not save. Check your connection."; });
 }
 
+/* ── NAMED (Nov 21 2026, P3-2): Verified sellers ── */
+function verifiedSay(text, kind) { var m = document.getElementById("verifiedMsg"); m.className = "msg" + (kind ? " " + kind : ""); m.textContent = text; }
+function loadVerified() {
+  var list = document.getElementById("verifiedList");
+  call("GET", "/api/admin/verified").then(function (r) {
+    if (!r.ok) { list.innerHTML = failText("The verified list"); return; }
+    var labels = r.body.labels || {};
+    var rows = r.body.accounts || [];
+    list.innerHTML = rows.length ? rows.map(function (a) {
+      return '<div class="vs-row"><span class="vs-who">' + esc(a.display_name || (a.username ? "@" + a.username : "A member")) +
+        '<small>' + (a.username ? "@" + esc(a.username) + " &middot; " : "") + esc(labels[a.verified_reason] || a.verified_reason) + (a.verified_at ? " since " + esc(when(a.verified_at)) : "") + '</small></span>' +
+        '<button type="button" class="btn btn-quiet" data-unverify="' + esc(a.user_id) + '" data-handle="' + esc(a.username || "") + '">Remove badge</button></div>';
+    }).join("") : '<p class="storage-facts">No verified sellers or official accounts yet.</p>';
+    Array.prototype.forEach.call(list.querySelectorAll("[data-unverify]"), function (b) {
+      b.addEventListener("click", function () {
+        b.disabled = true;
+        call("POST", "/api/admin/unverify/" + encodeURIComponent(b.getAttribute("data-unverify"))).then(function (u) {
+          if (!u.ok) { b.disabled = false; verifiedSay(u.body.error || "That did not save.", "error"); return; }
+          var who = b.getAttribute("data-handle") ? "@" + b.getAttribute("data-handle") : "That account";
+          verifiedSay(who + " no longer has the " + (labels[u.body.from] || "Verified") + " badge." +
+            (u.body.verified_reason === "member" ? " They keep the BizForce member badge while their membership is active." : ""), "ok");
+          loadVerified();
+        }).catch(function () { b.disabled = false; verifiedSay("That did not save. Check your connection.", "error"); });
+      });
+    });
+  }).catch(function () { list.innerHTML = failText("The verified list"); });
+}
+document.getElementById("verifiedForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  var handle = document.getElementById("verifiedHandle").value.trim().replace(/^@/, "");
+  if (!handle) { verifiedSay("Type the seller's handle first.", "error"); return; }
+  var btn = document.getElementById("verifiedAdd");
+  btn.disabled = true;
+  call("GET", "/api/admin/verified?handle=" + encodeURIComponent(handle)).then(function (r) {
+    if (!r.ok) throw new Error("lookup");
+    if (!r.body.found) { btn.disabled = false; verifiedSay("No account has the handle @" + handle + ". Nothing was changed.", "error"); return; }
+    var kind = document.getElementById("verifiedKind").value === "official" ? "official" : "seller";
+    return call("POST", "/api/admin/verify/" + encodeURIComponent(r.body.found.user_id), { reason: kind }).then(function (v) {
+      btn.disabled = false;
+      if (!v.ok || v.body.badge_status !== 200) { verifiedSay((v.body.badge && v.body.badge.error) || v.body.error || "That did not save.", "error"); return; }
+      verifiedSay("@" + handle + " has the " + (kind === "official" ? "Official BizForce account" : "Verified seller") + " badge now.", "ok");
+      document.getElementById("verifiedHandle").value = "";
+      loadVerified();
+    });
+  }).catch(function () { btn.disabled = false; verifiedSay("That did not save. Check your connection.", "error"); });
+});
+
 if (!token) showOwnerOnly();
-else { loadTab(); loadStorage(false); }
+else { loadTab(); loadStorage(false); loadVerified(); }
 </script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
