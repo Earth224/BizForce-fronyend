@@ -240,7 +240,9 @@
        friends, the name, the menu) and the 92 px picture are a phone's only; "BizForce member" and the gold wallet only for a
        paid member (the owner: GET /api/auth/me; a visitor: the profile's own member flag, and while there is none, every
        public profile is a paid member's, as ownerPagePublic serves only theirs); a visitor's Message beside Follow. */
-    var paid = owner ? state.member === true : p.member !== false;
+    // NAMED (Nov 20 2026, P3-1): BEFORE a visitor read p.member !== false (every public page was a paid member's). AFTER free
+    // accounts have public pages too: the profile answer's own member flag (ownerIsMember), shown only when true.
+    var paid = owner ? state.member === true : state.visitorMember === true;
     var name = String(p.display_name || (handle ? "@" + handle : "")).trim();
     var pic = safeUrl(p.avatar_url) ? '<img src="' + esc(p.avatar_url) + '" alt="">' : '<span aria-hidden="true">' + esc(initialsOf(name || handle)) + '</span>';
     var msgBtn = !owner && me && viewId && viewId !== me ? '<a class="pfs-btn pfs-msg" id="pfsMessage" href="/inbox.html?with=' + encodeURIComponent(viewId) + '">Message</a>' : "";
@@ -434,7 +436,7 @@
     var profileReq = owner ? get("/api/bfp/profile/me", true) : get("/api/bfp/profile/" + encodeURIComponent(viewId), false);
     var statsReq = owner ? get("/api/bfp/profile/me/stats", true).then(function (d) { return d; })
       : get("/api/bfp/profile/" + encodeURIComponent(viewId) + "/stats", false).then(function (d) { return d.stats || null; });
-    profileReq.then(function (d) { state.profile = d.profile || null; render(); return state.profile; })
+    profileReq.then(function (d) { state.profile = d.profile || null; state.visitorMember = d.member === true; render(); return state.profile; })
       .then(function (p) {
         if (owner) return get("/api/marketplace/my-listings", true).then(function (d) { mine(d.listings); });
         if (p && p.username) return get("/api/bfp/seller/" + encodeURIComponent(p.username), false).then(function (d) { state.shop = d.products || []; state.services = d.services || []; });
@@ -449,7 +451,7 @@
     get("/api/follows/" + encodeURIComponent(viewId) + "/counts", true).then(function (d) { state.follows = d; render(); }).catch(function () { /* no counts: nothing is claimed */ });
     if (owner) get("/api/posts/saved", true).then(function (d) { state.saved = d.posts || []; render(); }).catch(function () { state.savedFailed = true; render(); });
     // NAMED (Nov 20 2026, FX1): whether the owner is a paid member (BizCash, the wallet, "BizForce member"); unknown claims nothing
-    if (owner) get("/api/auth/me", true).then(function (d) { state.member = !!(d && d.access && d.access.active === true); render(); }).catch(function () { /* unknown: not shown */ });
+    if (owner) get("/api/auth/me", true).then(function (d) { state.member = !!(d && d.access && d.access.tier === "member"); render(); }).catch(function () { /* unknown: not shown */ });
   }
 
   window.BFProfileShell = { render: render, state: state, owner: owner };

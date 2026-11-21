@@ -36,7 +36,8 @@ var BUILD = "__BF_BUILD__";
 /* NAMED (Nov 20 2026, P2-2): BEFORE "p21"; AFTER "p22" (the report, block and mute menu, Moderation, Copyright notices). */
 /* NAMED (Nov 20 2026, P2-3): BEFORE "p22"; AFTER "p23" (posts, the Following feed, Talk, follows, the composer). */
 /* NAMED (Nov 20 2026, FX1): BEFORE "p23"; AFTER "fx1" (Home's feed and the Profile as the approved design pictures). */
-var SHELL_REV = "fx1";
+/* NAMED (Nov 20 2026, P3-1): BEFORE "fx1"; AFTER "p31" (free accounts: the members panel, the verification banner, landing by tier). */
+var SHELL_REV = "p31";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -72,6 +73,7 @@ var STATIC_FILES = [
   "/scripts/bf-tabbar.js", "/scripts/bf-profile-shell.js", "/scripts/bf-local-settings.js",
   "/scripts/bf-safety.js",   // NAMED (Nov 20 2026, P2-2): the report, block and mute menu (the Inbox, Settings and Executive HQ load it)
   "/scripts/bf-feed.js", "/scripts/bf-composer.js",   // NAMED (Nov 20 2026, P2-3): posts on Home and the profile, and the composer
+  "/scripts/bf-access.js",   // NAMED (Nov 20 2026, P3-1): the members panel and the verification banner (bf-session.js loads it)
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];

@@ -187,6 +187,7 @@
      A page that already loads scripts/bf-music.js itself is left alone. */
   function loadMusicPlayer() {
     loadTabBar();
+    loadAccess();
     if (window.BFMusic || document.querySelector("script[src$='/scripts/bf-music.js']")) return;
     var tag = document.createElement("script");
     tag.src = "/scripts/bf-music.js";
@@ -200,6 +201,16 @@
     if (window.BFTabbar || document.querySelector("script[src$='/scripts/bf-tabbar.js']")) return;
     var tag = document.createElement("script");
     tag.src = "/scripts/bf-tabbar.js";
+    tag.defer = true;
+    (document.body || document.head || document.documentElement).appendChild(tag);
+  }
+  /* NAMED (Nov 20 2026, P3-1): FREE ACCOUNTS. scripts/bf-access.js rides with the bottom bar on every signed-in page this guard
+     protects: the members panel on a member-only page for a free account (and on the bar's HQ tab), and the banner with
+     "Resend email" while the email is not confirmed. A page that loads it itself is left alone. */
+  function loadAccess() {
+    if (window.bfAccess || document.querySelector("script[src$='/scripts/bf-access.js']")) return;
+    var tag = document.createElement("script");
+    tag.src = "/scripts/bf-access.js";
     tag.defer = true;
     (document.body || document.head || document.documentElement).appendChild(tag);
   }

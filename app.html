@@ -675,7 +675,22 @@ document.addEventListener("DOMContentLoaded", function () {
        gate themselves rather than demanding the $199 All Access subscription
        before any route into the app. The subscription field is read there, not
        here. */
-    window.location.href = signInReturnTo() || "/dashboard.html";
+    /* NAMED (Nov 20 2026, P3-1): LANDING BY TIER. BEFORE every sign-in went to the dashboard. AFTER a free account lands on
+       Home and a member on the dashboard (GET /api/auth/me access.tier); a page that sent them here still wins, and an
+       answer that cannot be read keeps the dashboard, whose own members panel speaks for a free account. */
+    var back = signInReturnTo();
+    if (back) { window.location.href = back; return; }
+    landByTier(data.token);
+  }
+
+  function landByTier(tok) {
+    var done = false;
+    function go(page) { if (!done) { done = true; window.location.href = page; } }
+    setTimeout(function () { go("/dashboard.html"); }, 4000);
+    fetch(API_URL + "/api/auth/me", { headers: { "Authorization": "Bearer " + tok } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { go(d && d.access && d.access.tier === "free" ? "/home.html" : "/dashboard.html"); })
+      .catch(function () { go("/dashboard.html"); });
   }
 
   /* A public page that sent the visitor here to sign in (the support page,
