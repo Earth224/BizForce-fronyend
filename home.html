@@ -71,10 +71,25 @@
     .find-people .btn-visit{cursor:pointer;background:transparent;font-family:inherit}
     .find-people .btn-visit.is-on{border-color:rgba(255,255,255,.2);color:#a9b3cc}
     .home-side .tiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .feed-live,.feed-tab.is-soon{display:none}
     @media (max-width: 760px){
+      /* NAMED (Nov 20 2026, FX1): the approved design (backend scripts/designSpec.js FEED.TOP and BAR). The top row: Live 44 px
+         at the left, the four tabs (16 px semibold, 44 px tall; the active one white with a 3 px cyan underline under its
+         text; the others light grey; a 7 px cyan dot on Market), Search 44 px at the right; 12 px below the safe area. */
+      .feed-live,.feed-tab.is-soon{display:inline-flex}
+      .feed-top{gap:0}
+      .feed-live,.feed-search{width:44px;height:44px;min-width:44px;flex:none;align-items:center;justify-content:center;padding:0;margin:0;border:0;border-radius:22px;background:transparent;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .feed-live svg,.feed-search svg{width:24px;height:24px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+      .feed-tabs{gap:0;min-width:0}
+      .feed-tab{position:relative;display:inline-flex;align-items:center;min-height:44px;height:44px;padding:0 10px;border:0;color:#c9d1e6;font:600 16px/1 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;white-space:nowrap;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.6);-webkit-tap-highlight-color:transparent}
+      .feed-tab[aria-selected=true]{color:#fff}
+      .feed-tab[aria-selected=true]::after{content:"";position:absolute;left:8px;right:8px;bottom:1px;height:3px;border-radius:2px;background:var(--bf-accent-a, #22d3ee)}
+      .feed-tab.has-dot::before{content:"";position:absolute;top:8px;right:0;width:7px;height:7px;border-radius:50%;background:var(--bf-accent-a, #22d3ee)}
+      html.bf-tabbar-on body.feed-full #bf-tabbar{background:#05070f;border-top-color:#141b33}
+      body.feed-full #bf-tabbar .bf-tab[aria-current=page]{color:#fff}
       body.has-posts .starter{display:none}
       body.feed-full .top-nav,body.feed-full .home-main>header,body.feed-full .first-post{display:none}
-      body.feed-full .feed-top{position:fixed;top:0;left:0;right:0;z-index:41;padding:calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;background:linear-gradient(rgba(0,0,0,.6),transparent)}
+      body.feed-full .feed-top{position:fixed;top:0;left:0;right:0;z-index:41;padding:calc(12px + env(safe-area-inset-top, 0px)) 2px 0 9px;background:none}   /* NAMED (Nov 20 2026, FX1): BEFORE 8px down, 12px each side, a dark gradient; AFTER the approved design (12 px down, Live at 9, Search 2 px from the edge) */
       body.feed-full .feed-say{position:fixed;top:calc(60px + env(safe-area-inset-top, 0px));left:16px;right:16px;z-index:42;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.65);color:#fff}
       body.feed-full #feed>.bf-legal-footer{flex:0 0 auto;width:100%;margin:0;scroll-snap-align:end}
       .page{padding:16px 16px 24px}
@@ -106,7 +121,13 @@
       </header>
 
       <div class="feed-top">
-        <div class="feed-tabs" role="tablist" aria-label="Feeds"><button type="button" class="feed-tab" role="tab" id="tabFollowing" aria-selected="true" aria-controls="feed">Following</button></div>
+        <!-- NAMED (Nov 20 2026, FX1): the approved design's top row on a phone: Live, then Local, Following, Market (with its
+             dot) and For You, then Search. Live, Local, Market and For You arrive in later blocks: each opens a Coming soon
+             sheet. On a desktop only Following and Search show, as before. -->
+        <button type="button" class="feed-live" id="feedLive" aria-label="Live">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 3l4 4 4-4"/></svg>
+        </button>
+        <div class="feed-tabs" role="tablist" aria-label="Feeds"><button type="button" class="feed-tab is-soon" role="tab" id="tabLocal" aria-selected="false" data-soon="local">Local</button><button type="button" class="feed-tab" role="tab" id="tabFollowing" aria-selected="true" aria-controls="feed">Following</button><button type="button" class="feed-tab is-soon has-dot" role="tab" id="tabMarket" aria-selected="false" data-soon="market">Market</button><button type="button" class="feed-tab is-soon" role="tab" id="tabForYou" aria-selected="false" data-soon="foryou">For You</button></div>
         <button type="button" class="feed-search" id="feedSearch" aria-label="Search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </button>
@@ -245,7 +266,14 @@ loadHome();
 var params = new URLSearchParams(window.location.search);
 var feedSay = document.getElementById("feedSay");
 function say(text) { feedSay.textContent = text; clearTimeout(say.t); say.t = setTimeout(function () { feedSay.textContent = ""; }, 4000); }
-document.getElementById("feedSearch").addEventListener("click", function () { say("Search is coming."); });
+/* NAMED (Nov 20 2026, FX1): on a phone Search, Live and the Local, Market and For You tabs open a Coming soon sheet (scripts/bf-feed.js
+   BFFeed.soon); BEFORE Search said "Search is coming." in the line under the tabs, as it still does on a desktop. */
+function phoneNow() { return !!(window.matchMedia && window.matchMedia("(max-width: 760px)").matches); }
+document.getElementById("feedSearch").addEventListener("click", function () { if (phoneNow()) window.BFFeed.soon("search", this); else say("Search is coming."); });
+document.getElementById("feedLive").addEventListener("click", function () { window.BFFeed.soon("live", this); });
+Array.prototype.forEach.call(document.querySelectorAll(".feed-tab[data-soon]"), function (t) {
+  t.addEventListener("click", function () { window.BFFeed.soon(t.getAttribute("data-soon"), t); });
+});
 function markFull() {
   var full = document.getElementById("feed").classList.contains("is-full");
   document.body.classList.toggle("feed-full", full);

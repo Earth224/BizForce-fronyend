@@ -35,7 +35,8 @@ var BUILD = "__BF_BUILD__";
 /* NAMED (Nov 19 2026, P2-1): BEFORE "hq1"; AFTER "p21" (the bottom bar, Home, the Inbox). */
 /* NAMED (Nov 20 2026, P2-2): BEFORE "p21"; AFTER "p22" (the report, block and mute menu, Moderation, Copyright notices). */
 /* NAMED (Nov 20 2026, P2-3): BEFORE "p22"; AFTER "p23" (posts, the Following feed, Talk, follows, the composer). */
-var SHELL_REV = "p23";
+/* NAMED (Nov 20 2026, FX1): BEFORE "p23"; AFTER "fx1" (Home's feed and the Profile as the approved design pictures). */
+var SHELL_REV = "fx1";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [

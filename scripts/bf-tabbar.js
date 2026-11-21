@@ -128,12 +128,15 @@
     "@media " + BREAKPOINT + "{",
     "html.bf-tabbar-on #bf-tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:90;box-sizing:border-box;",
     "height:calc(56px + env(safe-area-inset-bottom, 0px));padding:0 calc(4px + env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) calc(4px + env(safe-area-inset-left, 0px));",
-    "align-items:stretch;background:rgba(7,11,24,.97);border-top:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.16);",
+    // NAMED (Nov 20 2026, FX1): the approved design's bar: a 1 px #1e2848 top border (BEFORE a cyan .16 line) and the active
+    // item's icon filled (backend scripts/designSpec.js BAR); on the full-screen feed home.html darkens it and makes Home white
+    "align-items:stretch;background:rgba(7,11,24,.97);border-top:1px solid #1e2848;",
     "font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}",
     "#bf-tabbar .bf-tab{flex:1 1 0;min-width:44px;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;",
     "padding:0;margin:0;border:0;background:transparent;color:#a9b3cc;font:600 11px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;",
     "text-decoration:none;cursor:pointer;position:relative;-webkit-tap-highlight-color:transparent}",
     "#bf-tabbar .bf-tab[aria-current=page]{color:var(--bf-accent-a, #22d3ee)}",
+    "#bf-tabbar .bf-tab[aria-current=page]:is([data-tab=home],[data-tab=inbox],[data-tab=profile]) svg{fill:currentColor}",
     "#bf-tabbar .bf-tab:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:-4px;border-radius:10px}",
     "#bf-tabbar .bf-tab-plus{display:flex;align-items:center;justify-content:center;width:52px;height:34px;border-radius:11px;color:#070b18;",
     "background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6))}",

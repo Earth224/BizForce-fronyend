@@ -78,7 +78,10 @@
     share: '<path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v14"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
-    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>'
+    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    // NAMED (Nov 20 2026, FX1): the approved design's filled Share arrow and the Tip BFC coin (phone rail)
+    shareFill: '<path d="M13.5 4.5l8 7.2-8 7.2v-4.2c-5.2 0-8.6 1.4-11 4.8.9-5.3 4.2-9.6 11-10.6z"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.2c-.4-.8-1.4-1.3-2.5-1.3-1.5 0-2.6.8-2.6 2s1 1.7 2.6 2.1c1.6.4 2.6 1 2.6 2.2s-1.1 2-2.6 2c-1.2 0-2.2-.5-2.6-1.4M12 6.5v1.4M12 16.6v1.4"/>'
   };
 
   var CSS = [
@@ -117,26 +120,70 @@
     ".bfp-note:empty{display:none}",
     ".bfp-end,.bfp-loading,.bfp-error{margin:0;padding:12px 0;text-align:center;color:#8892b8;font-size:.88rem}",
     ".bfp-error{color:#fca5a5}",
+    /* NAMED (Nov 20 2026, FX1): the phone rail's own parts; a desktop card shows none of them, as before */
+    ".bfp-rail-av,.bfp-tip,.bfp-word,.bfp-act .ic-phone{display:none}",
+    /* the Coming soon sheet: a bottom sheet on a phone, a small dialog on a desktop */
+    "#bfp-soon-back{position:fixed;inset:0;z-index:2147483270;background:rgba(2,4,12,.6)}",
+    "#bfp-soon{position:fixed;z-index:2147483271;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));box-sizing:border-box;display:flex;flex-direction:column;gap:10px;",
+    "padding:20px;border-radius:20px;background:#0b1022;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22);color:#e8e8ff;font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif}",
+    "#bfp-soon[hidden],#bfp-soon-back[hidden]{display:none}",
+    "#bfp-soon .bfp-soon-tag{align-self:flex-start;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--bf-accent-a, #22d3ee)}",
+    "#bfp-soon h2{margin:0;font-size:1.15rem;font-weight:800;color:#f4f7ff}",
+    "#bfp-soon p{margin:0;font-size:.92rem;line-height:1.5;color:#c4cbe0}",
+    "#bfp-soon .bfp-quiet{align-self:stretch}",
     /* the full-screen phone feed */
     "@media " + BREAKPOINT + "{",
     ".bfp-feed.is-full{position:fixed;left:0;right:0;top:0;bottom:calc(56px + env(safe-area-inset-bottom, 0px));z-index:40;gap:0;overflow-y:auto;scroll-snap-type:y mandatory;background:#03050c;overscroll-behavior:contain}",
     ".bfp-feed.is-full>.bfp-post,.bfp-feed.is-full>.bfp-slide{flex:0 0 100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;border-radius:0;border:0;padding:0;background:#03050c;overflow:hidden}",
     ".bfp-feed.is-full .bfp-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}",
     ".bfp-feed.is-full .bfp-photos{width:100%;height:100%;border-radius:0}",
-    ".bfp-feed.is-full .bfp-photo img{height:100%;aspect-ratio:auto;object-fit:contain}",
+    ".bfp-feed.is-full .bfp-photo img{height:100%;aspect-ratio:auto;object-fit:cover}",
     ".bfp-feed.is-full .bfp-textcard{width:100%;height:100%;border-radius:0;padding:80px 84px 140px 22px;font-size:1.35rem}",
     ".bfp-feed.is-full .bfp-dots{position:absolute;left:0;right:0;top:64px;margin:0}",
-    ".bfp-feed.is-full .bfp-meta{position:absolute;left:14px;right:84px;bottom:16px;z-index:2;display:flex;flex-direction:column;gap:8px;text-shadow:0 1px 3px rgba(0,0,0,.85)}",
-    ".bfp-feed.is-full .bfp-info{display:flex;flex-direction:column;gap:6px}",
-    ".bfp-feed.is-full .bfp-name{color:#fff}",
-    ".bfp-feed.is-full .bfp-handle{color:#dfe5f5}",
-    ".bfp-feed.is-full .bfp-note{position:absolute;left:14px;right:84px;top:70px;z-index:3;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.6)}",
-    ".bfp-feed.is-full .bfp-info .bfp-text{max-height:5.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}",
-    ".bfp-feed.is-full .bfp-actions{position:absolute;right:8px;bottom:18px;z-index:2;flex-direction:column;flex-wrap:nowrap;gap:6px}",
-    ".bfp-feed.is-full .bfp-act{flex-direction:column;gap:2px;min-width:56px;padding:6px 4px;color:#fff;font-size:.75rem;text-shadow:0 1px 3px rgba(0,0,0,.85)}",
-    ".bfp-feed.is-full .bfp-act svg{width:30px;height:30px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}",
-    ".bfp-feed.is-full .bfp-time{margin:0;color:#c9d1e6}",
-    ".bfp-feed.is-full .bfp-menu .bf-safety-dots{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.25)}",
+    /* NAMED (Nov 20 2026, FX1): the approved design (backend scripts/designSpec.js FEED.META and FEED.RAIL). The bottom-left
+       block: 14 px from the left, its right edge 80 px from the screen's, its bottom 16 px above the bar, 8 px gaps: the
+       author's name (17 px bold), the caption (15 px, line height 1.4). The author's picture, Follow and the time are in
+       the rail or nowhere; the handle and the three-dot menu are not on the screen (Share opens the menu). */
+    ".bfp-feed.is-full .bfp-meta{position:absolute;left:14px;right:80px;bottom:16px;z-index:2;display:flex;flex-direction:column;gap:8px;text-shadow:0 1px 3px rgba(0,0,0,.85)}",
+    /* the name stays a 44 px tap target; its box overhangs 12 px each way so the caption is 8 px under the words */
+    ".bfp-feed.is-full .bfp-head{order:0;min-height:0;height:20px}",
+    ".bfp-feed.is-full .bfp-who{min-height:44px;justify-content:center;margin:-12px 0}",
+    ".bfp-feed.is-full .bfp-head .bfp-av-link,.bfp-feed.is-full .bfp-handle,.bfp-feed.is-full .bfp-head .bfp-follow,.bfp-feed.is-full .bfp-menu,.bfp-feed.is-full .bfp-time{display:none}",
+    ".bfp-feed.is-full .bfp-name{color:#e6eaf5;font:800 17px/1.2 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif}",
+    ".bfp-feed.is-full .bfp-info{display:flex;flex-direction:column;gap:8px}",
+    ".bfp-feed.is-full .bfp-info:empty{display:none}",
+    ".bfp-feed.is-full .bfp-note{position:absolute;left:14px;right:80px;top:70px;z-index:3;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.6)}",
+    ".bfp-feed.is-full .bfp-info .bfp-text{font-size:15px;line-height:1.4;color:#e6eaf5;max-height:5.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}",
+    /* the rail: 10 px from the right edge, 60 px wide, its bottom 126 px above the bar, items 18 px apart: the author's
+       picture (52 px, the cyan-to-violet gradient with initials when there is no photo) with the 22 px follow "+" on its
+       bottom edge; Like, Talk, Tip BFC (its slot kept, unseen, until tipping arrives), Save, Share: each a 30 px filled
+       white icon over a 12 px label (the count, or the word while the count is 0). */
+    ".bfp-feed.is-full .bfp-actions{position:absolute;right:10px;bottom:126px;width:60px;z-index:2;flex-direction:column;flex-wrap:nowrap;align-items:center;gap:18px}",
+    ".bfp-feed.is-full .bfp-act{flex-direction:column;justify-content:flex-start;gap:4px;width:60px;min-width:60px;min-height:50px;height:50px;padding:0;border-radius:0;color:#fff;font:600 12px/16px system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.85)}",
+    ".bfp-feed.is-full .bfp-act:hover,.bfp-feed.is-full .bfp-act:focus-visible{background:transparent}",
+    ".bfp-feed.is-full .bfp-act:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
+    ".bfp-feed.is-full .bfp-act svg{flex:none;width:30px;height:30px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}",
+    ".bfp-feed.is-full .bfp-act:not(.bfp-tip) svg{fill:currentColor;stroke:none}",
+    ".bfp-feed.is-full .bfp-act .ic-desk{display:none}",
+    ".bfp-feed.is-full .bfp-act .ic-phone{display:block}",
+    ".bfp-feed.is-full .bfp-act.is-zero [data-count]{display:none}",
+    ".bfp-feed.is-full .bfp-act.is-zero .bfp-word{display:inline}",
+    ".bfp-feed.is-full .bfp-rail-av{display:block;position:relative;flex:none;width:52px;height:52px}",
+    ".bfp-feed.is-full .bfp-rail-pic{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--bf-accent-a, #22d3ee),var(--bf-accent-b, #8b5cf6));",
+    "color:#0b1022;font:800 16px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-decoration:none;text-shadow:none}",
+    ".bfp-feed.is-full .bfp-rail-pic img{width:100%;height:100%;object-fit:cover}",
+    ".bfp-feed.is-full .bfp-badge{position:absolute;left:4px;top:22px;width:44px;height:44px;padding:0;margin:0;border:0;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}",
+    ".bfp-feed.is-full .bfp-badge-dot{position:absolute;left:11px;top:19px;width:22px;height:22px;border-radius:50%;background:var(--bf-accent-a, #22d3ee);color:#0b1022;display:flex;align-items:center;justify-content:center}",
+    ".bfp-feed.is-full .bfp-badge[hidden]{display:none}",
+    ".bfp-feed.is-full .bfp-tip{display:flex;visibility:hidden;color:#f5c46b}",
+    ".bfp-feed.is-full .bfp-tip svg{fill:#f5c46b;stroke:#0b1022}",
+    /* the product strip (a post that carries a listing; listing posts arrive in a later block) */
+    ".bfp-feed.is-full .bfp-buy{display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;border:1px solid #2b3a6b;background:rgba(13,19,38,.82);text-shadow:none}",
+    ".bfp-feed.is-full .bfp-buy-tile{flex:none;width:40px;height:40px;border-radius:10px;background:#1b2350;object-fit:cover}",
+    ".bfp-feed.is-full .bfp-buy-txt{flex:1;min-width:0;display:flex;flex-direction:column}",
+    ".bfp-feed.is-full .bfp-buy-title{font:600 13px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#e6eaf5;overflow-wrap:anywhere}",
+    ".bfp-feed.is-full .bfp-buy-price{font:400 12px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#a9b3cc}",
+    ".bfp-feed.is-full .bfp-buy-go{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:34px;min-height:34px;padding:0 14px;border:0;border-radius:17px;background:var(--bf-accent-a, #22d3ee);color:#04121a;font:700 14px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-decoration:none}",
     ".bfp-feed.is-full .bfp-shade{position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(0,0,0,.72));pointer-events:none;z-index:1}",
     ".bfp-feed.is-full>.bfp-slide{display:flex;flex-direction:column;justify-content:center;padding:72px 16px 16px;overflow-y:auto}",
     ".bfp-feed.is-full>.bfp-end{flex:0 0 auto;padding:18px 0}",
@@ -176,6 +223,7 @@
     "@media " + BREAKPOINT + "{",
     "#bfp-talk{top:auto;left:0;right:0;width:auto;height:72dvh;border-left:0;border-top:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22);border-radius:22px 22px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.55)}",
     "#bfp-talk .bfp-talk-grip{display:block;align-self:center;width:40px;height:5px;margin-top:8px;border-radius:3px;background:rgba(255,255,255,.18)}",
+    "#bfp-soon{left:0;right:0;top:auto;bottom:0;transform:none;width:auto;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom, 0px))}",
     "}",
     /* a small dialog (edit, delete) and the photo viewer */
     "#bfp-dialog-backdrop{position:fixed;inset:0;z-index:2147483250;background:rgba(2,4,12,.6)}",
@@ -207,12 +255,34 @@
     var initial = esc(String((a && a.name) || "?").replace(/^@/, "").charAt(0).toUpperCase());
     return safeUrl(a && a.avatar_url) ? '<img class="' + cls + '" src="' + esc(a.avatar_url) + '" alt="">' : '<span class="' + cls + '" aria-hidden="true">' + initial + '</span>';
   }
+  /* NAMED (Nov 20 2026, FX1): the rail (a phone's full-screen feed, the approved design) also carries the author's picture with
+     the follow "+", the Tip BFC slot (kept, unseen: tipping arrives in P2-5, for paid members), a word under a count of 0, and
+     the filled Share arrow. A desktop card shows none of these, as before (their CSS hides them there). */
+  function initials(name) {
+    var w = String(name || "?").replace(/^@/, "").trim().split(/\s+/).filter(Boolean);
+    return ((w[0] || "?").charAt(0) + (w.length > 1 ? w[1].charAt(0) : "")).toUpperCase();
+  }
+  function railAvatar(p) {
+    var a = p.author || {}, me = myId();
+    var pic = safeUrl(a.avatar_url) ? '<img src="' + esc(a.avatar_url) + '" alt="">' : '<span aria-hidden="true">' + esc(initials(a.name)) + '</span>';
+    var canFollow = !!me && !p.mine && !p.following && a.id !== me;
+    return '<span class="bfp-rail-av"><a class="bfp-rail-pic" href="' + esc(safeUrl(a.link) || "#") + '" aria-label="' + esc(a.name || "A member") + '\'s profile">' + pic + '</a>' +
+      (canFollow ? '<button type="button" class="bfp-badge" data-follow="' + esc(a.id) + '" aria-label="Follow ' + esc(a.name || "this member") + '"><span class="bfp-badge-dot">' + svg(ICON.plus, 14) + '</span></button>' : "") +
+      '</span>';
+  }
+  function act(kind, count, word, label, pressed, icon) {
+    var zero = !(Number(count) > 0);
+    return '<button type="button" class="bfp-act' + (zero ? " is-zero" : "") + '" data-act="' + kind + '"' + (pressed === undefined ? "" : ' aria-pressed="' + !!pressed + '"') +
+      ' aria-label="' + label + '">' + icon + '<span data-count="' + kind + '">' + n(count) + '</span><span class="bfp-word" aria-hidden="true">' + word + '</span></button>';
+  }
   function actionsHtml(p) {
-    return '<div class="bfp-actions">' +
-      '<button type="button" class="bfp-act" data-act="like" aria-pressed="' + !!p.liked + '" aria-label="Like, ' + n(p.like_count) + '">' + svg(ICON.like, 22) + '<span data-count="like">' + n(p.like_count) + '</span></button>' +
-      '<button type="button" class="bfp-act" data-act="talk" aria-label="Talk, ' + n(p.comment_count) + ' comments">' + svg(ICON.talk, 22) + '<span data-count="talk">' + n(p.comment_count) + '</span></button>' +
+    return '<div class="bfp-actions">' + railAvatar(p) +
+      act("like", p.like_count, "Like", "Like, " + n(p.like_count), !!p.liked, svg(ICON.like, 22)) +
+      act("talk", p.comment_count, "Talk", "Talk, " + n(p.comment_count) + " comments", undefined, svg(ICON.talk, 22)) +
+      '<button type="button" class="bfp-act bfp-tip" data-act="tip" disabled tabindex="-1" aria-hidden="true">' + svg(ICON.coin, 22) + '<span>Tip BFC</span></button>' +
       '<button type="button" class="bfp-act" data-act="save" aria-pressed="' + !!p.saved + '" aria-label="Save">' + svg(ICON.save, 22) + '<span>' + (p.saved ? "Saved" : "Save") + '</span></button>' +
-      '<button type="button" class="bfp-act" data-act="share" aria-label="Share, ' + n(p.share_count) + '">' + svg(ICON.share, 22) + '<span data-count="share">' + n(p.share_count) + '</span></button>' +
+      act("share", p.share_count, "Share", "Share, " + n(p.share_count), undefined,
+        svg(ICON.share, 22).replace("<svg ", '<svg class="ic-desk" ') + svg(ICON.shareFill, 22).replace("<svg ", '<svg class="ic-phone" ')) +
       '<span class="bfp-time">' + esc(ago(p.published_at || p.created_at)) + '</span>' +
       '</div>';
   }
@@ -285,7 +355,12 @@
   function refreshCounts(el, b) {
     var p = posts[el.getAttribute("data-post")] || {};
     ["like_count", "comment_count", "save_count", "share_count"].forEach(function (k) { if (typeof b[k] === "number") p[k] = b[k]; });
-    var put = function (sel, v) { var x = el.querySelector(sel); if (x) x.textContent = n(v); };
+    var put = function (sel, v) {
+      var x = el.querySelector(sel);
+      if (!x) return;
+      x.textContent = n(v);
+      if (x.parentNode && x.parentNode.classList) x.parentNode.classList.toggle("is-zero", !(Number(v) > 0));   // NAMED (Nov 20 2026, FX1)
+    };
     put('[data-count="like"]', p.like_count); put('[data-count="talk"]', p.comment_count); put('[data-count="share"]', p.share_count);
   }
   function toggle(el, kind, btn) {
@@ -320,6 +395,13 @@
     btn.disabled = true;
     (on ? call("POST", "/api/follows", { user_id: uid }) : call("DELETE", "/api/follows/" + encodeURIComponent(uid))).then(function (r) {
       btn.disabled = false;
+      // NAMED (Nov 20 2026, FX1): the rail's follow "+" has no words: following, it goes (as every Follow of that member does)
+      if (btn.classList.contains("bfp-badge")) {
+        if (!r.ok) { note(btn.closest(".bfp-post"), r.body.error || "That did not work. Try again."); return; }
+        Array.prototype.forEach.call(document.querySelectorAll('.bfp-badge[data-follow="' + uid + '"]'), function (b) { b.hidden = true; });
+        Object.keys(posts).forEach(function (k) { if (posts[k].author && posts[k].author.id === uid) posts[k].following = true; });
+        return;
+      }
       if (!r.ok) { btn.textContent = "Try again"; return; }
       btn.classList.toggle("is-on", on);
       btn.textContent = on ? "Following" : "Follow";
@@ -545,8 +627,54 @@
     var kind = act.getAttribute("data-act");
     if (kind === "like" || kind === "save") toggle(post, kind, act);
     else if (kind === "talk") openTalk(post.getAttribute("data-post"), act);
-    else if (kind === "share") share(post);
+    else if (kind === "share") { if (phone() && post.closest(".bfp-feed.is-full")) options(post, act); else share(post); }
   });
+  /* NAMED (Nov 20 2026, FX1): the approved design has no three-dot menu on a full-screen post, so on a phone Share opens the
+     post's options: Share link first, then (the author's) Edit and Delete, or Report, Block and Mute (scripts/bf-safety.js). */
+  function options(el, from) {
+    var p = posts[el.getAttribute("data-post")] || {}, a = p.author || {};
+    if (!window.BFSafety || !window.BFSafety.openMenu) { share(el); return; }
+    var extra = [{ label: "Share link", run: function () { share(el); } }];
+    if (p.mine) extra.push({ label: "Edit", run: function () { editPost(el, p); } }, { label: "Delete", danger: true, run: function () { deletePost(el, p); } });
+    window.BFSafety.openMenu({ type: "post", id: p.id, userId: a.id, name: a.name, where: ORIGIN + "/p/" + p.id, extra: extra,
+      onChange: function () { el.parentNode && el.parentNode.removeChild(el); } }, from);
+  }
+
+  /* ── NAMED (Nov 20 2026, FX1): the Coming soon sheet, for what the design draws before its block is built ── */
+  var SOON = {
+    live: ["Live", "Live video from members."],
+    search: ["Search", "Search posts, people and listings."],
+    local: ["Local", "Posts from members near you who share their area."],
+    market: ["Market", "Products and services from members, as posts you can buy from."],
+    foryou: ["For You", "Posts from across BizForce, picked for you."],
+    reviews: ["Reviews", "Reviews from buyers, after a completed purchase."]
+  };
+  var soonEl = null, soonBack = null, soonFrom = null;
+  function closeSoon() {
+    if (!soonEl || soonEl.hidden) return;
+    soonEl.hidden = true; soonBack.hidden = true;
+    if (soonFrom && soonFrom.focus) { try { soonFrom.focus(); } catch (e) { /* gone */ } }
+  }
+  function soon(key, from) {
+    var s = SOON[key];
+    if (!s) return;
+    addStyle();
+    if (!soonEl) {
+      soonBack = document.createElement("div"); soonBack.id = "bfp-soon-back"; soonBack.hidden = true;
+      soonBack.addEventListener("click", closeSoon);
+      soonEl = document.createElement("div"); soonEl.id = "bfp-soon"; soonEl.hidden = true;
+      soonEl.setAttribute("role", "dialog"); soonEl.setAttribute("aria-modal", "true"); soonEl.setAttribute("aria-labelledby", "bfp-soon-title");
+      soonEl.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeSoon(); } });
+      document.body.appendChild(soonBack); document.body.appendChild(soonEl);
+    }
+    soonFrom = from || document.activeElement;
+    soonEl.setAttribute("data-soon", key);
+    soonEl.innerHTML = '<span class="bfp-soon-tag">Coming soon</span><h2 id="bfp-soon-title">' + esc(s[0]) + '</h2><p>' + esc(s[1]) + ' It is not built yet.</p>' +
+      '<button type="button" class="bfp-quiet" id="bfpSoonClose">Close</button>';
+    soonEl.querySelector("#bfpSoonClose").addEventListener("click", closeSoon);
+    soonBack.hidden = false; soonEl.hidden = false;
+    soonEl.querySelector("#bfpSoonClose").focus();
+  }
 
   /* ── a feed ── */
   function mount(el, opts) {
@@ -613,6 +741,6 @@
     };
   }
 
-  window.BFFeed = { mount: mount, postEl: postEl, openTalk: openTalk, closeTalk: closeTalk, openPhoto: openPhoto, share: share, call: call,
+  window.BFFeed = { mount: mount, postEl: postEl, openTalk: openTalk, closeTalk: closeTalk, openPhoto: openPhoto, share: share, call: call, soon: soon, closeSoon: closeSoon, initials: initials,
     addStyle: addStyle, follow: follow, ICON: ICON, svg: svg, esc: esc, safeUrl: safeUrl, COMMENT_MAX: COMMENT_MAX, BODY_MAX: BODY_MAX };
 })();
