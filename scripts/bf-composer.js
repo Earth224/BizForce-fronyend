@@ -16,6 +16,13 @@
      Post            POST /api/posts; the content screen's refusal is shown
                      under the box, in its own words
    Video is not here: video posts are coming (P2-8).
+   NAMED (Nov 21 2026, P3-1B, the owner's rules):
+     what it is      Share (the default) or Need (asking for help); offer posts come with selling (members)
+     a free account  a share post needs at least one photo: the note under the photos says so, and Post
+                     says why instead of sending (the server refuses it too); a Need may be text
+     a member        Show in Google (on by default) with an optional search title (70 characters) and
+                     description (160), filled from the post's first words until edited; sent as
+                     search_visible, seo_title and seo_description (public posts only)
    After posting, opts.onDone(post) runs; by default the page goes to Home.
    Nothing is kept on the device.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -26,11 +33,19 @@
   var API_FALLBACK = "https://dynamic-prosperity-production-5382.up.railway.app";
   var BODY_MAX = 2200, PHOTOS_MAX = 4, LONG_EDGE = 1080, THUMB_EDGE = 360, WEBP_Q = 0.8, JPEG_Q = 0.82, PHOTO_MAX_BYTES = 600 * 1024;
   var BREAKPOINT = "(max-width: 760px)";
+  // NAMED (Nov 21 2026, P3-1B)
+  var SEO_TITLE_MAX = 70, SEO_DESCRIPTION_MAX = 160;
+  var FREE_PHOTO_NOTE = "A free account's share post needs at least one photo. Text-only posts are for members; a Need can be text.";
+  function firstWords(t, n) { var a = Array.from(String(t || "").replace(/\s+/g, " ").trim()); return a.length > n ? a.slice(0, n - 3).join("").trim() + "..." : a.join(""); }
 
   function api() { return (typeof window.API_URL === "string" && window.API_URL) || API_FALLBACK; }
   function token() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
   function chars(s) { return Array.from(String(s)).length; }
+  function whenAccess(cb) {   // NAMED (Nov 21 2026, P3-1B): scripts/bf-access.js ready, now or once it loads
+    if (window.bfAccess && window.bfAccess.ready) { window.bfAccess.ready.then(cb); return; }
+    document.addEventListener("bf-access", function (e) { cb(e.detail); }, { once: true });
+  }
 
   var CSS = [
     ".bfc-form{display:flex;flex-direction:column;gap:12px;color:#e8e8ff;font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif}",
@@ -66,6 +81,16 @@
     "#bfc-modal[hidden],#bfc-modal-backdrop[hidden]{display:none}",
     ".bfc-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}",
     ".bfc-head h2{flex:1;margin:0;font-size:1.2rem;font-weight:800;color:#f4f7ff}",
+    /* NAMED (Nov 21 2026, P3-1B): the intent choice, the free photo note and the member's Show in Google box */
+    ".bfc-note{margin:0;padding:10px 12px;border-radius:12px;background:rgba(var(--bf-accent-a-rgb, 34,211,238),.08);border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.3);color:#c4cbe0;font-size:.88rem;line-height:1.45}",
+    ".bfc-note[hidden],.bfc-seo[hidden]{display:none}",
+    ".bfc-seo{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(18,26,54,.5)}",
+    ".bfc-seo .bfc-check{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-weight:700;cursor:pointer}",
+    ".bfc-seo .bfc-check input{width:20px;height:20px;accent-color:var(--bf-accent-a, #22d3ee)}",
+    ".bfc-seo label.bfc-fl{font-size:.82rem;font-weight:700;color:#c4cbe0}",
+    ".bfc-seo input[type=text],.bfc-seo textarea{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#070b18;color:#e8e8ff;font:15px/1.4 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif}",
+    ".bfc-seo textarea{min-height:72px;resize:vertical}",
+    ".bfc-seo .bfc-sub{font-size:.78rem;color:#8e98c2}",
     ".bfc-x{width:44px;height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.16);background:transparent;color:#e8e8ff;cursor:pointer;display:flex;align-items:center;justify-content:center}"
   ].join("");
   function addStyle() {
@@ -134,9 +159,21 @@
       '<div class="bfc-line"><label class="bfc-btn" id="bfcAddLabel" for="bfcFile">Add photos</label>' +
       '<input type="file" id="bfcFile" accept="image/jpeg,image/png,image/webp" multiple hidden>' +
       '<span class="bfc-btn" aria-disabled="true" title="Video posts are coming">Video</span><span class="bfc-soon">Video: Coming soon</span></div>' +
+      // NAMED (Nov 21 2026, P3-1B): what it is (Share or Need), the free photo note, the member's Show in Google box
+      '<fieldset class="bfc-aud" id="bfcIntent"><legend>What is it</legend>' +
+      '<label><input type="radio" name="bfcIntent" value="share" checked> Share</label>' +
+      '<label><input type="radio" name="bfcIntent" value="need"> Need (ask for help)</label></fieldset>' +
+      '<p class="bfc-note" id="bfcFreeNote" hidden>' + esc(FREE_PHOTO_NOTE) + '</p>' +
       '<fieldset class="bfc-aud"><legend>Who sees it</legend>' +
       '<label><input type="radio" name="bfcAud" value="public" checked> Public</label>' +
       '<label><input type="radio" name="bfcAud" value="followers"> Followers</label></fieldset>' +
+      '<div class="bfc-seo" id="bfcSeo" hidden>' +
+      '<label class="bfc-check"><input type="checkbox" id="bfcSearch" checked> Show in Google</label>' +
+      '<span class="bfc-sub">Members only. Search engines may list this public post with the title and description below.</span>' +
+      '<label class="bfc-fl" for="bfcSeoTitle">Search title (optional, ' + SEO_TITLE_MAX + ' characters)</label>' +
+      '<input type="text" id="bfcSeoTitle" maxlength="' + SEO_TITLE_MAX + '">' +
+      '<label class="bfc-fl" for="bfcSeoDesc">Search description (optional, ' + SEO_DESCRIPTION_MAX + ' characters)</label>' +
+      '<textarea id="bfcSeoDesc" maxlength="' + SEO_DESCRIPTION_MAX + '"></textarea></div>' +
       '<p class="bfc-err" id="bfcErr" role="alert"></p>' +
       '<p class="bfc-status" id="bfcStatus" role="status"></p>' +
       '<button type="submit" class="bfc-post" id="bfcPost">Post</button>' +
@@ -144,11 +181,28 @@
     var form = el.querySelector("form"), text = el.querySelector("#bfcText"), count = el.querySelector("#bfcCount");
     var list = el.querySelector("#bfcPhotos"), file = el.querySelector("#bfcFile"), err = el.querySelector("#bfcErr"), status = el.querySelector("#bfcStatus");
     var post = el.querySelector("#bfcPost"), addLabel = el.querySelector("#bfcAddLabel");
+    // NAMED (Nov 21 2026, P3-1B): the tier (scripts/bf-access.js; unknown reads as neither, and the server decides)
+    var tier = null, seoBox = el.querySelector("#bfcSeo"), freeNote = el.querySelector("#bfcFreeNote");
+    var seoTitle = el.querySelector("#bfcSeoTitle"), seoDesc = el.querySelector("#bfcSeoDesc"), searchOn = el.querySelector("#bfcSearch");
+    var seoEdited = { t: false, d: false };
+    seoTitle.addEventListener("input", function () { seoEdited.t = true; });
+    seoDesc.addEventListener("input", function () { seoEdited.d = true; });
+    function intent() { return (el.querySelector('input[name="bfcIntent"]:checked') || {}).value || "share"; }
+    function audienceNow() { return (el.querySelector('input[name="bfcAud"]:checked') || {}).value || "public"; }
+    function rules() {
+      freeNote.hidden = !(tier === "free" && intent() === "share" && !photos.length);
+      seoBox.hidden = !(tier === "member" && audienceNow() === "public");
+      if (!seoEdited.t) seoTitle.value = firstWords(text.value, SEO_TITLE_MAX);
+      if (!seoEdited.d) seoDesc.value = firstWords(text.value, SEO_DESCRIPTION_MAX);
+    }
+    el.addEventListener("change", function (e) { if (e.target && /^bfc(Intent|Aud)$/.test(e.target.name || "")) rules(); });
+    whenAccess(function (a) { tier = a && a.tier; rules(); });
     function upd() {
       var k = chars(text.value);
       count.textContent = k + " / " + BODY_MAX;
       count.classList.toggle("is-over", k > BODY_MAX);
       addLabel.setAttribute("aria-disabled", String(photos.length >= PHOTOS_MAX));
+      rules();   // NAMED (Nov 21 2026, P3-1B)
     }
     function draw() {
       list.innerHTML = photos.map(function (p, i) {
@@ -187,6 +241,10 @@
       if (!body && !photos.length) { err.textContent = "Write something or add a photo to post."; return; }
       if (chars(body) > BODY_MAX) { err.textContent = "A post is at most " + BODY_MAX + " characters."; return; }
       var audience = (el.querySelector('input[name="bfcAud"]:checked') || {}).value || "public";
+      // NAMED (Nov 21 2026, P3-1B): a free account's share post without a photo is not sent; the note says why
+      if (tier === "free" && intent() === "share" && !photos.length) { err.textContent = FREE_PHOTO_NOTE; freeNote.hidden = false; return; }
+      var extra = { intent: intent() };
+      if (tier === "member" && audience === "public") { extra.search_visible = !!searchOn.checked; extra.seo_title = seoTitle.value.trim() || null; extra.seo_description = seoDesc.value.trim() || null; }
       post.disabled = true;
       var media = [];
       var chain = Promise.all(photos.map(function (p) { return p.ready; })).then(function (ready) {
@@ -206,7 +264,7 @@
       }).then(function () {
         status.textContent = "Posting...";
         return window.fetch(api() + "/api/posts", { method: "POST", headers: { "Authorization": "Bearer " + token(), "Content-Type": "application/json" },
-          body: JSON.stringify({ kind: media.length ? "photo" : "text", body: body, audience: audience, media: media }) })
+          body: JSON.stringify(Object.assign({ kind: media.length ? "photo" : "text", body: body, audience: audience, media: media }, extra)) })
           .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || "Your post wasn't saved. Try again."); return d; }); });
       });
       chain.then(function (d) {
@@ -256,5 +314,6 @@
   }
 
   window.BFComposer = { mount: mount, openModal: openModal, closeModal: closeModal, BODY_MAX: BODY_MAX, PHOTOS_MAX: PHOTOS_MAX, LONG_EDGE: LONG_EDGE,
-    THUMB_EDGE: THUMB_EDGE, WEBP_QUALITY: WEBP_Q, JPEG_QUALITY: JPEG_Q, PHOTO_MAX_BYTES: PHOTO_MAX_BYTES };
+    THUMB_EDGE: THUMB_EDGE, WEBP_QUALITY: WEBP_Q, JPEG_QUALITY: JPEG_Q, PHOTO_MAX_BYTES: PHOTO_MAX_BYTES,
+    SEO_TITLE_MAX: SEO_TITLE_MAX, SEO_DESCRIPTION_MAX: SEO_DESCRIPTION_MAX, FREE_PHOTO_NOTE: FREE_PHOTO_NOTE, firstWords: firstWords };   // NAMED (Nov 21 2026, P3-1B)
 })();

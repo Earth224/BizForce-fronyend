@@ -433,7 +433,9 @@
     });
   }
 
-  var token = localStorage.getItem("bf_token");
+  // NAMED (Nov 21 2026, P3-1B): read like every other storage read; storage that refuses reads as signed out
+  var token = null;
+  try { token = localStorage.getItem("bf_token"); } catch (e) { token = null; }
   if (!token) {
     renderMessage("Unable to load your agents — please sign in again.");
     return;

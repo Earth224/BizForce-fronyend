@@ -2027,6 +2027,8 @@ function renderProducts() {
 }
 
 function openProductModal(id) {
+  // NAMED (Nov 21 2026, P3-1B): products and services on a profile are selling, for members (scripts/bf-access.js panel)
+  if (window.bfAccess && window.bfAccess.tier && window.bfAccess.tier() === "free") { window.bfAccess.showPanel(); return; }
   editingProductId = id;
   document.getElementById("productModalTitle").textContent = id ? "Edit Product" : "Add Product";
   document.getElementById("productSaveBtn").textContent = "Save";

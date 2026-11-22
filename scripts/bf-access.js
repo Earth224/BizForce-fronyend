@@ -17,6 +17,10 @@
        before anything is tried.
      - THE BOTTOM BAR'S HQ TAB (scripts/bf-tabbar.js) opens the same panel for
        a free account instead of opening the dashboard.
+     - NAMED (Nov 21 2026, P3-1B, the owner's final rules): for a free account, every selling entry point and every
+       BizCash or members-only action (MEMBER_ACTIONS: a create button, the Create sheet's member entries, Message on a
+       profile or a listing) opens the members panel instead; Buy (BUY_ACTIONS) opens the card-checkout-coming sheet;
+       a ?create= link on the Market or the garage sale opens the panel. The server refuses each of them anyway.
      - THE VERIFICATION BANNER: an unconfirmed email is told what it is needed
        for (posting publicly, listing in the Market, messaging someone who does
        not follow you, receiving BizCash) and gets "Resend email" (POST
@@ -44,9 +48,20 @@
     "calendar.html", "bizdoc.html", "certifications.html", "digital-cards.html",
     "oracle.html", "mychart.html", "synastry.html", "the-third.html",
     // NAMED (Nov 21 2026, P3-2, the owner's decision): the media library and the business ID; their write routes are members only
-    "media.html", "business-id.html"
+    "media.html", "business-id.html",
+    // NAMED (Nov 21 2026, P3-1B): the wallet and receipts (BizCash in every form) and campaigns. support.html is the public
+    // "Support a member" page and stays open; sending support is members only on the server.
+    "wallet.html", "receipts.html", "campaigns.html"
   ];
-  var BANNER_TEXT = "Confirm your email to post publicly, list in the Market, message people who do not follow you, and receive BizCash. We sent you a link when you signed up.";
+  /* NAMED (Nov 21 2026, P3-1B): a free account's taps on these open the members panel (selling, starting a conversation),
+     and on these the card-checkout-coming sheet (Buy). */
+  var MEMBER_ACTIONS = [".create-btn", "a.bf-create-opt.is-members", "#pfsMessage", ".btn-message", "#sfMessage", "[data-members-only]"];
+  var BUY_ACTIONS = [".btn-buy", "a.buy-btn", "button.sf-buy-btn", "[data-bf-buy]"];
+  var CREATE_PAGES = ["marketplace.html", "garage-sale.html"];
+  var BUY_TEXT = ["Card checkout is coming", "Buying by card arrives soon. A free account never pays in BizCash; when card checkout opens, you can buy this here."];
+  // NAMED (Nov 21 2026, P3-1B): BEFORE "Confirm your email to post publicly, list in the Market, message people who do not follow you,
+  // and receive BizCash. ..." (selling and BizCash are members only now)
+  var BANNER_TEXT = "Confirm your email to post publicly and to message people who do not follow you. We sent you a link when you signed up.";
 
   function api() { return (typeof window.API_URL === "string" && window.API_URL) || API_FALLBACK; }
   function token() { try { return localStorage.getItem("bf_token"); } catch (e) { return null; } }
@@ -93,6 +108,9 @@
   var state = { tier: null, emailVerified: null, panel: null };
   var resolveReady;
   var ready = new Promise(function (r) { resolveReady = r; });
+  /* NAMED (Nov 21 2026, P3-1B): bf-session.js loads this file late, so a script that ran first waits for the "bf-access"
+     event on document (detail: what ready resolves to) when window.bfAccess is not there yet. */
+  ready.then(function (a) { try { document.dispatchEvent(new CustomEvent("bf-access", { detail: a })); } catch (e) { /* old browser */ } });
 
   function buildPanel(onPage) {
     var p = state.panel;
@@ -114,7 +132,8 @@
     if (!onPage) home.addEventListener("click", function (e) { e.preventDefault(); close(); });
     actions.appendChild(join); actions.appendChild(home);
     box.appendChild(actions);
-    box.appendChild(el("p", "bfa-note", "Your free account keeps your profile, posts, Market listings, messages and BizCash you receive. Membership is paid by card; BizCash never pays for it."));
+    // NAMED (Nov 21 2026, P3-1B): BEFORE "Your free account keeps your profile, posts, Market listings, messages and BizCash you receive. ..."
+    box.appendChild(el("p", "bfa-note", "Your free account keeps your profile, photo posts, Needs, follows, replies and the Inbox. Membership is paid by card; BizCash never pays for it."));
     veil.appendChild(box);
     return veil;
   }
@@ -155,6 +174,32 @@
     else window.addEventListener("resize", measure);
   }
 
+  /* NAMED (Nov 21 2026, P3-1B): Buy for a free account: a small sheet (card checkout arrives later), Close focused, Escape closes. */
+  function showBuySheet() {
+    if (document.getElementById("bf-buy-sheet")) return true;
+    addStyle();
+    var veil = el("div", "bfa-veil"); veil.id = "bf-buy-sheet";
+    var box = el("section", "bfa-panel");
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-labelledby", "bfa-buy-title");
+    var h = el("h2", null, BUY_TEXT[0]); h.id = "bfa-buy-title";
+    box.appendChild(h); box.appendChild(el("p", null, BUY_TEXT[1]));
+    var actions = el("div", "bfa-actions");
+    var shut = el("a", "bfa-join", "Close"); shut.href = "#"; shut.setAttribute("role", "button");
+    function closeSheet(e) { if (e) e.preventDefault(); if (veil.parentNode) veil.parentNode.removeChild(veil); document.removeEventListener("keydown", onKey); }
+    function onKey(e) { if (e.key === "Escape") closeSheet(e); }
+    shut.addEventListener("click", closeSheet);
+    document.addEventListener("keydown", onKey);
+    actions.appendChild(shut); box.appendChild(actions); veil.appendChild(box);
+    document.body.appendChild(veil);
+    if (shut.focus) shut.focus();
+    return true;
+  }
+  document.addEventListener("click", function (e) {
+    if (state.tier !== "free" || !e.target || !e.target.closest) return;
+    if (e.target.closest(BUY_ACTIONS.join(","))) { e.preventDefault(); e.stopPropagation(); showBuySheet(); return; }
+    if (e.target.closest(MEMBER_ACTIONS.join(","))) { if (showPanel(false)) { e.preventDefault(); e.stopPropagation(); } }
+  }, true);
+
   /* The bottom bar's HQ tab: a free account gets the panel, not the dashboard. */
   document.addEventListener("click", function (e) {
     var a = e.target && e.target.closest ? e.target.closest('#bf-tabbar a[data-tab="hq"]') : null;
@@ -162,12 +207,20 @@
     if (showPanel(false)) e.preventDefault();
   }, true);
 
+  // the page tidies ?create= out of the address at once, keeping the kind on <html data-bf-create> for this check
+  function createKept() {
+    var h = document.documentElement;
+    return !!(h && typeof h.hasAttribute === "function" && h.hasAttribute("data-bf-create"));
+  }
+
   function apply(access) {
     state.tier = access && (access.tier === "member" || access.tier === "free") ? access.tier : null;
     state.emailVerified = access && typeof access.email_verified === "boolean" ? access.email_verified : null;
     state.panel = access && access.members_panel && typeof access.members_panel === "object" ? access.members_panel : null;
     if (state.emailVerified === false) showBanner();
     if (state.tier === "free" && MEMBER_PAGES.indexOf(pageName()) !== -1) showPanel(true);
+    // NAMED (Nov 21 2026, P3-1B): a ?create= link (the Create sheet's selling entries) on the Market or the garage sale
+    else if (state.tier === "free" && CREATE_PAGES.indexOf(pageName()) !== -1 && (/[?&]create=/.test(window.location.search || "") || createKept())) showPanel(false);
     resolveReady({ tier: state.tier, emailVerified: state.emailVerified, panel: state.panel });
   }
 
@@ -180,6 +233,7 @@
   }
 
   window.bfAccess = { ready: ready, showPanel: function () { return showPanel(false); }, MEMBER_PAGES: MEMBER_PAGES.slice(),
+    showBuySheet: showBuySheet, MEMBER_ACTIONS: MEMBER_ACTIONS.slice(), BUY_ACTIONS: BUY_ACTIONS.slice(), BUY_TEXT: BUY_TEXT.slice(),   // NAMED (Nov 21 2026, P3-1B)
     tier: function () { return state.tier; } };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();

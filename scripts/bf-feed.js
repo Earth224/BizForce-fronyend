@@ -234,6 +234,16 @@
     ".bfp-err{margin:0;font-size:.85rem;color:#fca5a5}",
     ".bfp-err:empty{display:none}",
     ".bfp-empty{margin:0;color:#8892b8;font-size:.9rem;text-align:center;padding:20px 0}",
+    // NAMED (Nov 21 2026, P3-1B): the Talk members box and Edit post's Show in Google
+    ".bfp-talk-members{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}",
+    "#bfp-talk .bfp-talk-members[hidden],#bfp-talk .bfp-talk-form[hidden]{display:none}",
+    ".bfp-tm-h{margin:0;font-weight:800;color:#f4f7ff}",
+    ".bfp-tm-s{margin:0;font-size:.88rem;line-height:1.45;color:#a9b3cc}",
+    ".bfp-tm-join{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 22px;text-decoration:none}",
+    ".bfp-seo{display:flex;flex-direction:column;gap:6px;margin-top:10px}",
+    ".bfp-seo label{font-size:.82rem;font-weight:700;color:#c4cbe0}",
+    ".bfp-seo .bfp-check{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:.92rem}",
+    ".bfp-seo .bfp-check input{width:20px;height:20px;accent-color:var(--bf-accent-a, #22d3ee)}",
     "@media " + BREAKPOINT + "{",
     "#bfp-talk{top:auto;left:0;right:0;width:auto;height:72dvh;border-left:0;border-top:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22);border-radius:22px 22px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.55)}",
     "#bfp-talk .bfp-talk-grip{display:block;align-self:center;width:40px;height:5px;margin-top:8px;border-radius:3px;background:rgba(255,255,255,.18)}",
@@ -486,10 +496,23 @@
     dlg.hidden = true; dlgBack.hidden = true;
     if (dlgFocus && dlgFocus.focus) { try { dlgFocus.focus(); } catch (e) { /* gone */ } }
   }
+  /* NAMED (Nov 21 2026, P3-1B): Edit post's Show in Google, for a member (scripts/bf-access.js tier) on their own public post.
+     Empty fields are filled from the post's first words; the server checks the lengths and that the author is a member. */
+  var TALK_MEMBERS = "Comments on members' posts are for members";
+  var SEO_T = 70, SEO_D = 160;
+  function firstWords(t, k) { var a = Array.from(String(t || "").replace(/\s+/g, " ").trim()); return a.length > k ? a.slice(0, k - 3).join("").trim() + "..." : a.join(""); }
+  function editSeoHtml(p) {
+    var tier = window.bfAccess && window.bfAccess.tier ? window.bfAccess.tier() : null;
+    if (tier !== "member" || !p.search || p.audience === "followers") return "";
+    var sr = p.search;
+    return '<div class="bfp-seo"><label class="bfp-check"><input type="checkbox" id="bfpEditSearch"' + (sr.visible === false ? "" : " checked") + '> Show in Google</label>' +
+      '<label for="bfpEditSeoT">Search title (optional, ' + SEO_T + ' characters)</label><input class="bfp-input" type="text" id="bfpEditSeoT" maxlength="' + SEO_T + '" value="' + esc(sr.title || firstWords(p.body, SEO_T)) + '">' +
+      '<label for="bfpEditSeoD">Search description (optional, ' + SEO_D + ' characters)</label><textarea class="bfp-input" id="bfpEditSeoD" maxlength="' + SEO_D + '">' + esc(sr.description || firstWords(p.body, SEO_D)) + '</textarea></div>';
+  }
   function editPost(el, p) {
     var d = dialog("Edit post",
       '<textarea class="bfp-input" id="bfpEditBody" maxlength="' + BODY_MAX + '">' + esc(p.body) + '</textarea>' +
-      '<span class="bfp-count" id="bfpEditCount"></span><p class="bfp-err" id="bfpEditErr" role="alert"></p>' +
+      '<span class="bfp-count" id="bfpEditCount"></span>' + editSeoHtml(p) + '<p class="bfp-err" id="bfpEditErr" role="alert"></p>' +
       '<div class="bfp-dlg-acts"><button type="button" class="bfp-send" id="bfpEditSave">Save</button><button type="button" class="bfp-quiet" id="bfpEditCancel">Cancel</button></div>', "#bfpEditBody");
     var box = d.querySelector("#bfpEditBody"), count = d.querySelector("#bfpEditCount");
     var upd = function () { count.textContent = Array.from(box.value).length + " / " + BODY_MAX; };
@@ -498,7 +521,10 @@
     d.querySelector("#bfpEditSave").addEventListener("click", function () {
       var btn = this;
       btn.disabled = true;
-      call("PATCH", "/api/posts/" + encodeURIComponent(p.id), { body: box.value }).then(function (r) {
+      var patch = { body: box.value };
+      var seoOn = d.querySelector("#bfpEditSearch");   // NAMED (Nov 21 2026, P3-1B)
+      if (seoOn) { patch.search_visible = !!seoOn.checked; patch.seo_title = d.querySelector("#bfpEditSeoT").value.trim() || null; patch.seo_description = d.querySelector("#bfpEditSeoD").value.trim() || null; }
+      call("PATCH", "/api/posts/" + encodeURIComponent(p.id), patch).then(function (r) {
         btn.disabled = false;
         if (!r.ok) { d.querySelector("#bfpEditErr").textContent = r.body.error || "That did not save. Try again."; return; }
         closeDialog();
@@ -561,7 +587,10 @@
         '<button type="submit" class="bfp-send" id="bfpTalkSend">Send</button></div>' +
         '<span class="bfp-count" id="bfpTalkCount">0 / ' + COMMENT_MAX + '</span>' +
         '<p class="bfp-err" id="bfpTalkErr" role="alert"></p>' +
-      '</form>';
+      '</form>' +
+      // NAMED (Nov 21 2026, P3-1B): a free account on a member's post reads the comments; adding one is for members (comment_rule)
+      '<div class="bfp-talk-members" id="bfpTalkMembers" hidden><p class="bfp-tm-h">' + esc(TALK_MEMBERS) + '</p>' +
+      '<p class="bfp-tm-s" id="bfpTalkRule"></p><a class="bfp-send bfp-tm-join" href="/billing.html">Join</a></div>';
     document.body.appendChild(talkBack); document.body.appendChild(talk);
     talk.querySelector("#bfpTalkClose").addEventListener("click", closeTalk);
     talk.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeTalk(); } });
@@ -601,11 +630,18 @@
     html += all.filter(function (c) { return c.parent_id && !tops.some(function (t) { return t.id === c.parent_id; }); }).map(function (r) { return commentHtml(r, true); }).join("");
     list.innerHTML = html;
   }
+  /* NAMED (Nov 21 2026, P3-1B): the server's comment_rule (GET /comments) decides; the box replaces the form */
+  function talkRule(rule) {
+    var form = talk.querySelector("#bfpTalkForm"), box = talk.querySelector("#bfpTalkMembers");
+    form.hidden = !!rule; box.hidden = !rule;
+    talk.querySelector("#bfpTalkRule").textContent = rule || "";
+  }
   function openTalk(postId, from) {
     if (!token()) { needSignIn(); return; }
     ensureTalk();
     talkState = { postId: postId, comments: [], replyTo: null, from: from || document.activeElement };
     setReply(null);
+    talkRule(null);
     talk.querySelector("#bfpTalkErr").textContent = "";
     talk.querySelector("#bfpTalkList").innerHTML = '<li class="bfp-empty">Loading...</li>';
     talkBack.hidden = false; talk.hidden = false;
@@ -614,6 +650,7 @@
       if (!talkState || talkState.postId !== postId) return;
       if (!r.ok) { talk.querySelector("#bfpTalkList").innerHTML = '<li class="bfp-empty">' + esc(r.body.error || "The comments could not be loaded.") + '</li>'; return; }
       talkState.comments = r.body.comments || [];
+      if (r.body.can_comment === false) talkRule(r.body.comment_rule || TALK_MEMBERS);   // NAMED (Nov 21 2026, P3-1B)
       renderComments();
     }).catch(function () { talk.querySelector("#bfpTalkList").innerHTML = '<li class="bfp-empty">The comments could not be loaded. Check your connection.</li>'; });
   }
@@ -639,7 +676,7 @@
     var postId = talkState.postId;
     call("POST", "/api/posts/" + encodeURIComponent(postId) + "/comments", body).then(function (r) {
       btn.disabled = false;
-      if (!r.ok) { err.textContent = r.body.error || "That did not send. Try again."; return; }
+      if (!r.ok) { if (r.body && r.body.reason === "members_only") { talkRule(r.body.error); return; } err.textContent = r.body.error || "That did not send. Try again."; return; }
       talkState.comments.push(r.body.comment);
       input.value = ""; talk.querySelector("#bfpTalkCount").textContent = "0 / " + COMMENT_MAX;
       setReply(null);

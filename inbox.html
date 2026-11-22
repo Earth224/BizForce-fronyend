@@ -141,6 +141,8 @@
         <button type="button" class="btn btn-primary" id="sendBtn">Send</button>
       </div>
       <p class="error" id="sendError" role="alert" hidden></p>
+      <!-- NAMED (Nov 21 2026, P3-1B): a free account replies only where a member wrote first -->
+      <p class="empty" id="replyOnly" hidden>Starting a conversation is for members. You can reply when a member messages you first. <a href="/billing.html">Join</a></p>
     </section>
     <aside class="pane pane-details" id="paneDetails" aria-labelledby="detailsTitle">
       <div class="pane-head"><h2 id="detailsTitle">Details</h2></div>
@@ -296,7 +298,23 @@ document.getElementById("listBody").addEventListener("click", function (e) {
   else if (state.tab === "approvals") openApproval(id);
 });
 
+/* NAMED (Nov 21 2026, P3-1B, the owner's rules): a free account can reply in a conversation a member started, but cannot
+   start one (POST /api/messages answers 403 members_only). With no message from them yet, the compose box gives way to the
+   reply-only line and the members panel (scripts/bf-access.js). */
+function accessTier() { return window.bfAccess && window.bfAccess.tier ? window.bfAccess.tier() : null; }
+function replyRule(otherId) {
+  if (state.openId !== otherId) return;
+  // the tier may not be known yet (bf-access is injected late): judge again once it is
+  if (accessTier() === null && window.bfAccess && window.bfAccess.ready && !replyRule.waiting) { replyRule.waiting = true; window.bfAccess.ready.then(function () { replyRule.waiting = false; replyRule(otherId); }); }
+  else if (accessTier() === null && !window.bfAccess && !replyRule.listening) { replyRule.listening = true; document.addEventListener("bf-access", function () { replyRule.listening = false; replyRule(state.openId); }, { once: true }); }
+  var theirs = state.thread.some(function (m) { return m && m.sender_id === otherId; });
+  var blocked = accessTier() === "free" && !theirs;
+  document.getElementById("compose").hidden = blocked;
+  document.getElementById("replyOnly").hidden = !blocked;
+  if (blocked && window.bfAccess) window.bfAccess.showPanel();
+}
 function openThread(otherId) {
+  document.getElementById("replyOnly").hidden = true;
   state.openId = otherId;
   state.thread = []; state.threadMore = false; state.threadBefore = null; state.person = null;
   renderConversations();
@@ -325,6 +343,7 @@ function openThread(otherId) {
     }
   }).catch(function () {});
   loadThread(otherId, false).then(function () {
+    replyRule(otherId);   // NAMED (Nov 21 2026, P3-1B)
     return api("/api/inbox/read/" + encodeURIComponent(otherId), { method: "POST" });
   }).then(function () {
     state.conversations.forEach(function (c) { if (c.other_id === otherId) c.unread = 0; });
@@ -387,6 +406,11 @@ function sendMessage() {
   err.hidden = true;
   var to = state.openId;
   api("/api/messages", { method: "POST", body: { receiver_id: to, content: text } }).then(function (r) {
+    if (r.status === 403 && r.data && r.data.reason === "members_only") {   // NAMED (Nov 21 2026, P3-1B)
+      document.getElementById("compose").hidden = true; document.getElementById("replyOnly").hidden = false;
+      if (window.bfAccess) window.bfAccess.showPanel();
+      return;
+    }
     if (!r.ok) throw new Error((r.data && r.data.error) || "Your message could not be sent.");
     input.value = "";
     return loadThread(to, false).then(function () { return loadConversations(); });

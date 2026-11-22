@@ -77,17 +77,17 @@
       icon: '<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>' },
     { key: "video", title: "Video", sub: "Short videos for your followers", soon: true, color: "#f472b6",
       icon: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/>' },
-    { key: "product", title: "Product listing", sub: "Sell for BizCash", href: "/marketplace.html?create=product", color: "#b79cfa",
+    { key: "product", members: true, title: "Product listing", sub: "Sell for BizCash", href: "/marketplace.html?create=product", color: "#b79cfa",
       icon: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>' },
-    { key: "service", title: "Service", sub: "Offer your skills to members", href: "/marketplace.html?create=service", color: "#6ee7b7",
+    { key: "service", members: true, title: "Service", sub: "Offer your skills to members", href: "/marketplace.html?create=service", color: "#6ee7b7",
       icon: '<path d="M4 7h16v12H4zM9 7V4h6v3"/>' },
-    { key: "agent", title: "Ask an agent", sub: "An agent drafts it; you approve it", href: "/run.html", color: "var(--bf-accent-a, #22d3ee)", featured: true,
+    { key: "agent", members: true, title: "Ask an agent", sub: "An agent drafts it; you approve it", href: "/run.html", color: "var(--bf-accent-a, #22d3ee)", featured: true,
       icon: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/>' },
-    { key: "campaign", title: "Campaign", sub: "Raise BizCash from members", href: "/campaigns.html?create=campaign", color: "#f5c46b",
+    { key: "campaign", members: true, title: "Campaign", sub: "Raise BizCash from members", href: "/campaigns.html?create=campaign", color: "#f5c46b",
       icon: '<path d="M4 20V10l8-6 8 6v10M9 20v-5h6v5"/>' },
-    { key: "garage", title: "Garage sale item", sub: "Sell something you own", href: "/garage-sale.html?create=item", color: "#5fa6f0",
+    { key: "garage", members: true, title: "Garage sale item", sub: "Sell something you own", href: "/garage-sale.html?create=item", color: "#5fa6f0",
       icon: '<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4"/>' },
-    { key: "card", title: "Business card", sub: "Make or share your digital card", href: "/digital-cards.html", color: "#a9b3cc",
+    { key: "card", members: true, title: "Business card", sub: "Make or share your digital card", href: "/digital-cards.html", color: "#a9b3cc",
       icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h6M7 14h4"/>' }
   ];
   var ICONS = {
@@ -169,6 +169,9 @@
     "#bf-create .bf-create-s{font-size:.8rem;line-height:1.35;color:#a9b3cc}",
     "#bf-create .bf-create-soon{align-self:flex-start;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fbbf24;",
     "padding:3px 8px;border-radius:999px;border:1px solid rgba(251,191,36,.35)}",
+    // NAMED (Nov 21 2026, P3-1B): a free account's "Members" tag on the members-only entries
+    "#bf-create .bf-create-members{align-self:flex-start;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--bf-accent-a, #22d3ee);",
+    "padding:3px 8px;border-radius:999px;border:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.4)}",
     "@media " + BREAKPOINT + "{",
     "#bf-create{left:0;right:0;top:auto;bottom:0;transform:none;width:auto;max-height:calc(100dvh - 40px);border-radius:24px 24px 0 0;",
     "padding:10px 16px calc(20px + env(safe-area-inset-bottom, 0px));box-shadow:0 -12px 40px rgba(0,0,0,.55)}",
@@ -246,6 +249,10 @@
     if (link && link.setAttribute) link.setAttribute("aria-label", "Inbox" + (count ? ", " + count + " unread" : ""));
   }
 
+  function whenAccess(cb) {   // NAMED (Nov 21 2026, P3-1B): scripts/bf-access.js ready, now or once it loads
+    if (window.bfAccess && window.bfAccess.ready) { window.bfAccess.ready.then(cb); return; }
+    document.addEventListener("bf-access", function (e) { cb(e.detail); }, { once: true });
+  }
   function buildSheet() {
     backdrop = document.createElement("div");
     backdrop.id = "bf-create-backdrop";
@@ -264,7 +271,7 @@
         return '<li><div class="bf-create-opt is-soon" data-create="' + c.key + '" aria-disabled="true">' + inner +
           '<span class="bf-create-soon">Coming soon</span></div></li>';
       }
-      return '<li><a class="bf-create-opt' + (c.featured ? " is-featured" : "") + '" data-create="' + c.key + '" href="' + c.href + '">' + inner + '</a></li>';
+      return '<li><a class="bf-create-opt' + (c.featured ? " is-featured" : "") + '" data-create="' + c.key + '"' + (c.members ? ' data-members="true"' : "") + ' href="' + c.href + '">' + inner + '</a></li>';
     }).join("");
     sheet.innerHTML = '<span class="bf-create-grip" aria-hidden="true"></span>' +
       '<div class="bf-create-head"><h2 id="bf-create-title">Create</h2>' +
@@ -290,6 +297,18 @@
     });
     document.body.appendChild(backdrop);
     document.body.appendChild(sheet);
+    /* NAMED (Nov 21 2026, P3-1B): for a free account (scripts/bf-access.js says so) the members-only entries (selling, campaigns,
+       agents, the business card) carry a "Members" tag and open the members panel (bf-access.js MEMBER_ACTIONS: is-members). */
+    whenAccess(function (a) {
+      if (!a || a.tier !== "free") return;
+      [].forEach.call(sheet.querySelectorAll('a.bf-create-opt[data-members="true"]'), function (o) {
+        if (o.classList.contains("is-members")) return;
+        o.classList.add("is-members");
+        var tag = document.createElement("span"); tag.className = "bf-create-members"; tag.textContent = "Members";
+        o.appendChild(tag);
+        o.setAttribute("aria-label", o.querySelector(".bf-create-t").textContent + ", for members");
+      });
+    });
   }
 
   /* NAMED (Nov 20 2026, P2-3): the composer modal (scripts/bf-composer.js, loaded the first time it is wanted). */
@@ -328,7 +347,7 @@
     wanted: wanted,
     HIDDEN_PAGES: HIDDEN_PAGES.slice(),
     HIDDEN_PREFIXES: HIDDEN_PREFIXES.slice(),
-    CREATE: CREATE.map(function (c) { return { key: c.key, title: c.title, href: c.href || null, soon: !!c.soon }; })
+    CREATE: CREATE.map(function (c) { return { key: c.key, title: c.title, href: c.href || null, soon: !!c.soon, members: !!c.members }; })
   };
 
   function start() {

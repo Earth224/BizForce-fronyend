@@ -290,6 +290,7 @@ var createKind = null;
 function openCreateFromLink() {
   var kind = new URLSearchParams(window.location.search).get("create");
   if (kind !== "product" && kind !== "service") return;
+  document.documentElement.setAttribute("data-bf-create", kind);   // NAMED (Nov 21 2026, P3-1B): kept for scripts/bf-access.js, which may run after the address is tidied
   try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
   openCreateModal();
   createKind = kind;
