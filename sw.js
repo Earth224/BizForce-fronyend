@@ -41,7 +41,8 @@ var BUILD = "__BF_BUILD__";
 /* NAMED (Nov 21 2026, FX2): BEFORE "p32". AFTER "fx2": the feed's Tip and product strip, the Profile's banner, the Agent Directory's views (bf-agents-views.js) and the Oracle's Sun. */
 // NAMED (Nov 21 2026, P3-1B): BEFORE "fx2". AFTER "p31b": the free-account rules (bf-access.js Buy sheet and members intercepts, the Create sheet's Members tags, the composer's photo rule and Show in Google, Talk's members box).
 // NAMED (Nov 21 2026, P3-1C): BEFORE "p31b". AFTER "p31c": the wallet says members start with 1,000 BizCash and shows the two new ledger reasons in words.
-var SHELL_REV = "p31c";
+// NAMED (Nov 22 2026, FX3): BEFORE "p31c". AFTER "fx3": the abyss sun and bf-abyss.js, Termaximus on the phone (the mist, the Guide tab, the chat; the book button gone), the agent cards' colours and icons.
+var SHELL_REV = "fx3";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -80,7 +81,10 @@ var STATIC_FILES = [
   "/scripts/bf-access.js",   // NAMED (Nov 20 2026, P3-1): the members panel and the verification banner (bf-session.js loads it)
   "/scripts/bf-verified.js",   // NAMED (Nov 21 2026, P3-2): the Verified badge (Home, the profile and the storefront load it)
   "/scripts/bf-agents-views.js",   // NAMED (Nov 21 2026, FX2): the Agent Directory's phone views (ai-agents.html loads it)
-  "/brand/sun-sdo-hmi-20261121.webp",   // NAMED (Nov 21 2026, FX2): the Sun in the HQ orbit's centre while ORACLE is open
+  // NAMED (Nov 22 2026, FX3): BEFORE "/brand/sun-sdo-hmi-20261121.webp" (the Sun, removed). AFTER the abyss (the chat box's
+  // starfield and the HQ orbit's abyss sun; the dashboard loads it, the Termaximus presence fetches it on the other pages)
+  "/scripts/bf-abyss.js",
+  "/scripts/bf-agent-marks.js",   // NAMED (Nov 22 2026, FX3): the agents' own colours and icons, one map (the dashboard and the Agent Directory load it)
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];

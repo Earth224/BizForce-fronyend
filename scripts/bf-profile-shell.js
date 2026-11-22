@@ -136,7 +136,9 @@
     "@media (max-width: 760px){",
     "#pfShell{padding:0;margin:0;max-width:none}",
     "body:not(.edit-mode) .pf-nav,body:not(.edit-mode) .pf-banner,body:not(.edit-mode) .pf-header-wrap{display:none}",
-    "#tmx-guide-fab{display:none}",
+    // NAMED (Nov 22 2026, FX3): BEFORE "#tmx-guide-fab{display:none}" (the book button, now gone). AFTER the Guide's tab,
+    // which now shows on a phone, stays off this screen as the button did (the design has none).
+    "#tmx-guide-root{display:none}",
     ".pfs{gap:0;padding:0;border:0;border-radius:0;background:transparent;align-items:stretch}",
     /* NAMED (Nov 21 2026, FX2): BEFORE margin-top:calc(12px + env(safe-area-inset-top, 0px)). css/bf-phone.css already pads the page
        (html) by the safe area on a page with no top bar, as this one, so on a phone with a notch the row sat a second safe area

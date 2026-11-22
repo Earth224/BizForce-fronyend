@@ -52,6 +52,44 @@
     "  #tmx-core, #tmx-soul, .tmx-blob, .tmx-star, #tmx-gold-a, #tmx-gold-b, #tmx-gold-c, #tmx-chat-glow { animation: none !important; }\n" +
     "  #tmx-shoot { animation: none !important; opacity: 0 !important; }\n" +
     "  .tmx-star { opacity: var(--sp-hi, 1); transition: none; }\n" +
+    /* NAMED (Nov 22 2026, FX3, found by TMX-READ): BEFORE the chat box's void kept drifting, its gold rim kept shimmering,
+       its shooting star kept flying and the thinking title kept glowing under reduced motion. AFTER all four hold still
+       (the shooting star's timer draws nothing either), and the box opens and closes with a plain 0.2 s fade instead of
+       its ten transitions (openChat, closeChat). */
+    "  #tmx-chat, #tmx-chat::before, #tmx-chat-title-name.tmx-thinking { animation: none !important; }\n" +
+    "  #tmx-chat-shoot { animation: none !important; opacity: 0 !important; }\n" +
+    "}\n";
+
+  /* NAMED (Nov 22 2026, FX3): TERMAXIMUS ON THE PHONE (760 px and below; above it nothing here applies).
+     BEFORE css/bf-phone.css sent the mist under the page, faded, taking no tap, and a book button opened the Guide's
+     tips in a bottom sheet. AFTER, as the owner's approved boards draw it:
+     THE MIST is a fixed 56 x 56 button, the same mist scaled down (all its parts, animations and theme tokens), 16 px
+       from the right and 16 px above the bottom bar (and the safe area). It takes taps ("Ask Termaximus"); the corner
+       setting, a saved drag position, dragging and the keep-clear shifting do not apply here. Z-index 46: over the page
+       (Home's full-screen feed is 40 to 45), under every sheet, the members panel and the dialogs (50 and up). Its
+       whisper keeps its size and ends at the mist's right edge, so it stays on the screen.
+     THE CHAT is 8 px from each side, its bottom 10 px above the mist, its height the smaller of 420 px and the visible
+       viewport less the top safe area and 16 px; with the keyboard up (visualViewport) it sits just above it, so the
+       input stays in view (tmxPhoneFit below). Everything else is the chat as it is. */
+  var TMX_PHONE_QUERY = "(max-width: 760px)";
+  var TMX_PHONE_MIST = 56, TMX_DESK_MIST = 110;
+  var TMX_PHONE = "\n@media " + TMX_PHONE_QUERY + " {\n" +
+    "  #tmx-presence-root { top: auto !important; left: auto !important; right: 16px !important; bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;\n" +
+    "    translate: none !important; transform: scale(" + (TMX_PHONE_MIST / TMX_DESK_MIST).toFixed(7) + "); transform-origin: 100% 100%;\n" +
+    "    z-index: 46; pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }\n" +
+    "  html.bf-tabbar-on #tmx-presence-root { bottom: calc(56px + 16px + env(safe-area-inset-bottom, 0px)) !important; }\n" +
+    "  #tmx-presence-root:focus-visible { outline: 4px solid var(--bf-accent-a, #22d3ee); outline-offset: 4px; border-radius: 50%; }\n" +
+    "  #tmx-whisper { left: auto; right: 0; transform: scale(" + (TMX_DESK_MIST / TMX_PHONE_MIST).toFixed(7) + "); transform-origin: 100% 50%; }\n" +
+    "  #tmx-chat, #tmx-chat-glow-wrap { top: auto !important; left: 8px !important; right: 8px !important; width: auto !important;\n" +
+    "    bottom: var(--tmx-chat-bottom, calc(16px + 56px + 10px + env(safe-area-inset-bottom, 0px))) !important;\n" +
+    "    height: var(--tmx-chat-h, min(420px, calc(100vh - env(safe-area-inset-top, 0px) - 16px))) !important; }\n" +
+    "  html.bf-tabbar-on #tmx-chat, html.bf-tabbar-on #tmx-chat-glow-wrap { bottom: var(--tmx-chat-bottom, calc(56px + 16px + 56px + 10px + env(safe-area-inset-bottom, 0px))) !important; }\n" +
+    "  #tmx-chat-reset { display: none !important; }\n" +
+    /* NAMED (Nov 22 2026, FX3): the closed chat is not drawn on the phone. BEFORE (desktop, unchanged) the closed box stays
+       at opacity 0 with its blur and two animations; AFTER, on the phone, where it spans the screen over the turning orbit,
+       it is hidden once its closing fade has ended (tmx-chat-live, set by openChat, cleared by _clearFX), so the browser
+       does not re-blur and repaint an unseen 420 px box every frame. */
+    "  #tmx-chat:not(.tmx-chat-live), #tmx-chat:not(.tmx-chat-live)::before { visibility: hidden; animation-play-state: paused; }\n" +
     "}\n";
 
   /* ── Styles ── */
@@ -792,12 +830,24 @@
     "  );",
     "}"
 
-  ].join("\n") + MIST_STILL;
+  ].join("\n") + MIST_STILL + TMX_PHONE;
   document.head.appendChild(style);
 
   /* ── DOM ── */
   var root = document.createElement("div");
   root.id = "tmx-presence-root";
+  /* NAMED (Nov 22 2026, FX3): the mist is a button by name at every width (a tap or a click opened it before too);
+     Enter and Space open it as a click does. */
+  root.setAttribute("role", "button");
+  root.setAttribute("aria-label", "Ask Termaximus");
+  root.setAttribute("tabindex", "0");
+  /* On the phone (760 px and below) the mist keeps its place: no drag, no saved spot, no keep-clear shift. */
+  function tmxPhone() {
+    try { return !!(window.matchMedia && window.matchMedia(TMX_PHONE_QUERY).matches); } catch (e) { return false; }
+  }
+  function tmxStill() {
+    try { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { return false; }
+  }
 
   var core = document.createElement("div");
   core.id = "tmx-core";
@@ -890,257 +940,37 @@
   chatGlowWrap.appendChild(chatGlow);
   document.body.appendChild(chatGlowWrap);
 
-  /* ── Chat-box starfield engine — mirrors oracle.html's #starCanvas engine
-     (same makeStar/drawStarAt/drawStarWrapped, nebula, twinkle, and drift),
-     adapted to the small fixed chat panel: sized to the canvas element's
-     own box instead of the viewport, star counts scaled down for the
-     panel's size, and all pointer/tilt parallax removed (stars still
-     self-drift and twinkle, they just don't track input). Gated on the
-     chat's own open/close state via start()/stop(), in addition to the
-     document.hidden pause. ── */
+  /* ── Chat-box starfield: THE ABYSS, scripts/bf-abyss.js (FX3, Nov 22 2026) ──
+     NAMED (Nov 22 2026, FX3): BEFORE the engine was written here (createTmxStarfield). AFTER it lives in ONE shared file,
+     scripts/bf-abyss.js, moved unchanged (the same nebula, three layers of 70, 35 and 16 stars, the same drawing, drift,
+     twinkle, DPR cap and pause on document.hidden); the HQ orbit's centre draws it too. A page that has not loaded it
+     (every page but the dashboard) gets it from here, once. Until it arrives, start/stop/resize are remembered and
+     applied on arrival. Gated on the chat's own open/close state via start()/stop(), in addition to the document.hidden
+     pause. */
   function createTmxStarfield(canvas) {
-    if (!canvas) return { start: function () {}, stop: function () {} };
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return { start: function () {}, stop: function () {} };
-
-    var reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-
-    var DPR_CAP = 2;
-    var cssWidth  = canvas.clientWidth  || 288;
-    var cssHeight = canvas.clientHeight || 340;
-
-    var nebulaCanvas = document.createElement("canvas");
-    var nebulaCtx     = null;
-
-    function renderNebula() {
-      nebulaCanvas.width  = canvas.width;
-      nebulaCanvas.height = canvas.height;
-      nebulaCtx = nebulaCanvas.getContext("2d");
-      var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
-      nebulaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-      var span = Math.max(cssWidth, cssHeight);
-      var clouds = [
-        { x: cssWidth * 0.18, y: cssHeight * 0.22, r: span * 0.55, color: "168,85,247",  alpha: 0.06 }, /* violet */
-        { x: cssWidth * 0.82, y: cssHeight * 0.68, r: span * 0.5,  color: "34,211,238",  alpha: 0.05 }, /* cyan */
-        { x: cssWidth * 0.52, y: cssHeight * 0.85, r: span * 0.4,  color: "52,211,153",  alpha: 0.035 } /* emerald whisper */
-      ];
-
-      clouds.forEach(function (c) {
-        var g = nebulaCtx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
-        g.addColorStop(0, "rgba(" + c.color + "," + c.alpha + ")");
-        g.addColorStop(1, "rgba(" + c.color + ",0)");
-        nebulaCtx.fillStyle = g;
-        nebulaCtx.fillRect(0, 0, cssWidth, cssHeight);
-      });
+    var engine = null, want = false;
+    function make() {
+      if (engine || !window.BFAbyss) return;
+      engine = window.BFAbyss.create(canvas);
+      if (want) { engine.resize(); engine.start(); }
     }
-
-    function resize() {
-      cssWidth  = canvas.clientWidth  || cssWidth;
-      cssHeight = canvas.clientHeight || cssHeight;
-      var dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
-      canvas.width  = Math.round(cssWidth  * dpr);
-      canvas.height = Math.round(cssHeight * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      renderNebula();
-    }
-    resize();
-
-    var resizeTimer = null;
-    window.addEventListener("resize", function () {
-      if (resizeTimer) clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(resize, 150);
-    });
-
-    // ── Star generation ──────────────────────────────────────────────────
-    var TINTS = [
-      { r: 34,  g: 211, b: 238 }, /* cyan */
-      { r: 139, g: 92,  b: 246 }, /* violet-blue */
-      { r: 251, g: 191, b: 36  }  /* warm gold */
-    ];
-
-    function pickTint() {
-      if (Math.random() < 1 / 6) {
-        return TINTS[Math.floor(Math.random() * TINTS.length)];
+    if (window.BFAbyss) make();
+    else {
+      var tag = document.querySelector('script[src="/scripts/bf-abyss.js"]');
+      if (!tag) {
+        tag = document.createElement("script");
+        tag.src = "/scripts/bf-abyss.js";
+        tag.async = true;
+        (document.head || document.documentElement).appendChild(tag);
       }
-      return { r: 255, g: 255, b: 255 };
+      tag.addEventListener("load", make);
     }
-
-    function makeStar(minR, maxR) {
-      var r = minR + Math.random() * (maxR - minR);
-      var baseAlpha = 0.12 + Math.pow(Math.random(), 2) * 0.8;
-      var scintillates = Math.random() < 0.25;
-      return {
-        x: Math.random() * cssWidth,
-        y: Math.random() * cssHeight,
-        r: r,
-        baseAlpha: baseAlpha,
-        phase: Math.random() * Math.PI * 2,
-        speed: 0.6 + Math.random() * 1.6,
-        tint: pickTint(),
-        spiked: (r > (minR + (maxR - minR) * 0.6)) && (baseAlpha > 0.6),
-        scintillates: scintillates,
-        twinkleDepth: scintillates ? 0.6 : 0.12
-      };
-    }
-
-    var LAYERS = [
-      { count: 70, minR: 0.4, maxR: 0.9, parallax: 0.15, offsetX: 0, offsetY: 0, stars: [] }, /* far */
-      { count: 35, minR: 0.8, maxR: 1.6, parallax: 0.4,  offsetX: 0, offsetY: 0, stars: [] }, /* mid */
-      { count: 16, minR: 1.4, maxR: 2.6, parallax: 1.0,  offsetX: 0, offsetY: 0, stars: [] }  /* near */
-    ];
-
-    LAYERS.forEach(function (layer) {
-      for (var i = 0; i < layer.count; i++) {
-        layer.stars.push(makeStar(layer.minR, layer.maxR));
-      }
-    });
-
-    var BASE_DRIFT_X = 8;    /* px/sec at parallax factor 1 */
-    var BASE_DRIFT_Y = -4.5; /* px/sec at parallax factor 1 */
-
-    // ── Rendering — identical to the Oracle engine (no parallax input) ────
-    function drawStarAt(px, py, star, alpha) {
-      var tint = star.tint;
-
-      // (a) soft outer halo — the subtle bloom
-      var haloR = star.r * 2.2;
-      var halo = ctx.createRadialGradient(px, py, 0, px, py, haloR);
-      halo.addColorStop(0, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.5) + ")");
-      halo.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + ",0)");
-      ctx.fillStyle = halo;
-      ctx.beginPath();
-      ctx.arc(px, py, haloR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // diffraction spikes — bright stars only, drawn under the core
-      if (star.spiked && alpha > 0.35) {
-        var spikeLen   = star.r * 6;
-        var spikeAlpha = alpha * 0.5;
-        var spikeRgb   = tint.r + "," + tint.g + "," + tint.b;
-
-        ctx.lineWidth = 0.8;
-
-        var vSpike = ctx.createLinearGradient(px, py - spikeLen, px, py + spikeLen);
-        vSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
-        vSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
-        vSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
-        ctx.strokeStyle = vSpike;
-        ctx.beginPath();
-        ctx.moveTo(px, py - spikeLen);
-        ctx.lineTo(px, py + spikeLen);
-        ctx.stroke();
-
-        var hSpike = ctx.createLinearGradient(px - spikeLen, py, px + spikeLen, py);
-        hSpike.addColorStop(0,   "rgba(" + spikeRgb + ",0)");
-        hSpike.addColorStop(0.5, "rgba(" + spikeRgb + "," + spikeAlpha + ")");
-        hSpike.addColorStop(1,   "rgba(" + spikeRgb + ",0)");
-        ctx.strokeStyle = hSpike;
-        ctx.beginPath();
-        ctx.moveTo(px - spikeLen, py);
-        ctx.lineTo(px + spikeLen, py);
-        ctx.stroke();
-      }
-
-      // (b) sharp core, on top — crisp bright point rather than a fuzzy ball
-      var coreR = star.r * 0.7;
-      var centerColor = tint;
-      if (star.baseAlpha > 0.7) {
-        centerColor = {
-          r: Math.round(tint.r + (255 - tint.r) * 0.6),
-          g: Math.round(tint.g + (255 - tint.g) * 0.6),
-          b: Math.round(tint.b + (255 - tint.b) * 0.6)
-        };
-      }
-      var core = ctx.createRadialGradient(px, py, 0, px, py, coreR);
-      core.addColorStop(0, "rgba(" + centerColor.r + "," + centerColor.g + "," + centerColor.b + "," + alpha + ")");
-      core.addColorStop(1, "rgba(" + tint.r + "," + tint.g + "," + tint.b + "," + (alpha * 0.15) + ")");
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(px, py, coreR, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function drawStarWrapped(star, px, py, alpha) {
-      var glowR = star.r * 3.2;
-      drawStarAt(px, py, star, alpha);
-      if (px < glowR)                drawStarAt(px + cssWidth,  py, star, alpha);
-      if (px > cssWidth - glowR)     drawStarAt(px - cssWidth,  py, star, alpha);
-      if (py < glowR)                drawStarAt(px, py + cssHeight, star, alpha);
-      if (py > cssHeight - glowR)    drawStarAt(px, py - cssHeight, star, alpha);
-    }
-
-    // ── Animation loop — no parallax; gated by chat open/close (desired)
-    // AND document.hidden ─────────────────────────────────────────────────
-    var desired  = false;
-    var running  = false;
-    var rafId    = null;
-    var lastTime = null;
-    var elapsed  = 0;
-
-    function frame(now) {
-      if (!running) return;
-      if (lastTime == null) lastTime = now;
-      var dt = (now - lastTime) / 1000;
-      lastTime = now;
-      if (!reducedMotion) elapsed += dt;
-
-      ctx.clearRect(0, 0, cssWidth, cssHeight);
-      if (nebulaCtx) {
-        ctx.drawImage(nebulaCanvas, 0, 0, canvas.width, canvas.height, 0, 0, cssWidth, cssHeight);
-      }
-
-      LAYERS.forEach(function (layer) {
-        if (!reducedMotion) {
-          layer.offsetX += BASE_DRIFT_X * layer.parallax * dt;
-          layer.offsetY += BASE_DRIFT_Y * layer.parallax * dt;
-        }
-
-        layer.stars.forEach(function (star) {
-          var px = ((star.x + layer.offsetX) % cssWidth  + cssWidth)  % cssWidth;
-          var py = ((star.y + layer.offsetY) % cssHeight + cssHeight) % cssHeight;
-
-          var alpha = star.baseAlpha;
-          if (!reducedMotion) {
-            var tw = Math.sin(elapsed * star.speed + star.phase);
-            alpha = Math.max(0, Math.min(1, star.baseAlpha + tw * star.baseAlpha * star.twinkleDepth));
-          }
-
-          drawStarWrapped(star, px, py, alpha);
-        });
-      });
-
-      rafId = requestAnimationFrame(frame);
-    }
-
-    function loopStart() {
-      if (running) return;
-      running = true;
-      lastTime = null;
-      rafId = requestAnimationFrame(frame);
-    }
-
-    function loopStop() {
-      running = false;
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) { loopStop(); } else if (desired) { loopStart(); }
-    });
-
-    function start() {
-      desired = true;
-      if (!document.hidden) loopStart();
-    }
-
-    function stop() {
-      desired = false;
-      loopStop();
-    }
-
-    return { start: start, stop: stop, resize: resize };
+    return {
+      start:  function () { want = true;  if (engine) engine.start(); },
+      stop:   function () { want = false; if (engine) engine.stop(); },
+      resize: function () { if (engine) engine.resize(); },
+      info:   function () { return engine && engine.info ? engine.info() : null; }
+    };
   }
 
   /* ── chat panel DOM ── */
@@ -1760,6 +1590,7 @@
   }
 
   function _clearFX() {
+    chat.classList.remove("tmx-chat-live");   // FX3: the close has ended; the phone stops drawing the box
     chat.style.transition = "none";
     chat.style.opacity    = "0";
     chat.style.transform  = "";
@@ -1844,8 +1675,39 @@
       });
   }
 
+  /* NAMED (Nov 22 2026, FX3): A FREE ACCOUNT never gets the chat (the Oracle and the Guide's answers are members only on
+     the server): the mist, and anything else that would open the chat, opens the members panel (scripts/bf-access.js)
+     instead. Until bf-access has answered, the choice waits for it; with no bf-access on the page, the chat opens as before. */
+  var _tmxAccessKnown = false;
+  function tmxAccessWatch() {
+    if (window.bfAccess && window.bfAccess.ready) window.bfAccess.ready.then(function () { _tmxAccessKnown = true; });
+  }
+  tmxAccessWatch();
+  document.addEventListener("bf-access", function () { _tmxAccessKnown = true; });
+  function tmxFree() {
+    return !!(window.bfAccess && typeof window.bfAccess.tier === "function" && window.bfAccess.tier() === "free");
+  }
+  function tmxMembersPanel() {
+    if (window.bfAccess && typeof window.bfAccess.showPanel === "function") window.bfAccess.showPanel();
+  }
+
+  /* The plain fade the box uses under reduced motion, in place of its ten transitions. */
+  var TMX_STILL_FADE = { os: { opacity: "0" }, oe: { opacity: "1" }, ce: { opacity: "0" }, tr: "opacity 0.2s ease", dur: 200 };
+  function tmxFx() { return _currentStyle === -1 ? TMX_STILL_FADE : TMX_STYLES[_currentStyle]; }
+
   function openChat() {
+    if (tmxFree()) { tmxMembersPanel(); return; }
+    if (window.bfAccess && window.bfAccess.ready && !_tmxAccessKnown) {
+      window.bfAccess.ready.then(function () {
+        _tmxAccessKnown = true;
+        if (tmxFree()) { tmxMembersPanel(); return; }
+        if (!_chatOpen) { openChat(); tmxFocusModeSoon(); }
+      });
+      return;
+    }
     _chatOpen = true;
+    chat.classList.add("tmx-chat-live");   // FX3: drawn again on the phone before its opening starts
+    tmxPhoneFit();
     tmxStarfield.resize();
     tmxStarfield.start();
 
@@ -1855,13 +1717,13 @@
     }
 
     _closeToken++;
-    _currentStyle = Math.floor(Math.random() * 10);
+    _currentStyle = tmxStill() ? -1 : Math.floor(Math.random() * 10);
     chat.style.pointerEvents = "auto";
     chatGlowWrap.classList.add("tmx-glow-active");
 
     if (_currentStyle === 9) { _openGlitch(); return; }
 
-    var s = TMX_STYLES[_currentStyle];
+    var s = tmxFx();
     chat.style.transition = "none";
     _applyS(s.os);
     chat.offsetHeight;
@@ -1884,7 +1746,7 @@
 
     if (_currentStyle === 9) { _closeGlitch(token); return; }
 
-    var s = TMX_STYLES[_currentStyle];
+    var s = tmxFx();
     chat.style.transition = s.tr;
     _applyS(s.ce);
 
@@ -2086,6 +1948,7 @@
   }
 
   function _tmxRestorePosition() {
+    if (tmxPhone()) return;   // NAMED (Nov 22 2026, FX3): the phone's mist keeps its place
     var raw;
     try { raw = localStorage.getItem(TMX_POS_KEY); } catch (e) { return; }
     if (!raw) return;
@@ -2100,6 +1963,7 @@
   }
 
   root.addEventListener("pointerdown", function (e) {
+    if (tmxPhone()) { _tmxDragMoved = false; return; }   // NAMED (Nov 22 2026, FX3): no dragging on the phone
     _tmxPressX    = e.clientX;
     _tmxPressY    = e.clientY;
     _tmxDragMoved = false;
@@ -2163,6 +2027,7 @@
   function _tmxShown(el) { var r = el.getBoundingClientRect(); return (r.width > 0 || r.height > 0) && getComputedStyle(el).display !== "none"; }
   function _tmxKeepClear() {
     if (_tmxDragging) return;
+    if (tmxPhone()) { if (root.style.translate) root.style.translate = ""; return; }   // NAMED (Nov 22 2026, FX3): not on the phone
     var regions = Array.prototype.filter.call(document.querySelectorAll("[data-tmx-clear]"), _tmxShown);
     if (!regions.length) { if (root.style.translate) root.style.translate = ""; return; }
     root.style.translate = "";
@@ -2216,6 +2081,12 @@
   root.addEventListener("click", function (e) {
     if (_tmxDragMoved) return;
     if (_chatOpen) { closeChat(); } else { openChat(); tmxFocusModeSoon(); }
+  });
+  root.addEventListener("keydown", function (e) {
+    if (e.target !== root || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    _tmxDragMoved = false;
+    root.click();
   });
 
   /* ── drag the chat box by its header bar, the way the mist moves above ──
@@ -2367,6 +2238,50 @@
   window.addEventListener("resize", _tmxChatRestore);
   _tmxChatRestore();
 
+  /* NAMED (Nov 22 2026, FX3): THE CHAT ON THE PHONE fits the VISIBLE viewport (window.visualViewport): its bottom 10 px
+     above the mist's top, or, with the keyboard up and over the mist, 8 px above the keyboard; its height the smaller of
+     420 px and the visible height less the top safe area and 16 px, and never so tall that its top leaves the visible
+     area. Off the phone the two properties are removed and the box is the desktop's. */
+  var _tmxSafeProbe = null;
+  function tmxSafeTop() {
+    if (!_tmxSafeProbe) {
+      _tmxSafeProbe = document.createElement("div");
+      _tmxSafeProbe.setAttribute("aria-hidden", "true");
+      _tmxSafeProbe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top, 0px)";
+      document.body.appendChild(_tmxSafeProbe);
+    }
+    return parseFloat(getComputedStyle(_tmxSafeProbe).paddingTop) || 0;
+  }
+  function tmxPhoneFit() {
+    var els = [chat, chatGlowWrap];
+    if (!tmxPhone()) {
+      els.forEach(function (el) { el.style.removeProperty("--tmx-chat-h"); el.style.removeProperty("--tmx-chat-bottom"); });
+      return;
+    }
+    var vv = window.visualViewport;
+    var layoutH = window.innerHeight;
+    var visH = vv ? vv.height : layoutH;
+    var visTop = vv ? vv.offsetTop : 0;
+    var safeTop = tmxSafeTop();
+    var mistTop = root.getBoundingClientRect().top;
+    var bottom = Math.max(0, layoutH - mistTop) + 10;
+    var keyboard = layoutH - (visTop + visH);
+    if (keyboard > 0 && keyboard + 8 > bottom) bottom = keyboard + 8;
+    var height = Math.min(420, visH - safeTop - 16, layoutH - bottom - visTop - safeTop - 8);
+    height = Math.max(0, Math.round(height));
+    els.forEach(function (el) {
+      el.style.setProperty("--tmx-chat-bottom", Math.round(bottom) + "px");
+      el.style.setProperty("--tmx-chat-h", height + "px");
+    });
+    if (_chatOpen) tmxStarfield.resize();
+  }
+  window.addEventListener("resize", tmxPhoneFit);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", tmxPhoneFit);
+    window.visualViewport.addEventListener("scroll", tmxPhoneFit);
+  }
+  tmxPhoneFit();
+
   /* ── shooting star ── */
   var shoot = document.createElement("div");
   shoot.id = "tmx-shoot";
@@ -2419,11 +2334,14 @@
 
   /* ── chat shooting stars ── */
   function fireChatShoot() {
-    if (!_chatOpen) {
+    /* NAMED (Nov 22 2026, FX3): BEFORE it flew under reduced motion too; AFTER it waits, drawing nothing. */
+    if (!_chatOpen || tmxStill()) {
       setTimeout(fireChatShoot, 6000 + Math.random() * 8000);
       return;
     }
-    var CW = 288, CH = 340;
+    /* NAMED (Nov 22 2026, FX3): BEFORE always 288 x 340; AFTER the box's real size (the phone's box is wider and taller),
+       288 x 340 only if it has none. */
+    var CW = chat.clientWidth || 288, CH = chat.clientHeight || 340;
     var edge = Math.floor(Math.random() * 4);
     var top, left, angle;
     if (edge === 0) {

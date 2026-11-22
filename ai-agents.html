@@ -347,6 +347,7 @@
 
   </div>
 
+<script src="/scripts/bf-agent-marks.js"></script>
 <script src="/scripts/bf-agent-order.js"></script>
 <script src="/scripts/agent-descriptions.js"></script>
 <script>
@@ -405,7 +406,11 @@
       var avatar = document.createElement("div");
       avatar.className = "agent-avatar";
       avatar.setAttribute("aria-hidden", "true");
-      avatar.innerHTML = GENERIC_AVATAR_SVG;
+      /* NAMED (Nov 22 2026, FX3): BEFORE every card drew GENERIC_AVATAR_SVG. AFTER a known agent carries its own
+         colour and icon from scripts/bf-agent-marks.js, the map the dashboard reads; an unknown type keeps the ring. */
+      var marks = window.BFAgentMarks;
+      if (marks && marks.has(type)) { avatar.innerHTML = marks.svg(type); marks.paint(avatar, type); }
+      else avatar.innerHTML = GENERIC_AVATAR_SVG;
 
       var name = document.createElement("h2");
       name.className = "agent-name";

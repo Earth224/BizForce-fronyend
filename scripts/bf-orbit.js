@@ -98,6 +98,15 @@
      is no drift and no settle: the ring is placed. */
   var SETTLE_MS = 1300;
   function settleCurve(t, D, V) { return D * (1 - Math.pow(1 - t, 3)) + (V - 3 * D) * t * (1 - t) * (1 - t); }
+  /* FX3 (Nov 22 2026): THE DRIFT'S CLOCK STARTS WHEN THE FIGURES ARRIVE. BEFORE, the ring drifted from the page's first
+     frame, so while the figures loaded it ran past the first portal's front place (Sell's is REST_BASE) and the settle had
+     to turn back, by 3 deg/s times the load time. AFTER the ring waits, still, SETTLE_AHEAD behind REST_BASE; when the
+     figures arrive the drift starts, and when the front place is SETTLE_DIST ahead the first portal opens with the settle,
+     which only goes forward. SETTLE_DIST is half what the drift covers in SETTLE_MS: with it settleCurve is D(1 - (1-t)^2),
+     so the speed falls evenly from the drift's to 0 and never rises above it (the fewest degrees a slow frame can skip). A
+     first portal further round settles at once, from rest. Under reduced motion the ring is placed, as before. */
+  var SETTLE_DIST = 360 / DRIFT_MS * SETTLE_MS / 2;
+  var SETTLE_AHEAD = SETTLE_DIST + 0.2;
   var STEP_DEG = 72;
   var VIEW = { w: 680, h: 330, cx: 340, cy: 160, rx: 275, ry: 110, innerRx: 150, innerRy: 60, portalR: 27, labelDy: 42, coreR: 34, coreHaloR: 44 };
   /* PH1 (Nov 19 2026): the desktop's view, kept; VIEW is it above 760 px and phoneView(width) up to 760 px. On the phone
@@ -887,6 +896,10 @@
   }
   // PH1 (Nov 19 2026): NAMED BEFORE: ... && !narrow() (the phone row never drifted). AFTER the phone's orbit drifts too.
   function drifting() { return !state.open && !state.hover && !state.focus && !reduced() && !document.hidden; }
+  // FX3: the drift runs only once its clock has started (the figures arrived); how far round a portal's front place is, ahead
+  function driftRuns() { return !!state.clockOn && drifting(); }
+  function ahead(key) { return ((frontBase(key) - state.base) % 360 + 360) % 360; }
+  function firstOpen() { var k = state.pending; state.pending = null; openPortal(k, "settle"); }
   function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
   function tick(ts) {
     state.frame = 0;
@@ -899,15 +912,16 @@
       state.base = state.turn.from + (typeof state.turn.v0 === "number" ? settleCurve(t, state.turn.to - state.turn.from, state.turn.v0 * ms) : (state.turn.to - state.turn.from) * easeOut(t));
       // NAMED (Nov 11 2026, orbit stage 2): the sparks that waited for the turn go once it has settled.
       if (t >= 1) { state.turn = null; flushSparks(); }
-    } else if (drifting()) {
+    } else if (driftRuns()) {
       state.base += dt * 360 / DRIFT_MS;
-    }
+      if (state.pending && ahead(state.pending) <= SETTLE_DIST) firstOpen();   // FX3: the settle takes over at the drift's speed
+    } else if (state.pending) firstOpen();   // FX3: the drift paused (hover, focus): open now
     place();
-    if (state.turn || drifting()) kick();
+    if (state.turn || driftRuns()) kick();
   }
   function kick() {
     if (state.frame || document.hidden || typeof window.requestAnimationFrame !== "function") return;
-    if (!state.turn && !drifting()) { state.last = 0; return; }
+    if (!state.turn && !driftRuns()) { state.last = 0; return; }
     state.frame = window.requestAnimationFrame(tick);
   }
   function turnTo(key) {
@@ -922,8 +936,10 @@
     var target = frontBase(key);
     var delta = ((target - state.base) % 360 + 540) % 360 - 180;   // the short way round
     if (reduced()) { state.turn = null; state.base += delta; place(); flushSparks(); return; }
-    var now = window.performance && typeof window.performance.now === "function" ? window.performance.now() : 0;
-    state.turn = { from: state.base, to: state.base + delta, start: state.last || now, ms: SETTLE_MS, v0: v0 };
+    /* FX3 (Nov 22 2026): NAMED BEFORE start: state.last || performance.now(). With no frame drawn yet that mixed two clocks:
+       a frame's time is when the frame began, earlier than now, so the first frame read t below 0 and stepped back (and a
+       harness's own frame clock never reached the end). AFTER, as turnTo: the last frame's time, else the first frame's. */
+    state.turn = { from: state.base, to: state.base + delta, start: state.last || 0, ms: SETTLE_MS, v0: v0 };
     kick();
   }
   document.addEventListener("visibilitychange", function () {
@@ -935,6 +951,8 @@
   function toggle(key) { if (state.open === key) fold(); else openPortal(key, true); }
   function openPortal(key, turn) {
     var v0 = drifting() ? 360 / DRIFT_MS : 0;   // NAMED (Nov 21 2026, FX2): the drift's speed, before opening stops it
+    if (!state.clockOn) v0 = 0;   // FX3: the drift's clock has not started, so the ring is still
+    state.pending = null;
     state.open = key;
     writeSession(key);
     // The open portal is set apart by its halo and "(open)" alone: the others keep full opacity.
@@ -949,6 +967,7 @@
     drawGrid();
   }
   function fold() {
+    state.pending = null;   // FX3
     state.open = null;
     writeSession(null);
     PORTALS.forEach(function (p) {
@@ -1684,9 +1703,21 @@
         drawOrbitFigures();
         drawMains();
         // NAMED (Nov 21 2026, FX2): BEFORE openPortal(..., false), a jump to rest; AFTER "settle", the drift eased to rest
-        if (!state.open && !readSession() && !state.chosen) { state.chosen = true; openPortal(firstPortal(state.top), "settle"); }
+        if (!state.open && !readSession() && !state.chosen) { state.chosen = true; if (!awaitFront(firstPortal(state.top))) openPortal(firstPortal(state.top), "settle"); }
         else drawGrid();
+        if (!state.clockOn) { state.clockOn = true; kick(); }   // FX3: the drift's clock starts with the figures
       });
+  }
+  /* FX3 (Nov 22 2026): when the first portal's front place is just ahead of the still ring (Sell's, at REST_BASE), the drift
+     starts and the portal opens once the place is SETTLE_DIST ahead (tick). Otherwise false: it settles at once. */
+  function awaitFront(key) {
+    if (state.clockOn || reduced() || !drifting() || indexOfPortal(key) === -1) return false;
+    var a = ahead(key);
+    if (a <= SETTLE_DIST || a > SETTLE_AHEAD + 0.01) return false;
+    state.pending = key;
+    state.clockOn = true;
+    kick();
+    return true;
   }
   refresh.addEventListener("click", function () { load(); });
 
@@ -1716,7 +1747,7 @@
   size();
   var remembered = readSession();
   if (remembered && indexOfPortal(remembered) !== -1) { state.chosen = true; openPortal(remembered, false); }
-  else { state.base = REST_BASE; place(); }
+  else { state.base = REST_BASE - (reduced() ? 0 : SETTLE_AHEAD); place(); }   // FX3: NAMED BEFORE state.base = REST_BASE
   drawOrbitFigures();
   drawMains();
   kick();

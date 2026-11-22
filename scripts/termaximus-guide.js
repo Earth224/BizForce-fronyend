@@ -584,7 +584,7 @@
     "#tmx-guide-panel .tmx-guide-list li::marker {",
     "  color: var(--bf-guide-a, #22d3ee);",
     "}",
-    "#tmx-guide-panel .tmx-guide-common, #tmx-guide-sheet .tmx-guide-common {",
+    "#tmx-guide-panel .tmx-guide-common {",
     "  margin: 14px 0 0;",
     "  padding-top: 12px;",
     "  border-top: 1px dashed rgba(255, 255, 255, 0.1);",
@@ -593,146 +593,24 @@
     "  color: #7d84a8;",
     "}",
 
-    /* ── phones: a "Guide" button and a bottom sheet ──
-       The panel above stays hidden at 860px and below; this button opens the
-       same tips there. From 640px to 860px (below 640px see the NAMED Nov 13 2026 rule at the end):
-       BOTTOM-LEFT, 16px in: the mist's four default corners
-       (termaximus-presence.js MIST_CORNERS) all sit 120px or more above the
-       bottom edge, or 180px in from the right, so this 44px button clears
-       every one of them; a mist dragged onto it moves the button to the
-       bottom-right instead (placeFab, below). Z-INDEX 40: below every modal
-       overlay (50 and up), the profile's customize panel (50) and the terms
-       notice (9000), so it never sits over a page's own controls. */
-    "#tmx-guide-fab {",
-    "  display: none;",
-    "  position: fixed;",
-    "  left: 16px;",
-    "  bottom: calc(16px + env(safe-area-inset-bottom, 0px));",
-    "  width: 88px;",
-    "  height: 44px;",
-    "  z-index: 40;",
-    "  align-items: center;",
-    "  justify-content: center;",
-    "  gap: 6px;",
-    "  border: 1px solid rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.45);",
-    "  border-radius: 22px;",
-    "  background: rgba(12, 18, 38, 0.92);",
-    "  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 16px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.12);",
-    "  color: #e8e8ff;",
-    "  font: 700 0.82rem system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
-    "  letter-spacing: 0.06em;",
-    "  cursor: pointer;",
+    /* NAMED (Nov 22 2026, FX3): BEFORE, at 860 px and below, this panel was hidden and a book button (#tmx-guide-fab)
+       opened the same tips in a bottom sheet. AFTER the book button and its sheet are gone at every width, and the
+       Guide tab shows at every width, as on the desktop: closed, 32 px wide, at least 170 px tall, at the left edge,
+       in the middle. On the phone (760 px and below, the owner's approved boards) the panel opens to the LEFT of the
+       tab: min(300px, 100vw - 48px) wide, at most 70vh tall (and never down to the bottom bar), scrolling, the tab
+       attached at its right edge; the two slide in and fold away together in the same 0.3 s. A free account sees the
+       page's tips only: no Insights section and no Insights request (tmx-guide-free, below). Above 760 px the panel
+       opens to the right of the tab, unchanged. */
+    "@media (max-width: 760px) {",
+    "  #tmx-guide-root { flex-direction: row-reverse; align-items: center;",
+    "    transform: translate(calc(-1 * min(300px, 100vw - 48px)), -50%); transition: transform 0.3s ease; }",
+    "  #tmx-guide-root.tmx-guide-open { transform: translate(0, -50%); }",
+    /* the board's 32 px tab: css/bf-phone.css raises every button to 44 px wide on the phone; the tab keeps its width (it is 170 px or more tall) */
+    "  #tmx-guide-tab { min-width: 32px; }",
+    "  #tmx-guide-panel { box-sizing: border-box; width: min(300px, calc(100vw - 48px)); margin-left: 0;",
+    "    max-height: min(70vh, calc(100vh - 2 * (64px + env(safe-area-inset-bottom, 0px)))); }",
     "}",
-    "#tmx-guide-fab.tmx-guide-fab--moved {",
-    "  left: auto;",
-    "  right: 16px;",
-    "}",
-    "#tmx-guide-fab .tmx-guide-fab-icon, #tmx-guide-fab-spacer {",
-    "  display: none;",
-    "}",
-    "#tmx-guide-fab:focus-visible, #tmx-guide-sheet-close:focus-visible {",
-    "  outline: 2px solid var(--bf-accent-a, #22d3ee);",
-    "  outline-offset: 2px;",
-    "}",
-    "#tmx-guide-sheet-backdrop {",
-    "  position: fixed;",
-    "  inset: 0;",
-    "  z-index: 2147483600;",
-    "  background: rgba(2, 4, 12, 0.55);",
-    "}",
-    "#tmx-guide-sheet {",
-    "  position: fixed;",
-    "  left: 0;",
-    "  right: 0;",
-    "  bottom: 0;",
-    "  z-index: 2147483601;",
-    "  max-height: 75vh;",
-    "  overflow-y: auto;",
-    "  padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));",
-    "  border-radius: 20px 20px 0 0;",
-    "  border-top: 1px solid rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.35);",
-    "  background: rgba(12, 18, 38, 0.98);",
-    "  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);",
-    "  color: #e8e8ff;",
-    "  font-family: system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
-    "  transition: transform 0.2s ease;",
-    "}",
-    "#tmx-guide-sheet-backdrop[hidden], #tmx-guide-sheet[hidden] {",
-    "  display: none;",
-    "}",
-    "#tmx-guide-sheet .tmx-guide-sheet-head {",
-    "  position: sticky;",
-    "  top: 0;",
-    "  display: flex;",
-    "  align-items: center;",
-    "  justify-content: space-between;",
-    "  padding: 18px 0 12px;",
-    "  background: rgba(12, 18, 38, 0.98);",
-    "  touch-action: none;",
-    "}",
-    "#tmx-guide-sheet .tmx-guide-sheet-grip {",
-    "  position: absolute;",
-    "  top: 7px;",
-    "  left: 50%;",
-    "  width: 40px;",
-    "  height: 4px;",
-    "  margin-left: -20px;",
-    "  border-radius: 2px;",
-    "  background: rgba(255, 255, 255, 0.25);",
-    "}",
-    "#tmx-guide-sheet-title {",
-    "  margin: 0;",
-    "  font-size: 0.78rem;",
-    "  font-weight: 800;",
-    "  letter-spacing: 0.14em;",
-    "  text-transform: uppercase;",
-    "  color: var(--bf-guide-a, #22d3ee);",
-    "}",
-    "#tmx-guide-sheet-close {",
-    "  min-width: 44px;",
-    "  height: 36px;",
-    "  border: 1px solid rgba(255, 255, 255, 0.18);",
-    "  border-radius: 18px;",
-    "  background: transparent;",
-    "  color: #e8e8ff;",
-    "  font: 600 0.8rem system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif;",
-    "  cursor: pointer;",
-    "}",
-    "#tmx-guide-sheet .tmx-guide-list {",
-    "  margin: 0;",
-    "  padding-left: 18px;",
-    "  font-size: 0.9rem;",
-    "  line-height: 1.6;",
-    "  color: #a8acc8;",
-    "}",
-    "#tmx-guide-sheet .tmx-guide-list li {",
-    "  margin-bottom: 10px;",
-    "}",
-    "#tmx-guide-sheet .tmx-guide-list li::marker {",
-    "  color: var(--bf-guide-a, #22d3ee);",
-    "}",
-    /* While the sheet is open the mist would float over it (its z-index is
-       the highest there is), so it is hidden until the sheet closes. */
-    "html.tmx-guide-sheet-open #tmx-presence-root, html.tmx-guide-sheet-open #tmx-chat, html.tmx-guide-sheet-open #tmx-chat-glow-wrap {",
-    "  visibility: hidden !important;",
-    "}",
-
-    "@media (max-width: 860px) {",
-    "  #tmx-guide-root { display: none; }",
-    "  #tmx-guide-fab { display: inline-flex; }",
-    "}",
-
-    /* NAMED (Nov 13 2026, S2): below 640px the button is a round 48px icon button (its name stays "Guide"),
-       bottom-right inside the safe-area insets, z-index 40 as above (over the page, under every dialog). A spacer
-       as tall as the button and its insets ends the page, so the last content scrolls clear of it; a mist on it
-       moves it to the bottom-left. 640px and up is unchanged. */
-    "@media (max-width: 639px) {",
-    "  #tmx-guide-fab { left: auto; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; padding: 0; gap: 0; border-radius: 50%; }",
-    "  #tmx-guide-fab.tmx-guide-fab--moved { right: auto; left: calc(16px + env(safe-area-inset-left, 0px)); }",
-    "  #tmx-guide-fab .tmx-guide-fab-icon { display: block; }",
-    "  #tmx-guide-fab .tmx-guide-fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }",
-    "  #tmx-guide-fab-spacer { display: block; height: calc(80px + env(safe-area-inset-bottom, 0px)); }",
-    "}"
+    "#tmx-guide-root.tmx-guide-free .tmx-guide-section--insights { display: none; }"
 
   ].join("\n");
   document.head.appendChild(style);
@@ -754,7 +632,7 @@
   panel.setAttribute("aria-label", "Termaximus Guide");
 
   /* The tips, then the COMMON line on an agent page: one that carries the
-     "Last run" line agent-profile.js fills. Used by the panel and the sheet. */
+     "Last run" line agent-profile.js fills. */
   function renderGuidance(tips) {
     return '<ul class="tmx-guide-list">' +
       tips.map(function (point) { return '<li>' + point + '</li>'; }).join('') +
@@ -789,182 +667,6 @@
   root.appendChild(tab);
   root.appendChild(panel);
   document.body.appendChild(root);
-
-  /* ── phones: the "Guide" button and its bottom sheet ────────────────────────
-     The same tips as the panel, in a sheet that rises from the bottom edge.
-     It closes on the Close button, a tap on the dimmed page behind it, a
-     downward swipe on its header, or Escape. Opening moves focus into the
-     sheet (its Close button) and keeps Tab there; closing hands focus back to
-     the button that opened it. The Insights section stays on the desktop
-     panel: the sheet makes no request at all. */
-  var fab = document.createElement("button");
-  fab.type = "button";
-  fab.id = "tmx-guide-fab";
-  // NAMED (Nov 13 2026, S2): its name is "Guide", the word it shows; below 640px it shows an icon instead (the word kept for screen readers).
-  fab.setAttribute("aria-label", "Guide");
-  fab.setAttribute("title", "Open the Termaximus Guide for this page");
-  fab.setAttribute("aria-haspopup", "dialog");
-  fab.setAttribute("aria-expanded", "false");
-  fab.setAttribute("aria-controls", "tmx-guide-sheet");
-  fab.innerHTML = '<svg class="tmx-guide-fab-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
-    '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>' +
-    '<span class="tmx-guide-fab-text">Guide</span>';
-  // The page ends with room for the button, so its last content is never left under it (shown below 640px only).
-  var fabSpacer = document.createElement("div");
-  fabSpacer.id = "tmx-guide-fab-spacer";
-  fabSpacer.setAttribute("aria-hidden", "true");
-
-  var sheetBackdrop = document.createElement("div");
-  sheetBackdrop.id = "tmx-guide-sheet-backdrop";
-  sheetBackdrop.hidden = true;
-
-  var sheet = document.createElement("div");
-  sheet.id = "tmx-guide-sheet";
-  sheet.hidden = true;
-  sheet.setAttribute("role", "dialog");
-  sheet.setAttribute("aria-modal", "true");
-  sheet.setAttribute("aria-labelledby", "tmx-guide-sheet-title");
-  sheet.setAttribute("tabindex", "-1");
-  sheet.innerHTML =
-    '<div class="tmx-guide-sheet-head">' +
-      '<span class="tmx-guide-sheet-grip" aria-hidden="true"></span>' +
-      '<h2 id="tmx-guide-sheet-title">Termaximus Guide</h2>' +
-      '<button type="button" id="tmx-guide-sheet-close" aria-label="Close the Termaximus Guide">Close</button>' +
-    '</div>' +
-    renderGuidance(guidanceText);
-
-  document.body.appendChild(fabSpacer);
-  document.body.appendChild(fab);
-  document.body.appendChild(sheetBackdrop);
-  document.body.appendChild(sheet);
-
-  var sheetClose = document.getElementById("tmx-guide-sheet-close");
-  var sheetOpen = false;
-
-  function setSheet(next) {
-    sheetOpen = next;
-    sheet.hidden = !next;
-    sheetBackdrop.hidden = !next;
-    sheet.style.transform = "";
-    fab.setAttribute("aria-expanded", next ? "true" : "false");
-    document.documentElement.classList.toggle("tmx-guide-sheet-open", next);
-    if (next) sheetClose.focus();
-    else fab.focus();
-  }
-
-  fab.addEventListener("click", function (e) {
-    e.stopPropagation();
-    setSheet(!sheetOpen);
-  });
-  sheetClose.addEventListener("click", function () { setSheet(false); });
-  sheetBackdrop.addEventListener("click", function () { setSheet(false); });
-  sheet.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { e.preventDefault(); setSheet(false); }
-    /* One control in the sheet, so Tab stays on it rather than leaving the
-       dialog for the page behind. */
-    else if (e.key === "Tab") { e.preventDefault(); sheetClose.focus(); }
-  });
-
-  /* A downward swipe of 60px or more on the header closes the sheet; a shorter
-     one springs back. */
-  var swipeHead = sheet.querySelector(".tmx-guide-sheet-head");
-  var swipeStartY = null;
-  swipeHead.addEventListener("touchstart", function (e) {
-    swipeStartY = e.touches && e.touches[0] ? e.touches[0].clientY : null;
-  }, { passive: true });
-  swipeHead.addEventListener("touchmove", function (e) {
-    if (swipeStartY === null || !e.touches || !e.touches[0]) return;
-    var dy = e.touches[0].clientY - swipeStartY;
-    sheet.style.transform = dy > 0 ? "translateY(" + dy + "px)" : "";
-  }, { passive: true });
-  swipeHead.addEventListener("touchend", function (e) {
-    if (swipeStartY === null) return;
-    var t = e.changedTouches && e.changedTouches[0];
-    var dy = t ? t.clientY - swipeStartY : 0;
-    swipeStartY = null;
-    if (dy >= 60) setSheet(false);
-    else sheet.style.transform = "";
-  });
-
-  /* A mist dragged down onto the bottom-left corner would sit on the button,
-     so the button moves to the bottom-right while the two would touch. */
-  function placeFab() {
-    var mist = document.getElementById("tmx-presence-root");
-    fab.classList.remove("tmx-guide-fab--moved");
-    if (!mist || !fab.getBoundingClientRect) return;
-    var a = fab.getBoundingClientRect(), b = mist.getBoundingClientRect();
-    if (!a.width || !b.width) return;
-    var touching = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-    if (touching) fab.classList.add("tmx-guide-fab--moved");
-  }
-  placeFab();
-  window.addEventListener("resize", placeFab);
-  document.addEventListener("pointerup", function () { setTimeout(placeFab, 0); });
-
-  /* NAMED (Nov 13 2026, S2): below 640px the button never rests on what a member reads or taps.
-     1. The spacer stays the page's last element, after anything a later script appends (the legal
-        footer), so the page always ends with room for the button.
-     2. At rest (on load, after a resize, once scrolling stops) the button, still in its corner,
-        is raised in small steps, up to 45% of the screen, to the lowest spot where it covers no
-        header, nav, tab, heading, form field, button, link or the Your videos card; if the corner has
-        none, the other corner is tried the same way. With no clear spot it stays in its corner.
-     Above 640px nothing here applies: the desktop button is unchanged. */
-  var PHONE = window.matchMedia ? window.matchMedia("(max-width: 639px)") : null;
-  var AVOID = "header,nav,[role=tablist],[role=tab],h1,h2,h3,input:not([type=hidden]),textarea,select,button,a[href],.btn,#videosCard";
-  function keepSpacerLast() {
-    for (var n = fabSpacer.nextElementSibling; n; n = n.nextElementSibling) {
-      if (!/^tmx-guide-/.test(n.id || "")) { document.body.appendChild(fabSpacer); return; }
-    }
-  }
-  function blockers() {
-    var out = [];
-    var list = document.querySelectorAll(AVOID);
-    for (var i = 0; i < list.length; i++) {
-      var n = list[i];
-      if (n === fab || fab.contains(n) || (n.closest && n.closest("[id^=tmx-guide], #tmx-presence-root"))) continue;
-      var r = n.getBoundingClientRect();
-      if (!(r.width > 0 && r.height > 0) || r.bottom <= 0 || r.top >= window.innerHeight) continue;
-      out.push({ n: n, r: r });
-    }
-    return out;
-  }
-  function covers(list, l, t, w, h) {
-    for (var i = 0; i < list.length; i++) {
-      var r = list[i].r;
-      if (r.left < l + w - 0.5 && r.right > l + 0.5 && r.top < t + h - 0.5 && r.bottom > t + 0.5) {
-        var cs = window.getComputedStyle(list[i].n);
-        if (cs.visibility !== "hidden" && cs.opacity !== "0") return true;
-      }
-    }
-    return false;
-  }
-  function restFab() {
-    if (!fab.getBoundingClientRect) return;
-    fab.style.transform = "";
-    if (!PHONE || !PHONE.matches) return;
-    keepSpacerLast();
-    var a = fab.getBoundingClientRect();
-    if (!a.width) return;
-    var list = blockers(), max = Math.round(window.innerHeight * 0.45), step = 4;
-    var other = window.innerWidth - a.right;   // the other corner keeps the same inset
-    var sides = [a.left, other];
-    for (var s = 0; s < sides.length; s++) {
-      for (var up = 0; up <= max; up += step) {
-        if (!covers(list, sides[s], a.top - up, a.width, a.height)) {
-          if (s === 1) fab.style.transform = "translate(" + Math.round(other - a.left) + "px, " + (-up) + "px)";
-          else if (up) fab.style.transform = "translateY(" + (-up) + "px)";
-          return;
-        }
-      }
-    }
-  }
-  var restTimer = null;
-  function restSoon(ms) { clearTimeout(restTimer); restTimer = setTimeout(restFab, ms); }
-  window.addEventListener("scroll", function () { restSoon(150); }, { passive: true });
-  window.addEventListener("resize", function () { restSoon(150); });
-  window.addEventListener("load", function () { keepSpacerLast(); restSoon(0); setTimeout(restFab, 800); });
-  document.addEventListener("pointerup", function () { restSoon(50); });
-  restSoon(0);
 
   /* ── the insight, fetched on demand and cached for the sitting ──────────────
 
@@ -1051,7 +753,29 @@
     }
   }
 
+  /* NAMED (Nov 22 2026, FX3): A FREE ACCOUNT gets the page's tips only. The Insights section is taken out of the panel
+     and no /api/insights/page request is ever made for it (the insight is a model call, members only). Until
+     scripts/bf-access.js has answered, an open waits for it; with no bf-access on the page, the drawer works as before. */
+  var accessKnown = false;
+  function guideFree() {
+    return !!(window.bfAccess && typeof window.bfAccess.tier === "function" && window.bfAccess.tier() === "free");
+  }
+  function markFree() {
+    accessKnown = true;
+    if (!guideFree()) return;
+    root.classList.add("tmx-guide-free");
+    var s = panel.querySelector(".tmx-guide-section--insights");
+    if (s && s.parentNode) s.parentNode.removeChild(s);
+  }
+  if (window.bfAccess && window.bfAccess.ready) window.bfAccess.ready.then(markFree);
+  document.addEventListener("bf-access", markFree);
+
   function ensureInsight() {
+    if (guideFree()) return;
+    if (window.bfAccess && window.bfAccess.ready && !accessKnown) {
+      window.bfAccess.ready.then(function () { markFree(); if (isOpen) ensureInsight(); });
+      return;
+    }
     var insightEl = document.getElementById("tmx-guide-insight-text");
     if (!insightEl) return;
 

@@ -62,22 +62,13 @@
   .pf-color-picker, .form-input { min-height: 44px; box-sizing: border-box; }
   .cal-nav-btn, .pf-section-toggle, .pf-color-picker, .orbit-refresh, .bfm-icon { min-width: 44px; }
 
-  /* ── G. Decoration behind the text: the stars, the nebula glows and the Termaximus mist sit under the
-     page (a negative z-index in the root's stacking order), faded, and never take a tap. ── */
-  #tmx-presence-root { z-index: -1 !important; opacity: .6; pointer-events: none !important; }
-  .tmx-star { pointer-events: none !important; }
+  /* ── G. Decoration behind the text: the stars and the nebula glows sit under the page (a negative z-index in the
+     root's stacking order), faded, and never take a tap. NAMED (Nov 22 2026, FX3): BEFORE the Termaximus mist sat here too
+     (#tmx-presence-root at z-index -1, opacity .6, no taps; .tmx-star no taps) and the Guide's book button had its rules
+     below (C). AFTER the mist is a 56 px button above the bottom bar and the book button is gone (scripts/termaximus-presence.js
+     and scripts/termaximus-guide.js hold the phone's Termaximus). ── */
   canvas.star-canvas, #starCanvas { z-index: -1 !important; pointer-events: none !important; opacity: .75; }
   .corner-star, #oracleCornerStar { z-index: -1 !important; pointer-events: none !important; opacity: .55; }
-
-  /* ── C. The Guide: 48 px, bottom-right inside the safe area; its spacer (scripts/termaximus-guide.js, the page's last
-     element, 80 px and the bottom inset) ends every page, so at the end it covers no card, link or line. Up to 639 px
-     the Guide drew this already; PH1 carries it to the 760 px breakpoint. ── */
-  #tmx-guide-fab { width: 48px; height: 48px; min-width: 48px; min-height: 48px;
-    right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-  #tmx-guide-fab { left: auto; padding: 0; gap: 0; border-radius: 50%; }
-  #tmx-guide-fab .tmx-guide-fab-icon { display: block; }
-  #tmx-guide-fab .tmx-guide-fab-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  #tmx-guide-fab-spacer { display: block !important; height: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
 
   /* ── I. Pages ── */
   /* Every page's legal footer (scripts/bf-legal-footer.js): each link a 44 x 44 target, the row above any page decoration. */

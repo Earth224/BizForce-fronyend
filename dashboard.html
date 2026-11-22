@@ -788,11 +788,11 @@
   </div>
   <p class="orbit-dir-copy bf-compact-sub">Deploy specialists across SEO, sales, content, analytics and social.</p>
   <ul class="orbit-dir-agents" aria-label="Featured agents">
-    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon seo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><span class="orbit-dir-name">SEO</span></li>
-    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon sales" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="orbit-dir-name">Sales</span></li>
-    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon content" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span class="orbit-dir-name">Content</span></li>
-    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon analytics-agent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="orbit-dir-name">Analytics</span></li>
-    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon social" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="orbit-dir-name">Social</span></li>
+    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon" data-bf-agent-mark="seo" aria-hidden="true"></span><span class="orbit-dir-name">SEO</span></li>
+    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon" data-bf-agent-mark="sales" aria-hidden="true"></span><span class="orbit-dir-name">Sales</span></li>
+    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon" data-bf-agent-mark="content" aria-hidden="true"></span><span class="orbit-dir-name">Content</span></li>
+    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon" data-bf-agent-mark="analytics" aria-hidden="true"></span><span class="orbit-dir-name">Analytics</span></li>
+    <li class="orbit-dir-agent"><span class="bf-neon-icon bf-hq-icon orbit-dir-icon" data-bf-agent-mark="social" aria-hidden="true"></span><span class="orbit-dir-name">Social</span></li>
   </ul>
   <div class="orbit-dir-actions">
     <button type="button" id="openAgentHubBtn" class="badge bf-btn" onclick="window.location.href='agents-hub.html';">Agent Hub</button>
@@ -853,7 +853,15 @@
 <!-- HQ1 (Nov 19 2026): the phone dashboard's card views, orbit toggle and Oracle set. Every rule that shows anything is inside
      @media (max-width: 760px); above it each element HQ1 adds is display:none, so the desktop is unchanged. -->
 <style id="hq1Phone">
-  .hq-chips,.hq-view-row,.hq-list,.hq-moon,.hq-core-moon,.hq-core-sun,.hq-gold-ring{display:none}   /* NAMED (Nov 21 2026, FX2): + the centre's Sun */
+  .hq-chips,.hq-view-row,.hq-list,.hq-moon,.hq-core-moon,.hq-core-abyss,.hq-gold-ring{display:none}   /* NAMED (Nov 21 2026, FX2): + the centre's Sun; NAMED (Nov 22 2026, FX3): BEFORE .hq-core-sun, AFTER the abyss sun */
+  /* THE VOID: the Termaximus chat box's drift, exactly (its tmx-chat-void keyframes, the same four stops). */
+  @keyframes tmx-chat-void {
+    0%   { background-position: 15% 20%, 85% 80%, 50% 50%, 40% 60%; }
+    25%  { background-position: 75% 35%, 20% 65%, 65% 25%, 80% 20%; }
+    50%  { background-position: 85% 80%, 15% 20%, 35% 75%, 10% 85%; }
+    75%  { background-position: 30% 70%, 70% 30%, 55% 45%, 60% 40%; }
+    100% { background-position: 15% 20%, 85% 80%, 50% 50%, 40% 60%; }
+  }
   /* THE GOLD: the Termaximus chat box's rim (#tmx-chat::before, in the Termaximus presence script), exactly: the same nine
      stops, the same 260% size, the same tmx-gold-shimmer keyframes at 7s. scripts/checkHqViews.js holds every value equal. */
   @keyframes tmx-gold-shimmer {
@@ -898,20 +906,27 @@
     .hq-moon[hidden],.hq-core-moon[hidden]{display:none !important}
     .hq-moon svg,.hq-core-moon svg{display:block;width:100%;height:100%}
     .orbit-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon,.hq-chip-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon{visibility:hidden}
-    /* NAMED (Nov 21 2026, FX2): BEFORE the moon in the centre (.hq-core-moon). AFTER the Sun (scripts/bf-hq-views.js: NASA SDO's
-       public-domain photograph): the disc cover-fitted in the centre's circle, a soft warm glow round it, and a very slow,
-       slight shimmer of its surface (a faint light that drifts across it, 16 s each way); none under reduced motion. A dark
-       veil from the middle keeps the centre's words readable. The gold ring is HQ1's, unchanged. */
-    #orbitTop[data-hq-open="oracle"] .hq-core-sun{display:block;position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:0;
-      box-shadow:0 0 8px 1px rgba(255,196,110,.55),0 0 26px 6px rgba(255,150,50,.30),0 0 56px 16px rgba(255,120,30,.14)}
-    .hq-core-sun-img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
-    .hq-core-sun::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(20,6,0,.52) 0,rgba(20,6,0,.34) 48%,rgba(20,6,0,0) 74%)}
-    .hq-core-sun-shimmer{position:absolute;inset:-6%;border-radius:50%;mix-blend-mode:screen;opacity:.7;
-      background:radial-gradient(circle at 36% 32%,rgba(255,236,190,.22),rgba(255,210,140,0) 42%),radial-gradient(circle at 68% 70%,rgba(255,226,170,.14),rgba(255,190,100,0) 38%);
-      animation:hq-sun-shimmer 16s ease-in-out infinite alternate}
-    @keyframes hq-sun-shimmer{0%{transform:rotate(0deg);opacity:.55}50%{transform:rotate(9deg);opacity:.85}100%{transform:rotate(-7deg);opacity:.65}}
-    @media (prefers-reduced-motion: reduce){ .hq-core-sun-shimmer{animation:none} }
-    #orbitTop[data-hq-open="oracle"] .orbit-core > :not(.hq-core-moon):not(.hq-core-sun):not(.hq-gold-ring){position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+    /* NAMED (Nov 21 2026, FX2): BEFORE the moon in the centre (.hq-core-moon).
+       NAMED (Nov 22 2026, FX3): BEFORE the Sun, NASA SDO's photograph with a warm glow, a shimmer and a dark veil. AFTER the
+       abyss sun (the owner's board): the same disc in the gold ring, its background EXACTLY the Termaximus chat box's void
+       (#tmx-chat: the same four gradients over rgba(2,1,10,0.98), sizes 200%/200%/200%/240%, the tmx-chat-void drift at
+       22 s), clipped to the circle, and over it a canvas running the chat's starfield at the chat's density per area.
+       Nothing outside the disc: no glow, no rays, no corona. The green stats ring (the core's halo, its arc and the goal's
+       arc) is hidden while ORACLE is open and back for the other four portals. Still under reduced motion.
+       scripts/checkTermaximusPhone.js holds every value equal to the chat box's. */
+    #orbitTop[data-hq-open="oracle"] .hq-core-abyss{display:block;position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(22,5,65,0.14)  0%, transparent 58%),
+        radial-gradient(ellipse at 50% 50%, rgba(35,3,40,0.10)  0%, transparent 54%),
+        radial-gradient(ellipse at 50% 50%, rgba(4,2,48,0.16)   0%, transparent 64%),
+        radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.30)    0%, transparent 70%),
+        rgba(2,1,10,0.98);
+      background-size: 200% 200%, 200% 200%, 200% 200%, 240% 240%;
+      animation: tmx-chat-void 22s ease-in-out infinite}
+    .hq-core-abyss-canvas{display:block;position:absolute;inset:0;width:100%;height:100%}
+    @media (prefers-reduced-motion: reduce){ .hq-core-abyss{animation:none !important} }
+    #orbitTop[data-hq-open="oracle"] .orbit-core-halo,#orbitTop[data-hq-open="oracle"] .orbit-core-arc,#orbitTop[data-hq-open="oracle"] .orbit-goal-arc{display:none}
+    #orbitTop[data-hq-open="oracle"] .orbit-core > :not(.hq-core-moon):not(.hq-core-abyss):not(.hq-gold-ring){position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.9)}
     /* the gold rings: round the ORACLE node and chip when open, and round the centre while ORACLE is open */
     .orbit-portal[data-portal="oracle"].is-open .orbit-disc{border-color:transparent}
     .orbit-portal[data-portal="oracle"].is-open .hq-gold-ring,#orbitTop[data-hq-open="oracle"] .orbit-core > .hq-gold-ring{display:block}
@@ -958,6 +973,8 @@
     #orbitTop[data-hq-view="grid"] .hq-unit{display:inline}
   }
 </style>
+<script src="/scripts/bf-agent-marks.js"></script>
+<script src="/scripts/bf-abyss.js"></script>
 <script src="/scripts/bf-oracle-moon.js"></script>
 <script src="/scripts/bf-hq-views.js"></script>
 <!-- Recent Activity was removed here. It rendered two fixed items, "Account

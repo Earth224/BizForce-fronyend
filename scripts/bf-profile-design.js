@@ -412,9 +412,10 @@
       apply(m.design, { page: "profile", photoUrl: m.photo_url, name: m.name });
       if (typeof window.bfProfileDesignChanged === "function") window.bfProfileDesignChanged(current);
     });
-    /* The mist and the boombox stay out of the preview. */
+    /* The mist and the boombox stay out of the preview. NAMED (Nov 22 2026, FX3): the Guide's tab too, now that it shows
+       at every width. */
     var hide = document.createElement("style");
-    hide.textContent = "#tmx-presence-root,#tmx-chat,.bfm-float{display:none!important}";
+    hide.textContent = "#tmx-presence-root,#tmx-chat,#tmx-guide-root,.bfm-float{display:none!important}";
     (document.head || document.documentElement).appendChild(hide);
   }
 

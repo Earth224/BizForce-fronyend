@@ -144,9 +144,6 @@
     "border-radius:9px;background:var(--bf-accent-b, #8b5cf6);color:#fff;font:700 11px/18px system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-align:center}",
     "#bf-tabbar .bf-tab-badge[hidden]{display:none}",
     "html.bf-tabbar-on #bf-tabbar-spacer{display:block;height:calc(56px + env(safe-area-inset-bottom, 0px))}",
-    "html.bf-tabbar-on body:has(#tmx-guide-fab-spacer) #bf-tabbar-spacer{display:none}",
-    "html.bf-tabbar-on #tmx-guide-fab{bottom:calc(56px + 16px + env(safe-area-inset-bottom, 0px))}",
-    "html.bf-tabbar-on #tmx-guide-fab-spacer{display:block!important;height:calc(136px + env(safe-area-inset-bottom, 0px))!important}",
     "}",
     /* the Create sheet: a dialog at any width */
     "#bf-create-backdrop{position:fixed;inset:0;z-index:2147483300;background:rgba(2,4,12,.6)}",

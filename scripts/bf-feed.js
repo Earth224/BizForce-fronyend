@@ -238,7 +238,6 @@
     ".bfp-talk-members{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-top:1px solid rgba(255,255,255,.1)}",
     "#bfp-talk .bfp-talk-members[hidden],#bfp-talk .bfp-talk-form[hidden]{display:none}",
     ".bfp-tm-h{margin:0;font-weight:800;color:#f4f7ff}",
-    ".bfp-tm-s{margin:0;font-size:.88rem;line-height:1.45;color:#a9b3cc}",
     ".bfp-tm-join{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 22px;text-decoration:none}",
     ".bfp-seo{display:flex;flex-direction:column;gap:6px;margin-top:10px}",
     ".bfp-seo label{font-size:.82rem;font-weight:700;color:#c4cbe0}",
@@ -498,7 +497,6 @@
   }
   /* NAMED (Nov 21 2026, P3-1B): Edit post's Show in Google, for a member (scripts/bf-access.js tier) on their own public post.
      Empty fields are filled from the post's first words; the server checks the lengths and that the author is a member. */
-  var TALK_MEMBERS = "Comments on members' posts are for members";
   var SEO_T = 70, SEO_D = 160;
   function firstWords(t, k) { var a = Array.from(String(t || "").replace(/\s+/g, " ").trim()); return a.length > k ? a.slice(0, k - 3).join("").trim() + "..." : a.join(""); }
   function editSeoHtml(p) {
@@ -589,8 +587,9 @@
         '<p class="bfp-err" id="bfpTalkErr" role="alert"></p>' +
       '</form>' +
       // NAMED (Nov 21 2026, P3-1B): a free account on a member's post reads the comments; adding one is for members (comment_rule)
-      '<div class="bfp-talk-members" id="bfpTalkMembers" hidden><p class="bfp-tm-h">' + esc(TALK_MEMBERS) + '</p>' +
-      '<p class="bfp-tm-s" id="bfpTalkRule"></p><a class="bfp-send bfp-tm-join" href="/billing.html">Join</a></div>';
+      // NAMED (Nov 22 2026, FX3): one sentence, the server's: before an attempt lib/membership.js TALK_MEMBERS_ONLY, after it the refusal
+      '<div class="bfp-talk-members" id="bfpTalkMembers" hidden><p class="bfp-tm-h" id="bfpTalkRule"></p>' +
+      '<a class="bfp-send bfp-tm-join" href="/billing.html">Join</a></div>';
     document.body.appendChild(talkBack); document.body.appendChild(talk);
     talk.querySelector("#bfpTalkClose").addEventListener("click", closeTalk);
     talk.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); closeTalk(); } });
@@ -650,7 +649,7 @@
       if (!talkState || talkState.postId !== postId) return;
       if (!r.ok) { talk.querySelector("#bfpTalkList").innerHTML = '<li class="bfp-empty">' + esc(r.body.error || "The comments could not be loaded.") + '</li>'; return; }
       talkState.comments = r.body.comments || [];
-      if (r.body.can_comment === false) talkRule(r.body.comment_rule || TALK_MEMBERS);   // NAMED (Nov 21 2026, P3-1B)
+      if (r.body.can_comment === false) talkRule(r.body.comment_rule);   // NAMED (Nov 21 2026, P3-1B; FX3: the server's sentence only)
       renderComments();
     }).catch(function () { talk.querySelector("#bfpTalkList").innerHTML = '<li class="bfp-empty">The comments could not be loaded. Check your connection.</li>'; });
   }

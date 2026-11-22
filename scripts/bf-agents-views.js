@@ -138,8 +138,11 @@
       a.href = linkEl ? linkEl.getAttribute("href") : "agents-hub.html";
       var tile = el("span", "ag-icon");
       tile.setAttribute("aria-hidden", "true");
-      var svg = avatar ? avatar.querySelector("svg") : null;
-      if (svg) tile.appendChild(svg.cloneNode(true));
+      // NAMED (Nov 22 2026, FX3): BEFORE the card's svg only, on the tile's shared cyan. AFTER the agent's own colour
+      // and icon (scripts/bf-agent-marks.js, the map the dashboard reads); an unknown type keeps the card's own svg.
+      var marks = window.BFAgentMarks;
+      if (marks && marks.has(type)) { tile.innerHTML = marks.svg(type); marks.paint(tile, type); }
+      else { var svg = avatar ? avatar.querySelector("svg") : null; if (svg) tile.appendChild(svg.cloneNode(true)); }
       var text = el("span", "ag-text");
       text.appendChild(el("span", "ag-name", nameEl ? nameEl.textContent : ""));
       if (Object.prototype.hasOwnProperty.call(ROLES, type)) text.appendChild(el("span", "ag-sub", ROLES[type]));
