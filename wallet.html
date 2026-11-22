@@ -148,7 +148,7 @@
     </div>
     <!-- NAMED (Nov 20 2026, P3-1): who may send. Receiving is free (with a confirmed email); sending is for members. -->
     <!-- NAMED (Nov 21 2026, P3-1B): BEFORE "Receiving BizCash is free once your email is confirmed. Sending it (...) is for members." -->
-    <p class="send-who" id="sendWho">BizCash in every form is for members: receiving it (tips, support, donations and sales) and sending it (a transfer, support or a tip, a donation, or buying in the Market). BizCash never pays for membership.</p>
+    <p class="send-who" id="sendWho">BizCash in every form is for members: receiving it (tips, support, donations and sales) and sending it (a transfer, support or a tip, a donation, or buying in the Market). BizCash never pays for membership. Members start with 1,000 BizCash. Free accounts do not hold BizCash.</p>
     <div class="send-row">
       <input type="text" id="send-username" class="send-input" placeholder="Recipient username" autocomplete="off" autocapitalize="off" spellcheck="false" />
       <input type="number" id="send-amount" class="send-input send-input-amount" placeholder="Amount" min="1" />
@@ -184,7 +184,7 @@
     Trades
   </div>
   <div class="trades-card">
-    <p class="trades-intro">Every BizCash trade you made with another member: purchases, sales, transfers, donations and support, with who, what, how much and when (UTC). BizCash issued to you by BizForce, such as a certification credit or the welcome bonus, is listed apart: it is not a trade.</p>
+    <p class="trades-intro">Every BizCash trade you made with another member: purchases, sales, transfers, donations and support, with who, what, how much and when (UTC). BizCash issued to you by BizForce, such as a certification credit or the member welcome, is listed apart: it is not a trade.</p>
     <div class="send-row">
       <label class="trades-label" for="tradesFrom">From</label>
       <input type="date" id="tradesFrom" class="send-input trades-date" />
@@ -324,12 +324,14 @@ function renderWallet(data) {
     credit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
     debit:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>'
   };
+  // NAMED (P3-1C): the two ledger reasons stored as codes, shown in words (lib/memberWelcome.js LEDGER_LABELS).
+  var TXN_LABELS = { member_welcome: "Member welcome: 1,000 BizCash", free_account_clawback: "BizCash removed: free accounts do not hold BizCash" };
   list.innerHTML = txns.map(function(t) {
     var sign = t.type === "debit" ? "-" : "+";
     var d = new Date(t.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
     return '<div class="txn-item">' +
       '<div class="txn-icon ' + t.type + '">' + (icons[t.type] || icons.credit) + '</div>' +
-      '<div class="txn-details"><div class="txn-desc">' + t.description + '</div><div class="txn-date">' + d + '</div></div>' +
+      '<div class="txn-details"><div class="txn-desc">' + (TXN_LABELS[t.description] || t.description) + '</div><div class="txn-date">' + d + '</div></div>' +
       '<div class="txn-amount ' + t.type + '">' + sign + t.amount.toLocaleString() + ' BFC</div>' +
       '</div>';
   }).join("");
