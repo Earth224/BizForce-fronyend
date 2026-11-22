@@ -91,6 +91,13 @@
   var API_FALLBACK = "https://dynamic-prosperity-production-5382.up.railway.app";
   var DRIFT_MS = 120000;
   var TURN_MS = 600;
+  /* NAMED (Nov 21 2026, FX2): THE FIRST SETTLE. BEFORE, when the figures arrived the first portal opened with no turn: the
+     slow drift stopped dead and the ring jumped to its resting arrangement in one frame. AFTER it settles there in SETTLE_MS:
+     it leaves at the drift's own speed (no jerk), goes the short way round and comes to rest with its speed falling to 0
+     (settleCurve, a cubic: the start's position and speed and the end's position and zero speed). Under reduced motion there
+     is no drift and no settle: the ring is placed. */
+  var SETTLE_MS = 1300;
+  function settleCurve(t, D, V) { return D * (1 - Math.pow(1 - t, 3)) + (V - 3 * D) * t * (1 - t) * (1 - t); }
   var STEP_DEG = 72;
   var VIEW = { w: 680, h: 330, cx: 340, cy: 160, rx: 275, ry: 110, innerRx: 150, innerRy: 60, portalR: 27, labelDy: 42, coreR: 34, coreHaloR: 44 };
   /* PH1 (Nov 19 2026): the desktop's view, kept; VIEW is it above 760 px and phoneView(width) up to 760 px. On the phone
@@ -887,8 +894,9 @@
     state.last = ts;
     if (state.turn) {
       if (!state.turn.start) state.turn.start = ts;
-      var t = Math.min(1, (ts - state.turn.start) / TURN_MS);
-      state.base = state.turn.from + (state.turn.to - state.turn.from) * easeOut(t);
+      var ms = state.turn.ms || TURN_MS;   // NAMED (Nov 21 2026, FX2): a settle has its own length and starting speed
+      var t = Math.min(1, (ts - state.turn.start) / ms);
+      state.base = state.turn.from + (typeof state.turn.v0 === "number" ? settleCurve(t, state.turn.to - state.turn.from, state.turn.v0 * ms) : (state.turn.to - state.turn.from) * easeOut(t));
       // NAMED (Nov 11 2026, orbit stage 2): the sparks that waited for the turn go once it has settled.
       if (t >= 1) { state.turn = null; flushSparks(); }
     } else if (drifting()) {
@@ -909,6 +917,15 @@
     state.turn = { from: state.base, to: state.base + delta, start: 0 };
     kick();
   }
+  // NAMED (Nov 21 2026, FX2): the first settle (see SETTLE_MS); v0 is the drift's speed when it began, in degrees a millisecond
+  function settleTo(key, v0) {
+    var target = frontBase(key);
+    var delta = ((target - state.base) % 360 + 540) % 360 - 180;   // the short way round
+    if (reduced()) { state.turn = null; state.base += delta; place(); flushSparks(); return; }
+    var now = window.performance && typeof window.performance.now === "function" ? window.performance.now() : 0;
+    state.turn = { from: state.base, to: state.base + delta, start: state.last || now, ms: SETTLE_MS, v0: v0 };
+    kick();
+  }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) { if (state.frame && window.cancelAnimationFrame) window.cancelAnimationFrame(state.frame); state.frame = 0; state.last = 0; }
     else kick();
@@ -917,6 +934,7 @@
   /* ── opening a portal ── */
   function toggle(key) { if (state.open === key) fold(); else openPortal(key, true); }
   function openPortal(key, turn) {
+    var v0 = drifting() ? 360 / DRIFT_MS : 0;   // NAMED (Nov 21 2026, FX2): the drift's speed, before opening stops it
     state.open = key;
     writeSession(key);
     // The open portal is set apart by its halo and "(open)" alone: the others keep full opacity.
@@ -926,7 +944,8 @@
       portalBtn[p.key].classList.toggle("is-open", on);
       portalName[p.key].lastChild.nodeValue = on ? " (open)" : "";
     });
-    if (turn) turnTo(key); else { state.base = frontBase(key); place(); }
+    if (turn === "settle") settleTo(key, v0);   // NAMED (Nov 21 2026, FX2)
+    else if (turn) turnTo(key); else { state.base = frontBase(key); place(); }
     drawGrid();
   }
   function fold() {
@@ -1664,7 +1683,8 @@
       .then(function () {
         drawOrbitFigures();
         drawMains();
-        if (!state.open && !readSession() && !state.chosen) { state.chosen = true; openPortal(firstPortal(state.top), false); }
+        // NAMED (Nov 21 2026, FX2): BEFORE openPortal(..., false), a jump to rest; AFTER "settle", the drift eased to rest
+        if (!state.open && !readSession() && !state.chosen) { state.chosen = true; openPortal(firstPortal(state.top), "settle"); }
         else drawGrid();
       });
   }
@@ -1673,6 +1693,7 @@
   var api = {
     PORTALS: PORTALS, UTILITIES: UTILITIES, DRIFT_MS: DRIFT_MS, TURN_MS: TURN_MS, SYNODIC_DAYS: SYNODIC_DAYS,
     VIEW: VIEW, FRONT_DEG: FRONT_DEG, REST_BASE: REST_BASE, frontBase: frontBase,
+    SETTLE_MS: SETTLE_MS, settleCurve: settleCurve,   // NAMED (Nov 21 2026, FX2)
     ORACLE_STAR: ORACLE_STAR, STAR_TINTS: STAR_TINTS, STAR_LAYERS: STAR_LAYERS, starLooks: starLooks, starReach: starReach, starLayout: starLayout, starGeometry: starGeometry, drawStars: drawStars,
     STAR_SKY: STAR_SKY, starCount: starCount, starMix: starMix, starGrid: starGrid,
     STAR_SHARES: STAR_SHARES, STAR_TINT_NAMES: STAR_TINT_NAMES, STAR_TINT_LOOK: STAR_TINT_LOOK, STAR_TWINKLE: STAR_TWINKLE, STAR_KEEP: STAR_KEEP,

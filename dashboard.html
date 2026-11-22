@@ -853,7 +853,7 @@
 <!-- HQ1 (Nov 19 2026): the phone dashboard's card views, orbit toggle and Oracle set. Every rule that shows anything is inside
      @media (max-width: 760px); above it each element HQ1 adds is display:none, so the desktop is unchanged. -->
 <style id="hq1Phone">
-  .hq-chips,.hq-view-row,.hq-list,.hq-moon,.hq-core-moon,.hq-gold-ring{display:none}
+  .hq-chips,.hq-view-row,.hq-list,.hq-moon,.hq-core-moon,.hq-core-sun,.hq-gold-ring{display:none}   /* NAMED (Nov 21 2026, FX2): + the centre's Sun */
   /* THE GOLD: the Termaximus chat box's rim (#tmx-chat::before, in the Termaximus presence script), exactly: the same nine
      stops, the same 260% size, the same tmx-gold-shimmer keyframes at 7s. scripts/checkHqViews.js holds every value equal. */
   @keyframes tmx-gold-shimmer {
@@ -898,8 +898,20 @@
     .hq-moon[hidden],.hq-core-moon[hidden]{display:none !important}
     .hq-moon svg,.hq-core-moon svg{display:block;width:100%;height:100%}
     .orbit-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon,.hq-chip-disc:has(> .hq-moon:not([hidden]):not(:empty)) > .orbit-moon{visibility:hidden}
-    #orbitTop[data-hq-open="oracle"] .hq-core-moon{display:block;position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:0}
-    #orbitTop[data-hq-open="oracle"] .orbit-core > :not(.hq-core-moon):not(.hq-gold-ring){position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+    /* NAMED (Nov 21 2026, FX2): BEFORE the moon in the centre (.hq-core-moon). AFTER the Sun (scripts/bf-hq-views.js: NASA SDO's
+       public-domain photograph): the disc cover-fitted in the centre's circle, a soft warm glow round it, and a very slow,
+       slight shimmer of its surface (a faint light that drifts across it, 16 s each way); none under reduced motion. A dark
+       veil from the middle keeps the centre's words readable. The gold ring is HQ1's, unchanged. */
+    #orbitTop[data-hq-open="oracle"] .hq-core-sun{display:block;position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:0;
+      box-shadow:0 0 8px 1px rgba(255,196,110,.55),0 0 26px 6px rgba(255,150,50,.30),0 0 56px 16px rgba(255,120,30,.14)}
+    .hq-core-sun-img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .hq-core-sun::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(20,6,0,.52) 0,rgba(20,6,0,.34) 48%,rgba(20,6,0,0) 74%)}
+    .hq-core-sun-shimmer{position:absolute;inset:-6%;border-radius:50%;mix-blend-mode:screen;opacity:.7;
+      background:radial-gradient(circle at 36% 32%,rgba(255,236,190,.22),rgba(255,210,140,0) 42%),radial-gradient(circle at 68% 70%,rgba(255,226,170,.14),rgba(255,190,100,0) 38%);
+      animation:hq-sun-shimmer 16s ease-in-out infinite alternate}
+    @keyframes hq-sun-shimmer{0%{transform:rotate(0deg);opacity:.55}50%{transform:rotate(9deg);opacity:.85}100%{transform:rotate(-7deg);opacity:.65}}
+    @media (prefers-reduced-motion: reduce){ .hq-core-sun-shimmer{animation:none} }
+    #orbitTop[data-hq-open="oracle"] .orbit-core > :not(.hq-core-moon):not(.hq-core-sun):not(.hq-gold-ring){position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.9)}
     /* the gold rings: round the ORACLE node and chip when open, and round the centre while ORACLE is open */
     .orbit-portal[data-portal="oracle"].is-open .orbit-disc{border-color:transparent}
     .orbit-portal[data-portal="oracle"].is-open .hq-gold-ring,#orbitTop[data-hq-open="oracle"] .orbit-core > .hq-gold-ring{display:block}

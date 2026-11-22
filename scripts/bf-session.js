@@ -51,7 +51,9 @@
      (scripts/bf-orbit.js; added Nov 10 2026, orbit top half), bf_hq_view and
      bf_hq_orbit, the phone dashboard's card view and whether its orbit is shown
      (scripts/bf-hq-views.js, the device copy of the member's saved choice;
-     added Nov 19 2026, HQ1), and, in this
+     added Nov 19 2026, HQ1), bf_agents_view, the phone Agent Directory's view
+     (scripts/bf-agents-views.js, the device copy of the member's saved choice;
+     added Nov 21 2026, FX2), and, in this
      tab, bf_card_pick, the card the card maker's picker last opened (one of
      the member's card ids; added Nov 13 2026, S3).
      Called by dashboard.html's and settings.html's Sign Out, by endSession below, by the account delete on your-data.html, and by
@@ -93,6 +95,7 @@
     "bf_oracle_name", "bf_oracle_date",
     "bf_main_boxes",
     "bf_hq_view", "bf_hq_orbit",
+    "bf_agents_view",
     "mcTargetGoalConversions",
     "bf_theme",
     "bf_music"

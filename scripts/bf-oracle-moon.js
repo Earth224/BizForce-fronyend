@@ -15,7 +15,7 @@
    chosen date (dateTimeInput null), the API base, and a document whose
    #abyssMoon is a staging box. renderAbyssMoon draws into the stage; paint()
    then copies that drawing into every target ([data-hq-moon]: the ORACLE
-   orbit node, the ORACLE chip, the orbit's centre when ORACLE is open), each
+   orbit node and the ORACLE chip; NAMED, Nov 21 2026, FX2: the centre is the Sun now), each
    with its own SVG ids (a suffix per target), so no two masks share an id.
 
    THE PHASE is the Oracle's: GET /api/moon on start and every 30 minutes (as

@@ -2147,6 +2147,7 @@ document.getElementById("fi-banner").addEventListener("change", async function()
     // The file is in storage, but the profile only shows it once this saves.
     if (!saved.ok) { showToast("Banner uploaded but not saved to your profile — please try again",true); this.value=""; return; }
     var img=document.getElementById("bannerImg"); img.src=url; img.style.display="block";
+    if (window.BFProfileShell && window.BFProfileShell.setBanner) window.BFProfileShell.setBanner(url);   // NAMED (Nov 21 2026, FX2): the phone header's banner too
     showToast("Banner updated!");
   } catch(e) { showToast("Banner upload failed",true); }
   this.value="";

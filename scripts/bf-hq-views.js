@@ -22,8 +22,9 @@
    highlighted as the orbit highlights it); a chip opens its portal. The open
    portal is the orbit's (sessionStorage bf_orbit_portal), so switching keeps it.
 
-   THE ORACLE SET: the moon (scripts/bf-oracle-moon.js) on the ORACLE node, the
-   ORACLE chip and the orbit's centre when ORACLE is open; the Termaximus chat
+   THE ORACLE SET: the moon (scripts/bf-oracle-moon.js) on the ORACLE node and the
+   ORACLE chip; the Sun in the orbit's centre when ORACLE is open (NAMED, Nov 21
+   2026, FX2: BEFORE the moon there too; AFTER a photograph of the Sun, below); the Termaximus chat
    box's gold on the rings, the "(open)" label, the set title and the Oracle
    tools' icons (each icon's own drawing used as a mask over the gold).
 
@@ -96,12 +97,29 @@
   });
   panel.insertBefore(chips, stage);
 
-  /* The moon on the ORACLE node and in the orbit's centre, and the gold rings (shown on the phone by CSS). */
+  /* The moon on the ORACLE node, the Sun in the orbit's centre, and the gold rings (shown on the phone by CSS).
+     NAMED (Nov 21 2026, FX2): BEFORE the centre was a third moon target (span.hq-core-moon[data-hq-moon=core]). AFTER it is
+     the Sun: a public-domain photograph, NASA's Solar Dynamics Observatory (SDO), HMI Quick-Look Continuum of
+     2026-11-21 22:15 UTC (https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_HMIIC.jpg, fetched that day), cropped
+     to the disc and saved at 480 px as /brand/sun-sdo-hmi-20261121.webp (13.9 KB). Credit: Courtesy of NASA/SDO and the
+     HMI science team. Its glow and its slow shimmer are dashboard.html's CSS; the shimmer stops under reduced motion. */
   (function oracleMarks() {
     var disc = stage.querySelector('.orbit-portal[data-portal="oracle"] .orbit-disc');
     if (disc) { var m = el("span", "hq-moon"); m.setAttribute("data-hq-moon", "node"); disc.appendChild(m); disc.appendChild(el("span", "hq-gold-ring")); }
     var core = document.getElementById("orbitCore");
-    if (core) { var c = el("span", "hq-core-moon"); c.setAttribute("data-hq-moon", "core"); core.insertBefore(c, core.firstChild); core.appendChild(el("span", "hq-gold-ring")); }
+    if (core) {
+      var c = el("span", "hq-core-sun");
+      var sun = el("img", "hq-core-sun-img");
+      sun.src = "/brand/sun-sdo-hmi-20261121.webp";
+      sun.alt = "";
+      sun.setAttribute("aria-hidden", "true");
+      sun.decoding = "async";
+      sun.addEventListener("error", function () { c.hidden = true; });
+      c.appendChild(sun);
+      c.appendChild(el("span", "hq-core-sun-shimmer"));
+      core.insertBefore(c, core.firstChild);
+      core.appendChild(el("span", "hq-gold-ring"));
+    }
   }());
 
   /* ── the view row ── */

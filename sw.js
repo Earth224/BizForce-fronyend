@@ -38,7 +38,8 @@ var BUILD = "__BF_BUILD__";
 /* NAMED (Nov 20 2026, FX1): BEFORE "p23"; AFTER "fx1" (Home's feed and the Profile as the approved design pictures). */
 /* NAMED (Nov 20 2026, P3-1): BEFORE "fx1"; AFTER "p31" (free accounts: the members panel, the verification banner, landing by tier). */
 /* NAMED (Nov 21 2026, P3-2): BEFORE "p31". AFTER "p32": the Verified badge (bf-verified.js), and the members panel on media and business ID. */
-var SHELL_REV = "p32";
+/* NAMED (Nov 21 2026, FX2): BEFORE "p32". AFTER "fx2": the feed's Tip and product strip, the Profile's banner, the Agent Directory's views (bf-agents-views.js) and the Oracle's Sun. */
+var SHELL_REV = "fx2";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -76,6 +77,8 @@ var STATIC_FILES = [
   "/scripts/bf-feed.js", "/scripts/bf-composer.js",   // NAMED (Nov 20 2026, P2-3): posts on Home and the profile, and the composer
   "/scripts/bf-access.js",   // NAMED (Nov 20 2026, P3-1): the members panel and the verification banner (bf-session.js loads it)
   "/scripts/bf-verified.js",   // NAMED (Nov 21 2026, P3-2): the Verified badge (Home, the profile and the storefront load it)
+  "/scripts/bf-agents-views.js",   // NAMED (Nov 21 2026, FX2): the Agent Directory's phone views (ai-agents.html loads it)
+  "/brand/sun-sdo-hmi-20261121.webp",   // NAMED (Nov 21 2026, FX2): the Sun in the HQ orbit's centre while ORACLE is open
   "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/icon-maskable-192.png", "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png", "/icons/favicon-32.png", "/icons/icon.svg"
 ];

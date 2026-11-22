@@ -122,6 +122,12 @@
     ".bfp-error{color:#fca5a5}",
     /* NAMED (Nov 20 2026, FX1): the phone rail's own parts; a desktop card shows none of them, as before */
     ".bfp-rail-av,.bfp-tip,.bfp-word,.bfp-act .ic-phone{display:none}",
+    /* NAMED (Nov 21 2026, FX2): the product strip on a desktop card: one line under the post, as a plain link */
+    ".bfp-buy{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);color:inherit;text-decoration:none}",
+    ".bfp-buy-tile{flex:none;width:32px;height:32px;border-radius:8px;background:#1b2350;object-fit:cover}",
+    ".bfp-buy-txt{flex:1;min-width:0;display:flex;flex-direction:column;font-size:.85rem}",
+    ".bfp-buy-price{font-size:.78rem;color:#a9b3cc}",
+    ".bfp-buy-go{flex:none;font-weight:800;color:var(--bf-accent-a, #22d3ee)}",
     /* the Coming soon sheet: a bottom sheet on a phone, a small dialog on a desktop */
     "#bfp-soon-back{position:fixed;inset:0;z-index:2147483270;background:rgba(2,4,12,.6)}",
     "#bfp-soon{position:fixed;z-index:2147483271;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));box-sizing:border-box;display:flex;flex-direction:column;gap:10px;",
@@ -154,11 +160,13 @@
     ".bfp-feed.is-full .bfp-info:empty{display:none}",
     ".bfp-feed.is-full .bfp-note{position:absolute;left:14px;right:80px;top:70px;z-index:3;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.6)}",
     ".bfp-feed.is-full .bfp-info .bfp-text{font-size:15px;line-height:1.4;color:#e6eaf5;max-height:5.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}",
-    /* the rail: 10 px from the right edge, 60 px wide, its bottom 126 px above the bar, items 18 px apart: the author's
+    /* the rail: 10 px from the right edge, 60 px wide, its bottom 16 px above the bar, items 18 px apart: the author's
        picture (52 px, the cyan-to-violet gradient with initials when there is no photo) with the 22 px follow "+" on its
-       bottom edge; Like, Talk, Tip BFC (its slot kept, unseen, until tipping arrives), Save, Share: each a 30 px filled
-       white icon over a 12 px label (the count, or the word while the count is 0). */
-    ".bfp-feed.is-full .bfp-actions{position:absolute;right:10px;bottom:126px;width:60px;z-index:2;flex-direction:column;flex-wrap:nowrap;align-items:center;gap:18px}",
+       bottom edge; Like, Talk, Tip BFC (gold, seen by a paid member; a free viewer's slot is kept, unseen, so nothing
+       moves), Save, Share: each a 30 px filled white icon over a 12 px label (the count, or the word while the count is 0).
+       NAMED (Nov 21 2026, FX2): BEFORE bottom:126px (210 above the pictured phone's bottom); AFTER bottom:16px, so the
+       rail's bottom lines up with the caption block's, 100 px above the pictured phone's bottom (backend scripts/designSpec.js). */
+    ".bfp-feed.is-full .bfp-actions{position:absolute;right:10px;bottom:16px;width:60px;z-index:2;flex-direction:column;flex-wrap:nowrap;align-items:center;gap:18px}",
     ".bfp-feed.is-full .bfp-act{flex-direction:column;justify-content:flex-start;gap:4px;width:60px;min-width:60px;min-height:50px;height:50px;padding:0;border-radius:0;color:#fff;font:600 12px/16px system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.85)}",
     ".bfp-feed.is-full .bfp-act:hover,.bfp-feed.is-full .bfp-act:focus-visible{background:transparent}",
     ".bfp-feed.is-full .bfp-act:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
@@ -176,9 +184,15 @@
     ".bfp-feed.is-full .bfp-badge-dot{position:absolute;left:11px;top:19px;width:22px;height:22px;border-radius:50%;background:var(--bf-accent-a, #22d3ee);color:#0b1022;display:flex;align-items:center;justify-content:center}",
     ".bfp-feed.is-full .bfp-badge[hidden]{display:none}",
     ".bfp-feed.is-full .bfp-tip{display:flex;visibility:hidden;color:#f5c46b}",
+    /* NAMED (Nov 21 2026, FX2): a paid member sees Tip BFC (sending BizCash is members only); a free viewer's slot stays unseen */
+    ".bfp-feed.is-full .bfp-tip.is-member{visibility:visible}",
     ".bfp-feed.is-full .bfp-tip svg{fill:#f5c46b;stroke:#0b1022}",
     /* the product strip (a post that carries a listing; listing posts arrive in a later block) */
     ".bfp-feed.is-full .bfp-buy{display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;border:1px solid #2b3a6b;background:rgba(13,19,38,.82);text-shadow:none}",
+    /* NAMED (Nov 21 2026, FX2): the strip is a link to the listing (/listing/<id>); the whole strip is the tap target */
+    ".bfp-feed.is-full a.bfp-buy{color:inherit;text-decoration:none}",
+    ".bfp-feed.is-full a.bfp-buy:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
+    ".bfp-feed.is-full .bfp-buy-tile.is-empty{display:block}",
     ".bfp-feed.is-full .bfp-buy-tile{flex:none;width:40px;height:40px;border-radius:10px;background:#1b2350;object-fit:cover}",
     ".bfp-feed.is-full .bfp-buy-txt{flex:1;min-width:0;display:flex;flex-direction:column}",
     ".bfp-feed.is-full .bfp-buy-title{font:600 13px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#e6eaf5;overflow-wrap:anywhere}",
@@ -278,11 +292,46 @@
     return '<button type="button" class="bfp-act' + (zero ? " is-zero" : "") + '" data-act="' + kind + '"' + (pressed === undefined ? "" : ' aria-pressed="' + !!pressed + '"') +
       ' aria-label="' + label + '">' + icon + '<span data-count="' + kind + '">' + n(count) + '</span><span class="bfp-word" aria-hidden="true">' + word + '</span></button>';
   }
+  /* NAMED (Nov 21 2026, FX2): Tip BFC. BEFORE always disabled, out of the tab order and hidden from readers (its slot kept).
+     AFTER the same for a free viewer or while the tier is unknown; a paid member's (bfAccess tier "member") is seen, gold, and
+     opens the Coming soon sheet (the tip itself arrives in a later block). Nothing moves either way: the slot is always there. */
+  var MEMBER = null;
+  function tipHtml() {
+    return MEMBER === true
+      ? '<button type="button" class="bfp-act bfp-tip is-member" data-act="tip" aria-label="Tip BFC">' + svg(ICON.coin, 22) + '<span>Tip BFC</span></button>'
+      : '<button type="button" class="bfp-act bfp-tip" data-act="tip" disabled tabindex="-1" aria-hidden="true">' + svg(ICON.coin, 22) + '<span>Tip BFC</span></button>';
+  }
+  function setMember(on) {
+    MEMBER = on === true;
+    Array.prototype.forEach.call(document.querySelectorAll(".bfp-tip"), function (b) {
+      b.classList.toggle("is-member", MEMBER);
+      b.disabled = !MEMBER;
+      if (MEMBER) { b.removeAttribute("tabindex"); b.removeAttribute("aria-hidden"); b.setAttribute("aria-label", "Tip BFC"); }
+      else { b.setAttribute("tabindex", "-1"); b.setAttribute("aria-hidden", "true"); b.removeAttribute("aria-label"); }
+    });
+  }
+  function watchAccess(tries) {
+    if (window.bfAccess && window.bfAccess.ready) { window.bfAccess.ready.then(function (a) { setMember(!!a && a.tier === "member"); }); return; }
+    if (tries > 0) setTimeout(function () { watchAccess(tries - 1); }, 250);
+  }
+  /* NAMED (Nov 21 2026, FX2): the product strip, whenever a post carries a linked listing (p.listing from lib/posts.js: id,
+     title, price_bfc, an optional photo and link, /listing/<slug or id>, only while the listing is active). The whole strip is
+     one link that opens the listing (listing.html); the Buy pill is its label, so the tap target is the strip. */
+  function stripHtml(p) {
+    var L = p && p.listing;
+    if (!L || typeof L.id !== "string" || !L.id) return "";
+    var tile = safeUrl(L.photo) ? '<img class="bfp-buy-tile" src="' + esc(L.photo) + '" alt="">' : '<span class="bfp-buy-tile is-empty" aria-hidden="true"></span>';
+    var price = Number(L.price_bfc) > 0 ? n(L.price_bfc) + " BFC" : "";
+    var href = typeof L.link === "string" && /^\/listing\/[^\/?#]+$/.test(L.link) ? L.link : "/listing/" + encodeURIComponent(L.id);
+    return '<a class="bfp-buy" href="' + esc(href) + '" aria-label="Buy ' + esc(L.title || "this listing") + (price ? ", " + price : "") + '">' + tile +
+      '<span class="bfp-buy-txt"><span class="bfp-buy-title">' + esc(L.title || "A listing") + '</span>' + (price ? '<span class="bfp-buy-price">' + price + '</span>' : "") + '</span>' +
+      '<span class="bfp-buy-go" aria-hidden="true">Buy</span></a>';
+  }
   function actionsHtml(p) {
     return '<div class="bfp-actions">' + railAvatar(p) +
       act("like", p.like_count, "Like", "Like, " + n(p.like_count), !!p.liked, svg(ICON.like, 22)) +
       act("talk", p.comment_count, "Talk", "Talk, " + n(p.comment_count) + " comments", undefined, svg(ICON.talk, 22)) +
-      '<button type="button" class="bfp-act bfp-tip" data-act="tip" disabled tabindex="-1" aria-hidden="true">' + svg(ICON.coin, 22) + '<span>Tip BFC</span></button>' +
+      tipHtml() +
       '<button type="button" class="bfp-act" data-act="save" aria-pressed="' + !!p.saved + '" aria-label="Save">' + svg(ICON.save, 22) + '<span>' + (p.saved ? "Saved" : "Save") + '</span></button>' +
       act("share", p.share_count, "Share", "Share, " + n(p.share_count), undefined,
         svg(ICON.share, 22).replace("<svg ", '<svg class="ic-desk" ') + svg(ICON.shareFill, 22).replace("<svg ", '<svg class="ic-phone" ')) +
@@ -317,7 +366,7 @@
     var status = p.status === "pending" ? '<p class="bfp-status">Waiting for review. Only you can see it.</p>'
       : p.status === "hidden" ? '<p class="bfp-status">Hidden by review. Only you can see it.</p>' : "";
     el.innerHTML = stage + '<span class="bfp-shade" aria-hidden="true"></span><div class="bfp-meta">' + head +
-      '<div class="bfp-info">' + (textPost ? "" : (p.body ? '<p class="bfp-text">' + esc(p.body) + '</p>' : "")) + status + '</div></div>' +
+      '<div class="bfp-info">' + (textPost ? "" : (p.body ? '<p class="bfp-text">' + esc(p.body) + '</p>' : "")) + status + stripHtml(p) + '</div></div>' +
       actionsHtml(p) + '<p class="bfp-note" role="status"></p>';
     mountMenu(el, p);
     var strip = el.querySelector(".bfp-photos");
@@ -630,6 +679,7 @@
     var kind = act.getAttribute("data-act");
     if (kind === "like" || kind === "save") toggle(post, kind, act);
     else if (kind === "talk") openTalk(post.getAttribute("data-post"), act);
+    else if (kind === "tip") { if (MEMBER === true) soon("tip", act); }   // NAMED (Nov 21 2026, FX2)
     else if (kind === "share") { if (phone() && post.closest(".bfp-feed.is-full")) options(post, act); else share(post); }
   });
   /* NAMED (Nov 20 2026, FX1): the approved design has no three-dot menu on a full-screen post, so on a phone Share opens the
@@ -650,7 +700,8 @@
     local: ["Local", "Posts from members near you who share their area."],
     market: ["Market", "Products and services from members, as posts you can buy from."],
     foryou: ["For You", "Posts from across BizForce, picked for you."],
-    reviews: ["Reviews", "Reviews from buyers, after a completed purchase."]
+    reviews: ["Reviews", "Reviews from buyers, after a completed purchase."],
+    tip: ["Tip BFC", "Send the author BizCash to say thanks. Sending BizCash is for members."]   // NAMED (Nov 21 2026, FX2)
   };
   var soonEl = null, soonBack = null, soonFrom = null;
   function closeSoon() {
@@ -684,6 +735,7 @@
     if (!el) return null;
     opts = opts || {};
     addStyle();
+    watchAccess(40);   // NAMED (Nov 21 2026, FX2): Tip BFC for a paid member
     var state = { cursor: null, loading: false, done: false, first: true, count: 0 };
     var sentinel = document.createElement("p");
     sentinel.className = "bfp-loading";
@@ -745,5 +797,5 @@
   }
 
   window.BFFeed = { mount: mount, postEl: postEl, openTalk: openTalk, closeTalk: closeTalk, openPhoto: openPhoto, share: share, call: call, soon: soon, closeSoon: closeSoon, initials: initials,
-    addStyle: addStyle, follow: follow, ICON: ICON, svg: svg, esc: esc, safeUrl: safeUrl, COMMENT_MAX: COMMENT_MAX, BODY_MAX: BODY_MAX };
+    addStyle: addStyle, follow: follow, setMember: setMember, stripHtml: stripHtml, ICON: ICON, svg: svg, esc: esc, safeUrl: safeUrl, COMMENT_MAX: COMMENT_MAX, BODY_MAX: BODY_MAX };
 })();
