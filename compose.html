@@ -15,11 +15,15 @@
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff;background:#070b18}
     body{min-height:100vh;position:relative;overflow-x:hidden}
-    .page{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:16px 16px calc(32px + env(safe-area-inset-bottom, 0px))}
-    .compose-top{display:flex;align-items:center;gap:12px;margin:0 0 16px}
-    .compose-top h1{flex:1;margin:0;font-size:1.3rem;font-weight:800;color:#f4f7ff}
-    .compose-close{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.16);color:#e8e8ff;text-decoration:none}
-    .compose-close svg{width:18px;height:18px}
+    /* NAMED (Nov 23 2026, P3-3, the owner's board "New post: Share, Offer or Need"): BEFORE a ringed Close and the title at
+       the left, Post at the form's foot. AFTER the board's header: 64 px tall over a 1 px line, Close (a plain 12 px X) at the
+       left, "New post" centred, Post at the right (scripts/bf-composer.js puts it in #composePost). */
+    .page{position:relative;z-index:1;max-width:640px;margin:0 auto;padding:0 16px calc(32px + env(safe-area-inset-bottom, 0px))}
+    .compose-top{display:flex;align-items:center;gap:0;height:64px;margin:0 -16px 16px;padding:0 12px;border-bottom:1px solid #1e2848}
+    .compose-top h1{flex:1;margin:0;text-align:center;font-size:17px;font-weight:800;color:#e6eaf5}
+    .compose-close{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:22px;color:#e6eaf5;text-decoration:none}
+    .compose-close svg{width:24px;height:24px}
+    .compose-post{flex:none;display:flex;justify-content:flex-end;min-width:44px}
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -30,12 +34,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </a>
     <h1>New post</h1>
+    <span class="compose-post" id="composePost"></span>
   </header>
   <main id="composer"></main>
 </div>
 <script src="/scripts/bf-composer.js"></script>
 <script>
-  window.BFComposer.mount(document.getElementById("composer"));
+  window.BFComposer.mount(document.getElementById("composer"), { postSlot: document.getElementById("composePost") });
 </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <!-- NAMED (Nov 20 2026, FX1): the legal footer every page carries (backend scripts/checkLegalPages.js H1); P2-3 left it out of this page -->

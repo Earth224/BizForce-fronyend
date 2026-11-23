@@ -32,6 +32,17 @@
     .search-input:focus{border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.45)}
     .tab-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
     #categoryPills{display:contents}
+    /* NAMED (Nov 23 2026, P3-3): the one category list (GET /api/categories) as chips: the filter (All plus every category, one
+       row that swipes) and the listing form's required choice. 44 px to tap. */
+    .cat-filter,.form-cats{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+    .cat-filter{margin:0 0 16px;padding:2px 0}
+    .cat-chip{position:relative;flex:none;display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;padding:0 15px;border-radius:22px;border:1px solid #2b3a6b;background:#0e1428;color:#c9d1e6;font:600 14px/1 inherit;font-family:inherit;white-space:nowrap;cursor:pointer}
+    .cat-chip[aria-pressed=true],.cat-chip.is-on{background:#0f2a3a;border-color:var(--bf-accent-a, #22d3ee);color:var(--bf-accent-a, #22d3ee)}
+    .cat-chip input{position:absolute;left:0;top:0;width:1px;height:1px;margin:0;opacity:0;pointer-events:none}
+    .cat-chip:focus-visible,.cat-chip:focus-within{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}
+    .cat-note{margin:6px 0 0;font-size:.78rem;color:#8892b8}
+    .cat-note.is-error{color:#fca5a5}
+    .add-cat-btn{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;margin-top:4px;border-radius:12px;border:1px dashed rgba(var(--bf-accent-a-rgb, 34,211,238),.45);background:transparent;color:var(--bf-accent-a, #22d3ee);font:700 .8rem inherit;font-family:inherit;cursor:pointer;align-self:flex-start}
     .tab-btn{padding:9px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,28,.7);color:#8892b8;font-size:.8rem;font-weight:700;letter-spacing:.04em;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
     .tab-btn:hover{border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.35);color:#e8e8ff}
     .tab-btn.active{background:rgba(var(--bf-accent-b-rgb, 168,85,247),.12);border-color:rgba(var(--bf-accent-b-rgb, 168,85,247),.45);color:var(--bf-accent-b, #a855f7)}
@@ -142,6 +153,9 @@
     .toast-success{background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.4);color:#34d399}
     .toast-error{background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);color:#f87171}
     @media(max-width:600px){.form-row{grid-template-columns:1fr}.toolbar{flex-direction:column}}
+    /* NAMED (Nov 23 2026, P3-3): on a phone (bf-phone.css's 760 px) a listing's title link and the form's digital-product label are 44 px
+       tap targets (P3-3's Market screens are the first to draw listings and the form for a member on a phone); the desktop is unchanged. */
+    @media (max-width: 760px){.listing-title a{display:inline-flex;align-items:center;min-height:44px}label.form-label[for=listingIsDigital]{display:inline-flex;align-items:center;min-height:44px;margin:0}}
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -174,14 +188,12 @@
     </button>
   </div>
 
-  <div class="category-menu" id="categoryMenu">
-    <button type="button" class="category-menu-trigger" onclick="toggleCategoryMenu()">Shop by category <span class="category-menu-caret">▾</span></button>
-    <div class="category-menu-panel" id="categoryMenuPanel"></div>
-  </div>
+  <!-- NAMED (Nov 23 2026, P3-3): BEFORE "Shop by category", a menu of ten categories typed into this page, and five of them as tabs.
+       AFTER one row of chips, All and every category on the one list (GET /api/categories), filtering by category_slug. -->
+  <div class="cat-filter" id="catFilter" role="group" aria-label="Filter by category"></div>
 
   <div class="tab-bar" id="tabBar">
     <button class="tab-btn active" data-cat="all" onclick="selectTab(this)">All</button>
-    <span id="categoryPills"></span>
     <button class="tab-btn my-tab" data-cat="mine" onclick="selectTab(this)">My Listings</button>
     <a href="garage-sale.html" class="tab-btn" style="color:#34d399;border-color:#34d399;text-decoration:none">Garage Sale →</a>
   </div>
@@ -216,9 +228,9 @@
     </div>
     <div class="form-group">
       <label class="form-label">Category *</label>
-      <select class="form-select" id="fCategory">
-        <option value="">Select category</option>
-      </select>
+      <!-- NAMED (Nov 23 2026, P3-3): BEFORE a select of ten categories. AFTER the one list as chips, one required. -->
+      <div class="form-cats" id="fCategory" role="radiogroup" aria-label="Category" aria-required="true"></div>
+      <p class="cat-note" id="fCategoryNote">The same list as posts. Swipe for more.</p>
     </div>
     <div class="form-group">
       <label class="form-label">Price (BFC) *</label>
@@ -265,18 +277,49 @@ var currentUserId = (function() {
   try { return JSON.parse(atob(token.split(".")[1])).id; } catch(e) { return null; }
 })();
 
-var CATEGORIES = [
-  { value: "services", label: "Services", pill: true },
-  { value: "artists", label: "Artists & Talent", pill: true },
-  { value: "bookstore", label: "Bookstore", pill: true },
-  { value: "garage_sale", label: "Garage Sale", pill: true },
-  { value: "health_wellness", label: "Health & Wellness", pill: true },
-  { value: "hair_beauty", label: "Hair & Beauty", pill: false },
-  { value: "clothing", label: "Clothing & Apparel", pill: false },
-  { value: "vehicles", label: "Vehicles", pill: false },
-  { value: "labor_trades", label: "Labor & Trades", pill: false },
-  { value: "other", label: "Other", pill: false }
-];
+/* NAMED (Nov 23 2026, P3-3): BEFORE ten categories typed here. AFTER the one list, read from the categories table
+   (GET /api/categories), the same list posts use; nothing is typed here. */
+var CATEGORIES = [];
+var activeCat = "all";
+var CAT_TEXT = { none: "Choose a category. It is the same list as posts.", down: "The categories couldn't load. Check your connection and try again.",
+  add: "Add a category" };
+function categoryName(slug) {
+  var c = CATEGORIES.find(function(x) { return x.value === slug; });
+  return c ? c.label : "";
+}
+function loadCategories() {
+  return fetch(API_URL + "/api/categories").then(function(r) { return r.ok ? r.json() : Promise.reject(new Error("categories")); }).then(function(d) {
+    CATEGORIES = (Array.isArray(d.categories) ? d.categories : []).map(function(c) { return { value: c.slug, label: c.name }; });
+    if (!CATEGORIES.length) throw new Error("categories");
+    renderCategoryFilter();
+    renderCategorySelectOptions();
+    renderGrid();
+  }).catch(function() {
+    var note = document.getElementById("fCategoryNote");
+    note.textContent = CAT_TEXT.down; note.classList.add("is-error");
+  });
+}
+function renderCategoryFilter() {
+  var row = document.getElementById("catFilter");
+  row.innerHTML = [{ value: "all", label: "All" }].concat(CATEGORIES).map(function(c) {
+    return '<button type="button" class="cat-chip" data-cat="' + escapeHtml(c.value) + '" aria-pressed="' + (c.value === activeCat) + '">' + escapeHtml(c.label) + '</button>';
+  }).join("");
+}
+function chosenCategory() {
+  var r = document.querySelector('#fCategory input[name="fCat"]:checked');
+  return r ? r.value : "";
+}
+function setCategory(slug) {
+  Array.prototype.forEach.call(document.querySelectorAll('#fCategory input[name="fCat"]'), function(r) {
+    r.checked = r.value === slug;
+    r.parentNode.classList.toggle("is-on", r.checked);
+  });
+  var on = document.querySelector('#fCategory input[name="fCat"]:checked');
+  var row = document.getElementById("fCategory");
+  if (on) row.scrollLeft = Math.max(0, on.parentNode.offsetLeft - row.offsetLeft - 16); else row.scrollLeft = 0;
+  var note = document.getElementById("fCategoryNote");
+  note.textContent = "The same list as posts. Swipe for more."; note.classList.remove("is-error");
+}
 
 var allListings = [];
 var myListings = [];
@@ -320,53 +363,20 @@ function formatCategoryLabel(category) {
 
 var categoryMenuOpen = false;
 
-function renderCategoryPills() {
-  var container = document.getElementById("categoryPills");
-  container.innerHTML = CATEGORIES.filter(function(c) { return c.pill; }).map(function(c) {
-    return '<button class="tab-btn" data-cat="' + c.value + '" onclick="selectTab(this)">' + escapeHtml(c.label) + '</button>';
-  }).join("");
-}
-
-function renderCategoryMenu() {
-  var panel = document.getElementById("categoryMenuPanel");
-  var items = [{ value: "all", label: "All Categories" }].concat(CATEGORIES);
-  panel.innerHTML = items.map(function(c) {
-    return '<button type="button" class="category-menu-item" data-cat="' + escapeHtml(c.value) + '">' + escapeHtml(c.label) + '</button>';
-  }).join("");
-}
-
 function renderCategorySelectOptions() {
-  var select = document.getElementById("fCategory");
-  select.innerHTML = '<option value="">Select category</option>' + CATEGORIES.map(function(c) {
-    return '<option value="' + c.value + '">' + escapeHtml(c.label) + '</option>';
+  var row = document.getElementById("fCategory");
+  var was = chosenCategory();
+  row.innerHTML = CATEGORIES.map(function(c) {
+    return '<label class="cat-chip"><input type="radio" name="fCat" value="' + escapeHtml(c.value) + '">' + escapeHtml(c.label) + '</label>';
   }).join("");
+  if (was) setCategory(was);
 }
 
-function toggleCategoryMenu() {
-  categoryMenuOpen = !categoryMenuOpen;
-  document.getElementById("categoryMenu").classList.toggle("open", categoryMenuOpen);
-}
-
-function closeCategoryMenu() {
-  categoryMenuOpen = false;
-  document.getElementById("categoryMenu").classList.remove("open");
-}
-
-function selectCategoryFromMenu(value) {
-  activeTab = value;
-  document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
-  var matchingPill = document.querySelector('.tab-btn[data-cat="' + value + '"]');
-  if (matchingPill) matchingPill.classList.add("active");
+function selectCategory(value) {
+  activeCat = value;
+  Array.prototype.forEach.call(document.querySelectorAll("#catFilter .cat-chip"), function(b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-cat") === value)); });
   renderGrid();
-  closeCategoryMenu();
 }
-
-document.addEventListener("click", function(e) {
-  var menu = document.getElementById("categoryMenu");
-  if (menu && categoryMenuOpen && !menu.contains(e.target)) {
-    closeCategoryMenu();
-  }
-});
 
 var listingMedia = [];
 var listingMediaUploading = 0;
@@ -499,8 +509,8 @@ function renderGrid() {
   }
 
   var items = onMine ? myListings : allListings;
-  if (activeTab !== "mine" && activeTab !== "all") {
-    items = items.filter(function(l) { return l.category === activeTab; });
+  if (activeCat !== "all") {
+    items = items.filter(function(l) { return l.category_slug === activeCat; });
   }
   if (q) {
     items = items.filter(function(l) {
@@ -508,15 +518,8 @@ function renderGrid() {
     });
   }
 
-  var viewName;
-  if (activeTab === "all") {
-    viewName = "All Listings";
-  } else if (activeTab === "mine") {
-    viewName = "My Listings";
-  } else {
-    var matchedCategory = CATEGORIES.find(function(c) { return c.value === activeTab; });
-    viewName = matchedCategory ? matchedCategory.label : formatCategoryLabel(activeTab);
-  }
+  var viewName = activeTab === "mine" ? "My Listings" : "All Listings";
+  if (activeCat !== "all") viewName = (activeTab === "mine" ? "My Listings: " : "") + (categoryName(activeCat) || "Listings");
   document.getElementById("feedTitle").textContent = viewName;
   document.getElementById("feedCount").textContent = items.length + (items.length === 1 ? " listing" : " listings");
 
@@ -542,7 +545,8 @@ function renderCard(l) {
   var date = new Date(l.created_at).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric"});
   var statusHtml = isOwn ? '<span class="status-badge status-' + escapeHtml(l.status) + '">' + escapeHtml(l.status) + '</span>' : "";
   var purchasedHtml = (!isOwn && purchasedListingIds.has(l.id)) ? '<span class="status-badge status-purchased">PURCHASED</span>' : "";
-  var catBadge = '<span class="listing-cat-badge">' + escapeHtml(formatCategoryLabel(l.category)) + '</span>';
+  var catName = categoryName(l.category_slug);   // NAMED (Nov 23 2026, P3-3): from the one list; none is shown when the listing has none
+  var catBadge = catName ? '<span class="listing-cat-badge">' + escapeHtml(catName) + '</span>' : "";
   var mediaArr = Array.isArray(l.media) ? l.media : [];
   var mediaHtml = "";
   if (mediaArr.length > 0) {
@@ -562,6 +566,8 @@ function renderCard(l) {
   // Values ride in data- attributes and are read back in the delegated
   // listener on #listingsGrid, so no value is ever compiled as JavaScript.
   var idAttr = ' data-listing-id="' + escapeHtml(l.id) + '"';
+  // NAMED (Nov 23 2026, P3-3): the owner's own listing with no category: a gentle prompt that opens Edit
+  var addCat = isOwn && !l.category_slug ? '<button type="button" class="add-cat-btn btn-edit"' + idAttr + '>' + CAT_TEXT.add + '</button>' : "";
   var actions = isOwn
     ? '<div class="listing-actions">' +
         '<button type="button" class="btn-sm btn-edit"' + idAttr + '>Edit</button>' +
@@ -583,6 +589,7 @@ function renderCard(l) {
       '<h3 class="listing-title">' + titleHtml + '</h3>' +
       (desc ? '<p class="listing-desc">' + escapeHtml(desc) + '</p>' : '') +
       (tags ? '<div class="listing-tags">' + tags + '</div>' : '') +
+      addCat +
       '<div class="listing-footer">' +
         '<span class="listing-date">' + date + ' ' + statusHtml + '</span>' +
         purchasedHtml +
@@ -600,7 +607,7 @@ function openCreateModal() {
   document.getElementById("submitBtn").textContent = "List Service";
   document.getElementById("fTitle").value = "";
   document.getElementById("fDesc").value = "";
-  document.getElementById("fCategory").value = "";
+  setCategory("");
   document.getElementById("fPrice").value = "";
   document.getElementById("fTags").value = "";
   listingMedia = [];
@@ -617,7 +624,7 @@ function openEditModal(id) {
   document.getElementById("submitBtn").textContent = "Save Changes";
   document.getElementById("fTitle").value = listing.title || "";
   document.getElementById("fDesc").value = listing.description || "";
-  document.getElementById("fCategory").value = listing.category || "";
+  setCategory(listing.category_slug || "");   // NAMED (Nov 23 2026, P3-3): none chosen when the listing has none; Save asks for one
   document.getElementById("fPrice").value = listing.price_bfc || "";
   document.getElementById("fTags").value = (listing.tags || []).join(", ");
   /* P2-2 (fix a): the listing's own photos and videos are loaded, so saving an edit keeps them. BEFORE the form opened with
@@ -720,11 +727,14 @@ async function uploadListingMedia(file) {
 async function submitListing() {
   var title = document.getElementById("fTitle").value.trim();
   var desc = document.getElementById("fDesc").value.trim();
-  var category = document.getElementById("fCategory").value;
+  var category = chosenCategory();
   var price = parseInt(document.getElementById("fPrice").value) || 0;
   var tagsRaw = document.getElementById("fTags").value.split(",").map(function(t) { return t.trim(); }).filter(Boolean);
   if (!title) { showToast("Title is required", "error"); return; }
-  if (!category) { showToast("Category is required", "error"); return; }
+  if (!category) {
+    var cn = document.getElementById("fCategoryNote"); cn.textContent = CAT_TEXT.none; cn.classList.add("is-error");
+    showToast(CAT_TEXT.none, "error"); return;
+  }
   if (price <= 0) { showToast("Set a BizCash (BFC) price above 0. Listings are priced in BizCash only.", "error"); return; }
 
   var isDigital = document.getElementById("listingIsDigital").checked;
@@ -904,10 +914,13 @@ document.getElementById("listingsGrid").addEventListener("click", function(e) {
   }
 });
 
-document.getElementById("categoryMenuPanel").addEventListener("click", function(e) {
-  var btn = e.target.closest("button.category-menu-item");
+document.getElementById("catFilter").addEventListener("click", function(e) {
+  var btn = e.target.closest("button.cat-chip");
   if (!btn || !this.contains(btn)) return;
-  selectCategoryFromMenu(btn.getAttribute("data-cat"));
+  selectCategory(btn.getAttribute("data-cat"));
+});
+document.getElementById("fCategory").addEventListener("change", function(e) {
+  if (e.target && e.target.name === "fCat") setCategory(e.target.value);
 });
 
 document.getElementById("mediaPreview").addEventListener("click", function(e) {
@@ -916,9 +929,8 @@ document.getElementById("mediaPreview").addEventListener("click", function(e) {
   removeMediaItem(Number(btn.getAttribute("data-media-index")));
 });
 
-renderCategoryPills();
-renderCategoryMenu();
-renderCategorySelectOptions();
+renderCategoryFilter();
+loadCategories();
 showPurchaseResultBanner();
 loadListings();
 openCreateFromLink();

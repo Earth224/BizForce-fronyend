@@ -234,6 +234,7 @@
       padding: 14px 0;
     }
     .toggle-row + .toggle-row { border-top: 1px solid rgba(148,163,184,0.14); }
+    .toggle-row[hidden] { display: none; }   /* NAMED (Nov 23 2026, P3-3): the Need alerts row, members only */
     .toggle-copy { flex: 1; min-width: 0; }
     .toggle-title { font-size: 0.92rem; font-weight: 700; color: #e6edf3; }
     .toggle-desc { margin-top: 2px; font-size: 0.8rem; color: #8892b8; line-height: 1.5; }
@@ -830,6 +831,20 @@
             <div class="btn-row" id="notifTestRow" style="display:none;">
               <button class="btn" id="notifTestBtn" type="button">Send Test Notification</button>
               <span class="msg" id="notifTestMsg"></span>
+            </div>
+            <!-- NAMED (Nov 23 2026, P3-3): "Need alerts in my categories" (user_preferences.need_alerts, migration 202b): on until
+                 turned off; members only (a free account is never alerted, so it does not see the switch). In the app only:
+                 no email, text message or push. -->
+            <div class="toggle-row" id="needAlertsRow" hidden>
+              <div class="toggle-copy">
+                <div class="toggle-title" id="needAlertsTitle">Need alerts in my categories</div>
+                <div class="toggle-desc">When someone posts a Need in a category you offer in, you are told here in BizForce. Never by email, text message or push.</div>
+                <span class="pref-saved" id="needAlertsSaved"></span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="needAlertsToggle" checked aria-labelledby="needAlertsTitle" />
+                <span class="toggle-slider"></span>
+              </label>
             </div>
           </section>
 
@@ -1644,6 +1659,20 @@
         }, 1600);
       }
 
+      /* NAMED (Nov 23 2026, P3-3): Need alerts in my categories, shown to a member, saved on change. Settings loads bf-session.js
+         clear-only (no bf-access.js), so the tier is read here from GET /api/auth/me (access.tier, the server's own word); the row
+         stays hidden for a free account and whenever the tier cannot be read. */
+      var needAlertsRow = document.getElementById("needAlertsRow");
+      var needAlertsToggle = document.getElementById("needAlertsToggle");
+      var needAlertsSaved = document.getElementById("needAlertsSaved");
+      fetch(API_URL + "/api/auth/me", { headers: { "Authorization": "Bearer " + token } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { needAlertsRow.hidden = !(d && d.access && d.access.tier === "member"); })
+        .catch(function () { needAlertsRow.hidden = true; });
+      needAlertsToggle.addEventListener("change", function () {
+        putPreferences({ need_alerts: needAlertsToggle.checked }, needAlertsSaved);
+      });
+
       function putPreferences(fields, indicatorEl) {
         fetch(API_URL + "/api/user/preferences", {
           method: "PUT",
@@ -1743,6 +1772,7 @@
           var prefs = res.data;
 
           tmxToggle.checked = prefs.termaximus_active !== false;
+          needAlertsToggle.checked = prefs.need_alerts !== false;   // NAMED (Nov 23 2026, P3-3): never chosen reads as on
           if (prefs.termaximus_active === false) {
             localStorage.setItem("tmx_presence_active", "0");
           } else {

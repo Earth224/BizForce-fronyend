@@ -29,6 +29,15 @@
    stay), Hide (the post's author, on their own post) and Report. Up to 1000
    characters; the content screen's refusal is shown under the box.
 
+   NAMED (Nov 23 2026, P3-3, the owner's board "A Need post in the feed"): every post carries its intent and category
+   (lib/posts.js). A NEED shows the cyan NEED tag and "Category · Place · When" above the name (When: Today or This week;
+   Any is left out), its text over the board's dark teal backdrop when it has no photo, and, for a signed-in member who
+   offers in that category (the server's can_help: never a free account, never the poster, never a Found Need), the strip
+   "You offer this nearby" / "Reply privately with your work" / "I can help". I can help opens a private message to the
+   poster with the post's link (POST /api/messages), then the conversation (inbox.html?with=). The poster marks a Need Found
+   and can reopen it (the post's menu; POST or DELETE /api/posts/:id/found): the tag reads FOUND and the strip goes. A SHARE
+   post shows its category as a small line; an OFFER shows the product strip, as before.
+
    Nothing new is kept on the device.
    ══════════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -120,6 +129,22 @@
     ".bfp-note:empty{display:none}",
     ".bfp-end,.bfp-loading,.bfp-error{margin:0;padding:12px 0;text-align:center;color:#8892b8;font-size:.88rem}",
     ".bfp-error{color:#fca5a5}",
+    /* NAMED (Nov 23 2026, P3-3, the owner's board "A Need post in the feed"; backend scripts/designSpec.js NEEDPOST): the intent line
+       (the 56 x 24 NEED tag, 8 px, then "Category · Place · When" at 14/16), the Need backdrop, and the I can help strip (the
+       product strip's box: a 40 px icon tile, 13 px title over 12 px line, the 34 px cyan pill; the whole strip is the tap target). */
+    ".bfp-kind{display:flex;align-items:center;gap:8px;min-width:0}",
+    ".bfp-tag{flex:none;display:inline-flex;align-items:center;justify-content:center;height:24px;box-sizing:border-box;padding:0 9px;border-radius:12px;background:var(--bf-accent-a, #22d3ee);color:#070b18;font:800 12px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;letter-spacing:.12em;text-shadow:none}",
+    ".bfp-tag.is-found{background:#1a2244;color:#c9d1e6;box-shadow:inset 0 0 0 1px #2b3a6b}",
+    ".bfp-kmeta{min-width:0;font:400 14px/16px system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#c9d1e6;overflow-wrap:anywhere}",
+    ".bfp-kind.is-share .bfp-kmeta{font-size:13px;color:#a9b3cc}",
+    ".bfp-needbg{display:none}",
+    ".bfp-help{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;box-sizing:border-box;margin:0;padding:8px;border-radius:14px;border:1px solid #2b3a6b;background:rgba(13,19,38,.82);color:inherit;text-align:left;font:inherit;text-shadow:none;cursor:pointer}",
+    ".bfp-help:focus-visible{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
+    ".bfp-help-i{flex:none;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:#0f2a3a;color:var(--bf-accent-a, #22d3ee)}",
+    ".bfp-help-txt{flex:1;min-width:0;display:flex;flex-direction:column}",
+    ".bfp-help-t{font:700 13px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#e6eaf5;overflow-wrap:anywhere}",
+    ".bfp-help-s{font:400 12px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#a9b3cc;overflow-wrap:anywhere}",
+    ".bfp-help-go{flex:none;display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 12px;border-radius:17px;background:var(--bf-accent-a, #22d3ee);color:#04121a;font:700 14px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;white-space:nowrap}",
     /* NAMED (Nov 20 2026, FX1): the phone rail's own parts; a desktop card shows none of them, as before */
     ".bfp-rail-av,.bfp-tip,.bfp-word,.bfp-act .ic-phone{display:none}",
     /* NAMED (Nov 21 2026, FX2): the product strip on a desktop card: one line under the post, as a plain link */
@@ -198,6 +223,8 @@
     ".bfp-feed.is-full .bfp-buy-title{font:600 13px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#e6eaf5;overflow-wrap:anywhere}",
     ".bfp-feed.is-full .bfp-buy-price{font:400 12px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#a9b3cc}",
     ".bfp-feed.is-full .bfp-buy-go{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:34px;min-height:34px;padding:0 14px;border:0;border-radius:17px;background:var(--bf-accent-a, #22d3ee);color:#04121a;font:700 14px/1 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;text-decoration:none}",
+    /* NAMED (Nov 23 2026, P3-3): a Need without a photo: the board's dark navy with a teal glow (its text is in the caption) */
+    ".bfp-feed.is-full .bfp-needbg{display:block;position:absolute;inset:0;background:radial-gradient(circle at 77% 28%,#123a4a 0,rgba(18,58,74,0) 52%),linear-gradient(180deg,#0b1230 0%,#080d22 50%,#070b1b 100%)}",
     ".bfp-feed.is-full .bfp-shade{position:absolute;left:0;right:0;bottom:0;height:55%;background:linear-gradient(transparent,rgba(0,0,0,.72));pointer-events:none;z-index:1}",
     ".bfp-feed.is-full>.bfp-slide{display:flex;flex-direction:column;justify-content:center;padding:72px 16px 16px;overflow-y:auto}",
     ".bfp-feed.is-full>.bfp-end{flex:0 0 auto;padding:18px 0}",
@@ -336,6 +363,28 @@
       '<span class="bfp-buy-txt"><span class="bfp-buy-title">' + esc(L.title || "A listing") + '</span>' + (price ? '<span class="bfp-buy-price">' + price + '</span>' : "") + '</span>' +
       '<span class="bfp-buy-go" aria-hidden="true">Buy</span></a>';
   }
+  /* NAMED (Nov 23 2026, P3-3): the intent line, the Need backdrop and the I can help strip */
+  var WHEN_WORDS = { today: "Today", week: "This week" };
+  var HELP = { title: "You offer this nearby", sub: "Reply privately with your work", go: "I can help" };
+  var TARGET = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>';
+  function isFound(p) { return !!(p && p.intent === "need" && p.need && p.need.found); }
+  function kindHtml(p) {
+    var cat = p.category && typeof p.category.name === "string" ? p.category.name : "";
+    if (p.intent === "need") {
+      var N = p.need || {};
+      var parts = [cat, typeof N.city === "string" ? N.city : "", WHEN_WORDS[N.when] || ""].filter(Boolean);
+      return '<div class="bfp-kind is-need"><span class="bfp-tag' + (isFound(p) ? " is-found" : "") + '">' + (isFound(p) ? "FOUND" : "NEED") + '</span>' +
+        (parts.length ? '<span class="bfp-kmeta">' + esc(parts.join(" \u00b7 ")) + '</span>' : "") + '</div>';
+    }
+    if (p.intent !== "offer" && cat) return '<div class="bfp-kind is-share"><span class="bfp-kmeta">' + esc(cat) + '</span></div>';
+    return "";
+  }
+  function helpHtml(p) {
+    if (!p || p.intent !== "need" || p.can_help !== true || p.mine || isFound(p)) return "";
+    var who = (p.author && p.author.name) || "the poster";
+    return '<button type="button" class="bfp-help" aria-label="' + esc(HELP.go + ": reply privately to " + who + " with your work") + '"><span class="bfp-help-i">' + TARGET + '</span>' +
+      '<span class="bfp-help-txt"><span class="bfp-help-t">' + HELP.title + '</span><span class="bfp-help-s">' + HELP.sub + '</span></span><span class="bfp-help-go" aria-hidden="true">' + HELP.go + '</span></button>';
+  }
   function actionsHtml(p) {
     return '<div class="bfp-actions">' + railAvatar(p) +
       act("like", p.like_count, "Like", "Like, " + n(p.like_count), !!p.liked, svg(ICON.like, 22)) +
@@ -365,17 +414,20 @@
     el.setAttribute("data-post", p.id);
     el.setAttribute("data-kind", p.kind);
     var textPost = !(p.photos || []).length;
+    var needText = textPost && p.intent === "need";   // NAMED (Nov 23 2026, P3-3): the backdrop on the stage, the text in the caption
     var head = '<div class="bfp-head">' +
       '<a class="bfp-av-link" href="' + esc(safeUrl(a.link) || "#") + '">' + avatarHtml(a, "bfp-av") + '</a>' +
       '<a class="bfp-who" href="' + esc(safeUrl(a.link) || "#") + '"><span class="bfp-name">' + esc(a.name || "A member") + vb(a.verified) + '</span>' +
       (a.username ? '<span class="bfp-handle">@' + esc(a.username) + '</span>' : "") + '</a>' +
       (showFollow ? '<button type="button" class="bfp-follow" data-follow="' + esc(a.id) + '" aria-label="Follow ' + esc(a.name || "this member") + '">Follow</button>' : "") +
       '<span class="bfp-menu"></span></div>';
-    var stage = textPost ? '<div class="bfp-stage"><div class="bfp-textcard">' + esc(p.body) + '</div></div>' : '<div class="bfp-stage">' + photosHtml(p) + '</div>';
+    var stage = needText ? '<div class="bfp-stage"><div class="bfp-needbg" aria-hidden="true"></div></div>'
+      : textPost ? '<div class="bfp-stage"><div class="bfp-textcard">' + esc(p.body) + '</div></div>' : '<div class="bfp-stage">' + photosHtml(p) + '</div>';
     var status = p.status === "pending" ? '<p class="bfp-status">Waiting for review. Only you can see it.</p>'
       : p.status === "hidden" ? '<p class="bfp-status">Hidden by review. Only you can see it.</p>' : "";
-    el.innerHTML = stage + '<span class="bfp-shade" aria-hidden="true"></span><div class="bfp-meta">' + head +
-      '<div class="bfp-info">' + (textPost ? "" : (p.body ? '<p class="bfp-text">' + esc(p.body) + '</p>' : "")) + status + stripHtml(p) + '</div></div>' +
+    el.setAttribute("data-intent", p.intent === "offer" || p.intent === "need" ? p.intent : "share");   // NAMED (Nov 23 2026, P3-3)
+    el.innerHTML = stage + '<span class="bfp-shade" aria-hidden="true"></span><div class="bfp-meta">' + kindHtml(p) + head +
+      '<div class="bfp-info">' + (textPost && !needText ? "" : (p.body ? '<p class="bfp-text">' + esc(p.body) + '</p>' : "")) + status + stripHtml(p) + helpHtml(p) + '</div></div>' +
       actionsHtml(p) + '<p class="bfp-note" role="status"></p>';
     mountMenu(el, p);
     var strip = el.querySelector(".bfp-photos");
@@ -402,6 +454,7 @@
       { label: "Edit", run: function () { editPost(el, p); } },
       { label: "Delete", danger: true, run: function () { deletePost(el, p); } }
     ] : [];
+    if (p.mine && p.intent === "need") extra.unshift(foundItem(el, p));   // NAMED (Nov 23 2026, P3-3)
     window.BFSafety.mount(slot, { type: "post", id: p.id, userId: a.id, name: a.name, where: ORIGIN + "/p/" + p.id, extra: extra,
       onChange: function () { el.parentNode && el.parentNode.removeChild(el); } });
   }
@@ -530,6 +583,45 @@
         el.parentNode.replaceChild(fresh, el);
         if (r.body.message) note(fresh, r.body.message);
       }).catch(function () { btn.disabled = false; d.querySelector("#bfpEditErr").textContent = "That did not save. Check your connection."; });
+    });
+  }
+  /* NAMED (Nov 23 2026, P3-3): the poster marks their Need Found (the tag reads FOUND; no strip, no more alerts) or reopens it. */
+  var FOUND_TEXT = { mark: "Mark Found", reopen: "Reopen Need", marked: "Marked Found. Offers of help and alerts stop.", reopened: "Reopened. Your Need is open again." };
+  function foundItem(el, p) {
+    var on = isFound(p);
+    return { label: on ? FOUND_TEXT.reopen : FOUND_TEXT.mark, run: function () { setFound(el, p, !on); } };
+  }
+  function setFound(el, p, on) {
+    call(on ? "POST" : "DELETE", "/api/posts/" + encodeURIComponent(p.id) + "/found").then(function (r) {
+      if (!r.ok || !r.body.post) { note(el, r.body.error || "That did not work. Try again."); return; }
+      var fresh = postEl(r.body.post);
+      if (el.parentNode) el.parentNode.replaceChild(fresh, el);
+      note(fresh, on ? FOUND_TEXT.marked : FOUND_TEXT.reopened);
+    }).catch(function () { note(el, "That did not work. Check your connection."); });
+  }
+  /* NAMED (Nov 23 2026, P3-3): I can help: a private message to the poster, the post's link in it, through the existing route
+     (POST /api/messages, with its rules: blocks, the free account's reply-only rule, the email rule), then the conversation. */
+  function canHelp(el, from) {
+    var p = posts[el.getAttribute("data-post")] || {}, a = p.author || {};
+    if (!a.id) return;
+    var link = ORIGIN + "/p/" + p.id;
+    var first = String(a.name || "").trim().split(/\s+/)[0] || "there";
+    var d = dialog("I can help", "<p>A private message to " + esc(a.name || "the poster") + ", with a link to their post. Say what you do and show your work.</p>" +
+      '<textarea class="bfp-input" id="bfpHelpBody" maxlength="2000">' + esc("Hi " + first + ", I can help with this: " + link + "\n\n") + '</textarea>' +
+      '<p class="bfp-err" id="bfpHelpErr" role="alert"></p>' +
+      '<div class="bfp-dlg-acts"><button type="button" class="bfp-send" id="bfpHelpSend">Send privately</button><button type="button" class="bfp-quiet" id="bfpHelpCancel">Cancel</button></div>', "#bfpHelpBody");
+    var box = d.querySelector("#bfpHelpBody");
+    try { box.setSelectionRange(box.value.length, box.value.length); } catch (x) { /* fine */ }
+    d.querySelector("#bfpHelpCancel").addEventListener("click", closeDialog);
+    d.querySelector("#bfpHelpSend").addEventListener("click", function () {
+      var btn = this, text = box.value.trim();
+      if (text.indexOf(link) === -1) text = (text ? text + "\n\n" : "") + link;   // the post stays linked
+      btn.disabled = true;
+      call("POST", "/api/messages", { receiver_id: a.id, content: text }).then(function (r) {
+        if (!r.ok) { btn.disabled = false; d.querySelector("#bfpHelpErr").textContent = r.body.error || "Your message wasn't sent. Try again."; return; }
+        closeDialog();
+        window.location.href = "/inbox.html?with=" + encodeURIComponent(a.id);
+      }).catch(function () { btn.disabled = false; d.querySelector("#bfpHelpErr").textContent = "Your message wasn't sent. Check your connection."; });
     });
   }
   function deletePost(el, p) {
@@ -710,6 +802,8 @@
     if (!post) return;
     var photo = e.target.closest(".bfp-photo");
     if (photo) { openPhoto(photo.getAttribute("data-full")); return; }
+    var help = e.target.closest(".bfp-help");   // NAMED (Nov 23 2026, P3-3)
+    if (help) { canHelp(post, help); return; }
     var act = e.target.closest(".bfp-act");
     if (!act) return;
     var kind = act.getAttribute("data-act");
@@ -724,6 +818,7 @@
     var p = posts[el.getAttribute("data-post")] || {}, a = p.author || {};
     if (!window.BFSafety || !window.BFSafety.openMenu) { share(el); return; }
     var extra = [{ label: "Share link", run: function () { share(el); } }];
+    if (p.mine && p.intent === "need") extra.push(foundItem(el, p));   // NAMED (Nov 23 2026, P3-3)
     if (p.mine) extra.push({ label: "Edit", run: function () { editPost(el, p); } }, { label: "Delete", danger: true, run: function () { deletePost(el, p); } });
     window.BFSafety.openMenu({ type: "post", id: p.id, userId: a.id, name: a.name, where: ORIGIN + "/p/" + p.id, extra: extra,
       onChange: function () { el.parentNode && el.parentNode.removeChild(el); } }, from);
@@ -832,6 +927,7 @@
     };
   }
 
-  window.BFFeed = { mount: mount, postEl: postEl, openTalk: openTalk, closeTalk: closeTalk, openPhoto: openPhoto, share: share, call: call, soon: soon, closeSoon: closeSoon, initials: initials,
+  window.BFFeed = { WHEN_WORDS: WHEN_WORDS, HELP: HELP, FOUND_TEXT: FOUND_TEXT, kindHtml: kindHtml, helpHtml: helpHtml,   // NAMED (Nov 23 2026, P3-3)
+    mount: mount, postEl: postEl, openTalk: openTalk, closeTalk: closeTalk, openPhoto: openPhoto, share: share, call: call, soon: soon, closeSoon: closeSoon, initials: initials,
     addStyle: addStyle, follow: follow, setMember: setMember, stripHtml: stripHtml, ICON: ICON, svg: svg, esc: esc, safeUrl: safeUrl, COMMENT_MAX: COMMENT_MAX, BODY_MAX: BODY_MAX };
 })();
