@@ -42,7 +42,8 @@ var BUILD = "__BF_BUILD__";
 // NAMED (Nov 21 2026, P3-1B): BEFORE "fx2". AFTER "p31b": the free-account rules (bf-access.js Buy sheet and members intercepts, the Create sheet's Members tags, the composer's photo rule and Show in Google, Talk's members box).
 // NAMED (Nov 21 2026, P3-1C): BEFORE "p31b". AFTER "p31c": the wallet says members start with 1,000 BizCash and shows the two new ledger reasons in words.
 // NAMED (Nov 22 2026, FX3): BEFORE "p31c". AFTER "fx3": the abyss sun and bf-abyss.js, Termaximus on the phone (the mist, the Guide tab, the chat; the book button gone), the agent cards' colours and icons.
-var SHELL_REV = "fx3";
+// NAMED (Nov 22 2026, FX3B): BEFORE "fx3". AFTER "fx3b": the first portal drawn before the settle, the moon not redrawn while its photo fails, the five unused agent icon rules removed.
+var SHELL_REV = "fx3b";
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [

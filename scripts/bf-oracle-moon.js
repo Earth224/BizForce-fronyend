@@ -335,13 +335,24 @@
       .replace(/url\(#([^)]+)\)/g, function (all, id) { return "url(#" + id + suffix + ")"; });
   }
   function targets() { return Array.prototype.slice.call(window.document.querySelectorAll("[data-hq-moon]")); }
+  /* FX3B (Nov 22 2026): NAMED BEFORE every paint showed the target again (el.hidden = false), so while the photo could not
+     load each repaint (one per orbit draw) drew the whole moon, its masks and blurs, for a few frames until the error hid it
+     once more: a flicker, and on a slow phone a stall (the first portal's settle jumped). AFTER a target whose photo has
+     already failed stays hidden while it is drawn again, and a probe of the photo shows it once the photo loads. A target
+     whose photo has not failed is painted exactly as before. */
   function paintOne(el, html) {
     if (!el.getAttribute("data-hq-moon-id")) el.setAttribute("data-hq-moon-id", "-hqm" + (++serial));
+    var failed = el.getAttribute("data-hq-moon-failed") === "true", lost = false;
     el.innerHTML = uniquify(html, el.getAttribute("data-hq-moon-id"));
-    el.hidden = false;
+    el.hidden = failed;
     var img = el.querySelector("image");
     // As the Oracle does: if the photo cannot load, the moon is not shown (the target's own emblem stays).
-    if (img) img.addEventListener("error", function () { el.hidden = true; el.setAttribute("data-hq-moon-failed", "true"); });
+    if (img) img.addEventListener("error", function () { lost = true; el.hidden = true; el.setAttribute("data-hq-moon-failed", "true"); });
+    if (img && failed) {
+      var probe = new window.Image();
+      probe.onload = function () { if (!lost && img.parentNode && el.contains(img)) { el.hidden = false; el.removeAttribute("data-hq-moon-failed"); } };
+      probe.src = img.getAttribute("href");
+    }
   }
   function paint() {
     if (!phone()) return false;

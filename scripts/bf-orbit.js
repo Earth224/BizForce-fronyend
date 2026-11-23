@@ -106,7 +106,13 @@
      so the speed falls evenly from the drift's to 0 and never rises above it (the fewest degrees a slow frame can skip). A
      first portal further round settles at once, from rest. Under reduced motion the ring is placed, as before. */
   var SETTLE_DIST = 360 / DRIFT_MS * SETTLE_MS / 2;
-  var SETTLE_AHEAD = SETTLE_DIST + 0.2;
+  /* FX3B (Nov 22 2026): NAMED BEFORE SETTLE_AHEAD = SETTLE_DIST + 0.2, so the drift ran about 70 ms before the settle took
+     over: the settle began while the page was still drawing the figures that had just arrived, and a slow frame then
+     made the ring catch up in one jump. AFTER the ring waits FIRST_LEAD_MS of drift further back, so the figures are
+     drawn (and the first portal's boxes built, prepareGrid) while it drifts, and the settle starts on a quiet page. The
+     settle itself (SETTLE_DIST, SETTLE_MS, settleCurve, the drift's speed at its start) is unchanged. */
+  var FIRST_LEAD_MS = 1200;
+  var SETTLE_AHEAD = SETTLE_DIST + 360 / DRIFT_MS * FIRST_LEAD_MS;
   var STEP_DEG = 72;
   var VIEW = { w: 680, h: 330, cx: 340, cy: 160, rx: 275, ry: 110, innerRx: 150, innerRy: 60, portalR: 27, labelDy: 42, coreR: 34, coreHaloR: 44 };
   /* PH1 (Nov 19 2026): the desktop's view, kept; VIEW is it above 760 px and phoneView(width) up to 760 px. On the phone
@@ -408,7 +414,7 @@
 
   var state = {
     top: null, open: null, mains: readMains(), base: 0, turn: null, hover: false, focus: false, last: 0, frame: 0,
-    allOpen: false, active: -1, matches: []
+    allOpen: false, active: -1, matches: [], prepared: null   // FX3B: the first portal's boxes built ahead (prepareGrid)
   };
   function readMains() {
     var raw = readLocal(), list = null;
@@ -1008,14 +1014,13 @@
     drawGridBoxes();
     drawn();
   }
-  function drawGridBoxes() {
-    clear(grid);
-    var portal = null;
-    PORTALS.forEach(function (p) { if (p.key === state.open) portal = p; });
-    if (!portal) { grid.hidden = true; grid.removeAttribute("data-portal"); return; }
-    grid.hidden = false;
-    grid.setAttribute("data-portal", portal.key);
-    grid.setAttribute("aria-label", portal.title + " tools");
+  /* FX3B (Nov 22 2026): NAMED BEFORE drawGridBoxes always cleared and rebuilt the grid, so the frame that opened the first
+     portal (the settle's first) also built its boxes. AFTER, while the ring drifts towards the first portal, prepareGrid
+     builds that portal's boxes into the grid while it is still hidden; the open then only reveals them, provided the
+     portal, the figures (state.top) and the main boxes are the ones they were built from. Any other draw (a tap on a
+     portal, Refresh, a main box swapped) clears and rebuilds as before. */
+  function portalFor(key) { var portal = null; PORTALS.forEach(function (p) { if (p.key === key) portal = p; }); return portal; }
+  function fillGrid(portal) {
     var slugs = portal.tools.filter(function (s) { return state.mains.indexOf(s) === -1 && TOOL[s]; });
     var ordered = orderTools(slugs, state.top);
     ordered.forEach(function (r, i) {
@@ -1024,6 +1029,25 @@
       if (i === 0 && r.fig && r.fig.value > 0) box.classList.add("orbit-box-wide");
       grid.appendChild(box);
     });
+  }
+  function prepareGrid(key) {
+    var portal = portalFor(key);
+    state.prepared = null;
+    if (!portal || state.open || !grid.hidden) return;
+    clear(grid);
+    fillGrid(portal);
+    state.prepared = { key: key, top: state.top, mains: state.mains.join("|") };
+  }
+  function drawGridBoxes() {
+    var portal = portalFor(state.open), pr = state.prepared;
+    state.prepared = null;
+    var ready = !!portal && !!pr && pr.key === portal.key && pr.top === state.top && pr.mains === state.mains.join("|");
+    if (!ready) clear(grid);
+    if (!portal) { grid.hidden = true; grid.removeAttribute("data-portal"); return; }
+    grid.hidden = false;
+    grid.setAttribute("data-portal", portal.key);
+    grid.setAttribute("aria-label", portal.title + " tools");
+    if (!ready) fillGrid(portal);
   }
 
   /* ── the main boxes ── */
@@ -1703,7 +1727,12 @@
         drawOrbitFigures();
         drawMains();
         // NAMED (Nov 21 2026, FX2): BEFORE openPortal(..., false), a jump to rest; AFTER "settle", the drift eased to rest
-        if (!state.open && !readSession() && !state.chosen) { state.chosen = true; if (!awaitFront(firstPortal(state.top))) openPortal(firstPortal(state.top), "settle"); }
+        if (!state.open && !readSession() && !state.chosen) {
+          state.chosen = true;
+          var first = firstPortal(state.top);
+          if (!awaitFront(first)) openPortal(first, "settle");
+          else prepareGrid(first);   // FX3B: its boxes are built now, while the ring drifts; the open only reveals them
+        }
         else drawGrid();
         if (!state.clockOn) { state.clockOn = true; kick(); }   // FX3: the drift's clock starts with the figures
       });
@@ -1725,6 +1754,7 @@
     PORTALS: PORTALS, UTILITIES: UTILITIES, DRIFT_MS: DRIFT_MS, TURN_MS: TURN_MS, SYNODIC_DAYS: SYNODIC_DAYS,
     VIEW: VIEW, FRONT_DEG: FRONT_DEG, REST_BASE: REST_BASE, frontBase: frontBase,
     SETTLE_MS: SETTLE_MS, settleCurve: settleCurve,   // NAMED (Nov 21 2026, FX2)
+    FIRST_LEAD_MS: FIRST_LEAD_MS, SETTLE_DIST: SETTLE_DIST, prepareGrid: prepareGrid,   // NAMED (Nov 22 2026, FX3B)
     ORACLE_STAR: ORACLE_STAR, STAR_TINTS: STAR_TINTS, STAR_LAYERS: STAR_LAYERS, starLooks: starLooks, starReach: starReach, starLayout: starLayout, starGeometry: starGeometry, drawStars: drawStars,
     STAR_SKY: STAR_SKY, starCount: starCount, starMix: starMix, starGrid: starGrid,
     STAR_SHARES: STAR_SHARES, STAR_TINT_NAMES: STAR_TINT_NAMES, STAR_TINT_LOOK: STAR_TINT_LOOK, STAR_TWINKLE: STAR_TWINKLE, STAR_KEEP: STAR_KEEP,
