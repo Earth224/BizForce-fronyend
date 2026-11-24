@@ -5944,8 +5944,6 @@
         table.appendChild(tr);
       };
       row("Bluesky", r.bluesky);
-      row("Mastodon", r.mastodon);
-      row("Bluesky + Mastodon", r.bluesky_and_mastodon);
       row("YouTube — " + r.youtube.note, r.youtube, "is-apart");
       m.appendChild(table);
     }

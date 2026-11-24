@@ -785,6 +785,8 @@
           <option value="opted_in"  selected>Opted in</option>
           <option value="opted_out">Opted out</option>
         </select>
+        <input type="text" id="sms-add-source" placeholder="Where they agreed" autocomplete="off" maxlength="200" aria-label="Where they agreed to texts" />
+        <input type="date" id="sms-add-consent-at" aria-label="When they agreed" />
         <button type="button" id="sms-add-btn" class="sms-add-btn">Add</button>
       </div>
       <div id="sms-sub-table" class="empty-state">
@@ -805,8 +807,11 @@
             <option value="opted_in" selected>Opted in</option>
             <option value="opted_out">Opted out</option>
           </select>
+          <input type="text" id="sms-bulk-source" placeholder="Where they agreed" autocomplete="off" maxlength="200" aria-label="Where these numbers agreed to texts" />
+          <input type="date" id="sms-bulk-consent-at" aria-label="When they agreed" />
           <button type="button" id="sms-bulk-btn" class="sms-add-btn">Import</button>
         </div>
+        <p class="sms-bulk-hint">To mark numbers opted in, say where and when they agreed; it is recorded with each number. Without it a number is saved as pending and is never texted.</p>
         <p class="sms-bulk-status" id="sms-bulk-status"></p>
       </div>
     </section>
@@ -925,7 +930,7 @@
       var rows = subscribers.map(function (s) {
         var consent = consentLabel(s);
         var pillClass = consent === "opted_in" ? "opted-in" : "opted-out";
-        var pillText  = consent === "opted_in" ? "Opted in" : "Opted out";
+        var pillText  = consent === "opted_in" ? "Opted in" : (consent === "pending" ? "Pending" : "Opted out");   // Nov 23 2026, LR-1
         return "<tr>" +
           "<td>" + (s.phone_number || "—") + "</td>" +
           "<td>" + (s.customer_name || "—") + "</td>" +
@@ -979,6 +984,17 @@
       }, []);
     }
 
+    /* Nov 23 2026, LR-1: opted in only with where and when the person agreed; the server
+       records it (consent_events) or saves the number as pending. Opted out is sent as
+       consent false. */
+    function consentProof(optedIn, sourceEl, atEl) {
+      if (!optedIn) return { consent: false };
+      var source = sourceEl ? (sourceEl.value || "").trim() : "";
+      var day = atEl ? (atEl.value || "").trim() : "";
+      if (!source || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return { consent: "unrecorded" };
+      return { consent: true, consent_source: source, consent_at: day + "T00:00:00.000Z" };
+    }
+
     function wireAddBtn() {
       var btn = document.getElementById("sms-add-btn");
       if (!btn) return;
@@ -990,6 +1006,10 @@
         var phone   = (phoneEl.value || "").trim();
         var name    = (nameEl.value  || "").trim();
         var consent = consentEl.value === "opted_in";
+        // Nov 23 2026, LR-1: consent is recorded with where and when it was given
+        var sourceEl = document.getElementById("sms-add-source");
+        var atEl     = document.getElementById("sms-add-consent-at");
+        var proof    = consentProof(consent, sourceEl, atEl);
 
         if (!phone) return;
 
@@ -1001,7 +1021,7 @@
             "Authorization": "Bearer " + tok(),
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ phone: phone, name: name, consent: consent })
+          body: JSON.stringify(Object.assign({ phone: phone, name: name }, proof))
         })
           .then(function (r) {
             return r.json().then(function (d) { return { ok: r.ok, data: d || {} }; },
@@ -1035,11 +1055,12 @@
         var textEl    = document.getElementById("sms-bulk-text");
         var consentEl = document.getElementById("sms-bulk-consent");
         var consent   = consentEl.value === "opted_in";
+        var proof     = consentProof(consent, document.getElementById("sms-bulk-source"), document.getElementById("sms-bulk-consent-at"));
 
         var rows = parsePasteBox();
 
         function doImport(allRows) {
-          allRows.forEach(function (r) { r.consent = consent; });
+          allRows.forEach(function (r) { Object.assign(r, proof); });
 
           if (!allRows.length) {
             statusEl.textContent = "Nothing to import";

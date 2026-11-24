@@ -55,7 +55,8 @@
   ];
   /* NAMED (Nov 21 2026, P3-1B): a free account's taps on these open the members panel (selling, starting a conversation),
      and on these the card-checkout-coming sheet (Buy). */
-  var MEMBER_ACTIONS = [".create-btn", "a.bf-create-opt.is-members", "#pfsMessage", ".btn-message", "#sfMessage", "[data-members-only]"];
+  // Nov 23 2026, LR-1: "#sfMessage" removed (no such element; the storefront Message button comes in LR-3).
+  var MEMBER_ACTIONS = [".create-btn", "a.bf-create-opt.is-members", "#pfsMessage", ".btn-message", "[data-members-only]"];
   var BUY_ACTIONS = [".btn-buy", "a.buy-btn", "button.sf-buy-btn", "[data-bf-buy]"];
   var CREATE_PAGES = ["marketplace.html", "garage-sale.html"];
   var BUY_TEXT = ["Card checkout is coming", "Buying by card arrives soon. A free account never pays in BizCash; when card checkout opens, you can buy this here."];

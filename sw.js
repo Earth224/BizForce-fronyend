@@ -44,7 +44,7 @@ var BUILD = "__BF_BUILD__";
 // NAMED (Nov 22 2026, FX3): BEFORE "p31c". AFTER "fx3": the abyss sun and bf-abyss.js, Termaximus on the phone (the mist, the Guide tab, the chat; the book button gone), the agent cards' colours and icons.
 // NAMED (Nov 22 2026, FX3B): BEFORE "fx3". AFTER "fx3b": the first portal drawn before the settle, the moon not redrawn while its photo fails, the five unused agent icon rules removed.
 // NAMED (Nov 23 2026, P3-3): BEFORE "fx3b". AFTER "p33": Share, Offer or Need in the composer, the Need post and I can help in the feed, the Market's category filter.
-var SHELL_REV = "p33";
+var SHELL_REV = "lr1b";   // NAMED (Nov 23 2026, LR-1B): BEFORE "lr1" (LR-1: BEFORE "p33")
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [

@@ -521,7 +521,7 @@
       </div>
       <div class="agent-header-text">
         <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky every 5 minutes; Mastodon capture and intent scoring run only when switched on. YouTube capture also runs only when switched on; its finds are listed apart, never scored, and kept for at most 30 days. One keyword set and one social account — enabled only for the account that owns them.</p>
+        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky every 5 minutes; intent scoring runs only when switched on. YouTube capture also runs only when switched on; its finds are listed apart, never scored, and kept for at most 30 days. One keyword set and one social account — enabled only for the account that owns them.</p>
       </div>
     </header>
 
@@ -549,6 +549,14 @@
   <script>
     var API = "https://dynamic-prosperity-production-5382.up.railway.app";
     function tok() { return localStorage.getItem("bf_token") || ""; }
+
+    /* Nov 23 2026, LR-1: the signed-out state. */
+    function showSignIn(countEl, list) {
+      countEl.textContent = "Not signed in";
+      var noise = document.getElementById("noiseBtn");
+      if (noise) noise.style.display = "none";
+      list.innerHTML = "<div class=\"empty-state\" data-state=\"signed_out\">Sign in to see Lead Radar. <a href=\"/app.html\">Sign in</a></div>";
+    }
 
     function toggleNoise() {
       var btn = document.getElementById("noiseBtn");
@@ -774,6 +782,9 @@
       var countEl    = document.getElementById("leadsCount");
       var list       = document.getElementById("leadsList");
 
+      /* Nov 23 2026, LR-1: signed out, the page asks for a sign-in instead of failing a request */
+      if (!tok()) { showSignIn(countEl, list); return; }
+
       refreshBtn.disabled = true;
       countEl.textContent = "Loading leads...";
       list.innerHTML = "";
@@ -792,6 +803,7 @@
              the server's own sentence and nothing that implies a lead is on
              its way. Every control that acts on a lead lives inside a card,
              and no card is built, so none of them exist in the document. */
+          if (res.status === 401) { showSignIn(countEl, list); return; }
           if (res.status === 403 && res.data.code === "lead_radar_unavailable") {
             countEl.textContent = "Not enabled on this account";
             document.getElementById("noiseBtn").style.display = "none";
@@ -894,7 +906,8 @@
         .catch(function (err) {
           console.error("[LeadRadar] loadLeads error:", err);
           countEl.textContent = "Error loading leads";
-          list.innerHTML = "<div class=\"empty-state\">Failed to load leads. Check console.</div>";
+          // Nov 23 2026, LR-1: a plain message that tells the reader what to do
+          list.innerHTML = "<div class=\"empty-state\">The leads could not be loaded. Try Refresh in a moment.</div>";
         })
         .finally(function () {
           refreshBtn.disabled = false;

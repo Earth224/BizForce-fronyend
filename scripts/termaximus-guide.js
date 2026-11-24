@@ -151,7 +151,7 @@
     ],
     "lead-radar.html": [
       "Press \"Draft Engagement\" on a \"High-Intent\" lead (60+) for a reply, then \"Copy\" it to your clipboard and post it on Bluesky yourself.",
-      "New Bluesky finds arrive every 5 minutes; Mastodon, YouTube and scoring each wait on their own switch. Press \"Refresh\" to load.",
+      "New Bluesky finds arrive every 5 minutes; YouTube and scoring each wait on their own switch. Press \"Refresh\" to load.",
       "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code, and does not read your Business Profile.",
       "\"Not enabled on this account\" means just that: leads appear solely on the account that owns the keyword set and its credentials.",
       "Sub-15 scores are hidden as noise; press \"Show Noise\" once the high-intent leads run dry."
