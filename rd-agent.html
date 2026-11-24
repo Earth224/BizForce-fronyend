@@ -630,8 +630,7 @@ window.AGENT_PROFILE_CONFIG = {
       "id": "demand-signals",
       "label": "Demand Signals",
       "runLabel": "Read the radar",
-      "description": "What the lead radar's captured posts say about demand: counts measured in code, then themes from a cleaned sample. Owner account only.",
-      "adminOnly": true,
+      "description": "What your own Lead Radar finds say about demand: counts measured in code, then themes from a cleaned sample. Members only.",
       "fields": [
         {
           "name": "theme",
@@ -639,14 +638,9 @@ window.AGENT_PROFILE_CONFIG = {
           "type": "select",
           "required": true,
           "options": [
-            { "value": "manifestation", "label": "Manifestation" },
-            { "value": "quantum_jumping", "label": "Quantum jumping" },
-            { "value": "supplements", "label": "Supplements" },
-            { "value": "libido", "label": "Libido" },
-            { "value": "energy", "label": "Energy" },
-            { "value": "bizforce", "label": "BizForce (businesses cut off from ads or payments)" },
-            { "value": "all", "label": "All captured posts" }
-          ]
+            { "value": "all", "label": "All my leads" }
+          ],
+          "hint": "All your leads, or one of the words in your Lead Radar Fingerprint."
         },
         {
           "name": "window_days",
@@ -674,6 +668,43 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/bf-tabs.js"></script>
 <script src="/scripts/bf-paywall.js"></script>
 <script src="/scripts/agent-profile.js"></script>
+<!-- NAMED (Nov 23 2026, LR-2): Demand Signals is every member's and reads only their own Lead Radar finds. Its themes are "all"
+     plus the words in their Fingerprint (GET /api/leads/fingerprint); with no words, "all" alone and a link to the Fingerprint.
+     A free account makes no call. BEFORE the owner's fixed themes (manifestation, quantum jumping, supplements, libido, energy). -->
+<script>
+(function () {
+  var API = (typeof window.API_URL === "string" && window.API_URL) || "https://dynamic-prosperity-production-5382.up.railway.app";
+  var SELECT = "apTool_demand_signals_f_theme";
+  function whenSelect(cb) {
+    var tries = 0;
+    (function look() { var el = document.getElementById(SELECT); if (el) { cb(el); return; } if (++tries < 60) setTimeout(look, 250); })();
+  }
+  function fill(words) {
+    whenSelect(function (sel) {
+      words.forEach(function (w) {
+        if (typeof w !== "string" || !w || [].some.call(sel.options, function (o) { return o.value === w; })) return;
+        var o = document.createElement("option"); o.value = w; o.textContent = w; sel.appendChild(o);
+      });
+      if (!words.length && !document.getElementById("rdFingerprintLink")) {
+        var p = document.createElement("p"); p.className = "ap-tool-hint"; p.id = "rdFingerprintLink";
+        p.innerHTML = "No words in your Fingerprint yet. <a href=\"/agents/lead-radar.html#fingerprint\">Add words in your Fingerprint</a>";
+        sel.parentNode.insertBefore(p, sel.nextSibling);
+      }
+    });
+  }
+  function read(a) {
+    if (!a || a.tier !== "member") return;
+    var t = null; try { t = localStorage.getItem("bf_token"); } catch (e) { t = null; }
+    if (!t) return;
+    fetch(API + "/api/leads/fingerprint", { headers: { "Authorization": "Bearer " + t } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { fill(d && d.fingerprint && Array.isArray(d.fingerprint.keywords) ? d.fingerprint.keywords : []); })
+      .catch(function () { /* "all" stays */ });
+  }
+  if (window.bfAccess && window.bfAccess.ready) window.bfAccess.ready.then(read);
+  else document.addEventListener("bf-access", function (e) { read(e.detail); });
+})();
+</script>
 
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

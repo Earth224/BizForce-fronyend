@@ -15,1099 +15,625 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
   <script src="/scripts/bf-session.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <!-- NAMED (Nov 23 2026, LR-2): Lead Radar for every member, built to the owner's canvas row 6 (LeadsHome, LeadsReply,
+       LeadsFingerprint; scripts/designSpec.js LEADS). The site's own fonts and music icon are kept; only the Leads and
+       Fingerprint tabs are drawn; the bottom bar is the site's (scripts/bf-tabbar.js). Every control is a 44 px target
+       with the board's smaller face drawn inside it. BEFORE: the owner's single-account radar (Chart.js, scores, Copy). -->
   <style>
     *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #070b18; color: #e6eaf5; font-family:system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    a { color: var(--bf-accent-a, #22d3ee); }
+    html.lr-locked { overflow: hidden; }
+    .lr-page { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding-bottom: 24px; }   /* over the theme backdrop (html::before, body::before: fixed, z 0) */
 
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-      color: #e8e8ff;
-      background: #070b18;
-    }
+    /* the header: Back, the mark, the title, Radar settings */
+    .lr-head { display: flex; align-items: center; gap: 6px; padding: 12px 8px 4px; }
+    .lr-hbtn { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 12px; background: transparent; color: #e6eaf5; cursor: pointer; text-decoration: none; }
+    .lr-hbtn[hidden] { display: none; }
+    .lr-set { color: #c9d1e6; }
+    .lr-hbtn:focus-visible, .lr-tb:focus-visible, .lr-chip:focus-visible, .lr-btn:focus-visible, .lr-sw:focus-visible, .lr-big:focus-visible { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
+    .lr-mark { flex: none; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: #0f2a3a; color: var(--bf-accent-a, #22d3ee); }
+    .lr-title { flex: 1; min-width: 0; margin: 0; font: 700 18px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .brand-badge { flex: none; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; margin-right: 8px; }
 
-    body {
-      min-height: 100vh;
-      position: relative;
-      overflow-x: hidden;
-    }
+    /* the tabs: Leads and Fingerprint */
+    .lr-tabs { display: flex; gap: 4px; padding: 0 12px 10px; }
+    .lr-tabs[hidden] { display: none; }
+    .lr-tb { flex: none; min-width: 44px; height: 44px; margin: -2px 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .lr-tbf { display: flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 20px; color: #a9b3cc; font: 600 14px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; white-space: nowrap; }
+    .lr-tb[aria-selected="true"] .lr-tbf { background: #0f2a3a; color: var(--bf-accent-a, #22d3ee); }
 
-    /* The backdrop is the token rule in scripts/bf-theme.js. */
+    .lr-main { display: flex; flex-direction: column; gap: 10px; padding: 0 12px; }
+    .lr-main[hidden] { display: none; }
+    .lr-fp { gap: 12px; padding: 0 16px; }
 
-    .page {
-      position: relative;
-      z-index: 1;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 24px 64px;
-      /* viewport-fit=cover is on; black-translucent puts this view under the
-         iOS status bar, so the top gutter has to clear it, and in landscape
-         the notch eats into the sides. */
-      padding-top: calc(32px + env(safe-area-inset-top, 0px));
-      padding-left: max(24px, env(safe-area-inset-left, 0px));
-      padding-right: max(24px, env(safe-area-inset-right, 0px));
-    }
+    .lr-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; border: 1px solid #1e2848; background: #0b1022; }
+    .lr-card.is-yt { opacity: .8; }
+    .lr-row { display: flex; align-items: center; gap: 10px; }
+    .lr-stats { display: flex; gap: 8px; }
+    .lr-stat { flex: 1; align-items: center; gap: 2px; padding: 10px; }
+    .lr-num { font: 700 20px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-num.is-won { color: #f5c46b; }
+    .lr-slbl { font-size: 12px; color: #a9b3cc; text-align: center; }
 
-    .top-nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 40px;
-      flex-wrap: wrap;
-    }
+    /* the chips: a 34 px face in a 44 px target; the source row swipes, the Fingerprint's rows wrap */
+    /* The chips swipe in one row; the scrollbar is the site's one rule (checkScrollbars), never styled here. */
+    .lr-chips { display: flex; gap: 8px; margin: -5px 0; padding: 5px 0; overflow-x: auto; }
+    .lr-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .lr-chip { flex: none; min-width: 44px; height: 44px; margin: -5px 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .lr-chipf { display: flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid #2b3a6b; background: #0e1428; color: #c9d1e6; font: 500 12.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; white-space: nowrap; }
+    .lr-chip[aria-pressed="true"] .lr-chipf { border-color: var(--bf-accent-a, #22d3ee); background: #0f2a3a; color: var(--bf-accent-a, #22d3ee); }
+    .lr-chip:disabled { cursor: default; }
 
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 12px;
-      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.25);
-      background: rgba(12, 18, 38, 0.6);
-      color: var(--bf-accent-a, #22d3ee);
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 600;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
+    /* a lead */
+    .lr-badge { flex: none; display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font: 700 10.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; letter-spacing: 1px; white-space: nowrap; }
+    .lr-b-need { background: var(--bf-accent-a, #22d3ee); color: #070b18; }
+    .lr-b-bsky { background: #1b2350; color: #b79cfa; }
+    .lr-b-yt { background: #3a1414; color: #fca5a5; }
+    .lr-b-thr { background: #1f2433; color: #e6eaf5; }
+    .lr-meta { min-width: 0; font-size: 12px; color: #a9b3cc; }
+    .lr-text { font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+    .lr-match { font-size: 12px; color: #6ee7b7; }
+    .lr-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .lr-btn { flex: none; display: inline-flex; align-items: center; min-width: 44px; height: 44px; margin: -3px 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-decoration: none; }
+    .lr-btnf { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 38px; padding: 0 14px; border-radius: 19px; border: 1px solid #2b3a6b; color: #c9d1e6; font: 600 13px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; white-space: nowrap; }
+    .lr-btn.is-p .lr-btnf { border: 0; background: var(--bf-accent-a, #22d3ee); color: #070b18; }
+    .lr-btn:disabled { cursor: default; opacity: .6; }
+    .lr-note { margin: 0; font-size: 12px; color: #a9b3cc; }
+    .lr-note.is-err { color: #fca5a5; }
+    .lr-foot { margin: 0; padding: 0 10px; font-size: 12px; line-height: 1.4; color: #8e9bbf; text-align: center; }
+    .lr-empty { margin: 0; font-size: 14px; line-height: 1.45; color: #c9d1e6; }
+    .lr-state[hidden] { display: none; }
+    .lr-state-t { margin: 0; font: 700 16px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
 
-    .back-link:hover {
-      border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.55);
-      box-shadow: 0 0 20px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.2);
-      transform: translateY(-1px);
-    }
+    /* the Fingerprint */
+    .lr-intro { margin: 0; font-size: 13px; line-height: 1.45; color: #c9d1e6; }
+    .lr-lbl { margin: 0; font: 600 11px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; letter-spacing: 1.6px; color: #8e9bbf; text-transform: uppercase; }
+    .lr-addrow { display: flex; gap: 8px; align-items: center; }
+    .lr-in { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid #2b3a6b; background: #070b18; color: #e6eaf5; font: 15px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-look { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+    .lr-look-x { flex: 1; min-width: 0; }
+    .lr-look-t { font: 600 13.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-look-s { font-size: 12px; color: #a9b3cc; }
+    .lr-sw { flex: none; display: flex; align-items: center; width: 44px; height: 44px; margin: -9px 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .lr-swf { position: relative; display: block; width: 44px; height: 26px; border-radius: 13px; background: var(--bf-accent-a, #22d3ee); }
+    .lr-swf::after { content: ""; position: absolute; right: 3px; top: 3px; width: 20px; height: 20px; border-radius: 10px; background: #070b18; }
+    .lr-sw[aria-checked="false"] .lr-swf { background: #2b3a6b; }
+    .lr-sw[aria-checked="false"] .lr-swf::after { right: auto; left: 3px; background: #a9b3cc; }
 
-    .brand-badge {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
+    /* the reply sheet (LeadsReply): over the page, under the site's bottom bar, as the board draws it */
+    .lr-veil { position: fixed; inset: 0; z-index: 79; background: rgba(3,5,12,0.66); }
+    .lr-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; display: flex; flex-direction: column; gap: 12px; height: 640px; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px);
+      padding: 10px 16px 20px; border-radius: 22px 22px 0 0; border-top: 1px solid #2b3a6b; background: #0b1022; color: #e6eaf5; overflow-y: auto; }
+    html.bf-tabbar-on .lr-sheet { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+    .lr-veil[hidden], .lr-sheet[hidden] { display: none; }
+    .lr-grab { flex: none; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: #2b3a6b; }
+    .lr-sh-title { flex: 1; min-width: 0; margin: 0; font: 700 17px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-close { color: #c9d1e6; }
+    .lr-shbody { display: flex; flex-direction: column; gap: 12px; }
+    .lr-quote { margin: 0; padding: 6px 10px; border-left: 3px solid var(--bf-accent-b, #8b5cf6); font-size: 13.5px; line-height: 1.4; color: #c9d1e6; overflow-wrap: anywhere; }
+    .lr-draft { display: block; width: 100%; min-height: 132px; padding: 12px; border-radius: 14px; border: 1px solid var(--bf-accent-a, #22d3ee); background: #070b18; color: #e6eaf5; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Arial, sans-serif; resize: vertical; }
+    .lr-checks { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+    .lr-checks .lr-row[hidden] { display: none; }
+    .lr-ok { color: #6ee7b7; }
+    .lr-linkrow { justify-content: space-between; padding: 8px 0; font-size: 13.5px; }
+    .lr-big { flex: 1; display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 14px; border-radius: 24px; border: 1px solid #2b3a6b; background: transparent; color: #c9d1e6; font: 600 13px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; cursor: pointer; text-decoration: none; }
+    .lr-big.is-p { flex: 1.4; border: 0; background: var(--bf-accent-a, #22d3ee); color: #070b18; }
+    .lr-big:disabled { cursor: default; opacity: .6; }
+    .lr-sfoot { margin: 0; font-size: 12px; line-height: 1.4; color: #8e9bbf; text-align: center; }
 
-    .agent-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 24px;
-      margin-bottom: 36px;
-      flex-wrap: wrap;
+    @media (max-width: 760px) {
+      .brand-badge { display: none; }
     }
-
-    .agent-avatar {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18), rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.22));
-      border: 2px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 24px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18), 0 0 32px rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.12);
-      flex-shrink: 0;
-    }
-
-    .agent-avatar svg {
-      width: 34px;
-      height: 34px;
-      opacity: 0.85;
-    }
-
-    .agent-header-text { flex: 1; min-width: 220px; }
-
-    .agent-title {
-      margin: 0 0 8px;
-      font-size: clamp(1.8rem, 4vw, 2.4rem);
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff) 0%, var(--bf-accent-b3, #7b2ff7) 60%, var(--bf-accent-b, #a855f7) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .agent-subtitle {
-      margin: 0;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      color: #8892b8;
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .toolbar-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #8892b8;
-    }
-
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 22px;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(90deg, var(--bf-btn-a, #00d9ff)var(--bf-btn-mid, ), var(--bf-btn-b, #7d5cff));
-      color: var(--bf-btn-text, #fff);
-      font-size: 0.875rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-
-    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-    .btn-primary:active { transform: translateY(0); }
-    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
-    #leadsList {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .empty-state {
-      padding: 48px 24px;
-      text-align: center;
-      border-radius: 20px;
-      background: rgba(12, 18, 38, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      color: #8892b8;
-      font-size: 0.95rem;
-    }
-
-    /* YouTube finds: their own section, below the scored list, never mixed into it. */
-    .yt-section {
-      margin-top: 40px;
-      padding-top: 24px;
-      border-top: 1px solid rgba(248, 113, 113, 0.25);
-    }
-    .yt-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #f87171;
-      margin: 0 0 8px;
-    }
-    .yt-note {
-      font-size: 0.85rem;
-      color: #8892b8;
-      margin: 0 0 16px;
-    }
-    .yt-rules {
-      font-size: 0.85rem;
-      color: #c9d1f0;
-      margin: 0 0 8px;
-    }
-    .yt-hidden {
-      font-size: 0.82rem;
-      color: #8892b8;
-      margin: -8px 0 16px;
-    }
-    #ytList {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .yt-find {
-      padding: 16px 20px;
-      border-radius: 16px;
-      background: rgba(12, 18, 38, 0.6);
-      border: 1px solid rgba(248, 113, 113, 0.2);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .yt-find-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      font-size: 0.78rem;
-      color: #8892b8;
-    }
-    .yt-find-link {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #f87171;
-      text-decoration: none;
-      align-self: flex-start;
-    }
-    .yt-find-link:hover { text-decoration: underline; }
-
-    .lead-card {
-      padding: 20px 24px;
-      border-radius: 18px;
-      background: rgba(12, 18, 38, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      transition: border-color 0.2s;
-    }
-
-    .lead-card:hover {
-      border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.25);
-    }
-
-    .lead-card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .lead-handle {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--bf-accent-a, #22d3ee);
-    }
-
-    .lead-keyword {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.35);
-      background: rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.1);
-      color: #c4b5fd;
-      white-space: nowrap;
-    }
-
-    .lead-text {
-      font-size: 0.92rem;
-      line-height: 1.65;
-      color: #ccd0e8;
-      margin: 0;
-    }
-
-    .lead-meta {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .score-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 44px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-    }
-
-    .score-badge.score-green {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.45);
-      color: #34d399;
-    }
-
-    .score-badge.score-amber {
-      background: rgba(245, 158, 11, 0.13);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
-    }
-
-    .score-badge.score-gray {
-      background: rgba(148, 163, 184, 0.1);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      color: #94a3b8;
-    }
-
-    .source-pill {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-    .source-pill.source-bluesky  { background: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.1);   border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.35);   color: var(--bf-accent-a, #22d3ee); }
-    .source-pill.source-mastodon { background: rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.1);  border: 1px solid rgba(var(--bf-accent-b-rgb, 168, 85, 247), 0.35);  color: #c4b5fd; }
-    .source-pill.source-youtube  { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.35); color: #f87171; }
-
-    .lead-product {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--bf-accent-b, #a855f7);
-    }
-
-    .lead-reason {
-      font-size: 0.8rem;
-      color: #8892b8;
-      font-style: italic;
-    }
-
-    .draft-btn {
-      align-self: flex-start;
-      padding: 7px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
-      background: rgba(8, 8, 18, 0.85);
-      color: var(--bf-accent-a3, #00e5ff);
-      font-size: 0.78rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .draft-btn:hover {
-      border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.6);
-      box-shadow: 0 0 14px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.18);
-    }
-
-    .draft-area {
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .draft-box {
-      padding: 14px 16px;
-      border-radius: 12px;
-      background: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.06);
-      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.2);
-      font-size: 0.88rem;
-      line-height: 1.65;
-      color: #e8e8ff;
-      white-space: pre-wrap;
-    }
-
-    .draft-box.draft-error {
-      background: rgba(239, 68, 68, 0.07);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-
-    .copy-btn {
-      align-self: flex-end;
-      padding: 6px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.28);
-      background: rgba(8, 8, 18, 0.85);
-      color: var(--bf-accent-a3, #00e5ff);
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .copy-btn:hover {
-      border-color: rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.6);
-      box-shadow: 0 0 10px rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.15);
-    }
-
-    .copy-btn.copied {
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.45);
-    }
-
-    #intel-header {
-      margin-bottom: 24px;
-    }
-
-    .stat-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .stat-card {
-      flex: 1;
-      min-width: 120px;
-      padding: 18px 20px;
-      border-radius: 18px;
-      background: rgba(12, 18, 38, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      text-align: center;
-    }
-
-    .stat-number {
-      display: block;
-      font-size: 2rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      background: linear-gradient(135deg, var(--bf-accent-a3, #00e5ff) 0%var(--bf-accent-mid, ), var(--bf-accent-b, #a855f7) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      line-height: 1.1;
-      margin-bottom: 6px;
-    }
-
-    .stat-label {
-      display: block;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #8892b8;
-    }
-
-    .charts-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .chart-panel {
-      flex: 1;
-      min-width: 280px;
-      padding: 20px 20px 16px;
-      border-radius: 18px;
-      background: rgba(12, 18, 38, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-
-    .chart-title {
-      display: block;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #8892b8;
-      margin-bottom: 14px;
+    @media (min-width: 761px) {
+      .lr-page { padding-top: 16px; }
+      .lr-sheet { left: 50%; right: auto; top: 50%; bottom: auto; width: min(480px, calc(100vw - 32px)); height: auto; max-height: calc(100vh - 48px); border: 1px solid #2b3a6b; border-radius: 22px; transform: translate(-50%, -50%); }
+      .lr-grab { display: none; }
     }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
 <body>
-  <div class="page">
-
-    <nav class="top-nav">
-      <a class="back-link" href="/dashboard.html">&#8592; Dashboard</a>
+  <div class="lr-page" id="lrPage">
+    <header class="lr-head">
+      <a class="lr-hbtn" href="/dashboard.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+      <span class="lr-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><path d="M12 12l6-6"></path><circle cx="12" cy="12" r="1.2" fill="currentColor"></circle></svg></span>
+      <h1 class="lr-title">Lead Radar</h1>
       <span class="brand-badge" data-bf-boombox-anchor>BizForce AI</span>
-    </nav>
-
-    <header class="agent-header">
-      <div class="agent-avatar">
-        <svg viewBox="0 0 24 24" fill="none" style="stroke:var(--bf-accent-a3, #00e5ff)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          <line x1="11" y1="8" x2="11" y2="14"/>
-          <line x1="8" y1="11" x2="14" y2="11"/>
-        </svg>
-      </div>
-      <div class="agent-header-text">
-        <h1 class="agent-title">Lead Radar</h1>
-        <p class="agent-subtitle">Public posts matching a fixed set of buying-intent phrases, captured from Bluesky every 5 minutes; intent scoring runs only when switched on. YouTube capture also runs only when switched on; its finds are listed apart, never scored, and kept for at most 30 days. One keyword set and one social account — enabled only for the account that owns them.</p>
-      </div>
+      <button type="button" class="lr-hbtn lr-set" id="lrSettings" aria-label="Radar settings" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg></button>
     </header>
 
-    <div id="intel-header"></div>
-
-    <div class="toolbar">
-      <span class="toolbar-label" id="leadsCount">Loading leads...</span>
-      <button class="btn-primary" id="noiseBtn" onclick="toggleNoise()" style="display:none">Show Noise</button>
-      <button class="btn-primary" id="refreshBtn" onclick="loadLeads()">Refresh</button>
+    <div class="lr-tabs" role="tablist" id="lrTabs" aria-label="Lead Radar" hidden>
+      <button type="button" role="tab" class="lr-tb" id="lrTabLeads" aria-selected="true" aria-controls="lrLeads" data-tab="leads"><span class="lr-tbf">Leads</span></button>
+      <button type="button" role="tab" class="lr-tb" id="lrTabFp" aria-selected="false" aria-controls="lrFp" data-tab="fingerprint" tabindex="-1"><span class="lr-tbf">Fingerprint</span></button>
     </div>
 
-    <div id="leadsList"></div>
+    <div class="lr-main" id="lrStateWrap">
+      <div class="lr-card lr-state" id="lrState" hidden></div>
+    </div>
 
-    <!-- YouTube data, on its own: not in the list, the counts or the charts above. -->
-    <section class="yt-section" id="ytSection" aria-label="YouTube finds" hidden>
-      <h2 class="yt-title">YouTube finds — not scored, cannot be replied to from here, kept 30 days</h2>
-      <p class="yt-rules" id="ytRules">Only comments that pass three rules are shown: no link, at least 6 words, and a word from the search they matched. Link spam, one-liners and off-topic comments are hidden.</p>
-      <p class="yt-note">YouTube data, shown apart: these comments are not in the list, the counts or the charts above, and are deleted 30 days after capture.</p>
-      <p class="yt-hidden" id="ytHidden" hidden></p>
-      <div id="ytList"></div>
+    <section class="lr-main" id="lrLeads" role="tabpanel" aria-labelledby="lrTabLeads" hidden>
+      <div class="lr-stats" id="lrStats">
+        <div class="lr-card lr-stat"><span class="lr-num" id="lrStatNew">0</span><span class="lr-slbl">new this week</span></div>
+        <div class="lr-card lr-stat"><span class="lr-num" id="lrStatReplied">0</span><span class="lr-slbl">you replied</span></div>
+        <div class="lr-card lr-stat"><span class="lr-num is-won" id="lrStatWon">0</span><span class="lr-slbl">won</span></div>
+      </div>
+      <div class="lr-chips" id="lrChips" role="group" aria-label="Where the leads came from"></div>
+      <div class="lr-main" id="lrList" style="padding:0" aria-live="polite"></div>
+      <p class="lr-foot">You approve every reply. BizForce never messages anyone for you.</p>
     </section>
 
+    <section class="lr-main lr-fp" id="lrFp" role="tabpanel" aria-labelledby="lrTabFp" hidden>
+      <p class="lr-intro">Built for you from your profile, listings and posts. It updates by itself. Change anything.</p>
+      <p class="lr-note" id="lrFpMsg" role="status" hidden></p>
+      <div class="lr-main" id="lrFpBody" style="padding:0;gap:12px"></div>
+    </section>
+  </div>
+
+  <div class="lr-veil" id="lrVeil" hidden></div>
+  <div class="lr-sheet" id="lrSheet" role="dialog" aria-modal="true" aria-labelledby="lrSheetTitle" hidden>
+    <div class="lr-grab" aria-hidden="true"></div>
+    <div class="lr-row"><h2 class="lr-sh-title" id="lrSheetTitle">Your reply on Bluesky</h2><button type="button" class="lr-hbtn lr-close" id="lrSheetClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
+    <div class="lr-shbody" id="lrSheetBody"></div>
   </div>
 
   <script>
-    var API = "https://dynamic-prosperity-production-5382.up.railway.app";
-    function tok() { return localStorage.getItem("bf_token") || ""; }
+  (function () {
+    "use strict";
+    var API = (typeof window.API_URL === "string" && window.API_URL) || "https://dynamic-prosperity-production-5382.up.railway.app";
+    function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
-    /* Nov 23 2026, LR-1: the signed-out state. */
-    function showSignIn(countEl, list) {
-      countEl.textContent = "Not signed in";
-      var noise = document.getElementById("noiseBtn");
-      if (noise) noise.style.display = "none";
-      list.innerHTML = "<div class=\"empty-state\" data-state=\"signed_out\">Sign in to see Lead Radar. <a href=\"/app.html\">Sign in</a></div>";
+    /* One request to the member routes (lib/routeAccess.js M). 401: signed out; 402: a free account (the members panel). */
+    function call(method, path, body) {
+      var h = { "Authorization": "Bearer " + tok() };
+      if (body !== undefined) h["Content-Type"] = "application/json";
+      return fetch(API + path, { method: method, headers: h, body: body !== undefined ? JSON.stringify(body) : undefined })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; }); })
+        .catch(function () { return { ok: false, status: 0, data: {} }; });
+    }
+    function refused(res) {
+      if (res.status === 401) { showState("signed_out"); return true; }
+      if (res.status === 402) { showState("members_only"); if (window.bfAccess && window.bfAccess.showPanel) window.bfAccess.showPanel(); return true; }
+      return false;
     }
 
-    function toggleNoise() {
-      var btn = document.getElementById("noiseBtn");
-      var showing = btn.dataset.showing === "1";
-      showing = !showing;
-      btn.dataset.showing = showing ? "1" : "0";
-      var noiseCount = (window._currentLeads || []).filter(function (l) { return (l.intent_score || 0) < 15; }).length;
-      btn.textContent = showing ? "Hide Noise (" + noiseCount + ")" : "Show Noise (" + noiseCount + ")";
-      window._visibleCount = 25;
-      if (window._renderCards) window._renderCards(showing, 25);
-    }
+    var S = { source: "all", weaker: false, leads: [], stats: null, sourcesOn: null, weakerHidden: 0, fp: null, editing: null, swapping: null, loaded: false, sheetLead: null, sheetLink: false, busy: false };
+    var SOURCES = [["all", "All"], ["bizforce", "Inside BizForce"], ["bluesky", "Bluesky"], ["youtube", "YouTube"], ["threads", "Threads"]];
+    var PLATFORM = { bluesky: "Bluesky", threads: "Threads" };
 
-    function renderStatStrip(leads) {
-      try {
-        var todayStr = new Date().toISOString().slice(0, 10);
-        var total      = leads.length;
-        var scoredToday = leads.filter(function (l) {
-          return (l.created_at || "").slice(0, 10) === todayStr;
-        }).length;
-        var highIntent = leads.filter(function (l) {
-          return (l.intent_score || 0) >= 60;
-        }).length;
-        var buyers = leads.filter(function (l) {
-          return l.suggested_product && l.suggested_product !== "none" && (l.intent_score || 0) >= 40;
-        }).length;
-        var competitors = leads.filter(function (l) {
-          return l.suggested_product && l.suggested_product !== "none" && (l.intent_score || 0) < 40;
-        }).length;
-
-        var stats = [
-          { number: total,                      label: "Total Tracked"      },
-          { number: scoredToday,                label: "Scored Today"       },
-          { number: highIntent,                 label: "High-Intent"        },
-          { number: buyers + " / " + competitors, label: "Buyers / Sellers" }
-        ];
-
-        var html = "<div class=\"stat-strip\">" +
-          stats.map(function (s) {
-            return "<div class=\"stat-card\">" +
-              "<span class=\"stat-number\">" + s.number + "</span>" +
-              "<span class=\"stat-label\">" + s.label + "</span>" +
-              "</div>";
-          }).join("") +
-          "</div>";
-
-        document.getElementById("intel-header").innerHTML = html;
-      } catch (err) {
-        console.error("[LeadRadar] renderStatStrip error:", err);
+    /* ── the states before any lead: signed out, a free account, a failed read ── */
+    function showState(kind) {
+      var st = $("lrState");
+      $("lrTabs").hidden = true; $("lrSettings").hidden = true; $("lrLeads").hidden = true; $("lrFp").hidden = true;
+      st.setAttribute("data-state", kind);
+      if (kind === "signed_out") {
+        st.innerHTML = '<p class="lr-empty">Sign in to see Lead Radar.</p><div class="lr-acts"><a class="lr-btn is-p" href="/app.html"><span class="lr-btnf">Sign in</span></a></div>';
+      } else if (kind === "members_only") {
+        st.innerHTML = '<p class="lr-state-t">Lead Radar is for members</p><p class="lr-empty">Members get people who are asking for what they offer, found inside BizForce, on Bluesky and on YouTube, and reply from their own account after approving each reply.</p>' +
+          '<div class="lr-acts"><button type="button" class="lr-btn is-p" data-members-only id="lrJoin"><span class="lr-btnf">Join to unlock</span></button></div>';
+        var j = $("lrJoin");
+        if (j) j.addEventListener("click", function () { if (window.bfAccess && window.bfAccess.showPanel) window.bfAccess.showPanel(); });
+      } else {
+        st.innerHTML = '<p class="lr-empty">Lead Radar could not load just now. Check your connection and try again.</p><div class="lr-acts"><button type="button" class="lr-btn" id="lrRetry"><span class="lr-btnf">Try again</span></button></div>';
+        $("lrRetry").addEventListener("click", function () { st.hidden = true; start(); });
       }
+      st.hidden = false;
     }
 
-    var chartScoresInstance   = null;
-    var chartProductsInstance = null;
-    var chartTimelineInstance = null;
+    /* ── tabs ── */
+    function openTab(name, focus) {
+      var fp = name === "fingerprint";
+      $("lrTabLeads").setAttribute("aria-selected", fp ? "false" : "true"); $("lrTabLeads").tabIndex = fp ? -1 : 0;
+      $("lrTabFp").setAttribute("aria-selected", fp ? "true" : "false"); $("lrTabFp").tabIndex = fp ? 0 : -1;
+      $("lrLeads").hidden = fp; $("lrFp").hidden = !fp;
+      if (focus) (fp ? $("lrTabFp") : $("lrTabLeads")).focus();
+      if (fp && !S.fp) loadFingerprint();
+      try { history.replaceState(null, "", fp ? "#fingerprint" : location.pathname + location.search); } catch (e) { /* file */ }
+    }
+    $("lrTabs").addEventListener("click", function (e) { var b = e.target.closest(".lr-tb"); if (b) openTab(b.getAttribute("data-tab")); });
+    $("lrTabs").addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault(); openTab($("lrTabFp").getAttribute("aria-selected") === "true" ? "leads" : "fingerprint", true);
+    });
+    $("lrSettings").addEventListener("click", function () { openTab("fingerprint", true); });
 
-    function renderCharts(leads) {
-      try {
-        var header = document.getElementById("intel-header");
-
-        var existingRow = document.getElementById("charts-row");
-        if (existingRow) existingRow.remove();
-
-        var rowDiv = document.createElement("div");
-        rowDiv.className = "charts-row";
-        rowDiv.id = "charts-row";
-        rowDiv.innerHTML =
-          "<div class=\"chart-panel\">" +
-            "<span class=\"chart-title\">Score Distribution</span>" +
-            "<canvas id=\"chartScores\"></canvas>" +
-          "</div>" +
-          "<div class=\"chart-panel\">" +
-            "<span class=\"chart-title\">Product Breakdown</span>" +
-            "<canvas id=\"chartProducts\"></canvas>" +
-          "</div>" +
-          "<div class=\"chart-panel\">" +
-            "<span class=\"chart-title\">Captures Over Time</span>" +
-            "<canvas id=\"chartTimeline\"></canvas>" +
-          "</div>";
-        header.appendChild(rowDiv);
-
-        var bands     = ["0-15", "16-29", "30-44", "45-59", "60-74", "75-100"];
-        var bandColors = [
-          "rgba(148,163,184,0.7)",
-          "rgba(148,163,184,0.5)",
-          "rgba(251,191,36,0.7)",
-          "rgba(251,191,36,0.9)",
-          "rgba(52,211,153,0.8)",
-          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.85)") : "rgba(0,229,255,0.85)")
-        ];
-        var counts = [0, 0, 0, 0, 0, 0];
-        leads.forEach(function (l) {
-          var s = l.intent_score || 0;
-          if      (s <= 15) counts[0]++;
-          else if (s <= 29) counts[1]++;
-          else if (s <= 44) counts[2]++;
-          else if (s <= 59) counts[3]++;
-          else if (s <= 74) counts[4]++;
-          else              counts[5]++;
-        });
-
-        if (chartScoresInstance) { chartScoresInstance.destroy(); chartScoresInstance = null; }
-
-        chartScoresInstance = new Chart(
-          document.getElementById("chartScores"),
-          {
-            type: "bar",
-            data: {
-              labels: bands,
-              datasets: [{
-                data:            counts,
-                backgroundColor: bandColors,
-                borderRadius:    6,
-                borderSkipped:   false
-              }]
-            },
-            options: {
-              plugins: { legend: { display: false } },
-              scales: {
-                x: { ticks: { color: "#8892b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
-                y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
-              }
-            }
-          }
-        );
-
-        // Product breakdown doughnut
-        var productCounts = {};
-        leads.forEach(function (l) {
-          var p = (l.suggested_product && l.suggested_product.trim()) || "none";
-          productCounts[p] = (productCounts[p] || 0) + 1;
-        });
-        var productLabels = Object.keys(productCounts);
-        var productData   = productLabels.map(function (k) { return productCounts[k]; });
-        var productPalette = [
-          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.8)") : "rgba(0,229,255,0.8)"),
-          (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-b", "rgba(168,85,247,0.8)") : "rgba(168,85,247,0.8)"),
-          "rgba(52,211,153,0.8)",
-          "rgba(251,191,36,0.8)",
-          "rgba(148,163,184,0.55)"
-        ];
-        var productColors = productLabels.map(function (_, i) {
-          return productPalette[i % productPalette.length];
-        });
-
-        if (chartProductsInstance) { chartProductsInstance.destroy(); chartProductsInstance = null; }
-
-        chartProductsInstance = new Chart(
-          document.getElementById("chartProducts"),
-          {
-            type: "doughnut",
-            data: {
-              labels: productLabels,
-              datasets: [{
-                data:            productData,
-                backgroundColor: productColors,
-                borderWidth:     2,
-                borderColor:     "rgba(7,11,24,0.9)"
-              }]
-            },
-            options: {
-              plugins: {
-                legend: {
-                  display: true,
-                  position: "bottom",
-                  labels: { color: "#8892b8", font: { size: 11 }, padding: 12 }
-                }
-              },
-              cutout: "62%"
-            }
-          }
-        );
-
-        // Captures over time — last 14 days
-        var dayLabels = [];
-        var dayCounts = {};
-        for (var d = 13; d >= 0; d--) {
-          var dt = new Date();
-          dt.setDate(dt.getDate() - d);
-          var dayStr = dt.toISOString().slice(0, 10);
-          dayLabels.push(dayStr.slice(5)); // MM-DD
-          dayCounts[dayStr] = 0;
-        }
-        leads.forEach(function (l) {
-          var day = (l.created_at || "").slice(0, 10);
-          if (dayCounts.hasOwnProperty(day)) dayCounts[day]++;
-        });
-        var timelineData = Object.keys(dayCounts).map(function (k) { return dayCounts[k]; });
-
-        if (chartTimelineInstance) { chartTimelineInstance.destroy(); chartTimelineInstance = null; }
-
-        chartTimelineInstance = new Chart(
-          document.getElementById("chartTimeline"),
-          {
-            type: "line",
-            data: {
-              labels: dayLabels,
-              datasets: [{
-                data:            timelineData,
-                borderColor:     (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.85)") : "rgba(0,229,255,0.85)"),
-                backgroundColor: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.08)") : "rgba(0,229,255,0.08)"),
-                pointBackgroundColor: (typeof BFTheme !== "undefined" ? BFTheme.color("--bf-accent-a3", "rgba(0,229,255,0.9)") : "rgba(0,229,255,0.9)"),
-                pointRadius:     4,
-                tension:         0.35,
-                fill:            true
-              }]
-            },
-            options: {
-              plugins: { legend: { display: false } },
-              scales: {
-                x: { ticks: { color: "#8892b8", maxRotation: 45 }, grid: { color: "rgba(255,255,255,0.05)" } },
-                y: { ticks: { color: "#8892b8", stepSize: 1 }, grid: { color: "rgba(255,255,255,0.05)" }, beginAtZero: true }
-              }
-            }
-          }
-        );
-      } catch (err) {
-        console.error("[LeadRadar] renderCharts error:", err);
+    /* ── Leads ── */
+    function ago(iso) {
+      var t = Date.parse(iso || ""); if (isNaN(t)) return "";
+      var m = Math.max(0, Math.round((Date.now() - t) / 60000));
+      if (m < 60) return (m || 1) + "m";
+      var h = Math.round(m / 60); if (h < 24) return h + "h";
+      return Math.round(h / 24) + "d";
+    }
+    function chip(value, label, on, extra) {
+      return '<button type="button" class="lr-chip"' + (extra || "") + ' data-v="' + esc(value) + '" aria-pressed="' + (on ? "true" : "false") + '"><span class="lr-chipf">' + esc(label) + '</span></button>';
+    }
+    function btn(label, attrs, primary) {
+      return '<button type="button" class="lr-btn' + (primary ? " is-p" : "") + '" ' + attrs + '><span class="lr-btnf">' + esc(label) + '</span></button>';
+    }
+    function link(label, href, primary, ext) {
+      return '<a class="lr-btn' + (primary ? " is-p" : "") + '" href="' + esc(href) + '"' + (ext ? ' target="_blank" rel="noopener noreferrer"' : "") + '><span class="lr-btnf">' + esc(label) + '</span></a>';
+    }
+    function badge(l) {
+      if (l.source === "bizforce") return '<span class="lr-badge lr-b-need">BIZFORCE NEED</span>';
+      if (l.source === "youtube") return '<span class="lr-badge lr-b-yt">YOUTUBE COMMENT</span>';
+      if (l.source === "threads") return '<span class="lr-badge lr-b-thr">' + (l.reply_invited ? "THREADS · ASKED THE ROOM" : "THREADS") + '</span>';
+      return '<span class="lr-badge lr-b-bsky">' + (l.reply_invited ? "BLUESKY · ASKED THE ROOM" : "BLUESKY") + '</span>';
+    }
+    function cardHtml(l) {
+      var meta = (l.source === "bizforce" ? [l.author_handle, l.author_place, ago(l.posted_at)] : [ago(l.posted_at)]).filter(Boolean).join(" · ");
+      var match = l.match_reason ? l.match_reason : (l.matched_keyword ? 'Match: "' + l.matched_keyword + '"' : "");
+      var id = ' data-id="' + esc(l.id) + '"', acts = [];
+      var saved = l.status === "saved";
+      var saveBtn = btn(saved ? "Saved" : "Save", 'data-act="save" aria-pressed="' + (saved ? "true" : "false") + '"' + id);
+      var notFit = btn("Not a fit", 'data-act="dismiss"' + id);
+      if (l.source === "bizforce") {
+        if (l.need_post_id) acts.push(link("I can help", "/home.html?post=" + encodeURIComponent(l.need_post_id), true));
+        acts.push(saveBtn, notFit);
+      } else if (l.source === "bluesky" || l.source === "threads") {
+        if (l.status === "replied") acts.push('<span class="lr-match">You replied</span>');
+        else if (l.can_reply) acts.push(btn("Draft a reply", 'data-act="draft"' + id, true));
+        if (l.url) acts.push(link("Open post", l.url, false, true));
+        if (!l.can_reply && l.status !== "replied") acts.push(saveBtn);
+        acts.push(notFit);
       }
+      return '<article class="lr-card' + (l.source === "youtube" ? " is-yt" : "") + '" data-lead="' + esc(l.id) + '" data-source="' + esc(l.source) + '">' +
+        '<div class="lr-row">' + badge(l) + (meta ? '<span class="lr-meta">' + esc(meta) + '</span>' : "") + '</div>' +
+        '<div class="lr-text">' + esc(l.text) + '</div>' +
+        (match && l.source !== "youtube" ? '<div class="lr-match">' + esc(match) + '</div>' : "") +
+        (acts.length ? '<div class="lr-acts">' + acts.join("") + '</div>' : "") +
+        '<p class="lr-note is-err" role="status" hidden></p>' +
+        '</article>';
     }
-
+    function drawStats() {
+      var s = S.stats || {};
+      $("lrStatNew").textContent = String(+s.new_this_week || 0);
+      $("lrStatReplied").textContent = String(+s.replied || 0);
+      $("lrStatWon").textContent = String(+s.won || 0);
+    }
+    function drawChips() {
+      var on = S.sourcesOn;
+      $("lrChips").innerHTML = SOURCES.filter(function (x) {
+        if (x[0] === "all" || x[0] === S.source) return true;
+        if (!on) return x[0] !== "threads";
+        return on[x[0]] === true;
+      }).map(function (x) { return chip(x[0], x[1], x[0] === S.source); }).join("");
+    }
+    function drawLeads() {
+      var list = $("lrList");
+      var html = S.leads.map(cardHtml).join("");
+      if (!S.leads.length) html = '<div class="lr-card"><p class="lr-empty">' + (S.source === "all" ? "No leads yet. New ones appear here as Lead Radar finds people asking for what you offer." : "No leads from here yet.") + '</p></div>';
+      if (S.weakerHidden > 0 && !S.weaker) html += '<div class="lr-acts">' + btn("Show " + S.weakerHidden + " weaker " + (S.weakerHidden === 1 ? "match" : "matches"), 'data-act="weaker"') + '</div>';
+      list.innerHTML = html;
+    }
+    /* A read started before a newer read or a status change is dropped when it lands, so it cannot undo them; a status
+       change that dropped one reads the list again once it is saved. */
+    var seq = 0, reading = false;
     function loadLeads() {
-      var refreshBtn = document.getElementById("refreshBtn");
-      var countEl    = document.getElementById("leadsCount");
-      var list       = document.getElementById("leadsList");
-
-      /* Nov 23 2026, LR-1: signed out, the page asks for a sign-in instead of failing a request */
-      if (!tok()) { showSignIn(countEl, list); return; }
-
-      refreshBtn.disabled = true;
-      countEl.textContent = "Loading leads...";
-      list.innerHTML = "";
-      loadYoutubeFinds();
-
-      fetch(API + "/api/leads", {
-        headers: { "Authorization": "Bearer " + tok() }
-      })
-        .then(function (r) {
-          return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data || {} }; });
-        })
-        .then(function (res) {
-          /* The server says this account is not one Lead Radar runs for. The
-             feed, the stat strip and the charts are all someone else's data
-             when that is the case, so none of them are drawn; the page shows
-             the server's own sentence and nothing that implies a lead is on
-             its way. Every control that acts on a lead lives inside a card,
-             and no card is built, so none of them exist in the document. */
-          if (res.status === 401) { showSignIn(countEl, list); return; }
-          if (res.status === 403 && res.data.code === "lead_radar_unavailable") {
-            countEl.textContent = "Not enabled on this account";
-            document.getElementById("noiseBtn").style.display = "none";
-            list.innerHTML = "<div class=\"empty-state\" data-state=\"lead_radar_unavailable\">" +
-              escHtml(res.data.error || "Lead Radar is not enabled for your account.") + "</div>";
-            return;
-          }
-          if (!res.ok) {
-            throw new Error(res.data.error || ("Server error " + res.status));
-          }
-
-          var leads = res.data.leads || [];
-          countEl.textContent = leads.length + " lead" + (leads.length !== 1 ? "s" : "") + " tracked";
-
-          renderStatStrip(leads);
-          renderCharts(leads);
-
-          if (!leads.length) {
-            list.innerHTML = "<div class=\"empty-state\">No scored leads to show. A captured post appears here only after it has been scored.</div>";
-            return;
-          }
-
-          // Sort by score descending
-          leads.sort(function (a, b) { return (b.intent_score || 0) - (a.intent_score || 0); });
-
-          var noiseCount = leads.filter(function (l) { return (l.intent_score || 0) < 15; }).length;
-          var noiseBtn = document.getElementById("noiseBtn");
-          if (noiseCount > 0) {
-            noiseBtn.textContent = "Show Noise (" + noiseCount + ")";
-            noiseBtn.style.display = "inline-flex";
-            noiseBtn.dataset.showing = "0";
-          } else {
-            noiseBtn.style.display = "none";
-          }
-
-          var PAGE_SIZE = 25;
-
-          function buildCard(lead, idx) {
-            var score      = typeof lead.intent_score === "number" ? lead.intent_score : 0;
-            var handle     = lead.author_handle ? "@" + lead.author_handle : lead.author_did || "unknown";
-            var keyword    = lead.matched_keyword || "";
-            var text       = lead.post_text || "";
-            var product    = lead.suggested_product || "none";
-            var reason     = lead.intent_reason || "";
-            var scoreClass = score >= 60 ? "score-green" : score >= 30 ? "score-amber" : "score-gray";
-            var source      = lead.source || "bluesky";
-            var sourceClass = "source-" + source;
-            return [
-              "<div class=\"lead-card\" id=\"card-" + idx + "\">",
-              "  <div class=\"lead-card-top\">",
-              "    <span class=\"lead-handle\">" + escHtml(handle) + "</span>",
-              "    <span class=\"lead-keyword\">" + escHtml(keyword) + "</span>",
-              "  </div>",
-              "  <p class=\"lead-text\">" + escHtml(text) + "</p>",
-              "  <div class=\"lead-meta\">",
-              "    <span class=\"score-badge " + scoreClass + "\">" + score + "</span>",
-              "    <span class=\"source-pill " + sourceClass + "\">" + escHtml(source) + "</span>",
-              "    <span class=\"lead-product\">" + escHtml(product) + "</span>",
-              "    <span class=\"lead-reason\">" + escHtml(reason) + "</span>",
-              "  </div>",
-              "  <button class=\"draft-btn\" data-idx=\"" + idx + "\">Draft Engagement</button>",
-              "  <div class=\"draft-area\" id=\"draft-area-" + idx + "\">",
-              "    <div class=\"draft-box\" id=\"draft-" + idx + "\"></div>",
-              "    <button class=\"copy-btn\" id=\"copy-" + idx + "\" data-idx=\"" + idx + "\">Copy</button>",
-              "  </div>",
-              "</div>"
-            ].join("\n");
-          }
-
-          function renderCards(showNoise, visibleCount) {
-            var filtered = showNoise ? leads : leads.filter(function (l) { return (l.intent_score || 0) >= 15; });
-            var count    = visibleCount || PAGE_SIZE;
-            var page     = filtered.slice(0, count);
-            var remaining = filtered.length - page.length;
-
-            var html = page.map(function (lead, idx) { return buildCard(lead, idx); }).join("\n");
-
-            if (remaining > 0) {
-              html += "<button class=\"btn-primary\" id=\"loadMoreBtn\" " +
-                "style=\"width:100%;margin-top:12px;justify-content:center;\" " +
-                "onclick=\"loadMore()\">Load More (" + remaining + " remaining)</button>";
-            }
-
-            list.innerHTML = html;
-            window._visibleCount = count;
-            window._renderedLeads = page;
-          }
-
-          window.loadMore = function () {
-            var showing   = document.getElementById("noiseBtn").dataset.showing === "1";
-            window._visibleCount = (window._visibleCount || PAGE_SIZE) + PAGE_SIZE;
-            renderCards(showing, window._visibleCount);
-          };
-
-          renderCards(false, PAGE_SIZE);
-
-          window._currentLeads = leads;
-          window._renderCards  = renderCards;
-        })
-        .catch(function (err) {
-          console.error("[LeadRadar] loadLeads error:", err);
-          countEl.textContent = "Error loading leads";
-          // Nov 23 2026, LR-1: a plain message that tells the reader what to do
-          list.innerHTML = "<div class=\"empty-state\">The leads could not be loaded. Try Refresh in a moment.</div>";
-        })
-        .finally(function () {
-          refreshBtn.disabled = false;
-        });
-    }
-
-    function draftReply(idx, postText, product) {
-      var btn   = document.querySelector("#card-" + idx + " .draft-btn");
-      var area  = document.getElementById("draft-area-" + idx);
-      var box   = document.getElementById("draft-" + idx);
-      var cpBtn = document.getElementById("copy-" + idx);
-
-      btn.disabled = true;
-      btn.textContent = "Drafting...";
-      area.style.display = "none";
-      box.textContent = "";
-      box.classList.remove("draft-error");
-      cpBtn.style.display = "inline-flex";
-
-      fetch(API + "/api/leads/draft-reply", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + tok(),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ post_text: postText, suggested_product: product })
-      })
-        /* THE STATUS IS READ BEFORE THE BODY. This used to call r.json() and
-           look only for data.reply, so every refusal — a 402 from billing most
-           of all — fell into the "No reply was generated" branch and told the
-           user the model had run and come back empty. It had not run at all.
-           A billing refusal now says so, and points at the one page that can
-           fix it. */
-        .then(function (r) {
-          return r.json().catch(function () { return {}; })
-            .then(function (data) { return { status: r.status, ok: r.ok, data: data }; });
-        })
-        .then(function (res) {
-          var data = res.data || {};
-          var serverText = (typeof data.error === "string" && data.error) ? data.error : "";
-
-          if (res.status === 402) {
-            box.textContent = (serverText || "This account does not have an active subscription.") +
-              " Open Billing (billing.html) to start or restart your plan. No reply was drafted and nothing was charged.";
-            box.classList.add("draft-error");
-            cpBtn.style.display = "none";
-            area.style.display = "flex";
-            return;
-          }
-
-          if (!res.ok) {
-            box.textContent = serverText || ("The reply could not be drafted (HTTP " + res.status + ").");
-            box.classList.add("draft-error");
-            cpBtn.style.display = "none";
-            area.style.display = "flex";
-            return;
-          }
-
-          if (data.reply) {
-            box.textContent = data.reply;
-            cpBtn.style.display = "inline-flex";
-          } else {
-            box.textContent = "No reply was generated.";
-            box.classList.add("draft-error");
-            cpBtn.style.display = "none";
-          }
-          area.style.display = "flex";
-        })
-        .catch(function (err) {
-          console.error("[LeadRadar] draftReply error:", err);
-          box.textContent = "Error generating reply. Please try again.";
-          box.classList.add("draft-error");
-          cpBtn.style.display = "none";
-          area.style.display = "flex";
-        })
-        .finally(function () {
-          btn.disabled = false;
-          btn.textContent = "Draft Engagement";
-        });
-    }
-
-    function copyReply(idx) {
-      var box   = document.getElementById("draft-" + idx);
-      var cpBtn = document.getElementById("copy-" + idx);
-      var text  = box.textContent || "";
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(function () {
-        cpBtn.textContent = "Copied!";
-        cpBtn.classList.add("copied");
-        setTimeout(function () {
-          cpBtn.textContent = "Copy";
-          cpBtn.classList.remove("copied");
-        }, 2000);
-      }).catch(function () {
-        cpBtn.textContent = "Failed";
-        setTimeout(function () { cpBtn.textContent = "Copy"; }, 2000);
+      var q = "?source=" + encodeURIComponent(S.source) + (S.weaker ? "&weaker=1" : ""), mine = ++seq;
+      reading = true;
+      return call("GET", "/api/leads" + q).then(function (res) {
+        if (mine !== seq) return;
+        reading = false;
+        if (refused(res)) return;
+        if (!res.ok) { showState("error"); return; }
+        S.leads = Array.isArray(res.data.leads) ? res.data.leads : [];
+        S.stats = res.data.stats || null;
+        S.sourcesOn = res.data.sources_on || null;
+        S.weakerHidden = +res.data.weaker_hidden || 0;
+        if (!S.loaded) {
+          S.loaded = true;
+          $("lrState").hidden = true; $("lrTabs").hidden = false; $("lrSettings").hidden = false;
+          openTab(/^#fingerprint$/.test(location.hash) ? "fingerprint" : "leads");
+        }
+        drawStats(); drawChips(); drawLeads();
       });
     }
-
-    /* YouTube finds, from GET /api/leads/youtube-signals: keyword, date, text
-       and a link to the comment. No Draft button and no score: they are never
-       scored and cannot be replied to from here. A refusal hides the section,
-       as the scored list is withheld for the same account. */
-    function buildYoutubeFind(find) {
-      var uri  = String(find.post_uri || "");
-      var when = find.post_created_at ? String(find.post_created_at).slice(0, 10) : "date unknown";
-      var link = uri.indexOf("https://www.youtube.com/") === 0
-        ? "  <a class=\"yt-find-link\" href=\"" + escHtml(uri) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Open on YouTube</a>"
-        : "";
-      return [
-        "<div class=\"yt-find\">",
-        "  <div class=\"yt-find-top\">",
-        "    <span class=\"lead-keyword\">" + escHtml(find.matched_keyword || "") + "</span>",
-        "    <span class=\"yt-find-date\">" + escHtml(when) + "</span>",
-        "  </div>",
-        "  <p class=\"lead-text\">" + escHtml(find.post_text || "") + "</p>",
-        link,
-        "</div>"
-      ].join("\n");
+    function leadById(id) { for (var i = 0; i < S.leads.length; i++) if (String(S.leads[i].id) === String(id)) return S.leads[i]; return null; }
+    function cardNote(id, text) {
+      var c = document.querySelector('.lr-card[data-lead="' + (window.CSS && CSS.escape ? CSS.escape(String(id)) : String(id)) + '"]');
+      var n = c && c.querySelector(".lr-note"); if (!n) return;
+      n.textContent = text || ""; n.hidden = !text;
     }
-
-    /* "N hidden: X with links, Y too short, Z off topic", from the route's
-       hidden_counts over the rows it read. Counts only: the hidden comments
-       themselves are never sent to the page, so there is nothing to reveal. */
-    function youtubeHiddenLine(counts) {
-      var c = counts || {};
-      var link = Number(c.link) || 0, short = Number(c.too_short) || 0, off = Number(c.off_topic) || 0;
-      return (link + short + off) + " hidden: " + link + " with links, " + short + " too short, " + off + " off topic";
+    function setStatus(id, status, b) {
+      if (b) b.disabled = true;
+      var dropped = reading; seq++; reading = false;
+      return call("POST", "/api/leads/" + encodeURIComponent(id) + "/status", { status: status }).then(function (res) {
+        if (b) b.disabled = false;
+        if (refused(res)) return;
+        if (!res.ok) { cardNote(id, (res.data && res.data.error) || "That could not be saved just now. Try again."); return; }
+        if (dropped) { loadLeads(); return; }
+        if (status === "dismissed") S.leads = S.leads.filter(function (l) { return String(l.id) !== String(id); });
+        else { var l = leadById(id); if (l) Object.assign(l, (res.data && res.data.lead) || { status: status }); }
+        drawLeads();
+      });
     }
-
-    function loadYoutubeFinds() {
-      var section = document.getElementById("ytSection");
-      var ytList  = document.getElementById("ytList");
-      var ytHidden = document.getElementById("ytHidden");
-      fetch(API + "/api/leads/youtube-signals", {
-        headers: { "Authorization": "Bearer " + tok() }
-      })
-        .then(function (r) {
-          return r.json().catch(function () { return {}; })
-            .then(function (data) { return { ok: r.ok, status: r.status, data: data || {} }; });
-        })
-        .then(function (res) {
-          if (res.status === 403) {
-            section.hidden = true;
-            ytList.innerHTML = "";
-            ytHidden.hidden = true;
-            ytHidden.textContent = "";
-            return;
-          }
-          if (!res.ok) {
-            throw new Error(res.data.error || ("Server error " + res.status));
-          }
-          section.hidden = false;
-          ytHidden.textContent = youtubeHiddenLine(res.data.hidden_counts);
-          ytHidden.hidden = false;
-          var finds = res.data.finds || [];
-          if (!finds.length) {
-            var c = res.data.hidden_counts || {};
-            var anyHidden = (Number(c.link) || 0) + (Number(c.too_short) || 0) + (Number(c.off_topic) || 0) > 0;
-            ytList.innerHTML = anyHidden
-              ? "<div class=\"empty-state\" data-state=\"youtube_none_kept\">No stored YouTube comment passes the three rules yet.</div>"
-              : res.data.capture_on
-              ? "<div class=\"empty-state\" data-state=\"youtube_none_yet\">YouTube capture is on, and nothing has been found yet.</div>"
-              : "<div class=\"empty-state\" data-state=\"youtube_capture_off\">YouTube capture is switched off, so nothing new is being found.</div>";
-            return;
-          }
-          ytList.innerHTML = finds.map(buildYoutubeFind).join("\n");
-        })
-        .catch(function (err) {
-          section.hidden = false;
-          ytHidden.hidden = true;
-          ytList.innerHTML = "<div class=\"empty-state\">YouTube finds could not be loaded: " + escHtml(err.message || String(err)) + "</div>";
-        });
-    }
-
-    function escHtml(str) {
-      return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    loadLeads();
-
-    document.getElementById("leadsList").addEventListener("click", function (e) {
-      var draftBtn = e.target.closest(".draft-btn");
-      if (draftBtn) {
-        var idx  = parseInt(draftBtn.dataset.idx, 10);
-        var lead = (window._renderedLeads || [])[idx];
-        if (!lead) return;
-        draftReply(idx, lead.post_text || "", lead.suggested_product || "none");
-        return;
-      }
-      var copyBtn = e.target.closest(".copy-btn");
-      if (copyBtn) {
-        var idx = parseInt(copyBtn.dataset.idx, 10);
-        copyReply(idx);
-      }
+    $("lrChips").addEventListener("click", function (e) {
+      var c = e.target.closest(".lr-chip"); if (!c) return;
+      var v = c.getAttribute("data-v"); if (v === S.source) return;
+      S.source = v; S.weaker = false; drawChips(); loadLeads();
     });
+    $("lrList").addEventListener("click", function (e) {
+      var b = e.target.closest("button.lr-btn[data-act]"); if (!b) return;
+      var act = b.getAttribute("data-act"), id = b.getAttribute("data-id"), l = id ? leadById(id) : null;
+      if (act === "weaker") { S.weaker = true; loadLeads(); return; }
+      if (!l) return;
+      if (act === "save") setStatus(id, l.status === "saved" ? "new" : "saved", b);
+      else if (act === "dismiss") setStatus(id, "dismissed", b);
+      else if (act === "draft") openSheet(l, b);
+    });
+
+    /* ── the reply sheet (LeadsReply): nothing posts until the member presses "Post my reply", and the text sent is the box's ── */
+    var lastFocus = null;
+    var SEND_ERRORS = {
+      send_off: "Replies are switched off just now. Nothing was posted.",
+      already_replied: "You already replied to this post.",
+      not_safe: "This post can no longer take a reply. Nothing was posted.",
+      not_invited: "This post can no longer take a reply. Nothing was posted.",
+      too_old: "This post is too old for a reply now. Nothing was posted.",
+      no_reply_path: "This post can no longer take a reply. Nothing was posted.",
+      bad_text: "Write your reply first.",
+      too_long: "Your reply is too long for one post. Shorten it and try again.",
+      bad_link: "Your listing link could not be added. Switch it off and try again.",
+      waiting_approval: "Replies on Threads wait for Meta's approval. Nothing was posted.",
+      member_daily_cap: "You have posted 5 replies today, the most for one day. Try again tomorrow.",
+      account_ceiling: "This account has reached its reply limit for now. Try again later.",
+      post_full: "Three members have already replied to this post, so it takes no more replies."
+    };
+    function openSheet(l) {
+      lastFocus = document.activeElement;
+      S.sheetLead = l; S.sheetLink = false;
+      $("lrSheetTitle").textContent = "Your reply on " + (PLATFORM[l.reply_platform || l.source] || "Bluesky");
+      $("lrSheetBody").innerHTML = '<p class="lr-empty">Writing a draft...</p>';
+      $("lrVeil").hidden = false; $("lrSheet").hidden = false;
+      document.documentElement.classList.add("lr-locked");
+      $("lrSheetClose").focus();
+      draft();
+    }
+    function closeSheet() {
+      if ($("lrSheet").hidden) return;
+      $("lrVeil").hidden = true; $("lrSheet").hidden = true;
+      document.documentElement.classList.remove("lr-locked");
+      S.sheetLead = null;
+      if (lastFocus && lastFocus.focus && document.contains(lastFocus)) lastFocus.focus();
+    }
+    function connectState(kind, platform) {
+      var name = PLATFORM[platform] || "Bluesky";
+      var href = platform === "threads" ? "/integrations.html#threads" : "/agents/social.html#bskyConnect";
+      $("lrSheetBody").innerHTML = '<p class="lr-state-t" data-state="' + esc(kind) + '">' + (kind === "needs_reconnect" ? "Reconnect your " + name + " account to reply" : "Connect your " + name + " account to reply") + '</p>' +
+        '<p class="lr-empty">Replies post from your own account, and only after you approve each one.</p>' +
+        '<div class="lr-row"><a class="lr-big is-p" href="' + href + '">' + (kind === "needs_reconnect" ? "Reconnect" : "Connect") + '</a></div>';
+    }
+    function draftHtml(l, d) {
+      var c = d.checks || {};
+      var who = d.posts_as && d.posts_as.kind === "platform" ? "Posted from the BizForce " + (PLATFORM[d.platform] || "Bluesky") + " account" : "Posted from your own connected " + (PLATFORM[d.platform] || "Bluesky") + " account";
+      // NAMED (Nov 23 2026, LR-2): each check comes from the server (none is a fixed true); a check that is not met is not shown,
+      // and "No hard sell" is tested again on every edit with the server's own list (hard_sell_words).
+      S.hardSellWords = Array.isArray(d.hard_sell_words) ? d.hard_sell_words : [];
+      var checks = [["answers", c.answers, "Answers what they asked"], ["no_hard_sell", c.no_hard_sell, "No hard sell, no promises"], ["invited", c.invited, "They asked the room, so a reply is welcome"]]
+        .map(function (x) { return '<div class="lr-row" data-check="' + x[0] + '"' + (x[1] === true ? "" : " hidden") + '><span class="lr-ok" aria-hidden="true">&#10003;</span>' + esc(x[2]) + '</div>'; }).join("");
+      return '<blockquote class="lr-quote">' + esc(l.text) + '</blockquote>' +
+        '<label class="lr-lbl" for="lrDraft">Draft (edit anything)</label>' +
+        '<textarea class="lr-draft" id="lrDraft" maxlength="300" spellcheck="true">' + esc(d.draft || "") + '</textarea>' +
+        (checks ? '<div class="lr-checks">' + checks + '</div>' : "") +
+        '<div class="lr-row lr-linkrow"><span id="lrLinkLabel">Add a link to my listing</span><button type="button" class="lr-sw" id="lrLinkSw" role="switch" aria-checked="' + (S.sheetLink ? "true" : "false") + '" aria-labelledby="lrLinkLabel"><span class="lr-swf"></span></button></div>' +
+        '<div class="lr-row"><button type="button" class="lr-big" id="lrAgain">Write it again</button><button type="button" class="lr-big is-p" id="lrPost">Post my reply</button></div>' +
+        '<p class="lr-note is-err" id="lrSheetMsg" role="status" hidden></p>' +
+        '<p class="lr-sfoot">' + esc(who) + '. One reply per post, up to 5 a day.</p>';
+    }
+    /* The same test as lib/leadReplies.js hardSell, over the server's list: a phrase standing as its own words. */
+    function hardSellIn(text) {
+      var t = " " + String(text || "").toLowerCase().replace(/\s+/g, " ") + " ";
+      return (S.hardSellWords || []).some(function (w) {
+        for (var at = t.indexOf(w); at !== -1; at = t.indexOf(w, at + 1)) {
+          if (w.charAt(0) === "%" || (!/[a-z0-9]/.test(t.charAt(at - 1)) && !/[a-z0-9]/.test(t.charAt(at + w.length)))) return true;
+        }
+        return false;
+      });
+    }
+    document.addEventListener("input", function (e) {
+      if (!e.target || e.target.id !== "lrDraft") return;
+      var row = document.querySelector('.lr-checks [data-check="no_hard_sell"]');
+      if (row) row.hidden = hardSellIn(e.target.value);
+    });
+    function sheetMsg(t) { var m = $("lrSheetMsg"); if (!m) return; m.textContent = t || ""; m.hidden = !t; }
+    function draft() {
+      var l = S.sheetLead; if (!l) return;
+      call("POST", "/api/leads/" + encodeURIComponent(l.id) + "/draft", { add_link: S.sheetLink }).then(function (res) {
+        if (S.sheetLead !== l) return;
+        if (res.status === 401 || res.status === 402) { closeSheet(); refused(res); return; }
+        var code = res.data && res.data.code;
+        if (res.status === 409 && (code === "not_connected" || code === "needs_reconnect")) { connectState(code, l.reply_platform || l.source); return; }
+        if (res.status === 409 && code === "waiting_approval") { $("lrSheetBody").innerHTML = '<p class="lr-empty" data-state="waiting_approval">Replies on Threads wait for Meta\'s approval. Nothing was posted.</p>'; return; }
+        if (!res.ok) { $("lrSheetBody").innerHTML = '<p class="lr-empty">' + esc((res.data && res.data.error) || "A draft could not be written just now. Nothing was posted.") + '</p>'; return; }
+        $("lrSheetBody").innerHTML = draftHtml(l, res.data);
+      });
+    }
+    function send() {
+      var l = S.sheetLead, box = $("lrDraft"), b = $("lrPost"); if (!l || !box || S.busy) return;
+      var text = box.value.trim();
+      if (!text) { sheetMsg(SEND_ERRORS.bad_text); return; }
+      S.busy = true; b.disabled = true; sheetMsg("");
+      call("POST", "/api/leads/" + encodeURIComponent(l.id) + "/send", { text: text, add_link: S.sheetLink }).then(function (res) {
+        S.busy = false; if (b) b.disabled = false;
+        if (S.sheetLead !== l) return;
+        if (res.status === 401 || res.status === 402) { closeSheet(); refused(res); return; }
+        var code = res.data && res.data.code;
+        if (res.status === 409 && (code === "not_connected" || code === "needs_reconnect")) { connectState(code, l.reply_platform || l.source); return; }
+        if (!res.ok || res.data.sent !== true) { sheetMsg(SEND_ERRORS[code] || (res.data && res.data.error) || "The reply could not be posted. Nothing was sent."); return; }
+        l.status = "replied"; l.can_reply = false;
+        if (S.stats) S.stats.replied = (+S.stats.replied || 0) + 1;
+        closeSheet(); drawStats(); drawLeads();
+      });
+    }
+    $("lrSheetBody").addEventListener("click", function (e) {
+      if (e.target.closest("#lrPost")) { send(); return; }
+      if (e.target.closest("#lrAgain")) { $("lrSheetBody").innerHTML = '<p class="lr-empty">Writing a draft...</p>'; draft(); return; }
+      var sw = e.target.closest("#lrLinkSw");
+      if (sw) { S.sheetLink = !S.sheetLink; sw.setAttribute("aria-checked", S.sheetLink ? "true" : "false"); }
+    });
+    $("lrSheetClose").addEventListener("click", closeSheet);
+    $("lrVeil").addEventListener("click", closeSheet);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("lrSheet").hidden) { e.preventDefault(); closeSheet(); }
+    });
+
+    /* ── the Fingerprint (LeadsFingerprint) ── */
+    var REACH = [["city", "My city"], ["25mi", "25 miles"], ["online", "Online, anywhere"]];
+    function fpMsg(t) { var m = $("lrFpMsg"); m.textContent = t || ""; m.hidden = !t; m.className = "lr-note" + (t ? " is-err" : ""); }
+    function loadFingerprint() {
+      $("lrFpBody").innerHTML = '<p class="lr-empty">Reading your Fingerprint...</p>';
+      S.swapping = null;
+      call("GET", "/api/leads/fingerprint").then(function (res) {
+        if (refused(res)) return;
+        if (!res.ok) { $("lrFpBody").innerHTML = '<p class="lr-empty">Your Fingerprint could not be read just now. Try again soon.</p>'; return; }
+        S.fp = res.data; drawFingerprint();
+      });
+    }
+    function lookRow(key, title, sub, control) {
+      return '<div class="lr-look" data-source="' + key + '"><div class="lr-look-x"><div class="lr-look-t">' + esc(title) + '</div><div class="lr-look-s">' + esc(sub) + '</div></div>' + (control || "") + '</div>';
+    }
+    function sw(key, on, title) {
+      return '<button type="button" class="lr-sw" role="switch" data-src="' + key + '" aria-checked="' + (on ? "true" : "false") + '" aria-label="' + esc(title) + '"><span class="lr-swf"></span></button>';
+    }
+    function adder(field, label) {
+      return chip("", "+ Add", false, ' data-add="' + field + '" aria-label="' + esc(label) + '" aria-expanded="' + (S.editing === field ? "true" : "false") + '"');
+    }
+    function editor(field, placeholder) {
+      if (S.editing !== field) return "";
+      if (field === "categories") {
+        var chosen = (S.fp.fingerprint && S.fp.fingerprint.categories) || [];
+        var rest = (S.fp.all_categories || []).filter(function (c) { return chosen.indexOf(c.slug) === -1; });
+        return '<div class="lr-chips" data-pick="categories">' + rest.map(function (c) { return chip(c.slug, c.name, false, ' data-pick-v="1"'); }).join("") + '</div>';
+      }
+      return '<form class="lr-addrow" data-form="' + field + '"><input class="lr-in" name="v" maxlength="' + (field === "place" ? 80 : 40) + '" placeholder="' + esc(placeholder) + '" aria-label="' + esc(placeholder) + '"' +
+        (field === "place" ? ' value="' + esc(placeText()) + '"' : "") + '><button type="submit" class="lr-btn is-p"><span class="lr-btnf">' + (field === "place" ? "Save" : "Add") + '</span></button></form>';
+    }
+    function placeText() {
+      var f = (S.fp && S.fp.fingerprint) || {};
+      return [f.place_city, f.place_region].filter(Boolean).join(", ");
+    }
+    /* NAMED (Nov 24 2026, LR-2B): spare words, kept for later. A tap swaps one in; at 12 words the member then taps the
+       word it replaces (that word goes back to the spare words). POST /api/leads/fingerprint/spare/swap does the work. */
+    var MAX_WORDS = 12;
+    function spareRow(d, f) {
+      var spare = d.spare_words || [];
+      if (d.spare_words_readable === false) return '<p class="lr-note" data-spare-note>Your spare words could not be read just now.</p>';
+      if (!spare.length) return "";
+      var full = (f.keywords || []).length >= MAX_WORDS;
+      var note = S.swapping ? "Tap the word to replace with " + S.swapping + "." : (full ? "Your 12 words are full. Tap a spare word, then the word it replaces." : "Tap a spare word to add it.");
+      return '<p class="lr-lbl" id="lrSpareLbl">Spare words</p>' +
+        '<p class="lr-note" data-spare-note>' + esc(note) + '</p>' +
+        '<div class="lr-wrap" data-spare role="group" aria-labelledby="lrSpareLbl">' + spare.map(function (w) { return chip(w, w, S.swapping === w, ' data-spare-v="1" aria-label="Swap in ' + esc(w) + '"'); }).join("") +
+        (S.swapping ? chip("", "Cancel", false, ' data-spare-cancel="1"') : "") + '</div>';
+    }
+    function swapSpare(add, replace) {
+      fpMsg("");
+      var body = { add: add }; if (replace) body.replace = replace;
+      return call("POST", "/api/leads/fingerprint/spare/swap", body).then(function (res) {
+        if (refused(res)) return;
+        if (!res.ok) {
+          if (res.data && res.data.code === "pick_one") { S.swapping = add; drawFingerprint(); return; }
+          S.swapping = null; fpMsg((res.data && res.data.error) || "That word could not be swapped in just now. Try again."); drawFingerprint(); return;
+        }
+        S.fp = res.data; S.swapping = null; S.editing = null; drawFingerprint();
+        if (S.loaded) loadLeads();
+      });
+    }
+    function drawFingerprint() {
+      var d = S.fp || {}, f = d.fingerprint || {}, names = {};
+      (d.all_categories || []).concat(d.categories || []).forEach(function (c) { names[c.slug] = c.name; });
+      var src = f.sources || {}, acc = d.accounts || {}, th = acc.threads || {};
+      var place = placeText();
+      var threads;
+      if (th.state === "ready") threads = lookRow("threads", "Threads", "Public posts that ask the room", sw("threads", src.threads === true, "Threads"));
+      else if (th.state === "waiting_approval") threads = lookRow("threads", "Threads", "Waiting for Meta's approval");
+      else if (th.state === "not_connected" || th.state === "needs_reconnect") threads = lookRow("threads", "Threads", th.state === "needs_reconnect" ? "Reconnect Threads to look there" : "Connect Threads to look there", link(th.state === "needs_reconnect" ? "Reconnect" : "Connect", "/integrations.html#threads"));
+      else threads = lookRow("threads", "Threads", "Not available yet");
+      $("lrFpBody").innerHTML =
+        '<p class="lr-lbl">What you do</p>' +
+        '<div class="lr-wrap" data-field="categories">' + (f.categories || []).map(function (s) { return chip(s, names[s] || s, true, ' aria-label="Remove ' + esc(names[s] || s) + '"'); }).join("") + adder("categories", "Add what you do") + '</div>' + editor("categories") +
+        '<p class="lr-lbl">Where</p>' +
+        '<div class="lr-wrap" data-field="reach">' + (place ? chip("place", place, true, ' data-add="place" aria-label="Change your city, ' + esc(place) + '"') : chip("", "+ Add your city", false, ' data-add="place"')) +
+          REACH.map(function (r) { return chip(r[0], r[1], f.reach === r[0]); }).join("") + '</div>' + editor("place", "Your city, for example San Diego, CA") +
+        '<p class="lr-lbl">Words people use</p>' +
+        '<div class="lr-wrap" data-field="keywords">' + (f.keywords || []).map(function (k) { return S.swapping ? chip(k, k, true, ' data-replace="1" aria-label="Replace ' + esc(k) + ' with ' + esc(S.swapping) + '"') : chip(k, k, true, ' aria-label="Remove ' + esc(k) + '"'); }).join("") + (S.swapping ? "" : adder("keywords", "Add words people use")) + '</div>' + editor("keywords", "Words someone would write, like cover up") +
+        spareRow(d, f) +
+        '<p class="lr-lbl">Not for me</p>' +
+        '<div class="lr-wrap" data-field="not_for_me">' + (f.not_for_me || []).map(function (k) { return chip(k, k, false, ' aria-label="Remove ' + esc(k) + '"'); }).join("") + adder("not_for_me", "Add words that are not for you") + '</div>' + editor("not_for_me", "Words that mean it is not for you") +
+        '<p class="lr-lbl">Where to look</p>' +
+        '<div>' +
+          lookRow("bizforce", "Inside BizForce", "Needs posted by people near you", sw("bizforce", src.bizforce !== false, "Inside BizForce")) +
+          lookRow("bluesky", "Bluesky", "Public posts that ask the room", sw("bluesky", src.bluesky !== false, "Bluesky")) +
+          lookRow("youtube", "YouTube", "Comments asking for help, limited each day", sw("youtube", src.youtube !== false, "YouTube")) +
+          threads +
+        '</div>';
+      var input = $("lrFpBody").querySelector(".lr-in"); if (input) input.focus();
+    }
+    function save(body) {
+      fpMsg("");
+      return call("PUT", "/api/leads/fingerprint", body).then(function (res) {
+        if (refused(res)) return;
+        if (!res.ok) { fpMsg((res.data && res.data.error) || "That change could not be saved just now. Try again."); drawFingerprint(); return; }
+        S.fp = res.data; S.editing = null; drawFingerprint();
+        if (S.loaded) loadLeads();
+      });
+    }
+    function list(field) { var f = (S.fp && S.fp.fingerprint) || {}; return (f[field] || []).slice(); }
+    $("lrFpBody").addEventListener("click", function (e) {
+      var s = e.target.closest(".lr-sw[data-src]");
+      if (s) {
+        var src = Object.assign({}, (S.fp.fingerprint && S.fp.fingerprint.sources) || {});
+        src[s.getAttribute("data-src")] = s.getAttribute("aria-checked") !== "true";
+        s.setAttribute("aria-checked", src[s.getAttribute("data-src")] ? "true" : "false");
+        save({ sources: src }); return;
+      }
+      var c = e.target.closest(".lr-chip"); if (!c) return;
+      if (c.hasAttribute("data-spare-cancel")) { S.swapping = null; drawFingerprint(); return; }
+      if (c.hasAttribute("data-spare-v")) {
+        var sw0 = c.getAttribute("data-v");
+        if (S.swapping === sw0) { S.swapping = null; drawFingerprint(); return; }
+        if (list("keywords").length >= MAX_WORDS) { S.swapping = sw0; drawFingerprint(); return; }
+        swapSpare(sw0, null); return;
+      }
+      if (c.hasAttribute("data-replace")) { if (S.swapping) swapSpare(S.swapping, c.getAttribute("data-v")); return; }
+      var add = c.getAttribute("data-add");
+      if (add) { S.editing = S.editing === add ? null : add; drawFingerprint(); return; }
+      var v = c.getAttribute("data-v");
+      if (c.hasAttribute("data-pick-v")) { var cats = list("categories"); cats.push(v); save({ categories: cats }); return; }
+      var field = c.parentNode && c.parentNode.getAttribute("data-field");
+      if (field === "reach") { if (v && v !== "place") save({ reach: v }); return; }
+      if (field) { var body = {}; body[field] = list(field).filter(function (x) { return x !== v; }); save(body); }
+    });
+    $("lrFpBody").addEventListener("submit", function (e) {
+      var form = e.target.closest("form[data-form]"); if (!form) return;
+      e.preventDefault();
+      var field = form.getAttribute("data-form"), v = String(form.elements.v.value || "").trim();
+      if (field === "place") { var parts = v.split(","); save({ place_city: (parts[0] || "").trim() || null, place_region: parts.slice(1).join(",").trim() || null }); return; }
+      if (!v) return;
+      var cur = list(field);
+      if (cur.indexOf(v) === -1) cur.push(v);
+      var body = {}; body[field] = cur; save(body);
+    });
+
+    /* ── start: signed out (no request), a free account (the members panel, no request), a member (the leads) ── */
+    function whenAccess(cb) {
+      var done = false; function once(a) { if (!done) { done = true; cb(a || {}); } }
+      if (window.bfAccess && window.bfAccess.ready) { window.bfAccess.ready.then(once); return; }
+      document.addEventListener("bf-access", function (e) { once(e.detail); });
+      setTimeout(function () { if (window.bfAccess && window.bfAccess.ready) window.bfAccess.ready.then(once); else once({}); }, 6000);
+    }
+    function start() {
+      if (!tok()) { showState("signed_out"); return; }
+      whenAccess(function (a) {
+        if (a.tier === "free") { showState("members_only"); return; }
+        loadLeads();
+      });
+    }
+    start();
+  })();
   </script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>

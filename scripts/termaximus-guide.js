@@ -123,10 +123,9 @@
     ],
     "sales.html": [
       "Pick \"Sales Funnel\" or \"Outreach Script\", describe your offer and your buyer, and press \"Launch Task\".",
-      "In \"Sales Pipeline\", move each lead through New, Drafted, Contacted, Replied, Converted; nothing here judges which deals are stalling.",
-      "The tasks read none of the leads or pipeline on this page, so say in your request what has changed in your deals.",
-      "No leads listed? They come from Lead Radar, which works only for the account that owns its keyword set; press \"Refresh\" to reload.",
-      "On that account, \"Lead Radar finds\" under the page header counts each source apart; YouTube finds are kept 30 days and never added to the total."
+      "The tasks read none of the leads on this page, so say in your request what has changed in your deals.",
+      "New leads are found for each member in Lead Radar, where you approve every reply; \"Open Lead Radar\" takes you there.",
+      "Seeing \"Archive\"? It holds the old radar finds, read only and shown to the owner account alone; nothing in it can be sent."
     ],
     "content.html": [
       "Start with \"Edit Profile\" and press \"Save Profile\"; every agent reads it, and \"Business Profile\" under the page header ticks each field set.",
@@ -150,11 +149,10 @@
       "\"Arrivals Ledger\" counts landings through your own tracked links, in code; an arrival is one page request, not a person or a sale."
     ],
     "lead-radar.html": [
-      "Press \"Draft Engagement\" on a \"High-Intent\" lead (60+) for a reply, then \"Copy\" it to your clipboard and post it on Bluesky yourself.",
-      "New Bluesky finds arrive every 5 minutes; YouTube and scoring each wait on their own switch. Press \"Refresh\" to load.",
-      "It searches a fixed set of buyer-intent phrases on Bluesky, set in the radar's own code, and does not read your Business Profile.",
-      "\"Not enabled on this account\" means just that: leads appear solely on the account that owns the keyword set and its credentials.",
-      "Sub-15 scores are hidden as noise; press \"Show Noise\" once the high-intent leads run dry."
+      "Open \"Fingerprint\" and check what you do, where you work and the words people use; your leads are found with them.",
+      "On \"Leads\", press \"Draft a reply\", change anything in the draft, then \"Post my reply\"; nothing posts until you press it.",
+      "Replies go from your own connected Bluesky account, one per post and up to 5 a day. A BizForce Need opens its post for \"I can help\".",
+      "No leads yet? Add more \"Words people use\", or switch on more places under \"Where to look\"."
     ],
     "email-agent.html": [
       "Open \"Email Sequence\", set its goal, audience and \"Number of steps\", and press \"Build the sequence\".",

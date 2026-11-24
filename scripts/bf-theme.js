@@ -276,7 +276,8 @@
   var UNTHEMED = [
     "seller.html", "support.html", "card-view.html", "blogindex.html", "blogpost.html", "listing.html",
     "suppressed.html", "vitality.html", "terms.html", "privacy.html", "refund.html", "contact.html",
-    "reset-password.html", "verify-email.html", "your-data.html", "xxl-xtreme.html"
+    "reset-password.html", "verify-email.html", "your-data.html", "xxl-xtreme.html",
+    "threads-deletion.html"   // NAMED (Nov 24 2026, LR-2B)
   ];
 
   /* The tokens a theme sets. Everything else in the rule is a page's own. */

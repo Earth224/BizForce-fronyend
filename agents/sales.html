@@ -1067,8 +1067,6 @@
           <div class="mc-target-funnel">
             <div class="mc-target-funnel-row fn-drafted"><span class="fn-label">Drafted (not sent)</span><span class="fn-count" id="mcFnDrafted">—</span></div>
             <div class="mc-target-funnel-row fn-sent"><span class="fn-label">Sent</span><span class="fn-count" id="mcFnSent">—</span></div>
-            <div class="mc-target-funnel-row fn-replied"><span class="fn-label">Replied</span><span class="fn-count" id="mcFnReplied">—</span></div>
-            <div class="mc-target-funnel-row fn-converted"><span class="fn-label">Converted</span><span class="fn-count" id="mcFnConverted">—</span></div>
           </div>
         </div>
       </div>
@@ -1111,14 +1109,19 @@
           <section class="sales-live-card" aria-label="Leads and Activity">
             <div class="sales-live-activity-cols">
               <div class="sales-live-col">
-                <div class="sales-live-header">
-                  <h2 class="section-label" style="margin-bottom:0;">Leads from Lead Radar</h2>
-                  <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                    <button type="button" class="action-btn action-btn--ghost" id="salesLeadsRefreshBtn">Refresh</button>
-                  </div>
+                <!-- NAMED (Nov 23 2026, LR-2): BEFORE the owner's live leads with Draft reply and the approval box. AFTER every member
+                     is pointed to Lead Radar, and the owner alone sees the old leads as a read-only archive (GET /api/leads/archive). -->
+                <div class="sales-radar-pointer" id="salesRadarPointer">
+                  <h2 class="section-label" style="margin-bottom:6px;">Leads are in Lead Radar</h2>
+                  <p class="sales-pipeline-note">Lead Radar finds people asking for what you offer, inside BizForce, on Bluesky and on YouTube, from your Fingerprint. You approve every reply before it posts.</p>
+                  <a class="action-btn" href="/agents/lead-radar.html">Open Lead Radar</a>
                 </div>
-                <div class="sales-leads-msg" id="salesLeadsMsg"></div>
-                <div id="salesLeadsList" class="sales-leads-list"><div class="empty-state"><p>Loading leads…</p></div></div>
+                <div id="salesArchive" hidden>
+                  <h2 class="section-label" style="margin:18px 0 6px;">Archive: the old Lead Radar finds</h2>
+                  <p class="sales-pipeline-note">Read only. Captured before Lead Radar opened to every member; nothing here can be drafted, sent or changed.</p>
+                  <div class="sales-leads-msg" id="salesLeadsMsg"></div>
+                  <div id="salesLeadsList" class="sales-leads-list"></div>
+                </div>
               </div>
               <div class="sales-live-col">
                 <h2 class="section-label">Live Activity</h2>
@@ -1129,15 +1132,15 @@
         </div>
       </div>
 
-      <div class="mc-module" data-module="sales-pipeline">
+      <div class="mc-module" data-module="sales-pipeline" id="salesPipelineModule" style="display:none">
         <div class="mc-module-header">
-          <span class="mc-module-title">Sales Pipeline</span>
+          <span class="mc-module-title">Sales Pipeline (archive)</span>
           <span class="mc-module-toggle">▾</span>
         </div>
         <div class="mc-module-body">
           <section class="sales-pipeline-card" aria-label="Sales Pipeline">
-            <h2 class="section-label">Sales Pipeline</h2>
-            <p class="sales-pipeline-note">YouTube finds are kept for at most 30 days, and YouTube capture runs only when switched on. A pipeline entry built on a YouTube find is removed with it.</p>
+            <h2 class="section-label">Sales Pipeline (archive)</h2>
+            <p class="sales-pipeline-note">Read only: where the old leads stood when Lead Radar opened to every member.</p>
             <div class="sales-pipeline-board" id="salesPipelineBoard"></div>
           </section>
         </div>
@@ -1312,8 +1315,12 @@
         return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
-      var STATUS_LABELS = { new: "New", drafted: "Drafted", contacted: "Contacted", replied: "Replied", converted: "Converted" };
-      var STATUS_ORDER = ["new", "drafted", "contacted", "replied", "converted"];
+      /* NAMED (Nov 23 2026, LR-2): BEFORE the owner's live leads and pipeline, with Draft reply, the approval box that posted the
+         approved text, and the status menu (their routes are removed).
+         AFTER one read-only archive of the old leads and their pipeline, for the owner (GET /api/leads/archive, read once and shared
+         by the list, the board and the two charts). Anyone else (403) sees only the pointer to Lead Radar. */
+      var STATUS_LABELS = { new: "New", drafted: "Drafted", contacted: "Contacted", replied: "Replied", converted: "Converted", archived: "Archived" };
+      var STATUS_ORDER = ["new", "drafted", "contacted", "replied", "converted", "archived"];
 
       function scoreClass(score) { return score >= 60 ? "hi" : score >= 30 ? "mid" : "lo"; }
 
@@ -1325,33 +1332,6 @@
         return lead.author_handle ? "@" + lead.author_handle : (lead.author_did || "unknown");
       }
 
-      /* splits the model's OUTREACH MESSAGE / OFFER / CALL TO ACTION sections
-         out of the plain-text conversion package returned by the backend */
-      function parseConversion(text) {
-        var raw = String(text || "");
-        var labels = [
-          { key: "outreach", re: /outreach message[:\-]?/i },
-          { key: "offer", re: /\boffer[:\-]?/i },
-          { key: "cta", re: /call to action[:\-]?/i }
-        ];
-        var positions = [];
-        labels.forEach(function (l) {
-          var m = raw.match(l.re);
-          if (m) positions.push({ key: l.key, index: m.index, len: m[0].length });
-        });
-        var result = { outreach: "", offer: "", cta: "" };
-        if (!positions.length) { result.outreach = raw.trim(); return result; }
-        positions.sort(function (a, b) { return a.index - b.index; });
-        for (var i = 0; i < positions.length; i++) {
-          var start = positions[i].index + positions[i].len;
-          var end = (i + 1 < positions.length) ? positions[i + 1].index : raw.length;
-          result[positions[i].key] = raw.slice(start, end).replace(/^[\s:*#\-]+/, "").trim();
-        }
-        return result;
-      }
-
-      var currentLeads = [];
-
       function setLeadsMsg(text, cls) {
         var el = document.getElementById("salesLeadsMsg");
         if (!el) return;
@@ -1359,45 +1339,48 @@
         el.className = "sales-leads-msg" + (cls ? " " + cls : "");
       }
 
-      /* The server has said this account is not one Lead Radar runs for. Every
-         lead the two lists would show is someone else's when that is true, so
-         both are replaced with the server's own sentence, and the controls
-         that act on a lead are REMOVED from the document rather than
-         disabled — a disabled "Post Public Replies" button is still a claim
-         that the account can post public replies. The per-lead Convert
-         buttons only exist inside lead cards, and no card is rendered. */
-      var leadRadarUnavailable = false;
-      function applyLeadRadarRefusal(message) {
-        leadRadarUnavailable = true;
-        var text = message || "Lead Radar is not enabled for your account.";
-        var html = '<div class="empty-state" data-state="lead_radar_unavailable"><p>' + esc(text) + '</p></div>';
-        var list = document.getElementById("salesLeadsList");
-        if (list) list.innerHTML = html;
-        var board = document.getElementById("salesPipelineBoard");
-        if (board) board.innerHTML = html;
-        setLeadsMsg("");
+      function groupPipeline(p) {
+        if (Array.isArray(p)) {
+          var g = {};
+          p.forEach(function (row) { var st = (row && (row.status || row.sales_status)) || "new"; (g[st] = g[st] || []).push(row); });
+          return g;
+        }
+        return p && typeof p === "object" ? p : {};
       }
 
-      function isLeadRadarRefusal(status, data) {
-        return status === 403 && !!data && data.code === "lead_radar_unavailable";
+      /* null for anyone but the owner (or when it cannot be read): then nothing of the archive is drawn. */
+      var archiveRead = null;
+      function readArchive() {
+        if (archiveRead) return archiveRead;
+        var token = tok();
+        if (!token) { archiveRead = Promise.resolve(null); return archiveRead; }
+        archiveRead = fetch(API_URL + "/api/leads/archive", { headers: { "Authorization": "Bearer " + token } })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (d) {
+            if (!d || typeof d !== "object" || !Array.isArray(d.leads)) return null;   /* only the archive's own answer */
+            var leads = d.leads, byUri = {};
+            leads.forEach(function (l) { if (l && l.post_uri) byUri[l.post_uri] = l; });
+            (Array.isArray(d.pipeline) ? d.pipeline : []).forEach(function (row) { if (row && !row.lead && byUri[row.lead_post_uri]) row.lead = byUri[row.lead_post_uri]; });
+            return { leads: leads, pipeline: groupPipeline(d.pipeline) };
+          })
+          .catch(function () { return null; });
+        return archiveRead;
       }
 
       function renderLeads(leads) {
         var list = document.getElementById("salesLeadsList");
         if (!list) return;
         if (!leads.length) {
-          list.innerHTML = '<div class="empty-state"><p>No scored leads to show. A captured post appears here only after Lead Radar has scored it.</p></div>';
+          list.innerHTML = '<div class="empty-state"><p>The archive is empty.</p></div>';
           return;
         }
-        list.innerHTML = leads.map(function (lead, idx) {
+        list.innerHTML = leads.map(function (lead) {
           var score = typeof lead.intent_score === "number" ? lead.intent_score : 0;
           var buyer = isBuyer(lead);
           var hasProduct = lead.suggested_product && lead.suggested_product !== "none";
-          var status = lead.sales_status || "new";
-          var alreadyReachedOut = (status === "contacted" || status === "replied" || status === "converted");
-
+          var status = lead.sales_status || lead.status || "new";
           return (
-            '<div class="sales-lead-card" data-idx="' + idx + '">' +
+            '<div class="sales-lead-card">' +
               '<div class="sales-lead-top">' +
                 '<span class="sales-lead-handle">' + esc(leadHandle(lead)) + '</span>' +
                 '<span class="sales-status-badge status-' + esc(status) + '">' + esc(STATUS_LABELS[status] || status) + '</span>' +
@@ -1410,182 +1393,12 @@
                 '</span>' +
                 (hasProduct ? '<span class="sales-lead-product">' + esc(lead.suggested_product) + '</span>' : "") +
               '</div>' +
-              '<div class="sales-lead-actions">' +
-                '<button type="button" class="action-btn action-btn--ghost sales-convert-btn" data-idx="' + idx + '">' +
-                  (status === "new" ? "Draft reply" : "Re-draft") +
-                '</button>' +
-                (alreadyReachedOut
-                  ? '<span class="sales-lead-warn">Already ' + esc((STATUS_LABELS[status] || status).toLowerCase()) + ' — check the pipeline before messaging again.</span>'
-                  : "") +
-              '</div>' +
-              '<div class="sales-conversion-result" id="salesConv-' + idx + '" style="display:none;"></div>' +
             '</div>'
           );
         }).join("");
       }
 
-      function renderConversion(idx, text, draft, rejection) {
-        var wrap = document.getElementById("salesConv-" + idx);
-        if (!wrap) return;
-        var parsed = parseConversion(text);
-        var hasParsedSections = parsed.outreach || parsed.offer || parsed.cta;
-
-        wrap.innerHTML =
-          (parsed.outreach ? '<div class="sales-conv-block"><div class="sales-conv-label">Outreach Message</div><div class="sales-conv-body">' + esc(parsed.outreach) + '</div></div>' : "") +
-          (parsed.offer ? '<div class="sales-conv-block"><div class="sales-conv-label">Offer</div><div class="sales-conv-body">' + esc(parsed.offer) + '</div></div>' : "") +
-          (parsed.cta ? '<div class="sales-conv-block"><div class="sales-conv-label">Call To Action</div><div class="sales-conv-body">' + esc(parsed.cta) + '</div></div>' : "") +
-          (!hasParsedSections ? '<div class="sales-conv-block"><div class="sales-conv-body">' + esc(text) + '</div></div>' : "") +
-          '<button type="button" class="copy-btn" data-idx="' + idx + '">Copy All</button>' +
-          approvalHtml(idx, draft, rejection);
-
-        wrap.dataset.fullText = text;
-        wrap.style.display = "block";
-        updateApproveCount(idx);
-      }
-
-      /* Nov 23 2026, LR-1: nothing posts without this. The draft is shown in a box the
-         person can edit; "Post my reply" sends exactly the text in the box, and nothing
-         else posts it. */
-      var APPROVE_MAX = 300;
-      function approvalHtml(idx, draft, rejection) {
-        if (!draft) {
-          return '<p class="sales-approve-note">No reply was drafted for this lead' + (rejection ? " (" + esc(rejection) + ")" : "") + '. Nothing can be posted.</p>';
-        }
-        return '<div class="sales-approve">' +
-            '<label class="sales-approve-label" for="salesApprove-' + idx + '">Your reply (read and edit it first)</label>' +
-            '<textarea class="sales-approve-text" id="salesApprove-' + idx + '" data-idx="' + idx + '" maxlength="' + (APPROVE_MAX * 2) + '">' + esc(draft) + '</textarea>' +
-            '<div class="sales-approve-row">' +
-              '<button type="button" class="action-btn sales-approve-btn" data-idx="' + idx + '">Post my reply</button>' +
-              '<span class="sales-approve-count" id="salesApproveCount-' + idx + '"></span>' +
-            '</div>' +
-            '<p class="sales-approve-note">This posts a public reply on Bluesky from the BizForce account, exactly as written above.</p>' +
-            '<div class="sales-approve-msg" id="salesApproveMsg-' + idx + '" role="status"></div>' +
-          '</div>';
-      }
-
-      function updateApproveCount(idx) {
-        var box = document.getElementById("salesApprove-" + idx);
-        var count = document.getElementById("salesApproveCount-" + idx);
-        if (!box || !count) return;
-        var n = Array.from(box.value.trim()).length;
-        count.textContent = n + " / " + APPROVE_MAX;
-        count.classList.toggle("is-over", n > APPROVE_MAX);
-      }
-
-      function postApprovedReply(idx, btn) {
-        var lead = currentLeads[idx];
-        var box = document.getElementById("salesApprove-" + idx);
-        var msg = document.getElementById("salesApproveMsg-" + idx);
-        if (!lead || !box) return;
-        var token = tok();
-        if (!token) { setLeadsMsg("Sign in to post a reply.", "err"); return; }
-        var text = box.value.trim();
-        function say(t, ok) { if (msg) { msg.textContent = t; msg.className = "sales-approve-msg " + (ok ? "is-ok" : "is-err"); } }
-        if (!text) { say("Write the reply first.", false); return; }
-        if (Array.from(text).length > APPROVE_MAX) { say("A reply can be at most " + APPROVE_MAX + " characters.", false); return; }
-
-        btn.disabled = true;
-        box.disabled = true;
-        var originalLabel = btn.textContent;
-        btn.innerHTML = '<span class="sales-spinner"></span>Posting…';
-        fetch(API_URL + "/api/agents/sales/send-approved", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ lead_post_uri: lead.post_uri, text: text })
-        })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; }); })
-        .then(function (res) {
-          btn.textContent = originalLabel;
-          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
-          if (paywall) { btn.disabled = false; box.disabled = false; setLeadsMsg("", "err"); window.bfPaywall.render(document.getElementById("salesLeadsMsg"), paywall); return; }
-          if (res.ok && res.data.sent) {
-            say("Posted.", true);
-            btn.disabled = true;
-            loadPipeline();
-            return;
-          }
-          btn.disabled = false;
-          box.disabled = false;
-          var why = res.data.reason ? " (" + String(res.data.reason).replace(/_/g, " ") + ")" : "";
-          var reasons = Array.isArray(res.data.reasons) ? " (" + res.data.reasons.join(", ").replace(/_/g, " ") + ")" : "";
-          say((res.data.error || "Nothing was posted.") + why + reasons, false);
-        })
-        .catch(function (e) {
-          btn.disabled = false;
-          box.disabled = false;
-          btn.textContent = originalLabel;
-          say((e && e.message) || "Nothing was posted.", false);
-        });
-      }
-
-      function loadLeads() {
-        var token = tok();
-        if (!token) return;
-        setLeadsMsg("Loading leads…");
-        fetch(API_URL + "/api/agents/sales/leads", { headers: { "Authorization": "Bearer " + token } })
-          .then(function (r) {
-            return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; });
-          })
-          .then(function (res) {
-            if (isLeadRadarRefusal(res.status, res.data)) {
-              currentLeads = [];
-              applyLeadRadarRefusal(res.data.error);
-              return;
-            }
-            if (!res.ok) throw new Error(res.data.error || ("HTTP " + res.status));
-            currentLeads = Array.isArray(res.data.leads) ? res.data.leads : [];
-            renderLeads(currentLeads);
-            setLeadsMsg(currentLeads.length + " lead" + (currentLeads.length === 1 ? "" : "s") + " tracked", "ok");
-          })
-          .catch(function (e) {
-            setLeadsMsg(e.message || "Could not load leads.", "err");
-            var list = document.getElementById("salesLeadsList");
-            if (list) list.innerHTML = '<div class="empty-state"><p>Could not load leads.</p></div>';
-          });
-      }
-
-      /* Nov 23 2026, LR-1: Draft only. This asks the Sales Agent for a reply and shows it;
-         it never posts. The reply is posted only by "Post my reply" (postApprovedReply). */
-      function convertLead(idx, btn) {
-        var lead = currentLeads[idx];
-        if (!lead) return;
-        var token = tok();
-        if (!token) { setLeadsMsg("Sign in to draft a reply.", "err"); return; }
-
-        btn.disabled = true;
-        var originalLabel = btn.textContent;
-        btn.innerHTML = '<span class="sales-spinner"></span>Drafting…';
-
-        fetch(API_URL + "/api/agents/sales/convert", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ lead_post_uri: lead.post_uri })
-        })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; }); })
-        .then(function (res) {
-          btn.disabled = false;
-          btn.textContent = originalLabel;
-          var paywall = window.bfPaywall ? window.bfPaywall.from(res.status, res.data) : null;
-          if (paywall) { setLeadsMsg("", "err"); window.bfPaywall.render(document.getElementById("salesLeadsMsg"), paywall); return; }
-          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
-          var result = res.data.results && res.data.results[0];
-          if (result) renderConversion(idx, result.conversion || "", result.draft || "", result.draft_rejection || "");
-          loadPipeline();
-        })
-        .catch(function (e) {
-          btn.disabled = false;
-          btn.textContent = originalLabel;
-          setLeadsMsg(e.message || "The draft could not be made.", "err");
-        });
-      }
-
-      /* ── pipeline board ── */
-      function statusOptionsHtml(current) {
-        return STATUS_ORDER.map(function (s) {
-          return '<option value="' + s + '"' + (s === current ? " selected" : "") + '>' + STATUS_LABELS[s] + '</option>';
-        }).join("");
-      }
-
+      /* ── the archive's pipeline board, read only ── */
       function renderPipeline(grouped) {
         var board = document.getElementById("salesPipelineBoard");
         if (!board) return;
@@ -1598,15 +1411,14 @@
                 var preview = (lead.post_text || item.last_draft || "").slice(0, 110);
                 var fullDraft = item.last_draft || "";
                 var toggleHtml = fullDraft
-                  ? '<button type="button" class="sales-pipeline-item-toggle" data-uri="' + esc(item.lead_post_uri) + '">View message <span class="sales-pipeline-item-toggle-caret">▾</span></button>' +
+                  ? '<button type="button" class="sales-pipeline-item-toggle">View message <span class="sales-pipeline-item-toggle-caret">▾</span></button>' +
                     '<div class="sales-pipeline-item-full">' + esc(fullDraft) + '</div>'
                   : '';
                 return (
-                  '<div class="sales-pipeline-item" data-uri="' + esc(item.lead_post_uri) + '">' +
+                  '<div class="sales-pipeline-item">' +
                     '<div class="sales-pipeline-item-handle">' + esc(handle) + '</div>' +
                     '<div class="sales-pipeline-item-preview">' + esc(preview) + '</div>' +
                     toggleHtml +
-                    '<select class="sales-pipeline-item-select" data-uri="' + esc(item.lead_post_uri) + '">' + statusOptionsHtml(status) + '</select>' +
                   '</div>'
                 );
               }).join("")
@@ -1624,54 +1436,21 @@
         }).join("");
       }
 
-      function loadPipeline() {
-        var token = tok();
-        if (!token) return;
-        fetch(API_URL + "/api/agents/sales/pipeline", { headers: { "Authorization": "Bearer " + token } })
-          .then(function (r) {
-            return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d || {} }; });
-          })
-          .then(function (res) {
-            if (isLeadRadarRefusal(res.status, res.data)) { applyLeadRadarRefusal(res.data.error); return; }
-            /* Never draw an empty board over the refusal: the two requests
-               race, and a failed pipeline read after a refused leads read
-               must not replace the server's sentence with five empty columns. */
-            if (!res.ok || leadRadarUnavailable) return;
-            renderPipeline(res.data.pipeline);
-          })
-          .catch(function () {});
+      function showArchive() {
+        readArchive().then(function (a) {
+          if (!a) return;
+          var box = document.getElementById("salesArchive");
+          if (box) box.hidden = false;
+          renderLeads(a.leads);
+          setLeadsMsg(a.leads.length + " archived lead" + (a.leads.length === 1 ? "" : "s"), "ok");
+          var mod = document.getElementById("salesPipelineModule");
+          if (mod) mod.style.display = "";
+          renderPipeline(a.pipeline);
+        });
       }
-
-      function updateLeadStatus(postUri, status) {
-        var token = tok();
-        if (!token) return;
-        fetch(API_URL + "/api/agents/sales/lead-status", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify({ lead_post_uri: postUri, status: status })
-        })
-        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); })
-        .then(function (res) {
-          if (!res.ok) throw new Error(res.data.error || ("Server error " + res.status));
-          loadPipeline();
-          loadLeads();
-        })
-        .catch(function (e) { console.error("[Sales] status update failed:", e.message || e); });
-      }
-
-      function copyConversion(idx) {
-        var wrap = document.getElementById("salesConv-" + idx);
-        if (!wrap) return;
-        var text = wrap.dataset.fullText || "";
-        if (!text) return;
-        navigator.clipboard.writeText(text).then(function () {
-          var btn = wrap.querySelector(".copy-btn");
-          if (btn) {
-            var original = btn.textContent;
-            btn.textContent = "Copied!";
-            setTimeout(function () { btn.textContent = original; }, 1800);
-          }
-        }).catch(function () {});
+      function hideChart(canvas) {
+        var col = canvas && canvas.closest(".mc-intel-col");
+        if (col) col.style.display = "none";
       }
 
       /* ── Stage 2 console engine: live Sales task feed + KPI tiles + mode
@@ -1706,47 +1485,6 @@
         } catch (e) {
           return null;
         }
-      }
-
-      /* The pipeline statuses the owner sets (POST /api/agents/sales/lead-status).
-         Replied and Converted are counted from here, because nothing writes those
-         values to ai_tasks. false when it could not be read — never an empty
-         pipeline, which would show as a real zero. */
-      var mcLastPipeline;
-      async function mcFetchPipeline() {
-        try {
-          var token = tok();
-          if (!token) return false;
-          var r = await fetch(API_URL + "/api/agents/sales/pipeline", {
-            headers: { "Authorization": "Bearer " + token }
-          });
-          if (!r.ok) return false;
-          var data = await r.json();
-          return (data && data.pipeline && typeof data.pipeline === "object" && !Array.isArray(data.pipeline)) ? data.pipeline : false;
-        } catch (e) {
-          return false;
-        }
-      }
-
-      // Replied and Converted today: pipeline rows at that status, last changed today.
-      function mcRenderPipelineCounts(pipeline) {
-        var setFn = function (id, v) {
-          var el = document.getElementById(id);
-          if (el) el.textContent = String(v);
-        };
-        if (pipeline === undefined) return;
-        if (pipeline === false) {
-          setFn("mcFnReplied", "could not be read");
-          setFn("mcFnConverted", "could not be read");
-          return;
-        }
-        var today = function (rows) {
-          return (Array.isArray(rows) ? rows : []).filter(function (row) {
-            return mcGetTodayTasks([{ created_at: row && row.updated_at }]).length === 1;
-          }).length;
-        };
-        setFn("mcFnReplied", today(pipeline.replied));
-        setFn("mcFnConverted", today(pipeline.converted));
       }
 
       /* What each ai_tasks status actually means. Only "sent" went out: a dry run
@@ -1911,14 +1649,9 @@
         if (!canvas) return;
 
         try {
-          var token = tok();
-          if (!token) return;
-          var r = await fetch(API_URL + "/api/agents/sales/leads", {
-            headers: { "Authorization": "Bearer " + token }
-          });
-          if (!r.ok) return;
-          var data = await r.json();
-          var leads = (data && Array.isArray(data.leads)) ? data.leads : [];
+          var arch = await readArchive();
+          if (!arch) { hideChart(canvas); return; }
+          var leads = arch.leads;
 
           var counts = {};
           leads.forEach(function (lead) {
@@ -1970,14 +1703,9 @@
         if (!canvas) return;
 
         try {
-          var token = tok();
-          if (!token) return;
-          var r = await fetch(API_URL + "/api/agents/sales/pipeline", {
-            headers: { "Authorization": "Bearer " + token }
-          });
-          if (!r.ok) return;
-          var data = await r.json();
-          var grouped = (data && data.pipeline) || {};
+          var arch = await readArchive();
+          if (!arch) { hideChart(canvas); return; }
+          var grouped = arch.pipeline;
 
           var labels = STATUS_ORDER.map(function (s) { return STATUS_LABELS[s] || s; });
           var counts = STATUS_ORDER.map(function (s) { return (grouped[s] || []).length; });
@@ -2144,8 +1872,7 @@
           var todayTasks = mcGetTodayTasks(tasks);
 
           // Drafted and Sent from today's tasks: a dry run or a draft was never
-          // posted; only "sent" went out. Replied and Converted come from the
-          // pipeline (mcRenderPipelineCounts), which is where they are recorded.
+          // posted; only "sent" went out. NAMED (Nov 23 2026, LR-2): Replied and Converted were the old pipeline, now an archive.
           var draftedCount = 0, sentCount = 0;
           todayTasks.forEach(function (t) {
             if (t.status === "dry_run" || t.status === "drafted") draftedCount++;
@@ -2158,7 +1885,6 @@
           };
           setFn("mcFnDrafted", draftedCount);
           setFn("mcFnSent", sentCount);
-          mcRenderPipelineCounts(mcLastPipeline);
 
           var tickerEl = document.getElementById("mcTargetTicker");
           if (tickerEl) {
@@ -2188,10 +1914,7 @@
       }
 
       async function mcRefreshConsole() {
-        var results = await Promise.all([mcFetchSalesTasks(), mcFetchPipeline()]);
-        var tasks = results[0];
-        mcLastPipeline = results[1];
-        mcRenderPipelineCounts(mcLastPipeline);
+        var tasks = await mcFetchSalesTasks();
         if (!tasks) {
           // A failed read is said, never shown as a day of zero activity.
           ["mcFnDrafted", "mcFnSent"].forEach(function (id) {
@@ -2213,33 +1936,8 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        var refreshBtn = document.getElementById("salesLeadsRefreshBtn");
-        if (refreshBtn) refreshBtn.addEventListener("click", loadLeads);
-
-
-        var list = document.getElementById("salesLeadsList");
-        if (list) {
-          list.addEventListener("click", function (e) {
-            var convertBtn = e.target.closest(".sales-convert-btn");
-            if (convertBtn) { convertLead(parseInt(convertBtn.dataset.idx, 10), convertBtn); return; }
-            var approveBtn = e.target.closest(".sales-approve-btn");
-            if (approveBtn) { postApprovedReply(parseInt(approveBtn.dataset.idx, 10), approveBtn); return; }
-            var copyBtn = e.target.closest(".copy-btn");
-            if (copyBtn) { copyConversion(parseInt(copyBtn.dataset.idx, 10)); }
-          });
-          list.addEventListener("input", function (e) {
-            var box = e.target.closest(".sales-approve-text");
-            if (box) updateApproveCount(parseInt(box.dataset.idx, 10));
-          });
-        }
-
         var board = document.getElementById("salesPipelineBoard");
         if (board) {
-          board.addEventListener("change", function (e) {
-            var select = e.target.closest(".sales-pipeline-item-select");
-            if (!select) return;
-            updateLeadStatus(select.dataset.uri, select.value);
-          });
           board.addEventListener("click", function (e) {
             var toggleBtn = e.target.closest(".sales-pipeline-item-toggle");
             if (!toggleBtn) return;
@@ -2262,8 +1960,7 @@
           });
         }
 
-        loadLeads();
-        loadPipeline();
+        showArchive();
 
         mcRefreshConsole();
         if (mcTaskTimer) clearInterval(mcTaskTimer);

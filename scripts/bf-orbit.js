@@ -284,7 +284,8 @@
         if (!ce || n(ce.earned) === null || n(ce.total) === null) return null;
         return { text: ce.earned + " of " + ce.total + " earned", value: ce.earned };
       }
-      case "lead-radar": return count("leads", "scored lead", "scored leads");
+      // NAMED (Nov 23 2026, LR-2): BEFORE "scored leads" (the owner account's radar). AFTER counts.leads is the member's own new leads.
+      case "lead-radar": return count("leads", "new lead", "new leads");
       case "prospecting": return count("prospects", "prospect", "prospects");
       case "sms-drip": return count("sms_subscribers", "subscriber", "subscribers");
       case "store": {

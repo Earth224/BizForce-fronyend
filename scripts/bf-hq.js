@@ -89,7 +89,8 @@
     influencer: [["outreach", "Creator Outreach"], ["partnership-offer", "Partnership Offer"]],
     operations: [["sop", "Standard Operating Procedure"], ["checklist", "Checklist"]],
     publicist: [["press-release", "Press Release"], ["pitch", "Media Pitch"]],
-    rd: [["brief", "Executive Briefing"], ["competitor-scan", "Competitor Scan"]],
+    // NAMED (Nov 23 2026, LR-2): BEFORE brief and competitor-scan; AFTER + demand-signals, a members' tool now (the app map lists it).
+    rd: [["brief", "Executive Briefing"], ["competitor-scan", "Competitor Scan"], ["demand-signals", "Demand Signals"]],
     reputation: [["review-response", "Review Response"], ["review-request", "Review Request"]],
     seo: [["audit", "Page Audit"], ["social-search", "Social Search"]],
     social: [["post", "Platform Post"], ["calendar", "Posting Calendar"]],
@@ -101,8 +102,7 @@
     "store/generate-proposals": { label: "Store proposals", page: "/proposals.html" },
     "seo/generate-post": { label: "Blog post", page: "/proposals.html" },
     "seo/optimize": { label: "Optimize", page: "/agents/seo.html" },
-    "sales/convert": { label: "Public replies to high-intent leads", page: "/agents/sales.html" },
-    "sales/lead-status": { label: "Lead status", page: "/agents/sales.html" },
+    // NAMED (Nov 23 2026, LR-2): BEFORE + sales/convert and sales/lead-status, whose routes LR-2 removed.
     "email/propose-sequence": { label: "Send a sequence", page: "/email-agent.html" },
     "social/propose-post": { label: "Publish a post", page: "/agents/social.html" }
   };

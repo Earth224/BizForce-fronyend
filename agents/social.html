@@ -390,6 +390,8 @@
     .bsky-quiet { color: #8892b8; font-size: .82rem; margin: 6px 0; line-height: 1.6; }
     .bsky-msg { font-size: .82rem; color: #8892b8; margin-top: 8px; }
     .bsky-msg.err { color: #f87171; }
+    /* NAMED (Nov 23 2026, LR-2): the Threads tile marks an error with data-error. */
+    #thConnectMsg[data-error] { color: #f87171; }
     .bsky-connected-as { font-weight: 700; color: #e6edf3; }
     .bsky-warn { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(248,113,113,.4); background: rgba(248,113,113,.08); color: #fecaca; font-size: .84rem; }
     .bsky-switch { display: flex; gap: 10px; align-items: flex-start; font-size: .88rem; color: #e6edf3; }
@@ -759,6 +761,21 @@
         <ul class="bsky-mentions-list" id="fbPostList"></ul>
       </div>
     </section>
+    <!-- NAMED (Nov 23 2026, LR-2): Threads, the member's own account, for Lead Radar's search and the replies they approve. -->
+    <section class="context-card bsky-card" id="thConnect" aria-label="Threads">
+      <h2 class="section-label">Threads</h2>
+      <p class="bsky-quiet">Connect your own Threads account through Meta's own sign-in. Lead Radar searches Threads with it for people asking for what you offer, and a reply goes from your account only after you approve its exact text.</p>
+      <p class="bsky-quiet">Status: <span id="thState">Not connected</span></p>
+      <p class="bsky-warn" id="thUnavailable" hidden>Threads is not set up yet</p>
+      <div id="thConnected" hidden><p><span class="bsky-connected-as" id="thName"></span></p></div>
+      <p class="bsky-warn" id="thWaiting" hidden>Waiting for Meta's approval. Until Meta approves BizForce's Threads search, a search finds only your own posts, so Lead Radar shows no Threads leads yet.</p>
+      <div id="thReconnect" hidden><p class="bsky-warn">Threads stopped accepting BizForce's access. Connect Threads again.</p></div>
+      <div class="bsky-row">
+        <button type="button" class="action-btn" id="thConnectBtn">Connect Threads</button>
+        <button type="button" class="action-btn action-btn--ghost" id="thDisconnectBtn" hidden>Disconnect</button>
+      </div>
+      <div class="bsky-msg" id="thConnectMsg"></div>
+    </section>
     <div class="toolbar">
       <div class="toolbar-meta">Last run: <strong id="lastRunText">—</strong></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -903,7 +920,8 @@
 <script>
 window.AGENT_PROFILE_CONFIG = {
   // NAMED (Nov 11 2026, agent tabs): this page's own sections, in one tab after the shared five.
-  specificTab: { name: "Accounts", sectionIds: ["bskyConnect", "bskyMentions", "mastoConnect", "videosCard", "ytConnect", "ttConnect", "igConnect", "fbConnect"] },
+  // NAMED (Nov 23 2026, LR-2): + thConnect, the Threads tile, in the Accounts tab with the other accounts.
+  specificTab: { name: "Accounts", sectionIds: ["bskyConnect", "bskyMentions", "mastoConnect", "videosCard", "ytConnect", "ttConnect", "igConnect", "fbConnect", "thConnect"] },
   agentType:   "social",
   agentLabel:  "Social Agent",
   accentColor: "#f472b6",
@@ -1030,6 +1048,92 @@ window.AGENT_PROFILE_CONFIG = {
 <script src="/scripts/tiktok.js"></script>
 <script src="/scripts/instagram.js"></script>
 <script src="/scripts/facebook.js"></script>
+<script>
+  /* NAMED (Nov 23 2026, LR-2): the Threads tile. GET /api/social/threads/status draws it; Connect asks
+     GET /api/social/threads/connect for Threads' own sign-in page (members only: 402 for a free account; 503 "Threads is
+     not set up yet" until BizForce has its Meta app keys); Disconnect is POST /api/social/threads/disconnect. Meta sends the
+     browser back to integrations.html?threads=connected or ?threads=error. textContent only; no token is ever shown. */
+  (function () {
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var NOT_SET_UP = "Threads is not set up yet";
+    var STATE_WORDS = { not_set_up: "Not set up yet", not_connected: "Not connected", needs_reconnect: "Connect again",
+      waiting_approval: "Waiting for Meta's approval", ready: "Connected" };
+    function el(id) { return document.getElementById(id); }
+    function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
+    function showIf(id, on) { var n = el(id); if (n) n.hidden = !on; }
+    function tell(text, isError) {
+      var n = el("thConnectMsg");
+      if (!n) return;
+      n.textContent = text || "";
+      if (isError) n.setAttribute("data-error", "1"); else n.removeAttribute("data-error");
+    }
+    function call(method, path) {
+      return fetch(API_URL + path, { method: method, headers: { "Authorization": "Bearer " + tok() } }).then(function (r) {
+        return r.json().then(
+          function (d) { return { ok: r.ok, status: r.status, data: d && typeof d === "object" && !Array.isArray(d) ? d : {} }; },
+          function () { return { ok: r.ok, status: r.status, data: {} }; });
+      });
+    }
+    function draw(st) {
+      var state = typeof st.state === "string" && STATE_WORDS[st.state] ? st.state : "not_connected";
+      var linked = state === "ready" || state === "waiting_approval";
+      var label = el("thState");
+      if (label) label.textContent = STATE_WORDS[state];
+      showIf("thUnavailable", state === "not_set_up");
+      showIf("thWaiting", state === "waiting_approval");
+      showIf("thReconnect", state === "needs_reconnect");
+      showIf("thConnected", linked);
+      var name = el("thName");
+      if (name) name.textContent = linked && typeof st.username === "string" ? "Connected as @" + st.username : "";
+      var btn = el("thConnectBtn");
+      if (btn) {
+        btn.hidden = linked;
+        btn.disabled = state === "not_set_up";
+        btn.textContent = state === "needs_reconnect" ? "Connect Threads again" : "Connect Threads";
+      }
+      showIf("thDisconnectBtn", linked || state === "needs_reconnect");
+    }
+    function load() {
+      if (!tok()) { draw({ state: "not_connected" }); tell("Sign in to connect Threads."); return; }
+      call("GET", "/api/social/threads/status").then(function (res) {
+        if (res.ok) draw(res.data);
+        else tell("Threads status could not be read just now.", true);
+      }, function () { tell("Threads status could not be read just now.", true); });
+    }
+    function connect() {
+      tell("Opening Threads' sign-in...");
+      call("GET", "/api/social/threads/connect").then(function (res) {
+        if (res.status === 503) { draw({ state: "not_set_up" }); tell(NOT_SET_UP, true); return; }
+        if (res.status === 402) { tell("Connecting Threads is for members.", true); return; }
+        if (res.status === 401) { tell("Sign in to connect Threads.", true); return; }
+        var url = res.data && res.data.url;
+        if (!res.ok || typeof url !== "string" || url.indexOf("https://threads.net/oauth/authorize?") !== 0) {
+          tell((res.data && typeof res.data.error === "string" && res.data.error) || "Threads' sign-in could not be opened just now.", true);
+          return;
+        }
+        window.location.assign(url);
+      }, function () { tell("Threads' sign-in could not be opened just now.", true); });
+    }
+    function disconnect() {
+      call("POST", "/api/social/threads/disconnect").then(function (res) {
+        if (!res.ok || !res.data.disconnected) { tell("Threads could not be disconnected just now.", true); return; }
+        tell("Disconnected. To remove BizForce from your Threads account too, open Threads' settings, then Account, then Website permissions.");
+        load();
+      }, function () { tell("Threads could not be disconnected just now.", true); });
+    }
+    function start() {
+      if (!el("thConnect")) return;
+      var b = el("thConnectBtn"); if (b) b.addEventListener("click", connect);
+      var d = el("thDisconnectBtn"); if (d) d.addEventListener("click", disconnect);
+      var back = null;
+      try { back = new URLSearchParams(window.location.search).get("threads"); } catch (e) { back = null; }
+      load();
+      if (back === "connected") tell("Threads is connected.");
+      else if (back === "error") tell("Threads was not connected. Nothing was saved. Try again.", true);
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  })();
+</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>

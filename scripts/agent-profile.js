@@ -5943,7 +5943,10 @@
         tr.appendChild(sigEl("td", null, sigCount(pair.d30)));
         table.appendChild(tr);
       };
+      // NAMED (Nov 23 2026, LR-2): the member's own leads, so Inside BizForce and Threads rows join (when the server sends them).
+      if (r.bizforce) row("Inside BizForce", r.bizforce);
       row("Bluesky", r.bluesky);
+      if (r.threads) row("Threads", r.threads);
       row("YouTube — " + r.youtube.note, r.youtube, "is-apart");
       m.appendChild(table);
     }

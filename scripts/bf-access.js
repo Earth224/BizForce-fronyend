@@ -51,7 +51,9 @@
     "media.html", "business-id.html",
     // NAMED (Nov 21 2026, P3-1B): the wallet and receipts (BizCash in every form) and campaigns. support.html is the public
     // "Support a member" page and stays open; sending support is members only on the server.
-    "wallet.html", "receipts.html", "campaigns.html"
+    "wallet.html", "receipts.html", "campaigns.html",
+    // NAMED (Nov 23 2026, LR-2): Lead Radar is for every member now; its routes are members only (lib/routeAccess.js M)
+    "agents/lead-radar.html"
   ];
   /* NAMED (Nov 21 2026, P3-1B): a free account's taps on these open the members panel (selling, starting a conversation),
      and on these the card-checkout-coming sheet (Buy). */

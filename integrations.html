@@ -190,6 +190,28 @@
       font-style: italic;
     }
 
+    /* NAMED (Nov 23 2026, LR-2): the Threads card's two buttons and its error line. */
+    .int-btn {
+      font: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      color: var(--bf-btn-text, #ffffff);
+      background: linear-gradient(135deg, var(--bf-btn-a, #06b6d4), var(--bf-btn-b, #8b5cf6));
+    }
+    .int-btn:disabled { opacity: 0.5; cursor: default; }
+    .int-btn--ghost {
+      background: rgba(12, 18, 38, 0.75);
+      border: 1px solid rgba(var(--bf-accent-a3-rgb, 0, 229, 255), 0.3);
+      color: var(--bf-accent-a, #22d3ee);
+    }
+    #thConnectMsg[data-error] { color: #f87171; font-style: normal; }
+
     /* Semantic aliases — same visuals, forward-compatible class names */
     .integration-card {
       padding: 22px 24px;
@@ -338,6 +360,24 @@
           <span class="int-status">On the Social page</span>
         </div>
 
+        <!-- NAMED (Nov 23 2026, LR-2): Threads connects HERE (and on the Social Agent page), so its card shows its live state
+             instead of one of the four fixed states above. The member's own account, for Lead Radar's search and the
+             replies they approve; members only to connect. -->
+        <div class="int-card" id="thConnect">
+          <p class="int-card-name">Threads</p>
+          <p class="int-card-desc">Connect your own Threads account through Meta's own sign-in. Lead Radar searches Threads with it for people asking for what you offer, and a reply goes from your account only after you approve its exact text.</p>
+          <span class="int-status" id="thState">Not connected</span>
+          <p class="int-card-desc" id="thUnavailable" hidden>Threads is not set up yet</p>
+          <p class="int-card-desc" id="thConnected" hidden><span id="thName"></span></p>
+          <p class="int-card-desc" id="thWaiting" hidden>Waiting for Meta's approval. Until Meta approves BizForce's Threads search, a search finds only your own posts, so Lead Radar shows no Threads leads yet.</p>
+          <p class="int-card-desc" id="thReconnect" hidden>Threads stopped accepting BizForce's access. Connect Threads again.</p>
+          <div class="int-card-footer">
+            <button type="button" class="int-btn" id="thConnectBtn">Connect Threads</button>
+            <button type="button" class="int-btn int-btn--ghost" id="thDisconnectBtn" hidden>Disconnect</button>
+          </div>
+          <span class="int-note" id="thConnectMsg"></span>
+        </div>
+
         <div class="int-card">
           <p class="int-card-name">TikTok</p>
           <p class="int-card-desc">Connect your own TikTok account on the Social Agent page, through TikTok's own sign-in, and post the videos you approve. Until TikTok reviews BizForce, your TikTok account must be set to private, and TikTok keeps posts from BizForce visible only to you.</p>
@@ -387,6 +427,92 @@
     </div>
 
   </div>
+<script>
+  /* NAMED (Nov 23 2026, LR-2): the Threads tile. GET /api/social/threads/status draws it; Connect asks
+     GET /api/social/threads/connect for Threads' own sign-in page (members only: 402 for a free account; 503 "Threads is
+     not set up yet" until BizForce has its Meta app keys); Disconnect is POST /api/social/threads/disconnect. Meta sends the
+     browser back to integrations.html?threads=connected or ?threads=error. textContent only; no token is ever shown. */
+  (function () {
+    var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
+    var NOT_SET_UP = "Threads is not set up yet";
+    var STATE_WORDS = { not_set_up: "Not set up yet", not_connected: "Not connected", needs_reconnect: "Connect again",
+      waiting_approval: "Waiting for Meta's approval", ready: "Connected" };
+    function el(id) { return document.getElementById(id); }
+    function tok() { try { return localStorage.getItem("bf_token") || ""; } catch (e) { return ""; } }
+    function showIf(id, on) { var n = el(id); if (n) n.hidden = !on; }
+    function tell(text, isError) {
+      var n = el("thConnectMsg");
+      if (!n) return;
+      n.textContent = text || "";
+      if (isError) n.setAttribute("data-error", "1"); else n.removeAttribute("data-error");
+    }
+    function call(method, path) {
+      return fetch(API_URL + path, { method: method, headers: { "Authorization": "Bearer " + tok() } }).then(function (r) {
+        return r.json().then(
+          function (d) { return { ok: r.ok, status: r.status, data: d && typeof d === "object" && !Array.isArray(d) ? d : {} }; },
+          function () { return { ok: r.ok, status: r.status, data: {} }; });
+      });
+    }
+    function draw(st) {
+      var state = typeof st.state === "string" && STATE_WORDS[st.state] ? st.state : "not_connected";
+      var linked = state === "ready" || state === "waiting_approval";
+      var label = el("thState");
+      if (label) label.textContent = STATE_WORDS[state];
+      showIf("thUnavailable", state === "not_set_up");
+      showIf("thWaiting", state === "waiting_approval");
+      showIf("thReconnect", state === "needs_reconnect");
+      showIf("thConnected", linked);
+      var name = el("thName");
+      if (name) name.textContent = linked && typeof st.username === "string" ? "Connected as @" + st.username : "";
+      var btn = el("thConnectBtn");
+      if (btn) {
+        btn.hidden = linked;
+        btn.disabled = state === "not_set_up";
+        btn.textContent = state === "needs_reconnect" ? "Connect Threads again" : "Connect Threads";
+      }
+      showIf("thDisconnectBtn", linked || state === "needs_reconnect");
+    }
+    function load() {
+      if (!tok()) { draw({ state: "not_connected" }); tell("Sign in to connect Threads."); return; }
+      call("GET", "/api/social/threads/status").then(function (res) {
+        if (res.ok) draw(res.data);
+        else tell("Threads status could not be read just now.", true);
+      }, function () { tell("Threads status could not be read just now.", true); });
+    }
+    function connect() {
+      tell("Opening Threads' sign-in...");
+      call("GET", "/api/social/threads/connect").then(function (res) {
+        if (res.status === 503) { draw({ state: "not_set_up" }); tell(NOT_SET_UP, true); return; }
+        if (res.status === 402) { tell("Connecting Threads is for members.", true); return; }
+        if (res.status === 401) { tell("Sign in to connect Threads.", true); return; }
+        var url = res.data && res.data.url;
+        if (!res.ok || typeof url !== "string" || url.indexOf("https://threads.net/oauth/authorize?") !== 0) {
+          tell((res.data && typeof res.data.error === "string" && res.data.error) || "Threads' sign-in could not be opened just now.", true);
+          return;
+        }
+        window.location.assign(url);
+      }, function () { tell("Threads' sign-in could not be opened just now.", true); });
+    }
+    function disconnect() {
+      call("POST", "/api/social/threads/disconnect").then(function (res) {
+        if (!res.ok || !res.data.disconnected) { tell("Threads could not be disconnected just now.", true); return; }
+        tell("Disconnected. To remove BizForce from your Threads account too, open Threads' settings, then Account, then Website permissions.");
+        load();
+      }, function () { tell("Threads could not be disconnected just now.", true); });
+    }
+    function start() {
+      if (!el("thConnect")) return;
+      var b = el("thConnectBtn"); if (b) b.addEventListener("click", connect);
+      var d = el("thDisconnectBtn"); if (d) d.addEventListener("click", disconnect);
+      var back = null;
+      try { back = new URLSearchParams(window.location.search).get("threads"); } catch (e) { back = null; }
+      load();
+      if (back === "connected") tell("Threads is connected.");
+      else if (back === "error") tell("Threads was not connected. Nothing was saved. Try again.", true);
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  })();
+</script>
 <script src="/scripts/termaximus-presence.js"></script>
 <script src="/scripts/termaximus-guide.js"></script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
