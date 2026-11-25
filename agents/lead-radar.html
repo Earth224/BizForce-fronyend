@@ -18,7 +18,10 @@
   <!-- NAMED (Nov 23 2026, LR-2): Lead Radar for every member, built to the owner's canvas row 6 (LeadsHome, LeadsReply,
        LeadsFingerprint; scripts/designSpec.js LEADS). The site's own fonts and music icon are kept; only the Leads and
        Fingerprint tabs are drawn; the bottom bar is the site's (scripts/bf-tabbar.js). Every control is a 44 px target
-       with the board's smaller face drawn inside it. BEFORE: the owner's single-account radar (Chart.js, scores, Copy). -->
+       with the board's smaller face drawn inside it. BEFORE: the owner's single-account radar (Chart.js, scores, Copy).
+       NAMED (Nov 24 2026, LR-3): + the Inbound tab, built to the owner's canvas row 6 "Inbound: everything coming to you"
+       (LeadsInbound; scripts/designSpec.js LEADS.INBOUND): YOUR PIPELINE, the New, Talking, Won and Lost chips, and each item
+       with its icon, kind, who, age, summary and status pill. The tabs are Leads, Inbound and Fingerprint (Get found is LR-4). -->
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; background: #070b18; color: #e6eaf5; font-family:system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
@@ -122,6 +125,40 @@
     .lr-big:disabled { cursor: default; opacity: .6; }
     .lr-sfoot { margin: 0; font-size: 12px; line-height: 1.4; color: #8e9bbf; text-align: center; }
 
+    /* NAMED (Nov 24 2026, LR-3): Inbound (LeadsInbound): the pipeline, the items, the status pill and its menu */
+    .lr-pipe { padding: 10px 12px; gap: 8px; }
+    .lr-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #1e2848; }
+    .lr-bar-new { background: var(--bf-accent-a, #22d3ee); }
+    .lr-bar-talking { background: var(--bf-accent-b, #8b5cf6); }
+    .lr-bar-won { background: #f5c46b; }
+    .lr-pcounts { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .lr-pc-new { color: var(--bf-accent-a, #22d3ee); }
+    .lr-pc-talking { color: #b79cfa; }
+    .lr-pc-won { color: #f5c46b; }
+    .lr-item { position: relative; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+    .lr-open { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; min-height: 44px; color: inherit; text-decoration: none; }
+    .lr-open:focus-visible, .lr-pill:focus-visible, .lr-mi:focus-visible { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
+    .lr-ico { flex: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+    .lr-ico-message { background: #0f2a3a; color: var(--bf-accent-a, #22d3ee); }
+    .lr-ico-i_can_help, .lr-ico-lead_reply { background: #1b2350; color: #b79cfa; }
+    .lr-ico-sale, .lr-ico-campaign, .lr-ico-tip { background: #2a2410; color: #f5c46b; }
+    .lr-ico-card_lead { background: #14302a; color: #6ee7b7; }
+    .lr-ix { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .lr-ih { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .lr-ik { flex: none; font: 600 13px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-is { font-size: 13.5px; line-height: 1.35; color: #c9d1e6; overflow-wrap: anywhere; }
+    .lr-pill { flex: none; display: flex; align-items: center; justify-content: flex-end; min-width: 44px; height: 44px; margin: -11px 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+    .lr-s-new { background: var(--bf-accent-a, #22d3ee); color: #070b18; }
+    .lr-s-talking { background: #b79cfa; color: #070b18; }
+    .lr-s-won { background: #f5c46b; color: #070b18; }
+    .lr-s-lost { background: #2b3a6b; color: #c9d1e6; }
+    .lr-iacts { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-left: 50px; }
+    .lr-added { font-size: 12px; color: #6ee7b7; }
+    .lr-menu { position: absolute; top: 40px; right: 8px; z-index: 5; display: flex; flex-direction: column; min-width: 170px; padding: 6px; border-radius: 14px; border: 1px solid #2b3a6b; background: #0e1428; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    .lr-menu[hidden] { display: none; }
+    .lr-mi { height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: #e6eaf5; font: 600 13.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
+    .lr-mi:hover { background: #0f2a3a; }
+
     @media (max-width: 760px) {
       .brand-badge { display: none; }
     }
@@ -145,6 +182,7 @@
 
     <div class="lr-tabs" role="tablist" id="lrTabs" aria-label="Lead Radar" hidden>
       <button type="button" role="tab" class="lr-tb" id="lrTabLeads" aria-selected="true" aria-controls="lrLeads" data-tab="leads"><span class="lr-tbf">Leads</span></button>
+      <button type="button" role="tab" class="lr-tb" id="lrTabIn" aria-selected="false" aria-controls="lrIn" data-tab="inbound" tabindex="-1"><span class="lr-tbf">Inbound</span></button>
       <button type="button" role="tab" class="lr-tb" id="lrTabFp" aria-selected="false" aria-controls="lrFp" data-tab="fingerprint" tabindex="-1"><span class="lr-tbf">Fingerprint</span></button>
     </div>
 
@@ -161,6 +199,17 @@
       <div class="lr-chips" id="lrChips" role="group" aria-label="Where the leads came from"></div>
       <div class="lr-main" id="lrList" style="padding:0" aria-live="polite"></div>
       <p class="lr-foot">You approve every reply. BizForce never messages anyone for you.</p>
+    </section>
+
+    <section class="lr-main" id="lrIn" role="tabpanel" aria-labelledby="lrTabIn" hidden>
+      <div class="lr-card lr-pipe">
+        <p class="lr-lbl lr-plbl">Your pipeline</p>
+        <div class="lr-bar" id="lrBar" role="img" aria-label="Your pipeline"><span class="lr-bar-new"></span><span class="lr-bar-talking"></span><span class="lr-bar-won"></span></div>
+        <div class="lr-pcounts"><span class="lr-pc-new" id="lrPcNew">New 0</span><span class="lr-pc-talking" id="lrPcTalking">Talking 0</span><span class="lr-pc-won" id="lrPcWon">Won 0</span></div>
+      </div>
+      <div class="lr-chips" id="lrInChips" role="group" aria-label="Pipeline stage"></div>
+      <p class="lr-note is-err" id="lrInMsg" role="status" hidden></p>
+      <div class="lr-main" id="lrInList" style="padding:0" aria-live="polite"></div>
     </section>
 
     <section class="lr-main lr-fp" id="lrFp" role="tabpanel" aria-labelledby="lrTabFp" hidden>
@@ -223,19 +272,30 @@
     }
 
     /* ── tabs ── */
+    /* NAMED (Nov 24 2026, LR-3): BEFORE two tabs, Leads and Fingerprint. AFTER three: Leads, Inbound, Fingerprint. */
+    var TABS = [["leads", "lrTabLeads", "lrLeads"], ["inbound", "lrTabIn", "lrIn"], ["fingerprint", "lrTabFp", "lrFp"]];
+    var current = "leads";
     function openTab(name, focus) {
-      var fp = name === "fingerprint";
-      $("lrTabLeads").setAttribute("aria-selected", fp ? "false" : "true"); $("lrTabLeads").tabIndex = fp ? -1 : 0;
-      $("lrTabFp").setAttribute("aria-selected", fp ? "true" : "false"); $("lrTabFp").tabIndex = fp ? 0 : -1;
-      $("lrLeads").hidden = fp; $("lrFp").hidden = !fp;
-      if (focus) (fp ? $("lrTabFp") : $("lrTabLeads")).focus();
-      if (fp && !S.fp) loadFingerprint();
-      try { history.replaceState(null, "", fp ? "#fingerprint" : location.pathname + location.search); } catch (e) { /* file */ }
+      if (!TABS.some(function (t) { return t[0] === name; })) name = "leads";
+      current = name;
+      TABS.forEach(function (t) {
+        var on = t[0] === name;
+        $(t[1]).setAttribute("aria-selected", on ? "true" : "false"); $(t[1]).tabIndex = on ? 0 : -1;
+        $(t[2]).hidden = !on;
+        if (on && focus) $(t[1]).focus();
+      });
+      closeMenu();
+      if (name === "fingerprint" && !S.fp) loadFingerprint();
+      if (name === "inbound" && !IN.loaded) loadInbound();
+      if (name === "leads" && IN.wonMoved) { IN.wonMoved = false; loadLeads(); }
+      try { history.replaceState(null, "", name === "leads" ? location.pathname + location.search : "#" + name); } catch (e) { /* file */ }
     }
     $("lrTabs").addEventListener("click", function (e) { var b = e.target.closest(".lr-tb"); if (b) openTab(b.getAttribute("data-tab")); });
     $("lrTabs").addEventListener("keydown", function (e) {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      e.preventDefault(); openTab($("lrTabFp").getAttribute("aria-selected") === "true" ? "leads" : "fingerprint", true);
+      e.preventDefault();
+      var i = TABS.map(function (t) { return t[0]; }).indexOf(current);
+      openTab(TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length][0], true);
     });
     $("lrSettings").addEventListener("click", function () { openTab("fingerprint", true); });
 
@@ -326,7 +386,7 @@
         if (!S.loaded) {
           S.loaded = true;
           $("lrState").hidden = true; $("lrTabs").hidden = false; $("lrSettings").hidden = false;
-          openTab(/^#fingerprint$/.test(location.hash) ? "fingerprint" : "leads");
+          openTab(location.hash === "#fingerprint" ? "fingerprint" : location.hash === "#inbound" ? "inbound" : "leads");
         }
         drawStats(); drawChips(); drawLeads();
       });
@@ -363,6 +423,134 @@
       if (act === "save") setStatus(id, l.status === "saved" ? "new" : "saved", b);
       else if (act === "dismiss") setStatus(id, "dismissed", b);
       else if (act === "draft") openSheet(l, b);
+    });
+
+    /* ── Inbound (LeadsInbound; NAMED Nov 24 2026, LR-3): everything coming to the member, moved New, Talking, Won or Lost ── */
+    var IN = { status: "new", items: [], counts: null, loaded: false, seq: 0, wonMoved: false };
+    var STAGES = [["new", "New"], ["talking", "Talking"], ["won", "Won"], ["lost", "Lost"]];
+    var MOVES = { new: "Back to New", talking: "Talking", won: "Won", lost: "Lost" };
+    var EMPTY = {
+      new: "Nothing new yet. Messages, I can help replies, sales, card leads, donations and tips that come to you land here.",
+      talking: "Nothing here yet. Move an item to Talking when you are in touch.",
+      won: "Nothing won yet. Sales, donations and tips land here as won.",
+      lost: "Nothing here."
+    };
+    var ICON = {
+      message: '<path d="M4 5h16v11H9l-5 4z"></path>',
+      i_can_help: '<path d="M7 11V6a2 2 0 0 1 4 0v5M11 10V5a2 2 0 0 1 4 0v6M15 9a2 2 0 0 1 4 0v5a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-3l-2-4a2 2 0 0 1 3-2l1 2"></path>',
+      sale: '<path d="M5 8h14l-1 12H6z"></path><path d="M9 8a3 3 0 0 1 6 0"></path>',
+      card_lead: '<rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="9" cy="12" r="2"></circle><path d="M14 10h4M14 14h3"></path>',
+      campaign: '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"></path>',
+      tip: '<circle cx="12" cy="12" r="9"></circle><path d="M14.5 9.2c-.4-.8-1.4-1.3-2.5-1.3-1.5 0-2.6.8-2.6 2s1 1.7 2.6 2.1c1.6.4 2.6 1 2.6 2.2s-1.1 2-2.6 2c-1.2 0-2.2-.5-2.6-1.4M12 6.5v1.4M12 16.6v1.4"></path>',
+      lead_reply: '<path d="M9 14l-5-5 5-5"></path><path d="M4 9h10a6 6 0 0 1 6 6v4"></path>'
+    };
+    function icon(kind) {
+      return '<span class="lr-ico lr-ico-' + esc(kind) + '" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICON[kind] || ICON.message) + '</svg></span>';
+    }
+    function drawPipe() {
+      var c = IN.counts || {}, n = +c.new || 0, t = +c.talking || 0, w = +c.won || 0;
+      var bar = $("lrBar").children;
+      bar[0].style.flex = String(n); bar[1].style.flex = String(t); bar[2].style.flex = String(w);
+      $("lrPcNew").textContent = "New " + n; $("lrPcTalking").textContent = "Talking " + t; $("lrPcWon").textContent = "Won " + w;
+      $("lrBar").setAttribute("aria-label", "Your pipeline: New " + n + ", Talking " + t + ", Won " + w);
+    }
+    function drawInChips() {
+      $("lrInChips").innerHTML = STAGES.map(function (x) { return chip(x[0], x[1], x[0] === IN.status); }).join("");
+    }
+    function itemHtml(it) {
+      var id = esc(it.id), o = it.open || {};
+      var meta = ["", it.who, ago(it.created_at)].join(" \u00b7 ").replace(/ \u00b7 $/, "");
+      var acts = "";
+      if (it.status === "won") {
+        acts = it.customer_added ? '<span class="lr-added">Added to your customers</span>'
+          : btn("Add to my customers", 'data-act="customer" data-id="' + id + '"');
+        acts = '<div class="lr-iacts">' + acts + '</div>';
+      }
+      var menu = STAGES.filter(function (x) { return x[0] !== it.status; }).map(function (x) {
+        return '<button type="button" class="lr-mi" role="menuitem" data-to="' + x[0] + '" data-id="' + id + '">' + esc(MOVES[x[0]]) + '</button>';
+      }).join("");
+      return '<article class="lr-card lr-item" data-item="' + id + '" data-kind="' + esc(it.kind) + '" data-status="' + esc(it.status) + '">' +
+        '<a class="lr-open" href="' + esc(o.href || "/inbox.html") + '"' + (o.external ? ' target="_blank" rel="noopener noreferrer"' : "") + '>' + icon(it.kind) +
+          '<span class="lr-ix"><span class="lr-ih"><span class="lr-ik">' + esc(it.kind_label) + '</span><span class="lr-meta">' + esc(meta) + '</span></span>' +
+          '<span class="lr-is">' + esc(it.summary) + '</span></span></a>' +
+        '<button type="button" class="lr-pill" data-act="menu" data-id="' + id + '" aria-haspopup="menu" aria-expanded="false" aria-label="' + esc(it.status_label + ": move it") + '"><span class="lr-badge lr-s-' + esc(it.status) + '">' + esc(String(it.status_label || "").toUpperCase()) + '</span></button>' +
+        '<div class="lr-menu" role="menu" aria-label="Move it" hidden>' + menu + '</div>' +
+        acts +
+        '</article>';
+    }
+    function drawInbound() {
+      var html = IN.items.map(itemHtml).join("");
+      if (!IN.items.length) html = '<div class="lr-card"><p class="lr-empty">' + esc(EMPTY[IN.status] || EMPTY.lost) + '</p></div>';
+      $("lrInList").innerHTML = html;
+    }
+    function inMsg(text) { $("lrInMsg").textContent = text || ""; $("lrInMsg").hidden = !text; }
+    function loadInbound() {
+      var mine = ++IN.seq;
+      return call("GET", "/api/inbound?status=" + encodeURIComponent(IN.status)).then(function (res) {
+        if (mine !== IN.seq) return;
+        if (refused(res)) return;
+        if (!res.ok) { inMsg("Inbound could not load just now. Check your connection and try again."); return; }
+        inMsg("");
+        IN.loaded = true;
+        IN.items = Array.isArray(res.data.items) ? res.data.items : [];
+        IN.counts = res.data.counts || null;
+        drawPipe(); drawInChips(); drawInbound();
+      });
+    }
+    function closeMenu() {
+      Array.prototype.forEach.call(document.querySelectorAll(".lr-menu"), function (m) { m.hidden = true; });
+      Array.prototype.forEach.call(document.querySelectorAll(".lr-pill"), function (p) { p.setAttribute("aria-expanded", "false"); });
+    }
+    function itemById(id) { for (var i = 0; i < IN.items.length; i++) if (String(IN.items[i].id) === String(id)) return IN.items[i]; return null; }
+    function moveItem(id, to) {
+      var it = itemById(id); if (!it) return;
+      var was = it.status;
+      closeMenu();
+      return call("POST", "/api/inbound/" + encodeURIComponent(id) + "/status", { status: to }).then(function (res) {
+        if (refused(res)) return;
+        if (!res.ok) { inMsg((res.data && res.data.error) || "That could not be saved just now. Try again."); return; }
+        if (was === "won" || to === "won") IN.wonMoved = true;
+        inMsg("");
+        return loadInbound();
+      });
+    }
+    function addCustomer(id, b) {
+      if (b) b.disabled = true;
+      return call("POST", "/api/inbound/" + encodeURIComponent(id) + "/customer", {}).then(function (res) {
+        if (b) b.disabled = false;
+        if (refused(res)) return;
+        if (!res.ok) { inMsg((res.data && res.data.error) || "That could not be saved just now. Try again."); return; }
+        inMsg("");
+        var it = itemById(id);
+        if (it) Object.assign(it, (res.data && res.data.item) || { customer_added: true, can_add_customer: false });
+        drawInbound();
+      });
+    }
+    $("lrInChips").addEventListener("click", function (e) {
+      var c = e.target.closest(".lr-chip"); if (!c) return;
+      var v = c.getAttribute("data-v"); if (v === IN.status) return;
+      IN.status = v; drawInChips(); loadInbound();
+    });
+    $("lrInList").addEventListener("click", function (e) {
+      var mi = e.target.closest(".lr-mi");
+      if (mi) { moveItem(mi.getAttribute("data-id"), mi.getAttribute("data-to")); return; }
+      var b = e.target.closest("button[data-act]"); if (!b) return;
+      var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
+      if (act === "menu") {
+        var m = b.parentNode.querySelector(".lr-menu"), open = m && m.hidden;
+        closeMenu();
+        if (m && open) { m.hidden = false; b.setAttribute("aria-expanded", "true"); var first = m.querySelector(".lr-mi"); if (first) first.focus(); }
+        return;
+      }
+      if (act === "customer") addCustomer(id, b);
+    });
+    document.addEventListener("click", function (e) { if (!e.target.closest || !e.target.closest(".lr-pill, .lr-menu")) closeMenu(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      var open = document.querySelector(".lr-menu:not([hidden])");
+      if (!open) return;
+      var pill = open.parentNode.querySelector(".lr-pill");
+      closeMenu(); if (pill) pill.focus();
     });
 
     /* ── the reply sheet (LeadsReply): nothing posts until the member presses "Post my reply", and the text sent is the box's ── */

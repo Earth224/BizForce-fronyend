@@ -54,6 +54,21 @@
     /* NAMED (Nov 20 2026, P2-3): Follow */
     .sf-follow{min-height:44px;margin-bottom:8px;padding:0 18px;border-radius:12px;border:0;background:linear-gradient(90deg,#22d3ee,#8b5cf6);color:#070b18;font:800 .9rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer}
     .sf-follow.is-on{background:rgba(26,34,68,.95);color:#e8e8ff;border:1px solid rgba(255,255,255,.18)}
+    /* NAMED (Nov 24 2026, LR-3): Message the seller, and its two small dialogs (write a message; sign in) */
+    .sf-message{min-height:44px;margin-bottom:8px;padding:0 18px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(26,34,68,.95);color:#e8e8ff;font:800 .9rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;cursor:pointer}
+    .sf-message[hidden]{display:none}
+    .sf-dlg-veil{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,12,.66)}
+    .sf-dlg{width:min(440px,100%);max-height:calc(100vh - 32px);overflow-y:auto;padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.14);background:#0b1022;color:#e8e8ff;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+    .sf-dlg h2{margin:0 0 8px;font-size:1.1rem;font-weight:800}
+    .sf-dlg p{margin:0 0 12px;color:#a9b3cc;font-size:.9rem}
+    .sf-dlg textarea{display:block;width:100%;min-height:120px;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:#070b18;color:#e8e8ff;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;resize:vertical}
+    .sf-dlg .sf-dlg-err{margin:8px 0 0;color:#fca5a5}
+    .sf-dlg .sf-dlg-err:empty{display:none}
+    .sf-dlg-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+    .sf-dlg-acts button,.sf-dlg-acts a{flex:1 1 120px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:12px;font:800 .9rem system-ui,-apple-system,"Segoe UI",Arial,sans-serif;text-decoration:none;cursor:pointer}
+    .sf-dlg-go{border:0;background:#22d3ee;color:#070b18}
+    .sf-dlg-no{border:1px solid rgba(255,255,255,.18);background:transparent;color:#e8e8ff}
+    .sf-dlg-go:disabled{opacity:.6;cursor:default}
     .sf-follow-count{margin-bottom:8px;font-size:.85rem;color:#a9b3cc;align-self:flex-end;min-height:44px;display:inline-flex;align-items:center}
     .sf-name{margin:0 0 4px;font-size:1.7rem;font-weight:800;color:#f4f7ff;letter-spacing:-.02em}
     .sf-tagline{margin:0 0 8px;color:#8892b8;font-size:.95rem;line-height:1.5}
@@ -270,7 +285,7 @@ function mountFollow(userId) {
   var state = null;
   function show() {
     if (!state) return;
-    if (state.self) { btn.hidden = true; }
+    if (state.self) { btn.hidden = true; var msg = document.getElementById("sfMessage"); if (msg) msg.hidden = true; }   // NAMED (Nov 24 2026, LR-3): and Message
     btn.textContent = state.i_follow ? "Following" : "Follow";
     btn.classList.toggle("is-on", !!state.i_follow);
     btn.setAttribute("aria-pressed", String(!!state.i_follow));
@@ -288,6 +303,68 @@ function mountFollow(userId) {
       headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }, body: on ? JSON.stringify({ user_id: userId }) : undefined })
       .then(function (r) { btn.disabled = false; if (!r.ok) return; state.i_follow = on; state.followers = Math.max(0, state.followers + (on ? 1 : -1)); show(); })
       .catch(function () { btn.disabled = false; });
+  });
+}
+
+/* NAMED (Nov 24 2026, LR-3): Message the seller. A member writes it here and it goes through the existing POST /api/messages
+   (its rules stand: blocks, the email rule, a free account's reply-only rule), then the conversation opens. A free account
+   gets the members panel (scripts/bf-access.js MEMBER_ACTIONS "#sfMessage" stops the tap first; a 403 members_only that
+   gets through opens it too); signed out, a sign-in prompt that comes back here; on your own storefront it is not shown. */
+function mountMessage(seller) {
+  var head = document.querySelector(".sf-header");
+  if (!head || !seller || !seller.user_id || document.getElementById("sfMessage")) return;
+  var tok = null, me = null;
+  try { tok = localStorage.getItem("bf_token"); } catch (e) { tok = null; }
+  // the signed-in member's id, from their own token (bf_user holds the profile row, whose id is not the member's)
+  try { me = tok ? JSON.parse(atob(tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).id || null : null; } catch (e) { me = null; }
+  if (tok && me && me === seller.user_id) return;
+  var name = seller.display_name || (seller.username ? "@" + seller.username : "this seller");
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "sf-message"; btn.id = "sfMessage"; btn.textContent = "Message";
+  var follow = document.getElementById("sfFollow");
+  head.insertBefore(btn, follow || head.querySelector(".bf-safety-dots") || null);
+  btn.addEventListener("click", function () { if (!tok) signInPrompt(name); else composeMessage(seller, name, tok); });
+}
+function sfDialog(html, focusSel) {
+  var old = document.getElementById("sfDlg"); if (old) old.parentNode.removeChild(old);
+  var veil = document.createElement("div");
+  veil.className = "sf-dlg-veil"; veil.id = "sfDlg";
+  veil.innerHTML = '<div class="sf-dlg" role="dialog" aria-modal="true" aria-labelledby="sfDlgTitle">' + html + '</div>';
+  document.body.appendChild(veil);
+  var last = document.activeElement;
+  function close() { if (veil.parentNode) veil.parentNode.removeChild(veil); document.removeEventListener("keydown", onKey); if (last && last.focus) last.focus(); }
+  function onKey(e) { if (e.key === "Escape") close(); }
+  document.addEventListener("keydown", onKey);
+  veil.addEventListener("click", function (e) { if (e.target === veil || e.target.closest("[data-dlg-close]")) { e.preventDefault(); close(); } });
+  var f = veil.querySelector(focusSel || "button, a, textarea"); if (f) f.focus();
+  return { el: veil, close: close };
+}
+function signInPrompt(name) {
+  var d = sfDialog('<h2 id="sfDlgTitle">Sign in to message ' + esc(name) + '</h2><p>Messages go to the seller\u2019s Inbox. Sign in, or join free, and you come back here.</p>' +
+    '<div class="sf-dlg-acts"><a class="sf-dlg-go" id="sfDlgSignIn" href="/app.html">Sign in</a><button type="button" class="sf-dlg-no" data-dlg-close>Not now</button></div>', "#sfDlgSignIn");
+  d.el.querySelector("#sfDlgSignIn").addEventListener("click", function () { try { localStorage.setItem("bf_return_to", window.location.pathname + window.location.search); } catch (e) { /* fine */ } });
+}
+function composeMessage(seller, name, tok) {
+  var d = sfDialog('<h2 id="sfDlgTitle">Message ' + esc(name) + '</h2><p>A private message to the seller. They see it in their Inbox.</p>' +
+    '<label for="sfDlgBody" style="position:absolute;left:-9999px">Your message</label><textarea id="sfDlgBody" maxlength="2000"></textarea>' +
+    '<p class="sf-dlg-err" id="sfDlgErr" role="alert"></p>' +
+    '<div class="sf-dlg-acts"><button type="button" class="sf-dlg-go" id="sfDlgSend">Send</button><button type="button" class="sf-dlg-no" data-dlg-close>Cancel</button></div>', "#sfDlgBody");
+  var box = d.el.querySelector("#sfDlgBody"), err = d.el.querySelector("#sfDlgErr"), send = d.el.querySelector("#sfDlgSend");
+  send.addEventListener("click", function () {
+    var text = box.value.trim();
+    if (!text) { err.textContent = "Write your message first."; box.focus(); return; }
+    send.disabled = true; err.textContent = "";
+    fetch(API_URL + "/api/messages", { method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+      body: JSON.stringify({ receiver_id: seller.user_id, content: text }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, status: r.status, body: b || {} }; }); })
+      .then(function (r) {
+        if (r.ok) { window.location.href = "/inbox.html?with=" + encodeURIComponent(seller.user_id); return; }
+        send.disabled = false;
+        if (r.status === 403 && r.body.reason === "members_only" && window.bfAccess && window.bfAccess.showPanel) { d.close(); window.bfAccess.showPanel(); return; }
+        if (r.status === 401) { d.close(); signInPrompt(name); return; }
+        err.textContent = r.body.error || "Your message wasn't sent. Try again.";
+      })
+      .catch(function () { send.disabled = false; err.textContent = "Your message wasn't sent. Check your connection."; });
   });
 }
 
@@ -442,6 +519,7 @@ function renderStorefront(data) {
   }
   // NAMED (Nov 20 2026, P2-3): Follow (GET /api/follows/:id/counts; POST /api/follows; DELETE /api/follows/:id). Signed out, sign in and back.
   if (seller.user_id) mountFollow(seller.user_id);
+  mountMessage(seller);   // NAMED (Nov 24 2026, LR-3): Message the seller
 
   var taglineEl = document.getElementById("sfTagline");
   if (seller.tagline) { taglineEl.textContent = seller.tagline; taglineEl.style.display = ""; }

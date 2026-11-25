@@ -605,6 +605,11 @@
     "  #tmx-guide-root.tmx-guide-open { transform: translate(0, -50%); }",
     /* the board's 32 px tab: css/bf-phone.css raises every button to 44 px wide on the phone; the tab keeps its width (it is 170 px or more tall) */
     "  #tmx-guide-tab { min-width: 32px; }",
+    /* NAMED (Nov 24 2026, LR-3B): NOTHING TO TAP UNDER THE TAB. BEFORE the page's own controls began 16 to 25 px from the
+       left edge, under the 32 px tab (the storefront's Message and Follow, every agent's Refresh and Run, the HQ links...).
+       AFTER, while the tab is drawn, the page's body keeps 40 px on the left (the tab and an 8 px gap) on the phone.
+       Above 760 px nothing changes. browserCheckPhone's guideRule holds every phone page to it. */
+    "  html.tmx-guide-room body { padding-left: 40px !important; }",
     "  #tmx-guide-panel { box-sizing: border-box; width: min(300px, calc(100vw - 48px)); margin-left: 0;",
     "    max-height: min(70vh, calc(100vh - 2 * (64px + env(safe-area-inset-bottom, 0px)))); }",
     "}",
@@ -665,6 +670,17 @@
   root.appendChild(tab);
   root.appendChild(panel);
   document.body.appendChild(root);
+  // NAMED (Nov 24 2026, LR-3B): the phone's left room (the CSS above), only while the tab is drawn: a page that hides the
+  // Guide (the profile and the storefront designs) keeps its own edges. The Oracle's own pages (oracle, mychart, calendar,
+  // synastry) are kept exactly as they are: no room is added there.
+  function syncRoom() {
+    var on = !/^\/(oracle|mychart|calendar|synastry|the-third)\.html$/.test(location.pathname) && tab.getClientRects().length > 0;
+    document.documentElement.classList.toggle("tmx-guide-room", on);
+  }
+  syncRoom();
+  setTimeout(syncRoom, 0);
+  window.addEventListener("load", syncRoom);
+  window.addEventListener("resize", syncRoom);
 
   /* ── the insight, fetched on demand and cached for the sitting ──────────────
 
