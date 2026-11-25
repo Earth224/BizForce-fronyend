@@ -938,6 +938,22 @@ loadCategories();
 showPurchaseResultBanner();
 loadListings();
 openCreateFromLink();
+/* NAMED (Nov 25 2026, LR-4): marketplace.html?edit=<listing id> (Lead Radar's Get found, "Fix" on a listing that needs a photo,
+   a category or a description) opens the member's own listing in Edit Listing once their listings have loaded. Another id,
+   or none, leaves the page exactly as before. */
+(function () {
+  var want = new URLSearchParams(window.location.search).get("edit");
+  if (!want || !/^[0-9a-f-]{36}$/i.test(want)) return;
+  var tries = 0;
+  (function wait() {
+    if (myListings.some(function (l) { return l.id === want; })) {
+      try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+      openEditModal(want);
+      return;
+    }
+    if (tries++ < 100) setTimeout(wait, 100);
+  })();
+})();
 </script>
 <script src="/scripts/media-picker.js"></script>
 <script>

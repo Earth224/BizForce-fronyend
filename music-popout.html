@@ -18,6 +18,15 @@
     .popout-head{width:100%;max-width:560px;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
     .popout-title{margin:0;font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;background:linear-gradient(90deg,var(--bf-accent-a, #22d3ee)var(--bf-accent-mid, ),var(--bf-accent-b, #a855f7));-webkit-background-clip:text;background-clip:text;color:transparent}
     .popout-note{width:100%;max-width:560px;margin:12px 0 0;padding:8px 12px;border-radius:10px;font-size:.78rem;color:#c8cce8;background:rgba(8,12,28,.7);border:1px solid rgba(var(--bf-accent-a-rgb, 34, 211, 238),.2)}
+    /* NAMED (Nov 25 2026, LR-4): on a phone the 440 px boombox is drawn smaller to fit the screen (the factor the page's
+       script sets, --bbx-pop-fit, at most 1), and its layout box shrinks with it, so nothing scrolls sideways. The
+       desktop window is unchanged: every rule is inside this media query. */
+    @media (max-width: 760px){
+      #bfMusicPopout{width:100%;max-width:100%;display:flex;justify-content:center}
+      #bfMusicPopout .bfm-pop{width:100%;min-width:0}
+      #bfMusicPopout .bfm-pop .bbx{transform:scale(var(--bbx-pop-fit, 1));transform-origin:top center;margin:0 calc((var(--bbx-pop-fit, 1) - 1) * 220px) calc((var(--bbx-pop-fit, 1) - 1) * 250px)}
+      #bfMusicPopout .bfm-pop .bfm-drawer{width:100%;max-width:100%}
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -32,6 +41,18 @@
 </main>
 <script src="/scripts/bf-boombox.js"></script>
 <script src="/scripts/bf-music.js"></script>
+<script>
+  /* NAMED (Nov 25 2026, LR-4): the boombox's scale on a phone: the room the page has (its width less 24 px of padding) over the
+     box's 440 px, at most 1. Only the phone rule above reads it, so the desktop window is unchanged. */
+  (function () {
+    function fit() {
+      var w = Math.min(window.innerWidth, document.documentElement.clientWidth || window.innerWidth);
+      document.documentElement.style.setProperty("--bbx-pop-fit", String(Math.min(1, Math.floor(((w - 24) / 440) * 1000) / 1000)));
+    }
+    fit();
+    window.addEventListener("resize", fit);
+  })();
+</script>
 <footer class="bf-legal-footer" data-bf-legal-footer></footer>
 <script src="/scripts/bf-legal-footer.js"></script>
 </body>

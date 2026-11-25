@@ -325,6 +325,16 @@ function mountMessage(seller) {
   head.insertBefore(btn, follow || head.querySelector(".bf-safety-dots") || null);
   btn.addEventListener("click", function () { if (!tok) signInPrompt(name); else composeMessage(seller, name, tok); });
 }
+// NAMED (Nov 25 2026, LR-4B): run fn once bf-safety.js has run: at once if it has, else on its script tag's load, else on the
+// page's load (a guard keeps it to one call).
+function whenSafety(fn) {
+  if (window.BFSafety) { fn(); return; }
+  var done = false;
+  function go() { if (!done && window.BFSafety) { done = true; fn(); } }
+  var tag = document.querySelector('script[src="/scripts/bf-safety.js"]');
+  if (tag) tag.addEventListener("load", go);
+  window.addEventListener("load", go);
+}
 function sfDialog(html, focusSel) {
   var old = document.getElementById("sfDlg"); if (old) old.parentNode.removeChild(old);
   var veil = document.createElement("div");
@@ -513,10 +523,14 @@ function renderStorefront(data) {
   // NAMED (Nov 21 2026, P3-2): the Verified badge inside the name, after its text (scripts/bf-verified.js)
   if (window.bfVerified && data.verified) document.getElementById("sfName").insertAdjacentHTML("beforeend", window.bfVerified.html(data.verified));
   // P2-2: Report, Block and Mute (scripts/bf-safety.js); signed out, Report asks to sign in
-  if (window.BFSafety && seller.user_id) {
+  // NAMED (Nov 25 2026, LR-4B): BEFORE the "..." menu was drawn only if bf-safety.js (a later script tag) had already run when
+  // the seller's data arrived, so on a slow load it was sometimes missing. AFTER it is drawn when both are ready, in either
+  // order: at once if bf-safety.js has run, else when its script tag loads (or, failing that, on the page's load). The menu
+  // is appended last in the header either way, after Message, Follow and the count, as before.
+  if (seller.user_id) whenSafety(function () {
     window.BFSafety.mount(document.querySelector(".sf-header"), { type: "profile", id: seller.user_id, userId: seller.user_id,
       name: seller.display_name || (seller.username ? "@" + seller.username : ""), onChange: function () { window.location.reload(); } });
-  }
+  });
   // NAMED (Nov 20 2026, P2-3): Follow (GET /api/follows/:id/counts; POST /api/follows; DELETE /api/follows/:id). Signed out, sign in and back.
   if (seller.user_id) mountFollow(seller.user_id);
   mountMessage(seller);   // NAMED (Nov 24 2026, LR-3): Message the seller

@@ -2211,6 +2211,20 @@ function fmtTime(s) {
 
 // Init
 loadAll();
+/* NAMED (Nov 25 2026, LR-4): profile.html#edit-bio (Lead Radar's Get found, "Add your city and a short bio") opens the owner's
+   Edit profile at the bio once the profile has loaded. Any other address, or a visitor, is exactly as before. */
+(function () {
+  if (window.location.hash !== "#edit-bio" || !isOwner) return;
+  var tries = 0;
+  (function wait() {
+    if (!profileData) { if (tries++ < 150) setTimeout(wait, 100); return; }
+    setTimeout(function () {
+      if (!editMode) toggleEditMode();
+      var bio = document.getElementById("bioInput");
+      if (bio) { try { bio.scrollIntoView({ block: "center" }); bio.focus({ preventScroll: true }); } catch (e) { /* fine */ } }
+    }, 0);
+  })();
+})();
 </script>
 
 <!-- ══ PORTFOLIO MODAL ══ -->

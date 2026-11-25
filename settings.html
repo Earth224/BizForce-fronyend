@@ -639,6 +639,11 @@
             <span>Blocked and muted</span>
             <span class="sidebar-chevron">&#8250;</span>
           </button>
+          <!-- NAMED (Nov 25 2026, LR-4): last, so every item above stays where it was -->
+          <button type="button" class="sidebar-item" data-target="privacy">
+            <span>Privacy</span>
+            <span class="sidebar-chevron">&#8250;</span>
+          </button>
         </nav>
 
         <div class="settings-content">
@@ -1262,6 +1267,27 @@
             <div id="safetyList"></div>
           </section>
 
+          <!-- NAMED (Nov 25 2026, LR-4): "Show my profile and listings in Google" (GET and PUT /api/me/google, user_preferences.show_in_google,
+               migration 206a). On until turned off; members only (a free account's profile and listings are never shown in Google, so it sees
+               a line instead). Off: the profile and listing pages tell search engines not to show them, and they leave the sitemaps at once. -->
+          <section class="settings-panel" id="panel-privacy" data-panel="privacy" aria-labelledby="privacyHeading">
+            <h2 id="privacyHeading">Privacy</h2>
+            <p class="subtitle">What search engines may show of you.</p>
+            <div class="toggle-row" id="googleRow" hidden>
+              <div class="toggle-copy">
+                <div class="toggle-title" id="googleTitle">Show my profile and listings in Google</div>
+                <div class="toggle-desc" id="googleDesc">Google and other search engines may show your profile page and your active listings. Turn it off and they are told not to, at once. Each post has its own Show in Google in Edit post.</div>
+                <span class="pref-saved" id="googleSaved"></span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="googleToggle" checked aria-labelledby="googleTitle" aria-describedby="googleDesc" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="subtitle" id="googleFree" hidden>Showing your profile and listings in Google is for members. A free account's profile and listings stay out of search engines.</p>
+            <div class="msg" id="googleMsg" role="status"></div>
+          </section>
+
           <section class="settings-panel" id="panel-account" data-panel="account">
             <h2>Account</h2>
 
@@ -1386,6 +1412,9 @@
 
       // settings.html#theme opens the Theme section (each page's way into the studio).
       if (window.location.hash === "#theme") activateSection("theme");
+      // NAMED (Nov 25 2026, LR-4): Lead Radar's Get found opens Local (your city) and Privacy (the Google switch) by address
+      if (window.location.hash === "#local") activateSection("local");
+      if (window.location.hash === "#privacy") activateSection("privacy");
       // P2-2: bf-safety.js loads after this script, so the list is drawn once it is there (on load)
       if (window.location.hash === "#blocked") {
         activateSection("safety");
@@ -1671,6 +1700,37 @@
         .catch(function () { needAlertsRow.hidden = true; });
       needAlertsToggle.addEventListener("change", function () {
         putPreferences({ need_alerts: needAlertsToggle.checked }, needAlertsSaved);
+      });
+
+      /* NAMED (Nov 25 2026, LR-4): Privacy, "Show my profile and listings in Google" (GET and PUT /api/me/google, members only).
+         A member sees the switch as the server has it; a free account (402) sees the line instead; if it cannot be read, neither
+         is shown and the panel says so. A change is saved at once; if the save fails, the switch goes back and says so. */
+      var googleRow = document.getElementById("googleRow");
+      var googleToggle = document.getElementById("googleToggle");
+      var googleSaved = document.getElementById("googleSaved");
+      var googleFree = document.getElementById("googleFree");
+      var googleMsg = document.getElementById("googleMsg");
+      fetch(API_URL + "/api/me/google", { headers: { "Authorization": "Bearer " + token } })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { status: r.status, data: d || {} }; }); })
+        .then(function (res) {
+          if (res.status === 200) { googleToggle.checked = res.data.show_in_google !== false; googleRow.hidden = false; return; }
+          if (res.status === 402) { googleFree.hidden = false; return; }
+          googleMsg.textContent = "This setting could not be read just now.";
+        })
+        .catch(function () { googleMsg.textContent = "This setting could not be read just now."; });
+      googleToggle.addEventListener("change", function () {
+        var want = googleToggle.checked;
+        googleToggle.disabled = true;
+        googleMsg.textContent = "";
+        fetch(API_URL + "/api/me/google", { method: "PUT", headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ show_in_google: want }) })
+          .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d || {} }; }); })
+          .then(function (res) {
+            googleToggle.disabled = false;
+            if (!res.ok || res.data.saved !== true) { googleToggle.checked = !want; googleMsg.textContent = res.data.error || "That did not save. Try again."; showPrefSaved(googleSaved, false); return; }
+            googleMsg.textContent = res.data.message || "";
+            showPrefSaved(googleSaved, true);
+          })
+          .catch(function () { googleToggle.disabled = false; googleToggle.checked = !want; googleMsg.textContent = "That did not save. Check your connection."; showPrefSaved(googleSaved, false); });
       });
 
       function putPreferences(fields, indicatorEl) {

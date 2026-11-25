@@ -40,7 +40,7 @@
     .brand-badge { flex: none; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; background: linear-gradient(90deg, var(--bf-mark-a, #22d3ee)var(--bf-mark-mid, ), var(--bf-mark-b, #a855f7)); -webkit-background-clip: text; background-clip: text; color: transparent; margin-right: 8px; }
 
     /* the tabs: Leads and Fingerprint */
-    .lr-tabs { display: flex; gap: 4px; padding: 0 12px 10px; }
+    .lr-tabs { display: flex; gap: 4px; padding: 0 12px 10px; overflow-x: auto; }   /* NAMED (Nov 25 2026, LR-4): four tabs swipe on a narrow phone (the board clips them) */
     .lr-tabs[hidden] { display: none; }
     .lr-tb { flex: none; min-width: 44px; height: 44px; margin: -2px 0; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
     .lr-tbf { display: flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 20px; color: #a9b3cc; font: 600 14px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; white-space: nowrap; }
@@ -159,6 +159,28 @@
     .lr-mi { height: 44px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: #e6eaf5; font: 600 13.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; text-align: left; cursor: pointer; }
     .lr-mi:hover { background: #0f2a3a; }
 
+    /* NAMED (Nov 25 2026, LR-4): Get found (LeadsFound): the gold Found score ring, and the checklist (to do, done, waiting) */
+    .lr-gf { gap: 6px; padding: 0 16px; }
+    .lr-gf-top { display: flex; align-items: center; gap: 16px; padding: 4px 0 8px; }
+    .lr-ring { flex: none; display: block; }
+    .lr-ring text { font-family:system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-gf-x { flex: 1; min-width: 0; }
+    .lr-gf-t { margin: 0; font: 700 17px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-gf-s { margin: 0; font-size: 13px; line-height: 1.4; color: #a9b3cc; }
+    .lr-gfi { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #141b33; }
+    .lr-gfm { flex: none; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 13px; border: 2px solid #f5c46b; color: #f5c46b; font: 700 13px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-gfi.is-done .lr-gfm { border-color: #6ee7b7; color: #6ee7b7; }
+    .lr-gfi.is-waiting .lr-gfm { border-color: #8e9bbf; color: #8e9bbf; }
+    .lr-gfx { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+    a.lr-gfx { display: flex; flex-direction: column; justify-content: center; min-height: 44px; }
+    a.lr-gfx:focus-visible { outline: 2px solid var(--bf-accent-a, #22d3ee); outline-offset: 2px; }
+    .lr-gft { display: block; font: 600 13.5px system-ui, -apple-system, "Segoe UI", Arial, sans-serif; }
+    .lr-gfd { display: block; font-size: 12px; line-height: 1.35; color: #a9b3cc; overflow-wrap: anywhere; }
+    .lr-btn.is-s { margin: -5px 0; }
+    .lr-btn.is-s .lr-btnf { height: 34px; }
+    .lr-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .lr-gfc[hidden] { display: none; }
+
     @media (max-width: 760px) {
       .brand-badge { display: none; }
     }
@@ -183,6 +205,7 @@
     <div class="lr-tabs" role="tablist" id="lrTabs" aria-label="Lead Radar" hidden>
       <button type="button" role="tab" class="lr-tb" id="lrTabLeads" aria-selected="true" aria-controls="lrLeads" data-tab="leads"><span class="lr-tbf">Leads</span></button>
       <button type="button" role="tab" class="lr-tb" id="lrTabIn" aria-selected="false" aria-controls="lrIn" data-tab="inbound" tabindex="-1"><span class="lr-tbf">Inbound</span></button>
+      <button type="button" role="tab" class="lr-tb" id="lrTabGf" aria-selected="false" aria-controls="lrGf" data-tab="found" tabindex="-1"><span class="lr-tbf">Get found</span></button>
       <button type="button" role="tab" class="lr-tb" id="lrTabFp" aria-selected="false" aria-controls="lrFp" data-tab="fingerprint" tabindex="-1"><span class="lr-tbf">Fingerprint</span></button>
     </div>
 
@@ -210,6 +233,17 @@
       <div class="lr-chips" id="lrInChips" role="group" aria-label="Pipeline stage"></div>
       <p class="lr-note is-err" id="lrInMsg" role="status" hidden></p>
       <div class="lr-main" id="lrInList" style="padding:0" aria-live="polite"></div>
+    </section>
+
+    <!-- NAMED (Nov 25 2026, LR-4): Get found, built to the owner's canvas row 6 "Get found: your Found score" (LeadsFound;
+         scripts/designSpec.js LEADS.FOUND): the Found score ring and the checklist, gold to-do items first (GET /api/leads/found). -->
+    <section class="lr-main lr-gf" id="lrGf" role="tabpanel" aria-labelledby="lrTabGf" hidden>
+      <div class="lr-gf-top">
+        <svg class="lr-ring" id="lrRing" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="Found score 0 of 100"><circle cx="48" cy="48" r="40" fill="none" stroke="#1e2848" stroke-width="8"></circle><circle id="lrRingArc" cx="48" cy="48" r="40" fill="none" stroke="#f5c46b" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 252" transform="rotate(-90 48 48)" visibility="hidden"></circle><text id="lrRingNum" x="48" y="54" text-anchor="middle" fill="#f7f3e8" font-weight="700" font-size="24">0</text></svg>
+        <div class="lr-gf-x"><p class="lr-gf-t">Found score</p><p class="lr-gf-s">How easy you are to find on Google and the apps people search. Do the gold ones first.</p></div>
+      </div>
+      <p class="lr-note is-err" id="lrGfMsg" role="status" hidden></p>
+      <div id="lrGfList" aria-live="polite"></div>
     </section>
 
     <section class="lr-main lr-fp" id="lrFp" role="tabpanel" aria-labelledby="lrTabFp" hidden>
@@ -256,6 +290,7 @@
     function showState(kind) {
       var st = $("lrState");
       $("lrTabs").hidden = true; $("lrSettings").hidden = true; $("lrLeads").hidden = true; $("lrFp").hidden = true;
+      $("lrIn").hidden = true; $("lrGf").hidden = true;   // NAMED (Nov 25 2026, LR-4): BEFORE Inbound stayed shown under the state card
       st.setAttribute("data-state", kind);
       if (kind === "signed_out") {
         st.innerHTML = '<p class="lr-empty">Sign in to see Lead Radar.</p><div class="lr-acts"><a class="lr-btn is-p" href="/app.html"><span class="lr-btnf">Sign in</span></a></div>';
@@ -272,8 +307,9 @@
     }
 
     /* ── tabs ── */
-    /* NAMED (Nov 24 2026, LR-3): BEFORE two tabs, Leads and Fingerprint. AFTER three: Leads, Inbound, Fingerprint. */
-    var TABS = [["leads", "lrTabLeads", "lrLeads"], ["inbound", "lrTabIn", "lrIn"], ["fingerprint", "lrTabFp", "lrFp"]];
+    /* NAMED (Nov 24 2026, LR-3): BEFORE two tabs, Leads and Fingerprint. AFTER three: Leads, Inbound, Fingerprint.
+       NAMED (Nov 25 2026, LR-4): AFTER four, as the board draws them: Leads, Inbound, Get found, Fingerprint. */
+    var TABS = [["leads", "lrTabLeads", "lrLeads"], ["inbound", "lrTabIn", "lrIn"], ["found", "lrTabGf", "lrGf"], ["fingerprint", "lrTabFp", "lrFp"]];
     var current = "leads";
     function openTab(name, focus) {
       if (!TABS.some(function (t) { return t[0] === name; })) name = "leads";
@@ -287,6 +323,7 @@
       closeMenu();
       if (name === "fingerprint" && !S.fp) loadFingerprint();
       if (name === "inbound" && !IN.loaded) loadInbound();
+      if (name === "found") loadFound();   // NAMED (Nov 25 2026, LR-4): read again on every opening, so a fix made elsewhere shows
       if (name === "leads" && IN.wonMoved) { IN.wonMoved = false; loadLeads(); }
       try { history.replaceState(null, "", name === "leads" ? location.pathname + location.search : "#" + name); } catch (e) { /* file */ }
     }
@@ -386,7 +423,7 @@
         if (!S.loaded) {
           S.loaded = true;
           $("lrState").hidden = true; $("lrTabs").hidden = false; $("lrSettings").hidden = false;
-          openTab(location.hash === "#fingerprint" ? "fingerprint" : location.hash === "#inbound" ? "inbound" : "leads");
+          openTab(location.hash === "#fingerprint" ? "fingerprint" : location.hash === "#inbound" ? "inbound" : location.hash === "#found" ? "found" : "leads");
         }
         drawStats(); drawChips(); drawLeads();
       });
@@ -804,6 +841,84 @@
       var cur = list(field);
       if (cur.indexOf(v) === -1) cur.push(v);
       var body = {}; body[field] = cur; save(body);
+    });
+
+    /* ── NAMED (Nov 25 2026, LR-4): Get found (LeadsFound) ──
+       GET /api/leads/found: the score (0 to 100, the done items' weights) and the checklist, to-do items (gold "!") first,
+       then done (green tick), then waiting (grey "..."). Each action goes to an existing screen; "Posts shown in Google"
+       Fix asks first, then turns Show in Google on for the rest through Edit post's own route (PATCH /api/posts/:id). */
+    var GF = { data: null, seq: 0, fixing: false, asking: false };
+    var RING = 251.33;   // 2 x pi x 40
+    var MARKS = { todo: "!", done: "&#10003;", waiting: "&#8230;" };
+    var WORDS = { todo: "To do: ", done: "Done: ", waiting: "Waiting: " };
+    function gfMsg(text) { var m = $("lrGfMsg"); m.textContent = text || ""; m.hidden = !text; }
+    function drawRing(score) {
+      var n = Math.max(0, Math.min(100, Math.round(+score || 0)));
+      var arc = $("lrRingArc");
+      arc.setAttribute("stroke-dasharray", Math.round(RING * n / 100) + " 252");
+      arc.setAttribute("visibility", n > 0 ? "visible" : "hidden");
+      $("lrRingNum").textContent = String(n);
+      $("lrRing").setAttribute("aria-label", "Found score " + n + " of 100");
+    }
+    function gfAction(it) {
+      var a = it.action;
+      if (!a) return "";
+      if (a.href) return link(a.label, a.href, true).replace('class="lr-btn is-p"', 'class="lr-btn is-p is-s"');
+      return btn(a.label, 'data-gf="' + esc(a.act) + '"', true).replace('class="lr-btn is-p"', 'class="lr-btn is-p is-s"');
+    }
+    function gfItem(it) {
+      var text = '<span class="lr-sr">' + (WORDS[it.status] || "") + '</span><span class="lr-gft">' + esc(it.title) + '</span><span class="lr-gfd">' + esc(it.detail || "") + '</span>';
+      var body = it.url ? '<a class="lr-gfx" href="' + esc(it.url) + '">' + text + '</a>' : '<div class="lr-gfx">' + text + '</div>';
+      return '<div class="lr-gfi is-' + esc(it.status) + '" data-key="' + esc(it.key) + '"><span class="lr-gfm" aria-hidden="true">' + (MARKS[it.status] || "") + '</span>' + body + gfAction(it) + '</div>';
+    }
+    function gfConfirm(n) {
+      return '<div class="lr-card lr-gfc" id="lrGfConfirm" role="group" aria-labelledby="lrGfConfirmT"><p class="lr-state-t" id="lrGfConfirmT">Turn on Show in Google for ' + (n === 1 ? "1 post" : n + " posts") + '?</p>' +
+        '<p class="lr-empty">Google and other search engines may then show ' + (n === 1 ? "it" : "them") + '. You can turn it off for any post in Edit post.</p>' +
+        '<div class="lr-acts">' + btn("Turn on", 'data-gf="posts-yes"', true) + btn("Cancel", 'data-gf="posts-no"') + '</div></div>';
+    }
+    function drawFound() {
+      var d = GF.data || { score: 0, items: [] };
+      drawRing(d.score);
+      var items = Array.isArray(d.items) ? d.items : [];
+      $("lrGfList").innerHTML = items.map(function (it) {
+        return gfItem(it) + (it.key === "posts" && GF.asking ? gfConfirm((d.fix_posts || []).length) : "");
+      }).join("");
+    }
+    function loadFound() {
+      var mine = ++GF.seq;
+      return call("GET", "/api/leads/found").then(function (res) {
+        if (mine !== GF.seq) return;
+        if (refused(res)) return;
+        if (!res.ok) { gfMsg("Your Found score could not load just now. Try again."); return; }
+        gfMsg("");
+        GF.data = res.data || null;
+        drawFound();
+      });
+    }
+    function fixPosts(list) {
+      GF.fixing = true;
+      var failed = 0, i = 0;
+      function next() {
+        if (i >= list.length) {
+          GF.fixing = false; GF.asking = false;
+          return loadFound().then(function () { if (failed) gfMsg(failed === 1 ? "1 post could not be changed. Open it in Edit post to try again." : failed + " posts could not be changed. Open them in Edit post to try again."); });
+        }
+        var p = list[i++];
+        return call("PATCH", "/api/posts/" + encodeURIComponent(p.id), { body: p.body, search_visible: true }).then(function (res) {
+          if (refused(res)) { GF.fixing = false; return; }
+          if (!res.ok) failed++;
+          return next();
+        });
+      }
+      return next();
+    }
+    $("lrGfList").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-gf]"); if (!b || GF.fixing) return;
+      var act = b.getAttribute("data-gf");
+      if (act === "fingerprint") { openTab("fingerprint", true); return; }
+      if (act === "posts") { GF.asking = true; drawFound(); var y = document.querySelector('[data-gf="posts-yes"]'); if (y) y.focus(); return; }
+      if (act === "posts-no") { GF.asking = false; drawFound(); var f = document.querySelector('[data-gf="posts"]'); if (f) f.focus(); return; }
+      if (act === "posts-yes") { b.disabled = true; fixPosts(((GF.data && GF.data.fix_posts) || []).slice()); }
     });
 
     /* ── start: signed out (no request), a free account (the members panel, no request), a member (the leads) ── */

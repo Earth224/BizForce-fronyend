@@ -270,6 +270,15 @@
     ".bfp-seo label{font-size:.82rem;font-weight:700;color:#c4cbe0}",
     ".bfp-seo .bfp-check{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:.92rem}",
     ".bfp-seo .bfp-check input{width:20px;height:20px;accent-color:var(--bf-accent-a, #22d3ee)}",
+    ".bfp-seo[hidden]{display:none}",
+    // NAMED (Nov 25 2026, LR-4): Edit post's audience, Public or Followers, the composer's segment (44 px, the board's pill inside)
+    ".bfp-aud-l{margin:10px 0 0;font-size:.82rem;font-weight:700;color:#c4cbe0}",
+    ".bfp-aud{display:flex;box-sizing:border-box;height:44px;padding:0 3px;border-radius:12px;background:#0e1428;box-shadow:inset 0 0 0 1px #1e2848}",
+    ".bfp-aud-o{position:relative;flex:1;display:flex;align-items:stretch;min-width:44px;padding:3px 0;box-sizing:border-box;cursor:pointer}",
+    ".bfp-aud-o input{position:absolute;opacity:0;width:1px;height:1px;margin:0}",
+    ".bfp-aud-f{display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;border-radius:9px;color:#a9b3cc;font-size:16px}",
+    ".bfp-aud-o input:checked+.bfp-aud-f{background:#1a2244;color:#e6eaf5;font-weight:800}",
+    ".bfp-aud-o input:focus-visible+.bfp-aud-f{outline:2px solid var(--bf-accent-a, #22d3ee);outline-offset:2px}",
     "@media " + BREAKPOINT + "{",
     "#bfp-talk{top:auto;left:0;right:0;width:auto;height:72dvh;border-left:0;border-top:1px solid rgba(var(--bf-accent-a-rgb, 34,211,238),.22);border-radius:22px 22px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.55)}",
     "#bfp-talk .bfp-talk-grip{display:block;align-self:center;width:40px;height:5px;margin-top:8px;border-radius:3px;background:rgba(255,255,255,.18)}",
@@ -554,30 +563,64 @@
   function firstWords(t, k) { var a = Array.from(String(t || "").replace(/\s+/g, " ").trim()); return a.length > k ? a.slice(0, k - 3).join("").trim() + "..." : a.join(""); }
   function editSeoHtml(p) {
     var tier = window.bfAccess && window.bfAccess.tier ? window.bfAccess.tier() : null;
-    if (tier !== "member" || !p.search || p.audience === "followers") return "";
+    if (tier !== "member" || !p.search) return "";
     var sr = p.search;
-    return '<div class="bfp-seo"><label class="bfp-check"><input type="checkbox" id="bfpEditSearch"' + (sr.visible === false ? "" : " checked") + '> Show in Google</label>' +
+    // NAMED (Nov 25 2026, LR-4): BEFORE a followers-only post had no Show in Google box; AFTER the box is there but hidden while
+    // Followers is chosen (Edit post's audience), and shows when Public is chosen. Only a public post's search fields are sent.
+    return '<div class="bfp-seo" id="bfpEditSeo"' + (p.audience === "followers" ? " hidden" : "") + '><label class="bfp-check"><input type="checkbox" id="bfpEditSearch"' + (sr.visible === false ? "" : " checked") + '> Show in Google</label>' +
       '<label for="bfpEditSeoT">Search title (optional, ' + SEO_T + ' characters)</label><input class="bfp-input" type="text" id="bfpEditSeoT" maxlength="' + SEO_T + '" value="' + esc(sr.title || firstWords(p.body, SEO_T)) + '">' +
       '<label for="bfpEditSeoD">Search description (optional, ' + SEO_D + ' characters)</label><textarea class="bfp-input" id="bfpEditSeoD" maxlength="' + SEO_D + '">' + esc(sr.description || firstWords(p.body, SEO_D)) + '</textarea></div>';
+  }
+  /* NAMED (Nov 25 2026, LR-4): Edit post's audience, Public or Followers, through the route P3-3B built (PATCH /api/posts/:id
+     { audience }). Followers to Public needs a confirmed email (the server says so, and nothing is saved); the Need alerts
+     of a Need made public this way are sent once, by the server (lib/needAlerts.js). */
+  function editAudienceHtml(p) {
+    var on = p.audience === "followers" ? "followers" : "public";
+    var opt = function (v, label) {
+      return '<label class="bfp-aud-o"><input type="radio" name="bfpEditAud" value="' + v + '"' + (v === on ? " checked" : "") + '><span class="bfp-aud-f">' + label + '</span></label>';
+    };
+    return '<p class="bfp-aud-l" id="bfpEditAudL">Who sees it</p><div class="bfp-aud" id="bfpEditAud" role="radiogroup" aria-labelledby="bfpEditAudL">' + opt("public", "Public") + opt("followers", "Followers") + '</div>';
+  }
+  function editRefused(d, body) {
+    var err = d.querySelector("#bfpEditErr");
+    err.textContent = (body && body.error) || "That did not save. Try again.";
+    if (!body || body.reason !== "email_unverified" || d.querySelector("#bfpEditResend")) return;
+    var again = document.createElement("button");
+    again.type = "button"; again.className = "bfp-quiet"; again.id = "bfpEditResend"; again.textContent = "Resend email";
+    again.addEventListener("click", function () {
+      again.disabled = true;
+      call("POST", "/api/auth/resend-verification", {}).then(function (r) {
+        err.textContent = r.ok ? "Sent. Open the link in the email, then save again." : ((r.body && r.body.error) || "That did not send. Try again in a minute.");
+        again.disabled = false;
+      }).catch(function () { again.disabled = false; });
+    });
+    d.querySelector(".bfp-dlg-acts").appendChild(again);
   }
   function editPost(el, p) {
     var d = dialog("Edit post",
       '<textarea class="bfp-input" id="bfpEditBody" maxlength="' + BODY_MAX + '">' + esc(p.body) + '</textarea>' +
-      '<span class="bfp-count" id="bfpEditCount"></span>' + editSeoHtml(p) + '<p class="bfp-err" id="bfpEditErr" role="alert"></p>' +
+      '<span class="bfp-count" id="bfpEditCount"></span>' + editAudienceHtml(p) + editSeoHtml(p) + '<p class="bfp-err" id="bfpEditErr" role="alert"></p>' +
       '<div class="bfp-dlg-acts"><button type="button" class="bfp-send" id="bfpEditSave">Save</button><button type="button" class="bfp-quiet" id="bfpEditCancel">Cancel</button></div>', "#bfpEditBody");
     var box = d.querySelector("#bfpEditBody"), count = d.querySelector("#bfpEditCount");
     var upd = function () { count.textContent = Array.from(box.value).length + " / " + BODY_MAX; };
     upd(); box.addEventListener("input", upd);
+    // NAMED (Nov 25 2026, LR-4): the audience; Show in Google is offered only while Public is chosen
+    var audNow = function () { var c = d.querySelector('input[name="bfpEditAud"]:checked'); return c ? c.value : (p.audience === "followers" ? "followers" : "public"); };
+    Array.prototype.forEach.call(d.querySelectorAll('input[name="bfpEditAud"]'), function (r) {
+      r.addEventListener("change", function () { var s = d.querySelector("#bfpEditSeo"); if (s) s.hidden = audNow() !== "public"; });
+    });
     d.querySelector("#bfpEditCancel").addEventListener("click", closeDialog);
     d.querySelector("#bfpEditSave").addEventListener("click", function () {
       var btn = this;
       btn.disabled = true;
       var patch = { body: box.value };
+      var aud = audNow();   // NAMED (Nov 25 2026, LR-4)
+      if (aud !== (p.audience === "followers" ? "followers" : "public")) patch.audience = aud;
       var seoOn = d.querySelector("#bfpEditSearch");   // NAMED (Nov 21 2026, P3-1B)
-      if (seoOn) { patch.search_visible = !!seoOn.checked; patch.seo_title = d.querySelector("#bfpEditSeoT").value.trim() || null; patch.seo_description = d.querySelector("#bfpEditSeoD").value.trim() || null; }
+      if (seoOn && aud === "public") { patch.search_visible = !!seoOn.checked; patch.seo_title = d.querySelector("#bfpEditSeoT").value.trim() || null; patch.seo_description = d.querySelector("#bfpEditSeoD").value.trim() || null; }
       call("PATCH", "/api/posts/" + encodeURIComponent(p.id), patch).then(function (r) {
         btn.disabled = false;
-        if (!r.ok) { d.querySelector("#bfpEditErr").textContent = r.body.error || "That did not save. Try again."; return; }
+        if (!r.ok) { editRefused(d, r.body); return; }
         closeDialog();
         var fresh = postEl(r.body.post);
         el.parentNode.replaceChild(fresh, el);
