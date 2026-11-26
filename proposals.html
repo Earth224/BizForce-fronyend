@@ -13,6 +13,10 @@
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e6edf3;background:#070b18}
     body{min-height:100vh;position:relative;overflow-x:hidden}
+    /* NAMED (Nov 25 2026, H1B, MIST_CLEAR): BEFORE the last proposal's code block (.exec-block.payload-raw) rested under the mist with
+       the page at its end. AFTER scroll room at the END only, after everything (the footer and the bottom bar's spacer): the
+       mist's 56 px, its 16 px gap and 16 px to spare. Nothing above it moves; only the page is taller. Phones only. */
+    @media (max-width: 760px){body::after{content:"";display:block;height:calc(88px + env(safe-area-inset-bottom, 0px))}}
     /* The backdrop is the token rule in scripts/bf-theme.js. */
     .page{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:32px 24px 40px}
     .top-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;flex-wrap:wrap}

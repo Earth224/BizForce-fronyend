@@ -72,6 +72,8 @@
     .find-people .btn-visit.is-on{border-color:rgba(255,255,255,.2);color:#a9b3cc}
     .home-side .tiles{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
     .feed-live,.feed-tab.is-soon{display:none}
+    /* NAMED (Nov 25 2026, H1): Local, Following and Market on a desktop: the active one underlined, the others grey and tappable */
+    @media (min-width: 761px){.feed-tab[aria-selected=false]{border-bottom-color:transparent;color:#a9b3cc;cursor:pointer}}   /* a phone keeps the board's #c9d1e6 (below) */
     @media (max-width: 760px){
       /* NAMED (Nov 20 2026, FX1): the approved design (backend scripts/designSpec.js FEED.TOP and BAR). The top row: Live 44 px
          at the left, the four tabs (16 px semibold, 44 px tall; the active one white with a 3 px cyan underline under its
@@ -127,13 +129,31 @@
         <button type="button" class="feed-live" id="feedLive" aria-label="Live">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><path d="M8 3l4 4 4-4"/></svg>
         </button>
-        <div class="feed-tabs" role="tablist" aria-label="Feeds"><button type="button" class="feed-tab is-soon" role="tab" id="tabLocal" aria-selected="false" data-soon="local">Local</button><button type="button" class="feed-tab" role="tab" id="tabFollowing" aria-selected="true" aria-controls="feed">Following</button><button type="button" class="feed-tab is-soon has-dot" role="tab" id="tabMarket" aria-selected="false" data-soon="market">Market</button><button type="button" class="feed-tab is-soon" role="tab" id="tabForYou" aria-selected="false" data-soon="foryou">For You</button></div>
+        <!-- NAMED (Nov 25 2026, H1): Local and Market are built (scripts/bf-home-tabs.js; the owner's canvas row 7). BEFORE each
+             opened a Coming soon sheet and Market always drew its dot; AFTER they are tabs, and the dot shows only for new listings.
+             For You still opens its Coming soon sheet. -->
+        <div class="feed-tabs" role="tablist" aria-label="Feeds"><button type="button" class="feed-tab" role="tab" id="tabLocal" aria-selected="false" aria-controls="homeLocal">Local</button><button type="button" class="feed-tab" role="tab" id="tabFollowing" aria-selected="true" aria-controls="feed">Following</button><button type="button" class="feed-tab" role="tab" id="tabMarket" aria-selected="false" aria-controls="homeMarket">Market</button><button type="button" class="feed-tab is-soon" role="tab" id="tabForYou" aria-selected="false" data-soon="foryou">For You</button></div>
         <button type="button" class="feed-search" id="feedSearch" aria-label="Search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </button>
       </div>
       <p class="feed-say" id="feedSay" role="status" aria-live="polite"></p>
       <div id="feed" role="tabpanel" aria-labelledby="tabFollowing"></div>
+      <!-- NAMED (Nov 25 2026, H1): Local, Market, the empty Following board, Search and the sheets (scripts/bf-home-tabs.js) -->
+      <div id="homeLocal" class="bfh-panel" role="tabpanel" aria-labelledby="tabLocal" hidden>
+        <div class="bfh-chips" id="homeLocalChips" data-over role="group" aria-label="Where Local shows" hidden></div>
+        <div id="homeLocalState" hidden></div>
+        <div id="homeLocalFeed"></div>
+      </div>
+      <div id="homeMarket" class="bfh-panel" role="tabpanel" aria-labelledby="tabMarket" hidden>
+        <div class="bfh-chips" id="homeMarketChips" data-over role="group" aria-label="Categories"></div>
+        <div id="homeMarketState" hidden></div>
+        <div id="homeMarketList" class="bfm-list"></div>
+      </div>
+      <section id="homeFollowEmpty" class="bfh-follow" aria-label="People to follow" hidden></section>
+      <div id="homeSearch" class="bfh-search" role="dialog" aria-modal="true" aria-label="Search" hidden></div>
+      <div id="homeSheetBack" class="bfh-back" hidden></div>
+      <div id="homeSheet" class="bfh-sheet" role="dialog" aria-modal="true" hidden></div>
       <section class="card feed-empty" id="feedEmpty" hidden aria-labelledby="feedEmptyTitle">
         <h2 id="feedEmptyTitle">Your Following feed is empty</h2>
         <p class="card-sub">Posts from the people you follow, and your own, show here, newest first.</p>
@@ -262,6 +282,7 @@ loadHome();
 <script src="/scripts/bf-safety.js"></script>
 <script src="/scripts/bf-verified.js"></script><!-- NAMED (Nov 21 2026, P3-2): the Verified badge, before the feed that draws it -->
 <script src="/scripts/bf-feed.js"></script>
+<script src="/scripts/bf-home-tabs.js"></script><!-- NAMED (Nov 25 2026, H1): Local, Market, the empty Following board and Search -->
 <script>
 /* NAMED (Nov 20 2026, P2-3): the Following feed. */
 var params = new URLSearchParams(window.location.search);
@@ -270,13 +291,16 @@ function say(text) { feedSay.textContent = text; clearTimeout(say.t); say.t = se
 /* NAMED (Nov 20 2026, FX1): on a phone Search, Live and the Local, Market and For You tabs open a Coming soon sheet (scripts/bf-feed.js
    BFFeed.soon); BEFORE Search said "Search is coming." in the line under the tabs, as it still does on a desktop. */
 function phoneNow() { return !!(window.matchMedia && window.matchMedia("(max-width: 760px)").matches); }
-document.getElementById("feedSearch").addEventListener("click", function () { if (phoneNow()) window.BFFeed.soon("search", this); else say("Search is coming."); });
+/* NAMED (Nov 25 2026, H1): BEFORE Search opened the Coming soon sheet (a phone) or said "Search is coming." (a desktop); AFTER it
+   opens the search screen on every width (scripts/bf-home-tabs.js). */
+document.getElementById("feedSearch").addEventListener("click", function () { if (window.BFHomeTabs) window.BFHomeTabs.openSearch(); });
 document.getElementById("feedLive").addEventListener("click", function () { window.BFFeed.soon("live", this); });
 Array.prototype.forEach.call(document.querySelectorAll(".feed-tab[data-soon]"), function (t) {
   t.addEventListener("click", function () { window.BFFeed.soon(t.getAttribute("data-soon"), t); });
 });
 function markFull() {
-  var full = document.getElementById("feed").classList.contains("is-full");
+  // NAMED (Nov 25 2026, H1): the active tab decides (scripts/bf-home-tabs.js isFull); BEFORE only the Following feed did
+  var full = window.BFHomeTabs ? window.BFHomeTabs.isFull() : document.getElementById("feed").classList.contains("is-full");
   document.body.classList.toggle("feed-full", full);
   document.querySelector(".first-post").hidden = full || document.querySelectorAll("#feed .bfp-post").length > 0;
   document.getElementById("feedEmpty").hidden = document.querySelectorAll("#feed .bfp-post").length > 0;
@@ -301,6 +325,8 @@ function renderSuggestions(list) {
 var feedHandle = window.BFFeed.mount(document.getElementById("feed"), { full: true, onFirst: function (body) {
   if (!body) { markFull(); return; }
   document.body.classList.toggle("has-posts", body.any_posts === true);
+  // NAMED (Nov 25 2026, H1): following nobody: the empty Following board with its suggestions (scripts/bf-home-tabs.js)
+  if (window.BFHomeTabs && window.BFHomeTabs.followingFirst(body)) { markFull(); openFromLink(); return; }
   markFull();
   if (body.following_count < 3) renderSuggestions(body.suggestions || []);
   openFromLink();
@@ -321,6 +347,7 @@ function openFromLink() {
     if (params.get("talk") === "1") window.BFFeed.openTalk(id);
   }).catch(function () { say("That post could not be loaded just now."); });
 }
+window.__bfhMarkFull = markFull;   // NAMED (Nov 25 2026, H1): bf-home-tabs.js calls it when the tab changes
 /* the composer modal (desktop) adds the new post at the top */
 window.BFHome = { added: function (post, d) { if (!post) return; feedHandle.prepend(post); document.body.classList.add("has-posts"); markFull(); say((d && d.message) || "Your post is up."); } };
 </script>

@@ -13,8 +13,15 @@
      NAMED BEFORE → AFTER (Nov 8 2026): BEFORE, only "/" and app.html were
      skipped, so when frontend ce8c338 (Oct 31 2026) put this tag on the
      Oracle pages for the boombox, the mist came back to them. Logged out, it
-     never shows. */
-  var TMX_NO_MIST_PAGES = ["index", "app", "reset-password", "verify-email", "oracle", "mychart", "synastry", "the-third"];
+     never shows.
+     NAMED (Nov 25 2026, H1B, owner rule): BEFORE the mist showed on Home and
+     on the composer. AFTER it never shows on Home (home.html: For You, Local,
+     Following, Market and the Search screen) or on the Create (+) composer
+     (compose.html), at any width; it rested over the full-screen feed's Share.
+     HQ and every page opened from it, Profile and Inbox keep it exactly as it
+     was. The left Guide tab (termaximus-guide.js) is not this script's and
+     stays on every page that has it. */
+  var TMX_NO_MIST_PAGES = ["index", "app", "reset-password", "verify-email", "oracle", "mychart", "synastry", "the-third", "home", "compose"];
   try {
     var _tmxPath  = (window.location.pathname || "").toLowerCase();
     var _tmxFile  = _tmxPath.replace(/\/+$/, "").split("/").pop().replace(/\.html$/, "");

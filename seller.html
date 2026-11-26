@@ -335,6 +335,16 @@ function whenSafety(fn) {
   if (tag) tag.addEventListener("load", go);
   window.addEventListener("load", go);
 }
+// NAMED (Nov 25 2026, H1): the same for the Verified badge: run fn once bf-verified.js has run, at once if it has, else on its
+// script tag's load, else on the page's load (a guard keeps it to one call).
+function whenVerified(fn) {
+  if (window.bfVerified) { fn(); return; }
+  var done = false;
+  function go() { if (!done && window.bfVerified) { done = true; fn(); } }
+  var tag = document.querySelector('script[src="/scripts/bf-verified.js"]');
+  if (tag) tag.addEventListener("load", go);
+  window.addEventListener("load", go);
+}
 function sfDialog(html, focusSel) {
   var old = document.getElementById("sfDlg"); if (old) old.parentNode.removeChild(old);
   var veil = document.createElement("div");
@@ -521,7 +531,13 @@ function renderStorefront(data) {
 
   document.getElementById("sfName").textContent = seller.display_name || seller.username || "Unnamed seller";
   // NAMED (Nov 21 2026, P3-2): the Verified badge inside the name, after its text (scripts/bf-verified.js)
-  if (window.bfVerified && data.verified) document.getElementById("sfName").insertAdjacentHTML("beforeend", window.bfVerified.html(data.verified));
+  // NAMED (Nov 25 2026, H1): BEFORE the badge was drawn only if bf-verified.js (a later script tag) had already run when the
+  // seller's data arrived, so on a slow load a Verified seller sometimes showed no badge (LR-4B found it). AFTER it is drawn
+  // when both are ready, in either order (whenVerified, as LR-4B's whenSafety does for the menu), once.
+  if (data.verified) whenVerified(function () {
+    var nameEl = document.getElementById("sfName");
+    if (!nameEl.querySelector("[data-bf-verified]")) nameEl.insertAdjacentHTML("beforeend", window.bfVerified.html(data.verified));
+  });
   // P2-2: Report, Block and Mute (scripts/bf-safety.js); signed out, Report asks to sign in
   // NAMED (Nov 25 2026, LR-4B): BEFORE the "..." menu was drawn only if bf-safety.js (a later script tag) had already run when
   // the seller's data arrived, so on a slow load it was sometimes missing. AFTER it is drawn when both are ready, in either

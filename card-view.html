@@ -30,6 +30,16 @@
       font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#e8e8ff}
     body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;min-height:100svh}
     body > footer.bf-legal-footer{margin:0 auto;padding:6px 16px 10px;flex:none;width:100%}
+    /* NAMED (Nov 25 2026, H1B, MIST_CLEAR): BEFORE the footer's last link ("Your data") rested under the mist with the page at its
+       end. AFTER scroll room at the END only, after the footer: the mist's 56 px, its 16 px gap and 16 px to spare. A pseudo
+       element, so fitCard (which sums body's children and the footer) is unchanged. #cardViewport grows to fill body's
+       minimum height (flex 1 0 auto), so that minimum grows by the same 88 px: the viewport keeps exactly the room it had and
+       nothing above the end moves; only the page is taller. Phones only: the desktop is unchanged. "html body" because
+       css/bf-phone.css, loaded later, sets body's phone minimum (100dvh): this is that minimum plus the 88 px. */
+    @media (max-width: 760px){
+      html body{min-height:calc(100vh + 88px + env(safe-area-inset-bottom, 0px));min-height:calc(100dvh + 88px + env(safe-area-inset-bottom, 0px))}
+      body::after{content:"";display:block;flex:none;width:100%;height:calc(88px + env(safe-area-inset-bottom, 0px))}
+    }
     /* Support and the lead form open inline, directly under the button row, pushing the footer down. */
     #cvSupport,#cvLead{position:static;width:min(560px,92vw);flex:none;background:rgba(10,15,35,.95);
       border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px}

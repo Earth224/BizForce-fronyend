@@ -379,6 +379,15 @@
   function isFound(p) { return !!(p && p.intent === "need" && p.need && p.need.found); }
   function kindHtml(p) {
     var cat = p.category && typeof p.category.name === "string" ? p.category.name : "";
+    // NAMED (Nov 25 2026, H1, the owner's board "Home: Local"): a post from the Local feed carries local { area, distance_label }:
+    // its line is "Category · Area · Distance" ("Hair and Beauty · North Park · 0.8 mi"), a Need's after its tag
+    if (p.local && typeof p.local === "object") {
+      var lp = [cat, typeof p.local.area === "string" ? p.local.area : "", typeof p.local.distance_label === "string" ? p.local.distance_label : ""].filter(Boolean);
+      var lf = isFound(p);
+      if (p.intent === "need") return '<div class="bfp-kind is-need is-local"><span class="bfp-tag' + (lf ? " is-found" : "") + '">' + (lf ? "FOUND" : "NEED") + '</span>' +
+        (lp.length ? '<span class="bfp-kmeta">' + esc(lp.join(" · ")) + '</span>' : "") + '</div>';
+      return lp.length ? '<div class="bfp-kind is-share is-local"><span class="bfp-kmeta">' + esc(lp.join(" · ")) + '</span></div>' : "";
+    }
     if (p.intent === "need") {
       var N = p.need || {};
       var parts = [cat, typeof N.city === "string" ? N.city : "", WHEN_WORDS[N.when] || ""].filter(Boolean);
@@ -920,7 +929,9 @@
     function more() {
       if (state.loading || state.done) return;
       state.loading = true;
-      call("GET", "/api/feed/following" + (state.cursor ? "?cursor=" + encodeURIComponent(state.cursor) : "")).then(function (r) {
+      // NAMED (Nov 25 2026, H1): opts.local, the Local feed in the same shape (scripts/bf-home-tabs.js); BEFORE always Following
+      var page = state.cursor ? "?cursor=" + encodeURIComponent(state.cursor) : "";
+      (opts.local === true ? call("GET", "/api/feed/local" + page) : call("GET", "/api/feed/following" + page)).then(function (r) {
         state.loading = false;
         if (!r.ok) throw new Error(r.body.error || "HTTP " + r.status);
         var list = r.body.posts || [];

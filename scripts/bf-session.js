@@ -66,6 +66,8 @@
      its chat box sit, and the language it speaks), oracle_corner_star_pos and bf_oracle_moon_pos (where
      two Oracle widgets sit), bf_active_calendar (which calendar is shown),
      bf_exec_tab (the Executive command deck's last tab on this device),
+     bf_home_tab (Home's last tab on this device, Local, Following or Market:
+     scripts/bf-home-tabs.js; added Nov 25 2026, H1),
      bf_cc_tab (sessionStorage: the dashboard Command Center's last tab in
      this tab; both kept through scripts/bf-tabs.js), bf_ag_tab_<agent>
      (sessionStorage: each agent page's last tab in this tab, also through
@@ -98,7 +100,8 @@
     "bf_agents_view",
     "mcTargetGoalConversions",
     "bf_theme",
-    "bf_music"
+    "bf_music",
+    "bf_recent_searches"   // NAMED (Nov 25 2026, H1): the member's recent searches on Home (scripts/bf-home-tabs.js), cleared at sign-out
   ];
   var PER_USER_SESSION_PREFIXES = ["bf_tmx_insight:", "bf_tmx_trail", "bf_music_live", "bf_card_pick"];
   var OFFLINE_DB = "bf-offline";

@@ -44,7 +44,7 @@ var BUILD = "__BF_BUILD__";
 // NAMED (Nov 22 2026, FX3): BEFORE "p31c". AFTER "fx3": the abyss sun and bf-abyss.js, Termaximus on the phone (the mist, the Guide tab, the chat; the book button gone), the agent cards' colours and icons.
 // NAMED (Nov 22 2026, FX3B): BEFORE "fx3". AFTER "fx3b": the first portal drawn before the settle, the moon not redrawn while its photo fails, the five unused agent icon rules removed.
 // NAMED (Nov 23 2026, P3-3): BEFORE "fx3b". AFTER "p33": Share, Offer or Need in the composer, the Need post and I can help in the feed, the Market's category filter.
-var SHELL_REV = "g1";   // NAMED (Nov 25 2026, HOTFIX-G1): BEFORE "lr4b" (LR-4B: BEFORE "lr4"; LR-4: BEFORE "lr3b"; LR-3B: BEFORE "lr3"; LR-3: BEFORE "lr2b"; LR-2B: BEFORE "lr2"; LR-2: BEFORE "lr1b"; LR-1B: BEFORE "lr1")
+var SHELL_REV = "h1b";   // NAMED (Nov 25 2026, H1B): BEFORE "h1" (H1: BEFORE "g1" (HOTFIX-G1: BEFORE "lr4b"; LR-4B: BEFORE "lr4"; LR-4: BEFORE "lr3b"; LR-3B: BEFORE "lr3"; LR-3: BEFORE "lr2b"; LR-2B: BEFORE "lr2"; LR-2: BEFORE "lr1b"; LR-1B: BEFORE "lr1"))
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [
@@ -80,6 +80,7 @@ var STATIC_FILES = [
   "/scripts/bf-tabbar.js", "/scripts/bf-profile-shell.js", "/scripts/bf-local-settings.js",
   "/scripts/bf-safety.js",   // NAMED (Nov 20 2026, P2-2): the report, block and mute menu (the Inbox, Settings and Executive HQ load it)
   "/scripts/bf-feed.js", "/scripts/bf-composer.js",   // NAMED (Nov 20 2026, P2-3): posts on Home and the profile, and the composer
+  "/scripts/bf-home-tabs.js",   // NAMED (Nov 25 2026, H1): Home's Local, Market and Search
   "/scripts/bf-access.js",   // NAMED (Nov 20 2026, P3-1): the members panel and the verification banner (bf-session.js loads it)
   "/scripts/bf-verified.js",   // NAMED (Nov 21 2026, P3-2): the Verified badge (Home, the profile and the storefront load it)
   "/scripts/bf-agents-views.js",   // NAMED (Nov 21 2026, FX2): the Agent Directory's phone views (ai-agents.html loads it)
