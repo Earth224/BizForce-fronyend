@@ -768,6 +768,28 @@
       .cal-day-num { font-size: 1rem; }
       .cal-grid { gap: 6px; }
     }
+    /* NAMED (Nov 26 2026, FX4A): the calendar on a phone. BEFORE a column would not shrink below its longest word, so
+       the Hebrew, Zoroastrian, Egyptian and Chinese grids ran up to 211 px off the screen, and the month row broke
+       into two or three lines. AFTER every column is an equal share of the screen (minmax(0,1fr)) and a long word
+       wraps inside its cell (hyphenated where the language allows); the row stays one row, < month > TODAY AGENT RUNS,
+       the month's name wrapping onto as many lines as it needs (never cut). */
+    @media (max-width: 760px) {
+      .cal-grid { grid-template-columns: repeat(var(--cal-cols, 7), minmax(0, 1fr)); }
+      .cal-day-cell, .cal-grid-weekday { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+      .cal-day-cell { padding: 6px 4px; }
+      .cal-nav-row { flex-wrap: nowrap; gap: 4px; }
+      .cal-nav-row > .cal-nav-btn { flex: 0 0 44px; }
+      .cal-month-header { min-width: 0; flex: 1 1 0; }
+      .cal-month-title { font-size: 0.85rem; overflow-wrap: break-word; hyphens: auto; }
+      .cal-nav-row > .cal-today-btn { flex: 0 1 auto; padding: 6px; letter-spacing: 0.02em; }
+      .cal-nav-row > .cal-agent-runs-btn { max-width: 66px; }
+      /* a day's number never splits; the eight- and ten-column traditions (Zoroastrian; Egyptian and Chinese) sit closer, in smaller type */
+      .cal-day-num { overflow-wrap: normal; white-space: nowrap; }
+      .cal-grid[style*="--cal-cols:8"], .cal-grid[style*="--cal-cols:10"] { gap: 3px; }
+      .cal-grid[style*="--cal-cols:8"] .cal-day-cell, .cal-grid[style*="--cal-cols:10"] .cal-day-cell { padding: 5px 2px; }
+      .cal-grid[style*="--cal-cols:10"] .cal-day-num { font-size: 0.85rem; }
+      .cal-grid[style*="--cal-cols:8"] .cal-day-greg, .cal-grid[style*="--cal-cols:10"] .cal-day-greg { font-size: 0.6rem; }
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>

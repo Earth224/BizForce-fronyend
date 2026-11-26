@@ -758,6 +758,10 @@
       fill: rgba(232,220,255,0.72);
       transition: fill 0.2s ease;
     }
+    /* NAMED (Nov 26 2026, FX4A): BEFORE the glyph took the pointer itself, so a thin drawn glyph (Mars, Venus) let taps
+       fall through and a neighbour's glyph box took them in a conjunction. AFTER its own transparent hit circle (built in
+       buildSigilSvg) takes them; the group's hover lights the glyph exactly as before. */
+    .sigil-glyph, .sigil-drawn { pointer-events: none; }
     .mc-tappable:hover .sigil-dot   { fill: #34d399; }
     .mc-tappable:hover .sigil-glyph { fill: #34d399; }
     .sigil-drawn { fill: none; stroke: rgba(232,220,255,0.72); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s ease; }
@@ -1576,6 +1580,18 @@
   (function () {
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     var token = localStorage.getItem("bf_token");
+    /* NAMED (Nov 26 2026, FX4A): BUSY IS NOT BROKEN. A 429 from the API (its rate limit) waits as long as the server's
+       Retry-After says (at most 60 s), says so, and asks once more; if that fails too, the caller's own failure message
+       and its Try again button follow, as before. */
+    window.bfBusyFetch = window.bfBusyFetch || function (url, opts, show) {
+      return fetch(url, opts).then(function (r) {
+        if (r.status !== 429) return r;
+        var n = parseInt(r.headers.get("Retry-After"), 10);
+        n = Math.min(60, n > 0 ? n : 60);
+        try { if (show) show("Busy for a moment. Trying again in " + n + " seconds."); } catch (e) {}
+        return new Promise(function (ok) { setTimeout(ok, n * 1000); }).then(function () { return fetch(url, opts); });
+      });
+    };
 
     /* ═══ Moon — copied from oracle.html's celestial IIFE, trimmed of the
        Celestial panel's clock/calendar/eclipse/date-picker/drag code,
@@ -2195,6 +2211,42 @@
 
     /* Builds the sigil SVG. Returns null when there is nothing truthful to
        draw, so the caller can show the reason instead of an empty ring. */
+    /* NAMED (Nov 26 2026, FX4A): A TAP OPENS THE MARK UNDER IT. BEFORE the trace, axis and figure hit bands (drawn after
+       the planets) lay over the planet dots, so a tap on a dot opened a trace step; a glyph's own box decided its taps,
+       so Mars's thin drawn glyph fell through to the ring, Venus's missed, and in a close conjunction the later planet
+       took the earlier one's taps (Mercury opened Neptune at 360). AFTER each planet has a hit circle on its dot and one
+       on its glyph, sized so no two planets' circles overlap (the nearest planet wins); the trace, axis and figure bands
+       are drawn as pieces that leave those circles, and every other trace step's midpoint, uncovered. Every hit shape is
+       transparent: nothing drawn changes. */
+    /* The band from a to b (its ends carried out by half its width, as a round cap did), walked in 1-unit steps: each
+       step is as wide as the band, or narrower where a hole is near, so it never reaches into a hole; steps of the same
+       width join into one line, and a step with less than 1 unit either side is left out. */
+    function sigilHitPieces(a, b, width, holes) {
+      var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy);
+      if (!(len > 0)) return [];
+      var ux = dx / len, uy = dy / len, from = -width / 2, steps = Math.ceil(len + width), pieces = [], run = null;
+      for (var k = 0; k < steps; k++) {
+        var s0 = from + k, s1 = Math.min(from + k + 1, len + width / 2), mid = (s0 + s1) / 2;
+        var p = { x: a.x + ux * mid, y: a.y + uy * mid }, half = width / 2;
+        (holes || []).forEach(function (h) { half = Math.min(half, sigilDist(p, h) - h.r - 0.5); });
+        half = half >= width / 2 ? width / 2 : Math.floor(half);
+        if (half < 1) { run = null; continue; }
+        if (run && run.half === half) { run.s1 = s1; continue; }
+        run = { s0: s0, s1: s1, half: half };
+        pieces.push(run);
+      }
+      return pieces.map(function (r) {
+        return { x1: a.x + ux * r.s0, y1: a.y + uy * r.s0, x2: a.x + ux * r.s1, y2: a.y + uy * r.s1, w: 2 * r.half };
+      });
+    }
+    function sigilHitLines(a, b, width, holes) {
+      return sigilHitPieces(a, b, width, holes).map(function (s) {
+        return '<line class="sigil-hit-line" x1="' + sigilN(s.x1) + '" y1="' + sigilN(s.y1) + '" x2="' + sigilN(s.x2) + '" y2="' + sigilN(s.y2) +
+               '" stroke="transparent" stroke-width="' + s.w + '" stroke-linecap="butt"/>';
+      }).join("");
+    }
+    function sigilDist(p, q) { return Math.sqrt((p.x - q.x) * (p.x - q.x) + (p.y - q.y) * (p.y - q.y)); }
+
     function buildSigilSvg(natal, lifePathRaw) {
       if (!natal || !natal.available) return null;
 
@@ -2254,8 +2306,29 @@
          multi-character, and they are not drawn here. */
       var SIGIL_GLYPH_RADIUS = 133;
 
+      /* NAMED (Nov 26 2026, FX4A): the hit circles' sizes. A dot's circle is r=10 and a glyph's r=6.5 (it covers the
+         9-unit glyph box), each cut to half the distance to the nearest dot or glyph of ANOTHER planet, so two planets'
+         circles never overlap. planetHoles is every circle, which the bands drawn later leave uncovered. */
+      var planetMarks = [];
       planets.forEach(function (p) {
         if (p == null || p.longitude == null) return;
+        planetMarks.push({ name: p.name, dot: sigilPoint(p.longitude, 120), glyph: sigilPoint(p.longitude, SIGIL_GLYPH_RADIUS) });
+      });
+      var planetHoles = [];
+      planetMarks.forEach(function (m) {
+        var near = Infinity;
+        planetMarks.forEach(function (o) { if (o !== m) near = Math.min(near, sigilDist(m.dot, o.dot), sigilDist(m.dot, o.glyph)); });
+        m.dotR = Math.min(10, near / 2);
+        near = Infinity;
+        planetMarks.forEach(function (o) { if (o !== m) near = Math.min(near, sigilDist(m.glyph, o.dot), sigilDist(m.glyph, o.glyph)); });
+        m.glyphR = Math.min(6.5, near / 2);
+        planetHoles.push({ x: m.dot.x, y: m.dot.y, r: m.dotR }, { x: m.glyph.x, y: m.glyph.y, r: m.glyphR });
+      });
+      var markIndex = 0;
+
+      planets.forEach(function (p) {
+        if (p == null || p.longitude == null) return;
+        var mark = planetMarks[markIndex++];
         var pt  = sigilPoint(p.longitude, 120);
         var ret = p.retrograde === true;
         var gpt = sigilPoint(p.longitude, SIGIL_GLYPH_RADIUS);
@@ -2298,7 +2371,7 @@
            planets in close conjunction will overlap here and the later one
            takes the tap — inherent to marking positions this small, and the
            orbit cards remain the way to reach either. */
-        svg += '<circle class="sigil-hit" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="10" fill="transparent"/>';
+        svg += '<circle class="sigil-hit" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="' + sigilN(mark.dotR) + '" fill="transparent"/>';   // NAMED (Nov 26 2026, FX4A): BEFORE r="10"
 
         /* Venus and Mars are drawn in the same 9-unit square a typed glyph
            takes, centred on the same point, so the radius sums above hold. */
@@ -2310,6 +2383,8 @@
                  'text-anchor="middle" dominant-baseline="middle" font-size="9">' +
                  escapeXml(NATAL_GLYPHS[p.name] || p.name) + '</text>';
         }
+        // NAMED (Nov 26 2026, FX4A): the glyph's own hit circle (the glyph itself no longer takes the pointer)
+        svg += '<circle class="sigil-hit" cx="' + sigilN(gpt.x) + '" cy="' + sigilN(gpt.y) + '" r="' + sigilN(mark.glyphR) + '" fill="transparent"/>';
 
         svg += '</g>';
       });
@@ -2341,6 +2416,20 @@
         return '<circle class="sigil-trace-end" cx="' + sigilN(pt.x) + '" cy="' + sigilN(pt.y) + '" r="5" ' +
                'fill="none" stroke="' + SIGIL_COLORS.trace + '" stroke-opacity="0.9" stroke-width="1.8"/>';
       }
+
+      /* NAMED (Nov 26 2026, FX4A): each trace step's midpoint is kept for that step alone: a circle there, up to 9
+         units, clear of the planets' circles and of the other midpoints' circles, which every other band leaves
+         uncovered. */
+      var traceMids = [];
+      for (var mi = 0; mi < tracePts.length - 1; mi++) {
+        traceMids.push({ x: (tracePts[mi].pt.x + tracePts[mi + 1].pt.x) / 2, y: (tracePts[mi].pt.y + tracePts[mi + 1].pt.y) / 2, r: 9 });
+      }
+      traceMids.forEach(function (m) {
+        traceMids.forEach(function (o) { if (o !== m) m.r = Math.min(m.r, sigilDist(m, o) / 2); });
+        planetHoles.forEach(function (h) { m.r = Math.min(m.r, sigilDist(m, h) - h.r); });
+      });
+      traceMids = traceMids.map(function (m) { return { x: m.x, y: m.y, r: Math.max(0, m.r) }; });
+      var bandHoles = planetHoles.concat(traceMids.filter(function (m) { return m.r > 0; }));
 
       if (tracePts.length >= 2) {
         /* SIX SEGMENTS RATHER THAN ONE POLYLINE, so each step of the Chaldean
@@ -2377,8 +2466,9 @@
           svg += '<line class="sigil-trace" ' + segCoords +
                  ' stroke="' + SIGIL_COLORS.trace + '" stroke-opacity="0.85" stroke-width="1.6" ' +
                  'stroke-linecap="round"/>';
-          svg += '<line class="sigil-hit-line" ' + segCoords +
-                 ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>';
+          // NAMED (Nov 26 2026, FX4A): BEFORE one 18-wide round-capped band; AFTER the same band in pieces, clear of the
+          // planets' circles and of the OTHER steps' midpoints
+          svg += sigilHitLines(segA.pt, segB.pt, 18, planetHoles.concat(traceMids.filter(function (m, k) { return k !== si && m.r > 0; })));
           if (si === 0) svg += traceStartMarker(segA.pt);
           if (si === tracePts.length - 2) svg += traceEndMarker(segB.pt);
           svg += '</g>';
@@ -2426,8 +2516,7 @@
                (dash ? ' stroke-dasharray="4 4"' : '') + '/>' +
                /* 18 units, the same width .mc-line-hit uses on the blueprint's
                   perimeter, and transparent for the same reason. */
-               '<line class="sigil-hit-line" ' + coords +
-               ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>' +
+               sigilHitLines(a, b, 18, bandHoles) +   // NAMED (Nov 26 2026, FX4A): BEFORE one band; AFTER pieces clear of the planets and the midpoints
                '</g>';
       }
 
@@ -2468,23 +2557,22 @@
                           '" x2="' + sigilN(verts[1].x) + '" y2="' + sigilN(verts[1].y) + '"';
           svg += '<line class="sigil-figure-mark" ' + figCoords +
                  ' stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linecap="round"/>';
-          svg += '<line class="sigil-hit-line" ' + figCoords +
-                 ' stroke="transparent" stroke-width="18" stroke-linecap="round"/>';
+          svg += sigilHitLines(verts[0], verts[1], 18, bandHoles);   // NAMED (Nov 26 2026, FX4A): pieces, clear of the planets and the midpoints
         } else if (points < 5) {
           // 3 and 4: a plain polygon. A star needs at least five points before
           // skipping a vertex produces anything but the polygon itself.
           var polyPts = verts.map(function (v) { return sigilN(v.x) + "," + sigilN(v.y); }).join(" ");
           svg += '<polygon class="sigil-figure-mark" points="' + polyPts +
                  '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
-          svg += '<polygon class="sigil-hit-line" points="' + polyPts +
-                 '" fill="none" stroke="transparent" stroke-width="14" stroke-linejoin="round"/>';
+          // NAMED (Nov 26 2026, FX4A): BEFORE one 14-wide polygon band; AFTER its edges in pieces, clear of the planets and the midpoints
+          verts.forEach(function (v, k) { svg += sigilHitLines(v, verts[(k + 1) % verts.length], 14, bandHoles); });
         } else {
           sigilStarCycles(points).forEach(function (cycle) {
             var cyclePts = cycle.map(function (i) { return sigilN(verts[i].x) + "," + sigilN(verts[i].y); }).join(" ");
             svg += '<polygon class="sigil-figure-mark" points="' + cyclePts +
                    '" fill="none" stroke="' + stroke + '" stroke-opacity="0.85" stroke-width="1.6" stroke-linejoin="round"/>';
-            svg += '<polygon class="sigil-hit-line" points="' + cyclePts +
-                   '" fill="none" stroke="transparent" stroke-width="14" stroke-linejoin="round"/>';
+            // NAMED (Nov 26 2026, FX4A): BEFORE one 14-wide polygon band; AFTER its edges in pieces, clear of the planets and the midpoints
+            cycle.forEach(function (vi, k) { svg += sigilHitLines(verts[vi], verts[cycle[(k + 1) % cycle.length]], 14, bandHoles); });
           });
         }
 
@@ -3023,8 +3111,10 @@
       }
 
       numerologyFailed = false;
-      numerologyFetchPromise = fetch(API_URL + "/api/oracle/numerology", {
+      numerologyFetchPromise = window.bfBusyFetch(API_URL + "/api/oracle/numerology", {
         headers: { "Authorization": "Bearer " + token }
+      }, function (msg) {   // NAMED (Nov 26 2026, FX4A): a 429 says so in the stage while it waits to ask again
+        var ph = document.querySelector("#myChartStage .my-chart-placeholder"); if (ph) ph.textContent = msg;
       })
         .then(function (r) {
           /* A non-2xx is a failure, not an answer. The endpoint says "no birth
@@ -3073,8 +3163,10 @@
       }
 
       natalFailed = false;
-      natalFetchPromise = fetch(API_URL + "/api/oracle/natal", {
+      natalFetchPromise = window.bfBusyFetch(API_URL + "/api/oracle/natal", {
         headers: { "Authorization": "Bearer " + token }
+      }, function (msg) {   // NAMED (Nov 26 2026, FX4A): a 429 says so under the sigil while it waits to ask again
+        var cap = document.getElementById("mychartSigilCaption"); if (cap) cap.textContent = msg;
       })
         .then(function (r) {
           // Refusals come back 200 with { available: false, reason }, so a
@@ -3442,6 +3534,9 @@
           // sent people to fix something that was fine.
           freshStage.innerHTML = '<div class="my-chart-placeholder">Your chart could not be loaded — the request failed.</div>';
           appendChartRetry(freshStage.firstChild);
+          // NAMED (Nov 26 2026, FX4A): BEFORE a failed numerology request left the natal chart unasked, so neither the
+          // orbit nor the sigil drew. AFTER natal is asked anyway: the orbit and the sigil draw from it on their own.
+          loadAndRenderOrbit();
         } else {
           freshStage.innerHTML = '<div class="my-chart-placeholder">Sync your birth data in your Oracle Profile to see your chart.</div>';
         }
@@ -5692,6 +5787,13 @@
        strip that differs between mychart.html and oracle.html (element id and
        class prefix). fetchTodayEvents itself is identical in both files. An
        empty day renders nothing; a failed one says so. */
+    // NAMED (Nov 26 2026, FX4A): the busy line (a 429), in the same place as the failure below
+    function renderTodayEventsBusy(msg) {
+      var el = document.getElementById("mcTodayEvents");
+      if (!el) return;
+      el.innerHTML = '<div class="cal-today-events-heading">Today</div><div class="cal-today-events-more"></div>';
+      el.lastChild.textContent = msg;
+    }
     function renderTodayEventsFailure(detail) {
       var el = document.getElementById("mcTodayEvents");
       if (!el) return;
@@ -5730,9 +5832,9 @@
       var now = new Date();
       var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
-      return fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+      return window.bfBusyFetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
         headers: { "Authorization": "Bearer " + token }
-      })
+      }, renderTodayEventsBusy)   // NAMED (Nov 26 2026, FX4A): a 429 says so in the Today strip while it waits to ask again
         .then(function (r) {
           // A non-2xx is a failure, not an empty day.
           if (!r.ok) throw new Error("HTTP " + r.status);

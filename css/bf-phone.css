@@ -42,11 +42,15 @@
   /* ── I. Tap targets: 44 x 44 at least. :where() keeps these at no specificity, so a page's own larger
      min-height (a textarea, a tall card) still wins; a control a page sizes below 44 is raised by the
      page rules further down. min-height does nothing to an inline link, so a link in a sentence is left as
-     it is. ── */
+     it is.
+     NAMED (Nov 26 2026, FX4A): BEFORE these three rules also reached the controls inside the opened boombox
+     (.bbx), a fixed 440 x 250 drawing scaled as a whole, and raised its 17-26 px knobs and keys to 44 px, so
+     they overlapped and spilled. AFTER :where(:not(.bbx *)) (no specificity) leaves the drawing's own sizes,
+     as at c792559; the minimised bar (.bfm-tag, outside .bbx) keeps its 44 px. ── */
   :where(button, [role=button], [role=tab], [role=switch], summary, select, a[href], [tabindex]:not([tabindex="-1"]),
-    input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=color])) { min-height: 44px; }
-  :where(button, [role=button], [role=tab], [role=switch], input[type=color], [tabindex]:not([tabindex="-1"])) { min-width: 44px; }
-  :where(input[type=range], input[type=color]) { min-height: 44px; }
+    input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=color])):where(:not(.bbx *)) { min-height: 44px; }
+  :where(button, [role=button], [role=tab], [role=switch], input[type=color], [tabindex]:not([tabindex="-1"])):where(:not(.bbx *)) { min-width: 44px; }
+  :where(input[type=range], input[type=color]):where(:not(.bbx *)) { min-height: 44px; }
   :where(summary) { box-sizing: border-box; padding-block: 10px; }
   /* A checkbox or a radio is tapped by its label. */
   :where(label:has(> input[type=checkbox]), label:has(> input[type=radio])) { min-height: 44px; display: flex; align-items: center; }
@@ -77,6 +81,12 @@
   /* Messages: the compose row keeps Send whole at 360 px (the field gives way, never the button). */
   .compose-bar > input { min-width: 0; flex: 1 1 auto; }
   .compose-bar > #sendBtn { flex: 0 0 auto; white-space: nowrap; }
+  /* NAMED (Nov 26 2026, FX4A): the Oracle (oracle.html). BEFORE at 360 px the chat field kept its own minimum width
+     and pushed Send 15 px past the screen; AFTER the field gives way and Send stays whole. BEFORE the gold sync card
+     began at 24 px, under the Guide tab (0 to 32 px); AFTER its own left margin is at least 16 px (40 px from the
+     screen's edge), so the card's left edge moves and nothing else does; wider than the card needs, it stays centred. */
+  .oracle-input-bar > .oracle-chat-input { min-width: 0; }
+  .oracle-sync-card { margin-left: max(16px, calc((100% - 480px) / 2)); }
   /* The music player's "Play when I open BizForce": its label (beside the checkbox, for= it) is a 44 px target. */
   .bfm-toggle label[for] { display: inline-flex; align-items: center; min-height: 44px; }
   /* Vitality: the form's card has a desktop's 40 x 32 padding; on a phone 24 x 18, the site's card padding. */

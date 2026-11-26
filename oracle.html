@@ -2033,6 +2033,18 @@
   <script>
     var API_URL = "https://dynamic-prosperity-production-5382.up.railway.app";
     var birthName = "", birthDate = "", chatHistory = [];
+    /* NAMED (Nov 26 2026, FX4A): BUSY IS NOT BROKEN. A 429 from the API (its rate limit) waits as long as the server's
+       Retry-After says (at most 60 s), says so, and asks once more; if that fails too, the caller's own failure message
+       and its Try again button follow, as before. */
+    window.bfBusyFetch = window.bfBusyFetch || function (url, opts, show) {
+      return fetch(url, opts).then(function (r) {
+        if (r.status !== 429) return r;
+        var n = parseInt(r.headers.get("Retry-After"), 10);
+        n = Math.min(60, n > 0 ? n : 60);
+        try { if (show) show("Busy for a moment. Trying again in " + n + " seconds."); } catch (e) {}
+        return new Promise(function (ok) { setTimeout(ok, n * 1000); }).then(function () { return fetch(url, opts); });
+      });
+    };
     var ORACLE_THINKING_PHRASES = [
       "Termaximus consults the deeper current…",
       "Tracing the pattern beneath the pattern…",
@@ -2948,8 +2960,11 @@
     function prefillProfile() {
       if (typeof API_URL === "undefined" || typeof token === "undefined") return;
       profilePrefillState = "loading";
-      return fetch(API_URL + "/api/oracle/sync", {
+      return window.bfBusyFetch(API_URL + "/api/oracle/sync", {
         headers: { "Authorization": "Bearer " + token }
+      }, function (msg) {   // NAMED (Nov 26 2026, FX4A): a 429 says so where a failed load would, while it waits to ask again
+        var el = document.getElementById("oracleProfileLoadError"); if (!el) return;
+        el.textContent = msg; el.hidden = false;
       })
         .then(function (r) {
           if (!r.ok) throw new Error("HTTP " + r.status);
@@ -3045,8 +3060,15 @@
       // rejection: the section is already hidden by this point, and only the
       // .catch below would put the failure back on screen.
       numerologyFetchPromise = Promise.resolve().then(function () {
-        return fetch(API_URL + "/api/oracle/numerology", {
+        return window.bfBusyFetch(API_URL + "/api/oracle/numerology", {
           headers: { "Authorization": "Bearer " + token }
+        }, function (msg) {   // NAMED (Nov 26 2026, FX4A): a 429 says so where a failed load would, while it waits to ask again
+          var box = document.getElementById("numerologyLoadFail"), sect = document.getElementById("oracleProfileNumerology");
+          if (!box) return;
+          box.innerHTML = '<div class="num-sys-empty"></div>';
+          box.firstChild.textContent = msg;
+          box.style.display = "block";
+          if (sect) sect.style.display = "block";
         });
       })
         .then(function (r) {
@@ -5056,6 +5078,7 @@
       panel.classList.add("is-open");
       panel.setAttribute("aria-hidden", "false");
       requestLocationOnce();
+      renderMoon();   // NAMED (Nov 26 2026, FX4A): the small moon is drawn only while the panel is open, so draw it as it opens
     }
     function closePanel() {
       isOpen = false;
@@ -5672,8 +5695,18 @@
         stageEl.textContent = (waxing ? "Waxing" : "Waning") + " · " + descriptor;
       }
 
-      drawSmallMoonSVG(document.getElementById("celMoonSvg"), phaseAngleDeg, illumPercent / 100, waxing);
+      /* NAMED (Nov 26 2026, FX4A): BEFORE the small Celestial-panel moon was rebuilt on every call (once a second, open or
+         not). AFTER it is drawn only while the panel is open, and again only when what it shows changes (the phase name,
+         the rounded illumination, waxing or waning, or a new live phase angle). */
+      var smallMoonEl = document.getElementById("celMoonSvg");
+      var smallKey = (waxing ? "waxing" : "waning") + "|" + illumPercent + "|" + phaseName + "|" + (isNow && cachedRealMoonPhase ? "live " + phaseAngleDeg : "calc");
+      if (smallMoonEl && smallMoonEl.closest && smallMoonEl.closest(".is-open") && smallKey !== smallMoonKey) {
+        smallMoonKey = smallKey;
+        drawSmallMoonSVG(smallMoonEl, phaseAngleDeg, illumPercent / 100, waxing);
+      }
     }
+    var smallMoonKey = null;
+    var abyssMoonKey = null;
 
     /* ── Ambient realistic moon rendered into the abyss (.scene), behind
        all page content — reuses getMoonData/getActiveMoment, has its own
@@ -5695,12 +5728,29 @@
         phaseAngleDeg = moon.phaseFraction * 360; /* same 0/90/180/270 convention as the real API */
       }
 
+      /* NAMED (Nov 26 2026, FX4A): BEFORE every call (renderClock, once a second) rebuilt the whole SVG: its filters, its
+         masks and a new <image> of the moon photo, which the browser decoded again each second (oracle.html's stutter).
+         AFTER the moon is drawn once; a later call draws again only when what it shows changes (the phase name, the
+         rounded illumination, waxing or waning, or a new live phase angle), and then moves the terminator in place, so
+         the same <image> is kept and never decoded again. */
+      var moonKey = (waxing ? "waxing" : "waning") + "|" + (isNow && cachedRealMoonPhase
+        ? "live " + phaseAngleDeg + " " + Math.round(cachedRealMoonPhase.illuminatedFraction * 100) + " " + (cachedRealMoonPhase.phaseName || moon.phaseName)
+        : "calc " + moon.illumPercent + " " + moon.phaseName);
+      if (moonKey === abyssMoonKey && container.querySelector("svg")) return;
+      abyssMoonKey = moonKey;
+
       var size = 200;
       var r = size / 2 - 10;
       var cx = size / 2;
       var cy = size / 2;
       var imgR = r * 1.18;
       var terminatorPath = buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing);
+      var drawnPaths = container.querySelectorAll("svg mask path");
+      if (drawnPaths.length === 2 && container.querySelector("svg image")) {
+        drawnPaths[0].setAttribute("d", terminatorPath);
+        drawnPaths[1].setAttribute("d", terminatorPath);
+        return;
+      }
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
@@ -5946,6 +5996,13 @@
        strip that differs between mychart.html and oracle.html (element id and
        class prefix). fetchTodayEvents itself is identical in both files. An
        empty day renders nothing; a failed one says so. */
+    // NAMED (Nov 26 2026, FX4A): the busy line (a 429), in the same place as the failure below
+    function renderTodayEventsBusy(msg) {
+      var el = document.getElementById("celTodayEvents");
+      if (!el) return;
+      el.innerHTML = '<div class="cel-today-events-heading">Today</div><div class="cel-today-events-more"></div>';
+      el.lastChild.textContent = msg;
+    }
     function renderTodayEventsFailure(detail) {
       var el = document.getElementById("celTodayEvents");
       if (!el) return;
@@ -5984,9 +6041,9 @@
       var now = new Date();
       var todayJdn = gregorianToJDN(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
-      return fetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
+      return window.bfBusyFetch(API_URL + "/api/calendar/events?startJdn=" + todayJdn + "&endJdn=" + todayJdn, {
         headers: { "Authorization": "Bearer " + token }
-      })
+      }, renderTodayEventsBusy)   // NAMED (Nov 26 2026, FX4A): a 429 says so in the Today strip while it waits to ask again
         .then(function (r) {
           // A non-2xx is a failure, not an empty day.
           if (!r.ok) throw new Error("HTTP " + r.status);

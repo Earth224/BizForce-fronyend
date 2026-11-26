@@ -223,8 +223,18 @@
         stageEl.textContent = (waxing ? "Waxing" : "Waning") + " · " + descriptor;
       }
 
-      drawSmallMoonSVG(document.getElementById("celMoonSvg"), phaseAngleDeg, illumPercent / 100, waxing);
+      /* NAMED (Nov 26 2026, FX4A): BEFORE the small Celestial-panel moon was rebuilt on every call (once a second, open or
+         not). AFTER it is drawn only while the panel is open, and again only when what it shows changes (the phase name,
+         the rounded illumination, waxing or waning, or a new live phase angle). */
+      var smallMoonEl = document.getElementById("celMoonSvg");
+      var smallKey = (waxing ? "waxing" : "waning") + "|" + illumPercent + "|" + phaseName + "|" + (isNow && cachedRealMoonPhase ? "live " + phaseAngleDeg : "calc");
+      if (smallMoonEl && smallMoonEl.closest && smallMoonEl.closest(".is-open") && smallKey !== smallMoonKey) {
+        smallMoonKey = smallKey;
+        drawSmallMoonSVG(smallMoonEl, phaseAngleDeg, illumPercent / 100, waxing);
+      }
     }
+    var smallMoonKey = null;
+    var abyssMoonKey = null;
 
     /* ── Ambient realistic moon rendered into the abyss (.scene), behind
        all page content — reuses getMoonData/getActiveMoment, has its own
@@ -246,12 +256,29 @@
         phaseAngleDeg = moon.phaseFraction * 360; /* same 0/90/180/270 convention as the real API */
       }
 
+      /* NAMED (Nov 26 2026, FX4A): BEFORE every call (renderClock, once a second) rebuilt the whole SVG: its filters, its
+         masks and a new <image> of the moon photo, which the browser decoded again each second (oracle.html's stutter).
+         AFTER the moon is drawn once; a later call draws again only when what it shows changes (the phase name, the
+         rounded illumination, waxing or waning, or a new live phase angle), and then moves the terminator in place, so
+         the same <image> is kept and never decoded again. */
+      var moonKey = (waxing ? "waxing" : "waning") + "|" + (isNow && cachedRealMoonPhase
+        ? "live " + phaseAngleDeg + " " + Math.round(cachedRealMoonPhase.illuminatedFraction * 100) + " " + (cachedRealMoonPhase.phaseName || moon.phaseName)
+        : "calc " + moon.illumPercent + " " + moon.phaseName);
+      if (moonKey === abyssMoonKey && container.querySelector("svg")) return;
+      abyssMoonKey = moonKey;
+
       var size = 200;
       var r = size / 2 - 10;
       var cx = size / 2;
       var cy = size / 2;
       var imgR = r * 1.18;
       var terminatorPath = buildMoonTerminatorPath(cx, cy, r, phaseAngleDeg, waxing);
+      var drawnPaths = container.querySelectorAll("svg mask path");
+      if (drawnPaths.length === 2 && container.querySelector("svg image")) {
+        drawnPaths[0].setAttribute("d", terminatorPath);
+        drawnPaths[1].setAttribute("d", terminatorPath);
+        return;
+      }
 
       container.innerHTML =
         '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">' +
