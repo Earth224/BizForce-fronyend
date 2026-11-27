@@ -381,6 +381,13 @@
       "A new conversation starts from the Message button on a marketplace or garage-sale listing; there is no new-message button here.",
       "\"No conversations yet.\" means none has started; open a listing and press its Message button."
     ],
+    /* NAMED (Nov 26 2026, FX4M): the Inbox shows the Guide tab, as on the dashboard and the profile. */
+    "inbox.html": [
+      "Under \"Messages\", press a conversation, type in \"Write a message\" and press \"Send\"; a number on a tab counts what is unread or waiting.",
+      "Under \"Approvals\", open what an agent proposes and press \"Approve\" or \"Reject\"; \"See every detail\" opens it on the Proposals page.",
+      "\"Notifications\" lists what happened on your account; press \"Mark all read\" to clear the dots, or \"Turn on push notifications\" for this device.",
+      "A list says it \"could not be loaded just now\"? The read failed, not your messages; reload the page. Email lives under \"Your email\", not here."
+    ],
     "mychart.html": [
       "Tap any part of the triangle to open its reading in the side panel.",
       "Press \"Ask Termaximus about\" in that panel to send the question to the same thread as the Oracle page.",

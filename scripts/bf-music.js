@@ -48,10 +48,14 @@
    CONTINUITY ACROSS PAGES, honestly: a page's audio stops when the page
    goes. The next page restores the track, the position, the queue and the
    volume (bf_music), and if the music was playing it resumes by itself
-   (HQ1, Nov 19 2026: only with "Play when I open BizForce" on and no pause or
-   stop by the member in this visit, loadPlayAllowed; otherwise it waits,
-   paused, for play)
-   (after RESUME_WAIT_MS, long enough to hear a pop-out that is playing). A
+   (FX4M, Nov 26 2026, the owner's option b: whatever "Play when I open
+   BizForce" says, when it was playing as the last page went, in this visit,
+   with no pause or stop since, resumeWanted; a paused or stopped player and a
+   fresh visit stay silent; opening Home stops it, HOME_FEED. HQ1's rule, only
+   with the setting on, is replaced)
+   (after RESUME_WAIT_MS, long enough for a pop-out to answer the page's ping;
+   with the last signed URL still good, URL_STASH_KEY, without asking for a
+   new one or waiting for the library). A
    continuation is tried without waiting for a click; if the browser refuses
    sound before an interaction, the tag says RESUME_TAP and the first click,
    tap or key press resumes it. CONTINUITY_NOTE says so. With the pop-out
@@ -182,7 +186,14 @@
   var PLAYER_PATH = "/api/music/player";
   var PLAYER_SAVE_MS = 600;
   var PEAK_FALL = 0.012;
-  var RESUME_WAIT_MS = 400;
+  /* NAMED (Nov 26 2026, FX4M): BEFORE 400 ms after the library arrived (long enough to hear a pop-out's next status, sent
+     every TICK_MS); AFTER 150 ms from the page's start: the page asks ("ping") and a pop-out answers at once. */
+  var RESUME_WAIT_MS = 150;
+  /* NAMED (Nov 26 2026, FX4M): sessionStorage, the signed URL of the track that was playing, kept while it has a minute
+     left, so the next page plays without asking the server first. Its name starts with LIVE_KEY, so sign-out clears it. */
+  var URL_STASH_KEY = "bf_music_live_url";
+  /* NAMED (Nov 26 2026, FX4M): opening Home (For You, Local, Following, Market, Search) stops the music. */
+  var HOME_FEED = "home.html";
   var LEVELS_MS = 33;
   var LEVELS_STALE_MS = 400;
   var REPEATS = ["off", "all", "one"];
@@ -352,13 +363,24 @@
   }
   /* A signed URL for a track: the one held while it has a minute left, else a new one. */
   function urlFor(id, fresh) {
-    var held = urls[id];
+    var held = urls[id] || (fresh ? null : stashedUrl(id));
     if (!fresh && held && held.expires - Date.now() > URL_MARGIN_MS) return Promise.resolve(held.url);
     return api("/api/music/tracks/" + encodeURIComponent(id) + "/url").then(function (r) {
       if (!r.ok || !r.body.url) throw new Error(r.body.error || "The track could not be opened just now.");
       urls[id] = { url: r.body.url, expires: Date.parse(r.body.expires_at) || 0 };
+      stashUrl(id, urls[id]);
       return r.body.url;
     });
+  }
+  /* FX4M: the last signed URL, for this member and this track, while it has a minute left; null otherwise. */
+  function stashedUrl(id) {
+    var s = null;
+    try { s = JSON.parse(sessionStorage.getItem(URL_STASH_KEY) || "null"); } catch (e) { s = null; }
+    if (!s || !UID || s.uid !== UID || s.id !== id || typeof s.url !== "string" || !(s.expires - Date.now() > URL_MARGIN_MS)) return null;
+    return { url: s.url, expires: s.expires };
+  }
+  function stashUrl(id, u) {
+    try { if (UID && u && u.expires) sessionStorage.setItem(URL_STASH_KEY, JSON.stringify({ uid: UID, id: id, url: u.url, expires: u.expires })); } catch (e) { /* storage unavailable */ }
   }
 
   /* ── the sound ──────────────────────────────────────────────────────────── */
@@ -477,7 +499,8 @@
   }
   function currentPosition() {
     var d = decks[active];
-    return d && d.track ? (Number(d.el.currentTime) || 0) : (Number(S.position) || 0);
+    // FX4M: until the track has loaded here (a carry-on still starting), the saved position stands, exactly
+    return d && d.track && d.el.readyState !== 0 ? (Number(d.el.currentTime) || 0) : (Number(S.position) || 0);
   }
   function currentDuration() {
     var d = decks[active], t = trackById(S.track_id);
@@ -571,9 +594,10 @@
   }
   /* After a page change: carry on from where the last page stopped. */
   function resumeAfterNavigation() {
+    if (R.settled) return Promise.resolve(false);   // FX4M: settled already (Home, a pause, or the other path started it)
     R.settled = true;
-    if (!loadPlayAllowed()) { save(); render(); return Promise.resolve(false); }   // HQ1
-    if (popoutAlive() || R.playing || !S.was_playing || !S.track_id || !trackById(S.track_id)) { render(); return Promise.resolve(false); }
+    if (!resumeWanted()) { save(); render(); return Promise.resolve(false); }   // FX4M (was HQ1's loadPlayAllowed)
+    if (popoutAlive() || R.playing || (!trackById(S.track_id) && !stashedUrl(S.track_id))) { render(); return Promise.resolve(false); }
     R.resuming = true;
     R.armed = false;
     return startTrack(S.track_id, S.position);
@@ -686,6 +710,13 @@
   /* HQ1 (Nov 19 2026): THE ONE RULE for sound on a page's load: only with "Play when I open BizForce" on (S.autoplay, saved
      by its checkbox), and not after the member paused or stopped in this visit. */
   function loadPlayAllowed() { return S.autoplay === true && !held(); }
+  /* NAMED (Nov 26 2026, FX4M, the owner's option b): BEFORE music playing when the last page went carried on here only
+     with "Play when I open BizForce" on (loadPlayAllowed). AFTER it carries on whatever that setting says, but only when it
+     was playing at that moment (was_playing), in this visit (sessionLive: this tab has played and was not stopped), and
+     the member has not paused or stopped since (held). A fresh visit never starts sound by itself; a paused player stays
+     paused. Opening Home (HOME_FEED) stops it, so nothing carries on from there. */
+  function resumeWanted() { return S.was_playing === true && !!S.track_id && sessionLive() && !held() && !onHomeFeed(); }
+  function onHomeFeed() { var T = themeEngine(); return MODE !== "popout" && !!T && T.pageKey() === HOME_FEED; }
   function sessionLive() { try { return !!UID && sessionStorage.getItem(LIVE_KEY) === UID; } catch (e) { return false; } }
   function stop() {
     hold(true);   // HQ1
@@ -867,6 +898,8 @@
       return;
     }
     /* the pop-out */
+    // NAMED (Nov 26 2026, FX4M): a page that has just opened asks; the pop-out says at once whether it is there and playing
+    if (m.type === "ping") { postStatus(); return; }
     if (m.type === "handoff" && m.to === ID) {
       /* Every open page answers; the one that was playing wins, and a quiet
          page's answer counts only while none has been taken. */
@@ -938,14 +971,15 @@
 
   /* ── the loops: the clock, the energy, the visualiser ───────────────────── */
   var ticker = null;
+  function postStatus() {
+    var t = trackById(S.track_id);
+    post({ type: "status", from: ID, role: MODE, playing: R.playing, track_id: S.track_id, title: t ? t.title : "", artist: t ? t.artist : "",
+      position: currentPosition(), duration: currentDuration(), shuffle: S.shuffle, repeat: S.repeat, volume: S.volume, muted: S.muted });
+  }
   function tick() {
     mixWatch();
     if (R.playing && Date.now() - R.lastSave >= SAVE_EVERY_MS) { R.lastSave = Date.now(); save(); }
-    if (R.playing || MODE === "popout") {
-      var t = trackById(S.track_id);
-      post({ type: "status", from: ID, role: MODE, playing: R.playing, track_id: S.track_id, title: t ? t.title : "", artist: t ? t.artist : "",
-        position: currentPosition(), duration: currentDuration(), shuffle: S.shuffle, repeat: S.repeat, volume: S.volume, muted: S.muted });
-    }
+    if (R.playing || MODE === "popout") postStatus();
     if (R.playing && !energyTimer) startEnergy();
     if (R.playing && MODE === "popout" && !levelsTimer) startLevels();
     renderClock();
@@ -1770,12 +1804,29 @@
     }
     window.addEventListener("pagehide", function () { if (R.playing) save(); });
     ticker = setInterval(tick, TICK_MS);
+    post({ type: "ping", from: ID });   // FX4M: a pop-out answers at once
+    /* NAMED (Nov 26 2026, FX4M): HOME STOPS THE MUSIC. Opening home.html pauses it where it was (the player still shows
+       here, paused, for a play by hand), clears "it was playing" so the next page does not carry on, and counts as the
+       member's own stop for this visit (held), so "Play when I open BizForce" does not start it again on the next page
+       either. A pop-out that is playing is paused too, once it has answered. */
+    if (onHomeFeed()) {
+      R.settled = true;
+      hold(true);
+      save();
+      setTimeout(function () { if (popoutAlive()) relay("pause"); }, RESUME_WAIT_MS);
+    }
+    /* FX4M: the fast carry-on. With the last signed URL still good, it starts RESUME_WAIT_MS after the page's start,
+       without waiting for the library or a new URL. */
+    var fastResume = resumeWanted() && !!stashedUrl(S.track_id);
+    if (fastResume) setTimeout(resumeAfterNavigation, RESUME_WAIT_MS);
     loadLibrary().then(function () {
+      if (fastResume) { render(); return; }
       /* HQ1 (Nov 19 2026). NAMED BEFORE: music that was playing when the last page went carried on here by itself (the
          resume below) whatever "Play when I open BizForce" said, and with it on, every page but the dashboard armed the
          player on load (the icon stage, the dashboard's, was left out), so the member's first tap anywhere started the
          music. AFTER: both only when loadPlayAllowed(): the setting on, and no pause or stop by the member in this visit. */
-      if (loadPlayAllowed() && S.was_playing && S.track_id && trackById(S.track_id)) {
+      // NAMED (Nov 26 2026, FX4M): BEFORE loadPlayAllowed() (the setting); AFTER resumeWanted() (it was playing, in this visit)
+      if (!R.settled && resumeWanted() && trackById(S.track_id)) {
         /* Music was playing when the last page went: carry on, once a
            pop-out that is playing has had time to say so. */
         setTimeout(resumeAfterNavigation, RESUME_WAIT_MS);
@@ -1796,7 +1847,7 @@
     AUTOPLAY_LABEL: AUTOPLAY_LABEL, AUTOPLAY_NOTE: AUTOPLAY_NOTE, REMOTE_PLAYING: REMOTE_PLAYING, REMOTE_OPEN: REMOTE_OPEN,
     POPUP_BLOCKED: POPUP_BLOCKED, RESUME_TAP: RESUME_TAP, CONTINUITY_NOTE: CONTINUITY_NOTE, KEEP_PLAYING: KEEP_PLAYING, KEEP_PLAYING_HELP: KEEP_PLAYING_HELP,
     EQ_HZ: EQ_HZ, EQ_TYPE: EQ_TYPE, EQ_MAX: EQ_MAX, PLAYER_LOCAL: PLAYER_LOCAL, clampDb: clampDb, setEq: setEq, setFinish: setFinish,
-    _filters: function () { return filters; }, _meters: function () { return { left: meterL, right: meterR }; }, RESUME_WAIT_MS: RESUME_WAIT_MS, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
+    _filters: function () { return filters; }, _meters: function () { return { left: meterL, right: meterR }; }, RESUME_WAIT_MS: RESUME_WAIT_MS, URL_STASH_KEY: URL_STASH_KEY, HOME_FEED: HOME_FEED, resumeWanted: function () { return resumeWanted(); }, CROSSFADE_MAX: CROSSFADE_MAX, ENERGY_HZ: ENERGY_HZ, STORE_KEY: STORE_KEY, CHANNEL_NAME: CHANNEL_NAME,
     fadeGains: fadeGains, energyStep: energyStep, easeOut: easeOut, clamp01: clamp01,
     play: play, pause: pause, toggle: toggle, next: next, prev: prev, seek: seek, setVolume: setVolume, toggleMute: toggleMute,
     setShuffle: setShuffle, cycleRepeat: cycleRepeat, setRepeat: setRepeat, setCrossfade: setCrossfade, setView: setView,
