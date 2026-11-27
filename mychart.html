@@ -1148,6 +1148,48 @@
       color: rgba(232,232,255,0.55);
     }
     .mychart-sigil-caption .sigil-unavailable { color: rgba(232,232,255,0.45); font-style: italic; }
+    /* NAMED (Nov 27 2026, FX4B2; FX4B3): MY CHART ON A PHONE, THE SAME COMPOSITION, WITH DRAG, PINCH AND DOUBLE-TAP.
+       BEFORE (FX4B) the desktop composition was drawn at one scale s (the page's content width / 1052) and nothing more, so
+       the cards' text was 2.9 to 4.2 px and could not be read. AFTER the stage still keeps the DESKTOP box (1052 x 1100, so
+       renderNatalOrbit draws the triangle, the ring and the cards from the desktop formula exactly) inside a viewport box,
+       .mc-zoom, the content width wide, its overflow hidden. FX4B3: it opens with the Divine Triangle large (it fills the
+       box's width less 16 px) and the houses around it showing (the box is min(1100 x that zoom, 72% of the viewport's height)
+       tall); a drag explores the rest, a double-tap shows the whole chart (every card inside the box, centred) and another
+       brings the start back, and a pinch goes from the whole chart up to the desktop size. At the whole chart a one-finger
+       drag scrolls the page (touch-action pan-y); zoomed in the box takes the touch (none), and the part of a vertical drag
+       the chart's edge stops scrolls the page. The stage is moved by a transform
+       only (translate and scale), so nothing reflows; will-change is set only while a gesture moves it, so at rest the
+       browser draws it sharp at its new size. The box, the hint line under it and the stage's inline transform exist only
+       while a chart is drawn below 600 px (fitChartStage); the reading panel is outside the stage and keeps its own size.
+       The sigil figure spans the content width (its panel's padding given back on each side), with its SVG and viewBox as
+       they are. Desktop: none of this applies. */
+    @media (max-width: 599.98px) {
+      .mc-zoom {
+        position: relative;
+        flex: none;
+        overflow: hidden;
+        touch-action: pan-y;
+      }
+      .mc-zoom.mc-zoomed { touch-action: none; }
+      .mc-zoom > .my-chart-stage.mc-fit {
+        flex: none;
+        width: 1052px;
+        height: 1100px;
+        min-height: 1100px;
+        transform: scale(var(--mc-fit, 1));
+        transform-origin: 0 0;
+      }
+      .mc-zoom > .my-chart-stage.mc-moving { will-change: transform; }
+      .mc-zoom > .my-chart-stage.mc-glide { transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1); }
+      .mc-zoom-hint {
+        margin-top: 12px;
+        font-size: 0.72rem;
+        line-height: 1.65;
+        color: rgba(232,232,255,0.55);
+        text-align: center;
+      }
+      .mychart-sigil-figure { width: var(--mc-avail, auto); margin-left: calc((100% - var(--mc-avail, 100%)) / 2); }
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -3309,6 +3351,13 @@
       }
       if (!nodes.length) return;
 
+      /* NAMED (Nov 26 2026, FX4B): on a phone the stage keeps the desktop box and is drawn scaled (fitChartStage). Every
+         measurement below is taken with the scale lifted for this pass, so it reads the desktop box and gives the desktop
+         numbers; the scale is put back at the end of this function, before anything is painted. */
+      fitChartStage();
+      var fitTransform = stage.style.transform;
+      stage.style.transform = "none";
+
       var triangleEl = stage.querySelector(".dtb-visual-large");
 
       /* RESET BEFORE MEASURING — this is a bug fix, not a tidy-up.
@@ -3483,11 +3532,240 @@
       });
 
       stage.appendChild(wrap);
+      stage.style.transform = fitTransform;   // NAMED (Nov 26 2026, FX4B): the phone's scale back (none on a desktop)
+      mcZoomSettle();   // NAMED (Nov 27 2026, FX4B3): the start view measured again, now the triangle has its final size
+    }
+
+    /* NAMED (Nov 27 2026, FX4B2; FX4B3): the phone view, with drag, pinch and double-tap. Below 600 px, while the stage holds
+       the triangle or the ring, the stage is marked mc-fit (the desktop box, see the CSS) and set inside the .mc-zoom box, with
+       the hint line under it. The view is z (the stage's scale) and the offsets tx and ty:
+         s      the whole chart: the page's content width over the desktop stage's 1052 px (every card and the triangle in the box);
+         z0     the starting view (FX4B3): the triangle fills the box's width less 16 px, (box width - 16) / the triangle's
+                desktop width, measured; at most 1; the triangle's measured centre in the middle of the box;
+         1      the desktop size, the most a pinch can reach.
+       The box is the content width wide and min(1100 x z0, 0.72 x the viewport's height) tall, so the houses above and below
+       the triangle show at the start. The offsets are clamped so the chart always covers the box; where the chart is less
+       tall than the box (the whole-chart view, or on the way to it) it is centred in the box instead. mode remembers which
+       view is shown ("start", "whole" or "free" after a drag or pinch): when the content width changes (a turn of the phone)
+       the view returns to the start at once (no glide), and when it does not (the address bar showing or hiding, or the
+       ring's own redraw) the view is kept, re-centred on the triangle while it is still the start. At 600 px and up, or with
+       only a message in the stage, the box and the hint are taken away and the page is as it was. */
+    var MC_FIT_QUERY = "(max-width: 599.98px)", MC_FIT_W = 1052, MC_FIT_H = 1100;
+    var MC_TAP_SLOP = 8, MC_TAP_WAIT = 250, MC_TAP_NEAR = 40, MC_START_SIDE = 16, MC_BOX_VH = 0.72;
+    var mcZoom = { box: null, hint: null, s: 1, z0: 1, triW: 0, avail: 0, bh: 0, z: 1, tx: 0, ty: 0, raf: 0, mode: "start" };
+
+    function mcZoomClamp() {   // z to [s, 1]; each offset so the chart covers the box, or centred where it is smaller
+      var bw = mcZoom.avail, bh = mcZoom.bh;
+      mcZoom.z = Math.max(mcZoom.s, Math.min(1, mcZoom.z));
+      var w = MC_FIT_W * mcZoom.z, h = MC_FIT_H * mcZoom.z;
+      mcZoom.tx = w <= bw ? (bw - w) / 2 : Math.min(0, Math.max(bw - w, mcZoom.tx));
+      mcZoom.ty = h <= bh ? (bh - h) / 2 : Math.min(0, Math.max(bh - h, mcZoom.ty));
+    }
+    function mcZoomClampApply(glide) {
+      var stage = document.getElementById("myChartStage");
+      if (!stage || !mcZoom.box) return;
+      mcZoomClamp();
+      stage.classList.toggle("mc-glide", !!glide);
+      stage.style.transform = "translate(" + mcZoom.tx + "px, " + mcZoom.ty + "px) scale(" + mcZoom.z + ")";
+      mcZoom.box.classList.toggle("mc-zoomed", mcZoom.z > mcZoom.s + 1e-6);
+    }
+    function mcZoomFrame() {   // drag and pinch: one transform per frame
+      if (mcZoom.raf) return;
+      mcZoom.raf = requestAnimationFrame(function () { mcZoom.raf = 0; mcZoomClampApply(false); });
+    }
+    function mcZoomWhole(glide) { mcZoom.mode = "whole"; mcZoom.z = mcZoom.s; mcZoomClampApply(glide); }
+    function mcZoomStart(glide) {   // the triangle's measured centre, at z0, in the middle of the box
+      var stage = document.getElementById("myChartStage");
+      var tri = stage && stage.querySelector(".dtb-visual-large");
+      mcZoom.mode = "start";
+      if (!tri) { mcZoomWhole(glide); return; }
+      var sr = stage.getBoundingClientRect(), tr = tri.getBoundingClientRect();
+      var zNow = stage.offsetWidth ? sr.width / stage.offsetWidth : 1;   // the scale drawn now, whatever the view was
+      var kx = (tr.left + tr.width / 2 - sr.left) / zNow, ky = (tr.top + tr.height / 2 - sr.top) / zNow;   // desktop pixels
+      mcZoom.z = mcZoom.z0;
+      mcZoom.tx = mcZoom.avail / 2 - kx * mcZoom.z0;
+      mcZoom.ty = mcZoom.bh / 2 - ky * mcZoom.z0;
+      mcZoomClampApply(glide);
+    }
+    /* z0 and the box's height, from the triangle's desktop width. The phone's stage is always the same desktop box, so every
+       phone ring pass gives the triangle the same width: mcZoomSettle measures it there (its layout width; the stage's scale
+       does not change it) and keeps it in mcZoom.triW. Before the first ring pass the triangle's pre-ring width is read (the
+       731 px cap the desktop first draws it with). Kept so, the start view does not jump when the ring is drawn again, nor
+       straight after a turn from landscape, where the last ring pass sized the triangle for a different stage. */
+    function mcZoomMeasure() {
+      var stage = document.getElementById("myChartStage");
+      var tri = stage && stage.querySelector(".dtb-visual-large");
+      var triW = mcZoom.triW || 0;
+      if (!triW && tri) {
+        var keep = tri.style.maxWidth;
+        tri.style.maxWidth = "731px";
+        triW = tri.offsetWidth;
+        tri.style.maxWidth = keep;
+      }
+      mcZoom.z0 = triW > 0 ? Math.max(mcZoom.s, Math.min(1, (mcZoom.avail - MC_START_SIDE) / triW)) : mcZoom.s;
+      mcZoom.bh = Math.max(MC_FIT_H * mcZoom.s, Math.min(MC_FIT_H * mcZoom.z0, MC_BOX_VH * window.innerHeight));
+      mcZoom.box.style.height = mcZoom.bh + "px";
+    }
+    /* after the ring is drawn (the triangle's final size is known): the start view is measured again */
+    function mcZoomSettle() {
+      if (!mcZoom.box) return;
+      var tri = document.querySelector("#myChartStage .dtb-visual-large");
+      if (tri && tri.offsetWidth) mcZoom.triW = tri.offsetWidth;
+      if (mcZoom.mode === "start") { mcZoomMeasure(); mcZoomStart(false); }
+      else mcZoomClampApply(false);
+    }
+
+    function mcZoomBind(box) {
+      var g = null, lastTap = null, tapTimer = null;
+      function stageEl() { return document.getElementById("myChartStage"); }
+      function at(t) { var r = box.getBoundingClientRect(); return { x: t.clientX - r.left, y: t.clientY - r.top }; }
+      function zoomed() { return mcZoom.z > mcZoom.s + 1e-6; }
+      function pinchStart(a, b) {
+        var c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        g = { mode: "pinch", moved: true, d0: Math.max(1, Math.hypot(b.x - a.x, b.y - a.y)), z0: mcZoom.z,
+              k: { x: (c.x - mcZoom.tx) / mcZoom.z, y: (c.y - mcZoom.ty) / mcZoom.z } };
+      }
+      function panStart(p, moved, target) {
+        g = { mode: zoomed() ? "pan" : "page", moved: moved, x0: p.x, y0: p.y, lx: p.x, ly: p.y, target: target };
+      }
+      function moving(on) { var st = stageEl(); if (!st) return; st.classList.toggle("mc-moving", on); if (on) st.classList.remove("mc-glide"); }
+
+      box.addEventListener("touchstart", function (e) {
+        if (e.touches.length >= 2) {
+          e.preventDefault();
+          if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; lastTap = null; }
+          pinchStart(at(e.touches[0]), at(e.touches[1]));
+          moving(true);
+        } else if (e.touches.length === 1) {
+          panStart(at(e.touches[0]), false, e.target);
+        }
+      }, { passive: false });
+
+      box.addEventListener("touchmove", function (e) {
+        if (!g) return;
+        if (g.mode === "pinch" && e.touches.length >= 2) {
+          e.preventDefault();
+          var a = at(e.touches[0]), b = at(e.touches[1]);
+          var c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+          mcZoom.mode = "free";
+          mcZoom.z = Math.max(mcZoom.s, Math.min(1, g.z0 * Math.hypot(b.x - a.x, b.y - a.y) / g.d0));
+          mcZoom.tx = c.x - g.k.x * mcZoom.z;
+          mcZoom.ty = c.y - g.k.y * mcZoom.z;
+          mcZoomFrame();
+        } else if (e.touches.length === 1 && g.mode !== "pinch") {
+          var p = at(e.touches[0]), dx = p.x - g.lx, dy = p.y - g.ly;
+          if (!g.moved && Math.hypot(p.x - g.x0, p.y - g.y0) >= MC_TAP_SLOP) { g.moved = true; if (g.mode === "pan") moving(true); }
+          if (g.mode === "pan" && g.moved) {
+            e.preventDefault();
+            /* the drag pans the chart; the part of a vertical drag the clamp stops goes to the page, so the member is
+               never held inside the chart */
+            var ty0 = mcZoom.ty;
+            mcZoom.mode = "free";
+            mcZoom.tx += dx;
+            mcZoom.ty += dy;
+            mcZoomClamp();
+            var rest = dy - (mcZoom.ty - ty0);
+            if (Math.abs(rest) > 0.5) window.scrollBy(0, -rest);
+            mcZoomFrame();
+          }
+          g.lx = p.x; g.ly = p.y;
+        }
+      }, { passive: false });
+
+      function end(e, cancelled) {
+        if (!g) return;
+        if (!cancelled && e.touches.length >= 2) { pinchStart(at(e.touches[0]), at(e.touches[1])); return; }
+        if (!cancelled && e.touches.length === 1) { panStart(at(e.touches[0]), true, null); return; }
+        var was = g; g = null;
+        if (mcZoom.raf) { cancelAnimationFrame(mcZoom.raf); mcZoom.raf = 0; }
+        moving(false);
+        if (cancelled || was.moved || was.mode === "pinch") {
+          if (was.mode === "pinch" && mcZoom.z < mcZoom.s * 1.02) mcZoomWhole(true);   // a pinch let go just above the whole chart settles on it
+          else mcZoomClampApply(false);
+          return;
+        }
+        /* a tap: the browser's own click is held back, and the tap waits MC_TAP_WAIT ms for a second one. The time between the
+           two is the touches' own (e.timeStamp, when the finger lifted), not when the page got round to them, so a busy frame
+           (the chart drawn again after a pinch) does not split a double-tap into two taps. */
+        e.preventDefault();
+        var t = e.changedTouches[0], p = at(t), now = e.timeStamp;
+        if (lastTap && now - lastTap.t <= MC_TAP_WAIT && Math.hypot(p.x - lastTap.p.x, p.y - lastTap.p.y) <= MC_TAP_NEAR) {
+          clearTimeout(tapTimer); tapTimer = null; lastTap = null;
+          if (zoomed()) mcZoomWhole(true); else mcZoomStart(true);   // FX4B3: the whole chart and the start view, in turn
+          return;
+        }
+        lastTap = { t: now, p: p };
+        var target = was.target, cx = t.clientX, cy = t.clientY;
+        tapTimer = setTimeout(function () {
+          tapTimer = null; lastTap = null;
+          if (target && target.isConnected) target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window, clientX: cx, clientY: cy }));
+        }, MC_TAP_WAIT);
+      }
+      box.addEventListener("touchend", function (e) { end(e, false); }, { passive: false });
+      box.addEventListener("touchcancel", function (e) { end(e, true); }, { passive: false });
+    }
+
+    function fitChartStage() {
+      var stage = document.getElementById("myChartStage");
+      if (!stage) return;
+      var page = stage.closest(".page") || stage.parentElement;
+      var drawn = !!stage.querySelector(".dtb-visual-large, .natal-orbit");
+      if (!drawn || !window.matchMedia || !window.matchMedia(MC_FIT_QUERY).matches) {
+        if (mcZoom.box) {
+          mcZoom.box.parentNode.insertBefore(stage, mcZoom.box);
+          mcZoom.box.remove();
+          if (mcZoom.hint) mcZoom.hint.remove();
+          mcZoom.box = mcZoom.hint = null;
+        }
+        stage.classList.remove("mc-fit", "mc-moving", "mc-glide");
+        stage.style.removeProperty("--mc-fit");
+        stage.style.removeProperty("transform");
+        if (page) page.style.removeProperty("--mc-avail");
+        mcZoom.avail = 0;
+        return;
+      }
+      var cs = getComputedStyle(page);
+      var avail = page.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      var s = Math.min(1, avail / MC_FIT_W);
+      /* the triangle as the desktop first draws it (min(731px, 66.65vw) at a desktop's width), until the ring sizes it */
+      var tri = stage.querySelector(".dtb-visual-large");
+      if (tri && /vw/.test(tri.style.maxWidth)) tri.style.maxWidth = "731px";
+      if (!mcZoom.box) {
+        var box = document.createElement("div");
+        box.className = "mc-zoom";
+        box.id = "mcZoom";
+        stage.parentNode.insertBefore(box, stage);
+        box.appendChild(stage);
+        var hint = document.createElement("p");
+        hint.className = "mc-zoom-hint";
+        hint.id = "mcZoomHint";
+        hint.textContent = "Drag to explore · Double-tap to see your whole chart";
+        box.parentNode.insertBefore(hint, box.nextSibling);
+        mcZoom.box = box;
+        mcZoom.hint = hint;
+        mcZoomBind(box);
+      }
+      var widthChanged = Math.abs(avail - mcZoom.avail) > 0.5;
+      mcZoom.s = s;
+      mcZoom.avail = avail;
+      mcZoom.box.style.width = avail + "px";
+      stage.style.setProperty("--mc-fit", String(s));
+      page.style.setProperty("--mc-avail", avail + "px");
+      stage.classList.add("mc-fit");
+      if (widthChanged) { mcZoom.z = s; mcZoom.tx = 0; mcZoom.ty = 0; mcZoom.mode = "start"; }
+      if (widthChanged || mcZoom.mode === "start") { mcZoomMeasure(); mcZoomStart(false); }
+      else mcZoomClampApply(false);
     }
 
     var natalOrbitResizeTimer = null;
     window.addEventListener("resize", function () {
+      var mcWasAvail = mcZoom.avail;
+      fitChartStage();   // NAMED (Nov 26 2026, FX4B): the phone's scale follows at once
       if (!lastNatalData) return;
+      /* NAMED (Nov 27 2026, FX4B3): on a phone whose content width has just changed (a turn back from landscape, where the
+         ring and the triangle were sized for a different stage), the ring is drawn again at once, so the start view shows
+         the triangle at its size straight away rather than 150 ms later; the redraw below still follows, the same */
+      if (mcZoom.box && Math.abs(mcZoom.avail - mcWasAvail) > 0.5) renderNatalOrbit(lastNatalData);
       if (natalOrbitResizeTimer) clearTimeout(natalOrbitResizeTimer);
       natalOrbitResizeTimer = setTimeout(function () {
         renderNatalOrbit(lastNatalData);
@@ -3514,6 +3792,7 @@
       var blueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
       if (blueprint) {
         stage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(731px, 66.65vw)", interactive: true });
+        fitChartStage();   // NAMED (Nov 26 2026, FX4B)
         loadAndRenderOrbit();
         renderTzolkinCard();
         return;
@@ -3528,6 +3807,7 @@
         var loadedBlueprint = numerologyData && numerologyData.systems && numerologyData.systems.divineTriangleBlueprint;
         if (loadedBlueprint) {
           freshStage.innerHTML = renderDivineTriangleBlueprintVisual({ maxWidth: "min(731px, 66.65vw)", interactive: true });
+          fitChartStage();   // NAMED (Nov 26 2026, FX4B)
           loadAndRenderOrbit();
         } else if (numerologyFailed) {
           // A failed request is not missing birth data; "sync your birth data"
