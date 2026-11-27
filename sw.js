@@ -44,7 +44,7 @@ var BUILD = "__BF_BUILD__";
 // NAMED (Nov 22 2026, FX3): BEFORE "p31c". AFTER "fx3": the abyss sun and bf-abyss.js, Termaximus on the phone (the mist, the Guide tab, the chat; the book button gone), the agent cards' colours and icons.
 // NAMED (Nov 22 2026, FX3B): BEFORE "fx3". AFTER "fx3b": the first portal drawn before the settle, the moon not redrawn while its photo fails, the five unused agent icon rules removed.
 // NAMED (Nov 23 2026, P3-3): BEFORE "fx3b". AFTER "p33": Share, Offer or Need in the composer, the Need post and I can help in the feed, the Market's category filter.
-var SHELL_REV = "fx4m";   // NAMED (Nov 26 2026, FX4M): BEFORE "fx4a" (FX4A: BEFORE "h1b" (H1B: BEFORE "h1" (H1: BEFORE "g1" (HOTFIX-G1: BEFORE "lr4b"; LR-4B: BEFORE "lr4"; LR-4: BEFORE "lr3b"; LR-3B: BEFORE "lr3"; LR-3: BEFORE "lr2b"; LR-2B: BEFORE "lr2"; LR-2: BEFORE "lr1b"; LR-1B: BEFORE "lr1"))))
+var SHELL_REV = "fx4s";   // NAMED (Nov 26 2026, FX4S): BEFORE "fx4m" (FX4M: BEFORE "fx4a" (FX4A: BEFORE "h1b" (H1B: BEFORE "h1" (H1: BEFORE "g1" (HOTFIX-G1: BEFORE "lr4b"; LR-4B: BEFORE "lr4"; LR-4: BEFORE "lr3b"; LR-3B: BEFORE "lr3"; LR-3: BEFORE "lr2b"; LR-2B: BEFORE "lr2"; LR-2: BEFORE "lr1b"; LR-1B: BEFORE "lr1")))))
 var CACHE = "bf-shell-" + BUILD + "-" + SHELL_REV;
 
 var OFFLINE_PAGES = [

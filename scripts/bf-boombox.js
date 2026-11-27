@@ -509,7 +509,11 @@
     ".bfm-float[data-dock=phone][data-state=box]{max-height:88vh;overflow:auto;padding:12px 8px 8px;border-radius:16px 16px 0 0;background:rgba(8,10,24,.97);box-shadow:0 -10px 30px rgba(0,0,0,.55);align-items:center}",
     ".bfm-float[data-dock=phone] .bbx{transform:scale(var(--bbx-fit, 1));transform-origin:top center;margin-bottom:calc((var(--bbx-fit, 1) - 1) * " + BOX_H + "px)}",
     ".bfm-float[data-dock=phone] .bfm-drawer{position:static;width:100%;margin-top:8px;display:none}",
-    ".bfm-float[data-dock=phone][data-library=true] .bfm-drawer{display:block}",
+    /* NAMED (Nov 26 2026, FX4S): BEFORE [data-dock=phone][data-library=true], which outweighed the stage rule above (the drawer
+       hidden at the bar and the icon), so Library then Minimise left the whole library showing above the bar: the bar and its keys
+       pushed off the top of the screen, the drawer inert, the screen covered, and bf_boombox brought it back on every launch.
+       AFTER the drawer shows on a phone only in the open boombox, as everywhere else. */
+    ".bfm-float[data-dock=phone][data-state=box][data-library=true] .bfm-drawer{display:block}",
     ".bfm-float[data-dock=phone] .bfm-panel{transform:none;max-height:none}",
     ".bfm-float[data-dock=phone] .bbx-body-grip{cursor:default}",
     "@media (prefers-reduced-motion: reduce){.bbx-scroll,.bbx-ticker-track,.bfm-tag-scroll,.bbx-ticker,.bbx-sheen,.bbx-rim-shine,.bfm-tag-sheen{animation:none!important}.bbx-sweep{transition:none!important}.bbx-sheen,.bfm-tag .bfm-tag-sheen{display:none}.bbx-keys button,.bbx-fkeys button,.bfm-panel{transition:none}.bbx-marquee,.bbx-ticker,.bfm-tag-clip{text-overflow:ellipsis}}"
@@ -726,7 +730,10 @@
        icon; after that, what the member left it as (this device's bf_boombox, else their account's). */
     var remembered = STAGES.indexOf(prefs.state) !== -1;
     var state = popout ? "box" : stageOf(prefs.state, home);
-    var library = popout ? true : prefs.library === true;
+    /* NAMED (Nov 26 2026, FX4S): BEFORE popout ? true : prefs.library === true, so a phone reopened with the library over most of the
+       page. AFTER on a phone (the dock's own phone() test) the library is not reopened by itself at launch; Library opens it by hand
+       as before. The pop-out keeps its library always open, and a desktop restores it as before. */
+    var library = popout ? true : (prefs.library === true && !phone());
     var position = POSITIONS.indexOf(opts.position) !== -1 ? opts.position : "follow";
     var live = false;   // music playing, or paused mid-track this session (bf-music.js says)
     var M = { speed: 0, angle: 0, cone: 0, highs: 0, level: 0, left: 0, right: 0, t: 0 };
