@@ -1193,6 +1193,27 @@
       }
       .mychart-sigil-figure { width: var(--mc-avail, auto); margin-left: calc((100% - var(--mc-avail, 100%)) / 2); }
     }
+    /* NAMED (Nov 27 2026, FX4O): MY CHART'S ORDER ON A PHONE (the owner's board "MyChartOrder", approved). BEFORE below
+       600 px the Calendar and Tzolk'in cards (their shared column, .mychart-left-rail, static on a phone) came first, above
+       MY CHART and the chart. AFTER the chart comes first: the header row, MY CHART with its subtitle and the Sun, Moon and
+       ASC line, the chart and its hint, YOUR SIGIL, then the Calendar and the Tzolk'in card at the very bottom. The page is
+       already a flex column (.page), so the column is only given a later order: the same elements, ids, handlers, contents
+       and styles, nothing copied or moved in the document (the reading and Tab order stay as they were). At 600 px and up,
+       where the column is fixed at the left, nothing changes. */
+    @media (max-width: 599.98px) {
+      .mychart-left-rail { order: 1; }
+    }
+    /* NAMED (Nov 27 2026, FX4O2): MY CHART'S MOON ON A PHONE (the owner's board "MyChartMoonA", approved). BEFORE the fixed
+       abyss moon (top 8%, right 12%, 260 px) sat behind MY CHART, its subtitle and the Sun / Moon / ASC line. AFTER, as on
+       the Oracle (FX4O): the moon is 54% of the width, centred, its top 20 px under the header row (32 px of page padding,
+       the 44 px row, 20 px); the row's bottom margin (54vw + 40 px) starts MY CHART 20 px under the moon, and the chart and
+       everything below move down with it. The same moon, drawn once (FX4A); on this page it has no drag and no saved place.
+       .page > .top-nav, as on the Oracle, outweighs the music button's [data-bfm-row=true] rule. At 600 px and up nothing
+       changes. */
+    @media (max-width: 599.98px) {
+      .page > .top-nav { margin-bottom: calc(54vw + 40px); }
+      .abyss-moon { top: 96px; right: auto; left: 23vw; width: 54vw; height: 54vw; }
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
