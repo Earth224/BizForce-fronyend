@@ -1214,6 +1214,18 @@
       .page > .top-nav { margin-bottom: calc(54vw + 40px); }
       .abyss-moon { top: 96px; right: auto; left: 23vw; width: 54vw; height: 54vw; }
     }
+    /* NAMED (Nov 27 2026, FX4O4): MY CHART ON AN IPHONE (the owner's board "MyChartFix", approved). BEFORE the page's content
+       began under the iPhone's top safe area (css/bf-phone.css pads <html> by env(safe-area-inset-top)) but the moon, fixed in
+       the abyss, did not: with a 47 px safe area Back to Oracle sat at 79 to 123 px and the moon (top 96 px) covered it, and
+       MY CHART began 67 px under the moon; the chart began 28 px under the Sun / Moon / ASC line. AFTER the moon's top adds the
+       same env(safe-area-inset-top), so it is 20 px under the header row on every phone, with or without a safe area, and MY
+       CHART stays 20 px under the moon (the row's margin, FX4O2); the chart begins 16 px under the Sun line, so the first
+       house card (63 desktop px down the chart, 19 to 23 px here) is 35 to 39 px under it (the box no longer centres the whole
+       chart in extra height: see FX4O4 in the zoom code). At 600 px and up nothing changes. */
+    @media (max-width: 599.98px) {
+      .abyss-moon { top: calc(96px + env(safe-area-inset-top, 0px)); }
+      .mychart-title-row { margin-bottom: 16px; }
+    }
   </style>
 <link rel="stylesheet" href="/css/bf-phone.css"><!-- NAMED (Nov 19 2026, PH1): the phone layout; every rule is inside @media (max-width: 760px), so the desktop is unchanged. -->
 </head>
@@ -3579,7 +3591,7 @@
        ring's own redraw) the view is kept, re-centred on the triangle while it is still the start. At 600 px and up, or with
        only a message in the stage, the box and the hint are taken away and the page is as it was. */
     var MC_FIT_QUERY = "(max-width: 599.98px)", MC_FIT_W = 1052, MC_FIT_H = 1100;
-    var MC_TAP_SLOP = 8, MC_TAP_WAIT = 250, MC_TAP_NEAR = 40, MC_START_SIDE = 16, MC_BOX_VH = 0.72;
+    var MC_TAP_SLOP = 8, MC_TAP_WAIT = 250, MC_TAP_NEAR = 40, MC_START_SIDE = 16;   // NAMED (Nov 27 2026, FX4O4): BEFORE also MC_BOX_VH = 0.72 (see mcZoomMeasure)
     var mcZoom = { box: null, hint: null, s: 1, z0: 1, triW: 0, avail: 0, bh: 0, z: 1, tx: 0, ty: 0, raf: 0, mode: "whole" };   // NAMED (Nov 27 2026, FX4B4): BEFORE mode "start"
 
     function mcZoomClamp() {   // z to [s, 1]; each offset so the chart covers the box, or centred where it is smaller
@@ -3631,7 +3643,11 @@
         tri.style.maxWidth = keep;
       }
       mcZoom.z0 = triW > 0 ? Math.max(mcZoom.s, Math.min(1, (mcZoom.avail - MC_START_SIDE) / triW)) : mcZoom.s;
-      mcZoom.bh = Math.max(MC_FIT_H * mcZoom.s, Math.min(MC_FIT_H * mcZoom.z0, MC_BOX_VH * window.innerHeight));
+      /* NAMED (Nov 27 2026, FX4O4): BEFORE the box was max(1100 s, min(1100 z0, 72% of the screen's height)) tall, so the whole
+         chart (1100 s tall) sat centred in 113 to 143 px of blank band (360 to 430 px wide); AFTER the box is exactly the whole
+         chart's height. The large triangle (z0) and every zoom between are drawn and panned inside it as before; at z0 the
+         chart is now taller than the box, so a drag also moves it up and down (the same drag, both axes, already clamped). */
+      mcZoom.bh = MC_FIT_H * mcZoom.s;
       mcZoom.box.style.height = mcZoom.bh + "px";
     }
     /* after the ring is drawn (the triangle's final size is known): the start view is measured again */
